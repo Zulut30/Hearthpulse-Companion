@@ -53,5 +53,13 @@
   "Arena.Page.TabUndergroundTip": "Underground Arena: a run lasts to 12 wins or 5 losses, with stats of its own",
   "Arena.Page.CommunityNoSplit": "No class win rates for the Underground Arena yet.",
   "Arena.Page.DeckOtherSliceUnderground": "Card scores are for Underground Arena right now, so a regular Arena deck is not scored with them.",
-  "Arena.Page.DeckOtherSliceRegular": "Card scores are for the regular Arena right now, so an Underground deck is not scored with them."
+  "Arena.Page.DeckOtherSliceRegular": "Card scores are for the regular Arena right now, so an Underground deck is not scored with them.",
+  "Arena.DeckFit": "Deck fit: {0}",
+  "Arena.DeckFit.CurveCrowded": "Many cards at {0} mana",
+  "Arena.DeckFit.CurveThin": "Few cards at {0} mana",
+  "Arena.DeckFit.FewMinions": "Few minions",
+  "Arena.DeckFit.FewEarlyMinions": "Few early minions",
+  "Arena.DeckFit.ManySpells": "Many spells",
+  "Arena.DeckFit.ManyWeapons": "Enough weapons",
+  "Arena.DeckFit.Copies": "{0} copies already"
 }

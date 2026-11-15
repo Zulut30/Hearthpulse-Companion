@@ -16,6 +16,15 @@ public sealed record ArenaCardScore(string CardId, int DbfId, double? Score, dou
 
     /// <summary>Win rate of the games the card was played in, 0..1; null when the server did not send it.</summary>
     public double? PlayedWinRate { get; init; }
+
+    /// <summary>Class of the card as the server writes it (WARLOCK, NEUTRAL); null when the answer did not carry it.</summary>
+    public string? CardClass { get; init; }
+
+    /// <summary>
+    /// The tier letter the server sends with the row. Kept as sent and not shown: it follows the win rate, also for a
+    /// card with a handful of games and no score, while the badges use <see cref="Tier"/> (the score's letter).
+    /// </summary>
+    public string? SourceTier { get; init; }
 }
 
 /// <summary>Community results of one Arena class.</summary>
@@ -38,9 +47,16 @@ public sealed class ArenaMeta
     private readonly Dictionary<int, ArenaCardScore> _byDbf;
     private readonly Dictionary<string, ArenaClassStat> _byClass;
 
+    private readonly IReadOnlyDictionary<string, IReadOnlyList<string>> _packages;
+
     /// <param name="underground">The card slice is Underground Arena (true) or normal Arena (false); null when the server did not say.</param>
-    public ArenaMeta(IEnumerable<ArenaCardScore> cards, IEnumerable<ArenaClassStat> classes, DateTime? fetchedAt = null, bool? underground = null)
+    /// <param name="timeRange">The period of the card numbers as the server names it (LAST_4_DAYS).</param>
+    /// <param name="packages">Legendary packages of the Underground Arena by key card id.</param>
+    public ArenaMeta(IEnumerable<ArenaCardScore> cards, IEnumerable<ArenaClassStat> classes, DateTime? fetchedAt = null, bool? underground = null,
+        string? timeRange = null, IReadOnlyDictionary<string, IReadOnlyList<string>>? packages = null)
     {
+        TimeRange = timeRange;
+        _packages = packages ?? new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
         _byId = new Dictionary<string, ArenaCardScore>(StringComparer.Ordinal);
         _byDbf = new Dictionary<int, ArenaCardScore>();
         foreach (var card in cards)
@@ -69,10 +85,24 @@ public sealed class ArenaMeta
     /// <summary>Which Arena the card scores come from: Underground (true), normal (false) or unknown (null).</summary>
     public bool? Underground { get; }
 
+    /// <summary>The period the card numbers cover as the server names it (LAST_4_DAYS); null when it did not say.</summary>
+    public string? TimeRange { get; }
+
     public int CardCount => _byId.Count;
 
+    /// <summary>Legendaries the server lists a package for.</summary>
+    public int PackageCount => _packages.Count;
+
+    /// <summary>
+    /// The cards the server lists with a legendary of the Underground Arena, a copy per entry; empty for any other
+    /// card. A reference list for a pick already made: never for the offer on screen, where only what the client
+    /// itself showed may be named (docs/arena-draft.md, L-M1).
+    /// </summary>
+    public IReadOnlyList<string> PackageOf(string? keyCardId) =>
+        keyCardId is { Length: > 0 } && _packages.TryGetValue(keyCardId, out var cards) ? cards : [];
+
     /// <summary>The same card scores without the class numbers (they have no Underground split).</summary>
-    public ArenaMeta WithoutClasses() => new(Cards, [], FetchedAt, Underground);
+    public ArenaMeta WithoutClasses() => new(Cards, [], FetchedAt, Underground, TimeRange, _packages);
 
     /// <summary>Every scored or listed card.</summary>
     public IEnumerable<ArenaCardScore> Cards => _byId.Values;

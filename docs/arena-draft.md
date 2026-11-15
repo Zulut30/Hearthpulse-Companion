@@ -8,7 +8,9 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   score and tier colour; the highest score gets a gold border, a star and "Best pick". Under the score the badge says
   where the card would sit in the deck: its cost and how many cards of the deck share that curve bucket
   ("3 mana · 4 in deck"), and its type with the deck's count of that type ("Spell · 5 in deck"). A legendary that
-  brings a package (Underground) is scored as the average of the whole package and says "+2 cards with it". At the
+  brings a package (Underground) is scored as the average of the whole package and says "+2 cards with it". From
+  the sixth pick on, a scored card may get two more lines, our own adjustment for the deck so far and why
+  ("Deck fit: −2" / "Many cards at 5 mana · Few minions", see Deck fit); the big number stays the source's score. At the
   hero pick the badges show the class win rate (tier from the win rate), the class's place among all classes and the
   7+ wins share; the best class is marked. At the hero power pick there are no badges (no numbers exist for it).
 - **Overlay panel `arena-draft`** (left edge): run class (or "Choose a hero" / "Choose a hero power"), the run's mode
@@ -48,12 +50,32 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
 
 | Call | Used for | Cache |
 |---|---|---|
-| `GET datasets/hsreplay_arena_cards_advanced` | `data.structured.cards[]`: `id`, `dbfId`, `score` (ArenaSmith), `win_rate`, `pick_rate`, `times_played`; the slice's game type from `structured.source.api_url` (`ArenaGameTypeFilter=BGT_UNDERGROUND_ARENA`) | `cache/api/arena-cards.json`, 6 h; only those fields and `game_type` are kept (the answer is about 1.7 MB, the list is published twice) |
+| `GET v1/arena/cards?fields=id,dbfId,score,tier,cardClass,win_rate` | The card scores (since 2026-11-15). `data[]`: `id`, `dbfId`, `score` (ArenaSmith, or `null`), `tier`, `cardClass`, `win_rate` 0-100; `meta`: `count`, `limit` (5000 at most), `offset`, `game_type` (`underground` / `normal`), `time_range` (`LAST_4_DAYS`), `fetched_at` | `cache/api/arena-cards-route.json`, 6 h, the answer as it is (about 115 KB); a further page, if the list ever outgrows one, in `arena-cards-route-<n>.json` |
+| `GET datasets/hsreplay_arena_cards_advanced` | The same scores, read **only when the route gave no card** (not deployed: its 404 is cached like an answer; offline with no copy of the route). `data.structured.cards[]`; the slice's game type from `structured.source.api_url` (`ArenaGameTypeFilter=BGT_UNDERGROUND_ARENA`) | `cache/api/arena-cards.json`, 6 h; trimmed (the answer is about 1.7 MB, the list is published twice). The file of a version before the route still serves offline |
 | `GET v1/arena/classes?limit=20` | `data[]`: `class`, `win_rate`, `pick_rate`, `pct_7_plus`, `num_drafts` | `cache/api/arena-classes.json`, 6 h |
+| `GET datasets/hsreplay_arena_legendaries` | Legendary packages of the Underground Arena: `data.structured.groups[]` with `key_card.id` and `cards[]` (`id`, `count`). Used only after a pick (Legendary packages below) | `cache/api/arena-legendaries.json`, 6 h; trimmed to the key card and its cards' ids (the answer is about 580 KB) |
 
-- Checked live 2026-10-25 and again 2026-10-26: 1219 cards (147 without a score), 11 classes. The card list is one
-  all-classes slice (`arena_class: ALL`); the server builds it from `ArenaGameTypeFilter=BGT_UNDERGROUND_ARENA`,
-  `LAST_4_DAYS`. `structured.by_class` holds only card counts per class (DEATHKNIGHT 355, DRUID 336...), no scores.
+- Checked live 2026-11-15 (read-only GET): the route answers 1218 cards in one page, 146 of them with `score: null`;
+  `class=MAGE` filters by card class (83 rows); an unknown field is a 422 naming the allowed ones (`id, dbfId, name,
+  cost, type, rarity, cardClass, arena_class, tier, score, win_rate, deck_winrate, winrate_when_drawn,
+  winrate_when_played, popularity, in_runs, avg_copies, times_played, pick_rate, offer_rate`); `game_type=normal` is
+  ignored (the answer stays `underground`). Every row is the all-classes slice (`arena_class: ALL`): **no score by
+  the player's class exists**, a neutral card has one score whatever class drafts it. The legendaries dataset: 133
+  groups, one per key card (112 with three cards, 19 with two, 2 with one).
+- **A card without a score** (`score: null`: too few games) is shown without one: "—" and "No score yet" on the
+  badge, "—" in the deck list, not counted in the deck's average, never the best pick. It is not a 0. The `tier`
+  the route sends is kept (`ArenaCardScore.SourceTier`) but not shown: it follows the win rate, also for a card with
+  nine games and no score (TLC_231: `tier` S, `score` null), while the badge's letter is the score's
+  (`ArenaMeta.TierOf`, the site's thresholds).
+- `dbfId` is asked beyond the fields the roadmap names: a deck code's card the card data does not know yet is found
+  by it (`ArenaMeta.Card(dbfId)`). The route does not carry pick rate, games and drawn / played win rates; nothing in
+  the app showed them (`ArenaCardScore.PickRate`, `Games`, `DrawnWinRate`, `PlayedWinRate` stay filled on the dataset
+  path only).
+- `ArenaMeta` keeps what the answer says about itself: `Underground` (the slice), `TimeRange` and `FetchedAt` (the
+  date of the data). The date line in the draft panel belongs to the source-freshness package, not to this one.
+- Earlier checks (2026-10-25, 2026-10-26, the dataset): 1219 cards (147 without a score), 11 classes; the server
+  builds the slice from `ArenaGameTypeFilter=BGT_UNDERGROUND_ARENA`, `LAST_4_DAYS`. `structured.by_class` holds only
+  card counts per class (DEATHKNIGHT 355, DRUID 336...), no scores.
 - **Legal status**: the ArenaSmith scores are HSReplay numbers scraped by the server; the legal report
   `LEGAL-HeartLens-card-choices.md` (L-B1, L-M2) puts them under the same HearthSim ToS risk as the other HSReplay
   data. **Owner's decision 2026-10-27**: "for Arena use the ArenaSmith scores from our API and the class win rates";
@@ -61,8 +83,9 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   added for Arena; HearthArena stays unused.
 - Tier letters follow the site (`server/hsreplayArenasmith.ts` of hearthpulse.net): S 53+, A 45+, B 35+, C 24+,
   D 10+, else E. Class win-rate tiers: S 54%+, A 50%+, B 46%+, C 42%+, D 38%+, else E (`ArenaDraft.TierOfWinRate`).
-- Code: `HearthpulseData.LoadArenaMetaAsync` (`Api/HearthpulseData.Arena.cs`) -> `Arena/ArenaMeta` (`Underground` =
-  the slice's mode). Hosts load it with the community stats (`App.Arena.cs`, `AppHost.Arena.cs`) and pass it to
+- Code: `HearthpulseData.LoadArenaMetaAsync` (`Api/HearthpulseData.Arena.cs`: `LoadArenaRouteAsync`, then the
+  dataset; `ParseArenaRoute`, `ParseArenaLegendaries`) -> `Arena/ArenaMeta` (`Underground` = the slice's mode,
+  `TimeRange`, `FetchedAt`, `PackageOf`). Never throws (a timeout included). Hosts load it with the community stats (`App.Arena.cs`, `AppHost.Arena.cs`) and pass it to
   `GameSession.SetArenaMeta` and `MainViewModel.SetArenaMeta`. Offline the stale cache is used; with nothing at all the
   panel says so and the deck and curve still work.
 
@@ -72,7 +95,7 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
 |---|---|---|
 | `hsreplay_arena`, `hsreplay_arena_class_pages_firecrawl` | class win rate, pick rate, 7+ share, drafts (what `v1/arena/classes` serves; `source_id` picks one of them) | yes, via `v1/arena/classes` |
 | `hsreplay_arena_cards_advanced` | ArenaSmith score per card, Underground, all classes | yes |
-| `hsreplay_arena_legendaries` | 134 legendary packages (`groups[]`: `key_card`, `cards[]`), Underground | no: the client gives the package of each offer itself |
+| `hsreplay_arena_legendaries` | 133 legendary packages (`groups[]`: `key_card`, `cards[]`), Underground | after a pick only, as a stand-in when the offer was not read (Legendary packages below); never on a badge |
 | `hsreplay_arena_winning_decks` | winning decks (12 MB) | no |
 | `heartharena_tierlist` | **per-class card scores**: 11 classes + `any`, about 355 cards each, `score` 1..145, `tier_id` terrible..great; 178 of 316 neutral cards score differently by class | no, waiting for the owner's decision: a scrape of a commercial site whose terms of use were not checked; the same legal question as the HSReplay data (`reference/reviews/LEGAL-HeartLens-card-choices.md`, L-B1/L-M1). Check HearthArena's ToS before wiring it |
 | `firestone_arena_cards_normal`, `firestone_arena_cards_underground`, `firestone_arena_legendaries_*` | the only **normal-Arena** card slice, and Underground | never: Firestone data has no permission (hearthpulse-data-sources) |
@@ -83,7 +106,75 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   (HearthArena has them, see above).
 - **Normal Arena vs Underground** from a permitted source: the published HSReplay slice is Underground only; a
   normal-Arena slice (or a `mode` parameter) would let the badges match the run. The panel says which slice it shows.
-- **A small cards endpoint** (`v1/arena/cards?fields=id,score`): the app trims the 1.7 MB dataset itself.
+- A small route for the legendary packages (key card and card ids): the app trims the 580 KB dataset itself.
+
+The small cards route asked for here exists since 2026-11-15 (`v1/arena/cards`, above).
+
+## Deck fit (our own adjustment, 2026-11-15)
+
+A source score says how good a card is on average, not what this deck still needs. `Arena/ArenaDeckFit.cs` adds a
+small adjustment from the card data alone (cost, type, name). It is our own rule: no synergy table and no number of
+HDT, Firestone or HearthArena was read for it, and it is no statistic of the data API.
+
+- **Shown apart.** The badge's number, its tier letter and "Best pick" are the source's and do not move. The
+  adjustment is a line of its own under them ("Deck fit: −2", `Arena.DeckFit`) with the two strongest reasons on
+  the next line. `ArenaPickOption.Score` stays the source's score, `ArenaPickOption.Fit` (`ArenaFit`: `Points`,
+  `Parts`) carries ours.
+- **When.** For a card offer, from five cards in the deck on (`MinPicks`: the first picks take the strongest
+  card). Not for a card without a score (nothing to adjust), not for a legendary shown with its package (its number
+  is the package's average), not for heroes and hero powers, not for a card the card data does not know.
+- **Limit.** Each term is at most 2 points, the sum is kept within ±4 (`ArenaDeckFit.Limit`) on the 0-60 score scale.
+- **Target curve** of a 30-card deck by cost slot, set by us (a plain tempo curve: the bulk at 2-4 mana):
+
+  | Cost | 0-1 | 2 | 3 | 4 | 5 | 6 | 7+ |
+  |---|---|---|---|---|---|---|---|
+  | Cards of 30 | 3 | 7 | 6 | 5 | 4 | 3 | 2 |
+
+- **Rule**, with `n` cards in the deck (hero powers are no cards) and `share = (n + 1) / 30`:
+
+  | Term | Condition | Points | Reason on the badge |
+  |---|---|---|---|
+  | Curve, crowded | `d = (cards in the card's slot + 1) − target × share`, `d ≥ 1` | `−min(d, 2)` | "Many cards at N mana" |
+  | Curve, thin | `d ≤ −1` | `+min(−d, 2)` | "Few cards at N mana" |
+  | Minions | the card is a minion and `minions × 2 < n` | +1 | "Few minions" |
+  | Early minions | the card is a minion costing 3 or less and `(minions costing ≤ 3 + 1) − 8 × share ≤ −1` | +1 | "Few early minions" |
+  | Spells | the card is a spell and `spells + 1 > 0.4 × (n + 1)` | −1 | "Many spells" |
+  | Weapons | the card is a weapon and the deck has 2 or more | −1 | "Enough weapons" |
+  | Copies | `k ≥ 2` cards of the same name in the deck (a CORE reprint is the same card) | `−min(k − 1, 2)` | "k copies already" |
+
+  Between −1 and +1 the curve term is nothing, so a card on the curve gets no line. Locations and hero cards have
+  the curve and copies terms only.
+- **Example.** 14 cards taken: ten 5-cost spells and four 6-cost minions; a 2-cost minion with a source score of 38
+  is offered. `share = 15/30 = 0.5`. Curve: slot "2" has 0, so `d = 1 − 7 × 0.5 = −2.5`, +2. Minions: `4 × 2 < 14`,
+  +1. Early minions: `1 − 8 × 0.5 = −3`, +1. Sum +4. The badge reads "38" and under it "Deck fit: +4" /
+  "Few cards at 2 mana · Few minions". The same spell offered an eleventh time: slot "5" `11 − 4 × 0.5 = 9`, −2;
+  spells `11 > 6`, −1; ten copies, −2; sum −5, shown as "Deck fit: −4".
+- Tests with the sums worked out by hand: `ArenaDeckFitTests`; both hosts and both languages:
+  `ViewModelContractTests.Overlay_arena_badges_show_the_deck_fit_apart_from_the_score_in_both_hosts`.
+- Not done on purpose: the best pick is still the highest source score (the adjustment only informs); tribes,
+  card text and class are not read; the target curve is the same for every class.
+
+## Legendary packages and L-M1 (decision, 2026-11-15)
+
+The roadmap asks to read `hsreplay_arena_legendaries` "to show the package's average when the client did not reveal
+the package". L-M1 (legal report `LEGAL-HeartLens-claude-arena-draft-v1.md`) forbids exactly that: before the pick a
+badge may name only what the client itself put on screen. So:
+
+- **Before the pick nothing changes and the server's list is never used.** The badge's package ("+N cards with
+  it") and the package's average come only from the offer read from the client (`m_packageCardIds`), as before; that
+  rule and its open check (item 2 of the list below) stand. With no package in the offer, the badge shows the
+  legendary's own score and no package, although `ArenaMeta.PackageOf` knows one. Pinned by
+  `ArenaDataRouteTests.The_servers_package_list_is_never_shown_on_an_offer`.
+- **After the pick** the server's list stands in for the client's only where the client's is missing and the list
+  cannot be wrong about what was on screen (`GameSession.AddListedPackage`): the pick was logged live (not while
+  catching up), its offer was **not** read from memory, the run is known to be Underground, it is the first draft
+  (revision 0) and the pick is the deck's **first card** - the legendary with its package, as in the real log of
+  2026-10-28. An offer that was read is the truth also when it brought no package (a legendary offered later in the
+  draft comes alone). The cards are added to the deck once, `hearthpulse.log` says where they came from
+  (`... (the server's package list: the offer was not read from memory)`), and the client's deck list and the game's
+  deck still correct the result.
+- The dataset's own `score`, `winrate`, `pick_rate` of a group are not read or shown; no package average is
+  computed from the server's list.
 
 ## Draft state
 
@@ -123,13 +214,22 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   forgets it, so one run's offer or game never sets another's. `ArenaDraft.Build` scores with the slice of the run's
   Arena; the server has one slice (Underground), so a normal run keeps the slice note and an unknown run gets none.
 - **Revisions and the redraft** (A1, 2026-11-09; rule, not yet checked on a live log: no Arena.log with `REDRAFTING`
-  exists). `SetDraftMode - REDRAFTING` (a change into it; the line repeated is the same redraft) starts revision r+1
+  exists; edge cases covered 2026-11-15, see the end of this item). `SetDraftMode - REDRAFTING` (a change into it; the line repeated is the same redraft) starts revision r+1
   (`ArenaDraftState.Revision`): the deck so far is dropped, the client's next list (`Draft Deck ID` + `Draft deck
   contains card`) is the revision's base, and only the picks of this revision are added to it (the larger count per
   card). Picks of earlier revisions never come back: no "max" merge with them, which would return the removed cards.
   Until that list arrives the deck is the redraft's picks only and `Incomplete` is true; a list short of 30 after
   the client says the deck is ready (`ACTIVE_DRAFT_DECK` / `IN_REWARDS`) stays short (n/30) with `Incomplete` true.
   Fixture `Fixtures/Arena/redraft-synthetic.log` (synthetic, real line formats), `ArenaDraftRedraftTests`.
+  Edge cases read from the code and pinned by tests (2026-11-15, behaviour unchanged): the mode line repeated is the
+  same revision; leaving the screen in the middle of a redraft and coming back (`OnBegin` with the same deck id,
+  `REDRAFTING` again, the client's list) keeps the run and the revision, and the list is the base to which only later
+  picks are added, each pick once; a log cut in the middle of a redraft read twice gives the same unfinished state;
+  `NO_ACTIVE_DRAFT` in the middle of a redraft leaves nothing of the run; a new run after a redraft (a new `OnBegin`
+  deck id, or a new hero without it) starts at revision 0 with its own cards. Seen while reading the code, left as it
+  is: a new hero whose run logged no mode line yet keeps the old run's mode (`ACTIVE_DRAFT_DECK`), so the deck reads
+  as short until the client's `SetDraftMode - DRAFTING` line; and a mode that goes `REDRAFTING` -> another mode ->
+  `REDRAFTING` counts as a second redraft. Whether the client ever writes either is for the live redraft to show.
 - **The game's deck is the truth.** When a game of the run starts (`GT_ARENA` / `GT_UNDERGROUND_ARENA`, game under
   way), the deck Decks.log announced for it (`Starting Arena Game With Deck`) is compared with the tracked one, once
   per game and per announcement; a difference replaces the tracked deck (pick order kept for the cards both have),
@@ -139,9 +239,15 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   is not applied, so it cannot undo a later redraft.
 - **Restart**: the draft state is not saved; the app rebuilds it by reading Arena.log again (the same log read twice
   gives the same deck), and after a game restart from the client's list and the next game's Decks.log deck.
-- Out of scope here: Discover scoring in Arena games (A5), synergy (A3), the pick advice (A2).
+- Out of scope here: Discover scoring in Arena games (A5), card synergy by text or tribe (A3), the pick advice (A2).
 
 ## Before the beta label goes
+
+Done without live drafts (package R1 of `docs/roadmaps/2026-11-15-hsreplay-remediation.md`, 2026-11-15): the small
+cards route with the dataset as a fallback, unscored cards shown as unscored, the slice and the date of the data kept
+in `ArenaMeta`, the deck-fit adjustment with its reasons in both UIs, the decision on the server's legendary
+packages, the redraft's edge cases under test. **Still open, all of it waiting for the owner's two live drafts**: items
+1-4 below. Until then `AppSettings.ShowArenaDraft` stays off by default and its switch stays labelled "(beta)".
 
 1. One real draft of each mode with the helper on: `hearthpulse.log` lines match the screen (hero, hero power,
    each offer, the package of a legendary, the mode), picks reach 30, the deck matches the client's list.
@@ -154,6 +260,51 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
 4. The owner decides on turning the helper on by default (the HSReplay data is decided: Legal status above; HearthArena
    stays unused).
 
+### The owner's live check (two sittings)
+
+Before both: Settings → Tracker → "Arena draft helper (beta)" on; the app running before Hearthstone opens the
+Arena screen; screen recording on (the package question, item 2, is answered by the recording).
+
+**A. Normal Arena, one draft.**
+
+1. Open the Arena, start a new run. At the hero pick: three badges with class win rates over the heroes, the panel
+   on the left says "Choose a hero".
+2. Pick the hero, then the hero power if the client offers one (no badges there, the panel says so).
+3. Draft all 30 cards at an ordinary pace. On every offer look at the three badges: a number or "—", the mode line
+   "Normal Arena" in the panel, and from the sixth pick on, on some cards, "Deck fit" with a reason. Take at least
+   one card twice in a row if it is offered twice.
+4. At 30/30 stay on the deck screen for a few seconds, then start one game of the run and play at least to the
+   mulligan.
+5. Send `hearthpulse.log`, the session's `Arena.log` and `Decks.log`
+   (`<Hearthstone>/Logs/Hearthstone_<date>/`), and the recording.
+
+What is compared: each `Arena draft: offer read from memory: ...` line with the three cards on screen at that
+moment; `normal Arena` in those lines; the pick count reaching 30; the tracked deck against the deck code of
+Decks.log's "Starting Arena Game With Deck"; no `the game's deck differs from the tracked draft` line.
+
+**B. Underground Arena, one redraft.** In a run that already has a deck (a new Underground run drafted with the
+helper on, or the current one):
+
+1. On a new run's first card pick, before clicking: does the client show the cards that come with each legendary
+   (hover it too)? This is item 2; the recording answers it. Note what the badge said ("+N cards with it").
+2. Play until the client offers the redraft after a loss. Start it, take the offered picks one by one. Once, in the
+   middle (after two picks), leave to the main menu and come back to the Arena screen, then finish the redraft.
+3. Stay on the deck screen for a few seconds, start one game, play to the mulligan.
+4. Send the same three logs and the recording.
+
+What is compared: a `SetDraftMode - REDRAFTING` line exists and how often it repeats; which lines follow the
+return to the screen; whether the client lists the deck (`Draft deck contains card`) after the redraft and how
+whole the list is; the deck after the redraft against the game's deck code (the removed cards gone, the new ones
+in once); whether a package legendary is logged twice again.
+
+**What becomes a fixture.** From A: `Arena.log` whole as `tests/Hearthpulse.Tests/Fixtures/Arena/arena-normal-<date>.log`
+with the deck code of Decks.log as the truth (a second `ArenaDraftLiveLogTests` case beside the Underground one),
+and the offer lines of `hearthpulse.log` as the expected offers. From B: `Arena.log` whole as
+`Fixtures/Arena/arena-redraft-<date>.log`, replacing `redraft-synthetic.log` in `ArenaDraftRedraftTests` (the
+synthetic file stays only for the cases the live log does not hold), again with the game's deck code as the truth.
+Card names in `Client chooses:` lines stay; a BattleTag or a user path in any of the files is replaced first
+(rule 12 of `hearthpulse-privacy`). Name the log, and nothing else, as the source of the line formats.
+
 ## Layout and licences
 
 - The badge row is centred on the play area left of the client's deck list with the anchors of HdtArenaHelper's
@@ -165,5 +316,8 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   slice note shows), `overlay-arena-pick-scale160`, `overlay-arena-package` (an Underground legendary with its package)
   from a made-up Warlock draft with the real scores (`Arena/ArenaDraftScene.cs`), and `main-arena-deck`
   (`DevRender.Arena.cs`, `OffscreenRenderer.Arena.cs`).
-- Tests: `tests/Hearthpulse.Tests/ArenaDraftTests.cs` (fixtures `Fixtures/Arena`, trimmed live answers) and the
+- Tests: `tests/Hearthpulse.Tests/ArenaDraftTests.cs` (fixtures `Fixtures/Arena`, trimmed live answers; its fake
+  server has no route, so it runs the dataset path), `ArenaDataRouteTests.cs` (the route, its fallback and cache,
+  pages, the packages and their rule; `arena-cards-route.json` and `arena-legendaries.json` are live answers of
+  2026-11-15 cut to a few rows), `ArenaDeckFitTests.cs`, `ArenaDraftRedraftTests.cs` and the
   two-host contract in `tests/Hearthpulse.Presentation.Tests/ViewModelContractTests.cs`.

@@ -32,7 +32,13 @@ namespace Hearthpulse.UI.Overlay;
 /// <param name="Caption">"Best pick", "No score yet", the class's place and 7+ wins share, or empty for a plain score.</param>
 /// <param name="FitCost">Where the card sits on the curve: "3 mana · 4 in deck"; empty for a hero.</param>
 /// <param name="FitType">Its type in the deck ("Spell · 5 in deck") or the package it brings ("+2 cards"); empty for a hero.</param>
-public sealed record ArenaPickBadge(string CardId, string Number, string Tier, string Caption, bool IsBest, string FitCost = "", string FitType = "") : IImmutableView;
+/// <param name="DeckFit">
+/// Our own adjustment for the deck so far, apart from <paramref name="Number"/> (the source's score): "Deck fit: −1.5";
+/// empty when nothing applies.
+/// </param>
+/// <param name="DeckFitWhy">Why: "Many cards at 5 mana · Few minions" (the two strongest reasons); empty with <paramref name="DeckFit"/>.</param>
+public sealed record ArenaPickBadge(string CardId, string Number, string Tier, string Caption, bool IsBest, string FitCost = "", string FitType = "",
+    string DeckFit = "", string DeckFitWhy = "") : IImmutableView;
 
 /// <summary>One bar of the draft's mana curve.</summary>
 /// <param name="Offered">An offered card costs this much: the bar is highlighted.</param>
@@ -176,7 +182,7 @@ public sealed partial class OverlayViewModel
 
         // Snapshots arrive every 100 ms while anything changes; rebuild only when what the panels show changed.
         var print = $"{Loc.Instance.Language}|{draft.PlayerClass}|{draft.HasData}|{draft.Score.Average:0.00}|{draft.Phase}|{draft.Underground}|{draft.ScoresFromOtherMode}|"
-                    + string.Join(',', draft.Options.Select(o => $"{o.CardId}:{o.Score}:{o.WinRate}:{o.IsBest}:{o.SameCost}:{o.SameType}:{o.Package?.Count}")) + "|"
+                    + string.Join(',', draft.Options.Select(o => $"{o.CardId}:{o.Score}:{o.WinRate}:{o.IsBest}:{o.SameCost}:{o.SameType}:{o.Package?.Count}:{FitPrint(o.Fit)}")) + "|"
                     + string.Join(',', draft.Deck.Select(c => $"{c.CardId}:{c.Count}:{c.Score}")) + "|"
                     + string.Join(',', draft.Classes.Select(c => $"{c.PlayerClass}:{c.WinRate}:{c.Offered}")) + "|"
                     + $"{draft.RunClass?.WinRate}:{draft.RunClass?.SevenPlus}:{draft.RunClass?.Rank}";
@@ -271,8 +277,47 @@ public sealed partial class OverlayViewModel
         var type = o.Package is { Count: > 0 } package ? Loc.P("Arena.Package", package.Count)
             : o.CardType is { } kind && TypeName(kind) is { Length: > 0 } name ? Loc.F("Arena.Fit", name, o.SameType)
             : string.Empty;
-        return new ArenaPickBadge(o.CardId, o.Score?.ToString("0", culture) ?? "—", o.Tier ?? string.Empty, caption, o.IsBest, cost, type);
+        var (fit, why) = DeckFit(o.Fit, culture);
+        return new ArenaPickBadge(o.CardId, o.Score?.ToString("0", culture) ?? "—", o.Tier ?? string.Empty, caption, o.IsBest, cost, type, fit, why);
     }
+
+    /// <summary>How many reasons the badge names: the strongest ones, so the line stays short.</summary>
+    private const int ArenaFitReasons = 2;
+
+    /// <summary>
+    /// Our adjustment as its own line ("Deck fit: −1.5") and the reasons under it. The source's score stays the badge's
+    /// number; an adjustment that rounds to nothing (reasons that cancel out) shows no line.
+    /// </summary>
+    private static (string Fit, string Why) DeckFit(ArenaFit? fit, CultureInfo culture)
+    {
+        if (fit is null || fit.Parts.Count == 0 || Math.Abs(fit.Points) < 0.05)
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        var number = (fit.Points > 0 ? "+" : "−") + Math.Abs(fit.Points).ToString("0.#", culture);
+        var why = string.Join(" · ", fit.Parts.Take(ArenaFitReasons).Select(p => p.Reason switch
+        {
+            ArenaFitReason.CurveCrowded => Loc.F("Arena.DeckFit.CurveCrowded", SlotLabel(p.Slot, culture)),
+            ArenaFitReason.CurveThin => Loc.F("Arena.DeckFit.CurveThin", SlotLabel(p.Slot, culture)),
+            ArenaFitReason.Copies => Loc.F("Arena.DeckFit.Copies", p.Count),
+            ArenaFitReason.FewMinions => Loc.T("Arena.DeckFit.FewMinions"),
+            ArenaFitReason.FewEarlyMinions => Loc.T("Arena.DeckFit.FewEarlyMinions"),
+            ArenaFitReason.ManySpells => Loc.T("Arena.DeckFit.ManySpells"),
+            ArenaFitReason.ManyWeapons => Loc.T("Arena.DeckFit.ManyWeapons"),
+            _ => string.Empty,
+        }).Where(text => text.Length > 0));
+        return (Loc.F("Arena.DeckFit", number), why);
+    }
+
+    /// <summary>"0–1", "2" ... "6", "7+": the cost slots of the target curve.</summary>
+    private static string SlotLabel(int slot, CultureInfo culture) =>
+        slot <= 0 ? "0–1"
+        : slot >= ArenaDeckFit.Slots - 1 ? (slot + 1).ToString(culture) + "+"
+        : (slot + 1).ToString(culture);
+
+    private static string FitPrint(ArenaFit? fit) =>
+        fit is null ? string.Empty : fit.Points.ToString("0.00", CultureInfo.InvariantCulture) + "/" + string.Join('+', fit.Parts.Select(p => $"{p.Reason}{p.Slot}{p.Count}"));
 
     /// <summary>"Minion", "Spell"... for the badge; empty for a type the draft does not offer.</summary>
     private static string TypeName(string cardType) => cardType switch

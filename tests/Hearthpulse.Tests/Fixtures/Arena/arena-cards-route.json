@@ -1,0 +1,82 @@
+{
+ "data": [
+  {
+   "id": "TLC_231",
+   "dbfId": 117648,
+   "score": null,
+   "tier": "S",
+   "cardClass": "DRUID",
+   "win_rate": 66.7
+  },
+  {
+   "id": "BE_287",
+   "dbfId": 130341,
+   "score": 54.0,
+   "tier": "S",
+   "cardClass": "DEATHKNIGHT",
+   "win_rate": 61.1
+  },
+  {
+   "id": "BE_283",
+   "dbfId": 130395,
+   "score": 54.0,
+   "tier": "S",
+   "cardClass": "DEATHKNIGHT",
+   "win_rate": 60.8
+  },
+  {
+   "id": "RLK_051",
+   "dbfId": 78345,
+   "score": null,
+   "tier": "S",
+   "cardClass": "DEATHKNIGHT",
+   "win_rate": 60.4
+  },
+  {
+   "id": "CORE_EX1_507",
+   "dbfId": 76270,
+   "score": 1.8,
+   "tier": "S",
+   "cardClass": "NEUTRAL",
+   "win_rate": 58.3
+  },
+  {
+   "id": "RLK_066",
+   "dbfId": 78356,
+   "score": 53.0,
+   "tier": "A",
+   "cardClass": "DEATHKNIGHT",
+   "win_rate": 57.9
+  },
+  {
+   "id": "END_017",
+   "dbfId": 121159,
+   "score": 1.2,
+   "tier": "F",
+   "cardClass": null,
+   "win_rate": 15.2
+  }
+ ],
+ "meta": {
+  "source_id": "hsreplay_arena_cards_advanced",
+  "fetched_at": "2026-11-15T17:00:08.411278+00:00",
+  "stale": false,
+  "beta": null,
+  "serving_cached_dataset": null,
+  "cached_after_failure": null,
+  "fresh_candidate_published": null,
+  "count": 7,
+  "limit": 5000,
+  "offset": 0,
+  "game_type": "underground",
+  "time_range": "LAST_4_DAYS",
+  "fields": [
+   "id",
+   "dbfId",
+   "score",
+   "tier",
+   "cardClass",
+   "win_rate"
+  ]
+ }
+}

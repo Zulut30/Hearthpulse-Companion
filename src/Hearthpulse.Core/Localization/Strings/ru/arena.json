@@ -53,5 +53,13 @@
   "Arena.Page.TabUndergroundTip": "Подпольная арена: забег до 12 побед или 5 поражений, своя статистика",
   "Arena.Page.CommunityNoSplit": "Для Подпольной арены винрейта классов пока нет.",
   "Arena.Page.DeckOtherSliceUnderground": "Оценки карт сейчас есть только по Подпольной арене: колоду обычной Арены по ним не оцениваем.",
-  "Arena.Page.DeckOtherSliceRegular": "Оценки карт сейчас есть только по обычной Арене: колоду Подпольной по ним не оцениваем."
+  "Arena.Page.DeckOtherSliceRegular": "Оценки карт сейчас есть только по обычной Арене: колоду Подпольной по ним не оцениваем.",
+  "Arena.DeckFit": "Под колоду: {0}",
+  "Arena.DeckFit.CurveCrowded": "Много карт за {0}",
+  "Arena.DeckFit.CurveThin": "Мало карт за {0}",
+  "Arena.DeckFit.FewMinions": "Мало существ",
+  "Arena.DeckFit.FewEarlyMinions": "Мало ранних существ",
+  "Arena.DeckFit.ManySpells": "Много заклинаний",
+  "Arena.DeckFit.ManyWeapons": "Оружия хватает",
+  "Arena.DeckFit.Copies": "В колоде уже {0} шт."
 }
