@@ -26,23 +26,26 @@ them.
 Related: [hearthpulse-parallel-work](../hearthpulse-parallel-work/SKILL.md) (how to split by files),
 [hearthpulse-review](../hearthpulse-review/SKILL.md), [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
 
-Paths: repo `D:\HeartLens-main\HeartLens-main` (`$repo`), worktrees `D:\HeartLens-main\wt-<name>`.
+Resolve `$repo` with `git rev-parse --show-toplevel`. Use the worktree path returned by the environment's
+orchestrator; only outside such an environment choose a sibling `wt-<name>` yourself.
 
 ## Session tools by environment
 
 The steps below name the action; this table names the tool. T3 tools come from the `t3-code` MCP server.
 
-| Action | Claude desktop | T3 Code |
+| Action | Native provider | T3 Code |
 |---|---|---|
-| Start a session in a worktree | `start_session`: `initiation: "user_asked"`, `cwd` = the worktree, `use_worktree: false`, `context: "fresh"` | `t3_thread_launch`: `workspaceStrategy: {type: "existing_worktree", worktreePath: <the worktree>}`, `message` = the brief |
-| Write to a session | `SendMessage` | `t3_thread_send` |
-| Wait for its report | уточнить | `t3_thread_wait`, then `t3_thread_read` for the report |
-| Delete a session | `delete_session` | no delete tool: `t3_thread_organize`, `action: "archive"` |
-| Run a role as a subagent | `Agent`, `subagent_type` = the role | Claude: the same `Agent`; Codex: `spawn_agent` (parameters: уточнить) |
+| Run a role | Claude `Agent` with its role type; Codex `spawn_agent` with `task_name` and `message` naming the role file and skills | Use the native agent for the same provider when settings and workspace allow it; otherwise `delegate_task` |
+| Separate checkout, other provider or background task | Use the environment's supported isolated-task API | `delegate_task` with `isolation: "worktree"`; call `orchestrator_capabilities` once before the first delegate and use its provider/model ids |
+| Receive completion | Follow the native tool's documented completion or wait mechanism | Follow `next` from the delegate; an async completion wakes the coordinator, so end the turn instead of polling |
+| A new review or re-check | A new role invocation with the reviewed SHA and brief | A new `delegate_task`, not a message reusing an old review |
+| Independent chat explicitly requested by the owner | Use an available thread/session API | `t3_thread_launch` with `workspaceStrategy`; this is not the substitute for a subagent |
+| Finish a completed session | Native cleanup only if supported | Archive the completed child with `t3_thread_organize`; do not archive a separate chat the owner is using |
 
-The T3 column was read from a Claude session's tool list (2026-11-15); that a Codex session in T3 Code gets the same
-`t3_*` tools is expected, not checked: уточнить. Your environment is not in the table, or the cell you need says
-«уточнить»: ask the owner once how that action is done there, then add it here.
+Read the available tool schema before using a name or parameter. Runtime tool instructions override this table.
+Do not ask the owner how an API works when its schema is available. Report a missing capability honestly;
+do not silently switch a user-selected provider/model. Never create a delegated checkout in the shell when the
+environment owns its isolation.
 
 ## 1. Split into sessions
 
@@ -50,9 +53,10 @@ The T3 column was read from a Claude session's tool list (2026-11-15); that a Co
   [hearthpulse-team](../hearthpulse-team/SKILL.md) §1-4 - it runs this section with role briefs and QA/review.
 - One session per independent area (files do not overlap - see parallel-work §1-3). A small task (a handful of
   edits) is one session; never do the feature in the coordinating session itself.
-- Per session create the worktree yourself (the session folder `D:\HeartLens-main` is not a git repo):
-  `git -C $repo worktree add D:\HeartLens-main\wt-<name> -b claude/<name> main`.
-- Start a session in that worktree, with a fresh context and the brief as its first message.
+- Obtain the isolated checkout through the environment's task API (above). Outside an orchestrated environment,
+  `git -C $repo worktree add <sibling-path> -b claude/<name> main` is the fallback.
+- Start the task in that bound checkout with a fresh context and the brief as its first message. Use the branch
+  actually returned by the tool, even if its naming prefix differs from `claude/`.
 - Brief: **the skills the session loads first, by name** (`hearthpulse-dev` and the 1-2 rows of the `CLAUDE.md`
   table for its area: a session that is not told skips them), goal in the user's words, owned files, both UIs
   (WPF + Avalonia) when user-facing, build `-m:2`,
@@ -74,6 +78,9 @@ When a session reports, check it yourself before merging, by the
 ## 3. Merge, build, test
 
 In `$repo` on `main` (clean tree, `git pull --ff-only` first):
+
+For a Markdown/skills-only change, run the catalogue, stub and link checks instead of building, running .NET tests
+or restarting the app. The steps below apply when executable code or shipped resources change.
 
 ```powershell
 git merge --no-edit refs/heads/claude/<name>        # one branch at a time, fewest conflicts first
@@ -99,17 +106,18 @@ dotnet test tests\Hearthpulse.Presentation.Tests -c Release --no-build
 
 ```powershell
 $exe = "$repo\src\Hearthpulse.App\bin\Release\net10.0-windows\Hearthpulse.exe"
-Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe)
+# Set HEARTHPULSE_DATA to a scratch copy before starting; do not open the real data folder.
+Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -WindowStyle Hidden
 ```
 
-After ~10 s: the process `Responding`, and the tail of `%APPDATA%\Hearthpulse\hearthpulse.log` has no new errors.
+After ~10 s: the process `Responding`, and the copied data folder's `hearthpulse.log` has no new errors.
 
 ## 6. Clean up
 
 For each merged branch:
 
 - delete its session (only after its branch is in pushed `main`);
-- `git -C $repo worktree remove D:\HeartLens-main\wt-<name>` (refuses a dirty tree - then look, do not force);
+- `git -C $repo worktree remove <actual-worktree-path>` (refuses a dirty tree - then look, do not force);
 - `git -C $repo branch -d claude/<name>` (`-d`, not `-D`: it refuses unmerged work).
 
 ## 7. Report (once, in Russian, short)
@@ -124,7 +132,7 @@ Those are Claude Code's commands; elsewhere ask for the same thing in words: a f
 
 - **After a merge round** (step 6 done, no session mid-review): write a handoff (the `handoff` skill when the
   session has it) to
-  `D:\HeartLens-main\reference\tasks\HANDOFF-<yyyy-MM-dd-HHmm>.md` - open branches and their sessions, task cards in
+  `<repo>/../reference/tasks/HANDOFF-<yyyy-MM-dd-HHmm>.md` if that directory exists, otherwise `<repo>/dist/handoffs/` - open branches and their sessions, task cards in
   progress, owner decisions pending, red or flaky tests - and end the report with one line asking the owner to run
   `/clear`. The coordinator cannot clear itself. A fresh coordinator reads the newest handoff and the "Журнал" of
   each open card before anything else.

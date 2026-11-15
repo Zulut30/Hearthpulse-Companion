@@ -28,7 +28,7 @@ The pool has two entrypoints over one schema: the Cloudflare Worker (`server/poo
 (`server/pool/node`, SQLite) that also hosts source capture and analytics. The v2 route exists only in the Node
 service.
 
-Three versions move independently, and a task changes exactly one of them: the **source** format
+Three versions move independently; bump each version whose contract changes: the **source** format
 (`manifest.sourceVersion`, what the recorder wrote), the **parser** (`parserVersion`, how the worker reads it) and
 the **rules** of a metric (`rulesVersion`, how facts become a number). A better parser reuses stored source; a new
 field needs a client update and has no history.
@@ -108,5 +108,6 @@ State which one you checked:
 
 The research of 2026-11-15 found the first true and the other two false in production (`PoolClient.DefaultEndpoint`
 empty, the pool answering `games: 0`, the v2 route 404). That is a dated observation: re-check with a read-only GET
-when the task depends on it, and write the date beside the result. Deploying the pool, setting the default endpoint
-and anything on the server is the owner's decision; the rollout order is in `analytics-api.md`.
+when the task depends on it, and write the date beside the result. Production deployment and endpoint changes need
+authorization for that target; an explicit task may already supply it, so do not ask again when it is present.
+The rollout order is in `analytics-api.md`.

@@ -45,16 +45,21 @@ flow, the rule below it breaks, and the file. Ban risk, licences and a release-l
 2. **Only what the player saw** (`docs/adr/0005-hidden-information.md`). An uploaded Constructed game is read
    without its post-game reveals (`MatchReplay.ParseSeen`); a shared replay goes through `ReplayImport.Sanitize`.
    Opponent cards that were never shown have no name anywhere outside the player's own match page.
-3. **No direct identifiers on the wire**: player or opponent name, BattleTag, account id, e-mail, deck name, exact
-   rating, machine path, IP. The typed source format has no free-text field for this reason: an unknown observation
-   becomes a gap, not a string.
-4. **Identifiers are keyed hashes, per purpose.** Game id, install id and profile event id come from different keys
-   and inputs and cannot be joined; the install id is never linked to a site account and never put in a URL. A new
-   upload gets its own identifier, not a reuse of an existing one.
+3. **Anonymous pool payloads exclude direct identifiers**: player or opponent name, BattleTag, account id, e-mail,
+   deck name, exact rating, machine path or IP. The typed source format has no free-text field: an unknown
+   observation becomes a gap. Authenticated profile uploads and replay sharing have separate documented
+   contracts; preserve their account authorization and allowed fields instead of applying the anonymous pool
+   schema to them. A transport peer can observe an IP; do not claim network anonymity.
+4. **Keep identifiers separate by purpose.** Shared-game ids and installation identifiers follow the pool's
+   keyed-hash contracts. Profile event ids are deterministic UUID v5 (`ProfileEvents.EventId`), not keyed hashes;
+   the profile intentionally belongs to the signed-in account. Never link the anonymous install id to that account
+   or put it in a URL. A new upload documents its identifier and intended linkability explicitly.
 5. **Retention is set when the table is created** and enforced by the service's own job (pool cron or
    `maintain()`), not by hand. A new server table states its TTL in its doc and migration.
-6. **Deletion reaches everything derived.** Forgetting an install removes raw rows, facts and its contribution to a
-   published snapshot in the same transaction, and a late upload or worker result must not restore it. Local
+6. **Deletion reaches everything derived.** Source-capture forget revokes the generation and withdraws its facts
+   and published contribution atomically. Archive-file cleanup may finish asynchronously: track it and do not
+   report a `202` as completed deletion. Late uploads and worker results must not restore revoked contributions.
+   Legacy shared-game routes expire by TTL and have no forget call; do not promise one without implementing it. Local
    queues are emptied when the switch goes off. A change that adds a store adds it to the forget path and to its
    test. Backups the service does not control are documented as such, never promised as erased.
 7. **A wider upload needs a newer notice.** Fields beyond the text the player answered do not ride on the old answer:

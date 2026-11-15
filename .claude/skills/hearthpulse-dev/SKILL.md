@@ -140,7 +140,8 @@ Hearthstone writes Logs/Hearthstone_<date>/Power.log, Decks.log, LoadingScreen.l
 ```
 
 Combat odds: `BattlegroundsTracker` captures both boards at the first regular attack and runs `CombatSimulator`
-(up to 4000 fights, stops after 200 ms, at least 500) on the log thread.
+(first pass: up to 150 fights with a 40 ms budget on the log thread; refinement runs in a background task with
+the normal simulation options and cancellation). Read `BattlegroundsTracker.Combat.cs` for the current budgets.
 
 ## Data folder (`AppPaths`)
 

@@ -16,10 +16,12 @@ path, opened when its step comes.
 ## Ground rules
 
 - **Read-only from commits:** `git -C $repo diff main...<branch>`, `git show`, `git grep`. No checkout, build or edits.
-  `$repo` is `D:\HeartLens-main\HeartLens-main` unless the brief names another checkout. Exception: when the brief
+  Resolve `$repo` with `git rev-parse --show-toplevel` in the checkout named by the brief. Exception: when the brief
   asks for a render, add your own worktree at the branch head, render there with `hearthpulse-visual-check` on a
   data copy (never while `Hearthstone.exe` runs) and remove the worktree after.
-- **Your only write:** `D:\HeartLens-main\reference\reviews\HeartLens-<branch with "/" as "-">.md`.
+- **Your only write:** the report path named by the brief. Otherwise use
+  `<repo>/../reference/reviews/HeartLens-<branch with "/" as "-">.md` if that directory exists;
+  when it does not, use `<repo>/dist/reviews/` and state the chosen path.
 - **Checklist and severity:** `$repo\.claude\skills\hearthpulse-review\SKILL.md` and its
   `reference/typical-findings.md`. B blocker / M major / m minor, numbered `B1`, `M1`, `m1`, each with `file:line`,
   what, why it matters, the fix.

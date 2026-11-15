@@ -78,7 +78,8 @@ the smallest test, and returns it to the developer.
 2. Apply one change to one existing expression; confirm the diff is exactly that.
 3. Run the same filter. Green means **Survived**; a failure at a relevant assertion means **Killed**; a build or
    unrelated failure leaves it unverified.
-4. Revert at once and confirm `git status --short` is clean. A mutation is never committed, never left in a
+4. Revert only the temporary mutation and restore the pre-mutation diff, preserving legitimate in-progress
+   changes. A mutation is never committed, never left in a
    worktree another session reads, and never applied in a tree that is being built for a release.
 5. After a green run, re-check that the change is observable; a surviving inert change is not a finding.
 

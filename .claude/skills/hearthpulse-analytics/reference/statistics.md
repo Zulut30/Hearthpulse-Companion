@@ -17,15 +17,16 @@ release notes, a report). The thresholds themselves are in the catalogue and are
 | Game length, turns, damage | median and quartiles; mean only beside them | right-skewed: a few long games pull the mean |
 | Counts per card or hero | the count and its denominator together | a rate without its `den` cannot be judged |
 
-A value never appears without its sample size. A row whose interval is wider than the difference being discussed
-supports no conclusion about that difference.
+A value never appears without its sample size. Wide intervals signal uncertainty; do not infer the significance
+of a difference from either row's interval alone.
 
 ## Is the difference real, and does it matter
 
-- Two shares differ credibly only when their intervals do not overlap, or when a two-proportion test on their
-  `num`/`den` says so. Overlapping intervals mean "not shown to differ", not "equal".
-- A real difference can be too small to act on: with tens of thousands of games, 0.3 points of win rate is
-  measurable and irrelevant to a deck choice. State the size of the effect, not only that it exists.
+- Assess a difference with an interval or test for that difference, accounting for dependence between observations
+  from the same installation. Overlapping marginal intervals can still accompany a significant difference;
+  they prove neither equality nor absence of a difference.
+- A real difference can be too small to act on. State its size and uncertainty and explain its practical relevance
+  to the decision; do not declare a fixed win-rate difference universally irrelevant.
 - With a small sample, say so instead of rounding it away: "12 games, top-4 between 32% and 81%".
 - Precision follows the sample: 3 decimals are the wire format, not the display. Show whole percent under a few
   hundred games, one decimal above.
@@ -51,8 +52,9 @@ the groups; when it does not, publish the groups and drop the merged number.
 
 ## Many rows, one page
 
-A tier list ranks a hundred heroes or archetypes at once. At z = 1.96 about one row in twenty sits outside its
-interval by chance, so the top and bottom of a list sorted by a noisy value are mostly noise.
+A tier list ranks many heroes or archetypes at once. Individual 95% intervals do not provide 95% simultaneous
+coverage of the whole list. Sorting noisy estimates also tends to exaggerate the extremes; assess uncertainty
+and multiple comparisons before treating the first row as a reliable winner.
 
 - Sort by a value only among rows that clear the sample floor; keep `small_sample` rows out of the ranking, not at
   its top.

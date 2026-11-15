@@ -24,7 +24,7 @@ a hypothesis; say so in the report.
 |---|---|---|---|
 | Log lines to game state | `Logs/LogWatcher`, `Logs/LogTail`, `Power/PowerParser.Feed`, the `IPowerListener` trackers | log thread | runs for every line of every game; per-line allocation is the cost |
 | Snapshot publishing | `Tracking/GameSession` (builds the immutable `LiveSnapshot`, raised through `SnapshotChanged`) | log thread, then posted to the UI thread | throttled, so the cost is bytes and time per snapshot |
-| Combat odds | `Battlegrounds/CombatSimulator` and `Simulation/`, called from `Tracking/BattlegroundsTracker.Combat.cs` | log thread | `Runs`, `MinRuns` and a `TimeBudget`; read the current values there, they have changed between stages |
+| Combat odds | `Battlegrounds/CombatSimulator` and `Simulation/`, called from `Tracking/BattlegroundsTracker.Combat.cs` | first pass on log thread, refinement in background | `Runs`, `MinRuns`, `TimeBudget` and generation/cancellation; read both passes at the call site |
 | Overlay update | `OverlayViewModel.Update` and `Observable.Set` (shared presentation), then each UI's layout | UI thread | a `PropertyChanged` for equal content rebuilds visuals; equality of bound records decides it |
 | Game memory reads | `Tracking/MemoryPoller`, `Memory/HearthstoneMemory` | own thread, Windows only | how often and under which conditions a read runs |
 | Pages, start-up, history | main-window pages, `Cards/CardDb`, `Data/HistoryStore`, `Stats/` | UI thread for views; loaders are tasks | first-open time, working set, query time on a large history |

@@ -25,7 +25,9 @@ disagrees with them, fix the row in the same change. Paths are from the reposito
 derived from the post-game part leaves the machine. Reading Hearthstone's memory is read-only and Windows-only;
 the opponents' MMR lookup is off by default under the conditions in `docs/bg-opponent-mmr.md`.
 
-## Never sent by any flow
+## Anonymous pool payload exclusions
 
 Player and opponent names, BattleTag, account id, e-mail, deck name, legend number, exact rating, chat, the game's
-network or authentication logs, machine paths, hidden cards of other players.
+network or authentication logs, machine paths, hidden cards of other players. These anonymous-pool exclusions
+are not the authenticated profile's schema: profile payloads have documented rating and time fields and are
+associated with the signed-in account. Check `docs/profile-upload.md` and `ProfileEvents` for that separate contract.

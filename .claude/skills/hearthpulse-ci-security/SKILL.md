@@ -19,11 +19,12 @@ Building and publishing a release: [hearthpulse-release](../hearthpulse-release/
 
 - Editing a workflow file is a code change like any other: it follows the session's normal workflow
   (`hearthpulse-ship` in the coordinating session, a `claude/*` commit in a worktree). No extra approval step.
-- A change that makes a workflow **publish, tag, or spend the signing secrets** is a release action and waits for
-  the owner's word: pushing a `v*` tag, running `release.yml` with `publish` on, changing what the `release` job
-  uploads. A trial run (`publish` off) publishes nothing; whether to start one is `hearthpulse-release`'s rule.
+- Publishing or tagging a release requires the owner's release instruction. Preparing changes to a release
+  workflow is ordinary implementation work; do not confuse editing its upload steps with actually publishing.
+  A trial run (`publish` off) still creates workflow artifacts; its authorization follows `hearthpulse-release`.
 - Repository settings (secrets, default token permissions, branch or tag protection, Dependabot alerts) are not in
-  the checkout. Recommend them with the exact setting; the owner applies them.
+  the checkout. Inspect or change them with available tools only within the user's authorized scope; otherwise
+  report the exact remaining setting without inventing an extra approval step for authorized work.
 
 ## The model
 
@@ -32,10 +33,10 @@ Two facts make workflow risk different from code risk:
 1. `${{ expr }}` is pasted into the script **as text before the shell runs**. An expression holding text a
    contributor controls (PR title or body, branch name `github.head_ref`, commit message, issue or comment body) is
    command injection. The fix is always the same: bind it under `env:` and use the quoted shell variable.
-2. The trigger decides the token. `pull_request` from a fork gets a read-only token and no secrets, so untrusted
-   code there can steal nothing. `pull_request_target`, `workflow_run`, `issue_comment` and `issues` run with the
-   base repository's token and secrets while anyone can fire them; a job on those triggers must never check out and
-   execute the contributor's code.
+2. The trigger sets a trust boundary. A fork `pull_request` normally receives no repository secrets and a read-only
+   token; verify repository overrides and credentials passed explicitly before relying on that default.
+   `pull_request_target`, `workflow_run`, `issue_comment` and `issues` can run with base-repository privileges.
+   Keep untrusted contributor code and artifacts away from privileged execution; trusted base code is distinct.
 
 ## Audit or edit, in this repository's order of risk
 
@@ -43,8 +44,9 @@ Two facts make workflow risk different from code risk:
    read-only; signing secrets reach only the Windows matrix entries; `UPDATE_SIGNING_KEY` only the `release` job; no
    step that sees a secret runs code that is not in the repository at the tagged commit; the action that uploads the
    release is pinned to a full commit SHA.
-2. **Triggers of all four files.** A new `pull_request_target`, `workflow_run`, `issue_comment` or `issues`
-   trigger is a Blocker unless the job only reads metadata and runs no checked-out code. Prefer `pull_request`.
+2. **Triggers of all four files.** For `pull_request_target`, `workflow_run`, `issue_comment` or `issues`, trace
+   which revision is checked out and how untrusted inputs/artifacts reach execution. A privileged job executing
+   contributor-controlled code is a Blocker; a trusted-base checkout alone is not. Prefer `pull_request` for PR tests.
 3. **`${{ }}` inside every `run:` and `script:`.** List them. Server-set or repository-set values (`matrix.*` from
    the file itself, `steps.*.outputs` computed from validated input, `github.sha`) are acceptable; anything from
    `github.event.*` text fields or `github.head_ref` moves under `env:`. A `workflow_dispatch` input is typed by a
@@ -74,8 +76,8 @@ Two facts make workflow risk different from code risk:
 The project's scale (`hearthpulse-review`): **B** - a path for someone outside the collaborators to reach a secret,
 the write token or the published files; **M** - a mutable reference or an unneeded write scope in a job with
 secrets or write access, or an injection sink only a collaborator can reach; **m** - a hardening gap in a read-only
-job (first-party action on a tag, default `persist-credentials`). A fork `pull_request` running untrusted code is
-by design safe and is not a finding.
+job (first-party action on a tag, default `persist-credentials`). Running fork code under the normal restricted
+`pull_request` permissions is not itself a finding; assess actual privileges and exposed resources.
 
 ## Report or change
 
