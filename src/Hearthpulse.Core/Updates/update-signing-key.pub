@@ -3,3 +3,11 @@
 # Add a key with: openssl pkey -in hearthpulse-update-signing.pem -pubout >> src/Hearthpulse.Core/Updates/update-signing-key.pub
 # Several "-----BEGIN PUBLIC KEY-----" blocks are allowed (key rotation): a signature by any of them is accepted.
 # No block = this build carries no key and installs by GitHub's SHA-256 digest alone (the transition mode).
+# primary (2026-11-15), signs releases: secret UPDATE_SIGNING_KEY
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAVd6ish2uEKfqP1UclVi0C8nTjLuxBBXioKfiQGyvV6w=
+-----END PUBLIC KEY-----
+# backup (2026-11-15), kept offline for rotation
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAOTg+GZNAKEyHmAbHzv/ipIwLzFityBokfyzp7MTduls=
+-----END PUBLIC KEY-----
