@@ -96,12 +96,10 @@ class win rate minus the games-weighted mean of all classes, at least `MinClassG
 404 is remembered for the cache age. The HSGuru guide (source 2) already has class results from its analysis.
 
 `GET /v1/hsreplay/mulligan?deck=<shortid>&initiative=all|first|coin` (per-deck HSReplay mulligan, ~18 collected decks
-in `/v1/hsreplay/mulligan/decks`, with going-first / coin slices) is **not used**: the server collects it from a
-premium HSReplay account, and the legal check (`../reference/reviews/LEGAL-HeartLens-card-choices.md`, 2026-10-26)
-rates HSReplay data a blocker (L-B1: HearthSim's terms forbid scraping and republishing without written permission).
-The existing HSReplay mulligan calls stay as they are until the owner decides (L-M2); do not widen HSReplay use. Its
-`opponent_class` split is premium-only and stays out in any case. Only with written permission from HearthSim would it
-become source 1: the deck's `deck_list` `[[dbf, count]]` compared with the player's 30 cards, rows `keep_percentage`,
+in `/v1/hsreplay/mulligan/decks`, with going-first / coin slices) remains unimplemented.
+The earlier missing-permission blocker was resolved by the owner's 2026-11-15 confirmation for HSReplay
+and HSGuru; see [data permissions](data-permissions.md). Adding this integration is separate implementation work.
+It could become source 1: the deck's `deck_list` `[[dbf, count]]` compared with the player's 30 cards, rows `keep_percentage`,
 `opening_hand_winrate`, `winrate_when_drawn`, `winrate_when_played`, `avg_turn_played_on`, `opening_hand_impact`.
 
 Not used:

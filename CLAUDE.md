@@ -66,6 +66,8 @@ Team agents (`.claude/agents/`, run by `hearthpulse-team`): `hearthpulse-lead` (
 `hearthpulse-designer` (design.md), `hearthpulse-core-dev` and `hearthpulse-ui-dev` (developer sessions),
 `hearthpulse-qa` (acceptance criteria and tests), `hearthpulse-reviewer` (branch review).
 
+HSReplay and HSGuru data use is owner-authorized (2026-11-15): [permission record](docs/data-permissions.md).
+
 Agent `hearthpulse-legal` (`.claude/agents/`): ban risk, licences, Blizzard IP and privacy check before a release or
 a merge that touches game memory, input, third-party code/data, paid features or user data. Report goes to
 the optional sibling `../reference/reviews/LEGAL-*.md` after verifying it exists, or the agreed workspace report

@@ -14,5 +14,6 @@ Discover picks, the Arena draft) are never sold or limited: that would resell so
 - A limited panel still shows its cards with art and names; only our numbers are left out, and a line says why.
 - On 2026-11-08 the owner confirmed that permission to use card data in the product has already been obtained.
   The former task to request that permission is closed. This confirmation does not change the rule that art and
-  card data stay outside the limit, or extend permission to other third-party datasets such as HSReplay Premium.
+  card data stay outside the limit. Separately, on 2026-11-15 the owner confirmed permission to use HSReplay
+  and HSGuru data ([record](../data-permissions.md)); the free-access policy remains unchanged.
 - The main window's reference pages (meta, comps, trinkets) stay free; the limit covers in-game hints only.

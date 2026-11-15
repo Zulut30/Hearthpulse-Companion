@@ -10,9 +10,10 @@ Endpoint-by-endpoint detail: [reference/endpoints.md](reference/endpoints.md). F
 Before adding a new data API call, check that reference first: it lists what exists but the app does not call yet
 (matchup matrix, BG hero detail and trinkets, leaderboards, balance radar, streamers, Brawl decks, esports; Brawl meta is
 called since stage 4) and which answers
-are premium-sourced. HSReplay per-deck mulligan is a legal Blocker
-(`reference/reviews/LEGAL-HeartLens-card-choices.md`): do not call it. HSReplay card choices are under the same Blocker,
-but the owner accepted that risk on 2026-10-27: the Discover pick hint reads `v1/hsreplay/card-choices`.
+are premium-sourced. The owner confirmed on 2026-11-15 that Hearthpulse has permission to use HSReplay
+and HSGuru data, including the existing BG and Constructed integrations. Treat the former missing-permission
+Blockers as resolved by this confirmation; see [the permission record](../../../docs/data-permissions.md).
+Per-deck mulligan remains unimplemented, rather than prohibited for lack of permission.
 Tests use fake handlers, never the network: [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
 
 ## Sources at a glance
