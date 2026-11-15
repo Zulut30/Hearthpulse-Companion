@@ -152,7 +152,7 @@ public sealed partial class OverlayViewModel
     /// <summary>Card types of the deck so far: "12 minions · 5 spells · 1 weapon"; empty before the first card.</summary>
     public string ArenaTypes { get => _arenaTypes; private set => Set(ref _arenaTypes, value); }
 
-    /// <summary>"from Underground Arena games" when the run is the other mode, else empty; shown in the header tip.</summary>
+    /// <summary>"from Underground Arena games" when the run is the other mode, else empty; shown in the header and its tip.</summary>
     public string ArenaSliceNote { get => _arenaSliceNote; private set => Set(ref _arenaSliceNote, value); }
 
     /// <summary>What the tier letters on screen mean: the class scale at the hero pick, the card scale after it.</summary>
@@ -290,12 +290,19 @@ public sealed partial class OverlayViewModel
     /// </summary>
     private static (string Fit, string Why) DeckFit(ArenaFit? fit, CultureInfo culture)
     {
-        if (fit is null || fit.Parts.Count == 0 || Math.Abs(fit.Points) < 0.05)
+        if (fit is null || fit.Parts.Count == 0)
         {
             return (string.Empty, string.Empty);
         }
 
-        var number = (fit.Points > 0 ? "+" : "−") + Math.Abs(fit.Points).ToString("0.#", culture);
+        // This is a hand-set rule, not a measured gain. Show coarse half-point steps, with no signed zero.
+        var shown = Math.Round(fit.Points * 2, MidpointRounding.AwayFromZero) / 2;
+        if (shown == 0)
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        var number = (shown > 0 ? "+" : "−") + Math.Abs(shown).ToString("0.#", culture);
         var why = string.Join(" · ", fit.Parts.Take(ArenaFitReasons).Select(p => p.Reason switch
         {
             ArenaFitReason.CurveCrowded => Loc.F("Arena.DeckFit.CurveCrowded", SlotLabel(p.Slot, culture)),

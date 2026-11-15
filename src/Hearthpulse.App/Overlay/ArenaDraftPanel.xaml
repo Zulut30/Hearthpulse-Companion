@@ -51,6 +51,8 @@
                     </Grid>
                     <TextBlock Text="{Binding ArenaDraftTitle}" Style="{StaticResource OverlayHeaderTitle}" Margin="0,4,0,0" />
                     <TextBlock Text="{Binding ArenaMode}" Style="{StaticResource OverlayHeaderNote}" Visibility="{Binding ArenaMode, Converter={StaticResource Vis}}" />
+                    <TextBlock Text="{Binding ArenaSliceNote}" Style="{StaticResource OverlayHeaderNote}" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Visibility="{Binding ArenaSliceNote, Converter={StaticResource Vis}}" />
                 </StackPanel>
             </Border>
 

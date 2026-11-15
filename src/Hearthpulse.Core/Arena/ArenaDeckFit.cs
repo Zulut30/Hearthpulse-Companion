@@ -49,11 +49,12 @@ public sealed record ArenaFit(double Points, IReadOnlyList<ArenaFitPart> Parts)
 /// copies of one card. Our own rule from the card data alone (cost, type, name); no synergy table of another tool.
 /// Spec with a worked example: docs/arena-draft.md, "Deck fit".
 /// <para>
-/// With <c>n</c> cards in the deck (nothing below <see cref="MinPicks"/>: the first picks take the strongest card):
+/// With <c>n</c> known cards in the deck (nothing below <see cref="MinPicks"/>: the first picks take the strongest card):
 /// </para>
 /// <list type="bullet">
 /// <item>Curve. Cost slots 0-1, 2, 3, 4, 5, 6, 7+ aim at <see cref="TargetCurve"/> cards of 30. For the card's slot
-/// <c>d = (cards in the slot + 1) - target * (n + 1) / 30</c>. <c>d &gt;= 1</c>: minus <c>min(d, 2)</c>;
+/// <c>d = (cards in the slot + 1) - target * (n + 1) / 30</c>. With at least two cards already in the slot,
+/// <c>d &gt;= 1</c>: minus <c>min(d, 2)</c>;
 /// <c>d &lt;= -1</c>: plus <c>min(-d, 2)</c>; in between nothing.</item>
 /// <item>Minion: +1 when less than half of the deck is minions; +1 more when it costs 3 or less and
 /// <c>(minions costing 3 or less + 1) - 8 * (n + 1) / 30 &lt;= -1</c>.</item>
@@ -95,26 +96,26 @@ public static class ArenaDeckFit
     public static ArenaFit Of(string cardId, IReadOnlyList<string> deckIds, CardDb cards)
     {
         var card = cards.Get(cardId);
-        var n = deckIds.Count;
-        if (card is null || n < MinPicks)
+        if (card is null || deckIds.Count < MinPicks)
         {
             return ArenaFit.None;
         }
 
         var slots = new int[Slots];
-        int minions = 0, earlyMinions = 0, spells = 0, weapons = 0, sameName = 0;
+        int n = 0, minions = 0, earlyMinions = 0, spells = 0, weapons = 0, sameName = 0;
         var name = NameOf(cardId, card);
         foreach (var id in deckIds)
         {
             var have = cards.Get(id);
-            if (string.Equals(NameOf(id, have), name, StringComparison.Ordinal))
-            {
-                sameName++;
-            }
-
             if (have is null)
             {
                 continue;
+            }
+
+            n++;
+            if (string.Equals(NameOf(id, have), name, StringComparison.Ordinal))
+            {
+                sameName++;
             }
 
             slots[SlotOf(have.Cost)]++;
@@ -133,11 +134,16 @@ public static class ArenaDeckFit
             }
         }
 
+        if (n < MinPicks)
+        {
+            return ArenaFit.None;
+        }
+
         var parts = new List<ArenaFitPart>(4);
         var share = (n + 1) / (double)ArenaDraft.DeckSize;
         var slot = SlotOf(card.Cost);
         var over = slots[slot] + 1 - (TargetCurve[slot] * share);
-        if (over >= 1)
+        if (slots[slot] >= 2 && over >= 1)
         {
             parts.Add(new ArenaFitPart(ArenaFitReason.CurveCrowded, -Math.Min(over, PartLimit), slot));
         }

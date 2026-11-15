@@ -73,6 +73,9 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   path only).
 - `ArenaMeta` keeps what the answer says about itself: `Underground` (the slice), `TimeRange` and `FetchedAt` (the
   date of the data). The date line in the draft panel belongs to the source-freshness package, not to this one.
+  When the source's Arena differs from the run, the slice note is visible under the mode in the draft panel,
+  as well as in the header tooltip. `HEARTHPULSE_RENDER_ONLY=arenadraft` renders the draft overlay scenes alone
+  (WPF also writes the Arena page scenes), on a copied data folder with the game closed.
 - Earlier checks (2026-10-25, 2026-10-26, the dataset): 1219 cards (147 without a score), 11 classes; the server
   builds the slice from `ArenaGameTypeFilter=BGT_UNDERGROUND_ARENA`, `LAST_4_DAYS`. `structured.by_class` holds only
   card counts per class (DEATHKNIGHT 355, DRUID 336...), no scores.
@@ -85,7 +88,8 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   D 10+, else E. Class win-rate tiers: S 54%+, A 50%+, B 46%+, C 42%+, D 38%+, else E (`ArenaDraft.TierOfWinRate`).
 - Code: `HearthpulseData.LoadArenaMetaAsync` (`Api/HearthpulseData.Arena.cs`: `LoadArenaRouteAsync`, then the
   dataset; `ParseArenaRoute`, `ParseArenaLegendaries`) -> `Arena/ArenaMeta` (`Underground` = the slice's mode,
-  `TimeRange`, `FetchedAt`, `PackageOf`). Never throws (a timeout included). Hosts load it with the community stats (`App.Arena.cs`, `AppHost.Arena.cs`) and pass it to
+  `TimeRange`, `FetchedAt`, `PackageOf`). Network failures and timeouts leave empty parts; explicit caller cancellation
+  propagates. Hosts load it with the community stats (`App.Arena.cs`, `AppHost.Arena.cs`) and pass it to
   `GameSession.SetArenaMeta` and `MainViewModel.SetArenaMeta`. Offline the stale cache is used; with nothing at all the
   panel says so and the deck and curve still work.
 
@@ -117,10 +121,11 @@ small adjustment from the card data alone (cost, type, name). It is our own rule
 HDT, Firestone or HearthArena was read for it, and it is no statistic of the data API.
 
 - **Shown apart.** The badge's number, its tier letter and "Best pick" are the source's and do not move. The
-  adjustment is a line of its own under them ("Deck fit: −2", `Arena.DeckFit`) with the two strongest reasons on
+  adjustment is a line of its own under them ("Deck fit: −2", `Arena.DeckFit`), rounded to half-point steps with no
+  signed zero, with the two strongest reasons on
   the next line. `ArenaPickOption.Score` stays the source's score, `ArenaPickOption.Fit` (`ArenaFit`: `Points`,
   `Parts`) carries ours.
-- **When.** For a card offer, from five cards in the deck on (`MinPicks`: the first picks take the strongest
+- **When.** For a card offer, from five known cards in the deck on (`MinPicks`: the first picks take the strongest
   card). Not for a card without a score (nothing to adjust), not for a legendary shown with its package (its number
   is the package's average), not for heroes and hero powers, not for a card the card data does not know.
 - **Limit.** Each term is at most 2 points, the sum is kept within ±4 (`ArenaDeckFit.Limit`) on the 0-60 score scale.
@@ -130,11 +135,12 @@ HDT, Firestone or HearthArena was read for it, and it is no statistic of the dat
   |---|---|---|---|---|---|---|---|
   | Cards of 30 | 3 | 7 | 6 | 5 | 4 | 3 | 2 |
 
-- **Rule**, with `n` cards in the deck (hero powers are no cards) and `share = (n + 1) / 30`:
+- **Rule**, with `n` known cards in the deck (hero powers are no cards; unknown cards contribute neither to `n`
+  nor to the type and cost counts) and `share = (n + 1) / 30`:
 
   | Term | Condition | Points | Reason on the badge |
   |---|---|---|---|
-  | Curve, crowded | `d = (cards in the card's slot + 1) − target × share`, `d ≥ 1` | `−min(d, 2)` | "Many cards at N mana" |
+  | Curve, crowded | at least 2 cards already in the slot; `d = (cards in the card's slot + 1) − target × share`, `d ≥ 1` | `−min(d, 2)` | "Many cards at N mana" |
   | Curve, thin | `d ≤ −1` | `+min(−d, 2)` | "Few cards at N mana" |
   | Minions | the card is a minion and `minions × 2 < n` | +1 | "Few minions" |
   | Early minions | the card is a minion costing 3 or less and `(minions costing ≤ 3 + 1) − 8 × share ≤ −1` | +1 | "Few early minions" |

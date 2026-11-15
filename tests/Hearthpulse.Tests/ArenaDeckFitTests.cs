@@ -115,11 +115,23 @@ public sealed class ArenaDeckFitTests
     public void A_card_the_card_data_does_not_know_is_not_adjusted()
     {
         Assert.Same(ArenaFit.None, ArenaDeckFit.Of("NEW_001", Deck(("M2a", 9)), Cards));
-        // Unknown cards of the deck count as cards taken (n) but sit in no slot and have no type.
-        // n = 9: five unknown, four 2-cost minions. Offered: a 2-cost minion.
-        // Slot "2": (4 + 1) - 7 * 10/30 = 2.67 -> -2. Minions 4 * 2 = 8 < 9 -> +1. Sum -1.
-        var fit = ArenaDeckFit.Of("M2b", Deck(("NEW_001", 5), ("M2a", 4)), Cards);
-        Assert.Equal(-1, fit.Points);
+        // Unknown cards cannot stand for non-minions or empty curve slots. Four known cards are still too few.
+        Assert.Same(ArenaFit.None, ArenaDeckFit.Of("M2b", Deck(("NEW_001", 5), ("M2a", 4)), Cards));
+        var known = ArenaDeckFit.Of("M2b", Deck(("M2a", 5)), Cards);
+        var mixed = ArenaDeckFit.Of("M2b", Deck(("M2a", 5), ("NEW_001", 10)), Cards);
+        Assert.Equal(known.Points, mixed.Points);
+        Assert.Equal(known.Parts.Select(p => (p.Reason, p.Points, p.Slot)), mixed.Parts.Select(p => (p.Reason, p.Points, p.Slot)));
+    }
+
+    [Theory]
+    [InlineData(5)]
+    [InlineData(7)]
+    public void One_late_card_is_not_a_crowded_slot_early_in_the_draft(int cost)
+    {
+        var first = ArenaDeckFit.Of($"M{cost}b", Deck(($"M{cost}a", 1), ("M2a", 4)), Cards);
+        Assert.Same(ArenaFit.None, first);
+        var crowded = ArenaDeckFit.Of($"M{cost}b", Deck(($"M{cost}a", 2), ("M2a", 3)), Cards);
+        Assert.Contains(crowded.Parts, p => p.Reason == ArenaFitReason.CurveCrowded && p.Points < 0);
     }
 
     /// <summary>

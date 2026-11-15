@@ -60,6 +60,14 @@ internal static partial class OffscreenRenderer
             await RenderBrawlPageAsync(main, view, host, folder);
         }
 
+        if (RenderOnly("arenadraft"))
+        {
+            await host.LoadArenaMetaAsync();
+            var (overlay, overlayView) = OpenOverlay(host, host.Settings);
+            await RenderArenaOverlayAsync(host, host.Settings, overlayView, overlay, folder);
+            overlay.Close();
+        }
+
         if (RenderOnly("arenapage"))
         {
             await RenderArenaPageAsync(main, view, host, folder);

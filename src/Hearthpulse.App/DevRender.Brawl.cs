@@ -54,6 +54,11 @@ public partial class App
             await RenderBrawlAsync(folder);
         }
 
+        if (RenderOnly("arenadraft"))
+        {
+            await RenderArenaAsync(folder);
+        }
+
         if (RenderOnly("arenapage"))
         {
             await RenderArenaPageAsync(folder);

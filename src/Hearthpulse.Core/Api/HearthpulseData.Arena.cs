@@ -27,7 +27,7 @@ public sealed partial class HearthpulseData
     /// <summary>The route answers up to 5000 rows a page (the whole list today); more pages than this are not followed.</summary>
     private const int ArenaRoutePages = 4;
 
-    /// <summary>Card scores and class results; empty parts when the server and the cache have nothing. Never throws.</summary>
+    /// <summary>Card scores and class results; empty parts on unavailable data or a timeout. Explicit caller cancellation propagates.</summary>
     public async Task<ArenaMeta> LoadArenaMetaAsync(CancellationToken cancellationToken = default)
     {
         var cards = LoadArenaCardsAsync(cancellationToken);
