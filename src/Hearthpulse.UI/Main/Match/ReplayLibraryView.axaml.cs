@@ -192,6 +192,7 @@ public partial class ReplayLibraryView : UserControl
         if (_model is not null)
         {
             _model.PickFileRequested -= OnPickFile;
+            _model.ExportFileRequested -= OnExportFile;
             _model.ShareFileRequested -= OnShareFile;
             _model.CopyLinkRequested -= OnCopyLink;
         }
@@ -200,6 +201,7 @@ public partial class ReplayLibraryView : UserControl
         if (model is not null && listen)
         {
             model.PickFileRequested += OnPickFile;
+            model.ExportFileRequested += OnExportFile;
             model.ShareFileRequested += OnShareFile;
             model.CopyLinkRequested += OnCopyLink;
         }
@@ -223,6 +225,46 @@ public partial class ReplayLibraryView : UserControl
         if (files.Count > 0 && files[0].TryGetLocalPath() is { } path)
         {
             _model?.ImportPath(path);
+        }
+    }
+
+    private void OnExportFile(string fileName) => ExportFileAsync(fileName).Forget("History export picker");
+
+    /// <summary>"Export to CSV": where the table goes; the model reads the history and writes the file off this thread.</summary>
+    private async Task ExportFileAsync(string fileName)
+    {
+        if (_model is not { } model)
+        {
+            return;
+        }
+
+        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { CanSave: true } storage)
+        {
+            model.ExportUnavailable();
+            return;
+        }
+
+        var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = Loc.T("Library.Export.Title"),
+            SuggestedFileName = fileName,
+            DefaultExtension = "csv",
+            FileTypeChoices = [new FilePickerFileType(Loc.T("Library.Export.Filter")) { Patterns = ["*.csv"], MimeTypes = ["text/csv"] }],
+            SuggestedStartLocation = await storage.TryGetWellKnownFolderAsync(WellKnownFolder.Documents),
+        });
+        if (file is null)
+        {
+            return;
+        }
+
+        try
+        {
+            // A file on this PC is written whole or not at all; another storage only gives a stream.
+            await (file.TryGetLocalPath() is { } path ? model.ExportTo(path) : model.ExportTo(file.OpenWriteAsync));
+        }
+        finally
+        {
+            file.Dispose();
         }
     }
 

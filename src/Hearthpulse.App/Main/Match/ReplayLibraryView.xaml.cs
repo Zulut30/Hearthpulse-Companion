@@ -231,6 +231,7 @@ public partial class ReplayLibraryView : UserControl
         if (_model is not null)
         {
             _model.PickFileRequested -= OnPickFile;
+            _model.ExportFileRequested -= OnExportFile;
             _model.ShareFileRequested -= OnShareFile;
             _model.CopyLinkRequested -= OnCopyLink;
         }
@@ -239,6 +240,7 @@ public partial class ReplayLibraryView : UserControl
         if (model is not null && listen)
         {
             model.PickFileRequested += OnPickFile;
+            model.ExportFileRequested += OnExportFile;
             model.ShareFileRequested += OnShareFile;
             model.CopyLinkRequested += OnCopyLink;
         }
@@ -255,6 +257,24 @@ public partial class ReplayLibraryView : UserControl
         if (dialog.ShowDialog(Window.GetWindow(this)) == true)
         {
             _model?.ImportPath(dialog.FileName);
+        }
+    }
+
+    /// <summary>"Export to CSV": where the table goes; the model reads the history and writes the file off this thread.</summary>
+    private void OnExportFile(string fileName)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = Loc.T("Library.Export.Title"),
+            Filter = Loc.T("Library.Export.Filter") + "|*.csv",
+            DefaultExt = ".csv",
+            AddExtension = true,
+            FileName = fileName,
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) == true)
+        {
+            _model?.ExportTo(dialog.FileName).Forget("History export");
         }
     }
 

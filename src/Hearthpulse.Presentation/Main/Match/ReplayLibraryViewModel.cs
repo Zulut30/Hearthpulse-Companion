@@ -142,6 +142,14 @@ public sealed partial class ReplayLibraryViewModel : Observable
                 PickFileRequested?.Invoke();
             }
         });
+        Export = new RelayCommand(() =>
+        {
+            if (CanExport)
+            {
+                ClearStatus();
+                ExportFileRequested?.Invoke(MainViewModel.HistoryExportFileName(DateTime.Now));
+            }
+        });
         OpenFolder = new RelayCommand(() => OpenInShell(IsImported ? Files.Imported.Directory : Files.Saved.Directory));
         OpenStatusFolder = new RelayCommand(() =>
         {
@@ -154,6 +162,12 @@ public sealed partial class ReplayLibraryViewModel : Observable
 
     /// <summary>The view should let the player pick a .hpr or Power.log and hand it to <see cref="ImportPath"/>.</summary>
     public event Action? PickFileRequested;
+
+    /// <summary>
+    /// The view should let the player pick where the history's CSV goes (the argument is the file name to start with)
+    /// and hand the place to <see cref="ExportTo(string)"/> or <see cref="ExportTo(Func{Task{Stream}})"/>.
+    /// </summary>
+    public event Action<string>? ExportFileRequested;
 
     /// <summary>The view should put this file on the clipboard and report with <see cref="ShareDone"/>.</summary>
     public event Action<string>? ShareFileRequested;
@@ -311,6 +325,20 @@ public sealed partial class ReplayLibraryViewModel : Observable
 
     public bool CanImport => !_importing;
 
+    /// <summary>False while an export runs (<see cref="MainViewModel.CanExportHistory"/>).</summary>
+    public bool CanExport => _owner.CanExportHistory;
+
+    internal void ExportStateChanged() => Raise(nameof(CanExport));
+
+    /// <summary>Exports the games of History's mode filter to the picked file (<c>docs/history-export.md</c>).</summary>
+    public Task ExportTo(string path) => _owner.ExportHistoryAsync(path);
+
+    /// <summary>The same for a picked file without a path on this PC: opened once the table is ready.</summary>
+    public Task ExportTo(Func<Task<Stream>> open) => _owner.ExportHistoryAsync(open);
+
+    /// <summary>The platform has nowhere to save a file: said, not silently nothing.</summary>
+    public void ExportUnavailable() => Failed(Loc.T("Library.Export.Failed"));
+
     /// <summary>Opens a game's page on the site (O on a card); a test hands in its own.</summary>
     internal Func<Uri, bool> OpenBrowser { get; set; } = SystemBrowser.Open;
 
@@ -371,6 +399,9 @@ public sealed partial class ReplayLibraryViewModel : Observable
     public RelayCommand Cancel { get; }
 
     public RelayCommand Import { get; }
+
+    /// <summary>"Export to CSV": asks the view for a file (<see cref="ExportFileRequested"/>).</summary>
+    public RelayCommand Export { get; }
 
     public RelayCommand OpenFolder { get; }
 
