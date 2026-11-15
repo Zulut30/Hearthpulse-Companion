@@ -257,7 +257,7 @@ public sealed class OwnBgHeroesTests : IDisposable
 
     // ---- withdrawn numbers stay withdrawn ----------------------------------------------------------
 
-    private async Task<OwnBgHeroesResult> Load(FakePool pool, OwnBgHeroesFiles files)
+    private async Task<OwnBgHeroesResult> Load(HttpMessageHandler pool, OwnBgHeroesFiles files)
     {
         using var http = new HttpClient(pool, disposeHandler: false);
         return await OwnBgHeroes.LoadAsync(http, Endpoint, _cache, _time, files);
@@ -415,6 +415,165 @@ public sealed class OwnBgHeroesTests : IDisposable
         _time.Advance(TimeSpan.FromHours(1));
 
         Assert.Equal(OwnBgHeroesState.Ok, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+    }
+
+    // ---- no clock in the decision, answers in the order of their requests -----------------------------
+
+    [Fact]
+    public async Task A_withdrawal_under_a_clock_set_back_still_hides_the_copy_written_before_it()
+    {
+        // The copy with numbers carries 12:00.
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+
+        // The clock goes back to 11:00; the pool withdraws the numbers and the copy cannot be replaced.
+        var files = Failing(file => file == CopyFile);
+        using (var http = new HttpClient(new FakePool(Unavailable("rebuilding"))))
+        {
+            var early = new FakeTimeProvider(Start.AddHours(-1));
+            Assert.Equal(OwnBgHeroesState.Rebuilding, (await OwnBgHeroes.LoadAsync(http, Endpoint, _cache, early, files)).State);
+        }
+
+        Assert.Contains("\"available\": true", await File.ReadAllTextAsync(CopyFile), StringComparison.Ordinal);
+
+        // Offline afterwards, whatever the clock says, in the same run and in a new one: "12:00 is after 11:00" is not asked.
+        foreach (var at in new[] { Start.AddHours(-1), Start, Start.AddMinutes(5), Start.AddDays(2) })
+        {
+            using var http = new HttpClient(new FakePool(null));
+            var clock = new FakeTimeProvider(at);
+            Assert.Equal(OwnBgHeroesState.Offline, (await OwnBgHeroes.LoadAsync(http, Endpoint, _cache, clock, files)).State);
+            Assert.Equal(OwnBgHeroesState.Offline, (await OwnBgHeroes.LoadAsync(http, Endpoint, _cache, clock, new OwnBgHeroesFiles())).State);
+        }
+    }
+
+    [Fact]
+    public async Task A_slow_answer_with_numbers_does_not_undo_the_withdrawal_a_later_request_applied()
+    {
+        var stuck = true;
+        var files = Failing(file => stuck && file == CopyFile);
+        stuck = false;
+        await Load(new FakePool(Fixture()), files);
+        stuck = true;
+        _time.Advance(TimeSpan.FromHours(1));
+        var pool = new HeldPool();
+
+        // Two loads at once; the first one's answer (numbers, sent before the withdrawal) is on its way.
+        var first = Load(pool, files);
+        await pool.Asked(1);
+        var second = Load(pool, files);
+        await pool.Asked(2);
+
+        pool.Answer(2, Unavailable("rebuilding"));
+        Assert.Equal(OwnBgHeroesState.Rebuilding, (await second).State);
+        Assert.True(File.Exists(OwnBgHeroes.MarkerOf(CopyFile)));
+
+        // The old answer arrives: it changes nothing, and its load reports what the later one found.
+        stuck = false;
+        pool.Answer(1, Fixture());
+        var late = await first;
+        Assert.Equal(OwnBgHeroesState.Rebuilding, late.State);
+        Assert.Null(late.Group);
+        Assert.True(File.Exists(OwnBgHeroes.MarkerOf(CopyFile)));
+
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), files)).State);
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+    }
+
+    [Fact]
+    public async Task A_publication_of_a_later_request_follows_an_earlier_withdrawal_and_removes_the_marker()
+    {
+        var stuck = false;
+        var files = Failing(file => stuck && file == CopyFile);
+        await Load(new FakePool(Fixture()), files);
+        _time.Advance(TimeSpan.FromHours(1));
+        var pool = new HeldPool();
+        var first = Load(pool, files);
+        await pool.Asked(1);
+        var second = Load(pool, files);
+        await pool.Asked(2);
+
+        // The earlier request brings the withdrawal (the copy cannot be replaced: a marker)...
+        stuck = true;
+        pool.Answer(1, Unavailable("rebuilding"));
+        Assert.Equal(OwnBgHeroesState.Rebuilding, (await first).State);
+        Assert.True(File.Exists(OwnBgHeroes.MarkerOf(CopyFile)));
+
+        // ...and the later one a new publication: the numbers are back and kept.
+        stuck = false;
+        pool.Answer(2, Fixture());
+        var published = await second;
+        Assert.Equal(OwnBgHeroesState.Ok, published.State);
+        Assert.False(File.Exists(OwnBgHeroes.MarkerOf(CopyFile)));
+
+        _time.Advance(TimeSpan.FromHours(1));
+        var offline = await Load(new FakePool(null), new OwnBgHeroesFiles());
+        Assert.Equal((OwnBgHeroesState.Ok, true), (offline.State, offline.FromOldCopy));
+    }
+
+    [Fact]
+    public async Task A_cancelled_request_among_parallel_ones_leaves_the_gate_free()
+    {
+        var files = new OwnBgHeroesFiles();
+        var pool = new HeldPool();
+        using var cancel = new CancellationTokenSource();
+        using var http = new HttpClient(pool, disposeHandler: false);
+        var cancelled = OwnBgHeroes.LoadAsync(http, Endpoint, _cache, _time, files, cancel.Token);
+        await pool.Asked(1);
+        var waiting = Load(pool, files);
+        await pool.Asked(2);
+
+        await cancel.CancelAsync();
+        Assert.Equal(OwnBgHeroesState.Offline, (await cancelled).State);
+
+        // The other request and a new one go through.
+        pool.Answer(2, Fixture());
+        Assert.Equal(OwnBgHeroesState.Ok, (await waiting).State);
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(OwnBgHeroesState.Rebuilding, (await Load(new FakePool(Unavailable("rebuilding")), files)).State);
+
+        // A token cancelled before the load starts does not take the gate with it either.
+        Assert.Equal(OwnBgHeroesState.Offline, (await OwnBgHeroes.LoadAsync(http, Endpoint, _cache, _time, files, cancel.Token)).State);
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(OwnBgHeroesState.Ok, (await Load(new FakePool(Fixture()), files)).State);
+    }
+
+    /// <summary>A pool whose answers the test hands out: each request waits for its own, in any order.</summary>
+    private sealed class HeldPool : HttpMessageHandler
+    {
+        private readonly Lock _sync = new();
+        private readonly List<TaskCompletionSource<string>> _answers = [];
+        private readonly List<TaskCompletionSource> _asked = [];
+        private int _requests;
+
+        /// <summary>Completes when the request number <paramref name="number"/> (from 1) has reached the pool.</summary>
+        public Task Asked(int number) => Slot(_asked, number, NewSignal).Task;
+
+        public void Answer(int number, string body) => Slot(_answers, number, NewBody).SetResult(body);
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var number = Interlocked.Increment(ref _requests);
+            Slot(_asked, number, NewSignal).SetResult();
+            var body = await Slot(_answers, number, NewBody).Task.WaitAsync(cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+        }
+
+        private static TaskCompletionSource NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private static TaskCompletionSource<string> NewBody() => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private T Slot<T>(List<T> list, int number, Func<T> create)
+        {
+            lock (_sync)
+            {
+                while (list.Count < number)
+                {
+                    list.Add(create());
+                }
+
+                return list[number - 1];
+            }
+        }
     }
 
     // ---- never throws -------------------------------------------------------------------------------

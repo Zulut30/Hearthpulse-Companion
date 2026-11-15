@@ -112,23 +112,30 @@ public static class OwnBgHeroes
         LoadAsync(http, endpoint, cacheDirectory, time, OwnBgHeroesFiles.Shared, cancellationToken);
 
     /// <summary>
-    /// The load itself. <paramref name="files"/> writes and deletes the files and remembers withdrawals for the life
-    /// of the process; tests pass their own (a new one is "the app started again").
+    /// The load itself. <paramref name="files"/> writes and deletes the files and keeps what the process knows (the
+    /// withdrawals, the order of the requests); tests pass their own (a new one is "the app started again").
     ///
     /// <para><b>Withdrawn numbers are never shown again.</b> When the pool answers "not available" (not published,
-    /// rebuilding, unsupported), every copy with numbers written before that moment is dead, whatever happens to
-    /// the files afterwards. The ladder, each step taken only when the one before failed:</para>
+    /// rebuilding, unsupported), every copy with numbers is dead, whatever happens to the files afterwards and
+    /// whatever the clock says: no time is compared. The ladder, each step taken only when the one before failed:</para>
     /// <list type="number">
-    /// <item>the withdrawal and its time are remembered in the process, before any file is touched;</item>
+    /// <item>the withdrawal is remembered in the process, before any file is touched;</item>
     /// <item>the copy is replaced by the answer (then no numbers are left on disk);</item>
-    /// <item>a marker file with the time of the withdrawal is written beside the copy: a copy fetched at or before
-    /// that time is not shown, in this run or the next;</item>
+    /// <item>a marker file is written beside the copy: while it is there no copy is read at all, in this run or
+    /// the next;</item>
     /// <item>the copy is deleted;</item>
-    /// <item>nothing could be written: the process still hides the copy, and every later load writes the marker
+    /// <item>nothing could be written: the process still refuses the copy, and every later load writes the marker
     /// again until it succeeds.</item>
     /// </list>
-    /// <para>A marker that exists and cannot be read hides every copy. A new publication written to disk is newer
-    /// than the marker and removes it.</para>
+    /// <para>A marker that exists and cannot be read counts as a marker. Only a new publication takes it away, and
+    /// only after that publication is on disk: the copy first, the marker second, so a failure between the two
+    /// hides good numbers and never shows withdrawn ones.</para>
+    ///
+    /// <para><b>Answers are applied in the order their requests started.</b> Each load takes a number when it begins;
+    /// the files and the withdrawal are changed under one gate per copy, and an answer whose request began before
+    /// the one applied last changes nothing: that load returns what the later one found. So a slow answer with
+    /// numbers, sent before a withdrawal, cannot undo it. The request itself runs outside the gate, and the gate
+    /// is released on every way out, cancellation included.</para>
     /// </summary>
     internal static async Task<OwnBgHeroesResult> LoadAsync(HttpClient http, string endpoint, string? cacheDirectory, TimeProvider? time,
         OwnBgHeroesFiles files, CancellationToken cancellationToken = default)
@@ -143,46 +150,56 @@ public static class OwnBgHeroes
         var file = Path.Combine(cacheDirectory ?? Path.Combine(AppPaths.Cache, "api"), CacheName);
         // Whole milliseconds, as the copy on disk keeps the time: a fresh answer and its copy carry the same date.
         var now = DateTimeOffset.FromUnixTimeMilliseconds((time ?? TimeProvider.System).GetUtcNow().ToUnixTimeMilliseconds()).UtcDateTime;
+        var request = files.Begin(file);
         try
         {
-            var copy = await ReadCopyAsync(file, endpoint, cancellationToken).ConfigureAwait(false);
-            var revokedAt = await RevokedAtAsync(file, endpoint, files, cancellationToken).ConfigureAwait(false);
-            if (copy is { Snapshot.Available: true } dead && revokedAt is { } at && dead.FetchedAt <= at)
+            using (await files.EnterAsync(file, cancellationToken).ConfigureAwait(false))
             {
-                // The pool took these numbers back after this copy was written: it is as if there were none.
-                copy = null;
-            }
-
-            // A copy from the future (the clock was set back) is not young: the pool is asked.
-            if (copy is { } young && now >= young.FetchedAt && now - young.FetchedAt < MaxAge)
-            {
-                return OwnBgHeroesResult.From(young.Snapshot, young.FetchedAt);
-            }
-
-            if (await AnalyticsClient.FetchBgHeroesAsync(http, endpoint, cancellationToken).ConfigureAwait(false) is { } answer)
-            {
-                var envelope = Envelope(endpoint, now, answer.Body);
-                if (answer.Snapshot.Available)
+                // The clock decides only whether to ask again (a copy from the future is not young), never whether
+                // a copy may be shown.
+                if (await UsableCopyAsync(file, endpoint, files, cancellationToken).ConfigureAwait(false) is { } young
+                    && now >= young.FetchedAt && now - young.FetchedAt < MaxAge)
                 {
-                    // A new publication: once it is on disk it is newer than any withdrawal, and the marker goes.
-                    if (await files.Write(file, envelope, cancellationToken).ConfigureAwait(false) && files.Delete(MarkerOf(file)))
+                    return OwnBgHeroesResult.From(young.Snapshot, young.FetchedAt);
+                }
+            }
+
+            var answer = await AnalyticsClient.FetchBgHeroesAsync(http, endpoint, cancellationToken).ConfigureAwait(false);
+
+            using (await files.EnterAsync(file, cancellationToken).ConfigureAwait(false))
+            {
+                if (answer is { } got)
+                {
+                    if (files.Superseded(file, request) is { } later)
                     {
-                        files.Forget(file);
+                        return later;
                     }
-                }
-                else
-                {
-                    await WithdrawAsync(file, endpoint, now, envelope, files, cancellationToken).ConfigureAwait(false);
+
+                    var result = OwnBgHeroesResult.From(got.Snapshot, now);
+                    files.Applied(file, request, result);
+                    var envelope = Envelope(endpoint, now, got.Body);
+                    if (got.Snapshot.Available)
+                    {
+                        // A new publication: the copy first, the marker only once the copy is on disk.
+                        if (await files.Write(file, envelope, cancellationToken).ConfigureAwait(false) && files.Delete(MarkerOf(file)))
+                        {
+                            files.Forget(file);
+                        }
+                    }
+                    else
+                    {
+                        await WithdrawAsync(file, endpoint, now, envelope, files, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    return result;
                 }
 
-                return OwnBgHeroesResult.From(answer.Snapshot, now);
+                // No answer. An earlier copy with numbers is shown with its own date, read again now: another load
+                // may have withdrawn it while this one waited. An earlier "nothing yet" says nothing about today.
+                return await UsableCopyAsync(file, endpoint, files, cancellationToken).ConfigureAwait(false) is { Snapshot.Available: true } old
+                    ? OwnBgHeroesResult.From(old.Snapshot, old.FetchedAt, fromOldCopy: true)
+                    : OwnBgHeroesResult.Of(OwnBgHeroesState.Offline);
             }
-
-            // No answer. An earlier copy with numbers is shown with its own date; an earlier "nothing yet" says nothing
-            // about today.
-            return copy is { Snapshot.Available: true } old
-                ? OwnBgHeroesResult.From(old.Snapshot, old.FetchedAt, fromOldCopy: true)
-                : OwnBgHeroesResult.Of(OwnBgHeroesState.Offline);
         }
         catch (OperationCanceledException)
         {
@@ -197,10 +214,17 @@ public static class OwnBgHeroes
 
     internal static string MarkerOf(string file) => Path.ChangeExtension(file, ".revoked");
 
-    /// <summary>The pool withdrew its numbers at <paramref name="now"/>: the ladder described on the load.</summary>
+    /// <summary>The copy, unless the pool withdrew its numbers: then no copy is read at all. Called under the gate.</summary>
+    private static async Task<(BgHeroAnalytics Snapshot, DateTime FetchedAt)?> UsableCopyAsync(string file, string endpoint, OwnBgHeroesFiles files,
+        CancellationToken cancellationToken) =>
+        await WithdrawnAsync(file, endpoint, files, cancellationToken).ConfigureAwait(false)
+            ? null
+            : await ReadCopyAsync(file, endpoint, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>The pool withdrew its numbers: the ladder described on the load. Called under the gate.</summary>
     private static async Task WithdrawAsync(string file, string endpoint, DateTime now, string envelope, OwnBgHeroesFiles files, CancellationToken cancellationToken)
     {
-        files.Remember(file, now);
+        files.Remember(file);
         try
         {
             if (await files.Write(file, envelope, cancellationToken).ConfigureAwait(false))
@@ -231,50 +255,51 @@ public static class OwnBgHeroes
     }
 
     /// <summary>
-    /// When the pool last withdrew its numbers, from the process and the marker file together; null when it never did.
-    /// A withdrawal the process knows and the disk does not is written again here.
+    /// Whether a withdrawal stands: the process remembers one, or the marker file is there (this pool's, or one that
+    /// cannot be read). A withdrawal the process knows and the disk does not is written again here.
     /// </summary>
-    private static async Task<DateTime?> RevokedAtAsync(string file, string endpoint, OwnBgHeroesFiles files, CancellationToken cancellationToken)
+    private static async Task<bool> WithdrawnAsync(string file, string endpoint, OwnBgHeroesFiles files, CancellationToken cancellationToken)
     {
         var marker = MarkerOf(file);
-        DateTime? onDisk = null;
+        var onDisk = false;
         if (File.Exists(marker))
         {
             try
             {
                 var text = await File.ReadAllTextAsync(marker, cancellationToken).ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(text);
-                // The marker of another pool says nothing about this one (whose copy would be another file's content anyway).
-                onDisk = string.Equals(doc.RootElement.GetProperty("endpoint").GetString(), endpoint, StringComparison.Ordinal)
-                    ? DateTimeOffset.FromUnixTimeMilliseconds(doc.RootElement.GetProperty("revoked").GetInt64()).UtcDateTime
-                    : null;
+                // The marker of another pool says nothing about this one (the copy it guards is not read for this pool anyway).
+                onDisk = string.Equals(doc.RootElement.GetProperty("endpoint").GetString(), endpoint, StringComparison.Ordinal);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or FormatException
-                or KeyNotFoundException or ArgumentOutOfRangeException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException)
             {
-                // There was a withdrawal and its time is lost: no copy is trusted.
+                // There was a withdrawal and whose it was is lost: no copy is trusted.
                 Diag.Error("Own Battlegrounds hero statistics: the withdrawal marker is unreadable", ex);
-                onDisk = DateTime.MaxValue;
+                onDisk = true;
             }
         }
 
-        if (files.Remembered(file) is { } inProcess && (onDisk is null || onDisk < inProcess))
+        if (!files.Remembered(file))
+        {
+            return onDisk;
+        }
+
+        if (!onDisk)
         {
             try
             {
-                await files.Write(marker, Marker(endpoint, inProcess), cancellationToken).ConfigureAwait(false);
+                await files.Write(marker, Marker(endpoint, DateTime.UtcNow), cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
                 // The process still knows; the next load tries again.
             }
-
-            return inProcess;
         }
 
-        return onDisk;
+        return true;
     }
 
+    /// <summary>The marker's text: whose withdrawal it is; the time is for a reader of the file, no decision reads it.</summary>
     private static string Marker(string endpoint, DateTime revokedAt) =>
         "{\"endpoint\":" + JsonSerializer.Serialize(endpoint) + ",\"revoked\":" +
         new DateTimeOffset(revokedAt).ToUnixTimeMilliseconds().ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
@@ -314,12 +339,13 @@ public static class OwnBgHeroes
 }
 
 /// <summary>
-/// The file operations of <see cref="OwnBgHeroes"/> and the withdrawals this process knows of. The app uses
-/// <see cref="Shared"/>; a test passes its own to make a write fail or to stand for a new start of the app.
+/// The file operations of <see cref="OwnBgHeroes"/> and what this process knows about each copy: the withdrawals, the
+/// order in which the requests started, the gate under which the files change. The app uses <see cref="Shared"/>; a
+/// test passes its own to make a write fail or to stand for a new start of the app.
 /// </summary>
 internal sealed class OwnBgHeroesFiles
 {
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _revoked = new(StringComparer.OrdinalIgnoreCase);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Copy> _copies = new(StringComparer.OrdinalIgnoreCase);
 
     public static OwnBgHeroesFiles Shared { get; } = new();
 
@@ -329,12 +355,63 @@ internal sealed class OwnBgHeroesFiles
     /// <summary>Deletes a file; true when it is gone afterwards (or was never there).</summary>
     public Func<string, bool> Delete { get; init; } = DeleteFile;
 
-    public void Remember(string file, DateTime revokedAt) =>
-        _revoked.AddOrUpdate(file, static (_, at) => at, static (_, known, at) => known > at ? known : at, revokedAt);
+    /// <summary>The number of a load that begins now: later loads get greater ones.</summary>
+    public long Begin(string file) => Interlocked.Increment(ref Of(file).Started);
 
-    public DateTime? Remembered(string file) => _revoked.TryGetValue(file, out var at) ? at : null;
+    /// <summary>
+    /// Waits for the gate of the copy; dispose the result to leave. A cancelled wait never held the gate, and a
+    /// holder leaves it through <c>using</c> whatever happens inside.
+    /// </summary>
+    public async Task<IDisposable> EnterAsync(string file, CancellationToken cancellationToken)
+    {
+        var gate = Of(file).Gate;
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return new Leave(gate);
+    }
 
-    public void Forget(string file) => _revoked.TryRemove(file, out _);
+    /// <summary>Under the gate: what a load that began later already found, when its answer was applied first; else null.</summary>
+    public OwnBgHeroesResult? Superseded(string file, long request)
+    {
+        var copy = Of(file);
+        return copy.AppliedRequest > request ? copy.AppliedResult : null;
+    }
+
+    /// <summary>Under the gate: the answer of <paramref name="request"/> is the one in force.</summary>
+    public void Applied(string file, long request, OwnBgHeroesResult result)
+    {
+        var copy = Of(file);
+        (copy.AppliedRequest, copy.AppliedResult) = (request, result);
+    }
+
+    public void Remember(string file) => Of(file).Withdrawn = true;
+
+    public bool Remembered(string file) => Of(file).Withdrawn;
+
+    public void Forget(string file) => Of(file).Withdrawn = false;
+
+    private Copy Of(string file) => _copies.GetOrAdd(file, static _ => new Copy());
+
+    /// <summary>One copy file as the process knows it. The gates live as long as the process: there is one per copy.</summary>
+    private sealed class Copy
+    {
+        public long Started;
+
+        public SemaphoreSlim Gate { get; } = new(1, 1);
+
+        public long AppliedRequest { get; set; }
+
+        public OwnBgHeroesResult? AppliedResult { get; set; }
+
+        public volatile bool Withdrawn;
+    }
+
+    private sealed class Leave(SemaphoreSlim gate) : IDisposable
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "The gate belongs to the copy and lives as long as the process; leaving releases it, it does not dispose it.")]
+        private SemaphoreSlim? _gate = gate;
+
+        public void Dispose() => Interlocked.Exchange(ref _gate, null)?.Release();
+    }
 
     private static async Task<bool> WriteWholeAsync(string file, string text, CancellationToken cancellationToken)
     {
