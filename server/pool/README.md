@@ -25,8 +25,10 @@ A shared Constructed game holds only its id, day, format (standard or wild), whe
 and its picks: the source card, the cards it offered and the one taken. No deck, class, rank or opponent.
 No player name, BattleTag, account or IP address is stored, and nothing about other players. Shared games are kept
 for 60 days, then the cron job deletes them (the totals use the last 30). The totals are public: anyone can read
-them, and the app's notice says so. No published cell (a hero or trinket in a rating bracket, a hero with a
-lobby tribe) holds fewer than 10 games. Workers logs are off (`wrangler.toml`), so no IP address or request body
+them, and the app's notice says so. No published row or cell (a hero, comp, card, trinket, tier, pick or play, in
+all or in a rating bracket, a hero with a lobby tribe) holds fewer than 10 games; an average over fewer than 10 picks
+is null and the combat odds line needs 10 fights. The pool keeps no installation id for these games, so the floor is
+in games, not in players. Workers logs are off (`wrangler.toml`), so no IP address or request body
 lands in Cloudflare's logs either.
 
 ## Free plan budget
