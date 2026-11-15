@@ -110,19 +110,6 @@ public sealed class DiscoverPicksTests
     }
 
     [Fact]
-    public void Picks_are_shared_only_after_agreeing_to_the_list_that_names_them()
-    {
-        var settings = new AppSettings { PoolEndpoint = "https://pool.test", PoolConsent = true, PoolConsentVersion = 3 };
-        Assert.True(PoolClient.SharingAll(settings));
-        Assert.False(PoolClient.SharingPicks(settings));
-
-        settings.PoolConsentVersion = PoolClient.ConsentVersion;
-        Assert.True(PoolClient.SharingPicks(settings));
-        settings.PoolConsent = false;
-        Assert.False(PoolClient.SharingPicks(settings));
-    }
-
-    [Fact]
     public void A_card_choices_answer_turns_percents_into_shares_and_keeps_the_few_games_mark()
     {
         using var doc = JsonDocument.Parse("""

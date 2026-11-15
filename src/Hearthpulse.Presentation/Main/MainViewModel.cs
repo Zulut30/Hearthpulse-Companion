@@ -55,11 +55,6 @@ public sealed partial class MainViewModel : Observable
             RebuildCardRows();
         });
         InstallUpdate = new RelayCommand(() => UpdateRequested?.Invoke());
-        AnswerPool = new RelayCommand(p =>
-        {
-            PoolSharing = p as string == "yes";
-            Raise(nameof(ShowGameStatsNotice));
-        });
     }
 
     public RelayCommand SetCardTier { get; }

@@ -192,16 +192,25 @@ public sealed partial class AppSettings
     /// </summary>
     public bool SendCrashReports { get; set; }
 
-    /// <summary>Whether the player shares Battlegrounds results with the stats pool; null until they answer.</summary>
+    /// <summary>
+    /// Sharing games with the stats pool is on by default, with an opt-out (the owner's decision, 2026-11-15):
+    /// <c>false</c> is the player's refusal (the Settings → Data switch, "Turn off" on the notice, or a "no" to the
+    /// question older versions asked) and is always kept; <c>true</c> and <c>null</c> both share. Nothing is sent
+    /// before the notice was shown (<see cref="PoolNoticeVersion"/>).
+    /// </summary>
     public bool? PoolConsent { get; set; }
 
-    /// <summary>Which list of shared fields the answer was given for (see <see cref="Pool.PoolClient.ConsentVersion"/>).</summary>
-    public int PoolConsentVersion { get; set; }
+    /// <summary>
+    /// Version of the text about shared games the player has seen (see <see cref="Pool.PoolClient.NoticeVersion"/>).
+    /// Kept under its old name in settings.json: versions 1-4 were answers to the question older versions asked.
+    /// </summary>
+    [JsonPropertyName("PoolConsentVersion")]
+    public int PoolNoticeVersion { get; set; }
 
     /// <summary>Key for shared game ids (see <see cref="Pool.PoolGame"/>). Never sent anywhere.</summary>
     public string? PoolSecret { get; set; }
 
-    /// <summary>Earlier games were shared once, after the player agreed.</summary>
+    /// <summary>Earlier games were shared once, after the notice was shown.</summary>
     public bool PoolHistoryShared { get; set; }
 
     /// <summary>

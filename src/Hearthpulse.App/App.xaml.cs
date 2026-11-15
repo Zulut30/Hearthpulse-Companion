@@ -14,7 +14,6 @@ using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Site;
-using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -176,7 +175,6 @@ public partial class App : Application
         _session.SetCompFocus(_settings.CompFocus);
 
         _mainViewModel.ThemeChanged += OnThemeChanged;
-        _mainViewModel.PoolAvailable = PoolClient.Available(_settings);
         // Plan 2.4: the mulligan's rank filter on the meta page; the overlay's guide follows it.
         var mulliganData = new HearthpulseData(_api);
         _mainViewModel.LoadRankMulligan = (archetype, format, rank, cancel) => MulliganGuideSource.LoadRankSliceAsync(mulliganData, archetype, format, rank, cancel);
@@ -193,7 +191,7 @@ public partial class App : Application
             _services.SourceCaptures.ApplySettingsAsync(explicitEnable: on).Forget("Source capture settings");
         };
         _services.SourceCaptures.StateChanged += state => _ = Dispatcher.BeginInvoke(() => _mainViewModel.UpdateSourceCaptureState(state));
-        _mainViewModel.PoolConsentChanged += () =>
+        _mainViewModel.PoolSharingChanged += () =>
         {
             _settingsDebounce.Kick();
             _services.PoolSharing.ShareHistoryAsync().Forget("Sharing earlier games");

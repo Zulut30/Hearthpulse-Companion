@@ -19,10 +19,11 @@ public static partial class PoolClient
     public const string DefaultEndpoint = "";
 
     /// <summary>
-    /// Raised whenever the list of shared fields grows. Players who agreed to an older list are asked again;
-    /// until they answer, only the fields they agreed to are sent.
+    /// Version of the notice that describes what is shared (the main window's one-time notice, docs/game-stats.md).
+    /// Raised whenever the list of shared fields grows: nothing is sent until the player has seen the notice of this
+    /// version. Versions 1-4 were the lists of the question older versions asked; 5 is the first notice.
     /// </summary>
-    public const int ConsentVersion = 4;
+    public const int NoticeVersion = 5;
 
     /// <summary>Heroes and tribes need this many shared games before their numbers are shown.</summary>
     public const int MinGames = 20;
@@ -56,19 +57,15 @@ public static partial class PoolClient
 
     public static bool Available(AppSettings settings) => Endpoint(settings).StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>The player agreed to share, and to which version of the list.</summary>
-    public static bool Sharing(AppSettings settings) => settings.PoolConsent == true && Available(settings);
-
-    public static bool SharingDetails(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 2;
-
-    /// <summary>Picks, plays and earlier games were added in version 3.</summary>
-    public static bool SharingAll(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 3;
-
     /// <summary>
-    /// The Discover-style picks of Ranked and Casual Constructed games were added in version 4. Game records of every
-    /// mode (docs/game-stats.md) are another purpose with their own opt-out switch (<see cref="AppSettings.GameStatsOff"/>).
+    /// Games are shared (on by default): the player has not refused (<see cref="AppSettings.PoolConsent"/>), has seen
+    /// the current notice, and a pool is set up. Then everything the notice names goes: the Battlegrounds game with its
+    /// details, picks and plays, the earlier games once, and the Discover-style picks of Ranked and Casual games. Game
+    /// records of every mode (docs/game-stats.md) are another purpose with their own switch
+    /// (<see cref="AppSettings.GameStatsOff"/>).
     /// </summary>
-    public static bool SharingPicks(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 4;
+    public static bool Sharing(AppSettings settings) =>
+        settings.PoolConsent != false && settings.PoolNoticeVersion >= NoticeVersion && Available(settings);
 
     /// <summary>The install's secret for game ids, made on first use. Callers save the settings afterwards.</summary>
     public static string Secret(AppSettings settings)
@@ -80,10 +77,6 @@ public static partial class PoolClient
 
         return settings.PoolSecret;
     }
-
-    /// <summary>Removes what version 2 consent did not cover (picks and plays) from a game.</summary>
-    public static PoolGame Limit(PoolGame game, AppSettings settings) =>
-        game.Details is { } d && !SharingAll(settings) ? game with { Details = d with { Choices = [], Plays = [] } } : game;
 
     internal static object Body(IEnumerable<PoolGame> games) => new { v = 3, games = games.Select(Row).ToList() };
 
@@ -163,7 +156,7 @@ public static partial class PoolClient
         }).ToList(),
     };
 
-    /// <summary>Sends finished Constructed games' picks (<see cref="SharingPicks"/>); false when the pool did not take them.</summary>
+    /// <summary>Sends finished Constructed games' picks (<see cref="Sharing"/>); false when the pool did not take them.</summary>
     public static async Task<bool> SubmitConstructedAsync(HttpClient http, string endpoint, IReadOnlyList<ConstructedPoolGame> games, CancellationToken cancellationToken = default)
     {
         if (games.Count is 0 or > MaxBatch)

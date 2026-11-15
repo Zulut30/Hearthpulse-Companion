@@ -6,8 +6,8 @@ using Hearthpulse.Core.Tracking;
 namespace Hearthpulse.Core.Hosting;
 
 /// <summary>
-/// What both apps send to the stats pool, only with the player's consent (<see cref="AppSettings.PoolConsent"/> and the
-/// version of the list they agreed to): a finished game, and once the earlier games. Nothing is sent before
+/// What both apps send to the stats pool while <see cref="PoolClient.Sharing"/> holds (on by default, after the
+/// notice, until the player turns it off): a finished game, and once the earlier games. Nothing is sent before
 /// <see cref="Start"/>, which only a live host calls, so an off-screen render shares nothing.
 /// </summary>
 public sealed class PoolSharingHost
@@ -41,16 +41,18 @@ public sealed class PoolSharingHost
     /// <summary>Local time, for the 30 days of earlier games.</summary>
     internal Func<DateTime> Now { get; set; } = () => DateTime.Now;
 
+    private bool Allowed => _started && PoolClient.Sharing(_settings);
+
     /// <summary>Called only by live hosts, with the log watcher: from here on finished games and earlier games are shared.</summary>
     public void Start() => _started = true;
 
-    /// <summary>A finished game goes to the pool as far as the player agreed.</summary>
+    /// <summary>A finished game goes to the pool unless the player turned sharing off.</summary>
     public void OnGameFinished(GameOutcome outcome) => ShareAsync(outcome).Forget("Sharing a game with the stats pool");
 
     /// <summary>What <see cref="OnGameFinished"/> sends; completes when the pool has answered.</summary>
     internal Task ShareAsync(GameOutcome outcome)
     {
-        if (!_started)
+        if (!Allowed)
         {
             return Task.CompletedTask;
         }
@@ -58,15 +60,15 @@ public sealed class PoolSharingHost
         var cards = _cards();
         var sent = new List<Task>(2);
         // The event fires again once the new rating is read; share the game only the first time.
-        if (outcome.RatingAfter is null && PoolClient.Sharing(_settings)
-            && PoolGame.From(outcome, cards.BaseHeroId, Races, PoolClient.SharingDetails(_settings), PoolClient.Secret(_settings)) is { } game)
+        if (outcome.RatingAfter is null
+            && PoolGame.From(outcome, cards.BaseHeroId, Races, details: true, PoolClient.Secret(_settings)) is { } game)
         {
-            sent.Add(PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), [PoolClient.Limit(game, _settings)]));
+            sent.Add(PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), [game]));
             SettingsChanged?.Invoke();
         }
 
-        // A Constructed game shares only its Discover-style picks, once the player agreed to that list (version 4).
-        if (PoolClient.SharingPicks(_settings) && ConstructedPoolGame.From(outcome, PoolClient.Secret(_settings)) is { } picks)
+        // A Constructed game shares only its Discover-style picks.
+        if (ConstructedPoolGame.From(outcome, PoolClient.Secret(_settings)) is { } picks)
         {
             sent.Add(PoolClient.SubmitConstructedAsync(_http, PoolClient.Endpoint(_settings), [picks]));
             SettingsChanged?.Invoke();
@@ -78,13 +80,14 @@ public sealed class PoolSharingHost
     }
 
     /// <summary>
-    /// Once the player agrees to the full list, their Battlegrounds games from the last 30 days are shared once,
-    /// 20 per request. Ids are stable, so a game already sent live is not stored twice.
+    /// Once sharing is allowed, the player's Battlegrounds games from the last 30 days are shared once, 20 per
+    /// request. Ids are stable, so a game already sent live is not stored twice. Sharing turned off between two
+    /// batches stops the rest: the games are not marked as shared and go again from the start once it is back on.
     /// </summary>
     public async Task ShareHistoryAsync()
     {
         var cards = _cards();
-        if (!_started || _settings.PoolHistoryShared || !PoolClient.SharingAll(_settings) || cards.Count == 0
+        if (!Allowed || _settings.PoolHistoryShared || cards.Count == 0
             || Interlocked.Exchange(ref _sharingHistory, 1) == 1)
         {
             return;
@@ -101,12 +104,23 @@ public sealed class PoolSharingHost
                 .ToList()).ConfigureAwait(false);
             foreach (var chunk in games.Chunk(PoolClient.MaxBatch))
             {
+                // The pause below is long enough for the player to turn sharing off: asked again before every batch.
+                if (!Allowed)
+                {
+                    return;
+                }
+
                 if (!await PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), chunk).ConfigureAwait(false))
                 {
                     return;
                 }
 
                 await Delay(PoolClient.HistoryBatchDelay).ConfigureAwait(false);
+            }
+
+            if (!Allowed)
+            {
+                return;
             }
 
             _settings.PoolHistoryShared = true;

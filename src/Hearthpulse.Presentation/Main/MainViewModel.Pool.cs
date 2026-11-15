@@ -1,8 +1,3 @@
-#if HEARTHPULSE_WPF
-using Hearthpulse.App.Infrastructure;
-#else
-using Hearthpulse.UI.Infrastructure;
-#endif
 using Hearthpulse.Core.Pool;
 
 #if HEARTHPULSE_WPF
@@ -11,45 +6,39 @@ namespace Hearthpulse.App.Main;
 namespace Hearthpulse.UI.Main;
 #endif
 
-/// <summary>The stats pool's consent question: the first start banner and the Settings → Data switch.</summary>
+/// <summary>
+/// Sharing games with the stats pool: on by default, told in the one-time notice (<see cref="ShowGameStatsNotice"/>),
+/// turned off by the Settings → Data switch or the notice's "Turn off".
+/// </summary>
 public sealed partial class MainViewModel
 {
-    private bool _poolAvailable;
+    /// <summary>The stats pool is set up; the Settings switch only shows then.</summary>
+    public bool PoolAvailable => PoolClient.Available(Settings);
 
-    /// <summary>The stats pool is set up; the first start banner and the Settings switch only show then.</summary>
-    public bool PoolAvailable
-    {
-        get => _poolAvailable;
-        set
-        {
-            if (Set(ref _poolAvailable, value))
-            {
-                Raise(nameof(AskPoolConsent));
-                Raise(nameof(ShowGameStatsNotice));
-            }
-        }
-    }
-
-    /// <summary>The player has not said yet whether to share their Battlegrounds results.</summary>
-    public bool AskPoolConsent => _poolAvailable
-        && (Settings.PoolConsent is null || (Settings.PoolConsent == true && Settings.PoolConsentVersion < PoolClient.ConsentVersion));
-
+    /// <summary>
+    /// The Settings → Data switch. Off is the player's refusal (<see cref="Core.AppSettings.PoolConsent"/> false): no
+    /// later game and no further batch of earlier games is sent. On shares again, once the notice was shown.
+    /// </summary>
     public bool PoolSharing
     {
-        get => Settings.PoolConsent == true;
+        get => Settings.PoolConsent != false;
         set
         {
+            if (PoolSharing == value)
+            {
+                return;
+            }
+
             Settings.PoolConsent = value;
-            Settings.PoolConsentVersion = PoolClient.ConsentVersion;
             Raise();
-            Raise(nameof(AskPoolConsent));
-            PoolConsentChanged?.Invoke();
+            Raise(nameof(ShowGameStatsNotice));
+            PoolSharingChanged?.Invoke();
         }
     }
 
-    /// <summary>The banner's buttons: "yes" shares results, anything else declines.</summary>
-    public RelayCommand AnswerPool { get; }
-
-    /// <summary>The player answered the question or moved the switch: the host saves the settings and shares the earlier games.</summary>
-    public event Action? PoolConsentChanged;
+    /// <summary>
+    /// The switch moved or the notice was answered: the host saves the settings and, when sharing is on, shares the
+    /// earlier games.
+    /// </summary>
+    public event Action? PoolSharingChanged;
 }

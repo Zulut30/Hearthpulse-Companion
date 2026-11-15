@@ -13,7 +13,6 @@ using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
-using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
@@ -110,9 +109,7 @@ public sealed partial class AppHost : IDisposable
             _services.SourceCaptures.ApplySettingsAsync(explicitEnable: on).Forget("Source capture settings");
         };
         _services.SourceCaptures.StateChanged += state => Dispatcher.UIThread.Post(() => Main.UpdateSourceCaptureState(state));
-        // The stats pool's question and switch (Settings → Data) show only once a pool is set up.
-        Main.PoolAvailable = PoolClient.Available(Settings);
-        Main.PoolConsentChanged += () =>
+        Main.PoolSharingChanged += () =>
         {
             _settingsDebounce.Kick();
             _services.PoolSharing.ShareHistoryAsync().Forget("Sharing earlier games");

@@ -67,16 +67,21 @@ public sealed partial class MainViewModel
     public bool GameStatsAvailable => PoolClient.Available(Settings);
 
     /// <summary>
-    /// The one-time notice in the main window: game records are on by default, what they hold and how to turn them off
-    /// (not a consent question). Nothing is sent before it was shown; it waits for the stats pool's question.
+    /// The one-time notice in the main window: game records and the stats pool's shared games are on by default, what
+    /// they hold and how to turn them off (not a consent question). Nothing is sent before it was shown. It shows
+    /// again for whichever of its texts the player has not seen and has not turned off: game records, source
+    /// journals (<see cref="SourceCaptureClient.NoticeVersion"/>), shared games (<see cref="PoolClient.NoticeVersion"/>).
     /// </summary>
-    public bool ShowGameStatsNotice => GameStatsAvailable && (!Settings.GameStatsNoticeShown ||
-        !Settings.GameStatsOff && Settings.SourceCaptureNoticeVersion < SourceCaptureClient.NoticeVersion)
-        && !AskPoolConsent;
+    public bool ShowGameStatsNotice => GameStatsAvailable && (!Settings.GameStatsNoticeShown
+        || !Settings.GameStatsOff && Settings.SourceCaptureNoticeVersion < SourceCaptureClient.NoticeVersion
+        || Settings.PoolConsent != false && Settings.PoolNoticeVersion < PoolClient.NoticeVersion);
 
     private RelayCommand? _answerGameStats;
 
-    /// <summary>The notice's buttons: "ok" keeps sending, "off" turns it off, "more" opens the privacy policy.</summary>
+    /// <summary>
+    /// The notice's buttons: "ok" keeps sending, "off" turns off both game records and the stats pool's shared games,
+    /// "more" opens the privacy policy. Neither "ok" nor a newer notice turns back on what the player turned off.
+    /// </summary>
     public RelayCommand AnswerGameStats => _answerGameStats ??= new RelayCommand(p =>
     {
         if (p as string == "more")
@@ -87,9 +92,11 @@ public sealed partial class MainViewModel
 
         Settings.GameStatsNoticeShown = true;
         Settings.SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion;
+        Settings.PoolNoticeVersion = PoolClient.NoticeVersion;
         if (p as string == "off")
         {
             Settings.GameStatsOff = true;
+            Settings.PoolConsent = false;
         }
         else
         {
@@ -100,7 +107,9 @@ public sealed partial class MainViewModel
         Raise(nameof(ShowGameStatsNotice));
         Raise(nameof(GameStatsSharing));
         Raise(nameof(SourceCaptureStatusText));
+        Raise(nameof(PoolSharing));
         GameStatsChanged?.Invoke(GameStatsSharing);
+        PoolSharingChanged?.Invoke();
     });
 
     /// <summary>The game records switch changed (true = on): the host saves the settings and tells the sender.</summary>
