@@ -48,6 +48,26 @@ public sealed class CombatCaptureStoreTests : IDisposable
 
     private static SimOptions Fixed(SimOptions options) => options with { Runs = 300, MinRuns = 300, TimeBudget = null };
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_damage_mode_survives_a_capture_file_roundtrip(bool countDamage)
+    {
+        var saved = Captured(out _);
+        saved = saved with { Duos = !countDamage, Fights = saved.Fights.Select(f => f with { CountDamage = countDamage }).ToList() };
+        var store = new CombatCaptureStore(_dir);
+
+        var name = store.Save("20261023123000|damage-mode", saved);
+        var read = store.Load(name!);
+
+        Assert.NotNull(read);
+        Assert.Equal(!countDamage, read.Duos);
+        var fight = Assert.Single(read.Fights);
+        Assert.Equal(countDamage, fight.CountDamage);
+        Assert.Equal(countDamage, fight.AsSaved().Options.CountDamage);
+        Assert.Equal(countDamage, fight.Today(CardDb.Empty, EffectRegistry.Default).Options.CountDamage);
+    }
+
     [Fact]
     public void A_saved_fight_reads_back_as_the_simulator_got_it_and_gives_the_same_odds()
     {
@@ -76,9 +96,41 @@ public sealed class CombatCaptureStoreTests : IDisposable
         var after = CombatSimulator.Run(capture.Ours, capture.Theirs, capture.OursFirst, Fixed(options));
         Assert.Equal(JsonSerializer.Serialize(before), JsonSerializer.Serialize(after));
         Assert.Equal(300, after.Runs);
-        Assert.Equal(JsonSerializer.Serialize(original.Capture), JsonSerializer.Serialize(capture));
+        // Non-simulation player tags are deliberately dropped from the local file; every other input survives.
+        var minimized = original.Capture with
+        {
+            Ours = original.Capture.Ours with { Tags = capture.Ours.Tags },
+            Theirs = original.Capture.Theirs with { Tags = capture.Theirs.Tags },
+        };
+        Assert.Equal(JsonSerializer.Serialize(minimized), JsonSerializer.Serialize(capture));
         Assert.Equal((original.Options.DamageCap, original.Options.CountDamage, original.Options.FirstAttackerEntityId),
             (options.DamageCap, options.CountDamage, options.FirstAttackerEntityId));
+    }
+
+    [Fact]
+    public void Only_simulation_counters_and_the_local_hand_are_kept_in_the_file()
+    {
+        string[] counters = ["BACON_BLOODGEMBUFFATKVALUE", "BACON_BLOODGEMBUFFHEALTHVALUE",
+            "TAVERN_SPELL_ATTACK_INCREASE", "TAVERN_SPELL_HEALTH_INCREASE", "BACON_OLD_GOD_ATTACK", "BACON_OLD_GOD_HEALTH", "4914", "4915"];
+        var tags = counters.Select((tag, i) => (tag, value: i + 1)).ToDictionary(t => t.tag, t => t.value);
+        tags["RATING"] = 12345;
+        tags["ACCOUNT_ID"] = 67890;
+        tags["UNKNOWN_PLAYER_TAG"] = 999;
+        var hand = new[] { SimMinion.Create("LOCAL_CARD", 2, 3) };
+        var side = new SimSide([]) { Tags = tags, Hand = hand, ExtraTags = new Dictionary<string, IReadOnlyDictionary<string, int>> { ["CARD"] = new Dictionary<string, int> { ["TAG_SCRIPT_DATA_NUM_1"] = 7 } } };
+        var saved = new SavedCaptures { Fights = [new SavedFight { Ours = side, Theirs = side }] };
+        var store = new CombatCaptureStore(_dir);
+
+        var name = store.Save("20261023123000|counter-fields", saved);
+        var fight = Assert.Single(store.Load(name!)!.Fights);
+
+        Assert.Equal(counters.Order(StringComparer.Ordinal), fight.Ours.Tags.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal(counters.Order(StringComparer.Ordinal), fight.Theirs.Tags.Keys.Order(StringComparer.Ordinal));
+        Assert.All(counters, tag => Assert.Equal(tags[tag], fight.Ours.Tags[tag]));
+        Assert.Equal("LOCAL_CARD", Assert.Single(fight.Ours.Hand).CardId);
+        Assert.Empty(fight.Theirs.Hand);
+        Assert.Empty(fight.Theirs.ExtraTags);
+        Assert.Equal(7, fight.Ours.ExtraTags["CARD"]["TAG_SCRIPT_DATA_NUM_1"]);
     }
 
     [Fact]
@@ -178,8 +230,11 @@ public sealed class CombatCaptureStoreTests : IDisposable
         Gzip(Path.Combine(_dir, "e.hpc"), "[1, 2");
         Gzip(Path.Combine(_dir, "f.hpc"), "{ \"version\": 1, \"fights\": [ { \"ours\": null } ] }");
         File.WriteAllBytes(Path.Combine(_dir, "g.hpc"), []);
+        Gzip(Path.Combine(_dir, "h.hpc"), "{\"version\":1,\"fights\":[{\"ours\":{\"minions\":[null]},\"theirs\":{\"minions\":[]}}]}");
+        Gzip(Path.Combine(_dir, "i.hpc"), "{\"version\":1,\"fights\":[{\"ours\":{\"minions\":[]},\"theirs\":{\"minions\":[]},\"facts\":null}]}");
+        Gzip(Path.Combine(_dir, "j.hpc"), "{\"version\":1,\"fights\":[{\"ours\":{\"minions\":[],\"tags\":null},\"theirs\":{\"minions\":[]}}]}");
 
-        Assert.All(new[] { "a.hpc", "b.hpc", "c.hpc", "d.hpc", "e.hpc", "f.hpc", "g.hpc", "missing.hpc" }, name => Assert.Null(store.Load(name)));
+        Assert.All(new[] { "a.hpc", "b.hpc", "c.hpc", "d.hpc", "e.hpc", "f.hpc", "g.hpc", "h.hpc", "i.hpc", "j.hpc", "missing.hpc" }, name => Assert.Null(store.Load(name)));
         Assert.NotNull(store.Load(Path.GetFileName(good)));
         // A name with a path in it stays inside the folder.
         Assert.Null(store.Load(Path.Combine("..", "..", "settings.json")));

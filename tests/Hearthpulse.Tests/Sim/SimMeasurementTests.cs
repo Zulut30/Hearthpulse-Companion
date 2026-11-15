@@ -41,6 +41,10 @@ public sealed class SimMeasurementTests
     [InlineData(8, 2, 0.109375)]
     // Even split: the two tails overlap, p is capped at 1.
     [InlineData(3, 3, 1.0)]
+    [InlineData(1000, 1000, 1.0)]
+    [InlineData(1000, 1001, 1.0)]
+    [InlineData(1001, 999, 0.9821609888541457)]
+    [InlineData(1100, 900, 8.457089535503927e-6)]
     public void Exact_mcnemar_is_the_two_sided_binomial_of_the_changed_pairs(int gained, int lost, double p) =>
         Assert.Equal(p, SimStats.McNemarExact(gained, lost), 9);
 
@@ -218,6 +222,10 @@ public sealed class SimMeasurementTests
         Assert.Throws<InvalidOperationException>(() => SimSample.Compare(before, [before[0] with { Key = "b" }]));
         Assert.Throws<InvalidOperationException>(() => SimSample.Compare(before, [before[0] with { Result = "Loss" }]));
         Assert.Throws<InvalidOperationException>(() => SimSample.Compare(before, []));
+        var b = before[0] with { Key = "b" };
+        Assert.Throws<InvalidOperationException>(() => SimSample.Compare([before[0], before[0]], [before[0], b]));
+        Assert.Throws<InvalidOperationException>(() => SimSample.Compare([before[0], b], [before[0], before[0]]));
+        Assert.Throws<InvalidOperationException>(() => SimSample.Compare([], before));
     }
 
     // -------------------------------------------------------------------------------------------------- replays

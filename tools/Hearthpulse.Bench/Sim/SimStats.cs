@@ -61,13 +61,20 @@ internal static class SimStats
             return 1;
         }
 
-        // P(X <= min) for X ~ Binomial(n, 1/2), each term built from the one before so nothing overflows.
-        var term = Math.Pow(0.5, n);
-        var tail = 0.0;
-        for (var i = 0; i <= Math.Min(gained, lost); i++)
+        // Start at the largest term in the lower tail. Starting at 2^-n underflows on large, even balanced samples.
+        var k = Math.Min(gained, lost);
+        var logTerm = -n * Math.Log(2);
+        for (var i = 1; i <= k; i++)
         {
+            logTerm += Math.Log((n - i + 1) / (double)i);
+        }
+
+        var term = Math.Exp(logTerm);
+        var tail = term;
+        for (var i = k; i > 0; i--)
+        {
+            term *= i / (double)(n - i + 1);
             tail += term;
-            term *= (n - i) / (double)(i + 1);
         }
 
         return Math.Min(1, 2 * tail);

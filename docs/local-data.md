@@ -36,5 +36,5 @@ Besides settings, history, replays, the log and the cache, the data folder holds
   player's own games after the game client deleted its logs (`Hearthpulse.Bench simcover --captures`,
   [bg-combat-sim.md](bg-combat-sim.md)). No upload, share, profile sync, source capture or crash report reads the
   folder; there is no switch for it because nothing is sent. Limits: 500 games and 32 MB, the oldest games go
-  first; a file is written whole under a temporary name and renamed, on a pool thread after the game is recorded.
+  first. The most recently saved game is kept even when it alone exceeds the byte limit; a temporary file left after a failed cleanup is not counted. A file is written whole under a temporary name and renamed, on a pool thread after the game is recorded.
   Deleting the folder loses nothing the app shows.

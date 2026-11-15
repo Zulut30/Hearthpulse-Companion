@@ -27,6 +27,7 @@ internal sealed record SavedFight
 
     public int DamageCap { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public bool CountDamage { get; init; } = true;
 
     public IReadOnlyList<BattlegroundsTracker.MinionFacts> Facts { get; init; } = [];
@@ -129,6 +130,15 @@ internal sealed record SavedCaptures
 /// </summary>
 internal sealed class CombatCaptureStore(string directory)
 {
+    // Only the player counters read by simulation effects belong in a stored input. Other numeric player tags may
+    // contain ratings or identifiers and do not affect this simulation. Update this list with any new counter input.
+    private static readonly HashSet<string> CounterTags = new(StringComparer.Ordinal)
+    {
+        "BACON_BLOODGEMBUFFATKVALUE", "BACON_BLOODGEMBUFFHEALTHVALUE",
+        "TAVERN_SPELL_ATTACK_INCREASE", "TAVERN_SPELL_HEALTH_INCREASE",
+        "BACON_OLD_GOD_ATTACK", "BACON_OLD_GOD_HEALTH", "4914", "4915",
+    };
+
     /// <summary>The version of the file's content; a file of another version is not read.</summary>
     public const int FormatVersion = 1;
 
@@ -163,6 +173,17 @@ internal sealed class CombatCaptureStore(string directory)
         {
             return null;
         }
+
+        SimSide Minimize(SimSide side, bool opponent) => side with
+        {
+            Tags = side.Tags.Where(t => CounterTags.Contains(t.Key)).ToDictionary(t => t.Key, t => t.Value, StringComparer.Ordinal),
+            Hand = opponent ? [] : side.Hand,
+            ExtraTags = opponent ? SimSide.EmptyExtraTags : side.ExtraTags,
+        };
+        captures = captures with
+        {
+            Fights = captures.Fights.Select(f => f with { Ours = Minimize(f.Ours, false), Theirs = Minimize(f.Theirs, true) }).ToList(),
+        };
 
         var name = FileNameFor(gameKey);
         string? temp = null;
@@ -229,7 +250,10 @@ internal sealed class CombatCaptureStore(string directory)
             }
 
             var captures = JsonSerializer.Deserialize<SavedCaptures>(unpacked.GetBuffer().AsSpan(0, (int)unpacked.Length), Json);
-            return captures is { Version: FormatVersion, Fights: not null } && captures.Fights.All(f => f is { Ours.Minions: not null, Theirs.Minions: not null })
+            return captures is { Version: FormatVersion, Fights: not null } && captures.Fights.All(f =>
+                f is { Facts: not null } && ValidSide(f.Ours) && ValidSide(f.Theirs)
+                && f.Facts.All(fact => fact is { CardId: not null, Markers: not null } && fact.Markers.All(m => m is not null))
+                && f.Facts.Select(fact => fact.EntityId).Distinct().Count() == f.Facts.Count)
                 ? captures
                 : null;
         }
@@ -239,6 +263,15 @@ internal sealed class CombatCaptureStore(string directory)
             return null;
         }
     }
+
+    private static bool ValidSide(SimSide? side) =>
+        side is { Minions: not null, Hand: not null, Tags: not null, ExtraTags: not null, Extras: not null, HeroCardId: not null, HeroPowerCardId: not null }
+        && side.Minions.All(ValidMinion) && side.Hand.All(ValidMinion) && side.Extras.All(e => e is not null)
+        && side.ExtraTags.Values.All(tags => tags is not null);
+
+    private static bool ValidMinion(SimMinion? minion) =>
+        minion is { CardId: not null, CreatorCardId: not null, Enchantments: not null, Remembered: not null }
+        && minion.Enchantments.All(e => e is not null) && minion.Remembered.All(ValidMinion);
 
     /// <summary>Deletes the oldest games beyond <see cref="MaxFiles"/> and <see cref="MaxBytes"/>; returns how many went.</summary>
     public int Prune(string? keep = null)

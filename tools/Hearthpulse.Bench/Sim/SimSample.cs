@@ -250,6 +250,13 @@ internal static class SimSample
     /// </summary>
     public static IReadOnlyList<SimComparison> Compare(IReadOnlyList<SimScore> before, IReadOnlyList<SimScore> after)
     {
+        if (before.Count != after.Count
+            || before.Select(s => (s.Budget, s.Key)).Distinct().Count() != before.Count
+            || after.Select(s => (s.Budget, s.Key)).Distinct().Count() != after.Count)
+        {
+            throw new InvalidOperationException("The two runs must contain the same fights, once each per budget.");
+        }
+
         var result = new List<SimComparison>();
         foreach (var budget in before.Select(s => s.Budget).Distinct().Order())
         {
