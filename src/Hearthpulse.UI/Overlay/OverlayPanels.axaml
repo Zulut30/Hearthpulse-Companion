@@ -225,6 +225,7 @@
         <Panel Width="340" Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
             <Border Classes="overlayCard solid pickCard" HorizontalAlignment="Center"
                     Width="232" Padding="10,8" Margin="0,8,0,0">
+              <StackPanel>
                 <Grid ColumnDefinitions="Auto,*">
                     <Panel Width="44" Height="44" VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding TierTip}" o:OverlayHit.Interactive="True">
                         <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
@@ -245,6 +246,11 @@
                         </StackPanel>
                     </StackPanel>
                 </Grid>
+                <!-- The best comps this lobby allows; their tier, difficulty and advice are in the tooltip -->
+                <TextBlock Text="{Binding Comps}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
+                           Background="Transparent" ToolTip.Tip="{Binding CompsTip}" o:OverlayHit.Interactive="True"
+                           IsVisible="{Binding Comps, Converter={StaticResource Truthy}}" />
+              </StackPanel>
             </Border>
             <Border Classes="bestTag" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{StaticResource Accent}" CornerRadius="5" Padding="8,1">
                 <StackPanel Orientation="Horizontal">
@@ -272,6 +278,8 @@
                             <TextBlock Text="{i:Loc Overlay.Badge.AvgPlace}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,2" VerticalAlignment="Bottom" />
                         </StackPanel>
                         <TextBlock Text="{Binding PickRate}" FontSize="11" Foreground="{StaticResource Muted}" />
+                        <TextBlock Text="{Binding Updated}" FontSize="10.5" Foreground="{StaticResource Muted}"
+                                   IsVisible="{Binding Updated, Converter={StaticResource Truthy}}" />
                     </StackPanel>
                 </Grid>
             </Border>

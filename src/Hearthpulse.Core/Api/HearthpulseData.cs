@@ -54,6 +54,20 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     }
 
     /// <summary>
+    /// Every hero's compositions of the top 50% (<c>/v1/battlegrounds/heroes/compositions</c>, current patch, one
+    /// request): what the lobby adjustment of the hero pick is made of (docs/bg-meta-sources.md, section 4). The
+    /// placement distributions are not kept in the cache. Empty when the server has no such slice (cached like an
+    /// answer), names a source the app does not use, or could not be had.
+    /// </summary>
+    public async Task<BgHeroCompsSlice> LoadHeroCompositionsAsync(CancellationToken cancellationToken = default)
+    {
+        var empty = new BgHeroCompsSlice(new Dictionary<string, IReadOnlyList<MetaHeroComp>>(StringComparer.Ordinal), null);
+        using var doc = await FetchAsync("v1/battlegrounds/heroes/compositions?mmr=TOP_50_PERCENT", "bg-hero-comps-top_50_percent.json", cancellationToken, ShrinkHeroCompositions)
+            .ConfigureAwait(false);
+        return doc is null ? empty : Read(() => ParseHeroCompositions(doc.RootElement), "hero compositions", empty);
+    }
+
+    /// <summary>
     /// Minion results of one MMR slice ("ALL" = all ranks, current Battlegrounds patch), by card id: average final
     /// placement of players who had the minion and how many games that is. No per-turn results.
     /// </summary>
@@ -366,3 +380,9 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
 
 /// <summary>One MMR slice of hero results and when the server fetched it (default when unknown).</summary>
 public sealed record BgHeroSlice(IReadOnlyDictionary<string, MetaHero> Heroes, DateTime FetchedAt);
+
+/// <summary>
+/// Every hero's compositions (solo, top 50%, current patch) by hero card id: games and average place per tribe family.
+/// <see cref="FetchedAt"/> is when the server fetched them, UTC, when it says.
+/// </summary>
+public sealed record BgHeroCompsSlice(IReadOnlyDictionary<string, IReadOnlyList<MetaHeroComp>> Heroes, DateTime? FetchedAt);

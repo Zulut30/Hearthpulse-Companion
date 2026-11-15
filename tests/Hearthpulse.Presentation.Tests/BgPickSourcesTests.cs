@@ -1,0 +1,170 @@
+using Hearthpulse.Core;
+using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Tracking;
+using WpfOverlay = Hearthpulse.App.Overlay.OverlayViewModel;
+using AvaOverlay = Hearthpulse.UI.Overlay.OverlayViewModel;
+
+namespace Hearthpulse.Presentation.Tests;
+
+/// <summary>
+/// The hero and trinket badges on external data (docs/bg-meta-sources.md, section 4), in both compiled overlays: a
+/// hero's comps with their tier, difficulty and advice in the tooltip; a trinket's date, its source by name and its
+/// sample as a lower bound, never as a count of games.
+/// </summary>
+public sealed class BgPickSourcesTests
+{
+    private static readonly DateTime Fetched = new(2026, 11, 15, 17, 1, 0, DateTimeKind.Utc);
+
+    private static BattlegroundsView View(IReadOnlyList<BgHeroOption> heroes, IReadOnlyList<BgTrinketOption> trinkets) =>
+        new(heroes.Count > 0 ? 0 : 6, 3, 6, heroes.Count > 0 ? null : "HERO_ME", 30, 0, 2, false, false, heroes.Count > 0, heroes,
+            ["DEMON", "BEAST", "MURLOC", "QUILBOAR", "MECHANICAL"], true, [], [], [], [], null, 0, [], [])
+        {
+            TrinketOptions = trinkets,
+        };
+
+    private static LiveSnapshot Live(BattlegroundsView view) => LiveSnapshot.Empty with { Battlegrounds = view, InGame = true, HearthstoneRunning = true };
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_hero_badge_names_its_comps_and_the_tooltip_gives_tier_difficulty_and_advice(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
+        var heroes = new[]
+        {
+            new BgHeroOption("HERO_A", "Hero A", 0, null, new HeroMeta(4.0, 3.9, 0.3, 0, "A"), true,
+                [new BgHeroComp("Demons - Self damage", "A", "easy", "Hurt your own hero."), new BgHeroComp("Pool comp", string.Empty, string.Empty, null)]),
+            new BgHeroOption("HERO_B", "Hero B", 0, null, new HeroMeta(4.2, 4.2, 0.2, 0, "B")),
+        };
+
+        model.Update(Live(View(heroes, [])), CardDb.Empty, new AppSettings(), null, null);
+
+        var picks = ((IEnumerable<dynamic>)model.HeroPicks).ToList();
+        Assert.Equal("Demons - Self damage · Pool comp", (string)picks[0].Comps);
+        Assert.Equal("Best comps available\n\nDemons - Self damage · tier A · Difficulty: easy\nHurt your own hero.\n\nPool comp", (string)picks[0].CompsTip);
+        // No comps: no line and no tooltip.
+        Assert.Equal((string.Empty, string.Empty), ((string)picks[1].Comps, (string)picks[1].CompsTip));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_trinket_badge_dates_its_numbers_and_calls_an_external_sample_a_lower_bound(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
+        var trinkets = new[]
+        {
+            new BgTrinketOption("TRK_EXTERNAL", "External", new TrinketMeta(3.47, 0.277, 2528, "S", External: true, GamesAreMinimum: true, Updated: Fetched), true),
+            new BgTrinketOption("TRK_POOL", "Pool", new TrinketMeta(3.9, 0.5, 240, "A", Updated: Fetched)),
+            new BgTrinketOption("TRK_NONE", "None"),
+        };
+
+        model.Update(Live(View([], trinkets)), CardDb.Empty, new AppSettings(), null, null);
+
+        var badges = ((IEnumerable<dynamic>)model.TrinketPicks).ToList();
+        var local = Fetched.ToLocalTime();
+        var day = local.ToString("d MMM", Loc.DateCulture);
+        var time = local.ToString("d MMM HH:mm", Loc.DateCulture);
+        var tiers = Loc.T("Overlay.Tier.Heroes");
+
+        Assert.Equal(3.47.ToString("0.00", System.Globalization.CultureInfo.CurrentCulture), (string)badges[0].Place);
+        Assert.Equal($"data from {day}", (string)badges[0].Updated);
+        Assert.Equal($"{tiers}\nHearthpulse data · updated {time} · at least {2528:N0} games (a lower bound)", (string)badges[0].TierTip);
+        // The pool's own numbers keep the pool's name and are a count.
+        Assert.Equal($"{tiers}\nHearthpulse stats pool · updated {time} · {240:N0} games", (string)badges[1].TierTip);
+        // Nothing known: no date, and the tooltip explains the tiers alone.
+        Assert.Equal((string.Empty, tiers), ((string)badges[2].Updated, (string)badges[2].TierTip));
+
+        Loc.Instance.SetLanguage(Loc.Russian);
+        try
+        {
+            model.Update(Live(View([], trinkets)), CardDb.Empty, new AppSettings(), null, null);
+            var russian = ((IEnumerable<dynamic>)model.TrinketPicks).First();
+            Assert.StartsWith("данные от ", (string)russian.Updated, StringComparison.Ordinal);
+            Assert.Contains("Данные Hearthpulse · обновлено ", (string)russian.TierTip, StringComparison.Ordinal);
+            Assert.EndsWith($"не меньше {2528:N0} игр (оценка снизу)", (string)russian.TierTip, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+        }
+    }
+
+    /// <summary>
+    /// The WPF badge templates built with data (a XAML mistake shows only when the template is loaded): the hero badge
+    /// has its comps line with the tooltip, the trinket badge its date line; without comps or a date the lines are gone.
+    /// </summary>
+    [Fact]
+    public void Wpf_badges_show_the_comps_line_and_the_date_line() => WpfThread.RunThemed(() =>
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var panels = new System.Windows.ResourceDictionary { Source = new Uri("/Hearthpulse;component/Overlay/OverlayPanels.xaml", UriKind.Relative) };
+
+        var hero = Shown(panels, "HeroPickTemplate", new Hearthpulse.App.Overlay.HeroPickCard("HERO_A", "Hero A", "A", "3.90", "avg place", string.Empty, 0, "30% pick",
+            string.Empty, "Demons - Self damage", true, true) { CompsTip = "tip" });
+        var comps = Assert.Single(hero, t => t.Text == "Demons - Self damage");
+        Assert.Equal("tip", comps.ToolTip);
+        Assert.True(Hearthpulse.App.Overlay.OverlayHit.GetInteractive(comps));
+
+        var bare = Shown(panels, "HeroPickTemplate", new Hearthpulse.App.Overlay.HeroPickCard("HERO_B", "Hero B", "B", "4.20", "avg place", string.Empty, 0, "20% pick",
+            string.Empty, string.Empty, false, true));
+        Assert.Equal(["B", "4.20", "avg place", "20% pick"], bare.Select(t => t.Text).Where(t => t.Length > 0 && !t.Any(char.IsSurrogate) && t != Loc.T("Overlay.Badge.BestPick")));
+
+        var trinket = Shown(panels, "TrinketBadgeTemplate", new Hearthpulse.App.Overlay.TrinketBadge("TRK", "Trinket", "S", "3.47", "28% pick", false, true) { Updated = "data from 15 Nov" });
+        Assert.Contains(trinket, t => t.Text == "data from 15 Nov");
+        var undated = Shown(panels, "TrinketBadgeTemplate", new Hearthpulse.App.Overlay.TrinketBadge("TRK", "Trinket", "S", "3.47", "28% pick", false, true));
+        Assert.Equal(["S", "3.47", "avg place", "28% pick"], undated.Select(t => t.Text).Where(t => t.Length > 0 && !t.Any(char.IsSurrogate) && t != Loc.T("Overlay.Badge.BestPick")));
+    });
+
+    /// <summary>The visible text blocks of a template of the overlay's panels, laid out with <paramref name="item"/>.</summary>
+    private static List<System.Windows.Controls.TextBlock> Shown(System.Windows.ResourceDictionary panels, string template, object item)
+    {
+        var host = new System.Windows.Controls.ContentControl
+        {
+            Resources = panels,
+            Content = item,
+            ContentTemplate = (System.Windows.DataTemplate)panels[template],
+        };
+        host.Measure(new System.Windows.Size(400, 300));
+        host.Arrange(new System.Windows.Rect(0, 0, 400, 300));
+        // Bindings attach at DataBind priority: let them, then lay out again.
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        _ = System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+        host.UpdateLayout();
+        return [.. Texts(host).Where(t => Visible(t, host))];
+
+        static IEnumerable<System.Windows.Controls.TextBlock> Texts(System.Windows.DependencyObject root)
+        {
+            for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+                if (child is System.Windows.Controls.TextBlock text)
+                {
+                    yield return text;
+                }
+
+                foreach (var nested in Texts(child))
+                {
+                    yield return nested;
+                }
+            }
+        }
+
+        static bool Visible(System.Windows.DependencyObject element, System.Windows.DependencyObject root)
+        {
+            for (var e = element; e is not null && !ReferenceEquals(e, root); e = System.Windows.Media.VisualTreeHelper.GetParent(e))
+            {
+                if (e is System.Windows.UIElement { Visibility: not System.Windows.Visibility.Visible })
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+}
