@@ -72,7 +72,8 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
       const route = url.pathname;
       if (route === '/healthz' && req.method === 'GET') {
         response = json({ ok: true, workerConfigured: !!archive.worker, archiveBytes: archive.usage(), archiveCapBytes: archive.maxArchiveBytes,
-          statuses: store.sqlite.prepare('SELECT status,COUNT(*) AS n FROM source_captures GROUP BY status').all() });
+          statuses: store.sqlite.prepare('SELECT status,COUNT(*) AS n FROM source_captures GROUP BY status').all(),
+          ...flow(store.sqlite) });
       } else if (route === '/v2/analytics/bg/heroes') {
         // Reads the published row only; the numbers are built in the archive queue, never in a request.
         if (req.method !== 'GET') fail(405, 'method_not_allowed');
@@ -194,6 +195,21 @@ export function configFromEnvironment() {
       unfinishedHours: envInt('POOL_UNFINISHED_HOURS', 24, 1, 168),
       workerTimeoutMs: envInt('POOL_WORKER_TIMEOUT_MS', 120000, 100, 600000),
     },
+  };
+}
+
+/**
+ * "Alive" is not "producing": what arrived today (the write counters the quotas keep), what is stored, and how old the
+ * analytics snapshot is. Counts and times only; no id, generation or body.
+ */
+export function flow(db) {
+  const day = Math.floor(Date.now() / 86_400_000);
+  const one = (sql, ...args) => db.prepare(sql).get(...args)?.n ?? 0;
+  const snap = db.prepare("SELECT built,stale,body<>'' AS published FROM analytics_snap WHERE key='bg-heroes-solo'").get();
+  return {
+    intake: { day, shared: one('SELECT n FROM quota WHERE day=?', day), records: one('SELECT n FROM equota WHERE day=?', day) },
+    stored: { shared: one('SELECT COUNT(*) AS n FROM g'), picks: one('SELECT COUNT(*) AS n FROM c'), records: one('SELECT COUNT(*) AS n FROM e') },
+    analytics: snap ? { built: snap.built, stale: !!snap.stale, published: !!snap.published } : { built: null, stale: false, published: false },
   };
 }
 
