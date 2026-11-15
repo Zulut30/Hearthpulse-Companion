@@ -54,6 +54,24 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     }
 
     /// <summary>
+    /// The compositions of one hero (<c>/api/bg/heroes/{dbfId}</c>, top 50%, current patch): what the lobby adjustment
+    /// of the hero pick is made of (docs/bg-meta-sources.md, section 4). Only the compositions' numbers are kept in
+    /// the cache (the answer is ~150 KB, the kept part under 1 KB). Null when the server has no such hero (cached like
+    /// an answer), the answer is another slice, or it could not be had.
+    /// </summary>
+    public async Task<BgHeroComps?> LoadHeroCompositionsAsync(int dbfId, CancellationToken cancellationToken = default)
+    {
+        if (dbfId <= 0)
+        {
+            return null;
+        }
+
+        var id = dbfId.ToString(CultureInfo.InvariantCulture);
+        using var doc = await FetchAsync($"api/bg/heroes/{id}", $"bg-hero-comps-{id}.json", cancellationToken, ShrinkHeroDetail).ConfigureAwait(false);
+        return doc is null ? null : Read(() => ParseHeroCompositions(Data(doc)), "hero compositions", (BgHeroComps?)null);
+    }
+
+    /// <summary>
     /// Minion results of one MMR slice ("ALL" = all ranks, current Battlegrounds patch), by card id: average final
     /// placement of players who had the minion and how many games that is. No per-turn results.
     /// </summary>
@@ -365,4 +383,14 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
 }
 
 /// <summary>One MMR slice of hero results and when the server fetched it (default when unknown).</summary>
-public sealed record BgHeroSlice(IReadOnlyDictionary<string, MetaHero> Heroes, DateTime FetchedAt);
+public sealed record BgHeroSlice(IReadOnlyDictionary<string, MetaHero> Heroes, DateTime FetchedAt)
+{
+    /// <summary>The heroes' dbfIds by card id, where the answer gives them: what the hero detail route is asked by.</summary>
+    public IReadOnlyDictionary<string, int> DbfIds { get; init; } = new Dictionary<string, int>(StringComparer.Ordinal);
+}
+
+/// <summary>
+/// A hero's compositions (top 50%, current patch) from the hero detail route: games and average place per tribe
+/// family. <see cref="AsOf"/> is when the source computed them, UTC, when it says.
+/// </summary>
+public sealed record BgHeroComps(string HeroCardId, IReadOnlyList<MetaHeroComp> Comps, DateTime? AsOf);

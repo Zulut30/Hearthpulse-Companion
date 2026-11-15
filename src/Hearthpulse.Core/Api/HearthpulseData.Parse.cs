@@ -65,7 +65,86 @@ public sealed partial class HearthpulseData
                       && DateTime.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var time)
             ? time
             : default;
-        return new BgHeroSlice(root.TryGetProperty("heroes", out var list) ? ParseHeroes(list) : new Dictionary<string, MetaHero>(), fetched);
+        return root.TryGetProperty("heroes", out var list)
+            ? new BgHeroSlice(ParseHeroes(list), fetched) { DbfIds = ParseHeroDbfIds(list) }
+            : new BgHeroSlice(new Dictionary<string, MetaHero>(), fetched);
+    }
+
+    private static Dictionary<string, int> ParseHeroDbfIds(JsonElement list)
+    {
+        var result = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var hero in Items(list))
+        {
+            if (Str(hero, "id") is { Length: > 0 } id && Num(hero, "dbfId") is { } dbf and > 0 and < int.MaxValue)
+            {
+                result[id] = (int)dbf;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>What the app reads of a hero detail answer, for the cache: the hero, the slice, the source and the compositions' numbers.</summary>
+    private static object ShrinkHeroDetail(JsonElement root)
+    {
+        var hero = Child(root, "hero");
+        return new
+        {
+            hero = new { id = Str(hero, "id"), dbfId = Num(hero, "dbfId") },
+            mode = Str(root, "mode"),
+            filters = new { mmr_percentile = Str(Child(root, "filters"), "mmr_percentile"), time_range = Str(Child(root, "filters"), "time_range") },
+            source_url = Str(root, "source_url"),
+            as_of = new { composition_stats = Str(Child(root, "as_of"), "composition_stats") },
+            compositions = Items(Child(root, "compositions"))
+                .Select(c => new { composition_id = Num(c, "composition_id"), name = Str(c, "name"), num_games = Num(c, "num_games"), avg_placement = Num(c, "avg_placement") })
+                .ToList(),
+        };
+    }
+
+    private static JsonElement Child(JsonElement e, string name) =>
+        e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var value) ? value : default;
+
+    /// <summary>
+    /// A hero detail answer (<c>/api/bg/heroes/{dbfId}</c>, whole or as cached): <c>{"hero": {"id"}, "mode", "filters":
+    /// {"mmr_percentile"}, "source_url", "as_of": {"composition_stats"}, "compositions": [{"composition_id", "name",
+    /// "num_games", "avg_placement"}]}</c>. Null when it names no hero, is not the solo top 50% slice, or was taken
+    /// from a source the app does not use. Rows without games or with a place outside 1..8 are dropped.
+    /// </summary>
+    internal static BgHeroComps? ParseHeroCompositions(JsonElement root)
+    {
+        if (Str(Child(root, "hero"), "id") is not { Length: > 0 } id)
+        {
+            return null;
+        }
+
+        if ((Str(root, "mode") is { } mode && mode != "solo") || (Str(Child(root, "filters"), "mmr_percentile") is { } mmr && mmr != "TOP_50_PERCENT"))
+        {
+            return null;
+        }
+
+        if (Str(root, "source_url") is { } url
+            && (url.Contains("firestone", StringComparison.OrdinalIgnoreCase) || url.Contains("zerotoheroes", StringComparison.OrdinalIgnoreCase)))
+        {
+            Diag.Info($"Hearthpulse API hero {id}: compositions of a source that is not used");
+            return null;
+        }
+
+        var comps = new List<MetaHeroComp>();
+        foreach (var c in Items(Child(root, "compositions")))
+        {
+            if (Num(c, "composition_id") is { } compId and >= 0 and < int.MaxValue && Num(c, "num_games") is { } games and >= 1 and < int.MaxValue
+                && Num(c, "avg_placement") is { } place and >= 1 and <= 8)
+            {
+                var name = Str(c, "name") ?? string.Empty;
+                comps.Add(new MetaHeroComp((int)compId, name, BattlegroundsMeta.CompositionTribes((int)compId, name), (int)games, place));
+            }
+        }
+
+        var asOf = Str(Child(root, "as_of"), "composition_stats") is { } at
+                   && DateTime.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var time)
+            ? time
+            : (DateTime?)null;
+        return new BgHeroComps(id, comps, asOf);
     }
 
     internal static Dictionary<string, MetaHero> ParseHeroes(JsonElement list)

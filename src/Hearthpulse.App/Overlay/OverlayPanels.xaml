@@ -361,6 +361,7 @@
                     Background="{StaticResource BestHalo}" IsHitTestVisible="False" Visibility="Collapsed" />
             <Border x:Name="Card" Style="{StaticResource OverlayCardSolid}" HorizontalAlignment="Center"
                     Width="232" Padding="10,8" Margin="0,8,0,0">
+              <StackPanel>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -385,6 +386,11 @@
                         </StackPanel>
                     </StackPanel>
                 </Grid>
+                <!-- The best comps this lobby allows; their tier, difficulty and advice are in the tooltip -->
+                <TextBlock Text="{Binding Comps}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
+                           Background="Transparent" ToolTip="{Binding CompsTip}" o:OverlayHit.Interactive="True"
+                           Visibility="{Binding Comps, Converter={StaticResource Vis}}" />
+              </StackPanel>
             </Border>
             <Border x:Name="Best" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{StaticResource PrimaryFill}" CornerRadius="5"
                     Padding="8,1" Visibility="Collapsed">
@@ -435,6 +441,8 @@
                             <TextBlock Text="{i:Loc Overlay.Badge.AvgPlace}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,2" VerticalAlignment="Bottom" />
                         </StackPanel>
                         <TextBlock Text="{Binding PickRate}" FontSize="11" Foreground="{StaticResource Muted}" />
+                        <TextBlock Text="{Binding Updated}" FontSize="10.5" Foreground="{StaticResource Muted}"
+                                   Visibility="{Binding Updated, Converter={StaticResource Vis}}" />
                     </StackPanel>
                 </Grid>
             </Border>

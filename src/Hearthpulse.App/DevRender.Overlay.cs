@@ -59,6 +59,8 @@ public partial class App
     /// </summary>
     private async Task RenderBattlegroundsMomentsAsync(string folder)
     {
+        // The hero badges show the lobby adjustment, which needs the heroes' compositions.
+        await _heroComps;
         var rating = _history.RatingHistory().LastOrDefault()?.Rating;
         var moments = new (string Name, Func<BattlegroundsView, bool> When, int Hover)[]
         {

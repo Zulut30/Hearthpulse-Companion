@@ -79,6 +79,8 @@ internal static partial class OffscreenRenderer
     /// </summary>
     private static async Task RenderBattlegroundsMomentsAsync(AppHost host, AppSettings settings, Window overlay, OverlayView overlayView, string folder)
     {
+        // The hero badges show the lobby adjustment, which needs the heroes' compositions.
+        await host.HeroCompsLoad;
         var rating = host.History.RatingHistory().LastOrDefault()?.Rating;
         var moments = new (string Name, Func<BattlegroundsView, bool> When, int Hover)[]
         {

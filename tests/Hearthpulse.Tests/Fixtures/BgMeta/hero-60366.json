@@ -1,0 +1,359 @@
+{
+ "hero": {
+  "hero": "Millhouse Manastorm",
+  "dbfId": 60366,
+  "id": "TB_BaconShop_HERO_49",
+  "tier": "D",
+  "pick_rate": "13.28%",
+  "pick_rate_value": 13.28,
+  "avg_placement": 4.557,
+  "adjusted_avg_placement": null,
+  "placement_distribution": [
+   "9.37%",
+   "11.60%",
+   "12.98%",
+   "14.82%",
+   "13.75%",
+   "15.29%",
+   "13.14%",
+   "9.06%"
+  ],
+  "best_composition_id": 2,
+  "best_composition": "Мурлоки",
+  "key_minions_top3": [],
+  "anomaly_adjusted": false
+ },
+ "mode": "solo",
+ "filters": {
+  "mmr_percentile": "TOP_50_PERCENT",
+  "time_range": "CURRENT_BATTLEGROUNDS_PATCH"
+ },
+ "source_url": "https://hsreplay.net/battlegrounds/heroes/60366/-?mmrPercentile=TOP_50_PERCENT&timeRange=CURRENT_BATTLEGROUNDS_PATCH",
+ "as_of": {
+  "tavern_up": "2026-11-11T19:07:01Z",
+  "hero_power": "2026-11-11T19:07:00Z",
+  "combat_winrate": "2026-11-11T18:59:30Z",
+  "composition_stats": "2026-11-11T19:06:58Z",
+  "best_final_form": "2026-11-11T16:59:37Z",
+  "canonical_compositions": "2026-11-11T19:06:31Z"
+ },
+ "tavern_up": [
+  {
+   "turn": 1,
+   "tavern_tier": 1,
+   "occurrences": 324,
+   "pct_at_tier": 100.0,
+   "num_games": 324
+  }
+ ],
+ "tavern_up_by_turn": [
+  {
+   "turn": 1,
+   "recommended_tavern_tier": 1,
+   "pct_at_tier": 100.0,
+   "num_games": 324
+  }
+ ],
+ "hero_power": [
+  {
+   "turn": 1,
+   "tavern_tier": 1,
+   "gold": 3,
+   "end_of_round_median_tavern_tier": 1,
+   "times_invoked": 0.0,
+   "invoked_rate": 0.0,
+   "total_data_points": 324
+  }
+ ],
+ "hero_power_by_turn": [
+  {
+   "turn": 1,
+   "invoked_rate": 0.0,
+   "total_data_points": 324
+  }
+ ],
+ "combat_winrate": [
+  {
+   "combat_round": 1,
+   "data_points": 1019,
+   "combat_winrate": 70.26
+  }
+ ],
+ "compositions": [
+  {
+   "composition_id": 2,
+   "name": "Мурлоки",
+   "num_games": 218,
+   "avg_placement": 4.19,
+   "placement_distribution": [
+    "11.93%",
+    "14.68%",
+    "15.14%",
+    "11.93%",
+    "14.22%",
+    "16.06%",
+    "9.17%",
+    "6.88%"
+   ],
+   "confidence_interval": 0.23,
+   "popularity": "7.15%",
+   "popularity_value": 7.15,
+   "popularity_first_place": "8.87%",
+   "popularity_top_4": "7.82%",
+   "is_recent": true,
+   "num_days": 8,
+   "lineup": [],
+   "final_form_minions": []
+  },
+  {
+   "composition_id": 8,
+   "name": "Механизмы",
+   "num_games": 299,
+   "avg_placement": 4.263,
+   "placement_distribution": [
+    "16.05%",
+    "13.38%",
+    "10.37%",
+    "14.05%",
+    "12.71%",
+    "13.38%",
+    "12.37%",
+    "7.69%"
+   ],
+   "confidence_interval": 0.24,
+   "popularity": "9.80%",
+   "popularity_value": 9.8,
+   "popularity_first_place": "16.38%",
+   "popularity_top_4": "10.76%",
+   "is_recent": true,
+   "num_days": 8,
+   "lineup": [],
+   "final_form_minions": []
+  },
+  {
+   "composition_id": 9,
+   "name": "Демоны",
+   "num_games": 442,
+   "avg_placement": 4.39,
+   "placement_distribution": [
+    "8.14%",
+    "12.22%",
+    "18.78%",
+    "14.93%",
+    "13.12%",
+    "12.22%",
+    "12.67%",
+    "7.92%"
+   ],
+   "confidence_interval": 0.2,
+   "popularity": "14.50%",
+   "popularity_value": 14.5,
+   "popularity_first_place": "12.29%",
+   "popularity_top_4": "15.98%",
+   "is_recent": true,
+   "num_days": 8,
+   "lineup": [],
+   "final_form_minions": []
+  },
+  {
+   "composition_id": 56,
+   "name": "Aberrations",
+   "num_games": 225,
+   "avg_placement": 4.49,
+   "placement_distribution": [
+    "7.11%",
+    "12.44%",
+    "15.56%",
+    "19.11%",
+    "12.44%",
+    "12.00%",
+    "11.11%",
+    "10.22%"
+   ],
+   "confidence_interval": 0.26,
+   "popularity": "7.38%",
+   "popularity_value": 7.38,
+   "popularity_first_place": "5.46%",
+   "popularity_top_4": "8.16%",
+   "is_recent": true,
+   "num_days": 8,
+   "lineup": [],
+   "final_form_minions": []
+  },
+  {
+   "composition_id": 20,
+   "name": "Драконы",
+   "num_games": 275,
+   "avg_placement": 4.54,
+   "placement_distribution": [
+    "7.27%",
+    "14.18%",
+    "13.09%",
+    "14.55%",
+    "13.09%",
+    "16.36%",
+    "11.64%",
+    "9.82%"
+   ],
+   "confidence_interval": 0.28,
+   "popularity": "9.02%",
+   "popularity_value": 9.02,
+   "popularity_first_place": "6.83%",
+   "popularity_top_4": "9.02%",
+   "is_recent": true,
+   "num_days": 8,
+   "lineup": [],
+   "final_form_minions": []
+  },
+  {
+   "composition_id": 47,
+   "name": "Нежить",
+   "num_games": 107,
+   "avg_placement": 4.55,
+   "placement_distribution": [
+    "6.54%",
+    "13.08%",
+    "17.76%",
+    "14.02%",
+    "11.21%",
+    "15.89%",
+    "11.21%",
+    "10.28%"
+   ],
+   "confidence_interval": 0.35,
+   "popularity": "3.51%",
+   "popularity_value": 3.51,
+   "popularity_first_place": "2.39%",
+   "popularity_top_4": "3.68%",
+   "is_recent": true,
+   "num_days": 8,
+   "lineup": [],
+   "final_form_minions": []
+  },
+  {
+   "composition_id": 39,
+   "name": "Элементали",
+   "num_games": 496,
+   "avg_placement": 4.557,
+   "placement_distribution": [
+    "8.06%",
+    "11.69%",
+    "13.91%",
+    "14.92%",
+    "16.33%",
+    "13.91%",
+    "12.50%",
+    "8.67%"
+   ],
+   "confidence_interval": 0.18,
+   "popularity": "16.27%",
+   "popularity_value": 16.27,
+   "popularity_first_place": "13.65%",
+   "popularity_top_4": "16.11%",
+   "is_recent": true,
+   "num_days": 8,
+   "lineup": [],
+   "final_form_minions": []
+  },
+  {
+   "composition_id": 41,
+   "name": "Свинобраз",
+   "num_games": 327,
+   "avg_placement": 4.685,
+   "placement_distribution": [
+    "12.54%",
+    "8.87%",
+    "11.31%",
+    "10.70%",
+    "13.46%",
+    "17.43%",
+    "16.82%",
+    "8.87%"
+   ],
+   "confidence_interval": 0.22,
+   "popularity": "10.72%",
+   "popularity_value": 10.72,
+   "popularity_first_place": "13.99%",
+   "popularity_top_4": "9.49%",
+   "is_recent": true,
+   "num_days": 8,
+   "lineup": [],
+   "final_form_minions": []
+  },
+  {
+   "composition_id": 3,
+   "name": "Звери",
+   "num_games": 246,
+   "avg_placement": 4.766,
+   "placement_distribution": [
+    "10.98%",
+    "8.94%",
+    "10.57%",
+    "11.79%",
+    "15.04%",
+    "15.45%",
+    "15.04%",
+    "12.20%"
+   ],
+   "confidence_interval": 0.18,
+   "popularity": "8.07%",
+   "popularity_value": 8.07,
+   "popularity_first_place": "9.22%",
+   "popularity_top_4": "6.95%",
+   "is_recent": true,
+   "num_days": 8,
+   "lineup": [],
+   "final_form_minions": []
+  },
+  {
+   "composition_id": 36,
+   "name": "Пираты",
+   "num_games": 413,
+   "avg_placement": 4.82,
+   "placement_distribution": [
+    "7.75%",
+    "9.20%",
+    "9.93%",
+    "16.71%",
+    "13.80%",
+    "17.92%",
+    "17.19%",
+    "7.51%"
+   ],
+   "confidence_interval": 0.25,
+   "popularity": "13.54%",
+   "popularity_value": 13.54,
+   "popularity_first_place": "10.92%",
+   "popularity_top_4": "12.03%",
+   "is_recent": true,
+   "num_days": 8,
+   "lineup": [],
+   "final_form_minions": []
+  }
+ ],
+ "best_composition": {
+  "composition_id": 2,
+  "name": "Мурлоки",
+  "num_games": 218,
+  "avg_placement": 4.19,
+  "placement_distribution": [
+   "11.93%",
+   "14.68%",
+   "15.14%",
+   "11.93%",
+   "14.22%",
+   "16.06%",
+   "9.17%",
+   "6.88%"
+  ],
+  "confidence_interval": 0.23,
+  "popularity": "7.15%",
+  "popularity_value": 7.15,
+  "popularity_first_place": "8.87%",
+  "popularity_top_4": "7.82%",
+  "is_recent": true,
+  "num_days": 8,
+  "lineup": [],
+  "final_form_minions": []
+ }
+}

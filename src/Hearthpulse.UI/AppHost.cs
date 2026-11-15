@@ -408,22 +408,26 @@ public sealed partial class AppHost : IDisposable
     }
 
     /// <summary>
-    /// Community stats: heroes and minions from the Hearthpulse API, and, when a stats pool is set up, the pool's meta
-    /// laid over them for what the API lacks (or the pool's own meta when the API did not load). docs/bg-meta-sources.md.
+    /// Community stats: heroes and minions from the Hearthpulse API, the external comps and trinkets, and, when a stats
+    /// pool is set up, the pool's meta laid over them (or the pool's own meta when the API did not load). The heroes'
+    /// compositions follow on their own. docs/bg-meta-sources.md.
     /// </summary>
     public async Task LoadMetaAsync()
     {
         // The limits on their own: a slow answer never holds the meta back.
         Usage.RefreshLimitsAsync().Forget("Usage limits");
         // The tier tabs' lists come from another host: beside the meta, not after it, so a slow answer of either
-        // holds the other back as little as a fresh cache does.
-        LoadBgSiteAsync().Forget("Battlegrounds site stats load");
-        var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings);
+        // holds the other back as little as a fresh cache does. The advisor's comps and trinkets are read from them.
+        var site = LoadBgSiteAsync();
+        site.Forget("Battlegrounds site stats load");
+        var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings, () => BattlegroundsMeta.LoadExternalAsync(_bgSite!, site), Cards);
         if (meta is not null)
         {
             Meta = meta;
             Session.SetMeta(meta);
             Main.SetMeta(meta);
+            HeroCompsLoad = LoadHeroCompsAsync(meta);
+            HeroCompsLoad.Forget("Battlegrounds hero compositions load");
         }
         else
         {
@@ -438,10 +442,27 @@ public sealed partial class AppHost : IDisposable
         await _constructedLoader.ReloadAllAsync();
     }
 
+    /// <summary>The load of the heroes' compositions the last meta started; the render waits for it.</summary>
+    public Task HeroCompsLoad { get; private set; } = Task.CompletedTask;
+
+    /// <summary>
+    /// Every hero's compositions for the advisor's lobby adjustment: a request per hero (four at a time, cached for
+    /// hours), so the meta is in use before they arrive. Only the advisor reads them: the pages are not rebuilt.
+    /// </summary>
+    private async Task LoadHeroCompsAsync(BattlegroundsMeta meta)
+    {
+        var full = await meta.WithHeroCompsAsync(new HearthpulseData(Api));
+        if (!ReferenceEquals(full, meta) && ReferenceEquals(Meta, meta))
+        {
+            Meta = full;
+            Session.SetMeta(full);
+        }
+    }
+
     /// <summary>
     /// The lists of the main window's Battlegrounds tier tabs, from the open service the site itself reads
     /// (docs/bg-site-stats.md): loaded off the UI thread, with a client of its own that keeps no cookies and follows no
-    /// redirects. The overlay and the advisor do not read them.
+    /// redirects. The advisor reads its comps and trinkets from the same lists (docs/bg-meta-sources.md).
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client is kept by the site client in a field of the host and lives as long as the app.")]
     public async Task<BgSiteStats?> LoadBgSiteAsync()
