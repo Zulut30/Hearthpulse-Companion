@@ -87,6 +87,7 @@ public sealed partial class GameSession
         }
 
         record = SaveReplay(record, game);
+        SaveCombatCaptures(record, game);
         Diag.Info($"Game {(record.IsAbandoned ? "abandoned" : "finished")}: {record.Mode}, {record.Result}, place {record.Placement}, {record.Turns} turns{(_catchingUp ? " (replayed)" : string.Empty)}");
         try
         {

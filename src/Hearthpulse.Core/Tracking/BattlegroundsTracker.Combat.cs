@@ -56,6 +56,8 @@ public sealed partial class BattlegroundsTracker
         _boardCaptured = false;
         _boardsSnapshotted = false;
         _removedBy.Clear();
+        // A fight captured for a combat that was never recorded (no opponent named) is not the next combat's.
+        _captures.RemoveAll(c => c.CombatIndex >= _combats.Count);
         _combatOdds = null;
         Interlocked.Increment(ref _simulationGeneration);
         _pendingDamage = -1;
@@ -115,6 +117,7 @@ public sealed partial class BattlegroundsTracker
         }
 
         // Start-of-combat effects have resolved by the first regular attack, so these boards are what actually fights.
+        _minionFacts.Clear();
         var enchantments = Enchantments(game);
         // Health for lethal comes from the leaderboard heroes (the fighting heroes are copies), as it was when the fight
         // started; an opponent tier the combat copy lacks comes from there too.
@@ -139,8 +142,22 @@ public sealed partial class BattlegroundsTracker
             CountDamage = !game.IsDuos,
         };
         LastCapture = new CombatCapture(ours, theirs, oursFirst, options.FirstAttackerEntityId);
+        LastCaptureOptions = options;
+        var board = ours.Minions.Concat(theirs.Minions).Select(m => m.EntityId).ToHashSet();
+        _captures.Add(new CapturedFight(_combats.Count, LastCapture, options, _minionFacts.Values.Where(f => board.Contains(f.EntityId)).OrderBy(f => f.EntityId).ToList()));
         StartSimulation(ours, theirs, oursFirst, options);
     }
+
+    /// <summary>
+    /// The first pass of a fight, made on the log thread so the odds are on screen at once: few fights and a short
+    /// time budget. The background pass then runs <paramref name="options"/> as they are.
+    /// </summary>
+    internal static SimOptions QuickPass(SimOptions options) => options with
+    {
+        Runs = 150,
+        MinRuns = 0,
+        TimeBudget = TimeSpan.FromMilliseconds(40),
+    };
 
     /// <summary>
     /// The local player's player-level cards in play (hero power, trinkets, quest rewards) at capture, by card id: only
@@ -210,12 +227,7 @@ public sealed partial class BattlegroundsTracker
 
         try
         {
-            _combatOdds = CombatSimulator.Run(ours, theirs, oursFirst, options with
-            {
-                Runs = 150,
-                MinRuns = 0,
-                TimeBudget = TimeSpan.FromMilliseconds(40),
-            });
+            _combatOdds = CombatSimulator.Run(ours, theirs, oursFirst, QuickPass(options));
         }
         catch (Exception ex)
         {

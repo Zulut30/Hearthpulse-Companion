@@ -38,6 +38,8 @@
     <None Include="Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- The memory recorder and what a fixture checks: Bench's tools, shared as source so Core does not carry them. -->
     <Compile Include="..\..\tools\Hearthpulse.Bench\Memory\*.cs" Link="Memory\%(Filename)%(Extension)" />
+    <!-- The simulator's measurement (Bench simcover): its sample, scores and statistics, shared the same way. -->
+    <Compile Include="..\..\tools\Hearthpulse.Bench\Sim\*.cs" Link="Sim\Measurement\%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

@@ -32,6 +32,12 @@ public static class AppPaths
     public static string Replays => Path.Combine(Root, "replays");
 
     /// <summary>
+    /// The fights of the player's Battlegrounds games as the simulator got them, one file per game
+    /// (<c>Tracking/CombatCaptureStore</c>); local only, never sent; created on the first save.
+    /// </summary>
+    public static string CombatCaptures => Path.Combine(Root, "combat-captures");
+
+    /// <summary>
     /// Saved and imported replays (<c>Replay/ReplayLibrary</c>, <c>docs/replay-library.md</c>): Documents\Hearthpulse\Replays,
     /// outside the data folder so that its clean-up, updates and uninstalling never touch them. With HEARTHPULSE_DATA,
     /// in a portable copy or without a Documents folder: <c>&lt;data&gt;\library</c>. Created on the first save.
