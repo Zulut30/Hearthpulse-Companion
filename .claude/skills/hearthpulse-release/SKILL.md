@@ -140,7 +140,7 @@ Two independent signatures; both scripts run in trial runs too, so a trial run s
   "Check now" calls `UpdateTrigger.Request()` (works with AutoUpdate off; refused while a check runs, within 60 s of
   the last one, or before `RetryAfter`, with the reason in `RefusalMessage`); "What's new" shows the release body as
   plain text (at most 1500 chars, so the notes' first 1500 characters must carry the important part) and links the
-  release page. Applied on exit or from the "Update ready - restart" chip. WPF `App.xaml.cs` `StartUpdateChecks`;
+  release page. Applied on exit or from the "Update ready - restart" chip. WPF `App.Updates.cs` `StartUpdateChecks`;
   Avalonia `AppHost.cs` (skips mobile). Render mode suppresses update checks in both hosts.
 - Real portable packages contain `portable.txt` and use `AppPaths.IsPortable`: the hosts notify about updates but
   do not download/apply them automatically. This is distinct from the `WindowsPortable` updater target, whose

@@ -112,7 +112,7 @@ The local `MainViewModel*.cs` files contain only platform behavior (dispatch, cl
 Constructed feature); `OverlayViewModel.Platform.cs` and `OverlayModels.Platform.cs` adapt framework
 types. `Infrastructure/` keeps converters, art, native integration and each
 framework's `RelayCommand`; its notification semantics differ. Edit shared behavior once and add local code only
-for a concrete platform difference. WPF composition root: `App.xaml.cs` (+ `DevRender.cs`); Avalonia:
+for a concrete platform difference. WPF composition root: `App.xaml.cs` (+ `App.*.cs` partials, `DevRender.cs`); Avalonia:
 `Hearthpulse.UI/AppHost.cs`, `Hearthpulse.Desktop/DesktopApp.cs`, `Desktop/Platform/*OverlayPlatform.cs`.
 
 ## Data flow

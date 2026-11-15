@@ -57,7 +57,7 @@
             </StackPanel>
         </Border>
 
-        <!-- Every shortcut in one place (they were only in tips); the keys match App.xaml.cs and MainWindow.xaml.cs -->
+        <!-- Every shortcut in one place (they were only in tips); the keys match App.Shell.cs and MainWindow.xaml.cs -->
         <Border x:Name="ShortcutsCard" Style="{StaticResource Card}" Margin="0,16,0,0">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Shortcuts.Title}" Icon="&#xF030C;" Size="13" Margin="0,0,0,14" />

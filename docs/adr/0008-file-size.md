@@ -13,13 +13,18 @@ concern and a name that says it (`GameSession.Replay.cs`).
 | File | Why |
 |---|---|
 | `*.g.cs` | Generated tables (`tools/`), regenerated rather than edited |
-| `src/Hearthpulse.App/App.xaml.cs`, `src/Hearthpulse.UI/Main/MainView.axaml.cs`, `src/Hearthpulse.App/Main/MainWindow.xaml.cs` | Host and window code-behind, worked on by the page-markup and settings/theme packages in the same round (2026-11-07); split with package Q5 once those land, not around them |
-| `src/Hearthpulse.App/Overlay/MovablePanel.cs`, `src/Hearthpulse.UI/Overlay/MovablePanel.cs` | One control per UI (drag, resize, snap, lock); deferred to Q5 with the overlay markup |
 
 Packages Q4 (Core giants) and Q5 (markup) add the files they decide to keep whole, with the reason. `tests/` files are
 split when touched; the limit is not enforced there.
 
 Q4 (branch `claude/perf-arch`, 2026-11-07) brought every other hand-written file in `src/` and `tools/` to 600 lines or
 fewer by moving members as they were into partial files or type files named for their concern (`GameSession.Logs.cs`,
-`HistoryStore.Write.cs`, `GameRecord.cs`, `MatchViews.cs`, ...). The exceptions above are what is left; this table is
-checked by `tools/skill_checks/test_file_size.py`.
+`HistoryStore.Write.cs`, `GameRecord.cs`, `MatchViews.cs`, ...). It left five files as exceptions: the WPF host, both
+main-window code-behinds and both `MovablePanel` controls.
+
+2026-11-15 split those five the same way, members as they were: the host into `App.Crash.cs`, `App.MainWindow.cs`,
+`App.Shell.cs`, `App.StatsPool.cs`, `App.Theme.cs`, `App.Updates.cs` and `App.Watchdog.cs`; the window code-behind
+into `MainWindow.Pages.cs` / `MainWindow.Settings.cs` and `MainView.Tabs.cs` / `MainView.Settings.cs` /
+`MainView.PanelsMenu.cs`; each `MovablePanel` into `MovablePanel.Drag.cs`, `MovablePanel.Tag.cs` and
+`PanelTagStrip.cs`. Generated tables are the only exception left; this table is checked by
+`tools/skill_checks/test_file_size.py`.

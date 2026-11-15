@@ -29,7 +29,7 @@
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Language.Title}" Icon="&#xF05CA;" Size="13" Margin="0,0,0,14" />
-                <!-- Each radio's Tag is applied in MainView.axaml.cs (ApplyChoice) -->
+                <!-- Each radio's Tag is applied in MainView.Settings.cs (ApplyChoice) -->
                 <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" DataContext="{Binding Settings}" x:DataType="core:AppSettings">
                     <TextBlock Text="{i:Loc Settings.Language.Label}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Language.Caption}" />
                     <Border Classes="segmentBar choice">

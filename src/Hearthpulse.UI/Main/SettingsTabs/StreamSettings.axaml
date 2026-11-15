@@ -85,7 +85,7 @@
                           ToolTip.Tip="{i:Loc Stream.Window.OddsTip}" />
                 <st:StreamSessionSettings />
                 <TextBlock Text="{i:Loc Stream.Look.Group}" Classes="label settingGroup" />
-                <!-- Each radio's Tag is applied in MainView.axaml.cs (ApplyStreamChoice) -->
+                <!-- Each radio's Tag is applied in MainView.Settings.cs (ApplyStreamChoice) -->
                 <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14">
                     <TextBlock Text="{i:Loc Stream.Background}" Classes="settingLabel" />
                     <Border Classes="segmentBar choice">

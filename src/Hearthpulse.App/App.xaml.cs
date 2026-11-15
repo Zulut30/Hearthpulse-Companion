@@ -24,16 +24,17 @@ using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
-using Forms = System.Windows.Forms;
 
 namespace Hearthpulse.App;
 
+/// <summary>
+/// The WPF host: builds the services, the view models and the windows at start and wires them together. Its other
+/// concerns live in partials of their own: errors (App.Crash.cs), the main window's life (App.MainWindow.cs), tray and
+/// hotkeys (App.Shell.cs), the theme (App.Theme.cs), updates (App.Updates.cs), the pipeline watchdog (App.Watchdog.cs),
+/// the stats pool (App.StatsPool.cs), the OBS windows (App.Stream.cs) and the Arena, Brawl and card pool loads.
+/// </summary>
 public partial class App : Application
 {
-    private const int HotkeyId = 0x484C;
-    private const int LayoutHotkeyId = 0x484D;
-    private const int RefreshHotkeyId = 0x484E;
-
     private Mutex? _mutex;
     private AppSettings _settings = new();
     private HttpClient _http = null!;
@@ -42,31 +43,14 @@ public partial class App : Application
     private AccountService _account = null!;
     private ProfileUploader _uploader = null!;
     private UsageGate _usage = null!;
-
-    // Crash reports the player agreed to (plan 0.5); null until the services are built, then errors are only logged.
-    private Hearthpulse.Core.Diagnostics.CrashReporter? _crashReporter;
     private HistoryStore _history = null!;
     private HearthstoneMemory _memory = null!;
     private GameSession _session = null!;
     private MulliganGuideSource _mulliganGuide = null!;
     private LogWatcher? _watcher;
-    /// <summary>
-    /// The main window: built when first shown (start minimized: from the tray), let go after a minute hidden in the tray
-    /// (<see cref="ReleaseMain"/>), forgotten once closed for good; <see cref="ShowMain"/> builds it again where it was.
-    /// </summary>
-    private readonly MainWindowLife<MainWindow, MainPlace> _mainLife = new(main => main.Place);
-
-    /// <summary>Null while there is no window to show (see <see cref="_mainLife"/>). Render scenes always have one.</summary>
-    private MainWindow _main => _mainLife.Window!;
-
-    /// <summary>While the window waits in the tray: is it time to let it go? (A game in progress puts it off.)</summary>
-    private readonly DispatcherTimer _releaseMain = new() { Interval = TimeSpan.FromSeconds(10) };
     private MainViewModel _mainViewModel = null!;
     private OverlayWindow _overlay = null!;
     private OverlayViewModel _overlayViewModel = null!;
-    private Forms.NotifyIcon? _tray;
-    private Forms.ToolStripMenuItem? _trayOverlayItem;
-    private HotkeyWindow? _hotkeys;
     private string? _installDir;
     private StartupPrefetch _prefetch = null!;
     private AppServices _services = null!;
@@ -78,25 +62,6 @@ public partial class App : Application
     private string? _renderDir;
     private ConstructedMetaLoader _constructedLoader = null!;
     private BattlegroundsMeta? _meta;
-    // Written by the update loop on the pool, read on the UI thread.
-    private volatile UpdateInfo? _stagedUpdate;
-    private readonly UpdateTrigger _updateTrigger = new();
-    private readonly UpdateLoop _updateLoop = new();
-    private DispatcherTimer? _watchdog;
-    private Forms.ToolStripMenuItem? _traySoftwareItem;
-    private long _lastPending = -1;
-    private DateTime _stallSince;
-    private DateTime _lastRecovery;
-    private DateTime _lastRestart;
-
-    // Diagnostics: how fast the UI thread shows snapshots and answers at all.
-    private System.Threading.Timer? _uiProbe;
-    private long _probeSentAt;
-    private long _lastFreezeNote;
-    private long _slowestUi;
-    private int _watchTicks;
-    private bool _capNotified;
-    private bool _sharingHistory;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -127,52 +92,7 @@ public partial class App : Application
             return;
         }
 
-        // Every unexpected error is logged; the player sees a window (Open log / Continue) the first time a kind of error
-        // happens, instead of a silent stop or nothing at all. Not while rendering pages off-screen (--render-ui).
-        DispatcherUnhandledException += (_, args) =>
-        {
-            args.Handled = true;
-            if (CrashLog.Record("UI error", args.Exception) && _renderDir is null)
-            {
-                // This handler runs inside the dispatcher's exception filter, where a modal window is never drawn:
-                // show it once the failed operation has unwound.
-                var error = args.Exception;
-                var reporter = _crashReporter;
-                var autoSent = reporter?.OnError("UI error", error, fatal: false) ?? false;
-                _ = Dispatcher.BeginInvoke(() => CrashDialog.Show(error, fatal: false, reporter, "UI error", autoSent));
-            }
-        };
-        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
-        {
-            var ex = args.ExceptionObject as Exception ?? new InvalidOperationException(args.ExceptionObject?.ToString());
-            var where = args.IsTerminating ? "Fatal error" : "Unhandled error";
-            var first = CrashLog.Record(where, ex);
-            var reporter = _renderDir is null ? _crashReporter : null;
-            // A crash that ends the process is only queued: it goes at the next start.
-            var autoSent = (first || args.IsTerminating) && (reporter?.OnError(where, ex, fatal: args.IsTerminating) ?? false);
-            if (args.IsTerminating && _renderDir is null)
-            {
-                try
-                {
-                    // A background thread is dying and takes the process with it: say so before it goes.
-                    // Bounded: the UI thread may itself be waiting on the dying thread, and the process must still end.
-                    Dispatcher.Invoke(() => CrashDialog.Show(ex, fatal: true, reporter, where, autoSent), DispatcherPriority.Send, CancellationToken.None, TimeSpan.FromSeconds(30));
-                }
-                catch (Exception dialogError)
-                {
-                    Diag.Error("Error window could not be shown", dialogError);
-                }
-            }
-        };
-        TaskScheduler.UnobservedTaskException += (_, args) =>
-        {
-            if (CrashLog.Record("Background error", args.Exception) && _renderDir is null)
-            {
-                _crashReporter?.OnError("Background error", args.Exception, fatal: false);
-            }
-
-            args.SetObserved();
-        };
+        WatchForErrors();
 
         _settings = AppSettings.Load();
         if (_renderDir is null)
@@ -481,85 +401,6 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Looks for a newer release shortly after startup and every six hours after that (with automatic updates off, only
-    /// on "Check now"). A downloaded update installs by itself when the app closes. Called once at start: it also reads
-    /// how the install the previous run started went, and a failure is told once, in a notification and in About.
-    /// </summary>
-    private void StartUpdateChecks()
-    {
-        if (UpdateService.TakeInstallReport() is { Succeeded: false } report)
-        {
-            _mainViewModel.SetInstallFailed(report.Version, report.Message);
-            Notify(Loc.T("Host.Update.InstallFailedTitle"), report.Message());
-        }
-
-        if (!_settings.AutoUpdate)
-        {
-            _mainViewModel.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
-        }
-
-        // The loop reports a version once (again only for a newer one), so each notification below is once a version;
-        // results of a check, "Check now" included, go only to the status line.
-        var callbacks = new UpdateCallbacks(
-            // The setup would install a second copy; the portable one only says a new version is out.
-            Available: info =>
-            {
-                _ = Dispatcher.BeginInvoke(() => _mainViewModel.SetReleaseNotes(info.Version, info.Notes, info.PageUrl));
-                Notify(Loc.T("Host.Update.AvailableTitle"), Loc.F("Host.Update.AvailableZip", info.Version));
-            },
-            Staged: info =>
-            {
-                _stagedUpdate = info;
-                _ = Dispatcher.BeginInvoke(() =>
-                {
-                    _mainViewModel.SetUpdateReady(info.Version);
-                    _mainViewModel.SetReleaseNotes(info.Version, info.Notes, info.PageUrl);
-                });
-                Notify(Loc.T("Host.Update.ReadyTitle"), Loc.F("Host.Update.Ready", info.Version));
-            },
-            // Failed check, unverifiable file, failed download or a version left to a manual install: About only.
-            Failed: status => _ = Dispatcher.BeginInvoke(() => _mainViewModel.SetUpdateStatus(status)),
-            Checked: check => _ = Dispatcher.BeginInvoke(() => _mainViewModel.UpdateCheckFinished(() => check.Message)));
-        _mainViewModel.UpdateCheckRequested += () =>
-        {
-            if (!_updateTrigger.Request())
-            {
-                _mainViewModel.UpdateCheckRefused(_updateTrigger.RefusalMessage);
-            }
-        };
-        _updateLoop.Start(stop => UpdateService.WatchAsync(_http, AppPaths.IsPortable, _settings.AutoUpdate, callbacks, _updateTrigger, stop));
-    }
-
-    /// <summary>Stops the update loop and waits for it (bounded) before a staged update is installed: a download still
-    /// running would otherwise replace the staged file under the installer. The loop stays off for this run.</summary>
-    private void StopUpdateLoop()
-    {
-        if (!_updateLoop.Stop(UpdateLoop.StopWait))
-        {
-            Diag.Info($"Update: the update loop did not end within {UpdateLoop.StopWait.TotalSeconds:0} s; installing anyway.");
-        }
-    }
-
-    /// <summary>The "Update ready" chip: stop the update loop, install the downloaded update now and start the new version.</summary>
-    private void OnInstallUpdateRequested()
-    {
-        if (_stagedUpdate is null)
-        {
-            return;
-        }
-
-        StopUpdateLoop();
-        // Read after the loop has stopped: the newest staged version, whose file nothing deletes any more.
-        if (_stagedUpdate is not { } staged || !UpdateService.ApplyStaged(staged, relaunch: true))
-        {
-            return;
-        }
-
-        _stagedUpdate = null;
-        Quit();
-    }
-
-    /// <summary>
     /// Community stats: heroes and minions from the Hearthpulse API, and, when a stats pool is set up, the pool's meta
     /// laid over them for what the API lacks (or the pool's own meta when the API did not load). docs/bg-meta-sources.md.
     /// </summary>
@@ -613,217 +454,19 @@ public partial class App : Application
 
     // ---- live snapshots ---------------------------------------------------------------------
 
-    /// <summary>
-    /// Watches the UI thread from a background thread. When the window stops answering, this writes it to the log while
-    /// it happens; a frozen window could never write that line itself.
-    /// </summary>
-    private void ProbeUiThread(object? state)
-    {
-        var now = Environment.TickCount64;
-        var sent = Volatile.Read(ref _probeSentAt);
-        var snapshotWait = _feed.Waiting;
-        if (((sent != 0 && now - sent > 5000) || snapshotWait > 5000) && now - _lastFreezeNote > 10_000)
-        {
-            _lastFreezeNote = now;
-            Diag.Info($"UI thread slow: {(sent != 0 ? $"not answering for {now - sent:N0} ms" : "answering")}, newest snapshot waiting {snapshotWait:N0} ms to be shown");
-        }
-
-        if (sent != 0)
-        {
-            return;
-        }
-
-        Volatile.Write(ref _probeSentAt, now);
-        _ = Dispatcher.BeginInvoke(() =>
-        {
-            var lag = Environment.TickCount64 - Volatile.Read(ref _probeSentAt);
-            Volatile.Write(ref _probeSentAt, 0);
-            _slowestUi = Math.Max(_slowestUi, lag);
-            if (lag > 1000)
-            {
-                Diag.Info($"UI thread answered after {lag:N0} ms");
-            }
-        }, DispatcherPriority.Normal);
-    }
-
     private void RefreshOverlay() => _overlayViewModel.Update(_feed.Last, _cards, _settings, _feed.Deck, _feed.Matchup);
-
-    private IReadOnlyList<string> CardRaces(string cardId) => _cards.Get(cardId)?.Races ?? [];
-
-    /// <summary>
-    /// Once the player agrees to the full list, their Battlegrounds games from the last 30 days are shared once,
-    /// 20 per request. Ids are stable, so a game already sent live is not stored twice.
-    /// </summary>
-    private async Task ShareHistoryAsync()
-    {
-        if (_sharingHistory || _settings.PoolHistoryShared || !PoolClient.SharingAll(_settings) || _cards.Count == 0 || _renderDir is not null)
-        {
-            return;
-        }
-
-        _sharingHistory = true;
-        try
-        {
-            var secret = PoolClient.Secret(_settings);
-            var since = DateTime.Now.AddDays(-PoolClient.HistoryDays);
-            var games = await Task.Run(() => _history.Since(since)
-                .Where(g => g.IsBattlegrounds)
-                .Select(g => PoolGame.FromHistory(g, secret, _cards.BaseHeroId, CardRaces))
-                .OfType<PoolGame>()
-                .ToList());
-            foreach (var chunk in games.Chunk(PoolClient.MaxBatch))
-            {
-                if (!await PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), chunk))
-                {
-                    return;
-                }
-
-                await Task.Delay(PoolClient.HistoryBatchDelay);
-            }
-
-            _settings.PoolHistoryShared = true;
-            Diag.Info($"Shared {games.Count} earlier game(s) with the stats pool");
-        }
-        catch (Exception ex)
-        {
-            Diag.Error("Sharing earlier games failed", ex);
-        }
-        finally
-        {
-            _sharingHistory = false;
-            _settingsDebounce.Kick();
-        }
-    }
 
     private void OnGameFinished(GameOutcome outcome)
     {
         // Reads the history row, so off the UI thread; a game that ends while signed out is not sent.
         Task.Run(() => _uploader.OnGameFinished(outcome)).Forget("Profile upload");
 
-        // The event fires again once the new rating is read; share the game only the first time.
-        if (outcome.RatingAfter is null && PoolClient.Sharing(_settings)
-            && PoolGame.From(outcome, _cards.BaseHeroId, CardRaces, PoolClient.SharingDetails(_settings), PoolClient.Secret(_settings)) is { } game)
-        {
-            _ = PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), [PoolClient.Limit(game, _settings)]);
-            _settingsDebounce.Kick();
-        }
-
-        // A Constructed game shares only its Discover-style picks, once the player agreed to that list (version 4).
-        if (PoolClient.SharingPicks(_settings) && ConstructedPoolGame.From(outcome, PoolClient.Secret(_settings)) is { } picks)
-        {
-            _ = PoolClient.SubmitConstructedAsync(_http, PoolClient.Endpoint(_settings), [picks]);
-            _settingsDebounce.Kick();
-        }
+        ShareWithPool(outcome);
 
         if (_settings.ShowGameToasts && _settings.OverlayEnabled)
         {
             _overlayViewModel.ShowOutcome(outcome);
         }
-    }
-
-    /// <summary>A new main window, on the page, tabs and bounds of <paramref name="place"/> when given.</summary>
-    private MainWindow CreateMainWindow(MainPlace? place = null)
-    {
-        var main = new MainWindow(_mainViewModel);
-        main.SettingsChanged += OnSettingsChanged;
-        main.ReimportRequested += () => ImportLogsAsync(force: true).Forget("Log import");
-        main.ArrangeOverlayRequested += () => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing;
-        main.IsVisibleChanged += OnMainVisibleChanged;
-        main.Closing += (_, e) =>
-        {
-            if (!e.Cancel)
-            {
-                _mainLife.Closing(main);
-            }
-        };
-        main.Closed += (_, _) => OnMainClosed(main);
-        main.StateChanged += (_, _) =>
-        {
-            if (!ReferenceEquals(main, _main))
-            {
-                return;
-            }
-
-            SyncWindowInUse();
-            // Building and leaving pages leaves garbage an idle app would never collect.
-            if (main.WindowState == WindowState.Minimized)
-            {
-                _session.RequestMemoryTrimWhenWindowAway();
-            }
-        };
-        if (place is not null)
-        {
-            main.MoveTo(place);
-        }
-
-        return main;
-    }
-
-    private void OnMainVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-    {
-        if (!ReferenceEquals(sender, _main) || _renderDir is not null)
-        {
-            return;
-        }
-
-        SyncWindowInUse();
-        // Hidden in the tray: no collection of its own; the one after the release takes the pages and the rest.
-        if (_main.IsVisible)
-        {
-            _mainLife.Shown(_main);
-            _releaseMain.Stop();
-        }
-        else
-        {
-            _mainLife.Hidden(_main, DateTime.UtcNow);
-            _releaseMain.Start();
-        }
-    }
-
-    /// <summary>
-    /// Closed for good (no tray to hide it in): forgotten, so the tray's Open builds a new one instead of showing a closed
-    /// window (which threw). Its pages are garbage now.
-    /// </summary>
-    private void OnMainClosed(MainWindow main)
-    {
-        if (!ReferenceEquals(main, _main))
-        {
-            return;
-        }
-
-        _releaseMain.Stop();
-        _mainLife.Closed(main);
-        SyncWindowInUse();
-        _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
-    }
-
-    /// <summary>A collection asked for by a meta load waits while the window is on screen or waiting in the tray.</summary>
-    private void SyncWindowInUse() => _session.MainWindowInUse = _main is { WindowState: not WindowState.Minimized };
-
-    /// <summary>
-    /// The window stayed hidden in the tray for a minute, and no game is being played: it is let go with every page it
-    /// built, and built again on the same page when opened (about half a second). Bench, all pages and tabs open, then
-    /// the memory trim: private 217–222 → 154–157 MB.
-    /// </summary>
-    private void ReleaseMain()
-    {
-        if (!_mainLife.Waiting)
-        {
-            _releaseMain.Stop();
-            return;
-        }
-
-        if (!_mainLife.ReleaseDue(DateTime.UtcNow, _mainViewModel.InGame) || _main is not { IsVisible: false })
-        {
-            return;
-        }
-
-        _releaseMain.Stop();
-        var main = _mainLife.Release()!;
-        main.CloseForReal();
-        Diag.Info("Main window let go while hidden in the tray");
-        SyncWindowInUse();
-        _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
     }
 
     private OverlayWindow CreateOverlay()
@@ -833,60 +476,6 @@ public partial class App : Application
         overlay.PanelLockChanged += () => _main?.SyncOverlaySwitch();
         overlay.HoveredHero = () => _memory.IsAttached ? _memory.GetHoveredLeaderboardHero() : null;
         return overlay;
-    }
-
-    private ThemeSpec CurrentTheme()
-    {
-        // Off-screen renders can preview a theme without touching the saved settings.
-        var name = _renderDir is not null && Environment.GetEnvironmentVariable("HEARTHPULSE_THEME") is { Length: > 0 } forced ? forced : _settings.Theme;
-        return ThemePalette.FromSettings(_settings, name);
-    }
-
-    private bool ApplyTheme()
-    {
-        try
-        {
-            Motion.Reduced = _settings.ReduceMotion;
-            ThemeEngine.Apply(this, CurrentTheme(), ThemeLook.FromSettings(_settings));
-            return true;
-        }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
-        {
-            Diag.Error("Theme could not be built; keeping the current colours", ex);
-            return false;
-        }
-    }
-
-    /// <summary>Windows take their colours when they are created, so a new theme rebuilds both in place.</summary>
-    private void OnThemeChanged()
-    {
-        _settings.Save();
-        if (!ApplyTheme())
-        {
-            return;
-        }
-
-        // A window hidden in the tray (or not built yet) takes the new colours when it is next opened.
-        if (_main is { } oldMain)
-        {
-            _releaseMain.Stop();
-            _mainLife.Release();
-            if (oldMain.IsVisible)
-            {
-                ShowMain();
-            }
-
-            oldMain.CloseForReal();
-            SyncWindowInUse();
-            _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
-        }
-
-        var oldOverlay = _overlay;
-        _overlay = CreateOverlay();
-        _overlay.Suppressed = oldOverlay.Suppressed;
-        oldOverlay.Close();
-        _overlay.Show();
-        _stream?.Recreate();
     }
 
     private void OnSettingsChanged()
@@ -912,68 +501,6 @@ public partial class App : Application
         }
     }
 
-    // ---- shell: tray + hotkey ----------------------------------------------------------------
-
-    private void SetupTray()
-    {
-        using var iconStream = GetResourceStream(new Uri("pack://application:,,,/Assets/hearthpulse.ico"))?.Stream;
-        var menu = new Forms.ContextMenuStrip { Renderer = new DarkMenuRenderer(), ShowImageMargin = false, ShowCheckMargin = true };
-        // Each item keeps its text's key in Tag, so a language switch can retitle it (SetTrayTexts).
-        menu.Items.Add(Loc.T("Host.Tray.Open"), null, (_, _) => ShowMain()).Tag = "Host.Tray.Open";
-        _trayOverlayItem = new Forms.ToolStripMenuItem(Loc.T("Host.Tray.Overlay"), null, (_, _) => ToggleOverlaySetting())
-        {
-            Checked = _settings.OverlayEnabled,
-            Tag = "Host.Tray.Overlay",
-        };
-        menu.Items.Add(_trayOverlayItem);
-        menu.Items.Add(StreamerTrayItem());
-        menu.Items.Add(Loc.T("Host.Tray.Arrange"), null, (_, _) => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing).Tag = "Host.Tray.Arrange";
-        menu.Items.Add(Loc.T("Host.Tray.HardRefresh"), null, (_, _) => HardRefresh("tray menu")).Tag = "Host.Tray.HardRefresh";
-        _traySoftwareItem = new Forms.ToolStripMenuItem(Loc.T("Host.Tray.SoftwareRendering"), null, (_, _) => ToggleSoftwareRendering())
-        {
-            Checked = _settings.OverlaySoftwareRendering,
-            Tag = "Host.Tray.SoftwareRendering",
-        };
-        menu.Items.Add(_traySoftwareItem);
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add(Loc.T("Host.Tray.Quit"), null, (_, _) => Quit()).Tag = "Host.Tray.Quit";
-        foreach (Forms.ToolStripItem item in menu.Items)
-        {
-            item.ForeColor = System.Drawing.Color.FromArgb(0xF4, 0xE7, 0xC9);
-        }
-
-        _tray = new Forms.NotifyIcon
-        {
-            Icon = iconStream is null ? System.Drawing.SystemIcons.Application : new System.Drawing.Icon(iconStream),
-            Text = StreamerTrayTip(),
-            Visible = true,
-            ContextMenuStrip = menu,
-        };
-        _tray.DoubleClick += (_, _) => ShowMain();
-    }
-
-    private void Notify(string title, string text)
-    {
-        _tray?.ShowBalloonTip(6000, title, text, Forms.ToolTipIcon.Info);
-    }
-
-    /// <summary>Retitles the tray menu in the current language (each item's Tag holds its key).</summary>
-    private void SetTrayTexts()
-    {
-        if (_tray?.ContextMenuStrip is not { } menu)
-        {
-            return;
-        }
-
-        foreach (Forms.ToolStripItem item in menu.Items)
-        {
-            if (item.Tag is string key)
-            {
-                item.Text = Loc.T(key);
-            }
-        }
-    }
-
     /// <summary>
     /// The interface language changed (on the UI thread): the overlay rebuilds its texts from the last snapshot, and the
     /// texts this host owns (the tray menu) are shown again in the new language; the busy line and update status follow
@@ -992,243 +519,12 @@ public partial class App : Application
         SetTrayTexts();
     }
 
-    private void ShowMain()
-    {
-        _releaseMain.Stop();
-        var built = _main is null;
-        var main = _mainLife.Open(CreateMainWindow);
-        main.Show();
-        if (built && _mainLife.Place is { Maximized: true })
-        {
-            main.WindowState = WindowState.Maximized;
-        }
-        else if (!built && main.WindowState == WindowState.Minimized)
-        {
-            main.WindowState = WindowState.Normal;
-        }
-
-        main.Activate();
-    }
-
-    private void ToggleOverlaySetting()
-    {
-        _settings.OverlayEnabled = !_settings.OverlayEnabled;
-        _main?.SyncOverlaySwitch();
-        OnSettingsChanged();
-    }
-
-    /// <summary>
-    /// Re-reads the log and rebuilds the tracked game: the manual recovery for an overlay frozen on an old turn.
-    /// It also un-hides a suppressed overlay and re-asserts topmost, so a vanished overlay comes back with it.
-    /// </summary>
-    private void HardRefresh(string reason, bool quiet = false)
-    {
-        if (_watcher is null)
-        {
-            return;
-        }
-
-        Diag.Info($"Hard refresh ({reason})");
-        _watcher.RequestResync(replayCurrentGame: true);
-        _overlay.Suppressed = false;
-        _overlay.ReassertTopmost();
-        _lastPending = -1;
-        _stallSince = default;
-        if (!quiet)
-        {
-            Notify(Loc.T("Host.Notify.RefreshedTitle"), Loc.T("Host.Notify.Refreshed"));
-        }
-    }
-
-    /// <summary>
-    /// Watches the log pipeline itself. A watcher that stops polling was killed by an error on a background
-    /// thread; a log that keeps growing while nothing is delivered means the parser is wedged. Either way the
-    /// overlay would stay frozen, so the pipeline is restarted or the current game is replayed.
-    /// </summary>
-    private void WatchPipeline()
-    {
-        if (_watcher is null)
-        {
-            return;
-        }
-
-        if (++_watchTicks % 8 == 0)
-        {
-            using var process = System.Diagnostics.Process.GetCurrentProcess();
-            var (applied, slowestApply, longestWait) = _feed.TakeStats();
-            Diag.Debug($"Window: showed {applied} snapshots (BG turn {_feed.Last.Battlegrounds?.Turn}), slowest {slowestApply:N0} ms, "
-                       + $"longest wait {longestWait:N0} ms, slowest UI answer {_slowestUi:N0} ms, overlay {(_overlay.Suppressed ? "hidden" : "on")}, "
-                       + $"RAM {process.WorkingSet64 / (1024 * 1024):N0} MB, managed {GC.GetTotalMemory(false) / (1024 * 1024):N0} MB");
-            _slowestUi = 0;
-        }
-
-        if (_watcher.PowerLogCapped)
-        {
-            if (!_capNotified)
-            {
-                _capNotified = true;
-                var install = _installDir;
-                Task.Run(() => LogConfig.EnsureAll(install)).Forget("log.config update");
-                Notify(Loc.T("Host.Notify.RestartTitle"), Loc.T("Host.Notify.LogCapped"));
-            }
-        }
-        else
-        {
-            _capNotified = false;
-        }
-
-        if (_watcher.LastProgressAgeMs > 15_000)
-        {
-            // A long replay delivers batches and keeps the clock moving, so only a pass stuck in one place gets here.
-            // At most one restart a minute: restarting a watcher that is still busy only adds work.
-            if (DateTime.UtcNow - _lastRestart >= TimeSpan.FromSeconds(60))
-            {
-                _lastRestart = DateTime.UtcNow;
-                Diag.Info($"Log watcher stuck for {_watcher.LastProgressAgeMs / 1000}s while {_watcher.Stage}; restarting it.");
-                RestartWatcher();
-            }
-
-            return;
-        }
-
-        if (_watcher.LastPollAgeMs > 2_000)
-        {
-            // A pass is still running (a replay or a big batch): that is busy, not stalled. Replaying the game now
-            // would only pile more work on a slow PC.
-            _stallSince = default;
-            return;
-        }
-
-        var pending = _watcher.PendingBytes;
-        if (pending <= 0 || pending < _lastPending)
-        {
-            // Caught up, or still draining a backlog (progress) — not a stall.
-            _stallSince = default;
-            _lastPending = pending;
-            return;
-        }
-
-        _lastPending = pending;
-        if (_stallSince == default)
-        {
-            _stallSince = DateTime.UtcNow;
-            return;
-        }
-
-        if (DateTime.UtcNow - _stallSince < TimeSpan.FromSeconds(12) || DateTime.UtcNow - _lastRecovery < TimeSpan.FromSeconds(30))
-        {
-            return;
-        }
-
-        _lastRecovery = DateTime.UtcNow;
-        Diag.Info($"Log pipeline stalled with {pending} unread bytes; re-reading the current game.");
-        HardRefresh("automatic recovery", quiet: true);
-    }
-
-    private void RestartWatcher()
-    {
-        try
-        {
-            _watcher?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            Diag.Error("Log watcher restart failed", ex);
-        }
-
-        _watcher = new LogWatcher(_session, () => _installDir);
-        _watcher.Start();
-        _lastPending = -1;
-        _stallSince = default;
-    }
-
-    private void ToggleSoftwareRendering()
-    {
-        _settings.OverlaySoftwareRendering = !_settings.OverlaySoftwareRendering;
-        if (_traySoftwareItem is not null)
-        {
-            _traySoftwareItem.Checked = _settings.OverlaySoftwareRendering;
-        }
-
-        _settings.Save();
-        Notify(Loc.T("Host.Notify.RendererTitle"), _settings.OverlaySoftwareRendering
-            ? Loc.T("Host.Notify.SoftwareRendering")
-            : Loc.T("Host.Notify.HardwareRendering"));
-    }
-
     private void Quit(int exitCode = 0)
     {
         _releaseMain.Stop();
         _mainLife.Release()?.CloseForReal();
         _overlay.Close();
         Shutdown(exitCode);
-    }
-
-    private void RegisterHotkey()
-    {
-        // Not on the main window: a theme change replaces it and the tray lets it go.
-        _hotkeys = new HotkeyWindow();
-        if (!_hotkeys.Register(HotkeyId, 0x48, () =>
-            {
-                _overlay.Suppressed = !_overlay.Suppressed;
-                Notify(_overlay.Suppressed ? Loc.T("Host.Notify.OverlayHiddenTitle") : Loc.T("Host.Notify.OverlayShownTitle"),
-                    _overlay.Suppressed ? Loc.T("Host.Notify.OverlayHidden") : Loc.T("Host.Notify.OverlayShown"));
-            }))
-        {
-            Diag.Info("Ctrl+Shift+H is taken by another app; overlay hotkey disabled.");
-        }
-
-        if (!_hotkeys.Register(LayoutHotkeyId, 0x4C, () => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing))
-        {
-            Diag.Info("Ctrl+Shift+L is taken by another app; layout hotkey disabled.");
-        }
-
-        if (!_hotkeys.Register(RefreshHotkeyId, 0x52, () => HardRefresh("Ctrl+Shift+R")))
-        {
-            Diag.Info("Ctrl+Shift+R is taken by another app; hard refresh hotkey disabled.");
-        }
-    }
-
-    /// <summary>Tray menu in the app's brown and gold palette (Surface, Surface3, Border and Accent).</summary>
-    private sealed class DarkMenuRenderer : Forms.ToolStripProfessionalRenderer
-    {
-        private static readonly System.Drawing.Color Background = System.Drawing.Color.FromArgb(0x21, 0x16, 0x0E);
-        private static readonly System.Drawing.Color Hover = System.Drawing.Color.FromArgb(0x3A, 0x28, 0x17);
-        private static readonly System.Drawing.Color Line = System.Drawing.Color.FromArgb(0x3D, 0x2A, 0x19);
-
-        protected override void OnRenderToolStripBackground(Forms.ToolStripRenderEventArgs e) => e.Graphics.Clear(Background);
-
-        // The check column is on (ShowCheckMargin); left to the base renderer it is a light grey strip.
-        protected override void OnRenderImageMargin(Forms.ToolStripRenderEventArgs e)
-        {
-            using var brush = new System.Drawing.SolidBrush(Background);
-            e.Graphics.FillRectangle(brush, e.AffectedBounds);
-        }
-
-        protected override void OnRenderToolStripBorder(Forms.ToolStripRenderEventArgs e)
-        {
-            using var pen = new System.Drawing.Pen(Line);
-            e.Graphics.DrawRectangle(pen, 0, 0, e.AffectedBounds.Width - 1, e.AffectedBounds.Height - 1);
-        }
-
-        protected override void OnRenderMenuItemBackground(Forms.ToolStripItemRenderEventArgs e)
-        {
-            using var brush = new System.Drawing.SolidBrush(e.Item.Selected ? Hover : Background);
-            e.Graphics.FillRectangle(brush, new System.Drawing.Rectangle(System.Drawing.Point.Empty, e.Item.Size));
-        }
-
-        protected override void OnRenderSeparator(Forms.ToolStripSeparatorRenderEventArgs e)
-        {
-            using var pen = new System.Drawing.Pen(Line);
-            var y = e.Item.Height / 2;
-            e.Graphics.DrawLine(pen, 4, y, e.Item.Width - 4, y);
-        }
-
-        protected override void OnRenderItemCheck(Forms.ToolStripItemImageRenderEventArgs e)
-        {
-            using var brush = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(0xE9, 0xB9, 0x49));
-            e.Graphics.FillEllipse(brush, e.ImageRectangle.X + 4, e.ImageRectangle.Y + 4, 8, 8);
-        }
     }
 }
 

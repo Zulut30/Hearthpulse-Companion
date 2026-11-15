@@ -72,7 +72,7 @@ control, so focus does not stay on a control the player can no longer see. The w
 
 ## Shortcuts
 
-System-wide hotkeys, which work while the game has focus, are registered in `App.xaml.cs` through
+System-wide hotkeys, which work while the game has focus, are registered in `App.Shell.cs` through
 `_hotkeys.Register`; shortcuts that only work in the main window are `KeyBinding`s on it. The overlay's layout mode is
 Ctrl+Shift+L.
 A new shortcut does not override a key the focused control uses (arrows in lists, Space on buttons, typing in a

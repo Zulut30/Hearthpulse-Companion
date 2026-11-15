@@ -3,15 +3,11 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Data;
-using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Input;
-using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Hearthpulse.Core;
-using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
 using Hearthpulse.UI.Infrastructure;
 
@@ -102,8 +98,6 @@ public partial class MainView : UserControl
         }
     }
 
-    private RadioButton[] SettingsTabs => [SettingsTabGeneral, SettingsTabAppearance, SettingsTabOverlay, SettingsTabTracker, SettingsTabStream, SettingsTabAccount, SettingsTabData, SettingsTabAbout];
-
     /// <summary>Raised after any setting changes from the UI.</summary>
     public event Action? SettingsChanged;
 
@@ -115,47 +109,11 @@ public partial class MainView : UserControl
     public Action<string>? OpenFolder { get; set; } = path =>
         Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Event handler: the signature is fixed and the body catches its own errors.")]
-    private async void OnCopyAccountCode(object? sender, RoutedEventArgs e)
-    {
-        if (_viewModel is not { AccountUserCode.Length: > 0 } viewModel)
-        {
-            return;
-        }
-
-        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        try
-        {
-            if (clipboard is not null)
-            {
-                await clipboard.SetTextAsync(viewModel.AccountUserCode);
-            }
-
-            viewModel.AccountCodeCopied(clipboard is not null);
-        }
-        catch (Exception ex)
-        {
-            // An async event handler: anything that escaped would reach the crash handler for a failed clipboard copy.
-            if (ex is not (InvalidOperationException or System.Runtime.InteropServices.ExternalException))
-            {
-                Diag.Error("Copying the account code failed", ex);
-            }
-
-            viewModel.AccountCodeCopied(false);
-        }
-    }
-
     /// <summary>The open page, as <see cref="ShowPage"/> takes it.</summary>
     public string CurrentPage => MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)) ?? MainViewModel.NavPages[0];
 
     /// <summary>The sidebar buttons in <see cref="MainViewModel.NavPages"/> order.</summary>
     private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings];
-
-    /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
-    private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabMine, PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards];
-
-    /// <summary>The Constructed tabs in <see cref="MainViewModel.ConstructedTabs"/> order.</summary>
-    private ToggleButton[] ConstructedTabButtons => [PageConstructed.TabMyDecks, PageConstructed.TabMetaTiers, PageConstructed.TabMetaDecks, PageConstructed.TabMetaMatchups];
 
     private static bool?[] States(ToggleButton[] buttons) => Array.ConvertAll(buttons, b => b.IsChecked);
 
@@ -294,86 +252,6 @@ public partial class MainView : UserControl
         }
     }
 
-    /// <summary>A theme was picked in Settings: repaint the app in place (brushes are shared and recoloured) and save it.</summary>
-    private void OnThemeChanged()
-    {
-        ApplyTheme();
-        SettingsChanged?.Invoke();
-    }
-
-    private void ApplyTheme()
-    {
-        if (_viewModel is null || Application.Current is not { } app)
-        {
-            return;
-        }
-
-        try
-        {
-            ThemeEngine.Apply(app, _viewModel.CurrentTheme);
-            ThemeEngine.ApplyLook(app, _viewModel.CurrentLook);
-            ThemeEngine.Dress(this);
-        }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
-        {
-            Diag.Error("Theme could not be applied; keeping the current colours", ex);
-        }
-    }
-
-    /// <summary>
-    /// Applies a Stream tab radio's Tag ("StreamBackground.Green") through the main model, which tells the host to repaint the
-    /// OBS windows; false when nothing changed.
-    /// </summary>
-    private static bool ApplyStreamChoice(MainViewModel viewModel, string? choice) =>
-        choice?.Split('.') is ["StreamBackground", var background] && viewModel.SetStreamBackground(background);
-
-    /// <summary>Applies a settings radio's Tag ("PickHints.Off", "Language.ru"); false when nothing changed.</summary>
-    private static bool ApplyChoice(AppSettings settings, string? choice)
-    {
-        switch (choice?.Split('.'))
-        {
-            case ["PickHints", var name] when Enum.TryParse<PickHints>(name, out var hints) && settings.PickHints != hints:
-                settings.PickHints = hints;
-                return true;
-            case ["Language", var language] when settings.Language != language:
-                settings.Language = language;
-                Loc.Instance.SetLanguage(settings.InterfaceLanguage());
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    /// <summary>Shows a Settings tab by its tag ("General", "Overlay", "Tracker", "Stream", "Account", "Data", "About"); unknown names show General.</summary>
-    public void ShowSettingsTab(string tab)
-    {
-        (SettingsTabs.FirstOrDefault(r => r.Tag as string == tab) ?? SettingsTabGeneral).IsChecked = true;
-        UpdateSettingsTab();
-    }
-
-    private void UpdateSettingsTab()
-    {
-        SettingsGeneral.IsVisible = SettingsTabGeneral.IsChecked == true;
-        SettingsAppearance.IsVisible = SettingsTabAppearance.IsChecked == true;
-        SettingsOverlay.IsVisible = SettingsTabOverlay.IsChecked == true;
-        SettingsTracker.IsVisible = SettingsTabTracker.IsChecked == true;
-        SettingsStream.IsVisible = SettingsTabStream.IsChecked == true;
-        SettingsAccount.IsVisible = SettingsTabAccount.IsChecked == true;
-        SettingsData.IsVisible = SettingsTabData.IsChecked == true;
-        SettingsAbout.IsVisible = SettingsTabAbout.IsChecked == true;
-        if (SettingsData.IsVisible)
-        {
-            // The search for HDT / Firestone data, when the start did not run it (the home card was answered).
-            _viewModel?.Migration.EnsureScanned();
-        }
-
-        if (_viewModel is not null && SettingsTabs.FirstOrDefault(r => r.IsChecked == true)?.Tag is string tab && _viewModel.Settings.SettingsTab != tab)
-        {
-            _viewModel.Settings.SettingsTab = tab;
-            SettingsChanged?.Invoke();
-        }
-    }
-
     /// <summary>Opens a page by name ("Overview", "Battlegrounds", "Standard", "Wild", ...); the old "Constructed" opens Standard.</summary>
     public void ShowPage(string page) => PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, ConstructedPage.Migrate(page))].IsChecked = true;
 
@@ -391,17 +269,6 @@ public partial class MainView : UserControl
 
     /// <summary>Opens the ⋯ menu of the deck page's last version row (UI render check).</summary>
     public MenuFlyout? OpenDeckVersionMenu() => DeckDetails.OpenLastVersionMenu();
-
-    public void SyncOverlaySwitch()
-    {
-        if (_viewModel is not null)
-        {
-            OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
-            SettingsOverlay.OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
-            // The overlay's own lock button changes this one too.
-            SettingsOverlay.PanelLockSetting.IsChecked = _viewModel.Settings.OverlayPanelsUnlocked;
-        }
-    }
 
     private bool Compact => Classes.Contains("compact");
 
@@ -510,90 +377,6 @@ public partial class MainView : UserControl
         Dispatcher.UIThread.Post(UpdateTilePanels, DispatcherPriority.Loaded);
     }
 
-    /// <summary>The open Battlegrounds tab ("Mine", "Heroes", "Comps", "Trinkets", "Cards"), kept when the window is rebuilt.</summary>
-    public string BattlegroundsTab
-    {
-        get => MainViewModel.NavChecked(MainViewModel.BattlegroundsTabs, States(BattlegroundsTabButtons)) ?? MainViewModel.BattlegroundsTabs[0];
-        set
-        {
-            BattlegroundsTabButtons[MainViewModel.NavIndex(MainViewModel.BattlegroundsTabs, value)].IsChecked = true;
-            UpdateTabs();
-        }
-    }
-
-    /// <summary>The open Constructed tab ("Decks", "Tiers", "Top", "Matchups"), kept when the window is rebuilt.</summary>
-    public string ConstructedTab
-    {
-        get => MainViewModel.NavChecked(MainViewModel.ConstructedTabs, States(ConstructedTabButtons)) ?? MainViewModel.ConstructedTabs[0];
-        set => ShowConstructedTab(value);
-    }
-
-    /// <summary>
-    /// Opens a Battlegrounds tier list tab ("Heroes", "Comps", "Trinkets", "Cards") and scrolls the tabs to the top of the
-    /// page (used by the UI render check).
-    /// </summary>
-    public void ShowBattlegroundsTab(string tab)
-    {
-        (tab switch
-        {
-            "Comps" => PageBattlegrounds.TabComps,
-            "Trinkets" => PageBattlegrounds.TabTrinkets,
-            "Cards" => PageBattlegrounds.TabCards,
-            _ => PageBattlegrounds.TabHeroes,
-        }).IsChecked = true;
-        UpdateTabs();
-        PageBattlegrounds.TabHeroes.BringIntoView(new Rect(0, 0, PageBattlegrounds.TabHeroes.Bounds.Width, 700));
-    }
-
-    private void UpdateTabs()
-    {
-        // My stats and the tier lists share the tab row: the period shows with My stats, the bracket with the tier lists.
-        var mine = PageBattlegrounds.TabMine.IsChecked == true;
-        PageBattlegrounds.BgStats.IsVisible = mine;
-        PageBattlegrounds.BgPeriodBar.IsVisible = mine;
-        PageBattlegrounds.BgTiers.IsVisible = !mine;
-        PageBattlegrounds.BracketPicker.IsVisible = !mine;
-        // The view model follows the tab: the MMR slices and "Solo / Duos" belong to some tabs only. A tier tab's card
-        // is built here, on its first opening; My stats builds none.
-        _viewModel?.BgTabShown(BattlegroundsTab);
-        PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
-    }
-
-    /// <summary>Opens a Constructed tab: "Decks", "Tiers", "Top" or "Matchups" (used by the UI render check).</summary>
-    public void ShowConstructedTab(string tab)
-    {
-        ConstructedTabButtons[MainViewModel.NavIndex(MainViewModel.ConstructedTabs, tab)].IsChecked = true;
-        UpdateConstructedTabs();
-    }
-
-    private void UpdateConstructedTabs()
-    {
-        var mine = PageConstructed.TabMyDecks.IsChecked == true;
-        PageConstructed.CtStats.IsVisible = mine;
-        PageConstructed.DeckColumns.IsVisible = mine;
-        PageConstructed.CtPeriodBar.IsVisible = mine;
-        var tab = ConstructedTab;
-        PageConstructed.CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
-    }
-
-    private void OnSettingChanged(CheckBox box)
-    {
-        if (_viewModel is null || box == OverlaySwitch || _syncingSettings)
-        {
-            return;
-        }
-
-        // Avalonia writes the switch back to AppSettings only after IsCheckedChanged: the bar re-reads it once it has.
-        Dispatcher.UIThread.Post(_viewModel.RefreshPanelToggles);
-
-        if (box == SettingsOverlay.OverlaySetting)
-        {
-            OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
-        }
-
-        SettingsChanged?.Invoke();
-    }
-
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
     private void ShowHistoryGame(string key) => ShowHistoryGameAsync(key).Forget("Show a game in History");
 
@@ -622,117 +405,9 @@ public partial class MainView : UserControl
         Dispatcher.UIThread.Post(() => viewModel.SelectLibraryCard(key), DispatcherPriority.Loaded);
     }
 
-    private void OnOverlaySwitch(object? sender, RoutedEventArgs e)
-    {
-        if (_viewModel is null)
-        {
-            return;
-        }
-
-        _viewModel.Settings.OverlayEnabled = OverlaySwitch.IsChecked == true;
-        SettingsOverlay.OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
-        SettingsChanged?.Invoke();
-    }
-
     private void OnReimport(object? sender, RoutedEventArgs e) => ReimportRequested?.Invoke();
 
     private void OnArrangeOverlay(object? sender, RoutedEventArgs e) => ArrangeOverlayRequested?.Invoke();
-
-    private void OnOpenTrackerTab(object? sender, RoutedEventArgs e) => ShowSettingsTab("Tracker");
-
-    private void OnOpenOverlayTab(object? sender, RoutedEventArgs e) => ShowSettingsTab("Overlay");
-
-    /// <summary>The top bar's account indicator: Settings, Account (the account center).</summary>
-    private void OnOpenAccountCenter(object? sender, RoutedEventArgs e)
-    {
-        ShowPage("Settings");
-        ShowSettingsTab("Account");
-    }
-
-    private bool _syncingSettings;
-
-    /// <summary>
-    /// The live bar's ⋯ menu: every overlay panel, its glyph and name dimmed while it is off. Built here rather than
-    /// through an item theme, which would have to name the platform's MenuItem theme.
-    /// </summary>
-    private void BuildPanelsMenu(MainViewModel viewModel)
-    {
-        if (PanelsMenuButton.Flyout is not MenuFlyout menu)
-        {
-            return;
-        }
-
-        menu.Items.Clear();
-        StopMenuListeners();
-        foreach (var toggle in viewModel.PanelToggles)
-        {
-            var name = new TextBlock { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
-            name.Classes.Add("panelName");
-            var glyph = new TextBlock { Text = toggle.Icon, FontSize = 15, Width = 26, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
-            glyph.Classes.Add("icon");
-            var header = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Children = { glyph, name } };
-            header.Classes.Add("panelItem");
-            var item = new MenuItem { Header = header, Command = toggle.Toggle, StaysOpenOnClick = true };
-            void Show()
-            {
-                name.Text = toggle.Name;
-                header.Classes.Set("off", !toggle.IsOn);
-                ToolTip.SetTip(item, toggle.Tip);
-            }
-
-            Show();
-            // A toggle may change off the UI thread (a language switch from a worker): the item is touched on its own thread only.
-            PropertyChangedEventHandler listener = (_, _) =>
-            {
-                if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
-                {
-                    Show();
-                }
-                else
-                {
-                    Avalonia.Threading.Dispatcher.UIThread.Post(Show);
-                }
-            };
-            toggle.PropertyChanged += listener;
-            _menuListeners.Add(() => toggle.PropertyChanged -= listener);
-            menu.Items.Add(item);
-        }
-    }
-
-    /// <summary>
-    /// The toggles live with the view model: a menu item still listening to them keeps this view (its flyout once opened
-    /// is part of the window), and a new data context would add a second listener.
-    /// </summary>
-    private readonly List<Action> _menuListeners = [];
-
-    private void StopMenuListeners()
-    {
-        foreach (var stop in _menuListeners)
-        {
-            stop();
-        }
-
-        _menuListeners.Clear();
-    }
-
-    /// <summary>A live-bar button switched a panel: the settings page shows it too (its switches bind to AppSettings, which does not notify), then save and apply.</summary>
-    private void OnPanelToggled(PanelToggle toggle)
-    {
-        _syncingSettings = true;
-        try
-        {
-            foreach (var box in PageSettings.GetLogicalDescendants().OfType<ToggleButton>())
-            {
-                BindingOperations.GetBindingExpressionBase(box, ToggleButton.IsCheckedProperty)?.UpdateTarget();
-            }
-        }
-        finally
-        {
-            _syncingSettings = false;
-        }
-
-        SettingsChanged?.Invoke();
-    }
 
     private void OnOpenData(object? sender, RoutedEventArgs e)
     {

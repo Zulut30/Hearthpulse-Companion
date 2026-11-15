@@ -49,7 +49,7 @@ Keep these in scope; they reach what the player sees:
 | --- | --- |
 | Views | `src/Hearthpulse.App/**/*.xaml(.cs)`, `src/Hearthpulse.UI/**/*.axaml(.cs)`, `src/Hearthpulse.Desktop/**/*.axaml(.cs)` |
 | Theme and controls | `**/Themes/**`, `**/Controls/**`, `*/Infrastructure/ThemeEngine.cs`, `*/Infrastructure/Converters.cs`, `src/Hearthpulse.Core/ThemePalette.cs`, `tools/themes/**` |
-| Overlay host | `*/Overlay/MovablePanel.cs`, `src/Hearthpulse.App/App.CardPool.cs` |
+| Overlay host | `*/Overlay/MovablePanel*.cs`, `*/Overlay/PanelTagStrip.cs`, `src/Hearthpulse.App/App.CardPool.cs` |
 | Shared view models | `src/Hearthpulse.Presentation/**` |
 | Text | `src/Hearthpulse.Core/Localization/Strings/**` |
 | Render scenes | `src/Hearthpulse.App/DevRender*.cs`, `src/Hearthpulse.Desktop/OffscreenRenderer*.cs`, `CardPoolRender.cs` |

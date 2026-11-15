@@ -256,7 +256,7 @@ public sealed partial class UxPolishContractTests
         Assert.True(card.ActualHeight > 0);
         Assert.Same(Named<UserControl>(window, "SettingsGeneral").Content, card.Parent);
 
-        // Each row: what it does, and its keys in a pill. App.xaml.cs registers H, L and R with Ctrl+Shift.
+        // Each row: what it does, and its keys in a pill. App.Shell.cs registers H, L and R with Ctrl+Shift.
         string[] rows = ["Pages", "Back", "Hide", "Layout", "Refresh"];
         var labels = Logical<TextBlock>(card).Where(t => ReferenceEquals(t.Style, t.TryFindResource("SettingLabel"))).Select(t => t.Text);
         Assert.Equal(rows.Select(r => Loc.T("Settings.Shortcuts." + r)), labels);

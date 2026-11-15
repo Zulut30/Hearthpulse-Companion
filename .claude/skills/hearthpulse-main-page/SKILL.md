@@ -22,10 +22,10 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). PNG proof
 | Sidebar + pages | `MainWindow.xaml` (Window 1260x840, min 1040x660) | `MainView.axaml` (UserControl; window in `src/Hearthpulse.Desktop/MainWindow.axaml`) |
 | Page and tab controls | `Pages/{Overview,Battlegrounds,History}Page`, `Pages/ConstructedPageView`, `SettingsTabs/<Tab>Settings` | same names, `.axaml` |
 | Shared keys of pages | `MainPages.xaml` (merges `MainLook.xaml`) | `MainPages.axaml` |
-| Navigation code | `MainWindow.xaml.cs`: `ShowPage`, `CurrentPage`, `OnNavigate`, `PlacePill`, `Reveal`, `ShowConstructedTab`, tab handlers `OnBgTab`/`OnCtTab` | `MainView.axaml.cs`: `ShowPage`, `UpdatePages`, `UpdateTabs`, `ApplyWidth` (compact), `ApplyChoice` |
+| Navigation code | `MainWindow.xaml.cs`: `ShowPage`, `CurrentPage`, `OnNavigate`, `PlacePill`, `Reveal`; `MainWindow.Pages.cs`: pages built on first use, `ShowConstructedTab`, tab handlers `OnBgTab`/`OnCtTab`; `MainWindow.Settings.cs`: Settings tabs and switches | `MainView.axaml.cs`: `ShowPage`, `UpdatePages`, `ApplyWidth` (compact); `MainView.Tabs.cs`: `UpdateTabs`; `MainView.Settings.cs`: Settings tabs, `ApplyChoice`; `MainView.PanelsMenu.cs` |
 | Platform VM partials | Small `MainViewModel*.cs` adapters; `.Constructed` is the WPF clipboard copy of a deck code, `.Theme` is WPF-only | Small `MainViewModel*.cs` adapters for framework/established platform differences |
 | My Stats views | `Stats/BattlegroundsStatsView`, `ConstructedStatsView`, `ArenaStatsView`, `StatsResources.xaml` | same names, `.axaml` |
-| Composition | `src/Hearthpulse.App/App.xaml.cs` (+ `App.CardPool.cs`) | `src/Hearthpulse.UI/AppHost.cs` (+ `AppHost.Arena.cs`, `AppHost.Brawl.cs`) |
+| Composition | `src/Hearthpulse.App/App.xaml.cs` (+ a partial per concern: `App.CardPool.cs`, `App.MainWindow.cs`, `App.Shell.cs`...) | `src/Hearthpulse.UI/AppHost.cs` (+ `AppHost.Arena.cs`, `AppHost.Brawl.cs`) |
 | Logic | `src/Hearthpulse.Core` (e.g. `Stats/BattlegroundsStats.cs`, `ConstructedStats.cs`, `ArenaStats.cs`) | same |
 
 Element names match between the UIs (`NavArena`/`PageArena`, `TabHeroes`...): WPF `x:Name`, Avalonia `Name`.

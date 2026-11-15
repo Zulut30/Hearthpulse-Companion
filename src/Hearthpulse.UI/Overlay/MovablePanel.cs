@@ -7,21 +7,9 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 using Hearthpulse.Core;
 
 namespace Hearthpulse.UI.Overlay;
-
-/// <summary>Marks overlay elements that should receive the mouse; everything else clicks through to the game.</summary>
-public static class OverlayHit
-{
-    public static readonly AttachedProperty<bool> InteractiveProperty =
-        AvaloniaProperty.RegisterAttached<Control, bool>("Interactive", typeof(OverlayHit));
-
-    public static bool GetInteractive(AvaloniaObject element) => element.GetValue(InteractiveProperty);
-
-    public static void SetInteractive(AvaloniaObject element, bool value) => element.SetValue(InteractiveProperty, value);
-}
 
 /// <summary>
 /// Overlay panel host the player can drag, resize (corner marker or mouse wheel), fade (Shift+wheel) and reset
@@ -30,7 +18,7 @@ public static class OverlayHit
 /// opacity, compact lists, reset and the panels' lock (<see cref="OffersLock"/>). Without a saved placement it keeps
 /// the alignment and margin from XAML.
 /// </summary>
-public sealed class MovablePanel : ContentControl, IArmablePanel
+public sealed partial class MovablePanel : ContentControl, IArmablePanel
 {
     public static readonly StyledProperty<string> IdProperty = AvaloniaProperty.Register<MovablePanel, string>(nameof(Id), string.Empty);
 
@@ -76,14 +64,6 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
     private VerticalAlignment _defaultVertical;
     private Thickness _defaultMargin;
     private bool _defaultsCaptured;
-    private Point _dragStart;
-    private Point _originStart;
-    private bool _dragging;
-
-    // A drag that started on the corner marker resizes from the size the panel had then (scale, on-screen size).
-    private bool _resizing;
-    private double _startScale;
-    private Size _startSize;
     private double _scale = 1;
     private LayoutTransformControl? _scaler;
 
@@ -244,108 +224,8 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
         }
     }
 
-    // The name tag and its buttons, which follow a wide row's placeholder to its end of the row.
-    private Control? _chrome;
-
     // The corner marker that resizes the panel.
     private Control? _grip;
-
-    // The strip holding the tag, which places it, and the tag's row of buttons, at the strip's top or bottom.
-    private PanelTagStrip? _strip;
-    private Control? _tagRow;
-    private bool _followingTag;
-    private bool _tagMirrored;
-
-    /// <summary>
-    /// While the tag shows, places it after every layout pass (the panel moved, grew or changed size; the tag changed
-    /// width), and stops when it is hidden: the panel's own spot alone does not say where it is on the screen.
-    /// </summary>
-    private void FollowTag()
-    {
-        var follow = _chrome is { IsVisible: true };
-        if (follow == _followingTag)
-        {
-            return;
-        }
-
-        _followingTag = follow;
-        if (follow)
-        {
-            LayoutUpdated += OnLayoutUpdated;
-            PlaceTag();
-        }
-        else
-        {
-            LayoutUpdated -= OnLayoutUpdated;
-        }
-    }
-
-    private void OnLayoutUpdated(object? sender, EventArgs e) => PlaceTag();
-
-    /// <summary>
-    /// Puts the tag above the panel, or under it at the top of the screen, and lines it up with the panel's right side
-    /// at the right edge (<see cref="PanelLayout.TagSpot"/>). The tag sits outside the panel's scaler: it keeps one
-    /// size at every scale, and the panel's bounds are already in surface units.
-    /// </summary>
-    private void PlaceTag()
-    {
-        if (_strip is null || _chrome is null || Surface is not { Bounds: { Width: > 0, Height: > 0 } bounds })
-        {
-            return;
-        }
-
-        if (_chrome.HorizontalAlignment != HorizontalAlignment.Left)
-        {
-            // A wide row's placeholder: the tag goes with it to its end of the row, above as always.
-            _strip.Offset = new Point(0, -PanelLayout.TagHeight);
-            SetTagRow(below: false, right: false);
-            return;
-        }
-
-        var origin = TopLeft();
-        var (x, y, below, right) = PanelLayout.TagSpot(origin.X, origin.Y, Bounds.Width, Bounds.Height,
-            _chrome.DesiredSize.Width, _tagRow?.DesiredSize.Height ?? 18, 1, bounds.Width, bounds.Height);
-        var offset = new Point(Math.Round(x, 1), Math.Round(y, 1));
-        if (_strip.Offset != offset)
-        {
-            _strip.Offset = offset;
-        }
-
-        SetTagRow(below, right);
-    }
-
-    private void SetTagRow(bool below, bool right)
-    {
-        var alignment = below ? VerticalAlignment.Bottom : VerticalAlignment.Top;
-        if (_tagRow is null)
-        {
-            return;
-        }
-
-        if (_tagRow.VerticalAlignment != alignment)
-        {
-            _tagRow.VerticalAlignment = alignment;
-        }
-
-        // Lined up with the panel's right side the parts go in mirrored order: the lock, which shows first, stays in the
-        // corner under the pointer while the tag and the buttons grow to its left. Not a right-to-left flow, which would
-        // mirror the glyphs too.
-        if (right != _tagMirrored && _tagRow is Panel row)
-        {
-            _tagMirrored = right;
-            var parts = row.Children.Cast<Control>().Reverse().ToList();
-            row.Children.Clear();
-            foreach (var part in parts)
-            {
-                if (part is Control element)
-                {
-                    element.Margin = new Thickness(element.Margin.Right, element.Margin.Top, element.Margin.Left, element.Margin.Bottom);
-                }
-
-                row.Children.Add(part);
-            }
-        }
-    }
 
     /// <summary>Back to the XAML spot and size, opaque with full rows.</summary>
     private void Reset()
@@ -353,34 +233,6 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
         ApplyLook(null);
         LookChanged?.Invoke(this, null);
         PlacementChanged?.Invoke(this, null);
-    }
-
-    /// <summary>Whether the pointer went down on one of the tag's buttons, which must click rather than start a drag.</summary>
-    private bool OnTool(object? source)
-    {
-        for (var node = source as Visual; node is not null && node != this; node = node.GetVisualParent())
-        {
-            if (node is Button)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>Whether the pointer went down on the corner marker, which resizes the panel instead of moving it.</summary>
-    private bool OnGrip(object? source)
-    {
-        for (var node = source as Visual; node is not null && node != this; node = node.GetVisualParent())
-        {
-            if (node == _grip)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private void UpdateState()
@@ -420,15 +272,6 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
             {
                 area = area.Union(new Rect(origin, part.Bounds.Size));
             }
-        }
-    }
-
-    /// <summary>A placeholder in a wide row sits at one end of it: its tag buttons go with it.</summary>
-    private void UpdateChrome()
-    {
-        if (_chrome is not null)
-        {
-            _chrome.HorizontalAlignment = IsEditing && !Shown && PlaceholderAlignment != HorizontalAlignment.Stretch ? PlaceholderAlignment : HorizontalAlignment.Left;
         }
     }
 
@@ -625,222 +468,5 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
         var surface = Surface;
         var origin = TopLeft();
         return PanelLayout.Placement(origin.X, origin.Y, surface?.Bounds.Width ?? 0, surface?.Bounds.Height ?? 0, _scale);
-    }
-
-    private void OnPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (!CanMove || Surface is not { } surface || OnTool(e.Source))
-        {
-            return;
-        }
-
-        if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
-        {
-            // Right-click resets the panel (layout mode, or Ctrl held during a game); it is released below.
-            e.Handled = true;
-            return;
-        }
-
-        CaptureDefaults();
-        _dragging = true;
-        _resizing = OnGrip(e.Source);
-        _startScale = _scale;
-        _startSize = Bounds.Size;
-        _dragStart = e.GetPosition(surface);
-        _originStart = TopLeft();
-        e.Pointer.Capture(this);
-        Diag.Debug(PanelArming.DragStarted(Id, _resizing));
-        e.Handled = true;
-    }
-
-    private void OnMoved(object? sender, PointerEventArgs e)
-    {
-        if (!_dragging || Surface is not { } surface)
-        {
-            return;
-        }
-
-        var position = e.GetPosition(surface);
-        if (_resizing)
-        {
-            Resize(position - _dragStart);
-            e.Handled = true;
-            return;
-        }
-
-        // Edges, the centre line and the other panels' edges pull the panel in, so panels line up without pixel hunting.
-        var neighbours = _neighbours ??= Neighbours(surface);
-        var (left, top) = PanelLayout.DragSpot(_originStart.X, _originStart.Y, position.X - _dragStart.X, position.Y - _dragStart.Y, Bounds.Width, Bounds.Height,
-            surface.Bounds.Width, surface.Bounds.Height, neighbours.Across, neighbours.Down);
-        HorizontalAlignment = HorizontalAlignment.Left;
-        VerticalAlignment = VerticalAlignment.Top;
-        Margin = new Thickness(left, top, 0, 0);
-        e.Handled = true;
-    }
-
-    private void OnReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (CanMove && e.InitialPressMouseButton == MouseButton.Right && !OnTool(e.Source))
-        {
-            Reset();
-            e.Handled = true;
-            return;
-        }
-
-        if (!_dragging)
-        {
-            return;
-        }
-
-        EndDrag();
-        e.Pointer.Capture(null);
-        e.Handled = true;
-    }
-
-    /// <summary>
-    /// The panel lost the pointer in the middle of a drag (the player switched windows, the platform took the capture
-    /// back): the drag ends where the panel is, rather than leaving it dragging, armed and taking clicks.
-    /// </summary>
-    private void OnCaptureLost(object? sender, PointerCaptureLostEventArgs e) => EndMissedDrag();
-
-    /// <summary>
-    /// Ends a move or resize whose release the panel never got (the pointer was lost, or the host read every mouse
-    /// button up); it is saved where the panel is, as on the release.
-    /// </summary>
-    public void EndMissedDrag()
-    {
-        if (_dragging)
-        {
-            EndDrag();
-        }
-    }
-
-    /// <summary>Ends a move or resize and saves where the panel is and how big, like the wheel does.</summary>
-    private void EndDrag()
-    {
-        _dragging = false;
-        _resizing = false;
-        _neighbours = null;
-        _saved = TopLeft();
-        PlacementChanged?.Invoke(this, CurrentPlacement());
-    }
-
-    /// <summary>The corner marker: the size follows the pointer and the top-left corner stays where it was.</summary>
-    private void Resize(Vector moved)
-    {
-        var next = PanelSnap.CornerScale(_startScale, _startSize.Width, _startSize.Height, moved.X, moved.Y);
-        if (Math.Abs(next - _scale) < 0.001)
-        {
-            return;
-        }
-
-        _scale = next;
-        ApplyScale();
-        HorizontalAlignment = HorizontalAlignment.Left;
-        VerticalAlignment = VerticalAlignment.Top;
-        Margin = new Thickness(_originStart.X, _originStart.Y, 0, 0);
-    }
-
-    // The other shown panels' spans on the surface (left-right, top-bottom), taken once per drag.
-    private ((double Start, double End)[] Across, (double Start, double End)[] Down)? _neighbours;
-
-    private ((double Start, double End)[] Across, (double Start, double End)[] Down) Neighbours(Control surface)
-    {
-        var across = new List<(double, double)>();
-        var down = new List<(double, double)>();
-        foreach (var other in (surface as Panel)?.Children.OfType<MovablePanel>() ?? [])
-        {
-            if (other != this && PanelLayout.PullsDrags(other.IsVisible, other.Bounds.Width, other.Shown, other.IsEditing, other.PlaceholderAlignment == HorizontalAlignment.Stretch)
-                && other.TranslatePoint(default, surface) is { } origin)
-            {
-                across.Add((origin.X, origin.X + other.Bounds.Width));
-                down.Add((origin.Y, origin.Y + other.Bounds.Height));
-            }
-        }
-
-        return (across.ToArray(), down.ToArray());
-    }
-
-    private void OnWheel(object? sender, PointerWheelEventArgs e)
-    {
-        if (!CanMove)
-        {
-            return;
-        }
-
-        // Shift+wheel may arrive as a sideways scroll.
-        var up = (e.Delta.Y != 0 ? e.Delta.Y : e.Delta.X) > 0;
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
-        {
-            ChangeLook(PanelSnap.WheelOpacity(PanelOpacity, up), IsCompact);
-        }
-        else
-        {
-            StepScale(up);
-        }
-
-        e.Handled = true;
-    }
-
-    private void StepScale(bool up)
-    {
-        CaptureDefaults();
-        var origin = TopLeft();
-        _scale = PanelLayout.StepScale(_scale, up);
-        ApplyScale();
-        HorizontalAlignment = HorizontalAlignment.Left;
-        VerticalAlignment = VerticalAlignment.Top;
-        Margin = new Thickness(origin.X, origin.Y, 0, 0);
-        _saved = origin;
-        PlacementChanged?.Invoke(this, CurrentPlacement());
-    }
-}
-
-/// <summary>
-/// Holds a movable panel's name tag and buttons (<c>PART_Chrome</c>) without taking part in the panel's size. With the
-/// move hint and the buttons the tag is wider than most panels: as a plain template child it widened the panel when
-/// Ctrl armed it, so a panel at its default spot moved with its content, and a drag saved the wider panel's spot.
-/// Each child gets the strip's width, or its own when wider, and places itself in it by its alignment, moved by
-/// <see cref="Offset"/>: the panel puts the tag under itself or lines it up with its right side at the screen's edges
-/// (<see cref="PanelLayout.TagSpot"/>).
-/// </summary>
-public sealed class PanelTagStrip : Panel
-{
-    private Point _offset = new(-PanelLayout.TagInset, -PanelLayout.TagHeight);
-
-    /// <summary>Where the tag goes from the panel's top-left corner, in the strip's own units; above it at its left edge by default.</summary>
-    public Point Offset
-    {
-        get => _offset;
-        set
-        {
-            if (_offset != value)
-            {
-                _offset = value;
-                InvalidateArrange();
-            }
-        }
-    }
-
-    protected override Size MeasureOverride(Size availableSize)
-    {
-        var height = 0.0;
-        foreach (var child in Children)
-        {
-            child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
-            height = Math.Max(height, child.DesiredSize.Height);
-        }
-
-        return new Size(0, height);
-    }
-
-    protected override Size ArrangeOverride(Size finalSize)
-    {
-        foreach (var child in Children)
-        {
-            child.Arrange(new Rect(_offset.X, _offset.Y, Math.Max(finalSize.Width, child.DesiredSize.Width), child.DesiredSize.Height));
-        }
-
-        return finalSize;
     }
 }

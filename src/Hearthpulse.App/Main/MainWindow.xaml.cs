@@ -9,7 +9,6 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core;
-using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
 
 namespace Hearthpulse.App.Main;
@@ -77,109 +76,11 @@ public partial class MainWindow : Window
     /// <summary>Opens a page by name (see <see cref="CurrentPage"/>); the old "Constructed" opens Standard.</summary>
     public void ShowPage(string page) => PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, ConstructedPage.Migrate(page))].IsChecked = true;
 
-    /// <summary>Shows a Settings tab by its tag ("General", "Appearance", "Overlay", "Tracker", "Stream", "Account", "Data", "About"); unknown names show General.</summary>
-    public void ShowSettingsTab(string tab)
-    {
-        var radio = new[] { SettingsTabAppearance, SettingsTabOverlay, SettingsTabTracker, SettingsTabStream, SettingsTabAccount, SettingsTabData, SettingsTabAbout }
-            .FirstOrDefault(r => (string)r.Tag == tab) ?? SettingsTabGeneral;
-        radio.IsChecked = true;
-        UpdateSettingsTab(radio);
-    }
-
-    /// <summary>
-    /// Both overlay switches show the setting after it changed elsewhere (the tray, the live bar): the live bar's, and the
-    /// Settings page's, which binds to AppSettings (it does not notify) and drives the "overlay is off" note. The
-    /// panels' lock switch is refreshed the same way after the overlay's own button.
-    /// </summary>
-    public void SyncOverlaySwitch()
-    {
-        OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
-        var syncing = _syncingSettings;
-        _syncingSettings = true;
-        try
-        {
-            BindingOperations.GetBindingExpression(SettingsOverlay.OverlaySetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
-            BindingOperations.GetBindingExpression(SettingsOverlay.PanelLockSetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
-        }
-        finally
-        {
-            _syncingSettings = syncing;
-        }
-    }
-
     /// <summary>The open page, as <see cref="ShowPage"/> takes it.</summary>
     public string CurrentPage => MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)) ?? MainViewModel.NavPages[0];
 
     /// <summary>The sidebar buttons in <see cref="MainViewModel.NavPages"/> order.</summary>
     private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings];
-
-    private Pages.BattlegroundsPage? _battlegrounds;
-    private Pages.ConstructedPageView? _constructed;
-    private Pages.HistoryPage? _history;
-
-    /// <summary>A tab asked for before its page was built: the page opens on it.</summary>
-    private string? _pendingBattlegroundsTab;
-    private string? _pendingConstructedTab;
-
-    /// <summary>The Battlegrounds page, built on first use (a visit, a tab, a render) rather than with the window.</summary>
-    public Pages.BattlegroundsPage PageBattlegrounds => _battlegrounds ?? BuildBattlegrounds();
-
-    /// <summary>The Standard/Wild page, built on first use.</summary>
-    public Pages.ConstructedPageView PageConstructed => _constructed ?? BuildConstructed();
-
-    /// <summary>The History page, built on first use.</summary>
-    public Pages.HistoryPage PageHistory => _history ??= Build(SlotHistory, new Pages.HistoryPage { Name = nameof(PageHistory) });
-
-    private Pages.BattlegroundsPage BuildBattlegrounds()
-    {
-        _battlegrounds = Build(SlotBattlegrounds, new Pages.BattlegroundsPage { Name = nameof(PageBattlegrounds) });
-        _battlegrounds.TabChanged += OnBgTab;
-        if (_pendingBattlegroundsTab is { } tab)
-        {
-            _pendingBattlegroundsTab = null;
-            BattlegroundsTab = tab;
-        }
-
-        return _battlegrounds;
-    }
-
-    private Pages.ConstructedPageView BuildConstructed()
-    {
-        _constructed = Build(SlotConstructed, new Pages.ConstructedPageView { Name = nameof(PageConstructed) });
-        _constructed.TabChanged += OnCtTab;
-        if (_pendingConstructedTab is { } tab)
-        {
-            _pendingConstructedTab = null;
-            ShowConstructedTab(tab);
-        }
-
-        return _constructed;
-    }
-
-    /// <summary>Puts a page built late into its slot, hidden until the navigation shows it.</summary>
-    private static T Build<T>(ContentControl slot, T page) where T : FrameworkElement
-    {
-        page.Visibility = Visibility.Collapsed;
-        slot.Content = page;
-        return page;
-    }
-
-    /// <summary>Shows or hides a lazily built page; a hidden page that was never built stays unbuilt.</summary>
-    private static void Show(FrameworkElement? built, Func<FrameworkElement> build, bool visible)
-    {
-        if (built is null && !visible)
-        {
-            return;
-        }
-
-        (built ?? build()).Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
-    private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabMine, PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards];
-
-    /// <summary>The Constructed tabs in <see cref="MainViewModel.ConstructedTabs"/> order.</summary>
-    private ToggleButton[] ConstructedTabButtons => [PageConstructed.TabMyDecks, PageConstructed.TabMetaTiers, PageConstructed.TabMetaDecks, PageConstructed.TabMetaMatchups];
 
     private static bool?[] States(ToggleButton[] buttons) => Array.ConvertAll(buttons, b => b.IsChecked);
 
@@ -385,64 +286,6 @@ public partial class MainWindow : Window
     /// <summary>The page that opens fades in with a short rise (Motion.Reveal); instant with motion off.</summary>
     private static void Reveal(FrameworkElement page, double rise = Motion.Rise) => Motion.Reveal(page, rise);
 
-    /// <param name="chosen">A tab button was just checked (not unchecked): the shown view is scrolled into sight.</param>
-    private void OnBgTab(bool chosen)
-    {
-        if (PageBattlegrounds.BgTiers is null)
-        {
-            return;
-        }
-
-        var mine = PageBattlegrounds.TabMine.IsChecked == true;
-        // The view model follows the tab: the MMR slices and "Solo / Duos" belong to some tabs only. A tier tab's card
-        // is built here, on its first opening; My stats builds none.
-        _viewModel.BgTabShown(BattlegroundsTab);
-        var card = PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
-        FrameworkElement shown = mine ? PageBattlegrounds.BgStats : card;
-        PageBattlegrounds.BracketPicker.Visibility = mine ? Visibility.Collapsed : Visibility.Visible;
-        if (chosen)
-        {
-            Reveal(shown, 8);
-        }
-    }
-
-    /// <param name="chosen">A tab button was just checked (not unchecked): the shown view is scrolled into sight.</param>
-    private void OnCtTab(bool chosen)
-    {
-        if (PageConstructed.MyDecksPanel is null || PageConstructed.CtMeta is null)
-        {
-            return;
-        }
-
-        var meta = PageConstructed.TabMyDecks.IsChecked != true;
-        PageConstructed.MyDecksPanel.Visibility = meta ? Visibility.Collapsed : Visibility.Visible;
-        PageConstructed.CtStats.Visibility = PageConstructed.MyDecksPanel.Visibility;
-        var tab = ConstructedTab;
-        var shown = PageConstructed.CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
-        if (chosen)
-        {
-            Reveal(shown ?? PageConstructed.CtStats, 8);
-        }
-    }
-
-    /// <summary>The deck page view (used by the UI render check).</summary>
-    public Decks.DeckDetailsView DeckDetailsPage => _deck ??= Fill(PageDeck, new Decks.DeckDetailsView(), nameof(MainViewModel.DeckPage));
-
-    private Decks.DeckDetailsView? _deck;
-
-    /// <summary>A page view built late, bound to its view model and placed in its scrolling page.</summary>
-    private static T Fill<T>(ScrollViewer page, T view, string path) where T : FrameworkElement
-    {
-        view.Margin = new Thickness(40, 0, 40, 120);
-        view.SetBinding(DataContextProperty, new Binding(path));
-        page.Content = view;
-        return view;
-    }
-
-    /// <summary>Opens a Constructed tab: "Decks", "Tiers", "Top" or "Matchups" (used by the UI render check).</summary>
-    public void ShowConstructedTab(string tab) =>
-        ConstructedTabButtons[MainViewModel.NavIndex(MainViewModel.ConstructedTabs, tab)].IsChecked = true;
-
     /// <summary>Where this window is: page, tabs and bounds.</summary>
     public MainPlace Place => new(
         CurrentPage,
@@ -465,58 +308,6 @@ public partial class MainWindow : Window
         ShowPage(place.Page);
         BattlegroundsTab = place.BattlegroundsTab;
         ConstructedTab = place.ConstructedTab;
-    }
-
-    /// <summary>The open Battlegrounds tab ("Mine", "Heroes", "Comps", "Trinkets", "Cards"), kept when the window is rebuilt.</summary>
-    public string BattlegroundsTab
-    {
-        get => _battlegrounds is null
-            ? _pendingBattlegroundsTab ?? MainViewModel.BattlegroundsTabs[0]
-            : MainViewModel.NavChecked(MainViewModel.BattlegroundsTabs, States(BattlegroundsTabButtons)) ?? MainViewModel.BattlegroundsTabs[0];
-        set
-        {
-            if (_battlegrounds is null)
-            {
-                _pendingBattlegroundsTab = value;
-                return;
-            }
-
-            BattlegroundsTabButtons[MainViewModel.NavIndex(MainViewModel.BattlegroundsTabs, value)].IsChecked = true;
-        }
-    }
-
-    /// <summary>The open Constructed tab ("Decks", "Tiers", "Top", "Matchups"), kept when the window is rebuilt.</summary>
-    public string ConstructedTab
-    {
-        get => _constructed is null
-            ? _pendingConstructedTab ?? MainViewModel.ConstructedTabs[0]
-            : MainViewModel.NavChecked(MainViewModel.ConstructedTabs, States(ConstructedTabButtons)) ?? MainViewModel.ConstructedTabs[0];
-        set
-        {
-            if (_constructed is null)
-            {
-                _pendingConstructedTab = value;
-                return;
-            }
-
-            ShowConstructedTab(value);
-        }
-    }
-
-    /// <summary>
-    /// Opens a Battlegrounds tier list tab ("Heroes", "Comps", "Trinkets", "Cards") and scrolls the tabs to the top of the
-    /// page (used by the UI render check).
-    /// </summary>
-    public void ShowBattlegroundsTab(string tab)
-    {
-        (tab switch
-        {
-            "Comps" => PageBattlegrounds.TabComps,
-            "Trinkets" => PageBattlegrounds.TabTrinkets,
-            "Cards" => PageBattlegrounds.TabCards,
-            _ => PageBattlegrounds.TabHeroes,
-        }).IsChecked = true;
-        PageBattlegrounds.TabHeroes.BringIntoView(new Rect(0, 0, PageBattlegrounds.TabHeroes.ActualWidth, 700));
     }
 
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
@@ -542,119 +333,9 @@ public partial class MainWindow : Window
         _ = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () => _viewModel.SelectLibraryCard(key));
     }
 
-    private void OnOverlaySwitch(object sender, RoutedEventArgs e)
-    {
-        _viewModel.Settings.OverlayEnabled = OverlaySwitch.IsChecked == true;
-        SyncOverlaySwitch();
-        SettingsChanged?.Invoke();
-    }
-
-    private void OnSettingsTab(object sender, RoutedEventArgs e)
-    {
-        // A tab is not a setting: stop Checked here so the page's OnSettingChanged does not re-apply every setting. The
-        // tab is saved with the next change or on exit.
-        e.Handled = true;
-        UpdateSettingsTab(sender);
-    }
-
-    private void UpdateSettingsTab(object sender)
-    {
-        // Checked fires while InitializeComponent is still building the page.
-        if (SettingsAbout is null || _viewModel is null || sender is not RadioButton { Tag: string tab })
-        {
-            return;
-        }
-
-        _viewModel.Settings.SettingsTab = tab;
-        SettingsGeneral.Visibility = SettingsTabGeneral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsAppearance.Visibility = SettingsTabAppearance.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsOverlay.Visibility = SettingsTabOverlay.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsTracker.Visibility = SettingsTabTracker.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsStream.Visibility = SettingsTabStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsAccount.Visibility = SettingsTabAccount.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsData.Visibility = SettingsTabData.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsAbout.Visibility = SettingsTabAbout.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        if (SettingsTabData.IsChecked == true)
-        {
-            // The search for HDT / Firestone data, when the start did not run it (the home card was answered).
-            _viewModel.Migration.EnsureScanned();
-        }
-    }
-
-    private void OnSettingChanged(object sender, RoutedEventArgs e)
-    {
-        // Only what the player changed. A toggle a list builds when its tab is first shown takes its value from a
-        // binding before it is loaded (the Tracker tab's counter rows raised 95 Checked at once, each re-applying and
-        // saving every setting), and the tab buttons' Unchecked is not a setting either.
-        if (IsLoaded && !_syncingSettings && e.OriginalSource is FrameworkElement { IsLoaded: true } source
-                     && (source as RadioButton)?.GroupName != SettingsTabGeneral.GroupName)
-        {
-            Loc.Instance.SetLanguage(_viewModel.Settings.InterfaceLanguage());
-            SyncOverlaySwitch();
-            _viewModel.RefreshPanelToggles();
-            SettingsChanged?.Invoke();
-        }
-    }
-
-    private void OnSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (IsLoaded)
-        {
-            SettingsChanged?.Invoke();
-        }
-    }
-
     private void OnReimport(object sender, RoutedEventArgs e) => ReimportRequested?.Invoke();
 
     private void OnArrangeOverlay(object sender, RoutedEventArgs e) => ArrangeOverlayRequested?.Invoke();
-
-    private void OnOpenTrackerTab(object sender, RoutedEventArgs e) => ShowSettingsTab("Tracker");
-
-    private void OnOpenOverlayTab(object sender, RoutedEventArgs e) => ShowSettingsTab("Overlay");
-
-    /// <summary>The top bar's account indicator: Settings, Account (the account center).</summary>
-    private void OnOpenAccountCenter(object sender, RoutedEventArgs e)
-    {
-        ShowPage("Settings");
-        ShowSettingsTab("Account");
-    }
-
-    private bool _syncingSettings;
-
-    /// <summary>A live-bar button switched a panel: the settings page shows it too (its switches bind to AppSettings, which does not notify), then save and apply.</summary>
-    private void OnPanelToggled(PanelToggle toggle)
-    {
-        _syncingSettings = true;
-        try
-        {
-            foreach (var box in LogicalDescendants<ToggleButton>(PageSettings))
-            {
-                BindingOperations.GetBindingExpression(box, ToggleButton.IsCheckedProperty)?.UpdateTarget();
-            }
-        }
-        finally
-        {
-            _syncingSettings = false;
-        }
-
-        SettingsChanged?.Invoke();
-    }
-
-    private static IEnumerable<T> LogicalDescendants<T>(DependencyObject root) where T : DependencyObject
-    {
-        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
-        {
-            if (child is T match)
-            {
-                yield return match;
-            }
-
-            foreach (var nested in LogicalDescendants<T>(child))
-            {
-                yield return nested;
-            }
-        }
-    }
 
     /// <summary>The overlay card's ⋯: every overlay panel with its state, opened beside the sidebar.</summary>
     private void OnPanelsMenu(object sender, RoutedEventArgs e)

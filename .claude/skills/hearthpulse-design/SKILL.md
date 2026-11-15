@@ -54,7 +54,7 @@ WPF themes work by **rewriting hex literals inside Theme.xaml only**:
   the result. Lines whose `x:Key` starts with `Positive|Negative|Info|Rarity|Tier|ManaGem|PoolStat` are never recoloured.
   Uses of `{StaticResource MotifTavern(Alt)}` are pointed at the theme's `Motif<Name>`, and every brush, geometry and
   drawing of the dictionary is frozen (`ThemeEngine.Freeze`).
-  Windows resolve brushes when created, so the host (`App.xaml.cs` `ApplyTheme`) recreates windows after a change.
+  Windows resolve brushes when created, so the host (`App.Theme.cs` `ApplyTheme`) recreates windows after a change.
 - Settings: `AppSettings.Theme` (default `"Tavern"`), `ThemeAccentHue`, `ThemeBaseHue`, `ThemeBaseTint`, `ThemeAccent`,
   `PageHeroes` + `BackgroundHero` + `BackgroundIntensity` (page art: by page / one hero / off, strength up to the
   built-in opacity), `CornerStyle`, `Density`, `InterfaceScale`. Picker UI: Settings → Appearance
@@ -80,7 +80,7 @@ Consequences:
   directly or through its style (outside `Themes/` and `Main/Match/`).
 - Avalonia has its own engine, `src/Hearthpulse.UI/Infrastructure/ThemeEngine.cs`: it rewrites the brushes of
   Theme.axaml in place through the same `ThemePalette.Map` and fixed prefixes, picked in Settings like WPF
-  (`MainView.axaml.cs` `ApplyTheme`). A hex outside Theme.axaml is not recoloured there either. Both renderers
+  (`MainView.Settings.cs` `ApplyTheme`). A hex outside Theme.axaml is not recoloured there either. Both renderers
   honour `HEARTHPULSE_THEME`.
 
 Core tokens (details in reference): `Bg`, `Surface`, `Surface2`-`Surface4`, `Border`, `Outline`, `Text`, `Muted`,
