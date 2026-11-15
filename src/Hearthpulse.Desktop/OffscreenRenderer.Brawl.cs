@@ -95,6 +95,14 @@ internal static partial class OffscreenRenderer
             await RenderBaselineAsync(main, view, host, folder);
         }
 
+        if (RenderOnly("mulligan"))
+        {
+            // The mulligan panels with a collected deck's numbers (OffscreenRenderer.Mulligan.cs).
+            var (overlay, overlayView) = OpenOverlay(host, host.Settings);
+            await RenderMulliganDeckAsync(host, host.Settings, overlayView, overlay, folder);
+            overlay.Close();
+        }
+
         if (RenderOnly("odds"))
         {
             // The combat odds and the Battlegrounds bar (OffscreenRenderer.CombatOdds.cs).

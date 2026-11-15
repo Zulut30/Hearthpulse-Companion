@@ -101,6 +101,12 @@ public partial class App
             await RenderBaselineAsync(folder);
         }
 
+        if (RenderOnly("mulligan"))
+        {
+            // The mulligan panels with a collected deck's numbers (DevRender.Mulligan.cs).
+            await RenderMulliganDeckAsync(folder);
+        }
+
         if (RenderOnly("odds"))
         {
             // The combat odds and the Battlegrounds bar (DevRender.CombatOdds.cs).

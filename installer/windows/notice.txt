@@ -65,6 +65,16 @@ GAME STATISTICS
   are published, including in paid features. Storage is up to 180 days.
 - Turning sending off clears pending journals and asks the server to delete
   uploaded data. Pending deletion remains visible until the server confirms it.
+- Shared games for the public statistics pool, also on by default after the
+  same in-app notice: after a Battlegrounds game, the heroes offered and
+  picked, placement, rating rounded to 500, lobby tribes and anomaly, final
+  board, trinkets, fights, your picks and the cards you played (your
+  Battlegrounds games of the last 30 days once as well); after a Ranked or
+  Casual game, the cards a Discover-style card offered and the one you took.
+  No name, BattleTag, account, deck or anything about other players. The
+  totals are public. Turn it off in Settings > Data, "Share my games with the
+  stats pool", or with "Turn off" on the notice: nothing more is sent. Shared
+  games cannot be deleted on request; they expire after 60 days.
 - The expanded source service is a synthetic pilot in this build; its default
   endpoint is unset. Public activation requires the matching published privacy
   policy and verified hosting/backup deletion procedures.

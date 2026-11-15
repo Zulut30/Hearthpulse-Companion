@@ -85,7 +85,7 @@ counts are present (a card offered once shows +58.8), so the client needs minimu
   coin and class adjustments, and shows kept / replaced / drawn only in the tooltip and the second line.
 - Some decks have their own slices (`deck_id`); the app does not map decks to HSGuru deck ids yet.
 
-### 2.2 HSGuru class results and the HSReplay per-deck mulligan (2026-10-26)
+### 2.2 HSGuru class results and the HSReplay per-deck mulligan (2026-10-26, per deck called since 2026-11-15)
 
 `GET /v1/hsguru/class-matchups?archetype=<HSGuru name>&format=standard&rank=legend` answers `{"data": {"games",
 "winrate", "rows": [{"opponent_class": "deathknight", "winrate": 78.8, "games": 1544, "share_pct": 5.1}, ...]}}`
@@ -95,17 +95,52 @@ guide's matchups and move the baseline against the opponent's class exactly like
 class win rate minus the games-weighted mean of all classes, at least `MinClassGames`). Legend first, else all ranks; a
 404 is remembered for the cache age. The HSGuru guide (source 2) already has class results from its analysis.
 
-`GET /v1/hsreplay/mulligan?deck=<shortid>&initiative=all|first|coin` (per-deck HSReplay mulligan, ~18 collected decks
-in `/v1/hsreplay/mulligan/decks`, with going-first / coin slices) remains unimplemented.
-The earlier missing-permission blocker was resolved by the owner's 2026-11-15 confirmation for HSReplay
-and HSGuru; see [data permissions](data-permissions.md). Adding this integration is separate implementation work.
-It could become source 1: the deck's `deck_list` `[[dbf, count]]` compared with the player's 30 cards, rows `keep_percentage`,
-`opening_hand_winrate`, `winrate_when_drawn`, `winrate_when_played`, `avg_turn_played_on`, `opening_hand_impact`.
+**The per-deck mulligan** is source 0 of the guide since 2026-11-15 (remediation plan 2.4.1; the missing-permission
+blocker was resolved by the owner's confirmation of that day, see [data permissions](data-permissions.md)). Answers
+checked live on 2026-11-15:
+
+- `GET /v1/hsreplay/mulligan/decks?format=standard|wild&limit=500` → `data[]`, one row per deck **and rank**:
+  `deck_id` (HSReplay's short id, mixed case), `archetype_id`, `archetype_name`, `player_class`, `rank`
+  (`legend`, `diamond_4to1`, `diamond`, `bronze_gold`), `total_games`, `win_rate`. 48 Standard rows = 12 decks per rank,
+  21 distinct decks; 24 Wild rows, 9 decks. Since 2026-11-15 20:57 UTC each row also has `deck_list`, a real JSON
+  array `[[dbfId, count], …]` (an answer cached before that has none).
+- `GET /v1/hsreplay/mulligan?deck=<deck_id>&format=&rank=&initiative=all|first|coin&opponent_class=any|MAGE` →
+  `data`: `deck` {`archetype_name`, `player_class`, `deck_list`: the JSON *text* `"[[dbfId, count], …]"`}, `games`,
+  `base_winrate` (the deck's win rate over the same games), `as_of`, `no_data`, `rows[]`: `card_id`, `dbf_id`,
+  `keep_percentage`, `opening_hand_winrate`, `opening_hand_impact` (= `opening_hand_winrate` − `base_winrate`),
+  `winrate_when_drawn`, `winrate_when_played`, `avg_turn_played_on`; `meta.fetched_at`. Period `last_30_days`.
+  The initiative and the opponent's class **combine** (on the coin against a Mage: 10,268 games of C'Thun Warlock at
+  Legend). A slice not collected is a 404; a rank or class outside the enum (`top_legend`, `mage`) is a 422.
+  **No per-card counts**: only rates.
+- `/slices`, `/history`, `/coverage` exist and are not called.
+
+How the client uses it (`Core/Api/HearthpulseData.Mulligan.cs`, `MulliganGuideSource.LoadDeckGuideAsync`):
+
+1. The list of decks of the format, cached 6 h. Only decks of the **player's class** are candidates.
+2. A candidate's card list is its row's `deck_list`: the match costs this one request, and a deck that matches
+   nothing asks for **no slice at all**. Only rows without the field (a list cached before the server sent it) fall
+   back to the candidate's all-games slice, the six most played at most (`MaxDeckCandidates`), cached like any
+   answer. `ParseDeckList` reads both shapes: the row's array and the slice's JSON text.
+3. Match: the same 30 cards → scope `deck`; else the closest list at most two cards away
+   (`MulliganGuide.DeckDifference` ≤ `NearDeckDifference`; more games win a tie) → scope `near_deck`; else nothing,
+   and the archetype guide below runs exactly as before. Cards of the player's deck a close list lacks have no numbers.
+4. Rank: the deck's rank closest to the mulligan filter among those it is listed at (`DeckRankFor`): Legend → legend,
+   diamond_4to1, diamond, bronze_gold; Diamond → diamond_4to1, diamond, …; Top Legend reads Legend; "All ranks" has no
+   slice and reads the widest first (bronze_gold). The source line names the rank read.
+5. Once the mulligan knows them: the initiative slice, the opponent-class slice and the slice of both (three requests,
+   404s remembered). `MulliganGuide.DeckSliceFor` takes the most specific with 2,000+ games (both → class → initiative
+   → all games); its rows and its `base_winrate` replace the all-games ones, so no shift is added on top.
+6. The rows have no counts, so `GuideCard.Offered` is an estimate (the slice's games × the chance to be dealt the
+   card, `HearthpulseData.DealtShare`) used only for the minimum-sample gates; the tooltip shows no per-card sample.
+
+`MulliganView.Scope` (`Deck` | `NearDeck` | `Archetype`), `DeckGames`, `DataAsOf` and `DeckDifference` carry this to the
+panel: the summary gets a second line "By your deck, 456,569 games, data from 14.11.2026" / "By a close deck, …"
+(`OverlayViewModel.MulliganScopeLine`, both UIs); an archetype's numbers add no line, as before. The source in the
+tooltip reads "Hearthpulse data, Legend, 30 days".
 
 Not used:
 
 - `/api/db/cards/trends` needs a `card_name` and only returns popularity.
-- `/v1/hsreplay/mulligan` (per deck): blocked by the legal check (L-B1), section 2.2.
 - `/v1/hsguru/archetypes/analysis` has `class_matchups` and per-card `mulligan_impact` / `kept_impact` (Legend, past
   week): the source of the HSGuru guide (Wild, archetypes HSReplay lacks); the slices above add the splits.
 
@@ -172,7 +207,7 @@ numbers every card starts kept, so no bar reads as "replace".
 | Synergies | **no data → off** | `GuidePair` is ready for a future endpoint (interaction = pair WR − additive estimate, against the cards' *unshifted* deltas: pair win rates are over all games, so a coin or class shift of both cards would otherwise read as a synergy of the same size). With no pairs the panel says so, and no synergy is ever invented. |
 | Impact of your keeps | **model + heuristic shrink** | E[WR \| keep K] ≈ baseline + (Σ Δ(first copies kept) + (cards replaced) × Δ(replacement) + kept pair interactions) / √(hand size). A plain sum overshoots, because the deltas are marginal and share causes: a real Void DH hand of three strong cards came out at 71%. The √ shrink brings that to 63% and leaves every comparison between keep sets unchanged. The panel compares the estimate with the recommended keeps and with a full mulligan. Clicking a plate toggles that card, and the line updates. |
 | Slices loading | **data** | `MulliganGuideSource` matches the deck to an HSGuru archetype too (by its lists), loads the all-games slices with the guide, and the coin and class slices once the mulligan knows them (`For(..., opponentClass, goingFirst)`, background, `Changed` again). Legend and all ranks, cached 6 h like every answer; 404s are remembered. A coin / class lookup that brought nothing new (offline) is tried again after 5 minutes. When HSGuru lists both an original and its reprint, the deck's id keeps the row with more games. |
-| Sources in order | **data** | 1. HSReplay archetype the deck matches (Standard). 2. HSGuru archetype whose lists the deck matches, with its HSGuru analysis (Legend, past week; Standard and Wild): kept games stand for the opening hand, the class results give the baseline and the class shift. 3. `ConstructedMeta` (docs/constructed-meta-api.md): its archetype by core cards, else the class pool. A guide that cannot compute falls through to the next. The cost replaces the average turn when the source has none. |
+| Sources in order | **data** | 0. The collected deck with the player's exact list, else one within two cards (section 2.2; Standard and Wild); when it matches, the sources below are not asked. 1. HSReplay archetype the deck matches (Standard). 2. HSGuru archetype whose lists the deck matches, with its HSGuru analysis (Legend, past week; Standard and Wild): kept games stand for the opening hand, the class results give the baseline and the class shift. 3. `ConstructedMeta` (docs/constructed-meta-api.md): its archetype by core cards, else the class pool. A guide that cannot compute falls through to the next. The cost replaces the average turn when the source has none. |
 | Offered cards | **data** | Cards in the local hand during `MULLIGAN_STATE` INPUT/DEALING, minus the coin. The coin has cosmetic ids, such as `JAIL_COIN3` in a real log, so it is recognised by the name it shares with `GAME_005`. |
 
 The additive model is consistent with how the deltas are defined. If a hand's win rate is β₀ + Σ β(card) over a hand of fixed size, then the
@@ -181,6 +216,20 @@ over the replaced ones gives back the model's expectation. Its weakness is corre
 matchups are counted twice. That is why the overlay presents it as an estimate.
 
 ### Checks (2026-10-23)
+
+- 2026-11-15, per-deck mulligan: `DeckMulliganLoadTests` over a fake handler with trimmed live answers
+  (`Fixtures/Mulligan/hsreplay-mulligan-decks-standard.json`, `hsreplay-deck-mulligan-<deck>-<rank>-<initiative>-<opponent>.json`:
+  the two requests of section 2.2 for C'Thun Warlock `7X8Zqlb1wBPwkkaQVGT8ee` and the two Coin Rogue lists, without
+  `source_url`, `premium_session`, `opponent_classes`): exact list → the deck's numbers and scope `Deck`; two cards
+  away → `NearDeck`, three → no deck guide; the same list wins over a close one with more games; no match → the
+  archetype guide unchanged (`ApiLoadTests`) and not one slice asked; a list of decks without `deck_list` → the
+  slices name the cards; Wild (`hsreplay-mulligan-decks-wild.json`, `hsreplay-deck-mulligan-wild-*`); 404s remembered
+  on disk; server down, timing out or the caller cancelling → nothing thrown, a stale cache still answers; unsafe
+  values never sent. Layout: the two-line summary measured in both UIs (`LocBindingTests.MulliganSummary`,
+  `MulliganSummaryLayoutTests`) ends above the Confirm button's zone (`OverlayViewModel.MulliganConfirmTop`, an
+  estimate of the mulligan screen, not a measured frame) at overlay scales 100 % and 160 %. `MulliganGuideTests`:
+  parsers, `DeckSliceFor`, `DeckDifference`. `MulliganScopeContractTests` (Windows): the line in both view models.
+  Renders `overlay-mulligan-deck(-near).png` in both apps (`HEARTHPULSE_RENDER_ONLY=mulligan`, `MulliganReplay.DeckSample`).
 
 - 2026-10-26: `ApiLoadTests` covers the HSGuru class results: an HSReplay archetype with empty matchups takes them
   (`Fixtures/Mulligan/hsguru-class-matchups-quest-priest-legend.json`, a live answer), the shift equals HSReplay's

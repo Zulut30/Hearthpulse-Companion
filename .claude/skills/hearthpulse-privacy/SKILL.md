@@ -25,6 +25,10 @@ decision itself.
   That is permission for third-party statistics, not player data, and needs no second confirmation.
 - **Game records are on by default with one opt-out switch and a one-time notice**, no consent prompt
   (`docs/game-stats.md`, 2026-11-06). Nothing is sent before the notice was shown.
+- **Shared games of the stats pool are on by default with an opt-out, and the app asks no consent question**
+  (`docs/game-stats.md`, 2026-11-15): the same one-time notice tells of them, nothing goes before it was shown, and
+  `AppSettings.PoolConsent == false` is a refusal that no notice or update undoes. A yes/no sharing banner is a
+  drift from this decision.
 - **Games go to the signed-in profile by default** (`AppSettings.UploadGamesToProfile`, `docs/profile-upload.md`);
   the legal review asked for opt-in and the owner kept opt-out.
 - **Crash reports are off by default** and sent only by the button or the switch (`docs/crash-reports.md`).
@@ -62,8 +66,8 @@ flow, the rule below it breaks, and the file. Ban risk, licences and a release-l
    Legacy shared-game routes expire by TTL and have no forget call; do not promise one without implementing it. Local
    queues are emptied when the switch goes off. A change that adds a store adds it to the forget path and to its
    test. Backups the service does not control are documented as such, never promised as erased.
-7. **A wider upload needs a newer notice.** Fields beyond the text the player answered do not ride on the old answer:
-   bump the version the answer is stored for (`PoolClient.ConsentVersion`, `AppSettings.SourceCaptureNoticeVersion`)
+7. **A wider upload needs a newer notice.** Fields beyond the text the player was shown do not ride on the old notice:
+   bump the version stored for it (`PoolClient.NoticeVersion`, `SourceCaptureClient.NoticeVersion`)
    and update the in-app text in both languages, the switch tooltip and the installer notices
    (`installer/windows/notice.txt`, `installer/*/README.txt`) in the same change.
 8. **The server trusts nothing.** It rebuilds each record from known fields and drops the rest; the site re-checks a

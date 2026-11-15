@@ -70,6 +70,9 @@ public sealed class AppServices
         GameStats = new GameStatsUploader(settings, http, History, () => Data.Replays, TryCards, version,
             new GameStatsQueue(Path.Combine(data.Root, "game-stats")));
         Session.GameFinished += GameStats.OnGameFinished;
+        // Shared games are on after the informational notice, unless the player turned them off.
+        PoolSharing = new PoolSharingHost(settings, http, History, cards);
+        Session.GameFinished += PoolSharing.OnGameFinished;
         SourceCaptures = new SourceCaptureHost(settings, http, Session, Path.Combine(data.Root, "source-capture"), settings.SaveRequired);
 
         // The Twitch extension (docs/streaming.md): the deck of every snapshot, sent while the switch is on and signed in.
@@ -96,6 +99,12 @@ public sealed class AppServices
 
     /// <summary>Game records for Hearthpulse's own statistics; the live host starts it with the log watcher.</summary>
     public GameStatsUploader GameStats { get; }
+
+    /// <summary>
+    /// Games shared with the stats pool after the notice, until turned off; the live host starts it with the log watcher and saves the
+    /// settings on its <see cref="PoolSharingHost.SettingsChanged"/>.
+    /// </summary>
+    public PoolSharingHost PoolSharing { get; }
 
     /// <summary>Safe source archive lifecycle; started only with a live log watcher, never during a render.</summary>
     public SourceCaptureHost SourceCaptures { get; }

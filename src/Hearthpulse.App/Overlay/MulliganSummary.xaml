@@ -4,7 +4,8 @@
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
     <!-- The mulligan summary under the offered cards (the bars are over them, MulliganPanel): the impact of the keeps;
-         the source and slice, the estimate and curve notes in the tooltip. Above the Confirm button.
+         the source and slice, the estimate and curve notes in the tooltip. A decklist's numbers (not an archetype's) add a
+         second line: "By your deck, N games, data from <date>". Above the Confirm button.
          DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
@@ -13,23 +14,27 @@
     <Border Style="{StaticResource OverlayCardSolid}"
             HorizontalAlignment="Center" Padding="12,3,12,4" ToolTip="{Binding MulliganDetails}" o:OverlayHit.Interactive="True"
             ToolTipService.InitialShowDelay="200">
-        <StackPanel Orientation="Horizontal">
-            <TextBlock Text="{Binding MulliganSummary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource Base}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding MulliganImpactGood}" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource Positive}" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding MulliganImpactBad}" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource Negative}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <TextBlock Text="&#xF02FD;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
-                       Visibility="{Binding MulliganHasWarnings, Converter={StaticResource Vis}}" />
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock Text="{Binding MulliganSummary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Base}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MulliganImpactGood}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource Positive}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding MulliganImpactBad}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource Negative}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Text="&#xF02FD;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
+                           Visibility="{Binding MulliganHasWarnings, Converter={StaticResource Vis}}" />
+            </StackPanel>
+            <TextBlock Text="{Binding MulliganScopeLine}" Style="{StaticResource Base}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"
+                       Margin="0,1,0,0" Visibility="{Binding MulliganScopeLine, Converter={StaticResource Vis}}" />
         </StackPanel>
     </Border>
 </UserControl>

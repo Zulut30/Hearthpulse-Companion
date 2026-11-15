@@ -52,6 +52,55 @@ public sealed record MulliganSlice(string Rank, string Coin, string OpponentClas
         .GetValueOrDefault(cardId);
 }
 
+/// <summary>Whose games the guide's numbers are: the archetype's, the player's exact list, or a list close to it.</summary>
+public enum MulliganScope
+{
+    Archetype,
+    Deck,
+    NearDeck,
+}
+
+/// <summary>
+/// One deck the server collects the per-deck mulligan for at one rank (<c>/v1/hsreplay/mulligan/decks</c>).
+/// </summary>
+/// <param name="Rank">The server's rank key: "legend", "diamond_4to1", "diamond" or "bronze_gold".</param>
+public sealed record MulliganDeckEntry(string DeckId, string ArchetypeName, string PlayerClass, string Rank, int Games, double WinRate)
+{
+    /// <summary>
+    /// The deck: card dbf id → copies. Null in an answer cached before the server sent it (2026-11-15): the list then
+    /// comes with the deck's slice (<see cref="DeckMulliganSlice.DeckList"/>).
+    /// </summary>
+    public IReadOnlyDictionary<int, int>? DeckList { get; init; }
+}
+
+/// <summary>
+/// The mulligan numbers of one exact decklist in one slice (<c>/v1/hsreplay/mulligan?deck=</c>): a rank, the initiative
+/// and the opponent's class. Rates are fractions.
+/// </summary>
+/// <param name="Initiative">"all", "first" or "coin".</param>
+/// <param name="OpponentClass"><see cref="MulliganGuide.AnyOpponent"/> or a class ("MAGE").</param>
+/// <param name="Games">The deck's games in this slice.</param>
+/// <param name="BaseWinRate">The deck's win rate over the same games: the cards' deltas are measured against it.</param>
+/// <param name="AsOf">When the source computed the numbers (UTC); null when the answer does not say.</param>
+/// <param name="DeckList">The deck: card dbf id → copies.</param>
+/// <param name="Cards">
+/// One row per card. The server publishes no per-card counts, so <see cref="GuideCard.Offered"/>,
+/// <see cref="GuideCard.InOpeningHand"/> and <see cref="GuideCard.Drawn"/> are estimates (the slice's games times the
+/// chance to be dealt the card): they only gate thin slices and are never shown.
+/// </param>
+public sealed record DeckMulliganSlice(string DeckId, string Rank, string Initiative, string OpponentClass, int Games, double BaseWinRate, DateTime? AsOf,
+    IReadOnlyDictionary<int, int> DeckList, IReadOnlyList<GuideCard> Cards)
+{
+    /// <summary>The initiative key of "every game".</summary>
+    public const string AllGames = "all";
+
+    public int ArchetypeId { get; init; }
+
+    public string ArchetypeName { get; init; } = string.Empty;
+
+    public string PlayerClass { get; init; } = string.Empty;
+}
+
 /// <summary>One decklist HSReplay counts under an archetype: card dbf id → copies.</summary>
 public sealed record GuideDeck(int Games, IReadOnlyDictionary<int, int> Cards);
 
@@ -91,6 +140,21 @@ public sealed record GuideArchetype(int Id, string Name, string Class, IReadOnly
 
     /// <summary>The mulligan rank filter the guide was built for (<see cref="MulliganGuide.Ranks"/>); its slices follow it.</summary>
     public string Rank { get; init; } = MulliganGuide.DefaultRank;
+
+    /// <summary>Whose games <see cref="Cards"/> are: the archetype's (every older source) or one decklist's.</summary>
+    public MulliganScope Scope { get; init; }
+
+    /// <summary>The collected deck the player's list matched (exactly or closely); null for an archetype guide.</summary>
+    public string? DeckId { get; init; }
+
+    /// <summary>Cards of the player's deck the matched list lacks: 0 for an exact match, 1-2 for a close deck.</summary>
+    public int DeckDifference { get; init; }
+
+    /// <summary>
+    /// The matched deck's slices loaded so far, all at one rank: all games first, then the initiative and the opponent's
+    /// class once the mulligan knows them. <see cref="MulliganGuide.Compute"/> reads the most specific one that fits.
+    /// </summary>
+    public IReadOnlyList<DeckMulliganSlice> DeckSlices { get; init; } = [];
 }
 
 /// <summary>A card offered in the mulligan, left to right.</summary>

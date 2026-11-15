@@ -245,18 +245,6 @@ public sealed class PoolTests
     }
 
     [Fact]
-    public void PicksAndPlaysNeedTheNewestConsent()
-    {
-        var game = PoolGame.From(new GameOutcome("Battlegrounds", "Win", 1, 7000, null, "BG_HERO_1") { Details = Details() }, Base, Races, details: true)!;
-        var older = new Hearthpulse.Core.AppSettings { PoolConsent = true, PoolConsentVersion = 2, PoolEndpoint = "https://pool.example" };
-        var newest = new Hearthpulse.Core.AppSettings { PoolConsent = true, PoolConsentVersion = PoolClient.ConsentVersion, PoolEndpoint = "https://pool.example" };
-
-        Assert.Empty(PoolClient.Limit(game, older).Details!.Choices);
-        Assert.Empty(PoolClient.Limit(game, older).Details!.Plays);
-        Assert.Equal(2, PoolClient.Limit(game, newest).Details!.Choices.Count);
-    }
-
-    [Fact]
     public void TheSameGameKeepsItsIdButRevealsNothing()
     {
         var settings = new Hearthpulse.Core.AppSettings();
@@ -314,25 +302,52 @@ public sealed class PoolTests
     [Fact]
     public void SharesNothingUntilAPoolIsSetUp()
     {
-        // Hearthpulse ships without a pool address: consent alone sends nothing anywhere.
-        var settings = new Hearthpulse.Core.AppSettings { PoolConsent = true, PoolConsentVersion = PoolClient.ConsentVersion };
+        // Hearthpulse ships without a pool address: sharing on by default sends nothing anywhere.
+        var settings = new Hearthpulse.Core.AppSettings { PoolNoticeVersion = PoolClient.NoticeVersion };
         Assert.False(PoolClient.Available(settings));
         Assert.False(PoolClient.Sharing(settings));
     }
 
-    [Fact]
-    public void AsksAgainWhenTheListGrows()
+    /// <summary>On by default with an opt-out (the owner's decision, 2026-11-15): a refusal always holds, the notice comes first.</summary>
+    [Theory]
+    [InlineData(null, PoolClient.NoticeVersion, true)]
+    [InlineData(true, PoolClient.NoticeVersion, true)]
+    [InlineData(false, PoolClient.NoticeVersion, false)]
+    [InlineData(null, 0, false)]
+    [InlineData(true, 0, false)]
+    // A "yes" to the question older versions asked (lists 1-4) is not the notice.
+    [InlineData(true, 4, false)]
+    [InlineData(false, 4, false)]
+    public void SharesByDefaultOnceTheNoticeWasShownUnlessTurnedOff(bool? consent, int seen, bool shares)
     {
-        var settings = new Hearthpulse.Core.AppSettings { PoolConsent = true, PoolConsentVersion = 1, PoolEndpoint = "https://pool.example" };
-        Assert.True(PoolClient.Sharing(settings));
-        Assert.False(PoolClient.SharingDetails(settings));
-        settings.PoolConsentVersion = 2;
-        Assert.True(PoolClient.SharingDetails(settings));
-        Assert.False(PoolClient.SharingAll(settings));
-        settings.PoolConsentVersion = PoolClient.ConsentVersion;
-        Assert.True(PoolClient.SharingAll(settings));
-        settings.PoolConsent = false;
-        Assert.False(PoolClient.Sharing(settings));
+        var settings = new Hearthpulse.Core.AppSettings { PoolConsent = consent, PoolNoticeVersion = seen, PoolEndpoint = "https://pool.example" };
+        Assert.Equal(shares, PoolClient.Sharing(settings));
+    }
+
+    /// <summary>Old settings files keep working: the version is read from and written to the name it always had.</summary>
+    [Fact]
+    public void TheNoticeVersionKeepsItsOldNameInTheSettingsFile()
+    {
+        var path = TestDataFolder.Scratch("hp-pool-settings") + ".json";
+        try
+        {
+            File.WriteAllText(path, """{"PoolConsent":false,"PoolConsentVersion":4,"PoolEndpoint":"https://pool.example"}""");
+            var settings = Hearthpulse.Core.AppSettings.Load(path);
+
+            Assert.False(settings.PoolConsent);
+            Assert.Equal(4, settings.PoolNoticeVersion);
+
+            settings.PoolNoticeVersion = PoolClient.NoticeVersion;
+            settings.SaveRequired(path);
+            var saved = File.ReadAllText(path);
+            Assert.Contains($"\"PoolConsentVersion\": {PoolClient.NoticeVersion}", saved, StringComparison.Ordinal);
+            Assert.DoesNotContain("PoolNoticeVersion", saved, StringComparison.Ordinal);
+            Assert.False(Hearthpulse.Core.AppSettings.Load(path).PoolConsent);
+        }
+        finally
+        {
+            TestDataFolder.TryDelete(path);
+        }
     }
 
     [Fact]

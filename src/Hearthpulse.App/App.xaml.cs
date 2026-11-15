@@ -14,7 +14,6 @@ using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Site;
-using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -31,7 +30,7 @@ namespace Hearthpulse.App;
 /// The WPF host: builds the services, the view models and the windows at start and wires them together. Its other
 /// concerns live in partials of their own: errors (App.Crash.cs), the main window's life (App.MainWindow.cs), tray and
 /// hotkeys (App.Shell.cs), the theme (App.Theme.cs), updates (App.Updates.cs), the pipeline watchdog (App.Watchdog.cs),
-/// the stats pool (App.StatsPool.cs), the OBS windows (App.Stream.cs) and the Arena, Brawl and card pool loads.
+/// the OBS windows (App.Stream.cs) and the Arena, Brawl and card pool loads.
 /// </summary>
 public partial class App : Application
 {
@@ -176,7 +175,6 @@ public partial class App : Application
         _session.SetCompFocus(_settings.CompFocus);
 
         _mainViewModel.ThemeChanged += OnThemeChanged;
-        _mainViewModel.PoolAvailable = PoolClient.Available(_settings);
         // Plan 2.4: the mulligan's rank filter on the meta page; the overlay's guide follows it.
         var mulliganData = new HearthpulseData(_api);
         _mainViewModel.LoadRankMulligan = (archetype, format, rank, cancel) => MulliganGuideSource.LoadRankSliceAsync(mulliganData, archetype, format, rank, cancel);
@@ -193,11 +191,13 @@ public partial class App : Application
             _services.SourceCaptures.ApplySettingsAsync(explicitEnable: on).Forget("Source capture settings");
         };
         _services.SourceCaptures.StateChanged += state => _ = Dispatcher.BeginInvoke(() => _mainViewModel.UpdateSourceCaptureState(state));
-        _mainViewModel.PoolConsentChanged += () =>
+        _mainViewModel.PoolSharingChanged += () =>
         {
             _settingsDebounce.Kick();
-            _ = ShareHistoryAsync();
+            _services.PoolSharing.ShareHistoryAsync().Forget("Sharing earlier games");
         };
+        // The install's secret or "earlier games shared" is new in the settings; raised off the UI thread.
+        _services.PoolSharing.SettingsChanged += () => _ = Dispatcher.BeginInvoke(() => _settingsDebounce.Kick());
         _mainViewModel.ConstructedMetaRequested += format =>
         {
             if (format is not null)
@@ -367,6 +367,7 @@ public partial class App : Application
             _uploader.Start();
             _services.GameStats.Start();
             _services.SourceCaptures.Start();
+            _services.PoolSharing.Start();
             _watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _watchdog.Tick += (_, _) => WatchPipeline();
             _watchdog.Start();
@@ -385,7 +386,7 @@ public partial class App : Application
             _metaRefresh.Start();
             // Cards, the catch-up and the meta leave their parsing garbage behind; it is collected once things are quiet.
             _session.RequestMemoryTrim();
-            _ = ShareHistoryAsync();
+            _services.PoolSharing.ShareHistoryAsync().Forget("Sharing earlier games");
         }
         catch (Exception ex)
         {
@@ -467,8 +468,6 @@ public partial class App : Application
     {
         // Reads the history row, so off the UI thread; a game that ends while signed out is not sent.
         Task.Run(() => _uploader.OnGameFinished(outcome)).Forget("Profile upload");
-
-        ShareWithPool(outcome);
 
         if (_settings.ShowGameToasts && _settings.OverlayEnabled)
         {

@@ -57,10 +57,23 @@ server rebuilds every record from known fields only, so anything else is dropped
 - **One-time notice** in the main window, both UIs («Hearthpulse отправляет ваши игры для своей статистики»: what is
   sent, what never, 180 days, how to turn off; buttons «Понятно» / «Выключить» / «Подробнее» → the policy). Not a
   consent question: it tells players who updated silently and never saw the installer. Nothing is sent before it was
-  shown (`AppSettings.GameStatsNoticeShown`); in WPF it waits until the stats pool's question is answered. The install
-  secret is made when the notice is answered or the switch goes on, not before.
-- The stats pool's first-start question (public Battlegrounds totals, `PoolClient.ConsentVersion` 4) is a separate
-  purpose; its text now says it is about the pool only and where game records are turned off.
+  shown (`AppSettings.GameStatsNoticeShown`). The install secret is made when the notice is answered or the switch
+  goes on, not before.
+- **Shared games of the stats pool** (`/v1/games`, `/v1/constructed`: public Battlegrounds totals and Discover-style
+  picks) are a separate purpose with a switch of their own, and since the owner's decision of 2026-11-15 they are
+  **on by default with an opt-out too, with no consent question** ("we do not ask whether to share"). The question
+  banner is gone from both apps; the same one-time notice tells of them.
+  - `AppSettings.PoolConsent`: `false` is the player's refusal and is always kept (the switch, «Выключить» on the
+    notice, or a "no" to the old question); `true` and `null` share.
+  - Nothing goes to the pool before the notice of `PoolClient.NoticeVersion` (5) was shown; the version seen is
+    stored in settings.json as `PoolConsentVersion` (1-4 were answers to the old question, so everyone who answered
+    it sees the notice once). The notice shows for whichever of its texts the player has not seen and has not turned
+    off; «Понятно» never turns back on what was turned off, «Выключить» turns off game records and shared games.
+  - After the notice the whole list it names is sent; there are no partial lists by version any more.
+  - The switch, Settings → Data: «Делиться моими играми с пулом статистики» / "Share my games with the stats pool".
+    Off stops every later send, including the remaining batches of the one-time 30 days of earlier games
+    (`Core/Hosting/PoolSharingHost.cs` asks before each batch). These routes have **no deletion on request**: what
+    was shared expires after 60 days.
 - Records are pseudonymous personal data (ADR 0011): only totals over 10 games and 5 installs are ever shown.
 - Switching off: the queue is emptied and `POST /v1/events/forget` deletes every record of this install; the request
   waits in the queue (`game-stats/forget`) until the pool answers.

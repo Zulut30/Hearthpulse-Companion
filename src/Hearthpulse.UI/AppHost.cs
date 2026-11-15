@@ -110,6 +110,13 @@ public sealed partial class AppHost : IDisposable
             _services.SourceCaptures.ApplySettingsAsync(explicitEnable: on).Forget("Source capture settings");
         };
         _services.SourceCaptures.StateChanged += state => Dispatcher.UIThread.Post(() => Main.UpdateSourceCaptureState(state));
+        Main.PoolSharingChanged += () =>
+        {
+            _settingsDebounce.Kick();
+            _services.PoolSharing.ShareHistoryAsync().Forget("Sharing earlier games");
+        };
+        // The install's secret or "earlier games shared" is new in the settings; raised off the UI thread.
+        _services.PoolSharing.SettingsChanged += () => Dispatcher.UIThread.Post(() => _settingsDebounce.Kick());
         Main.CrashReportsChanged += () =>
         {
             // Switched off: consent withdrawn, what waits is not sent.
@@ -268,6 +275,7 @@ public sealed partial class AppHost : IDisposable
             Uploader.Start();
             _services.GameStats.Start();
             _services.SourceCaptures.Start();
+            _services.PoolSharing.Start();
             Main.ShowBusy(InstallDirectory is null
                 ? () => Loc.T("Host.Busy.GameNotFound")
                 : null);
@@ -281,6 +289,7 @@ public sealed partial class AppHost : IDisposable
             _metaRefresh.Start();
             // Cards, the catch-up and the meta leave their parsing garbage behind; it is collected once things are quiet.
             Session.RequestMemoryTrim();
+            _services.PoolSharing.ShareHistoryAsync().Forget("Sharing earlier games");
             StartUpdateChecks();
         }
         catch (Exception ex)
