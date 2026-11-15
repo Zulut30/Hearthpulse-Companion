@@ -315,12 +315,14 @@ public sealed partial class MatchViewModel
         HeaderCard = card;
         _bookmarks.Clear();
         var load = ++_bookmarkLoad;
-        BookmarkWork = _replayName is { } name && store is not null
-            ? LoadBookmarksAsync(load, store, name, FrameMax + 1, StretchStarts())
-            : Task.CompletedTask;
+        // Publish the cleared state before starting the reader. Without a UI synchronization context (headless
+        // hosts/tests), a fast read can resume on a worker and change the set while these lists are enumerated.
         SetBookmarkMarks();
         RaiseBookmarks();
         Raise(nameof(CanBookmark));
+        BookmarkWork = _replayName is { } name && store is not null
+            ? LoadBookmarksAsync(load, store, name, FrameMax + 1, StretchStarts())
+            : Task.CompletedTask;
     }
 
     /// <summary>The first step of each timeline stretch: a bookmark keeps its place in its stretch (<see cref="ReplayBookmark"/>).</summary>
