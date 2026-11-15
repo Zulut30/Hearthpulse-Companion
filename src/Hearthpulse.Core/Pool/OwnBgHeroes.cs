@@ -136,6 +136,13 @@ public static class OwnBgHeroes
     /// the one applied last changes nothing: that load returns what the later one found. So a slow answer with
     /// numbers, sent before a withdrawal, cannot undo it. The request itself runs outside the gate, and the gate
     /// is released on every way out, cancellation included.</para>
+    ///
+    /// <para><b>Pools that share a cache folder share the files, not the knowledge.</b> The gate is one per copy
+    /// file; the withdrawal and the order of the answers are kept per file and pool address (compared as the copy
+    /// keeps it: the trimmed text, ordinal). So one pool's answer is never returned for another, and one pool's
+    /// withdrawal does not hide another's copy. The single marker file names one pool; a second pool that needs it
+    /// while the first one's stands writes a marker without an address, which hides every copy until a copy is
+    /// written again (after which no earlier numbers are left on disk).</para>
     /// </summary>
     internal static async Task<OwnBgHeroesResult> LoadAsync(HttpClient http, string endpoint, string? cacheDirectory, TimeProvider? time,
         OwnBgHeroesFiles files, CancellationToken cancellationToken = default)
@@ -170,13 +177,13 @@ public static class OwnBgHeroes
             {
                 if (answer is { } got)
                 {
-                    if (files.Superseded(file, request) is { } later)
+                    if (files.Superseded(file, endpoint, request) is { } later)
                     {
                         return later;
                     }
 
                     var result = OwnBgHeroesResult.From(got.Snapshot, now);
-                    files.Applied(file, request, result);
+                    files.Applied(file, endpoint, request, result);
                     var envelope = Envelope(endpoint, now, got.Body);
                     if (got.Snapshot.Available)
                     {
@@ -224,7 +231,7 @@ public static class OwnBgHeroes
     /// <summary>The pool withdrew its numbers: the ladder described on the load. Called under the gate.</summary>
     private static async Task WithdrawAsync(string file, string endpoint, DateTime now, string envelope, OwnBgHeroesFiles files, CancellationToken cancellationToken)
     {
-        files.Remember(file);
+        files.Remember(file, endpoint);
         try
         {
             if (await files.Write(file, envelope, cancellationToken).ConfigureAwait(false))
@@ -238,7 +245,8 @@ public static class OwnBgHeroes
                 return;
             }
 
-            if (await files.Write(MarkerOf(file), Marker(endpoint, now), cancellationToken).ConfigureAwait(false))
+            var marker = await MarkerOnDiskAsync(file, endpoint, cancellationToken).ConfigureAwait(false);
+            if (await WriteMarkerAsync(file, endpoint, now, marker, files, cancellationToken).ConfigureAwait(false))
             {
                 return;
             }
@@ -255,31 +263,15 @@ public static class OwnBgHeroes
     }
 
     /// <summary>
-    /// Whether a withdrawal stands: the process remembers one, or the marker file is there (this pool's, or one that
-    /// cannot be read). A withdrawal the process knows and the disk does not is written again here.
+    /// Whether a withdrawal stands: the process remembers one for this pool, or the marker file is there (this
+    /// pool's, everyone's, or one that cannot be read). A withdrawal the process knows and the disk does not is
+    /// written again here.
     /// </summary>
     private static async Task<bool> WithdrawnAsync(string file, string endpoint, OwnBgHeroesFiles files, CancellationToken cancellationToken)
     {
-        var marker = MarkerOf(file);
-        var onDisk = false;
-        if (File.Exists(marker))
-        {
-            try
-            {
-                var text = await File.ReadAllTextAsync(marker, cancellationToken).ConfigureAwait(false);
-                using var doc = JsonDocument.Parse(text);
-                // The marker of another pool says nothing about this one (the copy it guards is not read for this pool anyway).
-                onDisk = string.Equals(doc.RootElement.GetProperty("endpoint").GetString(), endpoint, StringComparison.Ordinal);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException)
-            {
-                // There was a withdrawal and whose it was is lost: no copy is trusted.
-                Diag.Error("Own Battlegrounds hero statistics: the withdrawal marker is unreadable", ex);
-                onDisk = true;
-            }
-        }
-
-        if (!files.Remembered(file))
+        var marker = await MarkerOnDiskAsync(file, endpoint, cancellationToken).ConfigureAwait(false);
+        var onDisk = marker is MarkerState.Mine or MarkerState.Everyone;
+        if (!files.Remembered(file, endpoint))
         {
             return onDisk;
         }
@@ -288,7 +280,7 @@ public static class OwnBgHeroes
         {
             try
             {
-                await files.Write(marker, Marker(endpoint, DateTime.UtcNow), cancellationToken).ConfigureAwait(false);
+                await WriteMarkerAsync(file, endpoint, DateTime.UtcNow, marker, files, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -299,8 +291,64 @@ public static class OwnBgHeroes
         return true;
     }
 
-    /// <summary>The marker's text: whose withdrawal it is; the time is for a reader of the file, no decision reads it.</summary>
-    private static string Marker(string endpoint, DateTime revokedAt) =>
+    /// <summary>Whose withdrawal the marker file records, as this pool reads it.</summary>
+    private enum MarkerState
+    {
+        /// <summary>No marker file.</summary>
+        None,
+
+        /// <summary>This pool's.</summary>
+        Mine,
+
+        /// <summary>Another pool's: it says nothing about this one (the copy it guards is not read for this pool anyway).</summary>
+        Other,
+
+        /// <summary>Written for every pool, or unreadable (there was a withdrawal and whose it was is lost): no copy is trusted.</summary>
+        Everyone,
+    }
+
+    private static async Task<MarkerState> MarkerOnDiskAsync(string file, string endpoint, CancellationToken cancellationToken)
+    {
+        var marker = MarkerOf(file);
+        if (!File.Exists(marker))
+        {
+            return MarkerState.None;
+        }
+
+        try
+        {
+            var text = await File.ReadAllTextAsync(marker, cancellationToken).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(text);
+            var owner = doc.RootElement.GetProperty("endpoint");
+            if (owner.ValueKind != JsonValueKind.String)
+            {
+                return MarkerState.Everyone;
+            }
+
+            return string.Equals(owner.GetString(), endpoint, StringComparison.Ordinal) ? MarkerState.Mine : MarkerState.Other;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException)
+        {
+            Diag.Error("Own Battlegrounds hero statistics: the withdrawal marker is unreadable", ex);
+            return MarkerState.Everyone;
+        }
+    }
+
+    /// <summary>
+    /// Writes this pool's withdrawal to the one marker file without losing another's: beside another pool's marker
+    /// it becomes a marker for every pool, and a marker that already covers every pool is left as it is. True when
+    /// the marker on disk covers this pool afterwards. Called under the gate.
+    /// </summary>
+    private static async Task<bool> WriteMarkerAsync(string file, string endpoint, DateTime now, MarkerState onDisk, OwnBgHeroesFiles files,
+        CancellationToken cancellationToken) =>
+        onDisk == MarkerState.Everyone
+        || await files.Write(MarkerOf(file), Marker(onDisk == MarkerState.Other ? null : endpoint, now), cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// The marker's text: whose withdrawal it is (null: every pool's); the time is for a reader of the file, no
+    /// decision reads it.
+    /// </summary>
+    private static string Marker(string? endpoint, DateTime revokedAt) =>
         "{\"endpoint\":" + JsonSerializer.Serialize(endpoint) + ",\"revoked\":" +
         new DateTimeOffset(revokedAt).ToUnixTimeMilliseconds().ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
 
@@ -339,8 +387,9 @@ public static class OwnBgHeroes
 }
 
 /// <summary>
-/// The file operations of <see cref="OwnBgHeroes"/> and what this process knows about each copy: the withdrawals, the
-/// order in which the requests started, the gate under which the files change. The app uses <see cref="Shared"/>; a
+/// The file operations of <see cref="OwnBgHeroes"/> and what this process knows about each copy: the gate under which
+/// the files change (one per copy file, whichever pool is asked) and, per pool address of that file, the withdrawal
+/// and the order in which the requests started. The app uses <see cref="Shared"/>; a
 /// test passes its own to make a write fail or to stand for a new start of the app.
 /// </summary>
 internal sealed class OwnBgHeroesFiles
@@ -369,35 +418,59 @@ internal sealed class OwnBgHeroesFiles
         return new Leave(gate);
     }
 
-    /// <summary>Under the gate: what a load that began later already found, when its answer was applied first; else null.</summary>
-    public OwnBgHeroesResult? Superseded(string file, long request)
+    /// <summary>Under the gate: what a later load of the same pool already found, when its answer was applied first; else null.</summary>
+    public OwnBgHeroesResult? Superseded(string file, string endpoint, long request)
     {
-        var copy = Of(file);
-        return copy.AppliedRequest > request ? copy.AppliedResult : null;
+        var pool = Of(file).Pool(endpoint);
+        return pool.AppliedRequest > request ? pool.AppliedResult : null;
     }
 
-    /// <summary>Under the gate: the answer of <paramref name="request"/> is the one in force.</summary>
-    public void Applied(string file, long request, OwnBgHeroesResult result)
+    /// <summary>Under the gate: the answer of <paramref name="request"/> is the one in force for its pool.</summary>
+    public void Applied(string file, string endpoint, long request, OwnBgHeroesResult result)
     {
-        var copy = Of(file);
-        (copy.AppliedRequest, copy.AppliedResult) = (request, result);
+        var pool = Of(file).Pool(endpoint);
+        (pool.AppliedRequest, pool.AppliedResult) = (request, result);
     }
 
-    public void Remember(string file) => Of(file).Withdrawn = true;
+    public void Remember(string file, string endpoint) => Of(file).Pool(endpoint).Withdrawn = true;
 
-    public bool Remembered(string file) => Of(file).Withdrawn;
+    public bool Remembered(string file, string endpoint) => Of(file).Pool(endpoint).Withdrawn;
 
-    public void Forget(string file) => Of(file).Withdrawn = false;
+    /// <summary>
+    /// Under the gate, after the copy was written and the marker removed: no earlier numbers of any pool are left
+    /// on disk, so no withdrawal has anything more to guard.
+    /// </summary>
+    public void Forget(string file) => Of(file).ForgetWithdrawals();
 
     private Copy Of(string file) => _copies.GetOrAdd(file, static _ => new Copy());
 
-    /// <summary>One copy file as the process knows it. The gates live as long as the process: there is one per copy.</summary>
+    /// <summary>
+    /// One copy file as the process knows it. The gates live as long as the process: there is one per copy. The
+    /// request numbers are one sequence per file, so they also order the requests of each pool.
+    /// </summary>
     private sealed class Copy
     {
+        // The address as the copy and the marker keep it: the trimmed text, compared ordinally.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, PoolState> _pools = new(StringComparer.Ordinal);
+
         public long Started;
 
         public SemaphoreSlim Gate { get; } = new(1, 1);
 
+        public PoolState Pool(string endpoint) => _pools.GetOrAdd(endpoint, static _ => new PoolState());
+
+        public void ForgetWithdrawals()
+        {
+            foreach (var pool in _pools.Values)
+            {
+                pool.Withdrawn = false;
+            }
+        }
+    }
+
+    /// <summary>What the process knows about one pool's answers kept in a copy file.</summary>
+    private sealed class PoolState
+    {
         public long AppliedRequest { get; set; }
 
         public OwnBgHeroesResult? AppliedResult { get; set; }

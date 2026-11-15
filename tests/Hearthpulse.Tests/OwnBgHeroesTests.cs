@@ -257,10 +257,10 @@ public sealed class OwnBgHeroesTests : IDisposable
 
     // ---- withdrawn numbers stay withdrawn ----------------------------------------------------------
 
-    private async Task<OwnBgHeroesResult> Load(HttpMessageHandler pool, OwnBgHeroesFiles files)
+    private async Task<OwnBgHeroesResult> Load(HttpMessageHandler pool, OwnBgHeroesFiles files, string endpoint = Endpoint)
     {
         using var http = new HttpClient(pool, disposeHandler: false);
-        return await OwnBgHeroes.LoadAsync(http, Endpoint, _cache, _time, files);
+        return await OwnBgHeroes.LoadAsync(http, endpoint, _cache, _time, files);
     }
 
     private string CopyFile => Path.Combine(_cache, OwnBgHeroes.CacheName);
@@ -574,6 +574,122 @@ public sealed class OwnBgHeroesTests : IDisposable
                 return list[number - 1];
             }
         }
+    }
+
+    // ---- two pools, one cache folder ------------------------------------------------------------------
+
+    private const string OtherEndpoint = "https://other.example/stats";
+
+    [Fact]
+    public async Task Two_pools_answering_in_the_reverse_order_each_get_their_own_answer()
+    {
+        var files = new OwnBgHeroesFiles();
+        var pool = new HeldPool();
+        var first = Load(pool, files);
+        await pool.Asked(1);
+        var second = Load(pool, files, OtherEndpoint);
+        await pool.Asked(2);
+
+        // The later request, of the other pool, is answered first: a withdrawal there.
+        pool.Answer(2, Unavailable("rebuilding"));
+        Assert.Equal(OwnBgHeroesState.Rebuilding, (await second).State);
+
+        // The earlier request is this pool's own: its numbers, not the other pool's "rebuilding".
+        pool.Answer(1, Fixture());
+        var mine = await first;
+        Assert.Equal(OwnBgHeroesState.Ok, mine.State);
+        Assert.NotNull(mine.Group);
+
+        // And the same the other way round: numbers of the later request first, the other pool's withdrawal after.
+        _time.Advance(TimeSpan.FromHours(1));
+        var withdrawn = Load(pool, files, OtherEndpoint);
+        await pool.Asked(3);
+        var published = Load(pool, files);
+        await pool.Asked(4);
+        pool.Answer(4, Fixture());
+        Assert.Equal(OwnBgHeroesState.Ok, (await published).State);
+        pool.Answer(3, Unavailable("not_published"));
+        var theirs = await withdrawn;
+        Assert.Equal(OwnBgHeroesState.NotPublished, theirs.State);
+        Assert.Null(theirs.Group);
+    }
+
+    [Fact]
+    public async Task Within_one_pool_the_order_of_requests_still_holds_while_another_pool_loads()
+    {
+        var files = new OwnBgHeroesFiles();
+        var pool = new HeldPool();
+        var slow = Load(pool, files);
+        await pool.Asked(1);
+        var other = Load(pool, files, OtherEndpoint);
+        await pool.Asked(2);
+        var later = Load(pool, files);
+        await pool.Asked(3);
+
+        pool.Answer(3, Unavailable("rebuilding"));
+        Assert.Equal(OwnBgHeroesState.Rebuilding, (await later).State);
+        pool.Answer(2, Fixture());
+        Assert.Equal(OwnBgHeroesState.Ok, (await other).State);
+
+        // This pool's slow numbers were sent before its withdrawal: they change nothing, whatever the other pool got.
+        pool.Answer(1, Fixture());
+        var late = await slow;
+        Assert.Equal(OwnBgHeroesState.Rebuilding, late.State);
+        Assert.Null(late.Group);
+        _time.Advance(TimeSpan.FromHours(1));
+        var theirs = await Load(new FakePool(null), files, OtherEndpoint);
+        Assert.Equal((OwnBgHeroesState.Ok, true), (theirs.State, theirs.FromOldCopy));
+    }
+
+    [Fact]
+    public async Task The_withdrawal_of_one_pool_does_not_hide_the_copy_of_another()
+    {
+        // The copy on disk is the other pool's, with numbers.
+        var stuck = false;
+        var files = Failing(_ => stuck, deleteFails: true);
+        var kept = await Load(new FakePool(Fixture()), files, OtherEndpoint);
+        _time.Advance(TimeSpan.FromHours(1));
+
+        // This pool withdraws and nothing can be written: only the process knows.
+        stuck = true;
+        Assert.Equal(OwnBgHeroesState.Rebuilding, (await Load(new FakePool(Unavailable("rebuilding")), files)).State);
+        Assert.False(File.Exists(OwnBgHeroes.MarkerOf(CopyFile)));
+
+        // The other pool, offline, still shows its own copy; this pool has none.
+        var theirs = await Load(new FakePool(null), files, OtherEndpoint);
+        Assert.Equal((OwnBgHeroesState.Ok, true, kept.FetchedAt), (theirs.State, theirs.FromOldCopy, theirs.FetchedAt));
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), files)).State);
+
+        // The disk works again: this pool's marker is written, and it names this pool only, in this run and the next.
+        stuck = false;
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), files)).State);
+        Assert.Contains(Endpoint, await File.ReadAllTextAsync(OwnBgHeroes.MarkerOf(CopyFile)), StringComparison.Ordinal);
+        Assert.Equal(OwnBgHeroesState.Ok, (await Load(new FakePool(null), files, OtherEndpoint)).State);
+        Assert.Equal(OwnBgHeroesState.Ok, (await Load(new FakePool(null), new OwnBgHeroesFiles(), OtherEndpoint)).State);
+    }
+
+    [Fact]
+    public async Task A_second_withdrawal_beside_another_pools_marker_keeps_both_after_a_restart()
+    {
+        // The other pool's numbers are on disk and withdrawn by a marker (the copy could not be replaced).
+        var files = Failing(file => file == CopyFile);
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles(), OtherEndpoint);
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(OwnBgHeroesState.Rebuilding, (await Load(new FakePool(Unavailable("rebuilding")), files, OtherEndpoint)).State);
+        Assert.Contains(OtherEndpoint, await File.ReadAllTextAsync(OwnBgHeroes.MarkerOf(CopyFile)), StringComparison.Ordinal);
+
+        // This pool withdraws too, and needs the same marker file: neither withdrawal is lost.
+        Assert.Equal(OwnBgHeroesState.Rebuilding, (await Load(new FakePool(Unavailable("rebuilding")), files)).State);
+        Assert.Contains("\"available\": true", await File.ReadAllTextAsync(CopyFile), StringComparison.Ordinal);
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), new OwnBgHeroesFiles(), OtherEndpoint)).State);
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+
+        // A new publication of either pool replaces the copy: nothing withdrawn is left, the marker goes.
+        var published = await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+        Assert.Equal(OwnBgHeroesState.Ok, published.State);
+        Assert.False(File.Exists(OwnBgHeroes.MarkerOf(CopyFile)));
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), new OwnBgHeroesFiles(), OtherEndpoint)).State);
     }
 
     // ---- never throws -------------------------------------------------------------------------------
