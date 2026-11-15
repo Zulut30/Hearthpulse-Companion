@@ -219,6 +219,7 @@ public sealed partial class BattlegroundsAdvisor
                     return t;
                 }
 
+                row = BattlegroundsMeta.TrinketContext(row, bracket);
                 var stats = BattlegroundsMeta.At(row, bracket);
                 return t with
                 {

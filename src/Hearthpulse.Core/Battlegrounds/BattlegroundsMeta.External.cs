@@ -233,6 +233,7 @@ public sealed partial class BattlegroundsMeta
     {
         var result = new Dictionary<string, MetaTrinket>(StringComparer.Ordinal);
         var atMmr = new Dictionary<string, Dictionary<int, (double, int)>>(StringComparer.Ordinal);
+        var sourceAtMmr = new Dictionary<string, Dictionary<int, (double, DateTime?)>>(StringComparer.Ordinal);
         foreach (var (bracket, list) in byBracket.OrderByDescending(kv => kv.Key))
         {
             if (list.Kind != BgSiteList.Trinkets || !BgSiteParser.Allowed(list.Source))
@@ -249,12 +250,15 @@ public sealed partial class BattlegroundsMeta
                 var pickRate = plain is not null ? plain.PickRate ?? 0 : rows.Sum(e => (e.PickRate ?? 0) * e.Games!.Value) / weight;
 
                 (atMmr.TryGetValue(rows.Key, out var at) ? at : atMmr[rows.Key] = [])[bracket] = (placement, games);
+                (sourceAtMmr.TryGetValue(rows.Key, out var context) ? context : sourceAtMmr[rows.Key] = [])[bracket] =
+                    (pickRate, list.FetchedAt == default ? null : list.FetchedAt);
                 // Widest bracket first: the first row seen is the overall one.
                 result.TryAdd(rows.Key, new MetaTrinket(rows.Key, games, placement, pickRate, atMmr[rows.Key])
                 {
                     External = true,
                     GamesAreMinimum = true,
                     Updated = list.FetchedAt == default ? null : list.FetchedAt,
+                    SourceAtMmr = sourceAtMmr[rows.Key],
                 });
             }
         }

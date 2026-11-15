@@ -38,6 +38,10 @@ public sealed record MetaTrinket(
 
     /// <summary>When the source fetched the row, UTC; null when it does not say (the pool's rows carry the meta's date).</summary>
     public DateTime? Updated { get; init; }
+
+    /// <summary>External source context per MMR slice, kept with that slice's placement and sample.</summary>
+    internal IReadOnlyDictionary<int, (double PickRate, DateTime? Updated)> SourceAtMmr { get; init; } =
+        new Dictionary<int, (double PickRate, DateTime? Updated)>();
 }
 
 public sealed record MetaCompCard(string CardId, string Status);
@@ -194,10 +198,20 @@ public sealed partial class BattlegroundsMeta
     public const int MinTrinketGames = 50;
 
     /// <summary>The trinket's numbers at the bracket; its overall ones when the bracket sample is under <see cref="MinTrinketGames"/>.</summary>
-    internal static (double Placement, double PickRate, int DataPoints) At(MetaTrinket trinket, int bracket) =>
-        trinket.PlacementAtMmr.TryGetValue(bracket, out var at) && at.DataPoints >= MinTrinketGames
-            ? (at.Placement, trinket.PickRate, at.DataPoints)
+    internal static (double Placement, double PickRate, int DataPoints) At(MetaTrinket trinket, int bracket)
+    {
+        var contextual = TrinketContext(trinket, bracket);
+        return trinket.PlacementAtMmr.TryGetValue(bracket, out var at) && at.DataPoints >= MinTrinketGames
+            ? (at.Placement, contextual.PickRate, at.DataPoints)
             : (trinket.AveragePlacement, trinket.PickRate, trinket.DataPoints);
+    }
+
+    /// <summary>A usable external slice's own rate and date; otherwise the overall row's context.</summary>
+    internal static MetaTrinket TrinketContext(MetaTrinket trinket, int bracket) =>
+        trinket.External && trinket.PlacementAtMmr.TryGetValue(bracket, out var at) && at.DataPoints >= MinTrinketGames
+        && trinket.SourceAtMmr.TryGetValue(bracket, out var source)
+            ? trinket with { PickRate = source.PickRate, Updated = source.Updated }
+            : trinket;
 
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, MetaHero>> HeroesByBracket { get; }
 
