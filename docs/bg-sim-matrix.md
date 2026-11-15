@@ -300,7 +300,7 @@
 | BG23_318 | Leeroy the Reckless | implemented | да | DR_DESTROY |
 | BG35_602 | Lurking Leviathan | implemented | да | ON_SUMMON |
 | BG28_309 | Mummifier | implemented | да | DR_KEYWORD |
-| BG27_023 | Murcules | implemented | да | KILL_HAND_BUFF |
+| BG27_023 | Murcules | implemented | да | KILL_HAND_BUFF; у соперника missing_input (рука скрыта) |
 | BGS_040 | Nadina the Red | implemented | да | DR_KEYWORD |
 | BG27_017 | Obsidian Ravager | implemented | да | RALLY_DAMAGE |
 | BG34_690 | Plaguerunner | implemented | да | DR_BUFF |

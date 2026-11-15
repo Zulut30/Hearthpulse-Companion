@@ -68,6 +68,32 @@ internal static class SimCoverBench
             }
         }
 
+        // The app's own capture files: the same fights as a log gives, kept after the game deleted the log.
+        if (options.Captures.Length > 0 && Directory.Exists(options.Captures))
+        {
+            var store = new CombatCaptureStore(options.Captures);
+            foreach (var name in store.Names())
+            {
+                if (store.Load(name) is not { } saved)
+                {
+                    Console.WriteLine($"[sim] {name}: not read (damaged or of another version)");
+                    continue;
+                }
+
+                var game = SimSample.From(saved, $"captures/{name}", cards);
+                // A game whose log is still kept is the same fights twice: it counts once, from the log.
+                if (games.Any(g => Math.Abs((g.StartedAt - game.StartedAt).TotalSeconds) < 2 && g.Fights.Count == game.Fights.Count))
+                {
+                    Console.WriteLine($"[sim] {game.Key}: also in the logs, counted once");
+                    continue;
+                }
+
+                games.Add(game);
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                    $"[sim] {game.Key}: {game.StartedAt:yyyy-MM-dd} build {game.Build} {(game.Duos ? "duos" : "solo")}, {game.Fights.Count} fights, {game.Fights.Count(f => f.Capture is not null)} with boards"));
+            }
+        }
+
         var all = games.SelectMany(g => g.Fights).ToList();
         var fights = all.Where(f => f.Capture is not null).ToList();
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,

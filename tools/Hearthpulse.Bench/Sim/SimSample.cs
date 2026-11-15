@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO;
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Stats;
@@ -158,10 +159,21 @@ internal static class SimSample
         return games;
     }
 
+    /// <summary>
+    /// A game kept in the local capture file (<see cref="CombatCaptureStore"/>) as a game of the sample: the same
+    /// boards the app simulated, flagged "not simulated" by today's card data and effects, as a fight read from a log is.
+    /// </summary>
+    public static SimGame From(SavedCaptures saved, string source, CardDb cards, EffectRegistry? effects = null) =>
+        new(source, saved.StartedAt, saved.Build, saved.Duos, saved.Fights.Select((f, i) =>
+        {
+            var (capture, options) = f.Today(cards, effects ?? EffectRegistry.Default);
+            return new SimFight(string.Create(CultureInfo.InvariantCulture, $"{source}/{i + 1}"), f.Turn, f.Result, f.DamageTaken, f.DamageDealt, capture, options);
+        }).ToList());
+
     /// <summary>The options the app's simulation of <paramref name="captured"/> runs with under <paramref name="budget"/>.</summary>
     public static SimOptions Budgeted(SimOptions captured, SimBudget budget)
     {
-        var app = new BattlegroundsTracker().SimOptions;
+        var app = BattlegroundsTracker.DefaultSimOptions;
         return budget switch
         {
             SimBudget.Quick => BattlegroundsTracker.QuickPass(captured),

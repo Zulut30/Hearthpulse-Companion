@@ -69,18 +69,36 @@ public sealed class MurculesTests
     }
 
     [Fact]
-    public void Murcules_changes_nothing_on_the_board_and_counts_as_simulated_on_both_sides()
+    public void Murcules_changes_nothing_on_the_board_without_a_card_that_summons_from_the_hand()
     {
-        // No card summons from the hand: Murcules 5/3 kills the 1/1 and is left a 5/2, nothing else happens.
+        // Murcules 5/3 kills the 1/1 and is left a 5/2, nothing else happens.
         var ours = Side(Minion(5, 3, cardId: "BG27_023", tribes: Tribe.Murloc)) with { Hand = [Minion(1, 4, cardId: "M", tribes: Tribe.Murloc)] };
         var result = Fight(ours, Side(Minion(1, 1, cardId: "E")), true, Effects(typeof(Murcules)));
 
         Assert.Equal(1, result.Outcome);
         Assert.Equal([(5, 2)], Stats(result.Ours));
-        // The opponent's hand is hidden: their Murcules cannot change this fight unless a card of theirs summons from
-        // the hand, and that card is "not simulated" by itself.
-        Assert.True(EffectRegistry.Default.Implements("BG27_023", golden: false, isOpponent: true));
-        Assert.True(EffectRegistry.Default.Implements("BG27_023", golden: true, isOpponent: false));
-        Assert.False(EffectRegistry.Default.Implements("BG26_350", golden: false, isOpponent: true));
+    }
+
+    [Fact]
+    public void The_opponents_murcules_is_not_simulated_because_their_hand_is_hidden()
+    {
+        // The rule of every effect that reads the hand: simulated for us, flagged for the opponent.
+        Assert.False(EffectRegistry.Default.Implements("BG27_023", golden: false, isOpponent: true));
+        Assert.False(EffectRegistry.Default.Implements("BG27_023", golden: true, isOpponent: true));
+        Assert.True(EffectRegistry.Default.Implements("BG27_023", golden: false, isOpponent: false));
+
+        // As the tracker flags it at capture: combat-relevant, and no effect for this side.
+        var flagged = CombatRelevance.IsUnsimulated("BG27_023", golden: false, combatRelevant: true, grantedMechanics: [], enchantments: [],
+            isOpponent: true, EffectRegistry.Default);
+        Assert.True(flagged);
+        Assert.False(CombatRelevance.IsUnsimulated("BG27_023", golden: false, combatRelevant: true, grantedMechanics: [], enchantments: [],
+            isOpponent: false, EffectRegistry.Default));
+
+        var murcules = Minion(5, 3, cardId: "BG27_023", tribes: Tribe.Murloc) with { HasUnsimulatedEffect = flagged };
+        var item = Assert.Single(CombatSimulator.Explain(Side(murcules), isOpponent: true));
+        Assert.Equal(("BG27_023", UnsimulatedReason.MissingInput), (item.CardId, item.Reason));
+        var odds = CombatSimulator.Run(Side(Minion(1, 1, cardId: "E")), Side(murcules), true, new SimOptions { Runs = 10 });
+        Assert.Equal(1, odds.Unsimulated);
+        Assert.True(odds.Approximate);
     }
 }

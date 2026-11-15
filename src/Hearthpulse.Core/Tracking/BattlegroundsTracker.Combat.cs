@@ -56,6 +56,8 @@ public sealed partial class BattlegroundsTracker
         _boardCaptured = false;
         _boardsSnapshotted = false;
         _removedBy.Clear();
+        // A fight captured for a combat that was never recorded (no opponent named) is not the next combat's.
+        _captures.RemoveAll(c => c.CombatIndex >= _combats.Count);
         _combatOdds = null;
         Interlocked.Increment(ref _simulationGeneration);
         _pendingDamage = -1;
@@ -115,6 +117,7 @@ public sealed partial class BattlegroundsTracker
         }
 
         // Start-of-combat effects have resolved by the first regular attack, so these boards are what actually fights.
+        _minionFacts.Clear();
         var enchantments = Enchantments(game);
         // Health for lethal comes from the leaderboard heroes (the fighting heroes are copies), as it was when the fight
         // started; an opponent tier the combat copy lacks comes from there too.
@@ -140,6 +143,8 @@ public sealed partial class BattlegroundsTracker
         };
         LastCapture = new CombatCapture(ours, theirs, oursFirst, options.FirstAttackerEntityId);
         LastCaptureOptions = options;
+        var board = ours.Minions.Concat(theirs.Minions).Select(m => m.EntityId).ToHashSet();
+        _captures.Add(new CapturedFight(_combats.Count, LastCapture, options, _minionFacts.Values.Where(f => board.Contains(f.EntityId)).OrderBy(f => f.EntityId).ToList()));
         StartSimulation(ours, theirs, oursFirst, options);
     }
 
