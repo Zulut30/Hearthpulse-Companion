@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import worker from "../src/index.js";
-import { rebuildEvents, validateEvent } from "../src/events.js";
+import { pruneEvents, rebuildEvents, validateEvent } from "../src/events.js";
 
 const TODAY = Math.floor(Date.now() / 86_400_000);
 const IID = "1".repeat(32);
@@ -190,4 +190,207 @@ test("the summary leaves out cards seen in fewer than 10 games, or from fewer th
   const summary = JSON.parse(await rebuildEvents(env, true));
   assert.deepEqual(summary.discover, []);
   assert.deepEqual(summary.mulligan, []);
+});
+
+// ---- Opening-hand pairs (metric mulligan.pair_winrate, rules mull-pairs-1) ---------------------------------------
+
+let sequence = 0x1000;
+const install = (n) => (0xabc000 + n).toString(16).padStart(32, "0");
+const hand = (offered, kept) => ({ o: offered, k: kept, r: offered.filter((c) => !kept.includes(c)), n: [] });
+
+/** Stores `count` Ranked games of one install, the first `wins` of them won, in batches of 20. */
+async function send(env, iid, count, wins, overrides) {
+  const games = Array.from({ length: count }, (_, i) => ranked({ id: (sequence++).toString(16).padStart(32, "0"), res: i < wins ? "W" : "L", ...overrides }));
+  for (let i = 0; i < games.length; i += 20) {
+    const response = await post("/v1/events", { v: 1, iid, games: games.slice(i, i + 20) }, env);
+    assert.equal(response.status, 200);
+  }
+}
+
+/** The same cell spread over installs: `perInstall` games each, `winsEach` of them won. */
+async function spread(env, installs, perInstall, winsEach, overrides) {
+  for (const n of installs) await send(env, install(n), perInstall, winsEach, overrides);
+}
+
+const pairs = async (env, query = "fmt=standard&cls=MAGE") =>
+  worker.fetch(new Request(`https://pool.test/v1/events/mulligan-pairs?${query}`), env, { waitUntil() {} });
+
+test("the pair table counts the four keep cells of a pair by hand, and nothing from outside the sample", async () => {
+  const env = sqlite();
+  const AB = ["CARD_A", "CARD_B", "CARD_Z"];
+  // Both kept: 5 installs x 40 games, 24 won each = 200 games, 120 wins.
+  await spread(env, [1, 2, 3, 4, 5], 40, 24, { mull: hand(AB, ["CARD_A", "CARD_B"]) });
+  // Only A kept: 5 installs x 10 games, 4 won each = 50 games, 20 wins.
+  await spread(env, [1, 2, 3, 4, 5], 10, 4, { mull: hand(AB, ["CARD_A"]) });
+  // Only B kept: 6 installs x 2 games, 1 won each = 12 games, 6 wins.
+  await spread(env, [1, 2, 3, 4, 5, 6], 2, 1, { mull: hand(AB, ["CARD_B", "CARD_Z"]) });
+  // Neither kept: 9 games of 5 installs, under the 10 games of a cell: not published.
+  await spread(env, [1, 2, 3, 4], 2, 1, { mull: hand(AB, []) });
+  await send(env, install(5), 1, 1, { mull: hand(AB, ["CARD_Z"]) });
+  // Outside the sample, each of which would change a count above if it leaked in:
+  await send(env, install(1), 3, 3, { mode: "casual", mull: hand(AB, ["CARD_A", "CARD_B"]) });
+  await send(env, install(2), 3, 3, { res: "T", mull: hand(AB, ["CARD_A", "CARD_B"]) });
+  await send(env, install(3), 3, 3, { fmt: "wild", mull: hand(AB, ["CARD_A", "CARD_B"]) });
+  await send(env, install(4), 3, 3, { cls: "PRIEST", mull: hand(AB, ["CARD_A", "CARD_B"]) });
+  await send(env, install(5), 3, 3, { cls: undefined, mull: hand(AB, ["CARD_A", "CARD_B"]) });
+  await send(env, install(6), 3, 3, { day: TODAY - 31, mull: hand(AB, ["CARD_A", "CARD_B"]) });
+  // The window ends today: a record dated tomorrow (a clock running ahead is accepted) waits until tomorrow.
+  await send(env, install(6), 3, 3, { day: TODAY + 1, mull: hand(AB, ["CARD_A", "CARD_B"]) });
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM e WHERE day = ?").get(TODAY + 1).n, 3, "stored, not counted yet");
+  // The first day of the window does count: two more only-B games bring that cell from 12 to 14 below.
+  await send(env, install(6), 2, 1, { day: TODAY - 30, mull: hand(AB, ["CARD_B"]) });
+  // A kept without B on offer says nothing about the pair; both copies of one card are not a pair.
+  await send(env, install(1), 5, 5, { mull: hand(["CARD_A", "CARD_A", "CARD_Q"], ["CARD_A", "CARD_A"]) });
+
+  const response = await pairs(env);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  const text = await response.text();
+  const body = JSON.parse(text);
+  assert.deepEqual({ ...body, updated: 0 }, {
+    v: 1, metric: "mulligan.pair_winrate", rules: "mull-pairs-1", fmt: "standard", cls: "MAGE", window: 30, updated: 0,
+    minGames: 200, minInstalls: 5,
+    pairs: [{ a: "CARD_A", b: "CARD_B", installs: 5, both: [200, 120], onlyA: [50, 20], onlyB: [14, 7], none: null }],
+  });
+  // Nothing that identifies an install, a record or a deck leaves with the totals.
+  for (const secret of [install(1).slice(-6), "AAECAf0EBuwH", "iid", "deck"]) assert.equal(text.includes(secret), false, secret);
+  // Other groups hold nothing of their own: three games are far below the threshold.
+  assert.deepEqual((await (await pairs(env, "fmt=wild&cls=MAGE")).json()).pairs, []);
+  assert.deepEqual((await (await pairs(env, "fmt=standard&cls=PRIEST")).json()).pairs, []);
+});
+
+test("a pair needs 200 games with both kept and 5 installs: 199 games or 4 installs publish nothing", async () => {
+  const short = sqlite();
+  await spread(short, [1, 2, 3, 4], 40, 20, { mull: hand(["CARD_A", "CARD_B"], ["CARD_A", "CARD_B"]) });
+  await send(short, install(5), 39, 20, { mull: hand(["CARD_A", "CARD_B"], ["CARD_A", "CARD_B"]) });
+  assert.deepEqual((await (await pairs(short)).json()).pairs, [], "199 games of 5 installs");
+
+  const few = sqlite();
+  await spread(few, [1, 2, 3, 4], 50, 25, { mull: hand(["CARD_A", "CARD_B"], ["CARD_A", "CARD_B"]) });
+  assert.deepEqual((await (await pairs(few)).json()).pairs, [], "200 games of 4 installs");
+
+  // The 200th game publishes it; a comparison cell of four installs stays hidden.
+  await send(short, install(5), 1, 0, { mull: hand(["CARD_A", "CARD_B"], ["CARD_A", "CARD_B"]) });
+  await spread(short, [1, 2, 3, 4], 5, 2, { mull: hand(["CARD_A", "CARD_B"], ["CARD_A"]) });
+  short.db.exec("DELETE FROM snap");
+  assert.deepEqual((await (await pairs(short)).json()).pairs,
+    [{ a: "CARD_A", b: "CARD_B", installs: 5, both: [200, 100], onlyA: null, onlyB: null, none: null }]);
+});
+
+test("forget withdraws the pair table with the summary, and the rebuilt table has lost the games of that install", async () => {
+  const env = sqlite();
+  await spread(env, [1, 2, 3, 4, 5], 40, 24, { mull: hand(["CARD_A", "CARD_B"], ["CARD_A", "CARD_B"]) });
+  assert.equal((await (await pairs(env)).json()).pairs.length, 1);
+  await worker.fetch(new Request("https://pool.test/v1/events/summary"), env, { waitUntil() {} });
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM snap WHERE mode IN ('events', 'mull-pairs')").get().n, 2);
+
+  const response = await post("/v1/events/forget", { iid: install(3) }, env);
+  assert.deepEqual(await response.json(), { ok: true, deleted: 40 });
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM snap WHERE mode IN ('events', 'mull-pairs')").get().n, 0, "both views withdrawn");
+  assert.deepEqual((await (await pairs(env)).json()).pairs, [], "160 games of 4 installs are under both thresholds");
+
+  // Six installs: forgetting one leaves a published pair without its games.
+  const wide = sqlite();
+  await spread(wide, [1, 2, 3, 4, 5, 6], 40, 24, { mull: hand(["CARD_A", "CARD_B"], ["CARD_A", "CARD_B"]) });
+  assert.deepEqual((await (await pairs(wide)).json()).pairs[0].both, [240, 144]);
+  await post("/v1/events/forget", { iid: install(6) }, wide);
+  assert.deepEqual((await (await pairs(wide)).json()).pairs, [{ a: "CARD_A", b: "CARD_B", installs: 5, both: [200, 120], onlyA: null, onlyB: null, none: null }]);
+});
+
+test("the clean-up withdraws the pair table too, and an empty pool answers an empty list", async () => {
+  const env = sqlite();
+  const empty = await pairs(env);
+  assert.equal(empty.status, 200);
+  assert.deepEqual((await empty.json()).pairs, []);
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM snap WHERE mode = 'mull-pairs'").get().n, 1);
+  await pruneEvents(env);
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM snap WHERE mode = 'mull-pairs'").get().n, 0);
+});
+
+test("GET /v1/events/mulligan-pairs answers 400 to a missing or malformed format or class", async () => {
+  const env = sqlite();
+  for (const query of ["", "fmt=standard", "cls=MAGE", "fmt=classic&cls=MAGE", "fmt=STANDARD&cls=MAGE", "fmt=standard&cls=mage",
+    "fmt=standard&cls=MA", "fmt=standard&cls=MAGE%27--", "fmt=standard&cls=", "fmt=standard%7Cwild&cls=MAGE"]) {
+    const response = await pairs(env, query);
+    assert.equal(response.status, 400, query);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+  }
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM snap").get().n, 0, "a refused request builds nothing");
+  assert.equal((await post("/v1/events/mulligan-pairs?fmt=standard&cls=MAGE", {}, env)).status, 404, "read-only");
+});
+
+// ---- The deletion fence: a forget between a build's reads and its publication (D1 has no transaction across them) --
+
+/** Runs `between` once, at the moment the build has read the records and is about to publish. */
+function interleave(env, between, every = false) {
+  const batch = env.DB.batch;
+  let busy = false;
+  let done = false;
+  env.DB.batch = async (list) => {
+    if (!busy && (every || !done)) {
+      busy = true;
+      done = true;
+      await between();
+      busy = false;
+    }
+    return batch(list);
+  };
+}
+
+test("a forget that lands between the build's reads and its publication is not published by that build", async () => {
+  const env = sqlite();
+  await spread(env, [1, 2, 3, 4, 5], 40, 24, { mull: hand(["CARD_A", "CARD_B"], ["CARD_A", "CARD_B"]) });
+  // Without the fence this build would publish the pair (200 games of 5 installs) it read before the forget.
+  interleave(env, () => post("/v1/events/forget", { iid: install(5) }, env));
+
+  const response = await pairs(env);
+
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).pairs, [], "the build counted again: 160 games of 4 installs");
+  assert.deepEqual(JSON.parse(env.db.prepare("SELECT body FROM snap WHERE mode = 'mull-pairs'").get().body).groups, {});
+  const summary = JSON.parse(env.db.prepare("SELECT body FROM snap WHERE mode = 'events'").get().body);
+  assert.equal(summary.games, 160, "the summary went through the same fence");
+  assert.deepEqual(summary.days, [], "four installs are no day cell");
+  assert.deepEqual(summary.mulligan, []);
+});
+
+test("the summary read is fenced the same way", async () => {
+  const env = sqlite();
+  await spread(env, [1, 2, 3, 4, 5], 4, 2, { mull: hand(["CARD_A", "CARD_B"], ["CARD_A"]) });
+  interleave(env, () => post("/v1/events/forget", { iid: install(1) }, env));
+
+  const response = await worker.fetch(new Request("https://pool.test/v1/events/summary"), env, { waitUntil() {} });
+
+  const summary = await response.json();
+  assert.equal(summary.games, 16);
+  assert.deepEqual(summary.days, []);
+  assert.deepEqual(summary.mulligan, [], "20 offers of 5 installs before the forget, 16 of 4 after");
+});
+
+test("a build that deletions keep overtaking publishes nothing and answers 503", async () => {
+  const env = sqlite();
+  await spread(env, [1, 2, 3, 4, 5], 40, 24, { mull: hand(["CARD_A", "CARD_B"], ["CARD_A", "CARD_B"]) });
+  interleave(env, () => pruneEvents(env), true);
+
+  for (const response of [await pairs(env), await worker.fetch(new Request("https://pool.test/v1/events/summary"), env, { waitUntil() {} })]) {
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get("retry-after"), "30");
+    assert.equal(response.headers.get("cache-control"), "no-store");
+  }
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM snap WHERE mode IN ('events', 'mull-pairs')").get().n, 0);
+  await assert.rejects(rebuildEvents(env, true), /events_build_overtaken/);
+});
+
+test("the fence is a row of snap that deletions raise and nothing else touches", async () => {
+  const env = sqlite();
+  const revision = () => env.db.prepare("SELECT last_row FROM snap WHERE mode = 'events-rev'").get()?.last_row ?? 0;
+  await send(env, install(1), 2, 1, {});
+  await rebuildEvents(env, true);
+  assert.equal(revision(), 0, "storing and building leave it alone");
+  await post("/v1/events/forget", { iid: install(1) }, env);
+  assert.equal(revision(), 1);
+  await pruneEvents(env);
+  assert.equal(revision(), 2);
+  assert.equal(JSON.parse(await rebuildEvents(env, true)).games, 0, "a build after the deletions publishes again");
+  assert.equal(revision(), 2);
 });

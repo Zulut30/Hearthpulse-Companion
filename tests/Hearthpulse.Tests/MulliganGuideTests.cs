@@ -166,29 +166,82 @@ public sealed class MulliganGuideTests
     }
 
     [Fact]
-    public void Synergies_appear_only_with_pair_data()
+    public void A_pair_line_appears_only_with_pair_data_and_moves_no_estimate()
     {
         var hand = new[] { "JAIL_732", "JAIL_719", "CORE_YOP_001" };
         var plain = Compute(Guide(VoidDemonHunter), hand, null);
 
-        // Synthetic pair (no endpoint publishes pairs yet): together 3 points better than the two deltas add up to.
+        // A pair from our own statistics: the games with both kept went 3 points better than keeping each alone adds up to
+        // (56 % - 53 % - 52 % + 52 %), over 40,000 games a cell.
         var guide = Guide(VoidDemonHunter);
-        var baseline = MulliganGuide.Baseline(guide.Cards)!.Value;
-        var together = baseline + plain.Cards[0].Delta!.Value + plain.Cards[1].Delta!.Value + 0.03;
-        var paired = Compute(guide with { Pairs = [new GuidePair("JAIL_719", "JAIL_732", 500, together)] }, hand, null);
+        var paired = Compute(guide with { Pairs = [Pair("JAIL_719", "JAIL_732", 0.56, 0.53, 0.52, 0.52)] }, hand, null);
 
         Assert.Empty(plain.Synergies);
         var synergy = Assert.Single(paired.Synergies);
         Assert.True(paired.HasPairData);
         Assert.Equal(0.03, synergy.Interaction, 6);
         Assert.Equal((1, 2), (synergy.EntityA, synergy.EntityB));
+        Assert.Equal(40000, synergy.Games);
+        Assert.InRange(synergy.Margin, 0.009, 0.010);
         Assert.Single(MulliganGuide.Evaluate(paired, [1, 2]).Synergies);
         Assert.Empty(MulliganGuide.Evaluate(paired, [1]).Synergies);
-        Assert.Equal(0.03 / Math.Sqrt(3), MulliganGuide.Expected(paired, Set(1, 2)) - MulliganGuide.Expected(plain, Set(1, 2)), 6);
+        // An observation beside the cards: the estimate, the recommendation and the calls are what they were without it.
+        Assert.Equal(MulliganGuide.Expected(plain, Set(1, 2)), MulliganGuide.Expected(paired, Set(1, 2)), 12);
+        Assert.Equal(plain.Recommended, paired.Recommended);
+        Assert.Equal(plain.Cards.Select(c => (c.Call, c.Edge)), paired.Cards.Select(c => (c.Call, c.Edge)));
 
         // Too few games together: noise, not a synergy.
-        var thin = Compute(guide with { Pairs = [new GuidePair("JAIL_719", "JAIL_732", 50, together)] }, hand, null);
+        var thin = Compute(guide with { Pairs = [Pair("JAIL_719", "JAIL_732", 0.56, 0.53, 0.52, 0.52) with { Both = new PairCell(199, 111) }] }, hand, null);
         Assert.Empty(thin.Synergies);
+        Assert.True(thin.HasPairData);
+    }
+
+    [Fact]
+    public void The_pair_effect_is_the_difference_of_the_four_cells_with_the_interval_of_that_difference()
+    {
+        // By hand: 240/400 - 100/200 - 45/100 + 20/50 = 0.60 - 0.50 - 0.45 + 0.40 = +0.05. Each cell's variance with one
+        // win and one loss added: 241/402, 101/202, 46/102, 21/52 -> 0.00060025 + 0.00125 + 0.00247597 + 0.00481509
+        // = 0.00914131; 1.96 * sqrt = 0.18740.
+        var pair = new GuidePair("A", "B", 9, new PairCell(400, 240), new PairCell(200, 100), new PairCell(100, 45), new PairCell(50, 20));
+
+        var (interaction, margin) = MulliganGuide.PairEffect(pair)!.Value;
+
+        Assert.Equal(0.05, interaction, 9);
+        Assert.Equal(0.18740, margin, 5);
+        // The effect needs every cell: a hidden one, a thin one, or too few games with both kept gives no number.
+        Assert.Null(MulliganGuide.PairEffect(pair with { Neither = null }));
+        Assert.Null(MulliganGuide.PairEffect(pair with { OnlyA = null }));
+        Assert.Null(MulliganGuide.PairEffect(pair with { OnlyB = new PairCell(MulliganGuide.MinPairCellGames - 1, 10) }));
+        Assert.Null(MulliganGuide.PairEffect(pair with { Both = new PairCell(MulliganGuide.MinPairGames - 1, 100) }));
+        Assert.NotNull(MulliganGuide.PairEffect(pair with { Both = new PairCell(MulliganGuide.MinPairGames, 100), OnlyB = new PairCell(MulliganGuide.MinPairCellGames, 10) }));
+    }
+
+    [Fact]
+    public void A_pair_shows_only_when_the_nominal_interval_of_the_difference_excludes_zero_and_it_is_large_enough()
+    {
+        var guide = Guide(VoidDemonHunter);
+        var hand = new[] { "JAIL_732", "JAIL_719", "CORE_YOP_001" };
+        MulliganView With(GuidePair pair) => Compute(guide with { Pairs = [pair] }, hand, null);
+
+        // The same +3 points over 300 games a cell: the interval of the difference is about 11 points wide each way.
+        var noisy = Pair("JAIL_719", "JAIL_732", 0.56, 0.53, 0.52, 0.52, games: 300);
+        Assert.Empty(With(noisy).Synergies);
+        Assert.True(MulliganGuide.PairEffect(noisy)!.Value.Margin > 0.1);
+
+        // Two win rates whose own intervals are far apart are not the test: both kept wins 60 % against 50 % for each
+        // alone, but with both replaced the deck wins 60 % too - 0.60 - 0.50 - 0.50 + 0.60 is +20, not +10 - and with
+        // both replaced at 40 % the difference is exactly zero.
+        Assert.Empty(With(Pair("JAIL_719", "JAIL_732", 0.60, 0.50, 0.50, 0.40)).Synergies);
+        Assert.Equal(0.20, Assert.Single(With(Pair("JAIL_719", "JAIL_732", 0.60, 0.50, 0.50, 0.60)).Synergies).Interaction, 9);
+
+        // Clear of zero but under 1.5 points: left out as before. A negative one is listed with its sign.
+        Assert.Empty(With(Pair("JAIL_719", "JAIL_732", 0.56, 0.55, 0.50, 0.50, games: 400000)).Synergies);
+        Assert.Equal(-0.04, Assert.Single(With(Pair("JAIL_719", "JAIL_732", 0.50, 0.53, 0.51, 0.50)).Synergies).Interaction, 9);
+
+        // A cell the pool hid: no synergy, whatever the other three say.
+        Assert.Empty(With(Pair("JAIL_719", "JAIL_732", 0.70, 0.50, 0.50, 0.50) with { Neither = null }).Synergies);
+        // The pair of cards that are not both in the hand says nothing.
+        Assert.Empty(With(Pair("JAIL_719", "OTHER_CARD", 0.70, 0.50, 0.50, 0.50)).Synergies);
     }
 
     [Fact]
@@ -276,8 +329,9 @@ public sealed class MulliganGuideTests
     [Fact]
     public void A_coin_shift_of_both_cards_is_no_synergy()
     {
-        // The review's case: A and B together win exactly as their own numbers add up (over all games); on the coin both
-        // are 3 points worse. Measured against the shifted deltas the pair looked like a +6 synergy and kept both at −0.7.
+        // The review's case: A and B together win exactly as keeping each alone adds up to (over all games); on the coin
+        // both are 3 points worse. Measured against the shifted deltas the pair once looked like a +6 synergy and kept
+        // both at −0.7; the pair's effect is now measured inside its own games, so no shift of the card rows reaches it.
         var cards = new List<GuideCard>
         {
             new("A", 1, 1, 1000, 0.5, 1000, 0.51, 2),
@@ -288,7 +342,7 @@ public sealed class MulliganGuideTests
         var guide = new GuideArchetype(1, "Test", "MAGE", cards, [], "test")
         {
             BaselineWinRate = 0.5,
-            Pairs = [new GuidePair("A", "B", 500, 0.52)],
+            Pairs = [Pair("A", "B", 0.52, 0.51, 0.51, 0.50)],
             Slices =
             [
                 new MulliganSlice("legend", MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, 10000, [Row("A", 1, 0), Row("B", 2, 0)]),
@@ -333,10 +387,10 @@ public sealed class MulliganGuideTests
     }
 
     [Fact]
-    public void A_real_synergy_shows_in_the_number_of_the_card_it_keeps()
+    public void An_observed_pair_difference_moves_no_call_and_no_number()
     {
-        // B alone is worse than a replacement, but with A it wins 3 points more than the two add up to: keeping B is
-        // worth that, and its number says so.
+        // B alone is worse than a replacement; the games where it was kept with A went 3 points better than the two add
+        // up to. That is an observation about who kept both, not a reason to keep B: the call and its number ignore it.
         var cards = new List<GuideCard>
         {
             new("A", 1, 1, 1000, 0.5, 1000, 0.530, 2),
@@ -346,7 +400,7 @@ public sealed class MulliganGuideTests
         var guide = new GuideArchetype(1, "Test", "MAGE", cards, [], "test")
         {
             BaselineWinRate = 0.5,
-            Pairs = [new GuidePair("A", "B", 500, 0.5 + 0.03 - 0.005 + 0.03)],
+            Pairs = [Pair("A", "B", 0.555, 0.53, 0.495, 0.50)],
         };
 
         var view = Compute(guide, ["A", "B", "C"], null);
@@ -354,8 +408,8 @@ public sealed class MulliganGuideTests
 
         Assert.Equal(0.03, Assert.Single(view.Synergies).Interaction, 6);
         Assert.True(b.Delta - view.ReplaceDelta < 0);
-        Assert.Equal(MulliganCall.Keep, b.Call);
-        Assert.Equal(b.Delta!.Value - view.ReplaceDelta + 0.03, b.Edge!.Value, 6);
+        Assert.Equal(MulliganCall.Mulligan, b.Call);
+        Assert.Equal(b.Delta!.Value - view.ReplaceDelta, b.Edge!.Value, 6);
         AssertCallsFollowTheEdge(view);
     }
 
@@ -509,6 +563,13 @@ public sealed class MulliganGuideTests
         Assert.Equal(2, MulliganGuide.DeckDifference(deck, new Dictionary<int, int> { [1] = 2, [3] = 1, [5] = 2 }));
         // A larger list (40 cards against 30) is as far away as the cards it adds.
         Assert.Equal(2, MulliganGuide.DeckDifference(deck, new Dictionary<int, int> { [1] = 2, [2] = 2, [3] = 1, [9] = 2 }));
+    }
+
+    /// <summary>A pair with the given win rates in its four cells (both kept, only A, only B, neither), <paramref name="games"/> each.</summary>
+    private static GuidePair Pair(string a, string b, double both, double onlyA, double onlyB, double neither, int games = 40000)
+    {
+        PairCell Cell(double share) => new(games, (int)Math.Round(games * share));
+        return new GuidePair(a, b, 12, Cell(both), Cell(onlyA), Cell(onlyB), Cell(neither));
     }
 
     private static GuideArchetype SliceGuide(params MulliganSlice[] slices) =>

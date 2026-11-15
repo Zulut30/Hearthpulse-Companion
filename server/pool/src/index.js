@@ -9,7 +9,7 @@
 // - the totals are worked out by a cron job at most every 6 hours, and only when new games came in, then kept
 //   as one ready-made JSON row that every read returns (one row read, cached at the edge for 30 minutes).
 
-import { eventsSummary, forgetEvents, pruneEvents, rebuildEvents, submitEvents } from "./events.js";
+import { eventsSummary, forgetEvents, mulliganPairs, pruneEvents, rebuildEvents, submitEvents } from "./events.js";
 
 const CARD = /^[A-Za-z0-9_]{3,64}$/;
 const TRIBE = /^[A-Z0-9_]{2,24}$/;
@@ -55,6 +55,7 @@ export default {
       return url.pathname === "/v1/events" ? submitEvents(body, env, reply) : forgetEvents(body, env, reply);
     }
     if (request.method === "GET" && url.pathname === "/v1/events/summary") return eventsSummary(request, env, ctx, reply);
+    if (request.method === "GET" && url.pathname === "/v1/events/mulligan-pairs") return mulliganPairs(url, env, reply);
     return reply({ error: "not found" }, 404);
   },
 

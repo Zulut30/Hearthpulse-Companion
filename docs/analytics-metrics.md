@@ -40,6 +40,7 @@ computation of an implemented metric is a new `rulesVersion`.
 | Arena | `arena.draft.offer_pick` | defined |
 | Arena | `arena.run.wins` | needs fields |
 | Mulligan | `mulligan.keep` | needs fields |
+| Mulligan | `mulligan.pair_winrate` (`mull-pairs-1`) | **implemented** |
 
 Statuses: `implemented` — computed end to end; `defined` — every field exists (`have`/`derived`), no computation yet;
 `needs_fields` — a field is `add` (a later F1 round) or `unavailable`, so the number does not exist yet.
@@ -64,11 +65,65 @@ Source: result v2 facts `offers[kind = bg_hero]` and `outcome.placement` (see th
 [CLI contract](../tools/Hearthpulse.SourceWorker/README.md#source-v2-and-result-v2)); the server re-checks both
 against the source rows. API: `GET /stats/v2/analytics/bg/heroes?mode=solo`.
 
+## The implemented metric: `mulligan.pair_winrate`, rules `mull-pairs-1`
+
+Opening-hand card pairs (plan 2.4.2). Unlike the metrics above it is computed from the **compact game records**
+(`/v1/events`, table `e`, [game-stats.md](game-stats.md)), not from source captures, so its fields are the
+`record.*` rows of the field matrix and it needs no eligibility.
+
+Unit: one game record of one installation. Sample: Ranked, Standard or Wild, with a class, a result `W` or `L` and a
+mulligan; `day` in [today − 30, today], both ends included (a record dated tomorrow by a clock that runs ahead is
+stored and waits a day). Group: format × class.
+
+**What it is.** An observed association: how the games went in which players kept both cards, against the games in
+which they kept one or neither. It is not a causal effect of keeping them and not a proven gain, and the texts say
+"in games where both were kept the win rate was …", never "keeping both wins …".
+
+- For every pair of **different** cards `a < b` offered together in one opening hand, the record falls into one of
+  four disjoint cells by what was kept: `both`, `onlyA`, `onlyB`, `none`. Each cell is `[games, wins]`.
+- The pair's own number is `both`: numerator wins, denominator **games where both cards were kept**.
+- The comparison cells are the pair's own base numbers: every game in them had both cards on offer, so it comes from
+  a deck that holds both. The class's totals are deliberately not the base: two cards of one strong archetype both
+  win more than the class does, and "pair win rate − (class + card a + card b)" would call that an anti-synergy.
+- Pair difference = `p(both) − p(onlyA) − p(onlyB) + p(none)`: how much better the games with both kept went than
+  the games with each kept alone add up to.
+- **Thresholds.** A pair is listed from 200 games in `both` of at least 5 installations (distinct `iid`), else it is
+  absent. A comparison cell under 5 installations or under 10 games is `null`. At most 200 pairs a group, most
+  played first. Nothing is padded or borrowed from another group.
+- **Uncertainty.** The cells are disjoint, so the nominal 95 % interval of the *difference* is
+  `± 1.96 · √(Σ p(1 − p) / n)` over the four cells (each share smoothed by one win and one loss). The app shows a
+  pair only with all four cells, 30 games or more in each comparison cell, a nominal interval that excludes zero and
+  a difference of at least 1.5 points (`MulliganGuide.PairEffect`). Two separate intervals of two win rates are not
+  this test. This is a filter against noise, not a proof.
+- **The interval is nominal and too narrow.** It leaves out: repeated games of one installation (counted as
+  independent, because only counts are published; `installs` is published beside them); the patches mixed in the
+  30-day window (records carry no game build); the selection by the keep decision (who keeps both, and against
+  what, is the player's choice); and the many pairs looked at with no correction. The app marks it "approximate".
+  A pair everybody keeps has no comparison cells and therefore no value.
+- **Deletion and withdrawal.** `POST /v1/events/forget` and the clean-up delete the published table in the same batch
+  as the records and raise the deletion fence: row `events-rev` of `snap` counts deletions, a build notes it before
+  it reads the records and publishes (one batch, summary and pair table together) only if it has not moved;
+  otherwise it publishes nothing and counts again from the records that are left, three times at most, then the
+  read answers `503`. So a forget that lands between a build's reads and its write is never published by that build,
+  on D1 as in the Node service. The app keeps an answer for 6 hours and keeps **no older copy** for the time the
+  pool is down (a known withdrawal cannot be promised and an older answer shown); an expired copy, or one dated in
+  the future after a clock change, is deleted before the pool is asked. Pairs in memory are looked up again every
+  5 minutes of a mulligan, and dropped when the pool no longer publishes them or its address changes.
+- **Display.** The mulligan panel of both apps: the flag on both cards, and in the card tooltip and the summary
+  details the observed difference, its approximate interval, the games with both kept and the label "Hearthpulse
+  statistics" (our own numbers; never "Hearthpulse data", which names the external ones). The difference is
+  **shown only**: it does not enter the keep/replace call or the estimate of the hand, which are what they were
+  before this metric existed (docs/mulligan-v2.md).
+
+API: `GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>` (both pool entrypoints; `server/pool/README.md`).
+Status on 2026-11-15: computed end to end in code and tests; the production pool holds no records, so the route
+answers an empty list and no pair line is on any screen.
+
 ## Field matrix
 
 `fieldMatrix` in the JSON lists every field a metric names, with its status and source:
 `have` (written by the current recorder or compact record), `derived` (computed reliably from `have` fields), `add`
 (planned for a later F1 round, absent today), `unavailable` (not visible to the player or never uploaded — the metric
-stays unavailable). Source v2 added `start.format`, `start.arena` and `choice.choiceType`; the remaining `add` fields
+stays unavailable). The `record.*` rows are the compact game record's fields (`mulligan.pair_winrate`). Source v2 added `start.format`, `start.arena` and `choice.choiceType`; the remaining `add` fields
 (game and run keys, class, deck key, coin, lobby tribes, mulligan phases, combat boundary and results) are the next
 round's F1 work.

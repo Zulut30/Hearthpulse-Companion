@@ -26,7 +26,7 @@ public sealed record MulliganCardStat(int EntityId, string CardId, string Name, 
 
     /// <summary>
     /// What keeping the card is worth against replacing it, the other cards as recommended, in win rate (0.019 = +1.9
-    /// points): usually <see cref="Delta"/> minus the average replacement's, plus a kept synergy, minus what a kept second
+    /// points): usually <see cref="Delta"/> minus the average replacement's, minus what a kept second
     /// copy already gives. The call always follows its sign; the overlay's bar and number show it. Null for a second copy,
     /// which the duplicate heuristic calls.
     /// </summary>
@@ -79,7 +79,7 @@ public sealed record MulliganView(string Context, double BaseWinRate, IReadOnlyL
     /// <summary>Entity ids of the cards the guide would keep.</summary>
     public IReadOnlyList<int> Recommended { get; init; } = [];
 
-    /// <summary>False while no server endpoint publishes card pairs: synergies cannot be shown.</summary>
+    /// <summary>False while Hearthpulse's statistics hold no card pairs for the class: no pair line can be shown.</summary>
     public bool HasPairData { get; init; }
 
     public IReadOnlyList<MulliganSynergy> Synergies { get; init; } = [];

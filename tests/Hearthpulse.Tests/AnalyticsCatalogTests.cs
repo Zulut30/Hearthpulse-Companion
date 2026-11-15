@@ -80,9 +80,28 @@ public sealed class AnalyticsCatalogTests
         Assert.Equal("heroes", Text(hero, "area"));
         Assert.Equal(new[] { "offers", "outcome" }, hero.GetProperty("eligibility").EnumerateArray().Select(e => e.GetString()));
         Assert.Equal(new[] { "start.build" }, hero.GetProperty("groupBy").EnumerateArray().Select(e => e.GetString()));
-        Assert.Single(metrics, m => Text(m, "status") == "implemented");
+        Assert.Equal(new[] { "bg.hero.offer_pick_placement", "mulligan.pair_winrate" }, metrics.Where(m => Text(m, "status") == "implemented").Select(m => Text(m, "id")));
         // An implemented metric names the rules version its numbers were computed with; nothing else claims one.
         Assert.All(metrics.Where(m => m.TryGetProperty("rulesVersion", out _)), m => Assert.Equal("implemented", Text(m, "status")));
+    }
+
+    [Fact]
+    public void The_pair_metric_is_implemented_with_rules_mull_pairs_1_over_the_compact_record()
+    {
+        using var doc = Catalog();
+        var pair = Assert.Single(doc.RootElement.GetProperty("metrics").EnumerateArray(), m => Text(m, "id") == "mulligan.pair_winrate");
+        Assert.Equal("implemented", Text(pair, "status"));
+        // The client reads only the rules it knows (MulliganPairs.Rules) and the server writes them (events.js).
+        Assert.Equal(Hearthpulse.Core.Pool.MulliganPairs.Rules, Text(pair, "rulesVersion"));
+        Assert.Contains($"const PAIR_RULES = \"{Hearthpulse.Core.Pool.MulliganPairs.Rules}\";",
+            File.ReadAllText(Path.Combine(RepoFiles.Root, "server", "pool", "src", "events.js")), StringComparison.Ordinal);
+        Assert.Equal("mulligan", Text(pair, "area"));
+        Assert.Equal(new[] { "record.fmt", "record.cls" }, pair.GetProperty("groupBy").EnumerateArray().Select(e => e.GetString()));
+        Assert.All(pair.GetProperty("fields").EnumerateArray(), f => Assert.StartsWith("record.", f.GetString(), StringComparison.Ordinal));
+        Assert.Contains("both cards were kept", Text(pair, "denominator"), StringComparison.Ordinal);
+        foreach (var part in new[] { "200 games", "MIN_PAIR_GAMES", "5 installations", "MIN_CELL", "excludes zero" })
+            Assert.Contains(part, Text(pair, "smallSample"), StringComparison.Ordinal);
+        Assert.Contains("mulligan-pairs", Text(pair, "api"), StringComparison.Ordinal);
     }
 
     // The pool publishes no number made of fewer than 5 installations (docs/analytics-api.md); the catalog says so per metric.
