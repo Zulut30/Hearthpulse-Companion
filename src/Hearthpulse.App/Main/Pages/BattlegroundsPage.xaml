@@ -83,6 +83,71 @@
                 </Grid>
             </Grid>
 
+            <!-- The own hero statistics of Hearthpulse (metric bg.hero.offer_pick_placement, docs/analytics-api.md): on the
+                 Heroes tab above the external tier list, with its own sample and date; a value the pool keeps back reads
+                 "not enough data". Hidden without a stats pool and in Duos. Same tree as the Avalonia page. -->
+            <Border x:Name="BgOwnCard" Style="{StaticResource Card}" Margin="0,0,0,24" Visibility="{Binding ShowBgOwn, Converter={StaticResource Vis}}">
+                <StackPanel>
+                    <c:Ornament Text="{i:Loc Main.BgOwn.Title}" Icon="&#xF0128;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,12" />
+                    <StackPanel Visibility="{Binding BgOwn.HasRows, Converter={StaticResource Vis}}">
+                        <TextBlock x:Name="BgOwnSummary" Text="{Binding BgOwn.Summary}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{i:Loc Main.Table.Hero}" Style="{StaticResource TableHead}" />
+                            <TextBlock Grid.Column="1" Width="88" TextAlignment="Right" Text="{i:Loc Main.BgOwn.Offered}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.BgOwn.OfferedTip}" />
+                            <TextBlock Grid.Column="2" Width="112" TextAlignment="Right" Text="{i:Loc Main.BgOwn.Picked}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.BgOwn.PickedTip}" />
+                            <TextBlock Grid.Column="3" Width="124" TextAlignment="Right" Text="{i:Loc Main.Table.PickRate}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.BgOwn.PickRateTip}" />
+                            <TextBlock Grid.Column="4" Width="156" TextAlignment="Right" Text="{i:Loc Main.Table.AvgPlacement}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.BgOwn.PlaceTip}" />
+                            <TextBlock Grid.Column="5" Width="124" TextAlignment="Right" Text="{i:Loc Main.Table.Top4}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.BgOwn.Top4Tip}" />
+                        </Grid>
+                        <ItemsControl x:Name="BgOwnList" ItemsSource="{Binding BgOwnRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type m:BgOwnRow}">
+                                    <Border Style="{StaticResource RowBorder}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                                            <TextBlock Grid.Column="1" Width="88" TextAlignment="Right" Text="{Binding Offered}" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Width="112" TextAlignment="Right" Text="{Binding Picked}" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="3" Width="124" VerticalAlignment="Center">
+                                                <TextBlock TextAlignment="Right" Text="{Binding PickRate}" FontSize="{StaticResource FontSizeLabel}" />
+                                                <TextBlock TextAlignment="Right" Text="{Binding PickRange}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="4" Width="156" VerticalAlignment="Center">
+                                                <TextBlock TextAlignment="Right" Text="{Binding Place}" FontSize="{StaticResource FontSizeLabel}" />
+                                                <TextBlock TextAlignment="Right" Text="{Binding PlaceDetail}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="5" Width="124" VerticalAlignment="Center">
+                                                <TextBlock TextAlignment="Right" Text="{Binding Top4}" FontSize="{StaticResource FontSizeLabel}" />
+                                                <TextBlock TextAlignment="Right" Text="{Binding Top4Range}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock x:Name="BgOwnNote" Text="{Binding BgOwn.Note}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,12,0,0" />
+                    </StackPanel>
+                    <ContentControl x:Name="BgOwnEmpty" Style="{StaticResource EmptyState}" Tag="{Binding BgOwn.EmptyGlyph}" Content="{Binding BgOwn.EmptyText}"
+                                    Visibility="{Binding BgOwn.HasRows, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                </StackPanel>
+            </Border>
+
             <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
             <s:BattlegroundsStatsView x:Name="BgStats" Visibility="{Binding IsChecked, ElementName=TabMine, Converter={StaticResource Vis}}" />
 

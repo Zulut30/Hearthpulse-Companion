@@ -138,6 +138,7 @@ public sealed partial class MainViewModel
         RebuildCompRows();
         RebuildBgPicker();
         Raise(nameof(ShowBgMode));
+        Raise(nameof(ShowBgOwn));
     }
 
     /// <summary>The open tab of the page ("Mine", "Heroes", "Comps", "Trinkets", "Cards"): the pickers follow it.</summary>
@@ -151,6 +152,7 @@ public sealed partial class MainViewModel
         _bgTab = tab;
         RebuildBgPicker();
         Raise(nameof(ShowBgMode));
+        Raise(nameof(ShowBgOwn));
     }
 
     /// <summary>The picker's choice (a percent: 50, 20, 5, 1) for the open tab's list.</summary>
@@ -176,6 +178,7 @@ public sealed partial class MainViewModel
     {
         ShowHeroes(quiet: false);
         RebuildBgPicker();
+        Raise(nameof(ShowBgOwn));
     }
 
     /// <summary>The player's own games by hero ("12 · 3.90") for the "You" column, per mode.</summary>
@@ -208,6 +211,7 @@ public sealed partial class MainViewModel
         RebuildCardRows();
         RebuildCompRows();
         RebuildBgPicker();
+        RebuildBgOwn();
     }
 
     // ---- slices ---------------------------------------------------------------------------------

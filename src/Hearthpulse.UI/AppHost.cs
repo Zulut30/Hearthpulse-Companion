@@ -13,6 +13,7 @@ using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
@@ -418,6 +419,7 @@ public sealed partial class AppHost : IDisposable
         // The tier tabs' lists come from another host: beside the meta, not after it, so a slow answer of either
         // holds the other back as little as a fresh cache does.
         LoadBgSiteAsync().Forget("Battlegrounds site stats load");
+        LoadBgOwnAsync().Forget("Own Battlegrounds hero statistics load");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings);
         if (meta is not null)
         {
@@ -452,6 +454,12 @@ public sealed partial class AppHost : IDisposable
         Main.SetBgSiteStats(stats);
         return stats;
     }
+
+    /// <summary>
+    /// Hearthpulse's own hero statistics for the Heroes tab (docs/analytics-api.md): read from the stats pool when one
+    /// is set up, beside the meta and on the same refresh. Without a pool nothing is asked and the block stays hidden.
+    /// </summary>
+    private async Task LoadBgOwnAsync() => Main.SetBgOwn(await OwnBgHeroes.LoadAsync(Http, Settings));
 
     public Task ImportLogsAsync(bool force) => Main.ImportLogsAsync(InstallDirectory, force);
 

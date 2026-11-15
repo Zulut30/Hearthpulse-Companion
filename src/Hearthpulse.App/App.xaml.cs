@@ -411,6 +411,7 @@ public partial class App : Application
         // The tier tabs' lists come from another host: beside the meta, not after it, so a slow answer of either
         // holds the other back as little as a fresh cache does.
         LoadBgSiteAsync().Forget("Battlegrounds site stats load");
+        LoadBgOwnAsync().Forget("Own Battlegrounds hero statistics load");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(_api, _http, _settings);
         if (meta is not null)
         {
@@ -442,6 +443,12 @@ public partial class App : Application
         _mainViewModel.SetBgSiteStats(stats);
         return stats;
     }
+
+    /// <summary>
+    /// Hearthpulse's own hero statistics for the Heroes tab (docs/analytics-api.md): read from the stats pool when one
+    /// is set up, beside the meta and on the same refresh. Without a pool nothing is asked and the block stays hidden.
+    /// </summary>
+    private async Task LoadBgOwnAsync() => _mainViewModel.SetBgOwn(await OwnBgHeroes.LoadAsync(_http, _settings));
 
     /// <summary>The 6-hour refresh of both metas; their parsing garbage is collected once things are quiet.</summary>
     private async Task RefreshMetaAsync()

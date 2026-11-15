@@ -44,6 +44,7 @@ internal static partial class OffscreenRenderer
         if (RenderOnly("mystats")) await RenderMyStatsAsync(main, view, host, folder);
         if (RenderOnly("metatiers")) await RenderMetaTiersAsync(main, view, host, folder);
         if (RenderOnly("bgtabs")) await RenderBgTabsAsync(main, view, host, folder);
+        if (RenderOnly("bgown")) await RenderBgOwnAsync(main, view, host, folder);
         if (RenderOnly("sourcecapture"))
         {
             view.ShowPage("Overview");
