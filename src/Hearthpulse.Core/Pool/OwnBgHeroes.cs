@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Data;
 
 namespace Hearthpulse.Core.Pool;
@@ -108,8 +107,31 @@ public static class OwnBgHeroes
     }
 
     /// <summary>As the overload with settings, for a pool base address; anything but https is "not configured" and is not asked.</summary>
-    public static async Task<OwnBgHeroesResult> LoadAsync(HttpClient http, string endpoint, string? cacheDirectory = null, TimeProvider? time = null,
-        CancellationToken cancellationToken = default)
+    public static Task<OwnBgHeroesResult> LoadAsync(HttpClient http, string endpoint, string? cacheDirectory = null, TimeProvider? time = null,
+        CancellationToken cancellationToken = default) =>
+        LoadAsync(http, endpoint, cacheDirectory, time, OwnBgHeroesFiles.Shared, cancellationToken);
+
+    /// <summary>
+    /// The load itself. <paramref name="files"/> writes and deletes the files and remembers withdrawals for the life
+    /// of the process; tests pass their own (a new one is "the app started again").
+    ///
+    /// <para><b>Withdrawn numbers are never shown again.</b> When the pool answers "not available" (not published,
+    /// rebuilding, unsupported), every copy with numbers written before that moment is dead, whatever happens to
+    /// the files afterwards. The ladder, each step taken only when the one before failed:</para>
+    /// <list type="number">
+    /// <item>the withdrawal and its time are remembered in the process, before any file is touched;</item>
+    /// <item>the copy is replaced by the answer (then no numbers are left on disk);</item>
+    /// <item>a marker file with the time of the withdrawal is written beside the copy: a copy fetched at or before
+    /// that time is not shown, in this run or the next;</item>
+    /// <item>the copy is deleted;</item>
+    /// <item>nothing could be written: the process still hides the copy, and every later load writes the marker
+    /// again until it succeeds.</item>
+    /// </list>
+    /// <para>A marker that exists and cannot be read hides every copy. A new publication written to disk is newer
+    /// than the marker and removes it.</para>
+    /// </summary>
+    internal static async Task<OwnBgHeroesResult> LoadAsync(HttpClient http, string endpoint, string? cacheDirectory, TimeProvider? time,
+        OwnBgHeroesFiles files, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(http);
         if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(uri.UserInfo))
@@ -124,6 +146,13 @@ public static class OwnBgHeroes
         try
         {
             var copy = await ReadCopyAsync(file, endpoint, cancellationToken).ConfigureAwait(false);
+            var revokedAt = await RevokedAtAsync(file, endpoint, files, cancellationToken).ConfigureAwait(false);
+            if (copy is { Snapshot.Available: true } dead && revokedAt is { } at && dead.FetchedAt <= at)
+            {
+                // The pool took these numbers back after this copy was written: it is as if there were none.
+                copy = null;
+            }
+
             // A copy from the future (the clock was set back) is not young: the pool is asked.
             if (copy is { } young && now >= young.FetchedAt && now - young.FetchedAt < MaxAge)
             {
@@ -132,8 +161,20 @@ public static class OwnBgHeroes
 
             if (await AnalyticsClient.FetchBgHeroesAsync(http, endpoint, cancellationToken).ConfigureAwait(false) is { } answer)
             {
-                // Every answer replaces the copy, "withdrawn" included: numbers the pool took back do not outlive it here.
-                await HearthpulseData.WriteCacheAsync(file, Envelope(endpoint, now, answer.Body), cancellationToken).ConfigureAwait(false);
+                var envelope = Envelope(endpoint, now, answer.Body);
+                if (answer.Snapshot.Available)
+                {
+                    // A new publication: once it is on disk it is newer than any withdrawal, and the marker goes.
+                    if (await files.Write(file, envelope, cancellationToken).ConfigureAwait(false) && files.Delete(MarkerOf(file)))
+                    {
+                        files.Forget(file);
+                    }
+                }
+                else
+                {
+                    await WithdrawAsync(file, endpoint, now, envelope, files, cancellationToken).ConfigureAwait(false);
+                }
+
                 return OwnBgHeroesResult.From(answer.Snapshot, now);
             }
 
@@ -153,6 +194,90 @@ public static class OwnBgHeroes
             return OwnBgHeroesResult.Of(OwnBgHeroesState.Offline);
         }
     }
+
+    internal static string MarkerOf(string file) => Path.ChangeExtension(file, ".revoked");
+
+    /// <summary>The pool withdrew its numbers at <paramref name="now"/>: the ladder described on the load.</summary>
+    private static async Task WithdrawAsync(string file, string endpoint, DateTime now, string envelope, OwnBgHeroesFiles files, CancellationToken cancellationToken)
+    {
+        files.Remember(file, now);
+        try
+        {
+            if (await files.Write(file, envelope, cancellationToken).ConfigureAwait(false))
+            {
+                // No numbers are left on disk; a marker of an earlier withdrawal has nothing more to guard.
+                if (files.Delete(MarkerOf(file)))
+                {
+                    files.Forget(file);
+                }
+
+                return;
+            }
+
+            if (await files.Write(MarkerOf(file), Marker(endpoint, now), cancellationToken).ConfigureAwait(false))
+            {
+                return;
+            }
+
+            if (!files.Delete(file))
+            {
+                Diag.Info("Own Battlegrounds hero statistics: withdrawn numbers could not be removed from disk; they stay hidden and the marker is written again on the next load");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Remembered in the process; the next load writes the marker.
+        }
+    }
+
+    /// <summary>
+    /// When the pool last withdrew its numbers, from the process and the marker file together; null when it never did.
+    /// A withdrawal the process knows and the disk does not is written again here.
+    /// </summary>
+    private static async Task<DateTime?> RevokedAtAsync(string file, string endpoint, OwnBgHeroesFiles files, CancellationToken cancellationToken)
+    {
+        var marker = MarkerOf(file);
+        DateTime? onDisk = null;
+        if (File.Exists(marker))
+        {
+            try
+            {
+                var text = await File.ReadAllTextAsync(marker, cancellationToken).ConfigureAwait(false);
+                using var doc = JsonDocument.Parse(text);
+                // The marker of another pool says nothing about this one (whose copy would be another file's content anyway).
+                onDisk = string.Equals(doc.RootElement.GetProperty("endpoint").GetString(), endpoint, StringComparison.Ordinal)
+                    ? DateTimeOffset.FromUnixTimeMilliseconds(doc.RootElement.GetProperty("revoked").GetInt64()).UtcDateTime
+                    : null;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or FormatException
+                or KeyNotFoundException or ArgumentOutOfRangeException)
+            {
+                // There was a withdrawal and its time is lost: no copy is trusted.
+                Diag.Error("Own Battlegrounds hero statistics: the withdrawal marker is unreadable", ex);
+                onDisk = DateTime.MaxValue;
+            }
+        }
+
+        if (files.Remembered(file) is { } inProcess && (onDisk is null || onDisk < inProcess))
+        {
+            try
+            {
+                await files.Write(marker, Marker(endpoint, inProcess), cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // The process still knows; the next load tries again.
+            }
+
+            return inProcess;
+        }
+
+        return onDisk;
+    }
+
+    private static string Marker(string endpoint, DateTime revokedAt) =>
+        "{\"endpoint\":" + JsonSerializer.Serialize(endpoint) + ",\"revoked\":" +
+        new DateTimeOffset(revokedAt).ToUnixTimeMilliseconds().ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
 
     private static string Envelope(string endpoint, DateTime fetchedAt, string body) =>
         "{\"endpoint\":" + JsonSerializer.Serialize(endpoint) + ",\"fetched\":" +
@@ -184,6 +309,65 @@ public static class OwnBgHeroes
         {
             Diag.Error("Own Battlegrounds hero statistics: the copy on disk is unreadable", ex);
             return null;
+        }
+    }
+}
+
+/// <summary>
+/// The file operations of <see cref="OwnBgHeroes"/> and the withdrawals this process knows of. The app uses
+/// <see cref="Shared"/>; a test passes its own to make a write fail or to stand for a new start of the app.
+/// </summary>
+internal sealed class OwnBgHeroesFiles
+{
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _revoked = new(StringComparer.OrdinalIgnoreCase);
+
+    public static OwnBgHeroesFiles Shared { get; } = new();
+
+    /// <summary>Writes a file whole (through a temporary file); false when it could not be written.</summary>
+    public Func<string, string, CancellationToken, Task<bool>> Write { get; init; } = WriteWholeAsync;
+
+    /// <summary>Deletes a file; true when it is gone afterwards (or was never there).</summary>
+    public Func<string, bool> Delete { get; init; } = DeleteFile;
+
+    public void Remember(string file, DateTime revokedAt) =>
+        _revoked.AddOrUpdate(file, static (_, at) => at, static (_, known, at) => known > at ? known : at, revokedAt);
+
+    public DateTime? Remembered(string file) => _revoked.TryGetValue(file, out var at) ? at : null;
+
+    public void Forget(string file) => _revoked.TryRemove(file, out _);
+
+    private static async Task<bool> WriteWholeAsync(string file, string text, CancellationToken cancellationToken)
+    {
+        var temp = file + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+            await File.WriteAllTextAsync(temp, text, cancellationToken).ConfigureAwait(false);
+            File.Move(temp, file, overwrite: true);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error($"Own Battlegrounds hero statistics: {Path.GetFileName(file)} not written", ex);
+            return false;
+        }
+        finally
+        {
+            // A cancelled or failed write leaves no temporary file behind (after the move there is none).
+            DeleteFile(temp);
+        }
+    }
+
+    private static bool DeleteFile(string file)
+    {
+        try
+        {
+            File.Delete(file);
+            return !File.Exists(file);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 }

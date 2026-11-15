@@ -336,7 +336,7 @@
   "Main.BgOwn.SmallNote": "\"Not enough data\": a value appears once at least five installations have picked the hero and there are 10 games.",
   "Main.BgOwn.Suppressed": "{0:N0} more hero is hidden: it was offered to fewer than five installations.|{0:N0} more heroes are hidden: they were offered to fewer than five installations.",
   "Main.BgOwn.NotPublished": "No own data yet: the statistics appear once at least five installations have sent games",
-  "Main.BgOwn.Rebuilding": "The statistics are being rebuilt: some games were deleted at players' request. The numbers return after the rebuild.",
+  "Main.BgOwn.Rebuilding": "The numbers are being recalculated: the earlier ones were withdrawn, new ones will appear after the next build.",
   "Main.BgOwn.Offline": "Could not get the Hearthpulse statistics. Check your connection: the request repeats with the next data refresh.",
   "Main.BgOwn.NoRows": "Games are arriving, but every hero has been offered to fewer than five installations so far"
 }

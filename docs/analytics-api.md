@@ -123,7 +123,11 @@ invalid JSON or a non-https endpoint. Hidden numbers arrive as `null` (`Picked`,
 (`Presentation/Main/MainViewModel.BgOwn.cs`, `BattlegroundsPage.xaml` / `.axaml`). The address is
 `PoolClient.Endpoint(settings)`; without an https pool nothing is asked (`NotConfigured`, block hidden, as for
 `unsupported_mode`). Each answer is kept in `cache/api/pool-bg-heroes-solo.json` with its address and time and reused
-for 30 minutes; `not_published` and `rebuilding` replace the copy too, so withdrawn numbers do not stay on disk. When
+for 30 minutes. A "not available" answer (`not_published`, `rebuilding`, `unsupported_mode`) withdraws every earlier
+copy for good: the copy is replaced by the answer; if that fails, a marker `pool-bg-heroes-solo.revoked` with the time
+of the withdrawal is written and a copy fetched at or before it is never shown; if that fails too, the copy is deleted;
+and if nothing can be written the process keeps the withdrawal and writes the marker on a later load. An unreadable
+marker hides every copy; a new publication written to disk removes the marker. When
 the pool does not answer, an earlier copy with numbers is shown with its own date, otherwise the state is `Offline`.
 The block shows the newest build's rows only (builds are never merged): offered, picked, pick rate, mean place and
 top 4 with their intervals, above them games (`captures`), installations (`sources`), the window, the publication

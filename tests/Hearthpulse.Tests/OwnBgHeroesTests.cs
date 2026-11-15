@@ -255,6 +255,168 @@ public sealed class OwnBgHeroesTests : IDisposable
         Assert.Equal(OwnBgHeroesState.NotPublished, result.State);
     }
 
+    // ---- withdrawn numbers stay withdrawn ----------------------------------------------------------
+
+    private async Task<OwnBgHeroesResult> Load(FakePool pool, OwnBgHeroesFiles files)
+    {
+        using var http = new HttpClient(pool, disposeHandler: false);
+        return await OwnBgHeroes.LoadAsync(http, Endpoint, _cache, _time, files);
+    }
+
+    private string CopyFile => Path.Combine(_cache, OwnBgHeroes.CacheName);
+
+    /// <summary>Real files, except that the named ones cannot be written (and, when asked, not deleted either).</summary>
+    private static OwnBgHeroesFiles Failing(Func<string, bool> fails, bool deleteFails = false)
+    {
+        var real = new OwnBgHeroesFiles();
+        return new OwnBgHeroesFiles
+        {
+            Write = (file, text, token) => fails(file) ? Task.FromResult(false) : real.Write(file, text, token),
+            Delete = file => !(deleteFails && fails(file)) && real.Delete(file),
+        };
+    }
+
+    [Fact]
+    public async Task A_withdrawal_whose_copy_could_not_be_replaced_still_hides_the_numbers_after_a_restart()
+    {
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+        _time.Advance(TimeSpan.FromHours(1));
+
+        // The copy cannot be replaced (another program holds it): the answer is shown, the old numbers stay on disk.
+        var stuck = Failing(file => file == CopyFile);
+        Assert.Equal(OwnBgHeroesState.Rebuilding, (await Load(new FakePool(Unavailable("rebuilding")), stuck)).State);
+        Assert.Contains("\"available\": true", await File.ReadAllTextAsync(CopyFile), StringComparison.Ordinal);
+        Assert.True(File.Exists(OwnBgHeroes.MarkerOf(CopyFile)));
+
+        // Offline in the same run, and in a new one (nothing in memory: only the marker on disk).
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), stuck)).State);
+        var restarted = await Load(new FakePool(null), new OwnBgHeroesFiles());
+        Assert.Equal((OwnBgHeroesState.Offline, false), (restarted.State, restarted.FromOldCopy));
+        Assert.Null(restarted.Group);
+    }
+
+    [Theory]
+    [InlineData("not_published")]
+    [InlineData("rebuilding")]
+    [InlineData("unsupported_mode")]
+    public async Task Every_not_available_answer_withdraws_the_earlier_copy(string reason)
+    {
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+        _time.Advance(TimeSpan.FromHours(1));
+        await Load(new FakePool(Unavailable(reason)), Failing(file => file == CopyFile));
+        _time.Advance(TimeSpan.FromHours(1));
+
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+    }
+
+    [WindowsFact]
+    public async Task A_copy_held_open_by_another_program_does_not_bring_withdrawn_numbers_back()
+    {
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+        _time.Advance(TimeSpan.FromHours(1));
+
+        // Held for reading: it can be read, not renamed over and not deleted.
+        await using (new FileStream(CopyFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            Assert.Equal(OwnBgHeroesState.Rebuilding, (await Load(new FakePool(Unavailable("rebuilding")), new OwnBgHeroesFiles())).State);
+        }
+
+        Assert.Contains("\"available\": true", await File.ReadAllTextAsync(CopyFile), StringComparison.Ordinal);
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+    }
+
+    [Fact]
+    public async Task A_new_publication_shows_numbers_again_and_removes_the_marker()
+    {
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+        _time.Advance(TimeSpan.FromHours(1));
+        await Load(new FakePool(Unavailable("rebuilding")), Failing(file => file == CopyFile));
+        _time.Advance(TimeSpan.FromHours(1));
+
+        var published = await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+
+        Assert.Equal(OwnBgHeroesState.Ok, published.State);
+        Assert.False(File.Exists(OwnBgHeroes.MarkerOf(CopyFile)));
+        _time.Advance(TimeSpan.FromHours(1));
+        var offline = await Load(new FakePool(null), new OwnBgHeroesFiles());
+        Assert.Equal((OwnBgHeroesState.Ok, true, published.FetchedAt), (offline.State, offline.FromOldCopy, offline.FetchedAt));
+    }
+
+    [Fact]
+    public async Task A_new_publication_that_cannot_be_kept_is_shown_now_and_the_old_copy_stays_hidden()
+    {
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+        _time.Advance(TimeSpan.FromHours(1));
+        var stuck = Failing(file => file == CopyFile);
+        await Load(new FakePool(Unavailable("rebuilding")), stuck);
+        _time.Advance(TimeSpan.FromHours(1));
+
+        Assert.Equal(OwnBgHeroesState.Ok, (await Load(new FakePool(Fixture()), stuck)).State);
+
+        // The copy on disk is still the one from before the withdrawal.
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+    }
+
+    [Fact]
+    public async Task When_nothing_can_be_written_the_process_hides_the_numbers_and_writes_the_marker_later()
+    {
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+        _time.Advance(TimeSpan.FromHours(1));
+        var broken = true;
+        var files = Failing(_ => broken, deleteFails: true);
+
+        // Neither the copy nor the marker can be written and the copy cannot be deleted: no exception, no old numbers.
+        Assert.Equal(OwnBgHeroesState.Rebuilding, (await Load(new FakePool(Unavailable("rebuilding")), files)).State);
+        Assert.False(File.Exists(OwnBgHeroes.MarkerOf(CopyFile)));
+        Assert.Contains("\"available\": true", await File.ReadAllTextAsync(CopyFile), StringComparison.Ordinal);
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), files)).State);
+
+        // The disk works again: the next load of the same run writes the marker, and a new run honours it.
+        broken = false;
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), files)).State);
+        Assert.True(File.Exists(OwnBgHeroes.MarkerOf(CopyFile)));
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+    }
+
+    [Fact]
+    public async Task When_only_deleting_works_the_withdrawn_copy_is_deleted()
+    {
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+        _time.Advance(TimeSpan.FromHours(1));
+
+        await Load(new FakePool(Unavailable("not_published")), Failing(_ => true));
+
+        Assert.False(File.Exists(CopyFile));
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+    }
+
+    [Fact]
+    public async Task A_marker_that_cannot_be_read_hides_every_copy_until_a_new_publication()
+    {
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+        await File.WriteAllTextAsync(OwnBgHeroes.MarkerOf(CopyFile), "{\"endpoint\":");
+        _time.Advance(TimeSpan.FromHours(1));
+
+        Assert.Equal(OwnBgHeroesState.Offline, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+        Assert.Equal(OwnBgHeroesState.Ok, (await Load(new FakePool(Fixture()), new OwnBgHeroesFiles())).State);
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(OwnBgHeroesState.Ok, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+    }
+
+    [Fact]
+    public async Task The_marker_of_another_pool_does_not_hide_the_copy_of_this_one()
+    {
+        await Load(new FakePool(Fixture()), new OwnBgHeroesFiles());
+        await File.WriteAllTextAsync(OwnBgHeroes.MarkerOf(CopyFile), "{\"endpoint\":\"https://other.example/stats\",\"revoked\":99999999999999}");
+        _time.Advance(TimeSpan.FromHours(1));
+
+        Assert.Equal(OwnBgHeroesState.Ok, (await Load(new FakePool(null), new OwnBgHeroesFiles())).State);
+    }
+
     // ---- never throws -------------------------------------------------------------------------------
 
     [Fact]
