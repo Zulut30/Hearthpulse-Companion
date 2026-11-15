@@ -143,7 +143,7 @@ rule 6). A slice that is not listed, or that the service does not answer for, is
 
 - `POST v1/games` - shared Battlegrounds games (`PoolClient.SubmitAsync`; sent by both apps through
   `Core/Hosting/PoolSharingHost.cs`).
-- `POST v1/constructed` - Discover-style picks of shared Ranked/Casual games, consent version 4
+- `POST v1/constructed` - Discover-style picks of shared Ranked/Casual games
   (`PoolClient.SubmitConstructedAsync`, `ConstructedPoolGame`; the same host).
 - `GET v1/stats`, `v1/meta` - Battlegrounds totals and base stats (`OverlayAsync`).
 - `GET v1/choices?format=standard|wild` - pick totals of shared games; the server still serves it, but since

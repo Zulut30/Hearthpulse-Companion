@@ -20,12 +20,12 @@ Hearthpulse ships that table empty: upstream filled it once from a third-party s
 part of this repository. Fill it only from a source you are allowed to redistribute.
 
 What a shared game contains: a game id (an HMAC of the game made with a key that never leaves the player's PC), the day it was played, solo or duos, the rating rounded down to 500,
-the heroes offered and picked, the placement, and (if the player agreed to it) the game details listed in the app.
-A shared Constructed game (consent version 4) holds only its id, day, format (standard or wild), whether it was won,
+the heroes offered and picked, the placement, and the game details listed in the app.
+A shared Constructed game holds only its id, day, format (standard or wild), whether it was won,
 and its picks: the source card, the cards it offered and the one taken. No deck, class, rank or opponent.
 No player name, BattleTag, account or IP address is stored, and nothing about other players. Shared games are kept
 for 60 days, then the cron job deletes them (the totals use the last 30). The totals are public: anyone can read
-them, and the app's consent text says so. No published cell (a hero or trinket in a rating bracket, a hero with a
+them, and the app's notice says so. No published cell (a hero or trinket in a rating bracket, a hero with a
 lobby tribe) holds fewer than 10 games. Workers logs are off (`wrangler.toml`), so no IP address or request body
 lands in Cloudflare's logs either.
 
@@ -75,7 +75,9 @@ Checklist (the owner deploys; nothing here is deployed from a development sessio
 4. Before a release, try the app against it without rebuilding: `"PoolEndpoint": "https://…"` in `settings.json` of a
    copy of the data folder (`HEARTHPULSE_DATA`). The app uses `PoolEndpoint` when set, else `DefaultEndpoint`; only
    `https://` addresses are used.
-5. Set `DefaultEndpoint`, release. Sharing stays off until the player agrees in the app (consent version 4).
+5. Set `DefaultEndpoint`, release. Sharing is on by default with an opt-out (the owner's decision, 2026-11-15): nothing
+   is sent before the app's one-time notice was shown (`PoolClient.NoticeVersion`), and the Settings → Data switch or
+   the notice's "Turn off" stops it. The routes have no deletion on request: shared games expire after 60 days.
 
 To move an existing pool to a new version, run the new file in `migrations/` with
 `npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/<file>.sql`, then `npx wrangler deploy`.

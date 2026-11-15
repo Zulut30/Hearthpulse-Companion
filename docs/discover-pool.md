@@ -330,9 +330,9 @@ a line naming the rank and the source, "Legend · Hearthpulse data". Numbers onl
 - **Collected**: `ConstructedPicksTracker` keeps the local player's picks of a Ranked/Casual Standard/Wild game
   (source card id as the log names it, 2 to 8 offered card ids, the taken ones; the opponent's choices never reach
   listeners, and the source must be the player's). At the game's end `ConstructedPoolGame.From` turns them into
-  `{id, day, format, won, picks}` - no deck, class, rank or opponent - and the WPF app posts it to
-  `POST /v1/constructed` when the player agreed to consent version 4 (`PoolClient.SharingPicks`). Sharing, as for
-  Battlegrounds, is the WPF app's; the Avalonia preview only reads.
+  `{id, day, format, won, picks}` - no deck, class, rank or opponent - and both apps post it to
+  `POST /v1/constructed` through `Core/Hosting/PoolSharingHost.cs` while `PoolClient.Sharing` holds (on by default
+  after the one-time notice, off by the Settings → Data switch; `docs/game-stats.md`).
 - **Read**: `DiscoverChoiceSource` loads `v1/hsreplay/card-choices/cards` once (which cards have numbers, in which
   formats), then, the first time a choice from a listed card opens, that card's `v1/hsreplay/card-choices?card=&format=
   &rank=legend` in the background - never per frame. Both answers are kept in memory and in `cache/api/` (6 h, trimmed
