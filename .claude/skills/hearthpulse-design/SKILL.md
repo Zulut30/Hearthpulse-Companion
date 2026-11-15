@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-design
-description: Use when changing how Hearthpulse looks - colours and design tokens, theme presets (Tavern/Frost/Fel/Arcane/Ember/Tide/Shadow/Grove/Void/Bloodsteel/Sands/Midnight/Mech), the Appearance tab (gallery, accent swatches, corners, density, interface size), fonts, MDI icons, styles and classes, custom controls (Scallop, Ornament, Wave, charts, CardPreview), page layout rules, motion, or any XAML/AXAML styling in the WPF app or Avalonia preview. Also the reference for "no hex in views" and the list of accepted WPF/Avalonia gaps. For the step-by-step recipes use hearthpulse-overlay-panel, hearthpulse-main-page and hearthpulse-visual-check.
+description: Use when changing how Hearthpulse looks - colours and design tokens, theme presets (Tavern/Frost/Fel/Arcane/Ember/Tide/Shadow/Grove/Void/Bloodsteel/Sands/Midnight/Mech), the Appearance tab (gallery, accent swatches, corners, density, interface size), fonts, MDI icons, styles and classes, custom controls (Scallop, Ornament, Wave, charts, CardPreview), page layout rules, motion, or any XAML/AXAML styling in the WPF app or Avalonia preview. Triggers - "тема оформления", "новый пресет", "стиль", "внешний вид", "вкладка Оформление". Also the reference for "no hex in views" and the list of accepted WPF/Avalonia gaps. For the step-by-step recipes use hearthpulse-overlay-panel, hearthpulse-main-page and hearthpulse-visual-check.
 ---
 
 # Hearthpulse visual design
@@ -80,8 +80,8 @@ Consequences:
   directly or through its style (outside `Themes/` and `Main/Match/`).
 - Avalonia has its own engine, `src/Hearthpulse.UI/Infrastructure/ThemeEngine.cs`: it rewrites the brushes of
   Theme.axaml in place through the same `ThemePalette.Map` and fixed prefixes, picked in Settings like WPF
-  (`MainView.axaml.cs` `ApplyTheme`). A hex outside Theme.axaml is not recoloured there either. The Avalonia renderer
-  ignores `HEARTHPULSE_THEME` and renders Tavern only.
+  (`MainView.axaml.cs` `ApplyTheme`). A hex outside Theme.axaml is not recoloured there either. Both renderers
+  honour `HEARTHPULSE_THEME`.
 
 Core tokens (details in reference): `Bg`, `Surface`, `Surface2`-`Surface4`, `Border`, `Outline`, `Text`, `Muted`,
 `Faint`, `Accent`, `AccentDeep`, `AccentSoft`, `AccentLine`, `AccentContainer`, `OnAccent`, `OnAccentContainer`,
@@ -194,14 +194,13 @@ Follow the recipes, they carry the parity and render steps:
 [hearthpulse-main-page](../hearthpulse-main-page/SKILL.md) (sidebar pages, tabs, settings cards),
 [hearthpulse-overlay-panel](../hearthpulse-overlay-panel/SKILL.md) (overlay panels). Design-side rules for both:
 no hex literals outside the theme files, new tokens in both theme files, animations behind
-`SystemParameters.ClientAreaAnimation`, and a look at both UIs plus one non-default WPF theme with
+`SystemParameters.ClientAreaAnimation`, and a look at both UIs plus one non-default theme with
 [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md) (`--render-ui` on a copy of the data folder,
 `HEARTHPULSE_THEME=<preset>`).
 
 ## Known UI gaps (checked on main 2e8d9be, Oct 2026)
 
 - WPF only: page reveal and nav pill animation, the faded hero banner, and the overlay tribe focus (`CompFocus`,
-  `FocusChoices` in the WPF `OverlayViewModel`). Theme renders: `HEARTHPULSE_THEME` works in the WPF renderer only;
-  Avalonia renders Tavern.
+  handed to the session only by the WPF host, `App.xaml.cs`).
 - Avalonia only: compact layout below 900 px, an extra overlay switch in Settings.
 - Compact hero/comp tier tables (Avalonia): fixed column widths leave no room for the name column at phone width.

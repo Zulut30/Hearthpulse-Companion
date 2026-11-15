@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-testing
-description: Use when writing, fixing or running Hearthpulse tests (Hearthpulse.Tests and Windows Hearthpulse.Presentation.Tests, xunit) - shared view-model contracts, Avalonia Headless bindings, synthetic Power.log lines, JSON fixtures, fake HttpMessageHandler, temp-folder isolation, WindowsFact/UnixFact, and short --artifacts-path for SQLite. Use it before claiming tests pass and when a test fails only on one OS, culture or machine.
+description: Use when writing, fixing or running Hearthpulse tests (Hearthpulse.Tests and Windows Hearthpulse.Presentation.Tests, xunit) - shared view-model contracts, Avalonia Headless bindings, synthetic Power.log lines, JSON fixtures, fake HttpMessageHandler, temp-folder isolation, WindowsFact/UnixFact, and short --artifacts-path for SQLite. Use it before claiming tests pass and when a test fails only on one OS, culture or machine. Triggers - "напиши тест", "тест падает", "прогони тесты", "покрытие".
 ---
 
 # Hearthpulse tests

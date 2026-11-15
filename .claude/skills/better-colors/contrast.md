@@ -2,7 +2,7 @@
 
 > Source: [jakubkrehel/skills](https://github.com/jakubkrehel/skills) `skills/better-colors/contrast.md` at `592aedc`,
 > MIT, © 2026 Jakub Krehel, see [THIRD-PARTY-NOTICES](../THIRD-PARTY-NOTICES.md). Hearthpulse changes: measurement
-> through `ThemeContrastTests` across the seven presets and by sampling rendered PNGs; CSS fixes and APCA removed.
+> through `ThemeContrastTests` across the presets and by sampling rendered PNGs; CSS fixes and APCA removed.
 
 Contrast is measured between a foreground (text, a glyph, a control edge, a focus ring) and the surface it actually
 renders on. Identify that surface first: a card's `CardFill`, a `Row`, a selected `SelectedFill`, an overlay card's
@@ -75,7 +75,7 @@ text over art or the game, measure the worst region, or put the text on a solid 
 ## Fix a failing pair only on request
 
 **Change lightness first.** Move the foreground away from its surface in lightness, holding hue, then remeasure. In
-this project that means changing the Tavern value in both theme files and running the test for all seven presets, or,
+this project that means changing the Tavern value in both theme files and running the test for every preset, or,
 when one preset fails alone, its `AccentLift` / `SurfaceLift` in `ThemePalette.cs`.
 
 - A mid-lightness surface caps what any text colour can reach. Body text needs a surface near one extreme.

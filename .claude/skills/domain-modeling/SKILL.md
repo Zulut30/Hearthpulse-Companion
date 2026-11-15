@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or editing a GLOSSARY.md, or recording or editing an ADR.
+description: Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or editing a GLOSSARY.md, or recording or editing an ADR. Triggers - "глоссарий", "как это называть", "запиши решение", "ADR".
 ---
 
 > Source: [mattpocock/skills](https://github.com/mattpocock/skills) `skills/engineering/domain-modeling/SKILL.md` at

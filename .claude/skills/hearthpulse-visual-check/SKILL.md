@@ -55,7 +55,7 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
   `overlay-opacity`, the Constructed panels and counters at the data copy's `OverlayOpacity`), `baseline` (the visual
   baselines' frames, below). New groups go into `RenderOnlyAsync`
   (`DevRender.Brawl.cs`, `OffscreenRenderer.Brawl.cs`). With a group, `HEARTHPULSE_RENDER_WIDTH=<px>` sets the main
-  window's width (e.g. 1040, the minimum). Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
+  window's width (e.g. 1040, the minimum). Theme: `HEARTHPULSE_THEME=<preset>` (a name from `ThemePalette.Presets`),
   honoured only while rendering, in both UIs (without it the Avalonia renderer keeps the default colours).
 - Data: main pages from `history.db`; overlay moments replayed from the **kept Hearthstone logs**
   (`<install>/Logs`, resolved from the configured install); counters fall back to a synthetic scene; meta and card pool come

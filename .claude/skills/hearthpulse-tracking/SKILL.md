@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-tracking
-description: Use when extending what Hearthpulse tracks from Hearthstone logs - a new IPowerListener or tracker, reading a new Power.log tag, a new value in LiveSnapshot/ConstructedView/BattlegroundsView, a new GameRecord field with a SQLite history column (HistoryStore.AddedColumns migration, backfill), or anything about the opponent's cards where the "no hidden information" rule applies. Triggers - "track X", "new tag", "store in history", "add a column", "opponent hand", "parser", "GameSession".
+description: Use when extending what Hearthpulse tracks from Hearthstone logs - a new IPowerListener or tracker, reading a new Power.log tag, a new value in LiveSnapshot/ConstructedView/BattlegroundsView, a new GameRecord field with a SQLite history column (HistoryStore.AddedColumns migration, backfill), or anything about the opponent's cards where the "no hidden information" rule applies. Triggers - "отслеживай", "новый тег", "сохраняй в историю", "добавь колонку", "рука соперника", "track X", "new tag", "store in history", "add a column", "opponent hand", "parser", "GameSession".
 ---
 
 # Extending game tracking

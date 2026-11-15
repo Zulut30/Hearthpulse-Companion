@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-dev
-description: Use when implementing or fixing Hearthpulse functionality and you need the map - projects, Core folders (logs, Power parser, trackers, counters, card pool, mulligan, My Stats, accounts, API, history DB, updates), data flow and threads, data folder, coding conventions, Battlegrounds combat effects (clean-room), and how to build (restore needs an explicit NuGet source). Start here for any code task; it points to the recipe skills (tracking, counters, overlay panel, main page, data sources, testing, release, review).
+description: Use when implementing or fixing Hearthpulse functionality and you need the map - projects, Core folders (logs, Power parser, trackers, counters, card pool, mulligan, My Stats, accounts, API, history DB, updates), data flow and threads, data folder, coding conventions, Battlegrounds combat effects (clean-room), and how to build (restore needs an explicit NuGet source). Start here for any code task; it points to the recipe skills (tracking, counters, overlay panel, main page, data sources, testing, release, review). Triggers - "где это в коде", "карта проекта", "как собрать", "не собирается".
 ---
 
 # Working on Hearthpulse functionality
@@ -108,9 +108,9 @@ counters, decks, history and My Stats), `Main/Decks/DeckDetailsViewModel.cs`, `M
 instances or a new DLL. See `src/Hearthpulse.Presentation/README.md` for the boundary.
 
 App/UI keep views/code-behind in `Main/` (including `Stats/`), overlay controls/windows and platform partials.
-The local `MainViewModel*.cs` files contain only platform behavior (dispatch, clipboard, wording, WPF-only
-Constructed/theme features); `OverlayViewModel.Platform.cs` and `OverlayModels.Platform.cs` adapt framework
-types, with WPF-only focus in `.Focus.cs`. `Infrastructure/` keeps converters, art, native integration and each
+The local `MainViewModel*.cs` files contain only platform behavior (dispatch, clipboard, wording, the WPF-only
+Constructed feature); `OverlayViewModel.Platform.cs` and `OverlayModels.Platform.cs` adapt framework
+types. `Infrastructure/` keeps converters, art, native integration and each
 framework's `RelayCommand`; its notification semantics differ. Edit shared behavior once and add local code only
 for a concrete platform difference. WPF composition root: `App.xaml.cs` (+ `DevRender.cs`); Avalonia:
 `Hearthpulse.UI/AppHost.cs`, `Hearthpulse.Desktop/DesktopApp.cs`, `Desktop/Platform/*OverlayPlatform.cs`.

@@ -22,7 +22,7 @@
 D 16:44:59.2148622 GameState.DebugPrintPower() - <body>
 ```
 
-`PowerParser.LineRegex`: `^[DWEI] <time> GameState.(DebugPrint\w+)() - <body>`. Only `GameState.*` lines are parsed;
+`PowerLine.TrySplit` (`Power/PowerLine.cs`, a hand-written split): `^[DWEI] <time> GameState.(DebugPrint\w+)() - <body>`. Only `GameState.*` lines are parsed;
 the body is trimmed, indentation only expresses nesting. Methods handled:
 
 | Method | Content |

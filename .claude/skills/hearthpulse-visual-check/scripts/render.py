@@ -9,7 +9,7 @@ Usage (from the repository root, isolated interpreter):
   %TEMP%/hpd, or $TMPDIR/hpd); account.dat (the signed-in session), logs, backups and updates are never copied.
   Delete the copy to refresh it.
 - Sets HEARTHPULSE_DATA to the copy for the child process only, so the real folder is never written.
-- --theme sets HEARTHPULSE_THEME (WPF only: Tavern, Frost, Fel, Arcane, Ember, Tide, Shadow).
+- --theme sets HEARTHPULSE_THEME for both UIs (a preset name from ThemePalette.Presets, e.g. Frost).
 - --artifacts must be a SHORT path (default %TEMP%/hpa): a long one breaks loading of e_sqlite3.dll.
 - Writes <out-dir>/wpf and/or <out-dir>/ava plus a render log per UI.
 - Each render starts in an empty temporary folder; exit zero alone is not success: the six main pages and

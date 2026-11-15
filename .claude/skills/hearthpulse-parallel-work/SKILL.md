@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-parallel-work
-description: Use when a Hearthpulse task is big enough to split across parallel Claude sessions or branches - several features at once, a feature touching Core + WPF + Avalonia + tests, an integration/merge round, or when the user says "раздели на сессии", "параллельно", "веди подсессии", "собери ветки", "порядок слияния". Covers worktree-per-branch, file ownership and the shared-file rule, handover notes, the reviewer session, merge order and the known conflict hotspots (DevRender.cs, OffscreenRenderer.cs, OverlayWindow.xaml, OverlayView.axaml, AppHost.cs, MovablePanel.cs, Views.cs).
+description: Use when a Hearthpulse task is big enough to split across parallel sessions or branches - several features at once, a feature touching Core + WPF + Avalonia + tests, an integration/merge round, or when the user says "раздели на сессии", "параллельно", "веди подсессии", "собери ветки", "порядок слияния". Covers worktree-per-branch, file ownership and the shared-file rule, handover notes, the reviewer session, merge order and the known conflict hotspots (DevRender.cs, OffscreenRenderer.cs, OverlayWindow.xaml, OverlayView.axaml, AppHost.cs, MovablePanel.cs, Views.cs).
 ---
 
 # Running a big Hearthpulse task as parallel sessions
@@ -18,7 +18,7 @@ Related: [hearthpulse-review](../hearthpulse-review/SKILL.md) (what the reviewer
 
 Two sessions must never edit the same lines. Before starting sessions, write down for each one:
 
-- the branch (`feat/<feature>`) and its base SHA on `main`;
+- the branch (`claude/<name>`) and its base SHA on `main`;
 - the files it **owns** (new partials, new controls, new Core folders, new tests);
 - the shared files it may touch and **how** (one call, one property, one XAML block);
 - what it hands to others (an API contract, DB columns, a public hook).
@@ -35,10 +35,10 @@ big files:
 | Layer | Feature file pattern (existing examples) |
 |---|---|
 | Core | its own folder or file: `Tracking/Counters/`, `CardPool/`, `Stats/`, `Accounts/`; partial `Tracking/GameSession.CardPool.cs` |
-| Overlay VM | One `src/Hearthpulse.Presentation/Overlay/OverlayViewModel.<Feature>.cs`; local `.Platform.cs` only for framework differences, WPF `.Focus.cs` for its existing feature |
+| Overlay VM | One `src/Hearthpulse.Presentation/Overlay/OverlayViewModel.<Feature>.cs`; local `.Platform.cs` only for framework differences |
 | Overlay view | an extracted UserControl: `Overlay/MulliganPanel`, `OpponentHandPanel`, `CardPoolPanel`, `CardPoolBrowser` (`.xaml` / `.axaml`) |
-| Main VM | One `src/Hearthpulse.Presentation/Main/MainViewModel.<Feature>.cs`; small local adapters and WPF-only `.Constructed`, `.Theme` |
-| Composition | `App.CardPool.cs` (WPF), `AppHost.CardPool.cs` (Avalonia) |
+| Main VM | One `src/Hearthpulse.Presentation/Main/MainViewModel.<Feature>.cs`; small local adapters and WPF-only `.Constructed` |
+| Composition | `App.CardPool.cs` (WPF), `AppHost.Arena.cs` (Avalonia) |
 | Render scenes | `DevRender.<Feature>.cs` (WPF), `OffscreenRenderer.<Feature>.cs` (Avalonia), `Desktop/CardPoolRender.cs` |
 
 The shared file then gets one line: `UpdateCardPool(...)` in `OverlayViewModel.cs`, `_parser.AddListener(_cardPool);`
@@ -73,10 +73,10 @@ Traps that a text merge does not show:
 
 ## 4. Session setup
 
-- Feature branches in sibling worktrees: `git worktree add ../hp-<feature> -b feat/<feature> <main-sha>`.
+- Feature branches in sibling worktrees, created by the coordinator: `git worktree add ../wt-<name> -b claude/<name>
+  main` (the October round, whose names fill this skill's examples, used `hp-<feature>` on `feat/<feature>`).
   Resolve the repository with `git rev-parse --show-toplevel`; inspect `git worktree list` and the intended sibling
-  path before creating a checkout instead of assuming historical worktrees exist. Claude Code sessions get
-  their own `.claude/worktrees/<topic>-<hex>` on `claude/<topic>-<hex>`.
+  path before creating a checkout instead of assuming historical worktrees exist.
 - Build outputs of parallel sessions must not collide: `--artifacts-path` with a **short** path
   (see [hearthpulse-testing](../hearthpulse-testing/SKILL.md) - long paths break `e_sqlite3` loading).
 - Each session runs the app only with `HEARTHPULSE_DATA` on its own copy of the data folder.
@@ -98,7 +98,7 @@ Written into the shared notes folder, short, in this order:
 ## 6. Reviewer session
 
 A separate read-only session reviews each branch from its commits only (`git diff main...<sha>`, no checkout, no
-edits) and writes `<repo>/../reference/reviews/HeartLens-feat-<branch>.md` with
+edits) and writes `<repo>/../reference/reviews/HeartLens-<branch with "/" as "-">.md` with
 findings `B#` blocker / `M#` major / `m#` minor. Checklist: [hearthpulse-review](../hearthpulse-review/SKILL.md).
 Authors close findings in a commit such as "Address the card pool review: ..." and list closed/open IDs in the
 handover. Check that the sibling reference folder exists first; if absent, use the agreed workspace report
@@ -119,7 +119,8 @@ location and record it in the handover. A blocker or open major stops the merge.
    card-pool merge)"). Better: ask the owning session to rebase/merge fresh `main` and fix it in its branch.
 6. Write the round up (`reference\reviews\INTEGRATION.md` style): heads, per-branch test counts, open majors,
    per-file conflict recipes, recommended merge order.
-7. Merging into `main` and pushing happen only on the user's explicit word.
+7. Merging into `main` and pushing: the coordinating session does both under the standing permission of
+   [hearthpulse-ship](../hearthpulse-ship/SKILL.md); a session in a `wt-*` worktree does neither.
 
 ## 8. Coordinating session duties
 
