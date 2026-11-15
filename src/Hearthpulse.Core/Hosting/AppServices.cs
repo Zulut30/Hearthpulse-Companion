@@ -70,7 +70,7 @@ public sealed class AppServices
         GameStats = new GameStatsUploader(settings, http, History, () => Data.Replays, TryCards, version,
             new GameStatsQueue(Path.Combine(data.Root, "game-stats")));
         Session.GameFinished += GameStats.OnGameFinished;
-        // And, only with the player's answer to the pool's question, the game for the shared Battlegrounds numbers.
+        // Shared games are on after the informational notice, unless the player turned them off.
         PoolSharing = new PoolSharingHost(settings, http, History, cards);
         Session.GameFinished += PoolSharing.OnGameFinished;
         SourceCaptures = new SourceCaptureHost(settings, http, Session, Path.Combine(data.Root, "source-capture"), settings.SaveRequired);
@@ -101,7 +101,7 @@ public sealed class AppServices
     public GameStatsUploader GameStats { get; }
 
     /// <summary>
-    /// Games the player agreed to share with the stats pool; the live host starts it with the log watcher and saves the
+    /// Games shared with the stats pool after the notice, until turned off; the live host starts it with the log watcher and saves the
     /// settings on its <see cref="PoolSharingHost.SettingsChanged"/>.
     /// </summary>
     public PoolSharingHost PoolSharing { get; }
