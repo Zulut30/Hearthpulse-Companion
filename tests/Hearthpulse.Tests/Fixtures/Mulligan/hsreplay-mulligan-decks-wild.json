@@ -1,0 +1,894 @@
+{
+ "data": [
+  {
+   "format": "wild",
+   "rank": "bronze_gold",
+   "deck_id": "wZZ3Ak2JvYAzAHlXHZIcwh",
+   "archetype_id": -7,
+   "archetype_name": "Other Rogue",
+   "player_class": "ROGUE",
+   "total_games": 9658,
+   "win_rate": 71.85,
+   "deck_list": [
+    [
+     40437,
+     2
+    ],
+    [
+     63358,
+     2
+    ],
+    [
+     126088,
+     1
+    ],
+    [
+     69623,
+     2
+    ],
+    [
+     64033,
+     1
+    ],
+    [
+     77148,
+     1
+    ],
+    [
+     103341,
+     2
+    ],
+    [
+     117697,
+     2
+    ],
+    [
+     125571,
+     2
+    ],
+    [
+     65597,
+     2
+    ],
+    [
+     128389,
+     1
+    ],
+    [
+     365,
+     2
+    ],
+    [
+     77557,
+     2
+    ],
+    [
+     72119,
+     2
+    ],
+    [
+     61159,
+     2
+    ],
+    [
+     45936,
+     1
+    ],
+    [
+     76259,
+     1
+    ],
+    [
+     102254,
+     2
+    ]
+   ],
+   "pick_reason": "popular",
+   "position": 0,
+   "listed_at": "2026-11-15T09:50:38.086931+00:00",
+   "slices_planned": 9,
+   "slices_with_data": 9,
+   "checked_at": "2026-11-11T03:50:27.479582+00:00"
+  },
+  {
+   "format": "wild",
+   "rank": "bronze_gold",
+   "deck_id": "ddlHzNUG0FhmlO9zqpubAf",
+   "archetype_id": -7,
+   "archetype_name": "Other Rogue",
+   "player_class": "ROGUE",
+   "total_games": 4317,
+   "win_rate": 73.98,
+   "deck_list": [
+    [
+     40437,
+     2
+    ],
+    [
+     63358,
+     2
+    ],
+    [
+     69623,
+     2
+    ],
+    [
+     126088,
+     1
+    ],
+    [
+     103341,
+     2
+    ],
+    [
+     117697,
+     2
+    ],
+    [
+     77151,
+     1
+    ],
+    [
+     65597,
+     2
+    ],
+    [
+     128389,
+     1
+    ],
+    [
+     45535,
+     2
+    ],
+    [
+     77557,
+     2
+    ],
+    [
+     365,
+     2
+    ],
+    [
+     72119,
+     2
+    ],
+    [
+     61159,
+     2
+    ],
+    [
+     51375,
+     1
+    ],
+    [
+     45936,
+     1
+    ],
+    [
+     76259,
+     1
+    ],
+    [
+     102254,
+     2
+    ]
+   ],
+   "pick_reason": "popular",
+   "position": 4,
+   "listed_at": "2026-11-15T09:50:38.086931+00:00",
+   "slices_planned": 9,
+   "slices_with_data": 9,
+   "checked_at": "2026-11-15T09:51:03.973302+00:00"
+  },
+  {
+   "format": "wild",
+   "rank": "bronze_gold",
+   "deck_id": "GLbWNwrRmfkHgLLR8Iyqze",
+   "archetype_id": -7,
+   "archetype_name": "Other Rogue",
+   "player_class": "ROGUE",
+   "total_games": 1129,
+   "win_rate": 74.4,
+   "deck_list": [
+    [
+     120647,
+     1
+    ],
+    [
+     40437,
+     2
+    ],
+    [
+     63358,
+     2
+    ],
+    [
+     63359,
+     1
+    ],
+    [
+     69623,
+     2
+    ],
+    [
+     126088,
+     1
+    ],
+    [
+     115088,
+     1
+    ],
+    [
+     103341,
+     2
+    ],
+    [
+     117697,
+     2
+    ],
+    [
+     65597,
+     2
+    ],
+    [
+     128389,
+     1
+    ],
+    [
+     45535,
+     2
+    ],
+    [
+     365,
+     2
+    ],
+    [
+     77557,
+     1
+    ],
+    [
+     72119,
+     2
+    ],
+    [
+     61159,
+     2
+    ],
+    [
+     51375,
+     1
+    ],
+    [
+     45936,
+     1
+    ],
+    [
+     76259,
+     1
+    ],
+    [
+     102254,
+     1
+    ]
+   ],
+   "pick_reason": "winrate",
+   "position": 5,
+   "listed_at": "2026-11-15T09:50:38.086931+00:00",
+   "slices_planned": 9,
+   "slices_with_data": 9,
+   "checked_at": "2026-11-15T15:50:16.024468+00:00"
+  },
+  {
+   "format": "wild",
+   "rank": "diamond",
+   "deck_id": "wZZ3Ak2JvYAzAHlXHZIcwh",
+   "archetype_id": -7,
+   "archetype_name": "Other Rogue",
+   "player_class": "ROGUE",
+   "total_games": 7498,
+   "win_rate": 66.07,
+   "deck_list": [
+    [
+     40437,
+     2
+    ],
+    [
+     63358,
+     2
+    ],
+    [
+     126088,
+     1
+    ],
+    [
+     69623,
+     2
+    ],
+    [
+     64033,
+     1
+    ],
+    [
+     77148,
+     1
+    ],
+    [
+     103341,
+     2
+    ],
+    [
+     117697,
+     2
+    ],
+    [
+     125571,
+     2
+    ],
+    [
+     65597,
+     2
+    ],
+    [
+     128389,
+     1
+    ],
+    [
+     365,
+     2
+    ],
+    [
+     77557,
+     2
+    ],
+    [
+     72119,
+     2
+    ],
+    [
+     61159,
+     2
+    ],
+    [
+     45936,
+     1
+    ],
+    [
+     76259,
+     1
+    ],
+    [
+     102254,
+     2
+    ]
+   ],
+   "pick_reason": "popular",
+   "position": 3,
+   "listed_at": "2026-11-15T09:50:38.086931+00:00",
+   "slices_planned": 9,
+   "slices_with_data": 9,
+   "checked_at": "2026-11-12T09:50:03.638036+00:00"
+  },
+  {
+   "format": "wild",
+   "rank": "diamond",
+   "deck_id": "XhWX1pgnkA1Vd9otCOrvYe",
+   "archetype_id": -2,
+   "archetype_name": "Other Druid",
+   "player_class": "DRUID",
+   "total_games": 6023,
+   "win_rate": 59.07,
+   "deck_list": [
+    [
+     467,
+     2
+    ],
+    [
+     70320,
+     2
+    ],
+    [
+     60016,
+     2
+    ],
+    [
+     120746,
+     2
+    ],
+    [
+     107776,
+     2
+    ],
+    [
+     113168,
+     2
+    ],
+    [
+     57184,
+     2
+    ],
+    [
+     100093,
+     1
+    ],
+    [
+     76117,
+     2
+    ],
+    [
+     113173,
+     2
+    ],
+    [
+     73774,
+     2
+    ],
+    [
+     105893,
+     1
+    ],
+    [
+     69550,
+     2
+    ],
+    [
+     47887,
+     2
+    ],
+    [
+     76289,
+     2
+    ],
+    [
+     126210,
+     2
+    ]
+   ],
+   "pick_reason": "popular",
+   "position": 4,
+   "listed_at": "2026-11-15T09:50:38.086931+00:00",
+   "slices_planned": 9,
+   "slices_with_data": 9,
+   "checked_at": "2026-11-11T03:50:18.103709+00:00"
+  },
+  {
+   "format": "wild",
+   "rank": "diamond",
+   "deck_id": "ddlHzNUG0FhmlO9zqpubAf",
+   "archetype_id": -7,
+   "archetype_name": "Other Rogue",
+   "player_class": "ROGUE",
+   "total_games": 2865,
+   "win_rate": 66.52,
+   "deck_list": [
+    [
+     40437,
+     2
+    ],
+    [
+     63358,
+     2
+    ],
+    [
+     69623,
+     2
+    ],
+    [
+     126088,
+     1
+    ],
+    [
+     103341,
+     2
+    ],
+    [
+     117697,
+     2
+    ],
+    [
+     77151,
+     1
+    ],
+    [
+     65597,
+     2
+    ],
+    [
+     128389,
+     1
+    ],
+    [
+     45535,
+     2
+    ],
+    [
+     77557,
+     2
+    ],
+    [
+     365,
+     2
+    ],
+    [
+     72119,
+     2
+    ],
+    [
+     61159,
+     2
+    ],
+    [
+     51375,
+     1
+    ],
+    [
+     45936,
+     1
+    ],
+    [
+     76259,
+     1
+    ],
+    [
+     102254,
+     2
+    ]
+   ],
+   "pick_reason": "winrate",
+   "position": 5,
+   "listed_at": "2026-11-15T09:50:38.086931+00:00",
+   "slices_planned": 9,
+   "slices_with_data": 9,
+   "checked_at": "2026-11-10T03:50:29.843763+00:00"
+  },
+  {
+   "format": "wild",
+   "rank": "diamond_4to1",
+   "deck_id": "wZZ3Ak2JvYAzAHlXHZIcwh",
+   "archetype_id": -7,
+   "archetype_name": "Other Rogue",
+   "player_class": "ROGUE",
+   "total_games": 4327,
+   "win_rate": 64.06,
+   "deck_list": [
+    [
+     40437,
+     2
+    ],
+    [
+     63358,
+     2
+    ],
+    [
+     126088,
+     1
+    ],
+    [
+     69623,
+     2
+    ],
+    [
+     64033,
+     1
+    ],
+    [
+     77148,
+     1
+    ],
+    [
+     103341,
+     2
+    ],
+    [
+     117697,
+     2
+    ],
+    [
+     125571,
+     2
+    ],
+    [
+     65597,
+     2
+    ],
+    [
+     128389,
+     1
+    ],
+    [
+     365,
+     2
+    ],
+    [
+     77557,
+     2
+    ],
+    [
+     72119,
+     2
+    ],
+    [
+     61159,
+     2
+    ],
+    [
+     45936,
+     1
+    ],
+    [
+     76259,
+     1
+    ],
+    [
+     102254,
+     2
+    ]
+   ],
+   "pick_reason": "popular",
+   "position": 2,
+   "listed_at": "2026-11-15T09:50:38.086931+00:00",
+   "slices_planned": 9,
+   "slices_with_data": 9,
+   "checked_at": "2026-11-12T12:50:07.518884+00:00"
+  },
+  {
+   "format": "wild",
+   "rank": "diamond_4to1",
+   "deck_id": "XhWX1pgnkA1Vd9otCOrvYe",
+   "archetype_id": -2,
+   "archetype_name": "Other Druid",
+   "player_class": "DRUID",
+   "total_games": 3482,
+   "win_rate": 58.61,
+   "deck_list": [
+    [
+     467,
+     2
+    ],
+    [
+     70320,
+     2
+    ],
+    [
+     60016,
+     2
+    ],
+    [
+     120746,
+     2
+    ],
+    [
+     107776,
+     2
+    ],
+    [
+     113168,
+     2
+    ],
+    [
+     57184,
+     2
+    ],
+    [
+     100093,
+     1
+    ],
+    [
+     76117,
+     2
+    ],
+    [
+     113173,
+     2
+    ],
+    [
+     73774,
+     2
+    ],
+    [
+     105893,
+     1
+    ],
+    [
+     69550,
+     2
+    ],
+    [
+     47887,
+     2
+    ],
+    [
+     76289,
+     2
+    ],
+    [
+     126210,
+     2
+    ]
+   ],
+   "pick_reason": "popular",
+   "position": 4,
+   "listed_at": "2026-11-15T09:50:38.086931+00:00",
+   "slices_planned": 9,
+   "slices_with_data": 9,
+   "checked_at": "2026-11-15T15:50:22.286995+00:00"
+  },
+  {
+   "format": "wild",
+   "rank": "legend",
+   "deck_id": "XhWX1pgnkA1Vd9otCOrvYe",
+   "archetype_id": -2,
+   "archetype_name": "Other Druid",
+   "player_class": "DRUID",
+   "total_games": 2704,
+   "win_rate": 52.99,
+   "deck_list": [
+    [
+     467,
+     2
+    ],
+    [
+     70320,
+     2
+    ],
+    [
+     60016,
+     2
+    ],
+    [
+     120746,
+     2
+    ],
+    [
+     107776,
+     2
+    ],
+    [
+     113168,
+     2
+    ],
+    [
+     57184,
+     2
+    ],
+    [
+     100093,
+     1
+    ],
+    [
+     76117,
+     2
+    ],
+    [
+     113173,
+     2
+    ],
+    [
+     73774,
+     2
+    ],
+    [
+     105893,
+     1
+    ],
+    [
+     69550,
+     2
+    ],
+    [
+     47887,
+     2
+    ],
+    [
+     76289,
+     2
+    ],
+    [
+     126210,
+     2
+    ]
+   ],
+   "pick_reason": "popular",
+   "position": 0,
+   "listed_at": "2026-11-15T09:50:38.086931+00:00",
+   "slices_planned": 9,
+   "slices_with_data": 9,
+   "checked_at": "2026-11-11T03:50:30.026791+00:00"
+  },
+  {
+   "format": "wild",
+   "rank": "legend",
+   "deck_id": "wZZ3Ak2JvYAzAHlXHZIcwh",
+   "archetype_id": -7,
+   "archetype_name": "Other Rogue",
+   "player_class": "ROGUE",
+   "total_games": 2374,
+   "win_rate": 61.87,
+   "deck_list": [
+    [
+     40437,
+     2
+    ],
+    [
+     63358,
+     2
+    ],
+    [
+     126088,
+     1
+    ],
+    [
+     69623,
+     2
+    ],
+    [
+     64033,
+     1
+    ],
+    [
+     77148,
+     1
+    ],
+    [
+     103341,
+     2
+    ],
+    [
+     117697,
+     2
+    ],
+    [
+     125571,
+     2
+    ],
+    [
+     65597,
+     2
+    ],
+    [
+     128389,
+     1
+    ],
+    [
+     365,
+     2
+    ],
+    [
+     77557,
+     2
+    ],
+    [
+     72119,
+     2
+    ],
+    [
+     61159,
+     2
+    ],
+    [
+     45936,
+     1
+    ],
+    [
+     76259,
+     1
+    ],
+    [
+     102254,
+     2
+    ]
+   ],
+   "pick_reason": "popular",
+   "position": 1,
+   "listed_at": "2026-11-15T09:50:38.086931+00:00",
+   "slices_planned": 9,
+   "slices_with_data": 9,
+   "checked_at": "2026-11-11T03:50:22.045844+00:00"
+  }
+ ],
+ "meta": {
+  "source_id": "hsreplay_mulligan",
+  "fetched_at": "2026-11-15T15:50:22.797549+00:00",
+  "stale": false,
+  "count": 10
+ }
+}

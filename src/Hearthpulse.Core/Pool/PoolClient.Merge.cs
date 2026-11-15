@@ -18,12 +18,19 @@ public static partial class PoolClient
     /// pool both stay in the average, and the pool's share grows as more games arrive. The pool reports all ranks,
     /// so its hero and card numbers are merged into every MMR bracket of the base. A base row without a sample size
     /// (the API's heroes) cannot be weighed and keeps its own numbers; a hero the base lacks is added only once the
-    /// pool has <see cref="MinGames"/> games of it. What the base has none of (comps, trinkets, tribes, percentiles,
-    /// turn results) comes from the pool. When the pool has its own rating brackets (2.1, trusted MMR floors) that the
+    /// pool has <see cref="MinGames"/> games of it. What the base has none of (tribes, percentiles, turn results) comes
+    /// from the pool; its comps and trinkets join the external ones without being mixed with them. When the pool has its own rating brackets (2.1, trusted MMR floors) that the
     /// base has too, those are merged bracket by bracket instead of its all-ranks rows.
     /// </summary>
     internal static BattlegroundsMeta Merge(BattlegroundsMeta baseMeta, BattlegroundsMeta pool)
     {
+        if (!HasData(pool))
+        {
+            // A pool that answers without a single row adds nothing: the base keeps its numbers, its date and its
+            // source line, which must not name a pool none of the numbers came from.
+            return baseMeta;
+        }
+
         var ownBrackets = pool.HeroesByBracket
             .Where(kv => kv.Key != 100 && baseMeta.HeroesByBracket.ContainsKey(kv.Key))
             .ToDictionary(kv => kv.Key, kv => kv.Value);
@@ -35,17 +42,33 @@ public static partial class PoolClient
         var heroes = MergeBrackets(baseMeta.HeroesByBracket, poolHeroes, (a, b) => Blend(a, b), h => h.DataPoints >= MinGames);
         var cards = MergeBrackets(baseMeta.CardsByBracket, pool.CardsByBracket, (a, b) => Blend(a, b), _ => true);
 
+        // External rows (a lower bound for a sample) are never blended with the pool's own: the pool's row goes in
+        // front once it has the games to be used, and the external one stays behind it for a game the limit closes.
         var trinkets = baseMeta.Trinkets.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+        var shadowed = baseMeta.ShadowedTrinkets.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
         foreach (var (id, add) in pool.Trinkets)
         {
-            trinkets[id] = trinkets.TryGetValue(id, out var have) ? Blend(have, add) : add;
+            if (!trinkets.TryGetValue(id, out var have))
+            {
+                trinkets[id] = add;
+            }
+            else if (!have.External)
+            {
+                trinkets[id] = Blend(have, add);
+            }
+            else if (add.DataPoints >= BattlegroundsMeta.MinTrinketGames)
+            {
+                shadowed[id] = have;
+                trinkets[id] = add;
+            }
         }
 
         var updated = pool.Updated > baseMeta.Updated ? pool.Updated : baseMeta.Updated;
         return new BattlegroundsMeta(
             heroes,
             baseMeta.Percentiles.Count > 0 ? baseMeta.Percentiles : pool.Percentiles,
-            baseMeta.Comps.Count > 0 ? baseMeta.Comps : pool.Comps,
+            // The pool's comps replace nothing: they join the external ones, and stand alone when the base has none.
+            baseMeta.Comps.Any(c => !c.External) ? baseMeta.Comps : [.. baseMeta.Comps, .. pool.Comps.Where(c => baseMeta.Comps.All(b => b.Id != c.Id))],
             trinkets,
             cards,
             updated)
@@ -53,8 +76,15 @@ public static partial class PoolClient
             Tribes = pool.Tribes.Count > 0 ? pool.Tribes : baseMeta.Tribes,
             SharedGames = pool.SharedGames,
             Source = baseMeta.StoredSource == pool.StoredSource ? baseMeta.StoredSource : $"{baseMeta.StoredSource} + {BattlegroundsMeta.PoolName}",
+            HeroComps = baseMeta.HeroComps,
+            ShadowedTrinkets = shadowed,
         };
     }
+
+    /// <summary>True when the pool's answer holds at least one row or game.</summary>
+    private static bool HasData(BattlegroundsMeta pool) =>
+        pool.SharedGames > 0 || pool.Comps.Count > 0 || pool.Trinkets.Count > 0 || pool.Tribes.Count > 0 || pool.Percentiles.Count > 0
+        || pool.SharedHeroRows.Count > 0 || pool.HeroesByBracket.Values.Any(h => h.Count > 0) || pool.CardsByBracket.Values.Any(c => c.Count > 0);
 
     /// <summary>
     /// Pools two bracket maps. When the pool only has the all-ranks bracket (100), it is merged into every bracket

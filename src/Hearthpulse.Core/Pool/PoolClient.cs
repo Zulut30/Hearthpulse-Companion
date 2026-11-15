@@ -227,7 +227,24 @@ public static partial class PoolClient
     {
         try
         {
-            var stream = await http.GetStreamAsync(endpoint + "/v1/meta", cancellationToken).ConfigureAwait(false);
+            using var response = await http.GetAsync(new Uri(endpoint + "/v1/meta"), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                // Only this application response means absence. A proxy outage or another 503 remains an error.
+                var errorStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                await using var errorScope = errorStream.ConfigureAwait(false);
+                using var error = await JsonDocument.ParseAsync(errorStream, cancellationToken: cancellationToken).ConfigureAwait(false);
+                if (error.RootElement.ValueKind == JsonValueKind.Object
+                    && error.RootElement.TryGetProperty("error", out var reason)
+                    && reason.ValueKind == JsonValueKind.String && reason.GetString() == "meta not imported")
+                {
+                    Diag.Debug("Stats pool has no base meta");
+                    return null;
+                }
+            }
+
+            response.EnsureSuccessStatusCode();
+            var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             await using var streamScope = stream.ConfigureAwait(false);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
             return ParseMeta(doc.RootElement);

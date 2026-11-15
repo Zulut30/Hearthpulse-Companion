@@ -22,7 +22,27 @@ public sealed record MetaTrinket(
     int DataPoints,
     double AveragePlacement,
     double PickRate,
-    IReadOnlyDictionary<int, (double Placement, int DataPoints)> PlacementAtMmr);
+    IReadOnlyDictionary<int, (double Placement, int DataPoints)> PlacementAtMmr)
+{
+    /// <summary>
+    /// True for a row of the external lists (Hearthpulse data, docs/bg-meta-sources.md); false for the stats pool's own.
+    /// External rows are never under the daily limit and are never named as Hearthpulse's own statistics.
+    /// </summary>
+    public bool External { get; init; }
+
+    /// <summary>
+    /// True when <see cref="DataPoints"/> is a lower bound, not a count (the external trinket lists: the smallest sample
+    /// that fits the source's rounded placement distribution). Shown as "at least", never as the number of games.
+    /// </summary>
+    public bool GamesAreMinimum { get; init; }
+
+    /// <summary>When the source fetched the row, UTC; null when it does not say (the pool's rows carry the meta's date).</summary>
+    public DateTime? Updated { get; init; }
+
+    /// <summary>External source context per MMR slice, kept with that slice's placement and sample.</summary>
+    internal IReadOnlyDictionary<int, (double PickRate, DateTime? Updated)> SourceAtMmr { get; init; } =
+        new Dictionary<int, (double PickRate, DateTime? Updated)>();
+}
 
 public sealed record MetaCompCard(string CardId, string Status);
 
@@ -47,14 +67,23 @@ public sealed record MetaComp(
     string? Tip,
     double AveragePlacement,
     IReadOnlyDictionary<int, double> PlacementAtMmr,
-    IReadOnlyDictionary<string, (int DataPoints, double Placement)> HeroPlacement);
+    IReadOnlyDictionary<string, (int DataPoints, double Placement)> HeroPlacement)
+{
+    /// <summary>
+    /// True for a comp of the external list (Hearthpulse data, docs/bg-meta-sources.md); false for the stats pool's own.
+    /// An external comp has no placement (<see cref="AveragePlacement"/> is 0 = not published): its
+    /// <see cref="PowerLevel"/> is the source's tier letter, and it is never under the daily limit.
+    /// </summary>
+    public bool External { get; init; }
+}
 
 /// <summary>
-/// Community Battlegrounds statistics: heroes and minions from the Hearthpulse API (HSReplay data), with comps,
-/// trinkets, tribes and turn results from the Hearthpulse stats pool when it is set up (see <see cref="PoolClient"/>).
+/// Community Battlegrounds statistics: heroes and minions from the Hearthpulse API (HSReplay data), comps, trinkets
+/// and each hero's compositions from the external lists (BattlegroundsMeta.External.cs), with the Hearthpulse stats
+/// pool's own comps, trinkets, tribes and turn results laid over them when it is set up (see <see cref="PoolClient"/>).
 /// Sources per number: docs/bg-meta-sources.md.
 /// </summary>
-public sealed class BattlegroundsMeta
+public sealed partial class BattlegroundsMeta
 {
     public const string Attribution = Api.HearthpulseData.Attribution;
 
@@ -162,17 +191,27 @@ public sealed class BattlegroundsMeta
     public IReadOnlyDictionary<string, MetaTrinket> Trinkets { get; }
 
     /// <summary>Trinket placement at the bracket, falling back to all ranks when the bracket sample is thin.</summary>
-    public (double Placement, double PickRate, int DataPoints)? Trinket(string cardId, int bracket)
-    {
-        if (!Trinkets.TryGetValue(cardId, out var trinket) || trinket.DataPoints < 50)
-        {
-            return null;
-        }
+    public (double Placement, double PickRate, int DataPoints)? Trinket(string cardId, int bracket) =>
+        Trinkets.TryGetValue(cardId, out var trinket) && trinket.DataPoints >= MinTrinketGames ? At(trinket, bracket) : null;
 
-        return trinket.PlacementAtMmr.TryGetValue(bracket, out var at) && at.DataPoints >= 50
-            ? (at.Placement, trinket.PickRate, at.DataPoints)
+    /// <summary>Games a trinket needs (overall and at a bracket) before its placement is used.</summary>
+    public const int MinTrinketGames = 50;
+
+    /// <summary>The trinket's numbers at the bracket; its overall ones when the bracket sample is under <see cref="MinTrinketGames"/>.</summary>
+    internal static (double Placement, double PickRate, int DataPoints) At(MetaTrinket trinket, int bracket)
+    {
+        var contextual = TrinketContext(trinket, bracket);
+        return trinket.PlacementAtMmr.TryGetValue(bracket, out var at) && at.DataPoints >= MinTrinketGames
+            ? (at.Placement, contextual.PickRate, at.DataPoints)
             : (trinket.AveragePlacement, trinket.PickRate, trinket.DataPoints);
     }
+
+    /// <summary>A usable external slice's own rate and date; otherwise the overall row's context.</summary>
+    internal static MetaTrinket TrinketContext(MetaTrinket trinket, int bracket) =>
+        trinket.External && trinket.PlacementAtMmr.TryGetValue(bracket, out var at) && at.DataPoints >= MinTrinketGames
+        && trinket.SourceAtMmr.TryGetValue(bracket, out var source)
+            ? trinket with { PickRate = source.PickRate, Updated = source.Updated }
+            : trinket;
 
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, MetaHero>> HeroesByBracket { get; }
 
@@ -279,11 +318,23 @@ public sealed class BattlegroundsMeta
     }
 
     /// <summary>
-    /// Community stats as both apps load them: heroes and minions from the Hearthpulse API (<see cref="LoadAsync"/>),
-    /// and, when a stats pool is set up, the pool's meta laid over them for what the API lacks (or the pool's own meta
-    /// when the API did not load). Each failure is logged; null when neither loaded. docs/bg-meta-sources.md.
+    /// Community stats as both apps load them, in this order: heroes and minions from the Hearthpulse API
+    /// (<see cref="LoadAsync"/>), the external comps and trinkets (<see cref="WithExternal"/>), and, when a stats pool
+    /// is set up, the pool's meta laid over them (or the pool's own meta when the API did not load). Each failure is
+    /// logged; null when neither loaded. docs/bg-meta-sources.md.
     /// </summary>
-    public static async Task<BattlegroundsMeta?> LoadCommunityAsync(Api.HearthpulseApi api, HttpClient http, AppSettings settings)
+    /// <param name="external">
+    /// Loads the external comps and trinket lists (<see cref="LoadExternalAsync"/>); they are laid over the API meta
+    /// before the pool. Null: the meta has none.
+    /// </param>
+    /// <param name="cards">The card database the comps' tribes are read from; needed with <paramref name="external"/>.</param>
+    public static Task<BattlegroundsMeta?> LoadCommunityAsync(Api.HearthpulseApi api, HttpClient http, AppSettings settings,
+        Func<Task<BgExternalLists?>>? external = null, Cards.CardDb? cards = null) =>
+        LoadCommunityAsync(new Api.HearthpulseData(api), http, settings, external, cards);
+
+    /// <summary><see cref="LoadCommunityAsync(Api.HearthpulseApi, HttpClient, AppSettings, Func{Task{BgExternalLists}}, Cards.CardDb)"/> over a given API cache (tests pass a scratch one).</summary>
+    internal static async Task<BattlegroundsMeta?> LoadCommunityAsync(Api.HearthpulseData data, HttpClient http, AppSettings settings,
+        Func<Task<BgExternalLists?>>? external, Cards.CardDb? cards)
     {
         // The settings belong to the UI thread: read them before the first await moves on to the pool.
         var endpoint = PoolClient.Endpoint(settings);
@@ -291,11 +342,26 @@ public sealed class BattlegroundsMeta
         BattlegroundsMeta? meta = null;
         try
         {
-            meta = await LoadAsync(new Api.HearthpulseData(api)).ConfigureAwait(false);
+            meta = await LoadAsync(data).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             Diag.Error("Community stats unavailable", ex);
+        }
+
+        if (meta is not null && external is not null && cards is not null)
+        {
+            try
+            {
+                if (await external().ConfigureAwait(false) is { } lists)
+                {
+                    meta = meta.WithExternal(lists, cards);
+                }
+            }
+            catch (Exception ex)
+            {
+                Diag.Error("Battlegrounds comps and trinkets unavailable", ex);
+            }
         }
 
         if (poolAvailable)
@@ -315,15 +381,17 @@ public sealed class BattlegroundsMeta
 
     /// <summary>
     /// Loads the community stats from the Hearthpulse API (HSReplay data): hero results for each MMR slice the API
-    /// publishes (<see cref="HeroSlices"/>) and minion results per bracket (<see cref="CardSlices"/>). Comps, guides,
-    /// trinkets, tribe impact, turn results and MMR floors are not in the API: they stay empty until the stats pool
-    /// supplies them (<see cref="PoolClient.OverlayAsync"/>). Null when no hero slice could be had (offline, no cache).
+    /// publishes (<see cref="HeroSlices"/>), minion results per bracket (<see cref="CardSlices"/>) and every hero's
+    /// compositions of the top 50% (one request; the lobby adjustment of the hero pick). Comps and
+    /// trinkets come from the external lists (<see cref="WithExternal"/>); turn results and MMR floors are not in the
+    /// API: they stay empty until the stats pool supplies them (<see cref="PoolClient.OverlayAsync"/>). Null when no hero slice could be had (offline, no cache).
     /// </summary>
     public static async Task<BattlegroundsMeta?> LoadAsync(Api.HearthpulseData api, CancellationToken cancellationToken = default)
     {
         var heroTasks = HeroSlices.Select(s => api.LoadHeroesAsync(s.Mmr, cancellationToken)).ToList();
         var cardTasks = CardSlices.Select(s => api.LoadMinionsAsync(s.Mmr, cancellationToken)).ToList();
-        await Task.WhenAll(heroTasks.Concat<Task>(cardTasks)).ConfigureAwait(false);
+        var compsTask = api.LoadHeroCompositionsAsync(cancellationToken);
+        await Task.WhenAll(heroTasks.Concat<Task>(cardTasks).Append(compsTask)).ConfigureAwait(false);
 
         var heroes = new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>();
         DateTime updated = default;
@@ -351,9 +419,13 @@ public sealed class BattlegroundsMeta
             }
         }
 
-        Diag.Info($"Battlegrounds meta from the Hearthpulse API: heroes in brackets {string.Join('/', heroes.Keys)}, minions in {string.Join('/', cards.Keys)}");
+        var heroComps = (await compsTask.ConfigureAwait(false)).Heroes;
+        Diag.Info($"Battlegrounds meta from the Hearthpulse API: heroes in brackets {string.Join('/', heroes.Keys)}, minions in {string.Join('/', cards.Keys)}, compositions of {heroComps.Count} heroes");
         return new BattlegroundsMeta(heroes, [], [], new Dictionary<string, MetaTrinket>(StringComparer.Ordinal), cards,
-            updated == default ? DateTime.UtcNow : updated);
+            updated == default ? DateTime.UtcNow : updated)
+        {
+            HeroComps = heroComps,
+        };
     }
 
     internal static string Prettify(string archetype) =>

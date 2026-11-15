@@ -2,5 +2,6 @@
   "Source.MulliganLegendWeek": "{0}, Legend, 7 days",
   "Source.MulliganLegendEu": "{0}, Legend EU",
   "Source.MulliganRank": "{0}, {1}, current expansion",
-  "Source.MulliganRankFallback": "{0}, all ranks: too few games for {1}"
+  "Source.MulliganRankFallback": "{0}, all ranks: too few games for {1}",
+  "Source.MulliganDeck": "{0}, {1}, 30 days"
 }

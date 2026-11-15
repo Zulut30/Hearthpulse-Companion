@@ -34,8 +34,23 @@ public sealed partial class BattlegroundsAdvisor
         return general;
     }
 
+    /// <summary>The source's tier letters in order (S first); a comp without one sits in the middle.</summary>
+    private static int TierRank(string tier) => tier switch { "S" => 0, "A" => 1, "B" => 2, "C" => 3, "D" => 4, _ => 2 };
+
+    /// <summary>
+    /// What comps are ordered by, in places. A pool comp: its placement (<see cref="HeroCompPlacement"/>). An external
+    /// comp has none: the hero's average place in the comp's tribe family when the hero has
+    /// <see cref="MinHeroDataPoints"/> games there, else a stand-in from the source's tier letter (S = 3.6, 0.3 a
+    /// tier, the step of <see cref="TierOf"/>). The stand-in only orders comps; it is never shown.
+    /// </summary>
+    private static double CompOrder(MetaComp comp, string baseHeroId, int bracket, BattlegroundsMeta meta) =>
+        !comp.External
+            ? HeroCompPlacement(comp, baseHeroId, bracket)
+            : meta.HeroFamily(baseHeroId, comp.Tribes, MinHeroDataPoints)?.Placement ?? 3.6 + (0.3 * TierRank(comp.PowerLevel));
+
     private IReadOnlyList<CompAdvice> RankComps(
-        BattlegroundsView view, List<MetaComp> viable, string baseHero, int bracket, Dictionary<string, int> owned, CardDb cards, bool lobbyKnown)
+        BattlegroundsView view, List<MetaComp> viable, string baseHero, int bracket, Dictionary<string, int> owned, CardDb cards, bool lobbyKnown,
+        BattlegroundsMeta meta)
     {
         var focus = CompFocus is { Length: > 0 } wanted && view.Races.Contains(wanted) ? wanted : null;
         var ranked = viable
@@ -44,7 +59,7 @@ public sealed partial class BattlegroundsAdvisor
                 var core = c.Cards.Count(card => card.Status == "CORE");
                 var ownedCore = c.Cards.Count(card => card.Status == "CORE" && owned.ContainsKey(card.CardId));
                 var ownedAddon = c.Cards.Count(card => card.Status != "CORE" && owned.ContainsKey(card.CardId));
-                var placement = HeroCompPlacement(c, baseHero, bracket);
+                var placement = CompOrder(c, baseHero, bracket, meta);
                 // Most comps sit within a few tenths of a place of each other, so what you already own has to weigh more
                 // than that gap: half of a comp's core moves it past almost any other, and the list follows your board.
                 var fit = core == 0 ? 0 : ownedCore / (double)core;

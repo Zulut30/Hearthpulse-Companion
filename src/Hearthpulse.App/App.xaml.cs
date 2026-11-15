@@ -402,17 +402,19 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Community stats: heroes and minions from the Hearthpulse API, and, when a stats pool is set up, the pool's meta
-    /// laid over them for what the API lacks (or the pool's own meta when the API did not load). docs/bg-meta-sources.md.
+    /// Community stats: heroes and minions from the Hearthpulse API, the external comps and trinkets, and, when a stats
+    /// pool is set up, the pool's meta laid over them (or the pool's own meta when the API did not load).
+    /// docs/bg-meta-sources.md.
     /// </summary>
     private async Task LoadMetaAsync()
     {
         // The limits on their own: a slow answer never holds the meta back.
         _usage.RefreshLimitsAsync().Forget("Usage limits");
         // The tier tabs' lists come from another host: beside the meta, not after it, so a slow answer of either
-        // holds the other back as little as a fresh cache does.
-        LoadBgSiteAsync().Forget("Battlegrounds site stats load");
-        var meta = await BattlegroundsMeta.LoadCommunityAsync(_api, _http, _settings);
+        // holds the other back as little as a fresh cache does. The advisor's comps and trinkets are read from them.
+        var site = LoadBgSiteAsync();
+        site.Forget("Battlegrounds site stats load");
+        var meta = await BattlegroundsMeta.LoadCommunityAsync(_api, _http, _settings, () => BattlegroundsMeta.LoadExternalAsync(_bgSite!, site), _cards);
         if (meta is not null)
         {
             _meta = meta;
@@ -432,7 +434,7 @@ public partial class App : Application
     /// <summary>
     /// The lists of the main window's Battlegrounds tier tabs, from the open service the site itself reads
     /// (docs/bg-site-stats.md): loaded off the UI thread, with a client of its own that keeps no cookies and follows no
-    /// redirects. The overlay and the advisor do not read them.
+    /// redirects. The advisor reads its comps and trinkets from the same lists (docs/bg-meta-sources.md).
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client is kept by the site client in a field of the host and lives as long as the app.")]
     private async Task<BgSiteStats?> LoadBgSiteAsync()

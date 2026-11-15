@@ -88,14 +88,14 @@ public sealed partial class OverlayViewModel
                     -delta,
                     h.Meta is null ? string.Empty : Loc.F("Overlay.Badge.PickRate", h.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)),
                     h.Stats is { Games: > 0 } s ? Loc.P("Overlay.Hero.Personal", s.Games, s.AveragePlace) : string.Empty,
-                    string.Join(" · ", (h.TopComps ?? Array.Empty<string>()).Take(2)),
+                    string.Join(" · ", (h.TopComps ?? []).Take(2).Select(c => c.Name)),
                     highlight && h.Recommended,
-                    h.Meta is not null) { TierTip = heroTierTip };
+                    h.Meta is not null) { TierTip = heroTierTip, CompsTip = CompsTip(h.TopComps) };
             })
             .ToList());
 
         var trinketTierTip = Loc.T("Overlay.Tier.Heroes");
-        Replace(nameof(TrinketPicks), view.TrinketOptions, t => $"{t.CardId}{t.Meta?.AveragePlacement:0.000}{highlight && t.Recommended}", () => TrinketPicks = !view.TrinketOptions.Any(t => t.Meta is not null) ? [] : view.TrinketOptions
+        Replace(nameof(TrinketPicks), view.TrinketOptions, t => $"{trinketTierTip}{t.CardId}{t.Meta}{highlight && t.Recommended}", () => TrinketPicks = !view.TrinketOptions.Any(t => t.Meta is not null) ? [] : view.TrinketOptions
             .Select(t => new TrinketBadge(
                 t.CardId,
                 t.Name,
@@ -103,7 +103,11 @@ public sealed partial class OverlayViewModel
                 t.Meta is null ? "—" : t.Meta.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
                 t.Meta is null ? Loc.T("Overlay.Badge.NoData") : Loc.F("Overlay.Badge.PickRate", t.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)),
                 highlight && t.Recommended,
-                t.Meta is not null) { TierTip = trinketTierTip })
+                t.Meta is not null)
+            {
+                TierTip = t.Meta is null ? trinketTierTip : trinketTierTip + "\n" + TrinketSource(t.Meta),
+                Updated = t.Meta?.Updated is { } at ? Loc.F("Overlay.Trinket.Updated", at.ToLocalTime()) : string.Empty,
+            })
             .ToList());
 
         var mode = $"{_pickHints}";
@@ -153,6 +157,50 @@ public sealed partial class OverlayViewModel
         {
             RebuildBrowser();
         }
+    }
+
+    /// <summary>
+    /// The tooltip of a hero's comps: one block per comp - name, the source's tier letter and difficulty, then its
+    /// advice. Empty without comps.
+    /// </summary>
+    private static string CompsTip(IReadOnlyList<BgHeroComp>? comps) =>
+        comps is not { Count: > 0 }
+            ? string.Empty
+            : Loc.T("Overlay.Hero.CompsTitle") + "\n" + string.Join('\n', comps.Take(2).Select(c =>
+            {
+                var facts = new[]
+                {
+                    c.Tier.Length > 0 ? Loc.F("Overlay.Hero.CompTier", c.Tier) : string.Empty,
+                    c.Difficulty switch
+                    {
+                        "easy" => Loc.T("Main.Bg.CompDifficulty.Easy"),
+                        "medium" => Loc.T("Main.Bg.CompDifficulty.Medium"),
+                        "hard" => Loc.T("Main.Bg.CompDifficulty.Hard"),
+                        _ => c.Difficulty,
+                    },
+                }.Where(f => f.Length > 0).ToList();
+                return "\n" + c.Name + (facts.Count > 0 ? " · " + string.Join(" · ", facts) : string.Empty)
+                    + (c.Tip is { Length: > 0 } tip ? "\n" + tip : string.Empty);
+            }));
+
+    /// <summary>
+    /// Where a trinket's numbers come from: the source by its name (Hearthpulse data, or the stats pool for our own),
+    /// its date, and the sample - a lower bound is said to be one, never shown as a count of games.
+    /// </summary>
+    private static string TrinketSource(TrinketMeta meta)
+    {
+        var parts = new List<string> { meta.External ? Loc.T("Overlay.Source.External") : Loc.T("Overlay.Source.Pool") };
+        if (meta.Updated is { } at)
+        {
+            parts.Add(Loc.F("Overlay.Source.Updated", at.ToLocalTime()));
+        }
+
+        if (meta.DataPoints > 0)
+        {
+            parts.Add(Loc.P(meta.GamesAreMinimum ? "Overlay.Source.GamesAtLeast" : "Overlay.Source.Games", meta.DataPoints));
+        }
+
+        return string.Join(" · ", parts);
     }
 
     private void UpdateLobbyAndSession(BattlegroundsView view, LiveSnapshot snapshot)

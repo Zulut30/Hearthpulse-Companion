@@ -396,6 +396,121 @@ public sealed class MulliganGuideTests
         Assert.Equal("WARLOCK", HearthpulseData.ParseHsguruMulligan(Fixture("hsguru-mulligan-zoolock-legend-any_player-warlock.json").GetProperty("data"))!.OpponentClass);
     }
 
+    [Fact]
+    public void A_decks_mulligan_slice_parses_with_its_list_date_and_rates_as_fractions()
+    {
+        // GET v1/hsreplay/mulligan?deck=7X8Zqlb1wBPwkkaQVGT8ee&format=standard&rank=legend&initiative=coin&opponent_class=any (2026-11-15)
+        var answer = Fixture("hsreplay-deck-mulligan-7X8Zqlb1wBPwkkaQVGT8ee-legend-coin-any.json");
+        var slice = HearthpulseData.ParseDeckMulligan(answer.GetProperty("data"), answer.GetProperty("meta"), "7X8Zqlb1wBPwkkaQVGT8ee")!;
+
+        Assert.Equal(("legend", "coin", "any", 218620), (slice.Rank, slice.Initiative, slice.OpponentClass, slice.Games));
+        Assert.Equal(0.5028, slice.BaseWinRate, 4);
+        Assert.Equal(new DateTime(2026, 11, 13, 3, 10, 35, DateTimeKind.Utc), slice.AsOf);
+        Assert.Equal(DateTimeKind.Utc, slice.AsOf!.Value.Kind);
+        Assert.Equal((895, "C'Thun Warlock", "WARLOCK"), (slice.ArchetypeId, slice.ArchetypeName, slice.PlayerClass));
+        // The list arrives as JSON text inside the answer.
+        Assert.Equal(30, slice.DeckList.Values.Sum());
+        Assert.Equal((1, 2), (slice.DeckList[127067], slice.DeckList[129793]));
+        Assert.Equal(17, slice.Cards.Count);
+        var ritual = slice.Cards.Single(c => c.CardId == "BE_085");
+        Assert.Equal(129793, ritual.DbfId);
+        Assert.InRange(ritual.KeepRate, 0.5, 1);
+        Assert.InRange(ritual.OpeningHandWinRate!.Value, 0.4, 0.7);
+        Assert.NotNull(ritual.DrawnWinRate);
+        Assert.NotNull(ritual.AvgTurnPlayed);
+        // No per-card counts in the answer: two copies of 30 are among the four cards on the coin in 25.3 % of the games.
+        Assert.Equal(0.2529, HearthpulseData.DealtShare(2, 30, "coin"), 4);
+        Assert.Equal((int)Math.Round(218620 * HearthpulseData.DealtShare(2, 30, "coin")), ritual.Offered);
+        Assert.Equal(0.1, HearthpulseData.DealtShare(1, 30, "first"), 6);
+
+        // An answer without data, without the deck's win rate or without its list is no slice.
+        Assert.Null(HearthpulseData.ParseDeckMulligan(JsonDocument.Parse("""{"no_data": true, "games": 10, "base_winrate": 50, "deck": {"deck_list": [[1,2]]}, "rows": [{"card_id": "A"}]}""").RootElement, default, "x"));
+        Assert.Null(HearthpulseData.ParseDeckMulligan(JsonDocument.Parse("""{"games": 10, "deck": {"deck_list": [[1,2]]}, "rows": [{"card_id": "A"}]}""").RootElement, default, "x"));
+        Assert.Null(HearthpulseData.ParseDeckMulligan(JsonDocument.Parse("""{"games": 10, "base_winrate": 50, "deck": {"deck_list": "oops"}, "rows": [{"card_id": "A"}]}""").RootElement, default, "x"));
+        // The list as a plain array, and the server's fetch time when the answer has no date of its own.
+        var bare = HearthpulseData.ParseDeckMulligan(JsonDocument.Parse("""{"games": 10, "base_winrate": 50, "deck": {"deck_list": [[1,2]]}, "rows": [{"card_id": "A", "dbf_id": 1}]}""").RootElement,
+            JsonDocument.Parse("""{"fetched_at": "2026-11-14T03:50:12.183427+00:00"}""").RootElement, "x")!;
+        Assert.Equal((2, DeckMulliganSlice.AllGames, MulliganGuide.AnyOpponent), (bare.DeckList[1], bare.Initiative, bare.OpponentClass));
+        Assert.Equal(new DateTime(2026, 11, 14, 3, 50, 12, DateTimeKind.Utc), bare.AsOf!.Value.AddTicks(-(bare.AsOf.Value.Ticks % TimeSpan.TicksPerSecond)));
+    }
+
+    [Fact]
+    public void The_list_of_collected_decks_parses_one_row_per_deck_and_rank()
+    {
+        // GET v1/hsreplay/mulligan/decks?format=standard&limit=500 (2026-11-15), trimmed to three decks
+        var decks = HearthpulseData.ParseMulliganDecks(Fixture("hsreplay-mulligan-decks-standard.json").GetProperty("data"));
+
+        Assert.Equal(3, decks.Select(d => d.DeckId).Distinct().Count());
+        var warlock = decks.Where(d => d.DeckId == "7X8Zqlb1wBPwkkaQVGT8ee").ToList();
+        Assert.Equal(["bronze_gold", "diamond", "diamond_4to1", "legend"], warlock.Select(d => d.Rank).Order(StringComparer.Ordinal));
+        Assert.All(warlock, d => Assert.Equal(("C'Thun Warlock", "WARLOCK"), (d.ArchetypeName, d.PlayerClass)));
+        Assert.All(decks, d => Assert.InRange(d.WinRate, 0.3, 0.8));
+        Assert.All(decks, d => Assert.True(d.Games > 0));
+        // The row's deck_list is a real array of [dbfId, count] pairs; the slice of the same deck sends it as JSON text.
+        Assert.All(decks, d => Assert.Equal(30, d.DeckList!.Values.Sum()));
+        var fromSlice = HearthpulseData.ParseDeckMulligan(Fixture("hsreplay-deck-mulligan-7X8Zqlb1wBPwkkaQVGT8ee-legend-all-any.json").GetProperty("data"), default, "7X8Zqlb1wBPwkkaQVGT8ee")!.DeckList;
+        Assert.Equal(fromSlice.OrderBy(c => c.Key), warlock[0].DeckList!.OrderBy(c => c.Key));
+        Assert.Equal(JsonValueKind.Array, Fixture("hsreplay-mulligan-decks-standard.json").GetProperty("data")[0].GetProperty("deck_list").ValueKind);
+        Assert.Equal(JsonValueKind.String, Fixture("hsreplay-deck-mulligan-7X8Zqlb1wBPwkkaQVGT8ee-legend-all-any.json").GetProperty("data").GetProperty("deck").GetProperty("deck_list").ValueKind);
+        // Either shape reads the same; a row without the field (an older answer) or with rubbish has no list.
+        Assert.Equal(HearthpulseData.ParseDeckList(JsonDocument.Parse("[[5,2],[7,1]]").RootElement), HearthpulseData.ParseDeckList(JsonDocument.Parse("\"[[5,2],[7,1]]\"").RootElement));
+        Assert.Equal(2, HearthpulseData.ParseDeckList(JsonDocument.Parse("[[5,2],[7,1]]").RootElement)![5]);
+        var bare = HearthpulseData.ParseMulliganDecks(JsonDocument.Parse(
+            """[{"deck_id": "ok", "player_class": "MAGE", "rank": "legend"}, {"deck_id": "ok2", "player_class": "MAGE", "rank": "legend", "deck_list": "oops"}, {"deck_id": "ok3", "player_class": "MAGE", "rank": "legend", "deck_list": "[[5,2]]"}]""").RootElement);
+        Assert.Equal([false, false, true], bare.Select(d => d.DeckList is not null));
+
+        // Rows with an id that could not go into a URL, or a rank the endpoint does not take, are dropped.
+        Assert.Empty(HearthpulseData.ParseMulliganDecks(JsonDocument.Parse(
+            """[{"deck_id": "a/b", "player_class": "MAGE", "rank": "legend"}, {"deck_id": "ok", "player_class": "MAGE", "rank": "top_legend"}, {"deck_id": "ok", "rank": "legend"}]""").RootElement));
+    }
+
+    [Fact]
+    public void The_most_specific_deck_slice_with_enough_games_speaks_and_the_view_says_whose_numbers_they_are()
+    {
+        static DeckMulliganSlice Slice(string initiative, string opponent, int games, double baseline, double cardRate) =>
+            new("deck", "legend", initiative, opponent, games, baseline, new DateTime(2026, 11, 14, 0, 0, 0, DateTimeKind.Utc), new Dictionary<int, int> { [1] = 2 },
+                [new GuideCard("A", 1, 1, games / 5, 0.5, games / 5, cardRate, 2)]);
+
+        var all = Slice("all", "any", 50000, 0.50, 0.53);
+        var coin = Slice("coin", "any", 24000, 0.47, 0.52);
+        var mage = Slice("all", "MAGE", 5000, 0.55, 0.56);
+        var thin = Slice("coin", "MAGE", MulliganGuide.MinSliceGames - 1, 0.60, 0.70);
+        var guide = new GuideArchetype(1, "Deck", "MAGE", all.Cards, [], "test") { Scope = MulliganScope.Deck, DeckId = "deck", DeckSlices = [all, coin, mage, thin] };
+        var hand = new[] { new OfferedCard(1, "A", "A", 1) };
+
+        // Nothing known yet: all games, and the view claims neither the coin nor a class.
+        var view = MulliganGuide.Compute(guide, hand, null, null, null, "Deck")!;
+        Assert.Equal((MulliganScope.Deck, 50000, 0.50), (view.Scope, view.DeckGames!.Value, view.BaseWinRate));
+        Assert.Equal(((bool?)null, (string?)null), (view.GoingFirst, view.OpponentClass));
+        Assert.Equal(0.03, view.Cards[0].Delta!.Value, 6);
+        Assert.Equal(all.AsOf, view.DataAsOf);
+
+        // On the coin against a Mage: the slice of both is too thin, the class slice speaks; against a Druid, the coin's.
+        view = MulliganGuide.Compute(guide, hand, null, "MAGE", false, "Deck")!;
+        Assert.Equal((5000, 0.55, "MAGE", (bool?)null), (view.DeckGames!.Value, view.BaseWinRate, view.OpponentClass, view.GoingFirst));
+        view = MulliganGuide.Compute(guide, hand, null, "DRUID", false, "Deck")!;
+        Assert.Equal((24000, 0.47, (string?)null, (bool?)false), (view.DeckGames!.Value, view.BaseWinRate, view.OpponentClass, view.GoingFirst));
+        Assert.Equal(0.05, view.Cards[0].Delta!.Value, 6);
+        // Going first has no slice: all games again.
+        Assert.Equal(50000, MulliganGuide.Compute(guide, hand, null, null, true, "Deck")!.DeckGames);
+
+        // An archetype guide keeps saying it is one.
+        var archetype = MulliganGuide.Compute(Guide(VoidDemonHunter), [new OfferedCard(1, "JAIL_732", "Void Soul", 1)], null, null, null, "x")!;
+        Assert.Equal((MulliganScope.Archetype, (int?)null, (DateTime?)null, 0), (archetype.Scope, archetype.DeckGames, archetype.DataAsOf, archetype.DeckDifference));
+    }
+
+    [Fact]
+    public void Deck_difference_counts_the_cards_one_list_lacks()
+    {
+        var deck = new Dictionary<int, int> { [1] = 2, [2] = 2, [3] = 1 };
+
+        Assert.Equal(0, MulliganGuide.DeckDifference(deck, new Dictionary<int, int>(deck)));
+        Assert.Equal(1, MulliganGuide.DeckDifference(deck, new Dictionary<int, int> { [1] = 2, [2] = 1, [3] = 1, [4] = 1 }));
+        Assert.Equal(2, MulliganGuide.DeckDifference(deck, new Dictionary<int, int> { [1] = 2, [3] = 1, [5] = 2 }));
+        // A larger list (40 cards against 30) is as far away as the cards it adds.
+        Assert.Equal(2, MulliganGuide.DeckDifference(deck, new Dictionary<int, int> { [1] = 2, [2] = 2, [3] = 1, [9] = 2 }));
+    }
+
     private static GuideArchetype SliceGuide(params MulliganSlice[] slices) =>
         new(1, "Test", "MAGE", [new GuideCard("A", 1, 1, 1000, 0.5, 1000, 0.50, 2), new GuideCard("B", 2, 2, 1000, 0.5, 1000, 0.51, 2)], [], "test")
         {

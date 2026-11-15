@@ -82,7 +82,9 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         var meta = PoolClient.Parse(doc.RootElement);
         var actual = $"pool {Fingerprint(new StringBuilder(JsonSerializer.Serialize(meta, Json)))}";
         output.WriteLine(actual);
-        Assert.Equal("pool D9E8D2E649E91FDA", actual);
+        // 2026-11-15: the meta gained the public HeroComps (empty for the pool); without that property the text still
+        // hashes to the fingerprint of before, D9E8D2E649E91FDA.
+        Assert.Equal("pool 3F718920D0D5A1D8", actual);
     }
 
     [Fact]
