@@ -7,6 +7,7 @@ namespace Hearthpulse.Core.Api;
 /// <summary>
 /// The per-deck mulligan (<c>/v1/hsreplay/mulligan</c>, docs/mulligan-v2.md 2.2): the decks the server collects and one
 /// deck's slice by rank, initiative and opponent class. Same disk cache as every other answer (6 h, a 404 remembered).
+/// These loaders never throw, a cancelled token included: they answer "nothing" and the archetype guide speaks.
 /// </summary>
 public sealed partial class HearthpulseData
 {
@@ -15,21 +16,14 @@ public sealed partial class HearthpulseData
 
     private static readonly HashSet<string> DeckInitiatives = new(StringComparer.Ordinal) { DeckMulliganSlice.AllGames, "first", "coin" };
 
-    /// <summary>The deck list file keeps this many decks; the server collects a few dozen at a time.</summary>
-    private const int MaxDeckLists = 300;
-
-    private const string DeckListsFile = "hsreplay-mulligan-decklists.json";
-
-    private readonly Lock _deckListGate = new();
-    private Dictionary<string, IReadOnlyDictionary<int, int>>? _deckLists;
-
     /// <summary>Deck ids (HSReplay's short ids, mixed case) that may go into a URL and a cache file name.</summary>
     [System.Text.RegularExpressions.GeneratedRegex("^[A-Za-z0-9]{1,40}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant)]
     private static partial System.Text.RegularExpressions.Regex DeckIdKey { get; }
 
     /// <summary>
-    /// The decks of a format ("standard", "wild") the server collects the per-deck mulligan for: one row per deck and rank.
-    /// Empty when neither the server nor the cache answers.
+    /// The decks of a format ("standard", "wild") the server collects the per-deck mulligan for: one row per deck and
+    /// rank, with the deck's card list (an answer cached before 2026-11-15 has none). Empty when neither the server nor
+    /// the cache answers, or the caller cancelled.
     /// </summary>
     public async Task<IReadOnlyList<MulliganDeckEntry>> LoadHsreplayMulliganDecksAsync(string format, CancellationToken cancellationToken = default)
     {
@@ -38,14 +32,23 @@ public sealed partial class HearthpulseData
             return [];
         }
 
-        using var doc = await FetchAsync($"v1/hsreplay/mulligan/decks?format={format}&limit=500", $"hsreplay-mulligan-decks-{format}.json", cancellationToken).ConfigureAwait(false);
-        return doc is null ? [] : Read(() => ParseMulliganDecks(Data(doc)), "mulligan decks", new List<MulliganDeckEntry>());
+        try
+        {
+            using var doc = await FetchAsync($"v1/hsreplay/mulligan/decks?format={format}&limit=500", $"hsreplay-mulligan-decks-{format}.json", cancellationToken).ConfigureAwait(false);
+            return doc is null ? [] : Read(() => ParseMulliganDecks(Data(doc)), "mulligan decks", new List<MulliganDeckEntry>());
+        }
+        catch (OperationCanceledException)
+        {
+            // The caller gave up (a timeout is "offline" inside the API client): nothing, like any other miss.
+            return [];
+        }
     }
 
     /// <summary>
     /// One slice of a collected deck's mulligan (last 30 days): a rank of <see cref="DeckMulliganRanks"/>, the initiative
     /// ("all", "first", "coin") and the opponent's class ("any" or "MAGE"). Null when the server has not collected the
-    /// slice (a 404, remembered like any answer), holds no data for it, or a parameter is not one of the API's keys.
+    /// slice (a 404, remembered like any answer), holds no data for it, a parameter is not one of the API's keys, or the
+    /// caller cancelled.
     /// </summary>
     public async Task<DeckMulliganSlice?> LoadHsreplayDeckMulliganAsync(string deckId, string format, string rank, string initiative = DeckMulliganSlice.AllGames,
         string opponentClass = MulliganGuide.AnyOpponent, CancellationToken cancellationToken = default)
@@ -60,96 +63,23 @@ public sealed partial class HearthpulseData
         var server = opponent == MulliganGuide.AnyOpponent ? opponent : opponent.ToUpperInvariant();
         // Deck ids differ by case and Windows file names do not: the hash keeps two such ids apart.
         var file = $"hsreplay-mulligan-{format}-{deckId}-{CaseHash(deckId):x8}-{rank}-{initiative}-{opponent}.json";
-        using var doc = await FetchAsync($"v1/hsreplay/mulligan?deck={deckId}&format={format}&rank={rank}&initiative={initiative}&opponent_class={server}", file, cancellationToken).ConfigureAwait(false);
-        return doc is null
-            ? null
-            : Read(() => ParseDeckMulligan(Data(doc), doc.RootElement.TryGetProperty("meta", out var meta) ? meta : default, deckId), "deck mulligan", (DeckMulliganSlice?)null);
-    }
-
-    /// <summary>
-    /// A collected deck's card list (dbf id → copies). The list of decks does not carry it, so it is read once from the
-    /// deck's all-games slice at <paramref name="rank"/> and kept in <c>hsreplay-mulligan-decklists.json</c> without an
-    /// age: a deck id names one list for good. Later matching asks the server for no slice at all. Null when the slice
-    /// is missing (remembered for the cache age like any 404).
-    /// </summary>
-    public async Task<IReadOnlyDictionary<int, int>?> LoadHsreplayDeckListAsync(string deckId, string format, string rank, CancellationToken cancellationToken = default)
-    {
-        if (!DeckIdKey.IsMatch(deckId))
-        {
-            return null;
-        }
-
-        lock (_deckListGate)
-        {
-            if ((_deckLists ??= ReadDeckLists()).TryGetValue(deckId, out var known))
-            {
-                return known;
-            }
-        }
-
-        if (await LoadHsreplayDeckMulliganAsync(deckId, format, rank, cancellationToken: cancellationToken).ConfigureAwait(false) is not { DeckList.Count: > 0 } slice)
-        {
-            return null;
-        }
-
-        string text;
-        lock (_deckListGate)
-        {
-            // Another instance (the meta page's, a render) may have written meanwhile: its decks are kept.
-            var lists = _deckLists ??= [];
-            foreach (var (id, list) in ReadDeckLists())
-            {
-                lists.TryAdd(id, list);
-            }
-
-            lists[deckId] = slice.DeckList;
-            foreach (var extra in lists.Keys.Where(k => k != deckId).Take(Math.Max(0, lists.Count - MaxDeckLists)).ToList())
-            {
-                lists.Remove(extra);
-            }
-
-            text = JsonSerializer.Serialize(new { lists = lists.ToDictionary(d => d.Key, d => d.Value.Select(c => new[] { c.Key, c.Value }).ToArray(), StringComparer.Ordinal) });
-        }
-
-        await WriteCacheAsync(Path.Combine(_cacheDirectory, DeckListsFile), text, cancellationToken).ConfigureAwait(false);
-        return slice.DeckList;
-    }
-
-    /// <summary>The kept deck lists; empty when the file is missing or unreadable (the lists are then read again).</summary>
-    private Dictionary<string, IReadOnlyDictionary<int, int>> ReadDeckLists()
-    {
-        var result = new Dictionary<string, IReadOnlyDictionary<int, int>>(StringComparer.Ordinal);
         try
         {
-            var file = Path.Combine(_cacheDirectory, DeckListsFile);
-            if (!File.Exists(file))
-            {
-                return result;
-            }
-
-            using var doc = JsonDocument.Parse(File.ReadAllBytes(file));
-            if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("lists", out var lists) && lists.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var deck in lists.EnumerateObject())
-                {
-                    if (DeckIdKey.IsMatch(deck.Name) && ParseDeckList(deck.Value) is { Count: > 0 } list)
-                    {
-                        result[deck.Name] = list;
-                    }
-                }
-            }
+            using var doc = await FetchAsync($"v1/hsreplay/mulligan?deck={deckId}&format={format}&rank={rank}&initiative={initiative}&opponent_class={server}", file, cancellationToken).ConfigureAwait(false);
+            return doc is null
+                ? null
+                : Read(() => ParseDeckMulligan(Data(doc), doc.RootElement.TryGetProperty("meta", out var meta) ? meta : default, deckId), "deck mulligan", (DeckMulliganSlice?)null);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        catch (OperationCanceledException)
         {
-            Diag.Error("Hearthpulse API cache unreadable (mulligan deck lists)", ex);
+            return null;
         }
-
-        return result;
     }
 
     /// <summary>
-    /// <c>[{"deck_id", "archetype_name", "player_class", "rank", "total_games", "win_rate"}]</c>; win rates become
-    /// fractions. Rows without a usable deck id, class or rank are skipped.
+    /// <c>[{"deck_id", "archetype_name", "player_class", "rank", "total_games", "win_rate", "deck_list"}]</c>; win rates
+    /// become fractions, <c>deck_list</c> is read in either shape (<see cref="ParseDeckList"/>) and is null when the row
+    /// has none. Rows without a usable deck id, class or rank are skipped.
     /// </summary>
     internal static List<MulliganDeckEntry> ParseMulliganDecks(JsonElement root)
     {
@@ -160,7 +90,10 @@ public sealed partial class HearthpulseData
                 && Str(row, "rank") is { } rank && DeckMulliganRanks.Contains(rank))
             {
                 result.Add(new MulliganDeckEntry(id, Str(row, "archetype_name") ?? string.Empty, playerClass.ToUpperInvariant(), rank,
-                    (int)(Num(row, "total_games") ?? 0), (Num(row, "win_rate") ?? 0) / 100));
+                    (int)(Num(row, "total_games") ?? 0), (Num(row, "win_rate") ?? 0) / 100)
+                {
+                    DeckList = row.TryGetProperty("deck_list", out var listed) && ParseDeckList(listed) is { Count: > 0 } list ? list : null,
+                });
             }
         }
 
@@ -222,8 +155,8 @@ public sealed partial class HearthpulseData
     }
 
     /// <summary>
-    /// <c>[[dbfId, count], ...]</c>, as an array or as the JSON text of one (the slice answers with text). Null when it
-    /// is neither.
+    /// <c>[[dbfId, count], ...]</c>, as an array (the rows of the list of decks) or as the JSON text of one (the slice's
+    /// <c>deck.deck_list</c>). Null when it is neither.
     /// </summary>
     internal static Dictionary<int, int>? ParseDeckList(JsonElement value)
     {

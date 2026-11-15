@@ -10,8 +10,8 @@ namespace Hearthpulse.Core.Tracking;
 public sealed partial class MulliganGuideSource
 {
     /// <summary>
-    /// At most this many collected decks of the player's class are compared with the deck, most played first: each one
-    /// not seen before costs one request for its list (the server collects about a dozen decks per format and rank).
+    /// Only for a list of decks without card lists (an answer cached before 2026-11-15): at most this many collected
+    /// decks of the player's class, most played first, are asked for their list through their all-games slice.
     /// </summary>
     public const int MaxDeckCandidates = 6;
 
@@ -23,9 +23,9 @@ public sealed partial class MulliganGuideSource
     /// (<see cref="MulliganScope.Deck"/>), else the closest one at most <see cref="NearDeckDifference"/> cards away
     /// (<see cref="MulliganScope.NearDeck"/>; more played wins a tie). Null when no collected deck is that close, the
     /// class has none, or the server and the cache do not answer: the archetype guide speaks then.
-    /// Requests: the list of decks, one all-games slice per candidate whose list is not known yet (at most
-    /// <see cref="MaxDeckCandidates"/>, kept for good), and for a match its initiative / opponent slices. A deck that
-    /// matches nothing asks for no slice once the candidates' lists are known.
+    /// Requests: the list of decks, which carries every deck's cards, so a deck that matches nothing asks for no slice
+    /// at all; for a match its all-games slice and its initiative / opponent slices. Rows without a card list (an old
+    /// cache) fall back to the candidates' all-games slices, at most <see cref="MaxDeckCandidates"/>.
     /// </summary>
     /// <param name="rank">The mulligan rank filter; the deck's slices are read at <see cref="DeckRankFor"/>.</param>
     public static async Task<GuideArchetype?> LoadDeckGuideAsync(HearthpulseData data, string format, string playerClass, IReadOnlyDictionary<int, int> deck, CardDb cards,
@@ -34,20 +34,30 @@ public sealed partial class MulliganGuideSource
         var listed = await data.LoadHsreplayMulliganDecksAsync(format, cancellationToken).ConfigureAwait(false);
         var candidates = listed.Where(d => string.Equals(d.PlayerClass, playerClass, StringComparison.OrdinalIgnoreCase))
             .GroupBy(d => d.DeckId, StringComparer.Ordinal)
-            .Select(g => new DeckCandidate(g.Key, DeckRankFor(rank, g.Select(d => d.Rank).ToList()), g.Max(d => d.Games), g.First().ArchetypeName))
+            .Select(g => new DeckCandidate(g.Key, DeckRankFor(rank, g.Select(d => d.Rank).ToList()), g.Max(d => d.Games), g.First().ArchetypeName)
+            {
+                List = g.Select(d => d.DeckList).FirstOrDefault(l => l is not null),
+            })
             .OrderByDescending(c => c.Games)
-            .Take(MaxDeckCandidates)
             .ToList();
         if (candidates.Count == 0)
         {
             return null;
         }
 
-        var lists = await Task.WhenAll(candidates.Select(c => data.LoadHsreplayDeckListAsync(c.DeckId, format, c.Rank, cancellationToken))).ConfigureAwait(false);
-        var found = candidates.Zip(lists, (c, list) => (Candidate: c, Difference: list is null ? int.MaxValue : MulliganGuide.DeckDifference(deck, list)))
+        // The fallback for rows without a card list: the slice (cached like any answer) names the deck's cards.
+        var unlisted = candidates.Where(c => c.List is null).Take(MaxDeckCandidates).ToList();
+        if (unlisted.Count > 0)
+        {
+            var slices = await Task.WhenAll(unlisted.Select(c => data.LoadHsreplayDeckMulliganAsync(c.DeckId, format, c.Rank, cancellationToken: cancellationToken))).ConfigureAwait(false);
+            var read = unlisted.Zip(slices, (c, slice) => (c.DeckId, slice?.DeckList)).ToDictionary(c => c.DeckId, c => c.DeckList, StringComparer.Ordinal);
+            candidates = candidates.Select(c => c.List is null && read.GetValueOrDefault(c.DeckId) is { } list ? c with { List = list } : c).ToList();
+        }
+
+        var found = candidates.Where(c => c.List is not null)
+            .Select(c => c with { Difference = MulliganGuide.DeckDifference(deck, c.List!) })
             .Where(c => c.Difference <= NearDeckDifference)
-            .OrderBy(c => c.Difference).ThenByDescending(c => c.Candidate.Games)
-            .Select(c => c.Candidate with { Difference = c.Difference })
+            .OrderBy(c => c.Difference).ThenByDescending(c => c.Games)
             .FirstOrDefault();
         if (found is null)
         {
@@ -80,6 +90,8 @@ public sealed partial class MulliganGuideSource
     /// <summary>A collected deck of the player's class, the rank its slices are read at, and how far its list is from the player's.</summary>
     private sealed record DeckCandidate(string DeckId, string Rank, int Games, string ArchetypeName)
     {
+        public IReadOnlyDictionary<int, int>? List { get; init; }
+
         public int Difference { get; init; }
     }
 

@@ -207,8 +207,6 @@ public sealed class ApiLoadTests : IDisposable
         // The server collects one Warlock deck (C'Thun); the Zoolock list is nowhere near it.
         var server = FixtureServer.Standard();
         server.Route("v1/hsreplay/mulligan/decks?format=standard", FixtureServer.Text("hsreplay-mulligan-decks-standard.json"));
-        server.Route("v1/hsreplay/mulligan?deck=7X8Zqlb1wBPwkkaQVGT8ee&format=standard&rank=legend&initiative=all&opponent_class=any",
-            FixtureServer.Text("hsreplay-deck-mulligan-7X8Zqlb1wBPwkkaQVGT8ee-legend-all-any.json"));
         var list = Assert.Single(HearthpulseData.ParseHsguruArchetypes(FixtureServer.Json("hsguru-archetypes-standard.json")), a => a.Name == "Zoolock").Decks[0];
         var deck = DeckString.TryDecode(list.Code)!;
         var before = await MulliganGuideSource.LoadGuideAsync(Data(FixtureServer.Standard(), "without"), "standard", "WARLOCK", deck.Cards, CardDb.Empty, "MAGE", false);
@@ -221,9 +219,9 @@ public sealed class ApiLoadTests : IDisposable
         Assert.Equal(before.Cards, guide.Cards);
         Assert.Equal((MulliganScope.Archetype, (string?)null), (guide.Scope, guide.DeckId));
         Assert.Empty(guide.DeckSlices);
-        // One request learned the collected deck's list; nothing of this game (the coin, the Mage) was asked of it.
-        var slices = server.Requests.Where(r => r.StartsWith("v1/hsreplay/mulligan?", StringComparison.Ordinal)).ToList();
-        Assert.Equal("v1/hsreplay/mulligan?deck=7X8Zqlb1wBPwkkaQVGT8ee&format=standard&rank=legend&initiative=all&opponent_class=any", Assert.Single(slices));
+        // The list of decks named the collected deck's cards: not one slice of it was asked.
+        Assert.Single(server.Requests, r => r.StartsWith("v1/hsreplay/mulligan/decks", StringComparison.Ordinal));
+        Assert.DoesNotContain(server.Requests, r => r.StartsWith("v1/hsreplay/mulligan?", StringComparison.Ordinal));
     }
 
     [Fact]

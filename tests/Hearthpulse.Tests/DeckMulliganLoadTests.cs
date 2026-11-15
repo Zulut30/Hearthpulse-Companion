@@ -10,13 +10,15 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// The per-deck mulligan (docs/mulligan-v2.md 2.2) over a fake server answering with trimmed live answers of
 /// 2026-11-15 (Fixtures/Mulligan/hsreplay-*; produced by the requests named in docs/mulligan-v2.md): the player's exact
-/// list, a close list, no match, the slices of a game, the disk cache with remembered 404s, and a server that is down.
+/// list, a close list, no match (not one slice asked: the list of decks carries the cards), an old cache without card
+/// lists, Wild, the slices of a game, the disk cache with remembered 404s, a server that is down and a cancelled caller.
 /// </summary>
 public sealed class DeckMulliganLoadTests : IDisposable
 {
     private const string Warlock = "7X8Zqlb1wBPwkkaQVGT8ee";
     private const string RogueA = "vqugUxEMufzPN9UNvcADrg";
     private const string RogueB = "H643Fy7N2Lp5ebtbXp6Msf";
+    private const string WildRogue = "wZZ3Ak2JvYAzAHlXHZIcwh";
 
     private readonly string _cache = TestDataFolder.Scratch("deckmulligan");
 
@@ -50,7 +52,7 @@ public sealed class DeckMulliganLoadTests : IDisposable
         Assert.Equal(MulliganCall.Mulligan, view.Cards[1].Call); // Hellfire: 51.3 % against the deck's 54.09 %
 
         // The deck's own numbers are the whole guide: the archetype sources are never asked.
-        Assert.Equal(2, server.Requests.Count); // the list of decks and the deck's slice, which also gave its card list
+        Assert.Equal(2, server.Requests.Count); // the list of decks (it names the deck's cards) and the deck's slice
         Assert.DoesNotContain(server.Requests, r => r.StartsWith("api/db/", StringComparison.Ordinal) || r.Contains("hsguru", StringComparison.Ordinal));
     }
 
@@ -88,27 +90,133 @@ public sealed class DeckMulliganLoadTests : IDisposable
     }
 
     [Fact]
-    public async Task A_deck_that_matches_none_leaves_the_archetype_guide_and_asks_for_no_slices_of_its_game()
+    public async Task A_deck_that_matches_none_asks_for_the_list_of_decks_and_not_one_slice()
     {
         var server = Server.Standard();
         var homebrew = Enumerable.Range(1000, 15).ToDictionary(dbf => dbf, _ => 2);
 
-        // A class the server collects no deck for: only the list of decks is asked.
+        // A class the server collects no deck for, then a class with two collected decks, the game's coin and opponent
+        // known: the list of decks names every deck's cards, so nothing else is asked.
         Assert.Null(await MulliganGuideSource.LoadDeckGuideAsync(Data(server), "standard", "DRUID", homebrew, CardDb.Empty, opponentClass: "MAGE", goingFirst: false));
-        Assert.Equal(["v1/hsreplay/mulligan/decks?format=standard&limit=500"], server.Requests);
+        Assert.Null(await MulliganGuideSource.LoadDeckGuideAsync(Data(server), "standard", "ROGUE", homebrew, CardDb.Empty, opponentClass: "MAGE", goingFirst: false));
+        // Three cards away from a collected list is no match either.
+        var far = ListOf(Warlock);
+        far.Remove(69519);
+        far[130281] = 1;
+        far[1] = 3;
+        Assert.Null(await MulliganGuideSource.LoadDeckGuideAsync(Data(server), "standard", "WARLOCK", far, CardDb.Empty, opponentClass: "MAGE", goingFirst: false));
 
-        // A class with collected decks: their lists are learned once (one all-games slice each), nothing of this game.
+        Assert.Equal(["v1/hsreplay/mulligan/decks?format=standard&limit=500"], server.Requests);
+        Assert.Equal(["hsreplay-mulligan-decks-standard.json"], Directory.GetFiles(_cache).Select(Path.GetFileName));
+    }
+
+    [Fact]
+    public async Task A_list_of_decks_cached_without_card_lists_reads_them_from_the_decks_slices()
+    {
+        // The answer as the server gave it before 2026-11-15: the same rows without deck_list.
+        var server = Server.Standard();
+        var rows = System.Text.Json.Nodes.JsonNode.Parse(Server.Text("hsreplay-mulligan-decks-standard.json"))!;
+        foreach (var row in rows["data"]!.AsArray())
+        {
+            row!.AsObject().Remove("deck_list");
+        }
+
+        server.Route("v1/hsreplay/mulligan/decks?format=standard", rows.ToJsonString());
+        var homebrew = Enumerable.Range(1000, 15).ToDictionary(dbf => dbf, _ => 2);
+
+        // No match: one all-games slice per collected deck of the class names its cards, nothing of this game.
         Assert.Null(await MulliganGuideSource.LoadDeckGuideAsync(Data(server), "standard", "ROGUE", homebrew, CardDb.Empty, opponentClass: "MAGE", goingFirst: false));
         var slices = server.Requests.Where(r => r.StartsWith("v1/hsreplay/mulligan?", StringComparison.Ordinal)).ToList();
         Assert.Equal(2, slices.Count);
         Assert.All(slices, r => Assert.Contains("initiative=all&opponent_class=any", r, StringComparison.Ordinal));
 
-        // The lists are kept for good: another session matching the same class asks nothing at all.
+        // Those answers are cached like any other: the next lookup asks nothing.
         var asked = server.Requests.Count;
-        Assert.Null(await MulliganGuideSource.LoadDeckGuideAsync(Data(server), "standard", "ROGUE", homebrew, CardDb.Empty, opponentClass: "MAGE", goingFirst: false));
+        Assert.Null(await MulliganGuideSource.LoadDeckGuideAsync(Data(server), "standard", "ROGUE", homebrew, CardDb.Empty));
         Assert.Equal(asked, server.Requests.Count);
-        Assert.True(File.Exists(Path.Combine(_cache, "hsreplay-mulligan-decklists.json")));
+
+        // And a deck with the same list is still found through its slice.
+        var guide = await MulliganGuideSource.LoadDeckGuideAsync(Data(server), "standard", "ROGUE", ListOf(RogueA), CardDb.Empty);
+        Assert.Equal((MulliganScope.Deck, RogueA), (guide!.Scope, guide.DeckId));
+        Assert.Equal(asked, server.Requests.Count);
         Assert.Empty(Directory.GetFiles(_cache, "*.tmp"));
+    }
+
+    [Fact]
+    public async Task A_wild_deck_is_matched_among_the_wild_decks_and_reads_its_wild_slices()
+    {
+        // GET v1/hsreplay/mulligan/decks?format=wild&limit=500 (Rogue and Druid rows) and
+        // v1/hsreplay/mulligan?deck=wZZ3Ak2JvYAzAHlXHZIcwh&format=wild&rank=legend&initiative=all|coin&opponent_class=any, 2026-11-15
+        var server = Server.Wild();
+        var listed = HearthpulseData.ParseMulliganDecks(System.Text.Json.JsonDocument.Parse(Server.Text("hsreplay-mulligan-decks-wild.json")).RootElement.GetProperty("data"));
+        var deck = listed.First(d => d.DeckId == WildRogue).DeckList!.ToDictionary(c => c.Key, c => c.Value);
+        Assert.Equal(30, deck.Values.Sum());
+
+        var guide = await MulliganGuideSource.LoadGuideAsync(Data(server), "wild", "ROGUE", deck, CardDb.Empty, goingFirst: false);
+
+        Assert.NotNull(guide);
+        Assert.Equal((MulliganScope.Deck, WildRogue), (guide.Scope, guide.DeckId));
+        Assert.Contains(guide.DeckSlices, s => s is { Initiative: "all", Rank: "legend", Games: 42642 });
+        Assert.Contains(guide.DeckSlices, s => s is { Initiative: "coin", Games: 21312 });
+        var view = MulliganGuide.Compute(guide, Hand("TLC_515"), null, null, false, guide.Name)!;
+        Assert.Equal((MulliganScope.Deck, 21312, false), (view.Scope, view.DeckGames!.Value, view.GoingFirst!.Value));
+        Assert.Equal(0.6233, view.BaseWinRate, 4);
+        Assert.Equal(0.5571, view.Cards[0].WinRate!.Value, 4);
+        Assert.Equal(new DateTime(2026, 11, 8, 3, 49, 29, DateTimeKind.Utc), view.DataAsOf);
+        Assert.All(server.Requests, r => Assert.Contains("format=wild", r, StringComparison.Ordinal));
+
+        // The other collected Wild Rogue lists are four and six cards away; a list two cards from this one is a close deck.
+        var near = new Dictionary<int, int>(deck);
+        var swapped = near.First(c => c.Value == 2).Key;
+        near.Remove(swapped);
+        near[1] = 2;
+        var close = await MulliganGuideSource.LoadDeckGuideAsync(Data(server), "wild", "ROGUE", near, CardDb.Empty);
+        Assert.Equal((MulliganScope.NearDeck, WildRogue, 2), (close!.Scope, close.DeckId, close.DeckDifference));
+
+        // A Wild homebrew, and the source by the game's format: no slice, and Standard is never asked.
+        var asked = server.Requests.Count;
+        Assert.Null(await MulliganGuideSource.LoadDeckGuideAsync(Data(server), "wild", "ROGUE", Enumerable.Range(1000, 15).ToDictionary(dbf => dbf, _ => 2), CardDb.Empty));
+        Assert.Equal(asked, server.Requests.Count);
+        var source = new MulliganGuideSource(Data(server));
+        var changed = new SemaphoreSlim(0);
+        source.Changed += () => changed.Release();
+        var definition = new DeckDefinition("Wild Rogue", 0, string.Empty, "FT_WILD", [], deck);
+        Assert.Null(source.For("ROGUE", definition, "FT_WILD", CardDb.Empty));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromMinutes(1)));
+        Assert.Equal(MulliganScope.Deck, source.For("ROGUE", definition, "FT_WILD", CardDb.Empty)!.Scope);
+        Assert.All(server.Requests, r => Assert.Contains("format=wild", r, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_cancelled_caller_gets_nothing_and_no_exception()
+    {
+        var deck = ListOf(Warlock);
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        // Cancelled before the request.
+        var server = Server.Standard();
+        var data = Data(server, "cancelled");
+        Assert.Empty(await data.LoadHsreplayMulliganDecksAsync("standard", cancelled.Token));
+        Assert.Null(await data.LoadHsreplayDeckMulliganAsync(Warlock, "standard", "legend", cancellationToken: cancelled.Token));
+        Assert.Null(await MulliganGuideSource.LoadDeckGuideAsync(data, "standard", "WARLOCK", deck, CardDb.Empty, cancellationToken: cancelled.Token));
+
+        // Cancelled while the server is answering: the list, then the slice of a matched deck.
+        foreach (var held in new[] { "mulligan/decks", "mulligan?deck=" })
+        {
+            var slow = Server.Standard();
+            slow.HoldOn = held;
+            using var cancel = new CancellationTokenSource();
+            var lookup = MulliganGuideSource.LoadDeckGuideAsync(Data(slow, "slow-" + (held.Length % 7)), "standard", "WARLOCK", deck, CardDb.Empty, cancellationToken: cancel.Token);
+            await slow.Waiting.Task.WaitAsync(TimeSpan.FromMinutes(1));
+            await cancel.CancelAsync();
+
+            Assert.Null(await lookup);
+        }
+
+        // Nothing half-written, and a cancelled answer is not remembered as "the server has nothing".
+        Assert.Empty(Directory.GetFiles(_cache, "*.tmp", SearchOption.AllDirectories));
+        Assert.NotNull(await MulliganGuideSource.LoadDeckGuideAsync(Data(server, "cancelled"), "standard", "WARLOCK", deck, CardDb.Empty));
     }
 
     [Fact]
@@ -193,7 +301,6 @@ public sealed class DeckMulliganLoadTests : IDisposable
 
             Assert.Empty(await data.LoadHsreplayMulliganDecksAsync("standard"));
             Assert.Null(await data.LoadHsreplayDeckMulliganAsync(Warlock, "standard", "legend"));
-            Assert.Null(await data.LoadHsreplayDeckListAsync(Warlock, "standard", "legend"));
             Assert.Null(await MulliganGuideSource.LoadDeckGuideAsync(data, "standard", "WARLOCK", deck, CardDb.Empty));
         }
 
@@ -221,7 +328,6 @@ public sealed class DeckMulliganLoadTests : IDisposable
         Assert.Null(await data.LoadHsreplayDeckMulliganAsync(Warlock, "standard", "top_legend"));
         Assert.Null(await data.LoadHsreplayDeckMulliganAsync(Warlock, "standard", "legend", "second"));
         Assert.Null(await data.LoadHsreplayDeckMulliganAsync(Warlock, "standard", "legend", "all", "MAGE&deck=x"));
-        Assert.Null(await data.LoadHsreplayDeckListAsync("a/b", "standard", "legend"));
         Assert.Empty(await data.LoadHsreplayMulliganDecksAsync("standard/../x"));
 
         Assert.Empty(server.Requests);
@@ -260,6 +366,27 @@ public sealed class DeckMulliganLoadTests : IDisposable
         /// <summary>When set, every request fails with it (the server is down, or the request timed out).</summary>
         public Exception? Failure { get; set; }
 
+        /// <summary>A request holding this text waits until its caller cancels (<see cref="Waiting"/> completes once it does).</summary>
+        public string? HoldOn { get; set; }
+
+        public TaskCompletionSource Waiting { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>Later routes win, so a test can override a fixture.</summary>
+        public void Route(string fragment, string body) => _routes.Insert(0, (fragment, body));
+
+        public static Server Wild()
+        {
+            var server = new Server();
+            server._routes.Add(("v1/hsreplay/mulligan/decks?format=wild", Text("hsreplay-mulligan-decks-wild.json")));
+            foreach (var initiative in new[] { "all", "coin" })
+            {
+                server._routes.Add(($"v1/hsreplay/mulligan?deck={WildRogue}&format=wild&rank=legend&initiative={initiative}&opponent_class=any",
+                    Text($"hsreplay-deck-mulligan-wild-{WildRogue}-legend-{initiative}-any.json")));
+            }
+
+            return server;
+        }
+
         public static Server Standard()
         {
             var server = new Server();
@@ -280,7 +407,7 @@ public sealed class DeckMulliganLoadTests : IDisposable
 
         public static string Text(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Mulligan", name));
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var path = request.RequestUri!.PathAndQuery.TrimStart('/');
             lock (Requests)
@@ -290,13 +417,19 @@ public sealed class DeckMulliganLoadTests : IDisposable
 
             if (Failure is { } failure)
             {
-                return Task.FromException<HttpResponseMessage>(failure);
+                throw failure;
+            }
+
+            if (HoldOn is { } held && path.Contains(held, StringComparison.Ordinal))
+            {
+                Waiting.TrySetResult();
+                await Task.Delay(Timeout.Infinite, cancellationToken);
             }
 
             var route = _routes.FirstOrDefault(r => path.StartsWith(r.Fragment, StringComparison.Ordinal));
-            return Task.FromResult(route.Body is null
+            return route.Body is null
                 ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{\"detail\": \"This deck slice is not collected\"}", Encoding.UTF8, "application/json") }
-                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(route.Body, Encoding.UTF8, "application/json") });
+                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(route.Body, Encoding.UTF8, "application/json") };
         }
     }
 }

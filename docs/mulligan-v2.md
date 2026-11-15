@@ -102,7 +102,8 @@ checked live on 2026-11-15:
 - `GET /v1/hsreplay/mulligan/decks?format=standard|wild&limit=500` → `data[]`, one row per deck **and rank**:
   `deck_id` (HSReplay's short id, mixed case), `archetype_id`, `archetype_name`, `player_class`, `rank`
   (`legend`, `diamond_4to1`, `diamond`, `bronze_gold`), `total_games`, `win_rate`. 48 Standard rows = 12 decks per rank,
-  21 distinct decks; 24 Wild rows, 9 decks. **No card list.**
+  21 distinct decks; 24 Wild rows, 9 decks. Since 2026-11-15 20:57 UTC each row also has `deck_list`, a real JSON
+  array `[[dbfId, count], …]` (an answer cached before that has none).
 - `GET /v1/hsreplay/mulligan?deck=<deck_id>&format=&rank=&initiative=all|first|coin&opponent_class=any|MAGE` →
   `data`: `deck` {`archetype_name`, `player_class`, `deck_list`: the JSON *text* `"[[dbfId, count], …]"`}, `games`,
   `base_winrate` (the deck's win rate over the same games), `as_of`, `no_data`, `rows[]`: `card_id`, `dbf_id`,
@@ -115,11 +116,11 @@ checked live on 2026-11-15:
 
 How the client uses it (`Core/Api/HearthpulseData.Mulligan.cs`, `MulliganGuideSource.LoadDeckGuideAsync`):
 
-1. The list of decks of the format, cached 6 h. Only decks of the **player's class** are candidates, the six most
-   played at most (`MaxDeckCandidates`).
-2. A candidate's card list comes from its all-games slice. A deck id names one list for good, so the lists seen are
-   kept without an age in `cache/api/hsreplay-mulligan-decklists.json`: the first match of a class costs one slice
-   request per candidate, later ones none. (A `deck_list` in the list of decks would save even those; plan A2.)
+1. The list of decks of the format, cached 6 h. Only decks of the **player's class** are candidates.
+2. A candidate's card list is its row's `deck_list`: the match costs this one request, and a deck that matches
+   nothing asks for **no slice at all**. Only rows without the field (a list cached before the server sent it) fall
+   back to the candidate's all-games slice, the six most played at most (`MaxDeckCandidates`), cached like any
+   answer. `ParseDeckList` reads both shapes: the row's array and the slice's JSON text.
 3. Match: the same 30 cards → scope `deck`; else the closest list at most two cards away
    (`MulliganGuide.DeckDifference` ≤ `NearDeckDifference`; more games win a tie) → scope `near_deck`; else nothing,
    and the archetype guide below runs exactly as before. Cards of the player's deck a close list lacks have no numbers.
@@ -221,8 +222,12 @@ matchups are counted twice. That is why the overlay presents it as an estimate.
   the two requests of section 2.2 for C'Thun Warlock `7X8Zqlb1wBPwkkaQVGT8ee` and the two Coin Rogue lists, without
   `source_url`, `premium_session`, `opponent_classes`): exact list → the deck's numbers and scope `Deck`; two cards
   away → `NearDeck`, three → no deck guide; the same list wins over a close one with more games; no match → the
-  archetype guide unchanged (`ApiLoadTests`) and no slice of the game asked; 404s and lists remembered on disk; server
-  down or timing out → nothing thrown, a stale cache still answers; unsafe values never sent. `MulliganGuideTests`:
+  archetype guide unchanged (`ApiLoadTests`) and not one slice asked; a list of decks without `deck_list` → the
+  slices name the cards; Wild (`hsreplay-mulligan-decks-wild.json`, `hsreplay-deck-mulligan-wild-*`); 404s remembered
+  on disk; server down, timing out or the caller cancelling → nothing thrown, a stale cache still answers; unsafe
+  values never sent. Layout: the two-line summary measured in both UIs (`LocBindingTests.MulliganSummary`,
+  `MulliganSummaryLayoutTests`) ends above the Confirm button's zone (`OverlayViewModel.MulliganConfirmTop`, an
+  estimate of the mulligan screen, not a measured frame) at overlay scales 100 % and 160 %. `MulliganGuideTests`:
   parsers, `DeckSliceFor`, `DeckDifference`. `MulliganScopeContractTests` (Windows): the line in both view models.
   Renders `overlay-mulligan-deck(-near).png` in both apps (`HEARTHPULSE_RENDER_ONLY=mulligan`, `MulliganReplay.DeckSample`).
 

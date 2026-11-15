@@ -75,6 +75,20 @@ public sealed partial class OverlayViewModel
     /// <summary>Width of the row of offered cards on the mulligan screen, in units of a 1080-high screen: 3 cards 340 apart, 4 cards 255.</summary>
     public const double MulliganRowGameWidth = 1020;
 
+    /// <summary>
+    /// Top of the summary panel (<c>mulligan-summary</c>) on the mulligan screen, in units of a 1080-high screen: the
+    /// default margin of both overlay files. The panel is anchored to the game, so its top stays here at any overlay
+    /// scale and only its height grows with the scale.
+    /// </summary>
+    public const double MulliganSummaryTop = 700;
+
+    /// <summary>
+    /// Where the Confirm button's zone begins on the mulligan screen, in the same units (the button is drawn at about
+    /// 815-885; an estimate from the screen's layout, not a measured frame). The summary, two lines high for a
+    /// decklist's numbers, must end above it at the largest overlay scale.
+    /// </summary>
+    public const double MulliganConfirmTop = 800;
+
     /// <summary>Half the gauge's track, in overlay units (MulliganPanel's track is twice this).</summary>
     public const double MulliganGaugeHalf = 38;
 

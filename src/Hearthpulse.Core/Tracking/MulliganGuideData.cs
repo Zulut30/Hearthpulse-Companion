@@ -61,11 +61,17 @@ public enum MulliganScope
 }
 
 /// <summary>
-/// One deck the server collects the per-deck mulligan for at one rank (<c>/v1/hsreplay/mulligan/decks</c>). The row has
-/// no card list: that comes with the deck's slice (<see cref="DeckMulliganSlice.DeckList"/>).
+/// One deck the server collects the per-deck mulligan for at one rank (<c>/v1/hsreplay/mulligan/decks</c>).
 /// </summary>
 /// <param name="Rank">The server's rank key: "legend", "diamond_4to1", "diamond" or "bronze_gold".</param>
-public sealed record MulliganDeckEntry(string DeckId, string ArchetypeName, string PlayerClass, string Rank, int Games, double WinRate);
+public sealed record MulliganDeckEntry(string DeckId, string ArchetypeName, string PlayerClass, string Rank, int Games, double WinRate)
+{
+    /// <summary>
+    /// The deck: card dbf id → copies. Null in an answer cached before the server sent it (2026-11-15): the list then
+    /// comes with the deck's slice (<see cref="DeckMulliganSlice.DeckList"/>).
+    /// </summary>
+    public IReadOnlyDictionary<int, int>? DeckList { get; init; }
+}
 
 /// <summary>
 /// The mulligan numbers of one exact decklist in one slice (<c>/v1/hsreplay/mulligan?deck=</c>): a rank, the initiative

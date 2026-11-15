@@ -446,6 +446,18 @@ public sealed class MulliganGuideTests
         Assert.All(warlock, d => Assert.Equal(("C'Thun Warlock", "WARLOCK"), (d.ArchetypeName, d.PlayerClass)));
         Assert.All(decks, d => Assert.InRange(d.WinRate, 0.3, 0.8));
         Assert.All(decks, d => Assert.True(d.Games > 0));
+        // The row's deck_list is a real array of [dbfId, count] pairs; the slice of the same deck sends it as JSON text.
+        Assert.All(decks, d => Assert.Equal(30, d.DeckList!.Values.Sum()));
+        var fromSlice = HearthpulseData.ParseDeckMulligan(Fixture("hsreplay-deck-mulligan-7X8Zqlb1wBPwkkaQVGT8ee-legend-all-any.json").GetProperty("data"), default, "7X8Zqlb1wBPwkkaQVGT8ee")!.DeckList;
+        Assert.Equal(fromSlice.OrderBy(c => c.Key), warlock[0].DeckList!.OrderBy(c => c.Key));
+        Assert.Equal(JsonValueKind.Array, Fixture("hsreplay-mulligan-decks-standard.json").GetProperty("data")[0].GetProperty("deck_list").ValueKind);
+        Assert.Equal(JsonValueKind.String, Fixture("hsreplay-deck-mulligan-7X8Zqlb1wBPwkkaQVGT8ee-legend-all-any.json").GetProperty("data").GetProperty("deck").GetProperty("deck_list").ValueKind);
+        // Either shape reads the same; a row without the field (an older answer) or with rubbish has no list.
+        Assert.Equal(HearthpulseData.ParseDeckList(JsonDocument.Parse("[[5,2],[7,1]]").RootElement), HearthpulseData.ParseDeckList(JsonDocument.Parse("\"[[5,2],[7,1]]\"").RootElement));
+        Assert.Equal(2, HearthpulseData.ParseDeckList(JsonDocument.Parse("[[5,2],[7,1]]").RootElement)![5]);
+        var bare = HearthpulseData.ParseMulliganDecks(JsonDocument.Parse(
+            """[{"deck_id": "ok", "player_class": "MAGE", "rank": "legend"}, {"deck_id": "ok2", "player_class": "MAGE", "rank": "legend", "deck_list": "oops"}, {"deck_id": "ok3", "player_class": "MAGE", "rank": "legend", "deck_list": "[[5,2]]"}]""").RootElement);
+        Assert.Equal([false, false, true], bare.Select(d => d.DeckList is not null));
 
         // Rows with an id that could not go into a URL, or a rank the endpoint does not take, are dropped.
         Assert.Empty(HearthpulseData.ParseMulliganDecks(JsonDocument.Parse(
