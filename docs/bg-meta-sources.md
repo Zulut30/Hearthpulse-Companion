@@ -56,6 +56,9 @@ Duos: the API has `/api/bg/heroes/duos` (top 50%), but the app's meta has no Duo
 - The pool's address: `PoolEndpoint` in `settings.json` when set, else `PoolClient.DefaultEndpoint` (empty until the
   owner deploys the server, `server/pool/README.md`); only `https://` addresses count. There is no field for it in the
   interface.
+- Hearthpulse's own hero statistics (the pool's snapshot `/v2/analytics/bg/heroes`, [analytics-api.md](analytics-api.md))
+  are a separate block on the Heroes tab, "Hearthpulse statistics (own games)", with their own sample and date. They
+  are never blended with the tab's external list and never fill each other's gaps; without a pool the block is hidden.
 - When the stats pool is set up (`PoolClient.Available`), `PoolClient.OverlayAsync` loads the pool's own meta
   (`/v1/meta` + `/v1/stats`) and lays it over the API meta: hero and card numbers blend by sample size **only when the
   API row has one** (API heroes have none, so their numbers stay HSReplay's; heroes the API lacks come from the pool

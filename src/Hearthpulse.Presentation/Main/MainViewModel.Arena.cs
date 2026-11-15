@@ -86,6 +86,7 @@ public sealed partial class MainViewModel
         _arenaMeta = meta;
         _arenaMetaFailed = false;
         Raise(nameof(ArenaDeckEmptyText));
+        Raise(nameof(ArenaDataDate));
         RaiseArenaCommunityStates();
         RebuildArenaStats();
     }

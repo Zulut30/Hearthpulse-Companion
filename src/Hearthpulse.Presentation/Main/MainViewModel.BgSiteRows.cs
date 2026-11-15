@@ -56,7 +56,7 @@ public sealed partial class MainViewModel
         HeroTopLabel = Loc.T(slice.Shown is not null && slice.ShownDuos ? "Main.Table.Top2" : "Main.Table.Top4");
         HeroTopTip = Loc.T(slice.Shown is not null && slice.ShownDuos ? "Main.Table.Top2Tip" : "Main.Table.Top4Tip");
         HeroTab = flat.Count > 0 && slice.Shown is { } shown
-            ? Rows(BgSource(shown.FetchedAt, slice.Loading, Loc.T(slice.LoadingDuos ? "Main.Mode.Duos" : "Main.Bg.Solo"), Loc.T(slice.ShownDuos ? "Main.Mode.Duos" : "Main.Bg.Solo"), SliceText(shown.Mmr), RangeText(shown.TimeRange)))
+            ? Rows(BgSource(DataSection.BgHeroes, shown.FetchedAt, slice.Loading, Loc.T(slice.LoadingDuos ? "Main.Mode.Duos" : "Main.Bg.Solo"), Loc.T(slice.ShownDuos ? "Main.Mode.Duos" : "Main.Bg.Solo"), SliceText(shown.Mmr), RangeText(shown.TimeRange)))
             : Empty(SliceEmptyText(slice));
     }
 
@@ -124,7 +124,7 @@ public sealed partial class MainViewModel
 
         TrinketTierRows.Sync(flat);
         TrinketTab = flat.Count > 0 && slice.Shown is { } shown
-            ? Rows(BgSource(shown.FetchedAt, slice.Loading, null, SliceText(shown.Mmr), RangeText(shown.TimeRange)))
+            ? Rows(BgSource(DataSection.BgTrinkets, shown.FetchedAt, slice.Loading, null, SliceText(shown.Mmr), RangeText(shown.TimeRange)))
             : Empty(SliceEmptyText(slice));
     }
 
@@ -178,7 +178,7 @@ public sealed partial class MainViewModel
         {
             // The minions' own list names no slice: the run of the minion numbers does (docs/bg-site-stats.md).
             var run = spells ? null : _bgSite?.Run;
-            CardTab = Rows(BgSource(list.FetchedAt, null, null, SliceText(spells ? list.Mmr : run?.MmrPercentile), RangeText(spells ? list.TimeRange : run?.TimeRange)));
+            CardTab = Rows(BgSource(DataSection.BgMinions, list.FetchedAt, null, null, SliceText(spells ? list.Mmr : run?.MmrPercentile), RangeText(spells ? list.TimeRange : run?.TimeRange)));
         }
         else
         {
@@ -261,7 +261,7 @@ public sealed partial class MainViewModel
 
         // The service names no slice for comps; the pool's tribes have no date of the service.
         CompTab = flat.Count > 0
-            ? Rows(BgSource(tribeRows ? null : _bgSite?.CompsFetchedAt, null, null))
+            ? Rows(BgSource(tribeRows ? null : DataSection.BgComps, tribeRows ? null : _bgSite?.CompsFetchedAt, null, null))
             : Empty(WholeEmptyText() ?? Loc.T("Main.Bg.ListUnavailable"));
     }
 

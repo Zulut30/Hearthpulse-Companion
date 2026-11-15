@@ -32,6 +32,9 @@ stored, when it is counted and deleted, and the read route. Code: `server/pool/n
    most once a minute when nothing is published yet, it is stale or withdrawn, or the day changed. New facts mark it
    `stale` (the old numbers stay correct to serve). Replaced or deleted facts **withdraw** it in the same transaction
    (`body = ''`): the route answers `rebuilding` until the next build.
+   The compact game records' views (`/v1/events/summary`, `/v1/events/mulligan-pairs`) are outside this pipeline and
+   have a fence of their own: `snap` row `events-rev`, raised by every deletion and checked by every publication
+   (docs/game-stats.md, "Deletion fence").
 5. **Deletion**: `/v1/captures/forget` (generation) and retention (`maintain()`) delete the facts explicitly with the
    receipts and withdraw the snapshot; a worker result arriving after deletion is discarded.
 
@@ -116,10 +119,31 @@ captures `failed` until reprocess with the v2 worker.
 `https://api.kolodahearthstone.com/stats`) and requests `{base}/v2/analytics/bg/heroes?mode=solo`. It returns the
 parsed snapshot, an object with `Available = false` and `Reason`, or `null` on a network error, a non-success status,
 invalid JSON or a non-https endpoint. Hidden numbers arrive as `null` (`Picked`, `PickRate`, `Placement`, `Top4`,
-`First`, `Placement.Distribution`). No screen uses it yet (B1).
+`First`, `Placement.Distribution`).
+
+**Screen (C1, 2026-11-15).** `OwnBgHeroes.LoadAsync` (`Core/Pool/OwnBgHeroes.cs`) wraps the client for the block
+"Hearthpulse statistics (own games)" on the Battlegrounds Heroes tab of both apps
+(`Presentation/Main/MainViewModel.BgOwn.cs`, `BattlegroundsPage.xaml` / `.axaml`). The address is
+`PoolClient.Endpoint(settings)`; without an https pool nothing is asked (`NotConfigured`, block hidden, as for
+`unsupported_mode`). Each answer is kept in `cache/api/pool-bg-heroes-solo.json` with its address and time and reused
+for 30 minutes. A "not available" answer (`not_published`, `rebuilding`, `unsupported_mode`) withdraws every
+copy with numbers for good, and no clock is compared to decide it: the withdrawal is remembered in the process; the
+copy is replaced by the answer; if that fails, a marker `pool-bg-heroes-solo.revoked` is written, and while it is there
+no copy is read at all; if that fails too, the copy is deleted; and if nothing can be written the process keeps the
+withdrawal and writes the marker on a later load. An unreadable marker counts as a marker. Only a new publication
+removes it, after that publication is on disk (copy first, marker second). Answers are applied in the order their
+requests started, under one gate per copy: an answer of a request that began before the one applied last changes
+nothing, so a slow answer with numbers cannot undo a later withdrawal. When
+the pool does not answer, an earlier copy with numbers is shown with its own date, otherwise the state is `Offline`.
+The block shows the newest build's rows only (builds are never merged): offered, picked, pick rate, mean place and
+top 4 with their intervals, above them games (`captures`), installations (`sources`), the window, the publication
+date and the `stale` mark. A `null` value reads "not enough data" and is never filled from the tab's external list.
+It loads beside the Battlegrounds meta and on the same 6-hour refresh. Render scenes: `HEARTHPULSE_RENDER_ONLY=bgown`.
 
 ## Tests
 
 `server/pool/test/analytics.test.mjs` (AC9–AC16: hand-checked set with an independent calculation, idempotent reprocess,
 deletion and retention, cross-check failures, route answers, migration and a 10 000-capture rebuild),
-`capture-validation.test.mjs` (v2 lines), `tests/Hearthpulse.Tests/AnalyticsClientTests.cs` (AC17).
+`capture-validation.test.mjs` (v2 lines), `tests/Hearthpulse.Tests/AnalyticsClientTests.cs` (AC17), `OwnBgHeroesTests.cs`
+(loader states and the copy on disk), `BgOwnTests.cs` and `Hearthpulse.Presentation.Tests/BgOwnContractTests.cs` (the block
+in both apps).

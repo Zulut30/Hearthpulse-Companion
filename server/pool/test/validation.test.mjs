@@ -196,23 +196,140 @@ test("a Constructed game without a valid core field or any valid pick is rejecte
 
 test("POST /v1/constructed stores a batch once and the totals count offers, picks and wins", async () => {
   const env = sqlite();
-  const lost = constructed({ id: "d".repeat(32), won: false, picks: [[3, DISCOVER, ["CARD_A", "CARD_B", "CARD_D"], ["CARD_A"]]] });
-  const third = constructed({ id: "e".repeat(32), picks: [[2, DISCOVER, ["CARD_A", "CARD_B", "CARD_C"], ["CARD_B"]]] });
+  const id = (i) => i.toString(16).padStart(32, "c");
+  // 12 games: CARD_A and CARD_B offered in all of them, CARD_C in 10, CARD_D in 2. B is picked 10 times (9 wins),
+  // A twice (one win).
+  const games = Array.from({ length: 12 }, (_, i) => constructed({
+    id: id(i), won: i !== 0,
+    picks: [[3, DISCOVER, ["CARD_A", "CARD_B", i < 10 ? "CARD_C" : "CARD_D"], [i < 10 ? "CARD_B" : "CARD_A"]]],
+  }));
   for (let i = 0; i < 2; i++) {
-    const response = await submitConstructed({ v: 1, games: [constructed(), lost, third] }, env);
+    const response = await submitConstructed({ v: 1, games }, env);
     assert.equal(response.status, 200);
   }
 
-  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM c").get().n, 3);
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM c").get().n, 12);
   const totals = JSON.parse(await rebuildChoices(env, "standard", true));
-  assert.equal(totals.games, 3);
+  assert.equal(totals.games, 12);
   assert.equal(totals.sources.length, 1);
   assert.equal(totals.sources[0].source, DISCOVER);
-  assert.equal(totals.sources[0].choices, 3);
-  // CARD_D was offered once: under the three-offer floor, so it is left out.
+  assert.equal(totals.sources[0].choices, 12);
+  // CARD_D was offered twice: under the ten-game floor, so it is left out. CARD_A was picked twice: its wins would
+  // describe two single games, so they are not published.
   const options = Object.fromEntries(totals.sources[0].options.map((o) => [o[0], o.slice(1)]));
-  assert.deepEqual(options, { CARD_A: [3, 1, 0], CARD_B: [3, 2, 2] });
+  assert.deepEqual(options, { CARD_A: [12, 2, null], CARD_B: [12, 10, 9], CARD_C: [10, 0, null] });
   assert.equal(JSON.parse(await rebuildChoices(env, "wild", true)).games, 0);
+});
+
+test("the shared totals publish no row of fewer than ten games", async () => {
+  const env = sqlite();
+  // One player's evening: 9 games of one hero, 1 of another, every game with its own result.
+  const games = Array.from({ length: 10 }, (_, i) => game({
+    id: i.toString(16).padStart(32, "a"),
+    picked: i < 9 ? HERO : "BG_HERO_2",
+    placement: 1 + (i % 8),
+    ...details({ comp: i < 9 ? "MURLOC" : "DEMON", trinkets: { o: ["T_A"], p: ["T_A"] }, tierups: [[3, 2]],
+      board: [{ c: "CARD_X", g: false, a: 1, h: 1 }], plays: [[1, "CARD_X"]], combats: i < 9 ? [[1, "W", 0, 3, 0.7]] : [] }),
+  }));
+  const request = new Request("https://pool.test/v1/games", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ v: 3, games }),
+  });
+  assert.equal((await worker.fetch(request, env, {})).status, 200);
+
+  const totals = JSON.parse(await rebuild(env, "solo", true));
+  assert.equal(totals.games, 10);
+  // Nine games of a hero, of a comp and nine fights stay unpublished; what all ten games share is listed.
+  assert.deepEqual(totals.heroes, []);
+  assert.deepEqual(totals.comps, []);
+  assert.deepEqual(totals.combatOdds, { fights: 0, predictedWin: null, actualWin: null });
+  assert.deepEqual(totals.cards.map((c) => [c.card, c.games]), [["CARD_X", 10]]);
+  assert.deepEqual(totals.plays.map((c) => [c.card, c.games]), [["CARD_X", 10]]);
+  assert.deepEqual(totals.trinkets.map((t) => [t.card, t.offered, t.picked]), [["T_A", 10, 10]]);
+  assert.deepEqual(totals.tierUps.map((t) => t.games), [10]);
+});
+
+test("the floor counts different games, never repeated picks inside one game", async () => {
+  // One Constructed game with the same pick ten times must publish nothing: its "ten picks" are one game's result.
+  const one = sqlite();
+  const repeated = constructed({ id: "f".repeat(32), won: true, picks: Array.from({ length: 10 }, (_, i) => [i + 1, DISCOVER, ["CARD_A", "CARD_B", "CARD_C"], ["CARD_A"]]) });
+  assert.equal((await submitConstructed({ v: 1, games: [repeated] }, one)).status, 200);
+  assert.deepEqual(JSON.parse(await rebuildChoices(one, "standard", true)).sources, []);
+
+  // Nine different games with two picks each: 18 offers, still nine games. The tenth game publishes the offer; the
+  // wins of the picked card (counted per pick) show from ten different games that picked it.
+  for (const [count, expected] of [[9, {}], [10, { CARD_A: [20, 20, 20], CARD_B: [20, 0, null] }]]) {
+    const env = sqlite();
+    const games = Array.from({ length: count }, (_, i) => constructed({
+      id: i.toString(16).padStart(32, "b"), won: true,
+      picks: [[1, DISCOVER, ["CARD_A", "CARD_B"], ["CARD_A"]], [2, DISCOVER, ["CARD_A", "CARD_B"], ["CARD_A"]]],
+    }));
+    assert.equal((await submitConstructed({ v: 1, games }, env)).status, 200);
+    const sources = JSON.parse(await rebuildChoices(env, "standard", true)).sources;
+    assert.deepEqual(Object.fromEntries((sources[0]?.options ?? []).map((o) => [o[0], o.slice(1)])), expected);
+  }
+});
+
+test("one Battlegrounds game with repeated choices, trinkets and tier-ups publishes none of them", async () => {
+  const env = sqlite();
+  const choices = Array.from({ length: 10 }, (_, i) => [i + 1, "discover", "SRC", ["CARD_X", "CARD_Y"], ["CARD_X"]]);
+  const single = game({ id: "9".repeat(32), placement: 1, ...details({
+    choices, tierups: Array.from({ length: 7 }, (_, i) => [i + 1, 2]), trinkets: { o: ["T_A"], p: ["T_A"] },
+    combats: Array.from({ length: 10 }, (_, i) => [i + 1, "W", 0, 3, 0.9]),
+  }) });
+  const request = new Request("https://pool.test/v1/games", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ v: 3, games: [single] }),
+  });
+  assert.equal((await worker.fetch(request, env, {})).status, 200);
+  const totals = JSON.parse(await rebuild(env, "solo", true));
+  assert.equal(totals.games, 1);
+  assert.equal(totals.detailedGames, 1, "the details were accepted, not discarded by validation");
+  const stored = env.db.prepare("SELECT choices, tierups, combats FROM g").get();
+  assert.equal(JSON.parse(stored.choices).length, 10);
+  assert.equal(JSON.parse(stored.tierups).length, 7);
+  assert.equal(JSON.parse(stored.combats).length, 10);
+  for (const key of ["heroes", "cards", "trinkets", "comps", "tierUps", "choices", "plays", "heroTribes"]) assert.deepEqual(totals[key], [], key);
+  assert.deepEqual(totals.combatOdds, { fights: 0, predictedWin: null, actualWin: null });
+});
+
+test("picked outcomes need ten distinct games even when offers and repeated picks clear ten", async () => {
+  const env = sqlite();
+  const games = Array.from({ length: 10 }, (_, i) => constructed({
+    id: (100 + i).toString(16).padStart(32, "0"),
+    picks: [1, 2].map(turn => [turn, DISCOVER, ["CARD_A", "CARD_B"], [i < 9 ? "CARD_A" : "CARD_B"]]),
+  }));
+  await submitConstructed({ v: 1, games }, env);
+  const option = (totals) => totals.sources[0].options.find(o => o[0] === "CARD_A");
+  assert.deepEqual(option(JSON.parse(await rebuildChoices(env, "standard", true))), ["CARD_A", 20, 18, null]);
+  await submitConstructed({ v: 1, games: [constructed({ id: "f".repeat(32), picks: [1, 2].map(turn => [turn, DISCOVER, ["CARD_A", "CARD_B"], ["CARD_A"]]) })] }, env);
+  assert.deepEqual(option(JSON.parse(await rebuildChoices(env, "standard", true))), ["CARD_A", 22, 20, 20]);
+
+  const bg = sqlite();
+  for (let i = 0; i < 11; i++) {
+    const picked = i === 9 ? "CARD_Y" : "CARD_X";
+    const trinket = i === 9 ? "T_B" : "T_A";
+    const row = game({ id: (200 + i).toString(16).padStart(32, "0"), placement: i === 10 ? 4 : 2,
+      ...details({ choices: [1, 2].map(turn => [turn, "discover", "SRC", ["CARD_X", "CARD_Y"], [picked]]),
+        trinkets: { o: ["T_A", "T_B"], p: [trinket, trinket] } }) });
+    const response = await worker.fetch(new Request("https://pool.test/v1/games", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ v: 3, games: [row] }) }), bg, {});
+    assert.equal(response.status, 200);
+    if (i >= 9) {
+      const totals = JSON.parse(await rebuild(bg, "solo", true));
+      assert.equal(totals.detailedGames, i + 1);
+      const expected = i === 9 ? null : 2.2;
+      assert.equal(totals.trinkets.find(t => t.card === "T_A").avgPlacement, expected);
+      assert.equal(totals.choices.find(c => c.card === "CARD_X").avgPlacement, expected);
+    }
+  }
+});
+
+test("two valid games with fourteen tier-up observations still publish no tier-up row", async () => {
+  const env = sqlite();
+  const games = [1, 2].map(i => game({ id: i.toString(16).padStart(32, "0"), ...details({ tierups: Array.from({ length: 7 }, (_, turn) => [turn + 1, 2]) }) }));
+  assert.equal((await worker.fetch(new Request("https://pool.test/v1/games", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ v: 3, games }) }), env, {})).status, 200);
+  const totals = JSON.parse(await rebuild(env, "solo", true));
+  assert.equal(totals.detailedGames, 2);
+  assert.equal(env.db.prepare("SELECT SUM(json_array_length(tierups)) AS n FROM g").get().n, 14);
+  assert.deepEqual(totals.tierUps, []);
 });
 
 test("POST /v1/constructed rejects malformed bodies before writing", async () => {
@@ -223,6 +340,20 @@ test("POST /v1/constructed rejects malformed bodies before writing", async () =>
   }
 
   assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM c").get().n, 0);
+});
+
+test("own aggregate routes bypass old HTTP cache entries and forbid new ones", async () => {
+  const env = sqlite();
+  env.CACHE = {
+    match: async () => { throw new Error("own totals must not read an old HTTP cache entry"); },
+    put: async () => { throw new Error("own totals must not write an HTTP cache entry"); },
+  };
+  for (const route of ["/v1/stats?mode=solo", "/v1/heroes", "/v1/choices?format=standard"]) {
+    const response = await worker.fetch(new Request(`https://pool.test${route}`), env, { waitUntil() {} });
+    assert.equal(response.status, 200, route);
+    assert.equal(response.headers.get("cache-control"), "no-store", route);
+    assert.equal((await response.json()).games, 0, route);
+  }
 });
 
 // ---- Totals per rating bracket and lobby tribe (roadmap 2.1) ---------------------------------------------------

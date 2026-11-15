@@ -37,6 +37,7 @@ collector, and a green `/healthz` says nothing about whether any client is confi
    | What happened in this one case? | a `Diag` line: stable wording, an outcome code, counts |
    | Is it stuck or flowing? | a persisted state the UI shows: queue length, last success, pause reason, next retry (the pattern of `ProfileUploader` and `AccountActivity`) |
    | How old is what I am looking at? | a timestamp carried with the data to the screen (`Updated` on `BattlegroundsMeta` / `ConstructedMeta`, `FetchedAt` on a hero slice, `published` and `stale` on an analytics snapshot) |
+   | Is the collector behind this page late? | `DataHealthReport.Section(...)` from the data API's own summary (`Core/Api/DataHealth.cs`): fresh, stale, waiting for the origin, failed, unknown (offline is unknown, never "stale"); Settings, Data shows every section |
    | Is the service alive and within limits? | `/healthz` fields; add a field there before adding a log line |
    | Does the whole path work? | the synthetic smoke: upload, parse, status, forget |
 

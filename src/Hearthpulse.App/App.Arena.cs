@@ -24,6 +24,7 @@ public partial class App
             _arenaMeta = meta;
             _session.SetArenaMeta(meta);
             _mainViewModel.SetArenaMeta(meta);
+            _overlayViewModel.SetArenaDataDate(meta.FetchedAt);
         }
         catch (Exception ex)
         {

@@ -188,6 +188,9 @@
                 </ItemsControl>
             </StackPanel>
 
+            <!-- When the scores were collected; "update delayed" while the collection is late -->
+            <TextBlock x:Name="ArenaDataNote" Text="{Binding ArenaDataNote}" FontSize="10" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
+                       Visibility="{Binding ArenaDataNote, Converter={StaticResource Vis}}" />
         </StackPanel>
         </StackPanel>
     </Border>

@@ -21,6 +21,7 @@ using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
 
@@ -125,6 +126,7 @@ public partial class App : Application
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
         _mainViewModel.AttachAccount(_account);
         _mainViewModel.AttachTwitch(services.Twitch);
+        StartDataHealth();
         _mainViewModel.CrashReportsChanged += () =>
         {
             // Switched off: consent withdrawn, what waits is not sent.
@@ -272,6 +274,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _mainViewModel?.StopMigration();
+        StopDataHealth();
         _watchdog?.Stop();
         _uiProbe?.Dispose();
         _watcher?.Dispose();
@@ -414,12 +417,15 @@ public partial class App : Application
         // holds the other back as little as a fresh cache does. The advisor's comps and trinkets are read from them.
         var site = LoadBgSiteAsync();
         site.Forget("Battlegrounds site stats load");
+        LoadBgOwnAsync().Forget("Own Battlegrounds hero statistics load");
+        LoadDataHealthAsync().Forget("Data health");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(_api, _http, _settings, () => BattlegroundsMeta.LoadExternalAsync(_bgSite!, site), _cards);
         if (meta is not null)
         {
             _meta = meta;
             _session.SetMeta(meta);
             _mainViewModel.SetMeta(meta);
+            _overlayViewModel.SetBgData(meta);
         }
         else
         {
@@ -445,6 +451,12 @@ public partial class App : Application
         _mainViewModel.SetBgSiteStats(stats);
         return stats;
     }
+
+    /// <summary>
+    /// Hearthpulse's own hero statistics for the Heroes tab (docs/analytics-api.md): read from the stats pool when one
+    /// is set up, beside the meta and on the same refresh. Without a pool nothing is asked and the block stays hidden.
+    /// </summary>
+    private async Task LoadBgOwnAsync() => _mainViewModel.SetBgOwn(await OwnBgHeroes.LoadAsync(_http, _settings));
 
     /// <summary>The 6-hour refresh of both metas; their parsing garbage is collected once things are quiet.</summary>
     private async Task RefreshMetaAsync()

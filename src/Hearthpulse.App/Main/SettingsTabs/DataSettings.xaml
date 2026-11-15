@@ -47,6 +47,37 @@
             </StackPanel>
         </Border>
 
+        <!-- How current the numbers from the data API are, by part of the app (Core/Api/DataHealth.cs) -->
+        <Border x:Name="DataHealthCard" Style="{StaticResource Card}" Margin="0,0,0,16">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Source.Health.Title}" Icon="&#xF0450;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Source.Health.Caption}" Style="{StaticResource CardNote}" TextWrapping="Wrap" />
+                <!-- The date and state columns are as wide as their longest text in any row (shared size), so a long
+                     Russian state or month is never cut; the section name takes the rest and wraps -->
+                <ItemsControl x:Name="DataHealthList" ItemsSource="{Binding DataHealthRows}" Focusable="False" Grid.IsSharedSizeScope="True">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type m:DataHealthRow}">
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="DataHealthDate" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="DataHealthState" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource Base}" TextWrapping="Wrap" Margin="0,0,12,0" />
+                                <TextBlock Grid.Column="1" Text="{Binding Date}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,16,0" />
+                                <TextBlock Grid.Column="2" Text="{Binding State}" Style="{StaticResource Caption}" TextWrapping="Wrap" MaxWidth="220" VerticalAlignment="Center"
+                                           Visibility="{Binding Attention, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                <TextBlock Grid.Column="2" Text="{Binding State}" Style="{StaticResource Caption}" Foreground="{StaticResource Info}" TextWrapping="Wrap" MaxWidth="220" VerticalAlignment="Center"
+                                           Visibility="{Binding Attention, Converter={StaticResource Vis}}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock x:Name="DataHealthNote" Text="{Binding DataHealthNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8,0,12" />
+                <Button x:Name="DataHealthCheck" Style="{StaticResource GhostButton}" Content="{i:Loc Source.Health.Check}" Command="{Binding CheckDataHealth}" HorizontalAlignment="Left" />
+            </StackPanel>
+        </Border>
+
         <!-- The settings file (export / import) and "reset everything", which asks first in place -->
         <Border x:Name="SettingsFileCard" Style="{StaticResource Card}">
             <StackPanel>

@@ -48,7 +48,9 @@ public sealed class AppServices
         History = new HistoryStore(historyPath) { Replays = Data.Replays };
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
-        MulliganGuide = new MulliganGuideSource(new HearthpulseData(Api)) { Rank = settings.MulliganRank };
+        // Card pairs come from the stats pool (our own statistics), read at the address the settings name right now.
+        MulliganGuide = new MulliganGuideSource(new HearthpulseData(Api),
+            new Pool.MulliganPairs(http, () => Pool.PoolClient.Endpoint(settings), Path.Combine(data.Root, "cache", "pool"))) { Rank = settings.MulliganRank };
         Session.SetMulliganGuide(MulliganGuide);
         Session.SetCardPoolWiki(new WikiPoolSource(new HearthpulseData(Api)));
         Session.SetDiscoverPicks(new DiscoverChoiceSource(new HearthpulseData(Api)));

@@ -109,6 +109,40 @@ public sealed class DiscordPresenceTests
             }
         }
 
+        // The answer is in the buffer before Write returns, so the asynchronous calls finish on the caller's thread. The
+        // base Stream sends each of them to the thread pool (some 390 work items a test). A pool delay exceeding
+        // DiscordIpc's 5 s answer timeout can fail the handshake; RetryInterval (30 s) then exceeds the test's wait.
+        // That mechanism was reproduced; a stall in CI run 43744050859 was not measured. Here nothing is scheduled
+        // between a frame and its answer.
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            lock (_gate)
+            {
+                return new ValueTask<int>(_toClient.Read(buffer.Span));
+            }
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            Task.FromResult(Read(buffer, offset, count));
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                Write(buffer.ToArray(), 0, buffer.Length);
+                return ValueTask.CompletedTask;
+            }
+            catch (IOException ex)
+            {
+                return ValueTask.FromException(ex);
+            }
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            WriteAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+
+        public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
         public override bool CanRead => true;
 
         public override bool CanSeek => false;
@@ -130,6 +164,29 @@ public sealed class DiscordPresenceTests
 
     private static DiscordIpc Ipc(FakeDiscord discord, int pipe = 0) =>
         new((n, _) => Task.FromResult<Stream?>(n == pipe ? discord : null));
+
+    /// <summary>
+    /// The frame the fake app is waited for. When it does not come, the failure says what was waited for and where the
+    /// presence, the fake and the thread pool stood, with the log's Discord lines: a bare timeout names none of them.
+    /// </summary>
+    private static async Task<JsonNode?> Arrives(Task<JsonNode?> frame, string what, DiscordPresence presence, FakeDiscord discord)
+    {
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
+            return await frame.WaitAsync(Wait);
+        }
+        catch (TimeoutException ex)
+        {
+            var log = TestDataFolder.ReadLog().Split('\n').Where(l => l.Contains("Discord", StringComparison.Ordinal)).TakeLast(8);
+            throw new Xunit.Sdk.XunitException(string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"{what} did not reach the fake Discord app in {System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalSeconds:0.0} s. "
+                + $"Presence: {presence.State}, pump {presence.Pending.Status}. "
+                + $"Fake: handshake {(discord.ClientId is null ? "not seen" : "seen")}, {discord.Activities.Count} activity frame(s). "
+                + $"Thread pool: {ThreadPool.ThreadCount} threads, {ThreadPool.PendingWorkItemCount} items queued, {ThreadPool.CompletedWorkItemCount} done. "
+                + $"Log: {string.Join(" | ", log.Select(l => l.Trim()))}"), ex);
+        }
+    }
 
     [Fact]
     public async Task The_client_says_hello_on_the_first_pipe_that_answers_and_sets_the_activity()
@@ -227,12 +284,30 @@ public sealed class DiscordPresenceTests
             await using var presence = new DiscordPresence(Ipc(discord), "123");
             var shown = discord.Next();
             presence.Show(enabled: true, new DiscordActivity("In the menu", null, null));
-            await shown.WaitAsync(Wait);
+            await Arrives(shown, $"Round {round}: the status", presence, discord);
             var cleared = discord.Next();
             presence.Show(enabled: false, null);
 
-            Assert.Null(await cleared.WaitAsync(Wait));
+            Assert.Null(await Arrives(cleared, $"Round {round}: the clear", presence, discord));
         }
+    }
+
+    [Fact]
+    public async Task The_fake_app_answers_on_the_callers_thread()
+    {
+        // What keeps the test above off the clock: the hello and a status are answered before the calls return, so no
+        // thread pool delay can sit between a frame and its answer and run out DiscordIpc's answer timeout.
+        var discord = new FakeDiscord();
+        await using var ipc = Ipc(discord);
+
+        var connect = ipc.ConnectAsync("123", CancellationToken.None);
+        Assert.True(connect.IsCompletedSuccessfully);
+        Assert.True(await connect);
+
+        var set = ipc.SetActivityAsync(new DiscordActivity("Ranked", null, null), 42, CancellationToken.None);
+        Assert.True(set.IsCompletedSuccessfully);
+        await set;
+        Assert.Single(discord.Activities);
     }
 
     [Fact]

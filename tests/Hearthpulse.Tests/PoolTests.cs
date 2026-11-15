@@ -370,6 +370,29 @@ public sealed class PoolTests
     }
 
     [Fact]
+    public void A_withheld_trinket_mean_never_becomes_zero_or_changes_the_base_mean()
+    {
+        using var baseDoc = JsonDocument.Parse("""
+            { "heroes": { "100": [["BG_HERO_1", 100, 200, 100, 4.0, 0.5, 0.1, []]] },
+              "trinkets": [["TRK_1", 100, 0.5, 4.0, []]] }
+            """);
+        using var poolDoc = JsonDocument.Parse("""
+            { "games": 10, "heroes": [], "ratedGames": 1000,
+              "percentiles": [{ "top": 50, "bracket": 7000, "games": 100 }],
+              "trinkets": [{ "card": "TRK_1", "offered": 100, "picked": 36, "avgPlacement": null },
+                           { "card": "TRK_GOOD", "offered": 100, "picked": 60, "avgPlacement": 3.9 }],
+              "trinketsByBracket": { "50": [{ "card": "TRK_GOOD", "picked": 60, "avgPlacement": null }] } }
+            """);
+        var pool = PoolClient.Parse(poolDoc.RootElement)!;
+        Assert.DoesNotContain("TRK_1", pool.Trinkets.Keys);
+        Assert.Empty(pool.Trinkets["TRK_GOOD"].PlacementAtMmr);
+        Assert.Equal(3.9, pool.Trinket("TRK_GOOD", 50)!.Value.Placement);
+
+        var merged = PoolClient.Merge(PoolClient.ParseMeta(baseDoc.RootElement)!, pool);
+        Assert.Equal((4.0, 0.5, 100), merged.Trinket("TRK_1", 100));
+    }
+
+    [Fact]
     public void ReadsTheFullMetaServedByThePool()
     {
         using var doc = JsonDocument.Parse("""

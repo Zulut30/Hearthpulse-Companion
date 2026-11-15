@@ -162,6 +162,11 @@
                 <!-- Where the numbers come from and what the tier letters mean: the tier badge's tooltip -->
                 <StackPanel>
                     <ItemsControl ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
+                    <!-- When these numbers were collected -->
+                    <Border x:Name="BgHeroDataNote" HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                            Visibility="{Binding BgHeroDataNote, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{Binding BgHeroDataNote}" FontSize="10" Foreground="{StaticResource Muted}" />
+                    </Border>
                     <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
                     <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
                             Visibility="{Binding UsageNote, Converter={StaticResource Vis}}">

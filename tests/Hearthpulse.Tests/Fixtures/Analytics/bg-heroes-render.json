@@ -1,0 +1,293 @@
+{
+ "v": 2,
+ "metric": "bg.hero.offer_pick_placement",
+ "rulesVersion": "bg-hero-1",
+ "mode": "solo",
+ "available": true,
+ "reason": null,
+ "published": 1794639600000,
+ "stale": false,
+ "source": "source_capture",
+ "period": {
+  "fromDay": 20741,
+  "toDay": 20771,
+  "days": 30
+ },
+ "groups": [
+  {
+   "build": 231548,
+   "captures": 2310,
+   "sources": 38,
+   "suppressed": 3,
+   "heroes": [
+    {
+     "hero": "BG20_HERO_100",
+     "offered": 1240,
+     "picked": 352,
+     "pickRate": {
+      "num": 352,
+      "den": 1240,
+      "value": 0.284,
+      "low": 0.259,
+      "high": 0.31
+     },
+     "placement": {
+      "n": 336,
+      "mean": 4.176,
+      "low": 3.932,
+      "high": 4.419,
+      "dist": [
+       52,
+       48,
+       45,
+       44,
+       40,
+       38,
+       36,
+       33
+      ]
+     },
+     "top4": {
+      "num": 189,
+      "den": 336,
+      "value": 0.562,
+      "low": 0.509,
+      "high": 0.615
+     },
+     "first": {
+      "num": 52,
+      "den": 336,
+      "value": 0.155,
+      "low": 0.12,
+      "high": 0.197
+     },
+     "quality": "ok"
+    },
+    {
+     "hero": "BG20_HERO_101",
+     "offered": 96,
+     "picked": 34,
+     "pickRate": {
+      "num": 34,
+      "den": 96,
+      "value": 0.354,
+      "low": 0.266,
+      "high": 0.454
+     },
+     "placement": {
+      "n": 32,
+      "mean": 3.938,
+      "low": 3.156,
+      "high": 4.719,
+      "dist": [
+       5,
+       6,
+       4,
+       5,
+       3,
+       4,
+       2,
+       3
+      ]
+     },
+     "top4": {
+      "num": 20,
+      "den": 32,
+      "value": 0.625,
+      "low": 0.453,
+      "high": 0.771
+     },
+     "first": {
+      "num": 5,
+      "den": 32,
+      "value": 0.156,
+      "low": 0.069,
+      "high": 0.318
+     },
+     "quality": "ok"
+    },
+    {
+     "hero": "BG20_HERO_202",
+     "offered": 71,
+     "picked": 26,
+     "pickRate": {
+      "num": 26,
+      "den": 71,
+      "value": 0.366,
+      "low": 0.264,
+      "high": 0.482
+     },
+     "placement": {
+      "n": 24,
+      "mean": 4.458,
+      "low": 3.608,
+      "high": 5.309,
+      "dist": [
+       2,
+       3,
+       4,
+       3,
+       4,
+       3,
+       3,
+       2
+      ]
+     },
+     "top4": {
+      "num": 12,
+      "den": 24,
+      "value": 0.5,
+      "low": 0.314,
+      "high": 0.686
+     },
+     "first": {
+      "num": 2,
+      "den": 24,
+      "value": 0.083,
+      "low": 0.023,
+      "high": 0.258
+     },
+     "quality": "ok"
+    },
+    {
+     "hero": "BG21_HERO_000",
+     "offered": 44,
+     "picked": 14,
+     "pickRate": {
+      "num": 14,
+      "den": 44,
+      "value": 0.318,
+      "low": 0.2,
+      "high": 0.466
+     },
+     "placement": {
+      "n": 13,
+      "mean": 4.385,
+      "low": 3.263,
+      "high": 5.506,
+      "dist": [
+       1,
+       2,
+       1,
+       3,
+       2,
+       2,
+       1,
+       1
+      ]
+     },
+     "top4": {
+      "num": 7,
+      "den": 13,
+      "value": 0.538,
+      "low": 0.291,
+      "high": 0.768
+     },
+     "first": {
+      "num": 1,
+      "den": 13,
+      "value": 0.077,
+      "low": 0.014,
+      "high": 0.333
+     },
+     "quality": "ok"
+    },
+    {
+     "hero": "BG20_HERO_283",
+     "offered": 17,
+     "picked": 8,
+     "pickRate": {
+      "num": 8,
+      "den": 17,
+      "value": 0.471,
+      "low": 0.262,
+      "high": 0.69
+     },
+     "placement": {
+      "n": 7,
+      "mean": null,
+      "low": null,
+      "high": null,
+      "dist": null
+     },
+     "top4": {
+      "num": 4,
+      "den": 7,
+      "value": null,
+      "low": null,
+      "high": null
+     },
+     "first": {
+      "num": 1,
+      "den": 7,
+      "value": null,
+      "low": null,
+      "high": null
+     },
+     "quality": "small_sample"
+    },
+    {
+     "hero": "BG21_HERO_010",
+     "offered": 9,
+     "picked": null,
+     "pickRate": null,
+     "placement": null,
+     "top4": null,
+     "first": null,
+     "quality": "small_sample"
+    }
+   ]
+  },
+  {
+   "build": 230012,
+   "captures": 41,
+   "sources": 9,
+   "suppressed": 12,
+   "heroes": [
+    {
+     "hero": "BG20_HERO_100",
+     "offered": 12,
+     "picked": 10,
+     "pickRate": {
+      "num": 10,
+      "den": 12,
+      "value": 0.833,
+      "low": 0.552,
+      "high": 0.953
+     },
+     "placement": {
+      "n": 10,
+      "mean": 4.4,
+      "low": 3.023,
+      "high": 5.777,
+      "dist": [
+       1,
+       1,
+       2,
+       1,
+       2,
+       1,
+       1,
+       1
+      ]
+     },
+     "top4": {
+      "num": 5,
+      "den": 10,
+      "value": 0.5,
+      "low": 0.237,
+      "high": 0.763
+     },
+     "first": {
+      "num": 1,
+      "den": 10,
+      "value": 0.1,
+      "low": 0.018,
+      "high": 0.404
+     },
+     "quality": "ok"
+    }
+   ]
+  }
+ ]
+}

@@ -25,8 +25,11 @@ A shared Constructed game holds only its id, day, format (standard or wild), whe
 and its picks: the source card, the cards it offered and the one taken. No deck, class, rank or opponent.
 No player name, BattleTag, account or IP address is stored, and nothing about other players. Shared games are kept
 for 60 days, then the cron job deletes them (the totals use the last 30). The totals are public: anyone can read
-them, and the app's notice says so. No published cell (a hero or trinket in a rating bracket, a hero with a
-lobby tribe) holds fewer than 10 games. Workers logs are off (`wrangler.toml`), so no IP address or request body
+them, and the app's notice says so. No published row or cell (a hero, comp, card, trinket, tier, pick or play, in
+all or in a rating bracket, a hero with a lobby tribe) holds fewer than 10 distinct games; a picked-outcome average
+is null below 10 distinct games that picked that option, and combat odds need predictions from 10 distinct games.
+Repeated observations within a game remain frequencies, but do not help it cross the publication floor. The pool keeps no installation id for these games, so the floor is
+in games, not in players. Workers logs are off (`wrangler.toml`), so no IP address or request body
 lands in Cloudflare's logs either.
 
 ## Free plan budget
@@ -40,7 +43,11 @@ The free plan allows 100,000 requests a day, 100,000 rows written and 5 million 
 - A game is one row (plus one index entry). The app sends a game when it ends, and earlier games in batches of 20,
   so a batch of 20 games is one request and one `INSERT` statement.
 - The totals are not worked out on each read. A cron job (every 6 hours) rebuilds them only when new games came in,
-  and stores them as one JSON row in `snap`. A read returns that row and is cached at the edge for 30 minutes.
+  and stores them as one JSON row in `snap`. Own totals (`/v1/stats`, `/v1/heroes`, `/v1/choices`) read that row
+  with `Cache-Control: no-store` and bypass the HTTP response cache. Base `/v1/meta` retains its 30-minute cache.
+  On upgrade from older publication rules, clear and rebuild `solo`, `duos`, `choices-standard`, `choices-wild`
+  and `events` snapshot rows before serving traffic. Already downloaded responses under the previous 30-minute
+  HTTP policy cannot be recalled by this change.
 - Each rebuild reads the last 30 days of games about 16 times (the per-bracket totals take one pass each, a column
   set per bracket). At 10,000 games in 30 days that is about 1.3 million rows read a day for both modes, well under
   the limit.
@@ -122,14 +129,29 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
   (up to 60 picks, 2 to 8 offered, 1 to 4 picked among the offered). A bad pick is dropped; a game without a valid
   pick is rejected. Needs `migrations/0005_constructed.sql` on an existing pool.
 - `GET /v1/choices?format=standard` (or `wild`) returns `{format, days, updated, games, sources:[{source, choices,
-  options:[[card, offered, picked, wonWhenPicked], ...]}]}` over the last 30 days; options offered fewer than 3
-  times are left out. Rebuilt by the same cron job into `snap` rows `choices-standard` / `choices-wild`.
+  options:[[card, offered, picked, wonWhenPicked], ...]}]}` over the last 30 days; options offered fewer than 10
+  times are left out, and the wins of an option picked fewer than 10 times are null. Rebuilt by the same cron job into `snap` rows `choices-standard` / `choices-wild`.
 - `GET /v1/meta` returns the base stats (see above) when the table has rows, cached at the edge for 30 minutes.
 - Game records of every mode (`src/events.js`, [docs/game-stats.md](../../docs/game-stats.md), ADR 0011; needs
   `migrations/0007_events.sql` on an existing pool): `POST /v1/events` with `{"v":1,"iid":"<32 hex>","games":[...]}`
   (1 to 20 records, each rebuilt from known fields only, at most 24 KB; 8,000 a day), `POST /v1/events/forget` with
   `{"iid":...}` deletes every record of that install, `GET /v1/events/summary` returns games per day, the most picked
   Discover options and the mulligan keep rate per card (10 games or more a card). Records are kept 180 days.
+- `GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>` (metric `mulligan.pair_winrate`, rules
+  `mull-pairs-1`, [docs/analytics-metrics.md](../../docs/analytics-metrics.md)): pairs of different cards offered
+  together in the opening hand of Ranked games of that format and class over the last 30 days, each as
+  `{a, b, installs, both, onlyA, onlyB, none}` with `[games, wins]` per keep cell. A pair needs 200 games with both
+  kept, of 5 installs or more; a comparison cell under 5 installs or 10 games is `null`; at most 200 pairs. No
+  install id, record id or deck in the answer. The window ends today (a record dated tomorrow waits a day). Built
+  in the same rebuild as the summary into `snap` row `mull-pairs` (no migration), deleted with it by
+  `/v1/events/forget` and the clean-up in one batch, answered `Cache-Control: no-store`; `400` for a missing or
+  malformed parameter, `503` with `Retry-After` when deletions kept overtaking the build. The numbers are an
+  observed association with a nominal interval, not a causal effect (see the catalogue).
+- Deletion fence for both views of the records: `snap` row `events-rev` counts deletions (`last_row`). A forget and
+  the clean-up raise it in the batch that deletes the records and the views; a build reads it first and publishes
+  both views in one batch only while it is unchanged, else it counts again. No migration: the row appears on the
+  first deletion. Behind nginx the route must be in the
+  location's list (`deploy/nginx-source-capture.conf`).
 
 For a local test, run `npx wrangler dev --test-scheduled` and open `/__scheduled` to run the cron job.
 

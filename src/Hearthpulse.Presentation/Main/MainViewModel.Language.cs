@@ -38,6 +38,7 @@ public sealed partial class MainViewModel
         _migration?.Rebuild();
         RebuildConstructedMeta();
         RebuildLanguagePlatformData();
+        RaiseDataHealth();
 
         // The live bar, session line and setup warning come from the last snapshot.
         if (_lastSnapshot is { } snapshot)

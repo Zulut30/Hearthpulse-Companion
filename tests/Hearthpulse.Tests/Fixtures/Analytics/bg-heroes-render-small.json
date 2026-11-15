@@ -1,0 +1,165 @@
+{
+ "v": 2,
+ "metric": "bg.hero.offer_pick_placement",
+ "rulesVersion": "bg-hero-1",
+ "mode": "solo",
+ "available": true,
+ "reason": null,
+ "published": 1794639600000,
+ "stale": true,
+ "source": "source_capture",
+ "period": {
+  "fromDay": 20741,
+  "toDay": 20771,
+  "days": 30
+ },
+ "groups": [
+  {
+   "build": 231548,
+   "captures": 31,
+   "sources": 6,
+   "suppressed": 19,
+   "heroes": [
+    {
+     "hero": "BG20_HERO_100",
+     "offered": 14,
+     "picked": 8,
+     "pickRate": {
+      "num": 8,
+      "den": 14,
+      "value": 0.571,
+      "low": 0.326,
+      "high": 0.786
+     },
+     "placement": {
+      "n": 7,
+      "mean": null,
+      "low": null,
+      "high": null,
+      "dist": null
+     },
+     "top4": {
+      "num": 4,
+      "den": 7,
+      "value": null,
+      "low": null,
+      "high": null
+     },
+     "first": {
+      "num": 1,
+      "den": 7,
+      "value": null,
+      "low": null,
+      "high": null
+     },
+     "quality": "small_sample"
+    },
+    {
+     "hero": "BG20_HERO_101",
+     "offered": 9,
+     "picked": 6,
+     "pickRate": {
+      "num": 6,
+      "den": 9,
+      "value": null,
+      "low": null,
+      "high": null
+     },
+     "placement": {
+      "n": 5,
+      "mean": null,
+      "low": null,
+      "high": null,
+      "dist": null
+     },
+     "top4": {
+      "num": 3,
+      "den": 5,
+      "value": null,
+      "low": null,
+      "high": null
+     },
+     "first": {
+      "num": 1,
+      "den": 5,
+      "value": null,
+      "low": null,
+      "high": null
+     },
+     "quality": "small_sample"
+    },
+    {
+     "hero": "BG20_HERO_202",
+     "offered": 8,
+     "picked": null,
+     "pickRate": null,
+     "placement": null,
+     "top4": null,
+     "first": null,
+     "quality": "small_sample"
+    },
+    {
+     "hero": "BG21_HERO_000",
+     "offered": 6,
+     "picked": null,
+     "pickRate": null,
+     "placement": null,
+     "top4": null,
+     "first": null,
+     "quality": "small_sample"
+    }
+   ]
+  },
+  {
+   "build": 230012,
+   "captures": 41,
+   "sources": 9,
+   "suppressed": 12,
+   "heroes": [
+    {
+     "hero": "BG20_HERO_100",
+     "offered": 12,
+     "picked": 10,
+     "pickRate": {
+      "num": 10,
+      "den": 12,
+      "value": 0.833,
+      "low": 0.552,
+      "high": 0.953
+     },
+     "placement": {
+      "n": 10,
+      "mean": 4.4,
+      "low": 3.023,
+      "high": 5.777,
+      "dist": [
+       1,
+       1,
+       2,
+       1,
+       2,
+       1,
+       1,
+       1
+      ]
+     },
+     "top4": {
+      "num": 5,
+      "den": 10,
+      "value": 0.5,
+      "low": 0.237,
+      "high": 0.763
+     },
+     "first": {
+      "num": 1,
+      "den": 10,
+      "value": 0.1,
+      "low": 0.018,
+      "high": 0.404
+     },
+     "quality": "ok"
+    }
+   ]
+  }
+ ]
+}

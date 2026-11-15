@@ -38,7 +38,14 @@ public static class AnalyticsClient
     private const int MaxBytes = 4 * 1024 * 1024;
 
     /// <summary>null on network error, non-success status, invalid JSON or a non-https endpoint.</summary>
-    public static async Task<BgHeroAnalytics?> LoadBgHeroesAsync(HttpClient http, string endpoint, CancellationToken cancellationToken = default)
+    public static async Task<BgHeroAnalytics?> LoadBgHeroesAsync(HttpClient http, string endpoint, CancellationToken cancellationToken = default) =>
+        (await FetchBgHeroesAsync(http, endpoint, cancellationToken).ConfigureAwait(false))?.Snapshot;
+
+    /// <summary>
+    /// The snapshot with the answer's own text, for a caller that keeps a copy on disk (<see cref="OwnBgHeroes"/>); null
+    /// in the cases of <see cref="LoadBgHeroesAsync"/>.
+    /// </summary>
+    internal static async Task<(BgHeroAnalytics Snapshot, string Body)?> FetchBgHeroesAsync(HttpClient http, string endpoint, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(http);
         if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(uri.UserInfo))
@@ -61,8 +68,9 @@ public static class AnalyticsClient
                 await buffer.WriteAsync(block.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
             }
 
-            using var doc = JsonDocument.Parse(buffer.ToArray());
-            return Parse(doc.RootElement);
+            var bytes = buffer.ToArray();
+            using var doc = JsonDocument.Parse(bytes);
+            return Parse(doc.RootElement) is { } snapshot ? (snapshot, System.Text.Encoding.UTF8.GetString(bytes)) : null;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException or FormatException
             or KeyNotFoundException)

@@ -126,7 +126,6 @@
   "Overlay.Hero.Personal": "You: {1:0.0} avg in {0}|You: {1:0.0} avg in {0}",
   "Overlay.Hero.CompsTitle": "Best comps available",
   "Overlay.Hero.CompTier": "tier {0}",
-  "Overlay.Trinket.Updated": "data from {0:d MMM}",
   "Overlay.Source.External": "Hearthpulse data",
   "Overlay.Source.Pool": "Hearthpulse stats pool",
   "Overlay.Source.Updated": "updated {0:d MMM HH:mm}",

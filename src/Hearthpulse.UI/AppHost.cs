@@ -13,6 +13,7 @@ using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
@@ -116,6 +117,7 @@ public sealed partial class AppHost : IDisposable
         };
         // The install's secret or "earlier games shared" is new in the settings; raised off the UI thread.
         _services.PoolSharing.SettingsChanged += () => Dispatcher.UIThread.Post(() => _settingsDebounce.Kick());
+        StartDataHealth();
         Main.CrashReportsChanged += () =>
         {
             // Switched off: consent withdrawn, what waits is not sent.
@@ -429,12 +431,15 @@ public sealed partial class AppHost : IDisposable
         // holds the other back as little as a fresh cache does. The advisor's comps and trinkets are read from them.
         var site = LoadBgSiteAsync();
         site.Forget("Battlegrounds site stats load");
+        LoadBgOwnAsync().Forget("Own Battlegrounds hero statistics load");
+        LoadDataHealthAsync().Forget("Data health");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings, () => BattlegroundsMeta.LoadExternalAsync(_bgSite!, site), Cards);
         if (meta is not null)
         {
             Meta = meta;
             Session.SetMeta(meta);
             Main.SetMeta(meta);
+            Overlay.SetBgData(meta);
         }
         else
         {
@@ -463,6 +468,12 @@ public sealed partial class AppHost : IDisposable
         Main.SetBgSiteStats(stats);
         return stats;
     }
+
+    /// <summary>
+    /// Hearthpulse's own hero statistics for the Heroes tab (docs/analytics-api.md): read from the stats pool when one
+    /// is set up, beside the meta and on the same refresh. Without a pool nothing is asked and the block stays hidden.
+    /// </summary>
+    private async Task LoadBgOwnAsync() => Main.SetBgOwn(await OwnBgHeroes.LoadAsync(Http, Settings));
 
     public Task ImportLogsAsync(bool force) => Main.ImportLogsAsync(InstallDirectory, force);
 
@@ -570,6 +581,7 @@ public sealed partial class AppHost : IDisposable
         _services.GameStats.Dispose();
         _services.SourceCaptures.Dispose();
         _metaRefresh.Stop();
+        StopDataHealth();
         Memory.Dispose();
         Settings.Save();
         StopUpdateLoop();

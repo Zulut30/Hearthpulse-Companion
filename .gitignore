@@ -8,3 +8,6 @@ dist/
 __pycache__/
 *.py[cod]
 .claude/settings.local.json
+
+# WPF markup compilation leaves these beside the project when a build is interrupted
+*_wpftmp.csproj

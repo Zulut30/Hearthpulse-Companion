@@ -136,7 +136,8 @@ public sealed partial class MainViewModel
     public bool HasMatchupMatrix => _matchupMatrix.Count > 0;
 
     /// <summary>Where the meta numbers come from, or why there are none; kept as a text maker so it follows a language change.</summary>
-    public string ConstructedMetaStatus => _constructedMetaStatus();
+    /// <summary>The tier list's source line; while its collection is late, the delay line goes under it.</summary>
+    public string ConstructedMetaStatus => MetaStatusShown && MetaArchetypes.Count > 0 ? WithDelay(_constructedMetaStatus(), MetaDataDelay) : _constructedMetaStatus();
 
     public string ArchetypeSummary { get => _archetypeSummary; private set => Set(ref _archetypeSummary, value); }
 

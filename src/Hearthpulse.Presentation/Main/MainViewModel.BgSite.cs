@@ -138,6 +138,7 @@ public sealed partial class MainViewModel
         RebuildCompRows();
         RebuildBgPicker();
         Raise(nameof(ShowBgMode));
+        Raise(nameof(ShowBgOwn));
     }
 
     /// <summary>The open tab of the page ("Mine", "Heroes", "Comps", "Trinkets", "Cards"): the pickers follow it.</summary>
@@ -151,6 +152,7 @@ public sealed partial class MainViewModel
         _bgTab = tab;
         RebuildBgPicker();
         Raise(nameof(ShowBgMode));
+        Raise(nameof(ShowBgOwn));
     }
 
     /// <summary>The picker's choice (a percent: 50, 20, 5, 1) for the open tab's list.</summary>
@@ -176,6 +178,7 @@ public sealed partial class MainViewModel
     {
         ShowHeroes(quiet: false);
         RebuildBgPicker();
+        Raise(nameof(ShowBgOwn));
     }
 
     /// <summary>The player's own games by hero ("12 · 3.90") for the "You" column, per mode.</summary>
@@ -208,6 +211,7 @@ public sealed partial class MainViewModel
         RebuildCardRows();
         RebuildCompRows();
         RebuildBgPicker();
+        RebuildBgOwn();
     }
 
     // ---- slices ---------------------------------------------------------------------------------
@@ -376,9 +380,10 @@ public sealed partial class MainViewModel
     /// shown list itself says about its slice (a part it does not name is left out), then when the server fetched it.
     /// While another slice loads, the date gives way to "loading top 5 %…" - for heroes with the mode asked for
     /// ("loading Duos, top 20 %…"), which is what changes when the player switches Solo / Duos; numbers older than
-    /// <see cref="BgStaleAfter"/> are marked.
+    /// <see cref="BgStaleAfter"/> are marked. <paramref name="section"/> is the list's part of the data summary (null for
+    /// rows that are not the service's).
     /// </summary>
-    private string BgSource(DateTime? fetched, string? loading, string? loadingMode, params string?[] parts)
+    private string BgSource(DataSection? section, DateTime? fetched, string? loading, string? loadingMode, params string?[] parts)
     {
         var what = Joined([HearthpulseData.Attribution, .. parts]);
         if (loading is not null && SliceShare(loading) is { } share)
@@ -386,13 +391,17 @@ public sealed partial class MainViewModel
             return loadingMode is null ? Loc.F("Main.Bg.SliceLoading", what, share) : Loc.F("Main.Bg.SliceLoadingMode", what, loadingMode, share);
         }
 
+        // The server's own word that this list's collection is late goes on a line of its own, and replaces the
+        // 14-day mark: one note about age, not two.
+        var delay = section is { } known ? DataDelay(known) : string.Empty;
         if (fetched is not { } at || at == default)
         {
-            return what;
+            return WithDelay(what, delay);
         }
 
         var line = Loc.F("Main.Bg.MetaUpdated", what, at.ToLocalTime());
-        return BgClock() - at.ToUniversalTime() > BgStaleAfter ? line + " · " + Loc.T("Main.Bg.Stale") : line;
+        return delay.Length > 0 ? WithDelay(line, delay)
+            : BgClock() - at.ToUniversalTime() > BgStaleAfter ? line + " · " + Loc.T("Main.Bg.Stale") : line;
     }
 
     /// <summary>"TOP_50_PERCENT" as a share (0.5); null for anything else.</summary>

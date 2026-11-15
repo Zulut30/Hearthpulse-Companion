@@ -44,6 +44,7 @@ internal static partial class OffscreenRenderer
         if (RenderOnly("mystats")) await RenderMyStatsAsync(main, view, host, folder);
         if (RenderOnly("metatiers")) await RenderMetaTiersAsync(main, view, host, folder);
         if (RenderOnly("bgtabs")) await RenderBgTabsAsync(main, view, host, folder);
+        if (RenderOnly("bgown")) await RenderBgOwnAsync(main, view, host, folder);
         if (RenderOnly("sourcecapture"))
         {
             view.ShowPage("Overview");
@@ -62,6 +63,11 @@ internal static partial class OffscreenRenderer
         if (RenderOnly("arenapage"))
         {
             await RenderArenaPageAsync(main, view, host, folder);
+        }
+
+        if (RenderOnly("datahealth"))
+        {
+            await RenderDataHealthAsync(main, view, host, folder);
         }
 
         if (RenderOnly("settings"))
