@@ -76,7 +76,7 @@ public sealed class AdvisorTests(ITestOutputHelper output)
         output.WriteLine(enriched.MetaSource);
         foreach (var h in enriched.HeroOptions)
         {
-            output.WriteLine($"{(h.Recommended ? "*" : " ")} {h.Name,-24} {h.Meta?.Tier} avg={h.Meta?.AveragePosition:0.00} adj={h.Meta?.AdjustedPosition:0.00} comps=[{string.Join(", ", h.TopComps ?? [])}]");
+            output.WriteLine($"{(h.Recommended ? "*" : " ")} {h.Name,-24} {h.Meta?.Tier} avg={h.Meta?.AveragePosition:0.00} adj={h.Meta?.AdjustedPosition:0.00} comps=[{string.Join(", ", (h.TopComps ?? []).Select(c => c.Name))}]");
         }
 
         Assert.Single(enriched.HeroOptions, h => h.Recommended);

@@ -205,10 +205,17 @@ public sealed record BgHeroOption(
     HeroStats? Stats,
     HeroMeta? Meta = null,
     bool Recommended = false,
-    IReadOnlyList<string>? TopComps = null);
+    IReadOnlyList<BgHeroComp>? TopComps = null);
+
+/// <summary>
+/// A comp the lobby allows, on a hero option: its name, the source's tier letter and difficulty ("easy", "medium",
+/// "hard" from the external list, free text from the pool's guides; empty when unknown) and its advice.
+/// </summary>
+public sealed record BgHeroComp(string Name, string Tier, string Difficulty, string? Tip);
 
 public sealed record CompCard(string CardId, string Name, string Status, int TechLevel, bool Owned);
 
+/// <param name="AveragePlacement">The comp's average place; 0 when the source publishes none (the external list).</param>
 public sealed record CompAdvice(
     string Id,
     string Name,
@@ -258,7 +265,12 @@ public sealed record ShopPick(string CardId, string Name, int TechLevel, int Sco
 public sealed record BgDiscoverOption(string CardId, string Name, int TechLevel, string? DarkGift, string CardType = "MINION");
 
 /// <summary>Community result for a trinket at the player's MMR bracket.</summary>
-public sealed record TrinketMeta(double AveragePlacement, double PickRate, int DataPoints, string Tier);
+/// <param name="DataPoints">Games behind the placement; a lower bound when <paramref name="GamesAreMinimum"/>.</param>
+/// <param name="External">True for Hearthpulse data (the external list), false for the stats pool's own numbers.</param>
+/// <param name="GamesAreMinimum">The source gives only the smallest sample that fits its rounded numbers: shown as "at least".</param>
+/// <param name="Updated">When the source fetched the numbers, UTC; null when it does not say.</param>
+public sealed record TrinketMeta(double AveragePlacement, double PickRate, int DataPoints, string Tier,
+    bool External = false, bool GamesAreMinimum = false, DateTime? Updated = null);
 
 /// <summary>One trinket offered by a Lesser/Greater Trinket choice.</summary>
 public sealed record BgTrinketOption(string CardId, string Name, TrinketMeta? Meta = null, bool Recommended = false);

@@ -68,6 +68,79 @@ public sealed partial class HearthpulseData
         return new BgHeroSlice(root.TryGetProperty("heroes", out var list) ? ParseHeroes(list) : new Dictionary<string, MetaHero>(), fetched);
     }
 
+    /// <summary>What the app reads of the compositions answer, for the cache: no placement distributions.</summary>
+    private static object ShrinkHeroCompositions(JsonElement data) =>
+        Items(data).Select(h => new
+        {
+            id = Str(h, "id"),
+            compositions = Items(Child(h, "compositions")).Select(c => new
+            {
+                composition_id = Num(c, "composition_id"),
+                name = Str(c, "name"),
+                tribes = Items(Child(c, "tribes"), JsonValueKind.String).Select(t => t.GetString()).ToList(),
+                num_games = Num(c, "num_games"),
+                avg_placement = Num(c, "avg_placement"),
+            }).ToList(),
+        }).ToList();
+
+    private static JsonElement Child(JsonElement e, string name) =>
+        e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var value) ? value : default;
+
+    /// <summary>
+    /// The compositions answer (<c>/v1/battlegrounds/heroes/compositions?mmr=TOP_50_PERCENT</c>, whole or as cached):
+    /// <c>{"data": [{"id", "compositions": [{"composition_id", "name", "tribes": ["UNDEAD"], "num_games",
+    /// "avg_placement"}]}], "meta": {"source_id", "fetched_at", "mmr"}}</c>. Empty when the answer is of another
+    /// slice or of a source the app does not use. Rows without games or with a place outside 1..8 are dropped. A
+    /// composition the server gives no tribes for takes the tribe its id or name is known by, else none.
+    /// </summary>
+    internal static BgHeroCompsSlice ParseHeroCompositions(JsonElement root)
+    {
+        var heroes = new Dictionary<string, IReadOnlyList<MetaHeroComp>>(StringComparer.Ordinal);
+        var meta = Child(root, "meta");
+        var fetched = Str(meta, "fetched_at") is { } at
+                      && DateTime.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var time)
+            ? time
+            : (DateTime?)null;
+        if (Str(meta, "mmr") is { } mmr && mmr != "TOP_50_PERCENT")
+        {
+            return new BgHeroCompsSlice(heroes, fetched);
+        }
+
+        if (new[] { Str(meta, "source_id"), Str(meta, "tribes_source_id") }.Any(source =>
+                source is not null && (source.Contains("firestone", StringComparison.OrdinalIgnoreCase) || source.Contains("zerotoheroes", StringComparison.OrdinalIgnoreCase))))
+        {
+            Diag.Info("Hearthpulse API hero compositions: a source that is not used");
+            return new BgHeroCompsSlice(heroes, fetched);
+        }
+
+        foreach (var hero in Items(Child(root, "data")))
+        {
+            if (Str(hero, "id") is not { Length: > 0 } id)
+            {
+                continue;
+            }
+
+            var comps = new List<MetaHeroComp>();
+            foreach (var c in Items(Child(hero, "compositions")))
+            {
+                if (Num(c, "composition_id") is { } compId and >= 0 and < int.MaxValue && Num(c, "num_games") is { } games and >= 1 and < int.MaxValue
+                    && Num(c, "avg_placement") is { } place and >= 1 and <= 8)
+                {
+                    var name = Str(c, "name") ?? string.Empty;
+                    var tribes = Items(Child(c, "tribes"), JsonValueKind.String).Select(t => t.GetString()!).Where(t => t.Length > 0).ToList();
+                    comps.Add(new MetaHeroComp((int)compId, name, tribes.Count > 0 ? tribes : BattlegroundsMeta.CompositionTribes((int)compId, name), (int)games, place));
+                }
+            }
+
+            if (comps.Count > 0)
+            {
+                heroes[id] = comps;
+            }
+        }
+
+        return new BgHeroCompsSlice(heroes, fetched);
+    }
+
     internal static Dictionary<string, MetaHero> ParseHeroes(JsonElement list)
     {
         var result = new Dictionary<string, MetaHero>(StringComparer.Ordinal);
