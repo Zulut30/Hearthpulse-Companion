@@ -92,4 +92,79 @@ public sealed class BgPickSourcesTests
             Loc.Instance.SetLanguage(Loc.English);
         }
     }
+
+    /// <summary>
+    /// The WPF badge templates built with data (a XAML mistake shows only when the template is loaded): the hero badge
+    /// has its comps line with the tooltip, the trinket badge its date line; without comps or a date the lines are gone.
+    /// </summary>
+    [Fact]
+    public void Wpf_badges_show_the_comps_line_and_the_date_line() => WpfThread.RunThemed(() =>
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var panels = new System.Windows.ResourceDictionary { Source = new Uri("/Hearthpulse;component/Overlay/OverlayPanels.xaml", UriKind.Relative) };
+
+        var hero = Shown(panels, "HeroPickTemplate", new Hearthpulse.App.Overlay.HeroPickCard("HERO_A", "Hero A", "A", "3.90", "avg place", string.Empty, 0, "30% pick",
+            string.Empty, "Demons - Self damage", true, true) { CompsTip = "tip" });
+        var comps = Assert.Single(hero, t => t.Text == "Demons - Self damage");
+        Assert.Equal("tip", comps.ToolTip);
+        Assert.True(Hearthpulse.App.Overlay.OverlayHit.GetInteractive(comps));
+
+        var bare = Shown(panels, "HeroPickTemplate", new Hearthpulse.App.Overlay.HeroPickCard("HERO_B", "Hero B", "B", "4.20", "avg place", string.Empty, 0, "20% pick",
+            string.Empty, string.Empty, false, true));
+        Assert.Equal(["B", "4.20", "avg place", "20% pick"], bare.Select(t => t.Text).Where(t => t.Length > 0 && !t.Any(char.IsSurrogate) && t != Loc.T("Overlay.Badge.BestPick")));
+
+        var trinket = Shown(panels, "TrinketBadgeTemplate", new Hearthpulse.App.Overlay.TrinketBadge("TRK", "Trinket", "S", "3.47", "28% pick", false, true) { Updated = "data from 15 Nov" });
+        Assert.Contains(trinket, t => t.Text == "data from 15 Nov");
+        var undated = Shown(panels, "TrinketBadgeTemplate", new Hearthpulse.App.Overlay.TrinketBadge("TRK", "Trinket", "S", "3.47", "28% pick", false, true));
+        Assert.Equal(["S", "3.47", "avg place", "28% pick"], undated.Select(t => t.Text).Where(t => t.Length > 0 && !t.Any(char.IsSurrogate) && t != Loc.T("Overlay.Badge.BestPick")));
+    });
+
+    /// <summary>The visible text blocks of a template of the overlay's panels, laid out with <paramref name="item"/>.</summary>
+    private static List<System.Windows.Controls.TextBlock> Shown(System.Windows.ResourceDictionary panels, string template, object item)
+    {
+        var host = new System.Windows.Controls.ContentControl
+        {
+            Resources = panels,
+            Content = item,
+            ContentTemplate = (System.Windows.DataTemplate)panels[template],
+        };
+        host.Measure(new System.Windows.Size(400, 300));
+        host.Arrange(new System.Windows.Rect(0, 0, 400, 300));
+        // Bindings attach at DataBind priority: let them, then lay out again.
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        _ = System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+        host.UpdateLayout();
+        return [.. Texts(host).Where(t => Visible(t, host))];
+
+        static IEnumerable<System.Windows.Controls.TextBlock> Texts(System.Windows.DependencyObject root)
+        {
+            for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+                if (child is System.Windows.Controls.TextBlock text)
+                {
+                    yield return text;
+                }
+
+                foreach (var nested in Texts(child))
+                {
+                    yield return nested;
+                }
+            }
+        }
+
+        static bool Visible(System.Windows.DependencyObject element, System.Windows.DependencyObject root)
+        {
+            for (var e = element; e is not null && !ReferenceEquals(e, root); e = System.Windows.Media.VisualTreeHelper.GetParent(e))
+            {
+                if (e is System.Windows.UIElement { Visibility: not System.Windows.Visibility.Visible })
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
 }
