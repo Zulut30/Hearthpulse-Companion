@@ -112,9 +112,9 @@ public static partial class PoolClient
 
                 foreach (var trinket in bracket.Value.EnumerateArray())
                 {
-                    if (Text(trinket, "card") is { Length: > 0 } id)
+                    if (Text(trinket, "card") is { Length: > 0 } id && Number(trinket, "avgPlacement") is > 0 and var placement)
                     {
-                        (trinketsAt.TryGetValue(id, out var at) ? at : trinketsAt[id] = new())[top] = (Number(trinket, "avgPlacement"), Int(trinket, "picked"));
+                        (trinketsAt.TryGetValue(id, out var at) ? at : trinketsAt[id] = new())[top] = (placement, Int(trinket, "picked"));
                     }
                 }
             }
@@ -123,13 +123,14 @@ public static partial class PoolClient
         var trinkets = new Dictionary<string, MetaTrinket>(StringComparer.Ordinal);
         foreach (var trinket in Array(root, "trinkets"))
         {
-            if (Text(trinket, "card") is { Length: > 0 } id)
+            // A withheld mean is unknown, not placement zero. It must neither replace nor blend into a base mean.
+            if (Text(trinket, "card") is { Length: > 0 } id && Number(trinket, "avgPlacement") is > 0 and var placement)
             {
                 var offered = Int(trinket, "offered");
                 trinkets[id] = new MetaTrinket(
                     id,
                     Int(trinket, "picked"),
-                    Number(trinket, "avgPlacement"),
+                    placement,
                     offered > 0 ? (double)Int(trinket, "picked") / offered : 0,
                     trinketsAt.GetValueOrDefault(id) ?? new Dictionary<int, (double, int)>());
             }

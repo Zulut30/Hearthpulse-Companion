@@ -30,11 +30,17 @@ test('Node HTTP preserves games constructed events reads and durable SQLite rest
   for (const [route, property, expected] of [
     ['/v1/stats?mode=solo', 'games', 1], ['/v1/heroes', 'games', 1], ['/v1/choices', 'games', 1],
     ['/v1/events/summary', 'games', 1], ['/v1/meta', 'synthetic', true],
+    ['/v1/events/mulligan-pairs?fmt=standard&cls=MAGE', 'metric', 'mulligan.pair_winrate'],
   ]) {
     const answer = await fetch(`${f.pool.url}${route}`);
     assert.equal(answer.status, 200, route);
     assert.equal((await answer.json())[property], expected);
   }
+  // The pair route is deletion-sensitive and validated in the shared code: never cached, 400 on a bad class.
+  const pairs = await fetch(`${f.pool.url}/v1/events/mulligan-pairs?fmt=standard&cls=MAGE`);
+  assert.equal(pairs.headers.get('cache-control'), 'no-store');
+  assert.deepEqual((await pairs.json()).pairs, []);
+  assert.equal((await fetch(`${f.pool.url}/v1/events/mulligan-pairs?fmt=standard&cls=mage`)).status, 400);
   await f.restart();
   for (const table of ['g', 'c', 'e']) assert.equal(f.pool.store.sqlite.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n, 1);
   assert.equal((await fetch(`${f.pool.url}/private/captures`)).status, 404);

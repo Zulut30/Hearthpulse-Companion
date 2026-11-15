@@ -7,10 +7,11 @@ namespace Hearthpulse.Core.Tracking;
 /// The mulligan guide maths (docs/mulligan-v2.md, section 3). Card values are HSReplay V1 numbers: delta = win rate
 /// with the card in the opening hand minus the deck's baseline. A hand adds up the deltas of the kept cards and one
 /// replacement delta per replaced card, shrunk by the square root of the hand size because card effects overlap.
-/// Duplicates and the curve use labelled heuristics because the data has no per-copy or per-turn split; synergies need
-/// pair data no endpoint serves yet.
+/// Duplicates and the curve use labelled heuristics because the data has no per-copy or per-turn split. Card pairs from
+/// Hearthpulse's own statistics (MulliganGuide.Pairs.cs) are shown beside the cards as an observation and do not enter
+/// the estimate or the calls.
 /// </summary>
-public static class MulliganGuide
+public static partial class MulliganGuide
 {
     /// <summary>Fewer games than this and a card's numbers are too noisy to use.</summary>
     public const int MinSample = 30;
@@ -24,9 +25,13 @@ public static class MulliganGuide
     /// <summary>Class matchups with fewer games leave the baseline alone.</summary>
     public const int MinClassGames = 200;
 
+    /// <summary>A pair needs this many games with both cards kept (the pool publishes none under it either).</summary>
     public const int MinPairGames = 200;
 
-    /// <summary>Pair interactions smaller than this (in win rate, 0.015 = 1.5 points) are noise.</summary>
+    /// <summary>Each comparison cell of a pair (only one of the two kept, neither kept) needs this many games.</summary>
+    public const int MinPairCellGames = MinSample;
+
+    /// <summary>A pair difference smaller than this (in win rate, 0.015 = 1.5 points) is not shown.</summary>
     public const double MinInteraction = 0.015;
 
     /// <summary>Cards costing this much or less, or usually played by <see cref="EarlyTurn"/>, are early plays.</summary>
@@ -225,13 +230,6 @@ public static class MulliganGuide
                 ? rate - baseline + (CoinShift(cardId) ?? 0) + (OpponentShift(cardId) ?? 0)
                 : null;
 
-        // Pair win rates are over all games: their interaction is measured against the cards' unshifted deltas, or a
-        // coin or class shift of both cards would show up as a synergy of the same size (and cancel itself in the sum).
-        double? AllGamesDeltaOf(string cardId) =>
-            stats.TryGetValue(cardId, out var s) && s.Offered >= MinSample && s.InOpeningHand >= MinSample && s.OpeningHandWinRate is { } rate
-                ? rate - baseline
-                : null;
-
         var replace = ReplaceDelta(data.Cards, hand, deck, DeltaOf);
         var seen = new Dictionary<string, int>(StringComparer.Ordinal);
         var rows = new List<MulliganCardStat>();
@@ -266,7 +264,9 @@ public static class MulliganGuide
             });
         }
 
-        var synergies = Synergies(data.Pairs, hand, baseline, AllGamesDeltaOf);
+        // Pairs are Hearthpulse's own statistics over all games of the class: measured inside their own sample, so a coin
+        // or class shift of the external card numbers cannot show up as a pair difference.
+        var synergies = Synergies(data.Pairs, hand);
         var view = new MulliganView(context, baseRate, rows, data.Source)
         {
             ReplaceDelta = replace,
@@ -344,8 +344,8 @@ public static class MulliganGuide
 
     /// <summary>
     /// What keeping the card adds to the recommended keeps: the summed deltas with it kept minus with it replaced, the
-    /// other cards as recommended. For a plain card that is its delta minus the replacement's; a kept synergy partner or a
-    /// kept second copy of the same card count too. The recommendation is the best sum, so the sign always matches the call.
+    /// other cards as recommended. For a plain card that is its delta minus the replacement's; a
+    /// kept second copy of the same card counts too. The recommendation is the best sum, so the sign always matches the call.
     /// </summary>
     private static double Toggle(MulliganView view, IReadOnlySet<int> keep, int entityId)
     {
@@ -355,7 +355,11 @@ public static class MulliganGuide
         return Sum(view, with) - Sum(view, without);
     }
 
-    /// <summary>The hand's summed deltas: first kept copies, one replacement per replaced card, kept pair interactions.</summary>
+    /// <summary>
+    /// The hand's summed deltas: first kept copies and one replacement per replaced card. Pair differences are left out
+    /// on purpose: they are an observed association in another population (our own records, the whole class) with a
+    /// nominal interval, so they are shown and never move a call or the estimate.
+    /// </summary>
     private static double Sum(MulliganView view, IReadOnlySet<int> kept)
     {
         var total = 0.0;
@@ -373,7 +377,7 @@ public static class MulliganGuide
             }
         }
 
-        return total + view.Synergies.Where(s => kept.Contains(s.EntityA) && kept.Contains(s.EntityB)).Sum(s => s.Interaction);
+        return total;
     }
 
     /// <summary>
@@ -548,37 +552,5 @@ public static class MulliganGuide
         }
 
         return weight > 0 ? sum / weight : 0;
-    }
-
-    /// <summary>Interaction = win rate with both cards minus the additive estimate for them (baseline + both deltas).</summary>
-    private static List<MulliganSynergy> Synergies(IReadOnlyList<GuidePair> pairs, IReadOnlyList<OfferedCard> hand, double baseline, Func<string, double?> deltaOf)
-    {
-        var result = new List<MulliganSynergy>();
-        for (var i = 0; i < hand.Count; i++)
-        {
-            for (var j = i + 1; j < hand.Count; j++)
-            {
-                var a = hand[i];
-                var b = hand[j];
-                if (a.CardId == b.CardId)
-                {
-                    continue;
-                }
-
-                var pair = pairs.FirstOrDefault(p => (p.CardA == a.CardId && p.CardB == b.CardId) || (p.CardA == b.CardId && p.CardB == a.CardId));
-                if (pair is null || pair.Games < MinPairGames || deltaOf(a.CardId) is not { } da || deltaOf(b.CardId) is not { } db)
-                {
-                    continue;
-                }
-
-                var interaction = pair.WinRate - (baseline + da + db);
-                if (Math.Abs(interaction) >= MinInteraction && !result.Exists(s => (s.EntityA == a.EntityId || s.EntityB == a.EntityId) && (s.EntityA == b.EntityId || s.EntityB == b.EntityId)))
-                {
-                    result.Add(new MulliganSynergy(a.EntityId, b.EntityId, a.Name, b.Name, interaction, pair.Games));
-                }
-            }
-        }
-
-        return result;
     }
 }
