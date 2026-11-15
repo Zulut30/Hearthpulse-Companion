@@ -101,10 +101,12 @@
             <!-- The own hero statistics of Hearthpulse (metric bg.hero.offer_pick_placement, docs/analytics-api.md): on the
                  Heroes tab above the external tier list, with its own sample and date; a value the pool keeps back reads
                  "not enough data". Hidden without a stats pool and in Duos. Same tree as the WPF page; the compact layout
-                 keeps the hero and the place. -->
+                 keeps the hero and the place, the title and a long name wrap. -->
             <Border Name="BgOwnCard" Classes="card" Margin="0,0,0,24" IsVisible="{Binding ShowBgOwn}">
                 <StackPanel>
-                    <c:Ornament Text="{i:Loc Main.BgOwn.Title}" Icon="&#xF0128;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,12" />
+                    <c:Ornament Name="BgOwnTitle" Classes="wide" Text="{i:Loc Main.BgOwn.Title}" Icon="&#xF0128;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,12" />
+                    <!-- Compact: the ornament draws one line and would cut the title, so it is plain text on as many lines as it needs -->
+                    <TextBlock Name="BgOwnTitleCompact" Classes="tableHead narrow" Text="{i:Loc Main.BgOwn.Title}" TextWrapping="Wrap" Margin="0,0,0,12" />
                     <StackPanel IsVisible="{Binding BgOwn.HasRows}">
                         <TextBlock Name="BgOwnSummary" Text="{Binding BgOwn.Summary}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,12" />
                         <Grid Margin="0,0,0,4" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
@@ -121,7 +123,7 @@
                                     <Border Classes="row" Padding="10,8" Margin="-10,0,-10,2">
                                         <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
                                             <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                                                       TextWrapping="Wrap" Margin="0,0,12,0" />
                                             <TextBlock Grid.Column="1" Width="88" TextAlignment="Right" Text="{Binding Offered}" Classes="wide" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="2" Width="112" TextAlignment="Right" Text="{Binding Picked}" Classes="wide" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                                             <StackPanel Grid.Column="3" Width="124" VerticalAlignment="Center" Classes="wide">

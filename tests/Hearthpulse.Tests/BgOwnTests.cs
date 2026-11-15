@@ -312,9 +312,10 @@ public sealed partial class BgOwnTests
         static string[] All(string block, Regex pattern) => [.. pattern.Matches(block).Select(m => m.Groups[1].Value)];
 
         Assert.Equal(["BgOwnCard", "BgOwnSummary", "BgOwnList", "BgOwnNote", "BgOwnEmpty"], All(wpf, Names()));
-        Assert.Equal(All(wpf, Names()), All(avalonia, Names()));
+        // Avalonia alone has the compact layout: there the title is a second element, plain text that wraps.
+        Assert.Equal(All(wpf, Names()), All(avalonia, Names()).Where(name => !name.StartsWith("BgOwnTitle", StringComparison.Ordinal)));
         Assert.Equal(All(wpf, Bindings()), All(avalonia, Bindings()));
-        Assert.Equal(All(wpf, LocKeys()), All(avalonia, LocKeys()));
+        Assert.Equal(All(wpf, LocKeys()), All(avalonia, LocKeys()).Distinct());
         Assert.Contains("ShowBgOwn", All(wpf, Bindings()));
         Assert.Contains("Main.BgOwn.Title", All(wpf, LocKeys()));
 

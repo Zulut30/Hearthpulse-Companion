@@ -21,6 +21,7 @@ using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
 
