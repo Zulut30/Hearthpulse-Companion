@@ -41,6 +41,11 @@ test('Node HTTP preserves games constructed events reads and durable SQLite rest
   const health = await (await fetch(`${f.pool.url}/healthz`)).json();
   assert.equal(health.ok, true);
   assert.equal(health.workerConfigured, false);
+  // "Alive" is told apart from "producing": stored rows, today's intake and the snapshot's state.
+  assert.deepEqual(health.stored, { shared: 1, picks: 1, records: 1 });
+  assert.equal(health.intake.shared, 2);
+  assert.equal(health.intake.records, 1);
+  assert.deepEqual(health.analytics, { built: null, stale: false, published: false });
   assert.equal(JSON.stringify(health).includes(ID.iid), false);
 });
 
