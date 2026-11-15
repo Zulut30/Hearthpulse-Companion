@@ -22,8 +22,8 @@ public sealed partial class BattlegroundsAdvisor
     public BattlegroundsMeta? Meta { get; set; }
 
     /// <summary>
-    /// Daily free use of the stats pool's numbers (plan 3.1): when set, comps and trinket stats are used only in a game
-    /// the gate allows. Null: no limit.
+    /// Daily free use of the stats pool's numbers (plan 3.1): when set, the pool's own comps and trinket stats are used
+    /// only in a game the gate allows. External rows (Hearthpulse data) are never under it. Null: no limit.
     /// </summary>
     public Accounts.UsageGate? Usage { get; set; }
 
@@ -81,16 +81,20 @@ public sealed partial class BattlegroundsAdvisor
         var bracket = meta.BracketFor(rating);
         var lobbyKnown = view.Races.Count >= 4;
         var lobbyIds = view.Races.Select(r => RaceIds.GetValueOrDefault(r)).Where(id => id > 0).ToHashSet();
-        // Comps and trinket stats come only from the stats pool: our own analytics, under the daily free limit.
+        // The stats pool's own comps and trinkets are our analytics, under the daily free limit. The external ones
+        // (Hearthpulse data) are free; they are solo numbers, so Duos keeps to what it had.
         var poolOpen = PoolOpen(meta);
-        var hasCompCards = meta.Comps.Any(c => c.Cards.Count > 0);
-        var viable = (poolOpen ? meta.Comps : [])
+        var externalOpen = !view.IsDuos;
+        var usable = meta.Comps.Where(c => c.External ? externalOpen : poolOpen).ToList();
+        var hasCompCards = usable.Exists(c => c.Cards.Count > 0);
+        var viable = usable
             .Where(c => !hasCompCards || c.Cards.Count > 0)
-            .Where(c => !lobbyKnown || c.Tribes.All(view.Races.Contains))
+            // An external comp names no tribes: its lobby is decided by whether its core cards can appear there.
+            .Where(c => !lobbyKnown || (c.External ? BattlegroundsMeta.CoreInLobby(c, cards, view.Races) : c.Tribes.All(view.Races.Contains)))
             .Where(c => Playable(c, cards, view.IsDuos))
             .ToList();
 
-        var options = RankHeroes(view, cards, meta, bracket, lobbyKnown, lobbyIds, viable);
+        var options = RankHeroes(view, cards, meta, bracket, lobbyKnown, externalOpen, lobbyIds, viable);
 
         IReadOnlyList<CompAdvice> comps = Array.Empty<CompAdvice>();
         IReadOnlyList<ShopPick> shop = Array.Empty<ShopPick>();
@@ -108,7 +112,7 @@ public sealed partial class BattlegroundsAdvisor
 
             _autoTargetHero = hero;
             _autoTargetTurn = view.Turn;
-            comps = RankComps(view, viable, cards.BaseHeroId(hero), bracket, owned, cards, lobbyKnown);
+            comps = RankComps(view, viable, cards.BaseHeroId(hero), bracket, owned, cards, lobbyKnown, meta);
             target = comps.FirstOrDefault(c => c.IsTarget);
             shop = ScoreOffer(view, view.Shop.Select(m => new Offer(m.CardId, m.Name, m.TechLevel, m.CardType, m.Cost)).ToList(),
                 target, owned, cards, meta, bracket, dataWeight: 50);
@@ -125,7 +129,7 @@ public sealed partial class BattlegroundsAdvisor
             Comps = comps,
             ShopAdvice = shop,
             BestSpell = shop.Where(p => p.IsSpell && p.Score >= StrongSpellScore).OrderByDescending(p => p.Score).FirstOrDefault(),
-            TrinketOptions = poolOpen ? RankTrinkets(view.TrinketOptions, meta, bracket) : view.TrinketOptions,
+            TrinketOptions = RankTrinkets(view.TrinketOptions, meta, bracket, poolOpen, externalOpen),
             DarkGiftAdvice = DarkGiftTip(view, shop),
             DiscoverAdvice = discover,
             FreezeAdvice = FreezeTip(view, shop, target),
@@ -144,13 +148,13 @@ public sealed partial class BattlegroundsAdvisor
     /// </summary>
     private bool PoolOpen(BattlegroundsMeta meta) => !Limited(meta) || Usage!.Allow(Accounts.UsageGate.BgPoolStats, Game!);
 
-    /// <summary>The gate applies: it is set, the game is known and the pool has numbers to show.</summary>
+    /// <summary>The gate applies: it is set, the game is known and the pool has numbers of its own to show (external rows do not count).</summary>
     private bool Limited(BattlegroundsMeta meta) =>
-        Usage is not null && Game is not null && meta.FromPool && (meta.Comps.Count > 0 || meta.Trinkets.Count > 0);
+        Usage is not null && Game is not null && meta.FromPool && (meta.Comps.Any(c => !c.External) || meta.Trinkets.Values.Any(t => !t.External));
 
     private static List<BgHeroOption> RankHeroes(
         BattlegroundsView view, CardDb cards, BattlegroundsMeta meta, int bracket,
-        bool lobbyKnown, HashSet<int> lobbyIds, List<MetaComp> viable)
+        bool lobbyKnown, bool external, HashSet<int> lobbyIds, List<MetaComp> viable)
     {
         var options = new List<(BgHeroOption Option, double Score)>();
         foreach (var option in view.HeroOptions)
@@ -159,15 +163,17 @@ public sealed partial class BattlegroundsAdvisor
             HeroMeta? heroMeta = null;
             if (meta.Hero(baseId, bracket) is { } stats)
             {
-                var adjusted = stats.AveragePosition + (lobbyKnown ? lobbyIds.Sum(t => stats.TribeImpact.GetValueOrDefault(t)) : 0);
+                var adjusted = stats.AveragePosition + (lobbyKnown ? LobbyImpact(stats, meta, baseId, view.Races, lobbyIds, external) : 0);
                 heroMeta = new HeroMeta(stats.AveragePosition, adjusted, stats.PickRate, stats.DataPoints, TierOf(adjusted));
             }
 
+            // One external comp per tribe: the hero's number is its tribe family's, so two comps of a tribe would tie.
             var topComps = viable
-                .Select(c => (c.Name, Placement: HeroCompPlacement(c, baseId, bracket)))
-                .OrderBy(c => c.Placement)
+                .Select(c => (Comp: c, Order: CompOrder(c, baseId, bracket, meta)))
+                .OrderBy(c => c.Order).ThenBy(c => TierRank(c.Comp.PowerLevel))
+                .DistinctBy(c => c.Comp.External && c.Comp.Tribes.Count > 0 ? string.Join('+', c.Comp.Tribes) : c.Comp.Id, StringComparer.Ordinal)
                 .Take(2)
-                .Select(c => c.Name)
+                .Select(c => new BgHeroComp(c.Comp.Name, c.Comp.External ? c.Comp.PowerLevel : string.Empty, c.Comp.Difficulty, c.Comp.Tip))
                 .ToList();
 
             // Community data dominates; personal results nudge it once there is a sample.
@@ -185,7 +191,20 @@ public sealed partial class BattlegroundsAdvisor
         return options.Select(o => o.Option with { Recommended = o.Option.CardId == best }).ToList();
     }
 
-    private static IReadOnlyList<BgTrinketOption> RankTrinkets(IReadOnlyList<BgTrinketOption> offer, BattlegroundsMeta meta, int bracket)
+    /// <summary>
+    /// How the lobby's tribes move the hero's average place. The pool's own rows (<c>heroTribes</c>, from 100 games of
+    /// the hero with the tribe) come first; a hero without one for this lobby uses the external adjustment from its
+    /// compositions (<see cref="BattlegroundsMeta.LobbyDelta"/>), which Duos does not use.
+    /// </summary>
+    private static double LobbyImpact(MetaHero stats, BattlegroundsMeta meta, string baseId, IReadOnlyList<string> races, HashSet<int> lobbyIds, bool external)
+    {
+        var own = lobbyIds.Where(stats.TribeImpact.ContainsKey).ToList();
+        return own.Count > 0
+            ? own.Sum(t => stats.TribeImpact[t])
+            : external ? meta.LobbyDelta(baseId, races) ?? 0 : 0;
+    }
+
+    private static IReadOnlyList<BgTrinketOption> RankTrinkets(IReadOnlyList<BgTrinketOption> offer, BattlegroundsMeta meta, int bracket, bool pool, bool external)
     {
         if (offer.Count == 0)
         {
@@ -193,10 +212,27 @@ public sealed partial class BattlegroundsAdvisor
         }
 
         var ranked = offer
-            .Select(t => meta.Trinket(t.CardId, bracket) is { } stats
-                ? t with { Meta = new TrinketMeta(stats.Placement, stats.PickRate, stats.DataPoints, TierOf(stats.Placement)) }
-                : t)
+            .Select(t =>
+            {
+                if (meta.TrinketFor(t.CardId, pool, external) is not { } row)
+                {
+                    return t;
+                }
+
+                row = BattlegroundsMeta.TrinketContext(row, bracket);
+                var stats = BattlegroundsMeta.At(row, bracket);
+                return t with
+                {
+                    Meta = new TrinketMeta(stats.Placement, stats.PickRate, stats.DataPoints, TierOf(stats.Placement),
+                        row.External, row.GamesAreMinimum, row.Updated ?? (row.External ? null : meta.Updated)),
+                };
+            })
             .ToList();
+        if (!ranked.Exists(t => t.Meta is not null))
+        {
+            return offer;
+        }
+
         var best = ranked.Where(t => t.Meta is not null).MinBy(t => t.Meta!.AveragePlacement)?.CardId;
         return ranked.Select(t => t with { Recommended = t.CardId == best }).ToList();
     }

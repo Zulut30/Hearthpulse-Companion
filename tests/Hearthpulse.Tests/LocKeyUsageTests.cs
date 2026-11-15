@@ -21,7 +21,7 @@ public sealed class LocKeyUsageTests
     /// </summary>
     private static readonly string[] RuntimePrefixes =
     [
-        "Arena.Type.", "Core.Account.Section.", "Core.Class.", "Core.Counter.", "Core.MetaOption.", "Core.MinionType.", "Core.MulliganRank.", "Core.MulliganRankSource.",
+        "Arena.Type.", "Core.Account.Section.", "Core.Class.", "Core.Counter.", "Core.MetaOption.", "Core.MinionType.", "Core.MulliganDeckRank.", "Core.MulliganRank.", "Core.MulliganRankSource.",
         "Core.SpellSchool.", "Core.Tribe.", "Library.ImportError.", "Library.Site.Error.", "Library.Site.DeleteError.", "Main.Live.Panel.", "Main.Mode.", "Main.Theme.", "Match.Format.", "Match.Keyword.", "Migration.Error.",
         "Match.Reveal.", "Mulligan.Arena.Basis.", "Overlay.Class.", "Overlay.LeaderboardBadge.Tribe.", "Pool.Excavate.Rarity.", "Pool.Mechanic.", "Pool.School.",
         "Pool.Stat.", "Settings.Accent.", "Setup.Step.", "Source.Health.Section.", "Source.Health.State.",

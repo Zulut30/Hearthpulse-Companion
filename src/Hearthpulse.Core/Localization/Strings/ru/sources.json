@@ -3,6 +3,7 @@
   "Source.MulliganLegendEu": "{0}, Легенда, Европа",
   "Source.MulliganRank": "{0}, {1}, текущее дополнение",
   "Source.MulliganRankFallback": "{0}, все ранги: для «{1}» мало игр",
+  "Source.MulliganDeck": "{0}, {1}, 30 дней",
   "Source.Health.Title": "Состояние данных",
   "Source.Health.Caption": "Когда в последний раз обновлялись данные Hearthpulse для каждого раздела.",
   "Source.Health.Check": "Проверить сейчас",
@@ -21,6 +22,7 @@
   "Source.Health.Section.ConstructedMatchups": "Мета: матчапы",
   "Source.Health.Section.Mulligan": "Муллиган",
   "Source.Health.Section.BgHeroes": "Поля сражений: герои",
+  "Source.Health.Section.BgHeroComps": "Поля сражений: сборки героев",
   "Source.Health.Section.BgMinions": "Поля сражений: существа",
   "Source.Health.Section.BgTrinkets": "Поля сражений: безделушки",
   "Source.Health.Section.BgComps": "Поля сражений: сборки",
@@ -30,6 +32,6 @@
   "Source.Health.Delay": "Данные от {0:dd MMM HH:mm}: обновление задерживается.",
   "Source.Health.DelayNoDate": "Обновление задерживается.",
   "Source.Health.Updated": "Данные Hearthpulse · обновлено {0:dd MMM HH:mm}",
-  "Source.Health.Overlay": "Данные Hearthpulse · от {0:dd MMM}",
-  "Source.Health.OverlayDelayed": "Данные Hearthpulse · от {0:dd MMM}, обновление задерживается"
+  "Source.Health.Overlay": "данные от {0:d MMM}",
+  "Source.Health.OverlayDelayed": "данные от {0:d MMM} · обновление задерживается"
 }

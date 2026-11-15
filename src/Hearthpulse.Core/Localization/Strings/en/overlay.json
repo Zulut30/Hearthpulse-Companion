@@ -124,6 +124,13 @@
   "Overlay.Badge.NoDataYet": "no data yet",
   "Overlay.Badge.PickRate": "{0} pick",
   "Overlay.Hero.Personal": "You: {1:0.0} avg in {0}|You: {1:0.0} avg in {0}",
+  "Overlay.Hero.CompsTitle": "Best comps available",
+  "Overlay.Hero.CompTier": "tier {0}",
+  "Overlay.Source.External": "Hearthpulse data",
+  "Overlay.Source.Pool": "Hearthpulse stats pool",
+  "Overlay.Source.Updated": "updated {0:d MMM HH:mm}",
+  "Overlay.Source.GamesAtLeast": "at least {0:N0} game (a lower bound)|at least {0:N0} games (a lower bound)",
+  "Overlay.Source.Games": "{0:N0} game|{0:N0} games",
 
   "Overlay.Tag.Triple": "Triple",
   "Overlay.Tag.Pair": "Pair",

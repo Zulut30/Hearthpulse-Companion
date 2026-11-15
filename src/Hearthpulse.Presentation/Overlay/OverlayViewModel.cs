@@ -197,17 +197,7 @@ public sealed partial class OverlayViewModel : Observable
         }
     }
     public IReadOnlyList<ShopBadge> ShopBadges { get => _shopBadges; private set => Set(ref _shopBadges, value); }
-    public IReadOnlyList<TrinketBadge> TrinketPicks
-    {
-        get => _trinketPicks;
-        private set
-        {
-            if (Set(ref _trinketPicks, value))
-            {
-                RaiseDataNotes();
-            }
-        }
-    }
+    public IReadOnlyList<TrinketBadge> TrinketPicks { get => _trinketPicks; private set => Set(ref _trinketPicks, value); }
     public IReadOnlyList<DiscoverBadge> DiscoverBadges { get => _discoverBadges; private set => Set(ref _discoverBadges, value); }
     public string OddsWin { get => _oddsWin; private set => Set(ref _oddsWin, value); }
     public string OddsTie { get => _oddsTie; private set => Set(ref _oddsTie, value); }

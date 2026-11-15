@@ -54,15 +54,22 @@
         <Border Name="DataHealthCard" Classes="card" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Source.Health.Title}" Icon="&#xF0450;" Size="13" Margin="0,0,0,14" />
-                <TextBlock Text="{i:Loc Source.Health.Caption}" Classes="caption cardNote" />
-                <ItemsControl Name="DataHealthList" ItemsSource="{Binding DataHealthRows}">
+                <TextBlock Text="{i:Loc Source.Health.Caption}" Classes="caption cardNote" TextWrapping="Wrap" />
+                <!-- The date and state columns are as wide as their longest text in any row (shared size), so a long
+                     Russian state or month is never cut; the section name takes the rest and wraps -->
+                <ItemsControl Name="DataHealthList" ItemsSource="{Binding DataHealthRows}" Grid.IsSharedSizeScope="True">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="m:DataHealthRow">
-                            <Grid Margin="0,0,0,6" ColumnDefinitions="*,120,220">
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="DataHealthDate" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="DataHealthState" />
+                                </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding Name}" TextWrapping="Wrap" Margin="0,0,12,0" />
-                                <TextBlock Grid.Column="1" Text="{Binding Date}" Classes="caption" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="{Binding State}" Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center" IsVisible="{Binding !Attention}" />
-                                <TextBlock Grid.Column="2" Text="{Binding State}" Classes="caption" Foreground="{StaticResource Info}" TextWrapping="Wrap" VerticalAlignment="Center"
+                                <TextBlock Grid.Column="1" Text="{Binding Date}" Classes="caption" VerticalAlignment="Center" Margin="0,0,16,0" />
+                                <TextBlock Grid.Column="2" Text="{Binding State}" Classes="caption" TextWrapping="Wrap" MaxWidth="220" VerticalAlignment="Center" IsVisible="{Binding !Attention}" />
+                                <TextBlock Grid.Column="2" Text="{Binding State}" Classes="caption" Foreground="{StaticResource Info}" TextWrapping="Wrap" MaxWidth="220" VerticalAlignment="Center"
                                            IsVisible="{Binding Attention}" />
                             </Grid>
                         </DataTemplate>

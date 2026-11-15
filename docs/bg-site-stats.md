@@ -3,9 +3,10 @@
 The main window's Battlegrounds tabs (Heroes, Trinkets, Cards, Comps) are to show the lists hearthpulse.net shows.
 The site proxies an open service, `https://bg.hs-manacost.ru`, and the app reads that service directly (owner's
 decision, 2026-11-09). This document is the contract of the Core client and of the tabs that show its lists (section
-6). Both hosts load the lists beside the other community stats, at start and every six hours. The in-game advisor
-and the overlay do not use them at all: they keep `BattlegroundsMeta` ([bg-meta-sources.md](bg-meta-sources.md)); of
-that meta the tabs read only the pool's tribes, the stand-in of the Comps tab.
+6). Both hosts load the lists beside the other community stats, at start and every six hours. Since 2026-11-15 the
+in-game advisor reads two of them as well, through `BattlegroundsMeta` ([bg-meta-sources.md](bg-meta-sources.md),
+section 4): the comps and the trinket tier list of each MMR slice (three more slice requests a refresh, cached like
+any slice). Of that meta the tabs read only the pool's tribes, the stand-in of the Comps tab.
 
 Answers were captured on **2026-11-09 23:06 UTC** with one plain `GET` per address, no sign-in, no cookie; five more
 probes for Duos and MMR slices on 2026-11-09 23:35 UTC and six on 23:58 UTC (section 2). Trimmed copies are the test fixtures in
@@ -22,7 +23,8 @@ Code: `src/Hearthpulse.Core/Battlegrounds/Site/` (`BgSiteClient`, `BgSiteStats`)
   answer that reports another scheme, host or port than the service's (a followed redirect) is not read, and a 3xx
   answer is a failed load.
 - Five requests per refresh (section 2, "read"), each one used; the limit is 8. The refresh reads every list in its
-  default slice; another slice is read on demand, one request, cached under its own mode and slice.
+  default slice; another slice is read on demand, one request, cached under its own mode and slice. The advisor's
+  three trinket slices (top 50%, 20%, 5%) bring a refresh to that limit.
 - Cache `<data>/cache/api/bgsite-<part>.json`, 6 h, written through a temporary file. A failed request falls back to
   the old file, however old; the list's own `fetchedAt` goes to the UI so it can say how old the numbers are.
 - **An answer without data is a failed load**, whatever its status: `{}`, a maintenance note, empty lists, the

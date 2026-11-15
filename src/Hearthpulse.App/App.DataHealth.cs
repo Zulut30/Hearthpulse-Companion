@@ -28,5 +28,6 @@ public partial class App
         var report = await (_dataHealth ??= new DataHealth(_api)).LoadAsync(force);
         _mainViewModel.SetDataHealth(report);
         _overlayViewModel.SetDataHealth(report);
+        RefreshOverlay();
     }
 }

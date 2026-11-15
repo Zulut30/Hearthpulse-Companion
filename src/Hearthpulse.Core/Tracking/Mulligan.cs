@@ -95,6 +95,21 @@ public sealed record MulliganView(string Context, double BaseWinRate, IReadOnlyL
     /// opening hand's; null for a deck's or an archetype's mulligan stats.
     /// </summary>
     public ArenaCardBasis? ArenaBasis { get; init; }
+
+    /// <summary>
+    /// Whose games the numbers are: the player's exact decklist, a list within two cards of it, or the archetype (also
+    /// the meta fallback, the class pool and Arena). The panel's source line says which.
+    /// </summary>
+    public MulliganScope Scope { get; init; }
+
+    /// <summary>Games of the matched deck in the slice the numbers come from; null for an archetype's numbers.</summary>
+    public int? DeckGames { get; init; }
+
+    /// <summary>When the deck's numbers were computed (UTC); null when unknown or for an archetype's numbers.</summary>
+    public DateTime? DataAsOf { get; init; }
+
+    /// <summary>Cards of the player's deck the matched list lacks (<see cref="MulliganScope.NearDeck"/>: 1-2); they have no numbers.</summary>
+    public int DeckDifference { get; init; }
 }
 
 /// <summary>

@@ -182,11 +182,6 @@
             <o:MovablePanel Id="trinket-row" PlaceholderAlignment="Right" Title="{i:Loc Overlay.Panel.TrinketPick}" MinWidth="1108" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
                 <StackPanel>
                     <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
-                    <!-- When these numbers were collected -->
-                    <Border x:Name="BgTrinketDataNote" HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
-                            Visibility="{Binding BgTrinketDataNote, Converter={StaticResource Vis}}">
-                        <TextBlock Text="{Binding BgTrinketDataNote}" FontSize="10" Foreground="{StaticResource Muted}" />
-                    </Border>
                     <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
                     <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
                             Visibility="{Binding UsageNote, Converter={StaticResource Vis}}">

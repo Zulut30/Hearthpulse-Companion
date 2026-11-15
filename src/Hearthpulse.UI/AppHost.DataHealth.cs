@@ -28,5 +28,6 @@ public sealed partial class AppHost
         var report = await (_dataHealth ??= new DataHealth(Api)).LoadAsync(force);
         Main.SetDataHealth(report);
         Overlay.SetDataHealth(report);
+        RefreshOverlay();
     }
 }

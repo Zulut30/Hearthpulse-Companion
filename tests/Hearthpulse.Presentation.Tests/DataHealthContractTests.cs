@@ -4,8 +4,10 @@ using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Arena;
+using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Tracking;
 using WpfMain = Hearthpulse.App.Main.MainViewModel;
 using AvaMain = Hearthpulse.UI.Main.MainViewModel;
 using WpfOverlay = Hearthpulse.App.Overlay.OverlayViewModel;
@@ -52,14 +54,14 @@ public sealed class DataHealthContractTests
 
         // Before the first summary: every row is there, nothing is known, the note says a check is running.
         var before = Rows((object)model);
-        Assert.Equal(11, before.Count);
+        Assert.Equal(12, before.Count);
         Assert.All(before, r => Assert.Equal(("—", Loc.T("Source.Health.State.Unknown"), false), (r.Date, r.State, r.Attention)));
         Assert.Equal(Loc.T("Source.Health.Checking"), (string)model.DataHealthNote);
 
         model.SetDataHealth(Report(false, ("hsguru_brawl", DataFreshness.Stale), ("hsguru_matchups", DataFreshness.Pending)));
 
         var rows = Rows((object)model);
-        Assert.Equal(11, rows.Count);
+        Assert.Equal(12, rows.Count);
         Assert.DoesNotContain(rows, r => r.Name.Contains("CardPool", StringComparison.Ordinal)); // no source in the summary: no row
         var brawl = Assert.Single(rows, r => r.Attention);
         Assert.Equal((Loc.T("Source.Health.Section.Brawl"), Loc.F("Source.Health.Date", Late.ToLocalTime()), "Update delayed"), (brawl.Name, brawl.Date, brawl.State));
@@ -176,7 +178,7 @@ public sealed class DataHealthContractTests
         Assert.StartsWith("Hearthpulse data · updated 15 Nov", (string)model.ArenaDataDate, StringComparison.Ordinal);
 
         dynamic overlay = wpf ? new WpfOverlay() : new AvaOverlay();
-        Assert.Equal((string.Empty, string.Empty, string.Empty), ((string)overlay.ArenaDataNote, (string)overlay.BgHeroDataNote, (string)overlay.BgTrinketDataNote));
+        Assert.Equal((string.Empty, string.Empty), ((string)overlay.ArenaDataNote, (string)overlay.BgHeroDataNote));
 
         overlay.SetArenaDataDate((DateTime?)Collected);
         Assert.Equal(Loc.F("Source.Health.Overlay", Collected.ToLocalTime()), (string)overlay.ArenaDataNote);
@@ -185,9 +187,93 @@ public sealed class DataHealthContractTests
         Assert.Equal(Loc.F("Source.Health.OverlayDelayed", Collected.ToLocalTime()), (string)overlay.ArenaDataNote);
         Assert.EndsWith("update delayed", (string)overlay.ArenaDataNote, StringComparison.Ordinal);
 
-        // No hero or trinket badges on screen: no line under them, whatever date the stats have.
+        // No hero badges on screen: no line under them, whatever date the stats have.
         overlay.SetBgDataDate((DateTime?)Collected);
-        Assert.Equal((string.Empty, string.Empty), ((string)overlay.BgHeroDataNote, (string)overlay.BgTrinketDataNote));
+        Assert.Equal(string.Empty, (string)overlay.BgHeroDataNote);
+    }
+
+    private static LiveSnapshot Pick(IReadOnlyList<BgHeroOption> heroes, IReadOnlyList<BgTrinketOption> trinkets) => LiveSnapshot.Empty with
+    {
+        InGame = true,
+        HearthstoneRunning = true,
+        Battlegrounds = new BattlegroundsView(heroes.Count > 0 ? 0 : 6, 3, 6, heroes.Count > 0 ? null : "HERO_ME", 30, 0, 2, false, false, heroes.Count > 0, heroes,
+            ["DEMON", "BEAST", "MURLOC", "QUILBOAR", "MECHANICAL"], true, [], [], [], [], null, 0, [], [])
+        {
+            TrinketOptions = trinkets,
+        },
+    };
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_hero_pick_has_one_date_line_and_it_says_when_heroes_or_their_comps_are_late(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        dynamic overlay = wpf ? new WpfOverlay() : new AvaOverlay();
+        overlay.SetBgDataDate((DateTime?)Collected);
+        overlay.SetDataHealth(Report());
+        var heroes = new[]
+        {
+            new BgHeroOption("HERO_A", "Hero A", 0, null, new HeroMeta(4.0, 3.9, 0.3, 0, "A"), true, [new BgHeroComp("Demons", "A", "easy", null)]),
+            new BgHeroOption("HERO_B", "Hero B", 0, null, new HeroMeta(4.2, 4.2, 0.2, 0, "B")),
+        };
+
+        overlay.Update(Pick(heroes, []), CardDb.Empty, new AppSettings(), null, null);
+
+        var day = Collected.ToLocalTime().ToString("d MMM", Loc.DateCulture);
+        Assert.Equal(2, ((IEnumerable<dynamic>)overlay.HeroPicks).Count());
+        Assert.Equal($"data from {day}", (string)overlay.BgHeroDataNote);
+
+        // The comps on the badges come from their own collector: its delay marks the same line.
+        overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_compositions", DataFreshness.Stale)));
+        Assert.Equal($"data from {day} · update delayed", (string)overlay.BgHeroDataNote);
+        overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_heroes", DataFreshness.Failed)));
+        Assert.Equal($"data from {day} · update delayed", (string)overlay.BgHeroDataNote);
+        // Another section's delay is not the heroes'.
+        overlay.SetDataHealth(Report(false, ("hsguru_brawl", DataFreshness.Stale), ("hsreplay_arena_cards_advanced", DataFreshness.Stale)));
+        Assert.Equal($"data from {day}", (string)overlay.BgHeroDataNote);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_trinket_badge_keeps_its_one_date_and_marks_only_external_numbers_as_delayed(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        dynamic overlay = wpf ? new WpfOverlay() : new AvaOverlay();
+        var trinkets = new[]
+        {
+            new BgTrinketOption("TRK_EXTERNAL", "External", new TrinketMeta(3.47, 0.277, 2528, "S", External: true, GamesAreMinimum: true, Updated: Collected), true),
+            new BgTrinketOption("TRK_POOL", "Pool", new TrinketMeta(3.9, 0.5, 240, "A", Updated: Collected)),
+            new BgTrinketOption("TRK_NONE", "None"),
+        };
+        var snapshot = Pick([], trinkets);
+        var day = Collected.ToLocalTime().ToString("d MMM", Loc.DateCulture);
+        string[] Dates()
+        {
+            var dates = new List<string>();
+            foreach (var badge in overlay.TrinketPicks)
+            {
+                dates.Add((string)badge.Updated);
+            }
+
+            return [.. dates];
+        }
+
+        overlay.SetBgDataDate((DateTime?)Late); // the meta's own date is not a second date on the badges
+        overlay.SetDataHealth(Report());
+        overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+        Assert.Equal([$"data from {day}", $"data from {day}", string.Empty], Dates());
+
+        // The trinket slices' collector is late: the data API's badge says so, the pool's own numbers do not.
+        overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_trinkets_top_20_percent_last_7_days", DataFreshness.Stale)));
+        overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+        Assert.Equal([$"data from {day} · update delayed", $"data from {day}", string.Empty], Dates());
+
+        // Heroes late, trinkets fine: the badges are plain again.
+        overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_heroes", DataFreshness.Stale)));
+        overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+        Assert.Equal([$"data from {day}", $"data from {day}", string.Empty], Dates());
     }
 
     [Fact]
@@ -201,7 +287,8 @@ public sealed class DataHealthContractTests
 
             Assert.EndsWith("обновление задерживается.", model.BrawlDataDelay, StringComparison.Ordinal);
             Assert.Contains(model.DataHealthRows, r => r is { Name: "Потасовка", State: "Обновление задерживается", Attention: true });
-            Assert.StartsWith("Данные Hearthpulse", Loc.F("Source.Health.Overlay", Collected), StringComparison.Ordinal);
+            Assert.StartsWith("данные от ", Loc.F("Source.Health.Overlay", Collected), StringComparison.Ordinal);
+            Assert.StartsWith("Данные Hearthpulse · обновлено ", Loc.F("Source.Health.Updated", Collected), StringComparison.Ordinal);
         }
         finally
         {
@@ -232,7 +319,7 @@ public sealed class DataHealthContractTests
                 var file = Assert.IsAssignableFrom<FrameworkElement>(LogicalTreeHelper.FindLogicalNode(tab, "SettingsFileCard"));
                 Assert.True(card.TranslatePoint(default, tab).Y < file.TranslatePoint(default, tab).Y);
                 var list = Assert.IsType<System.Windows.Controls.ItemsControl>(LogicalTreeHelper.FindLogicalNode(tab, "DataHealthList"));
-                Assert.Equal(11, list.Items.Count);
+                Assert.Equal(12, list.Items.Count);
                 var button = Assert.IsType<System.Windows.Controls.Button>(LogicalTreeHelper.FindLogicalNode(tab, "DataHealthCheck"));
                 Assert.Equal("Check now", button.Content);
                 Assert.Same(model.CheckDataHealth, button.Command);

@@ -30,6 +30,7 @@ public enum DataSection
     ConstructedMatchups,
     Mulligan,
     BgHeroes,
+    BgHeroComps,
     BgMinions,
     BgTrinkets,
     BgComps,
@@ -70,10 +71,13 @@ public static class DataSections
         [DataSection.ConstructedArchetypes] = ["hsreplay_archetypes"],
         // v1/hsguru/matchups
         [DataSection.ConstructedMatchups] = ["hsguru_matchups"],
-        // v1/hsguru/mulligan and class-matchups, v1/hsguru/archetypes/analysis, api/db/archetypes/{id}/mulligan
-        [DataSection.Mulligan] = ["hsguru_mulligan", "hsguru_archetype_analysis", "hsreplay_archetypes"],
+        // v1/hsguru/mulligan and class-matchups, v1/hsguru/archetypes/analysis, api/db/archetypes/{id}/mulligan,
+        // the per-deck v1/hsreplay/mulligan and /decks
+        [DataSection.Mulligan] = ["hsguru_mulligan", "hsguru_archetype_analysis", "hsreplay_archetypes", "hsreplay_mulligan"],
         // api/bg/heroes: the list and the per-hero details it is joined with
         [DataSection.BgHeroes] = ["hsreplay_battlegrounds_heroes", "hsreplay_battlegrounds_hero_details"],
+        // v1/battlegrounds/heroes/compositions: the comps each hero ends with, named from the comps list
+        [DataSection.BgHeroComps] = ["hsreplay_battlegrounds_hero_details", "hsreplay_battlegrounds_compositions"],
         // v1/battlegrounds/minions/stats; the Cards tab's api/bg/library/minion-stats
         [DataSection.BgMinions] = ["hsreplay_battlegrounds_minion_stats", "hsreplay_battlegrounds_minions"],
         // api/bg/tier-lists?list=trinkets&timeRange=LAST_7_DAYS for the slices the server collects
@@ -83,8 +87,9 @@ public static class DataSections
             "hsreplay_battlegrounds_trinkets_top_20_percent_last_7_days",
             "hsreplay_battlegrounds_trinkets_top_5_percent_last_7_days",
         ],
-        // api/bg-comps
-        [DataSection.BgComps] = ["hsreplay_battlegrounds_comps", "firestone_battlegrounds_comps"],
+        // api/bg-comps: only the admitted origin's comps are taken (BgSiteParser drops the other list), so only its
+        // collector counts
+        [DataSection.BgComps] = ["hsreplay_battlegrounds_comps"],
         // datasets/hsreplay_arena_cards_advanced, v1/arena/classes
         [DataSection.Arena] = ["hsreplay_arena_cards_advanced", "hsreplay_arena_class_pages_firecrawl"],
         // v1/hsguru/brawl/meta

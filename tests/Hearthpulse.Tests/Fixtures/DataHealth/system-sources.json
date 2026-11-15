@@ -725,6 +725,80 @@
    "url": "https://hsreplay.net/cards/",
    "has_dataset": true,
    "dataset_fetched_at": "2026-11-15T03:35:29.717460+00:00"
+  },
+  {
+   "enabled": true,
+   "freshness_state": "fresh",
+   "stale": false,
+   "age_hours": 4.2,
+   "stale_after_hours": 30.0,
+   "last_success_at": "2026-11-15T17:01:20.059680+00:00",
+   "last_attempt_at": "2026-11-15T17:01:20.059680+00:00",
+   "next_run_at": "2026-11-16T06:00:00+00:00",
+   "next_run_basis": "nominal",
+   "completeness": {
+    "state": "unknown",
+    "population_state": "unknown",
+    "expected": null,
+    "received": 10,
+    "verified_empty": null,
+    "unverified": null,
+    "patch": null,
+    "filters": {},
+    "observed_at": "2026-11-15T17:01:20.059680+00:00",
+    "upstream_timestamp": "2026-11-15T13:43:16Z",
+    "retrieval_state": "complete"
+   },
+   "diagnostics": {
+    "reason": "none",
+    "issue": null
+   },
+   "id": "hsreplay_battlegrounds_compositions",
+   "site": "hsreplay",
+   "category": "battlegrounds",
+   "url": "https://hsreplay.net/battlegrounds/compositions/",
+   "has_dataset": true,
+   "dataset_fetched_at": "2026-11-15T17:01:20.059680+00:00",
+   "upstream_freshness": {
+    "status": "fresh",
+    "age_seconds": 11884,
+    "body_as_of": "2026-11-15T13:43:16Z"
+   },
+   "fresh_only_eligible": true
+  },
+  {
+   "enabled": true,
+   "freshness_state": "fresh",
+   "stale": false,
+   "age_hours": 2.38,
+   "stale_after_hours": 12.0,
+   "last_success_at": "2026-11-15T18:50:07.368293+00:00",
+   "last_attempt_at": "2026-11-15T18:50:07.368293+00:00",
+   "next_run_at": "2026-11-15T21:50:00+00:00",
+   "next_run_basis": "nominal",
+   "completeness": {
+    "state": "unknown",
+    "population_state": "unknown",
+    "expected": null,
+    "received": null,
+    "verified_empty": null,
+    "unverified": null,
+    "patch": null,
+    "filters": {},
+    "observed_at": "2026-11-15T18:50:07.368293+00:00",
+    "upstream_timestamp": null,
+    "retrieval_state": "unknown"
+   },
+   "diagnostics": {
+    "reason": "none",
+    "issue": null
+   },
+   "id": "hsreplay_mulligan",
+   "site": "hsreplay",
+   "category": "archetype_analysis",
+   "url": "https://hsreplay.net/decks/",
+   "has_dataset": true,
+   "dataset_fetched_at": "2026-11-15T18:50:07.368293+00:00"
   }
  ]
 }

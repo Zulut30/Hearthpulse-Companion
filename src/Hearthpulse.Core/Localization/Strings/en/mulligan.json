@@ -56,5 +56,11 @@
   "Mulligan.Arena.CardWinRate": "Win rate {1} {3}, against {2} for an average card of the class ({0:N0} game)|Win rate {1} {3}, against {2} for an average card of the class ({0:N0} games)",
   "Mulligan.Arena.EdgeLine": "Keeping vs replacing: {0} points (the card {1} against the class's average card, a replacement {2})",
   "Mulligan.Arena.Pick": "Draft tier {0}: score {1}",
-  "Mulligan.Arena.RateShort": "win rate {0}"
+  "Mulligan.Arena.RateShort": "win rate {0}",
+  "Mulligan.Scope.Deck": "By your deck, {0:N0} game, data from {1}|By your deck, {0:N0} games, data from {1}",
+  "Mulligan.Scope.DeckNoDate": "By your deck, {0:N0} game|By your deck, {0:N0} games",
+  "Mulligan.Scope.NearDeck": "By a close deck, {0:N0} game, data from {1}|By a close deck, {0:N0} games, data from {1}",
+  "Mulligan.Scope.NearDeckNoDate": "By a close deck, {0:N0} game|By a close deck, {0:N0} games",
+  "Mulligan.Scope.NearNote": "The closest deck with statistics differs from yours by {0} card; your cards it lacks have no numbers|The closest deck with statistics differs from yours by {0} cards; your cards it lacks have no numbers",
+  "Mulligan.Deck.CardWinRate": "Win rate {0} with the card in the opening hand, against {1} for this deck"
 }

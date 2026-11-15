@@ -3,6 +3,7 @@
   "Source.MulliganLegendEu": "{0}, Legend EU",
   "Source.MulliganRank": "{0}, {1}, current expansion",
   "Source.MulliganRankFallback": "{0}, all ranks: too few games for {1}",
+  "Source.MulliganDeck": "{0}, {1}, 30 days",
   "Source.Health.Title": "Data status",
   "Source.Health.Caption": "When Hearthpulse data for each part of the app was last updated.",
   "Source.Health.Check": "Check now",
@@ -21,6 +22,7 @@
   "Source.Health.Section.ConstructedMatchups": "Meta: matchups",
   "Source.Health.Section.Mulligan": "Mulligan",
   "Source.Health.Section.BgHeroes": "Battlegrounds: heroes",
+  "Source.Health.Section.BgHeroComps": "Battlegrounds: hero comps",
   "Source.Health.Section.BgMinions": "Battlegrounds: minions",
   "Source.Health.Section.BgTrinkets": "Battlegrounds: trinkets",
   "Source.Health.Section.BgComps": "Battlegrounds: comps",
@@ -30,6 +32,6 @@
   "Source.Health.Delay": "Data from {0:dd MMM HH:mm}: the update is delayed.",
   "Source.Health.DelayNoDate": "The update is delayed.",
   "Source.Health.Updated": "Hearthpulse data · updated {0:dd MMM HH:mm}",
-  "Source.Health.Overlay": "Hearthpulse data · {0:dd MMM}",
-  "Source.Health.OverlayDelayed": "Hearthpulse data · {0:dd MMM}, update delayed"
+  "Source.Health.Overlay": "data from {0:d MMM}",
+  "Source.Health.OverlayDelayed": "data from {0:d MMM} · update delayed"
 }

@@ -43,13 +43,25 @@ public sealed record HeroPickCard(
 {
     /// <summary>Where the numbers come from and what the tier letters mean, on the tier badge instead of a caption line.</summary>
     public string TierTip { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The tooltip of the <see cref="Comps"/> line: each comp with its tier letter, difficulty and advice. Empty when
+    /// there are no comps.
+    /// </summary>
+    public string CompsTip { get; init; } = string.Empty;
 }
 
 /// <summary>Compact stats badge drawn above one trinket during a trinket choice.</summary>
 public sealed record TrinketBadge(string CardId, string Name, string Tier, string Place, string PickRate, bool Recommended, bool HasMeta) : IImmutableView
 {
-    /// <summary>Where the numbers come from and what the tier letters mean, on the tier badge instead of a caption line.</summary>
+    /// <summary>
+    /// What the tier letters mean and where the numbers come from: the source, its date and the sample (a lower bound
+    /// is said to be one), on the tier badge instead of a caption line.
+    /// </summary>
     public string TierTip { get; init; } = string.Empty;
+
+    /// <summary>The date of the numbers ("data from 15 Nov"); empty when the source gives none.</summary>
+    public string Updated { get; init; } = string.Empty;
 }
 
 /// <summary>

@@ -5,10 +5,11 @@ using Hearthpulse.Core.Cards;
 namespace Hearthpulse.Core.Tracking;
 
 /// <summary>
-/// Finds the API archetype for the deck being played and loads its mulligan numbers in the background, so the
-/// tracker thread never waits on the network. Only Standard: the API has Standard Legend (EU) data only.
+/// Finds the mulligan numbers for the deck being played and loads them in the background, so the tracker thread never
+/// waits on the network: the collected deck with the same list, else one within two cards of it, else the API
+/// archetype the deck matches (docs/mulligan-v2.md, "Sources in order").
 /// </summary>
-public sealed class MulliganGuideSource(HearthpulseData data)
+public sealed partial class MulliganGuideSource(HearthpulseData data)
 {
     /// <summary>A failed or unmatched lookup is tried again after this long (the deck may still be in the cache then).</summary>
     private static readonly TimeSpan RetryAfter = TimeSpan.FromMinutes(5);
@@ -93,7 +94,7 @@ public sealed class MulliganGuideSource(HearthpulseData data)
             }
 
             var context = $"{goingFirst}|{opponentClass}";
-            if (_result is { HsguruArchetype: not null } ready && (goingFirst is not null || opponentClass is { Length: > 0 })
+            if (_result is { } ready && (ready.HsguruArchetype is not null || ready.DeckId is not null) && (goingFirst is not null || opponentClass is { Length: > 0 })
                 && DateTime.UtcNow >= _contexts.GetValueOrDefault(context, DateTime.MinValue))
             {
                 _contexts[context] = DateTime.UtcNow + RetryAfter;
@@ -118,8 +119,10 @@ public sealed class MulliganGuideSource(HearthpulseData data)
     {
         try
         {
-            var withSlices = await WithSlicesAsync(data, guide, format, deck.Cards, cards, opponentClass, goingFirst).ConfigureAwait(false);
-            if (withSlices.Slices.Count == guide.Slices.Count)
+            var withSlices = guide.DeckId is not null
+                ? await WithDeckSlicesAsync(data, guide, format, cards, opponentClass, goingFirst).ConfigureAwait(false)
+                : await WithSlicesAsync(data, guide, format, deck.Cards, cards, opponentClass, goingFirst).ConfigureAwait(false);
+            if (withSlices.Slices.Count == guide.Slices.Count && withSlices.DeckSlices.Count == guide.DeckSlices.Count)
             {
                 return;
             }
@@ -133,7 +136,8 @@ public sealed class MulliganGuideSource(HearthpulseData data)
 
                 // Another context may have landed meanwhile: add only what is new to the current guide.
                 var added = withSlices.Slices.Where(s => !_result.Slices.Any(o => o.Rank == s.Rank && o.Coin == s.Coin && o.OpponentClass == s.OpponentClass)).ToList();
-                _result = _result with { Slices = [.. _result.Slices, .. added] };
+                var addedDeck = withSlices.DeckSlices.Where(s => !_result.DeckSlices.Any(o => o.Initiative == s.Initiative && o.OpponentClass == s.OpponentClass)).ToList();
+                _result = _result with { Slices = [.. _result.Slices, .. added], DeckSlices = [.. _result.DeckSlices, .. addedDeck] };
             }
 
             Changed?.Invoke();
@@ -173,8 +177,9 @@ public sealed class MulliganGuideSource(HearthpulseData data)
     }
 
     /// <summary>
-    /// The guide for a deck: HSReplay's numbers for the HSReplay archetype it matches (Standard only), else HSGuru's for
-    /// the HSGuru archetype whose lists it matches (Standard and Wild). Null when it matches neither.
+    /// The guide for a deck: the collected deck with the same list or one within <see cref="NearDeckDifference"/> cards
+    /// (<see cref="LoadDeckGuideAsync"/>), else HSReplay's numbers for the HSReplay archetype it matches (Standard only),
+    /// else HSGuru's for the HSGuru archetype whose lists it matches (Standard and Wild). Null when it matches none.
     /// </summary>
     /// <param name="opponentClass">The opponent's class when known: its HSGuru mulligan slice is loaded too.</param>
     /// <param name="goingFirst">True going first, false on the coin, null when unknown: that slice is loaded too.</param>
@@ -182,6 +187,11 @@ public sealed class MulliganGuideSource(HearthpulseData data)
     public static async Task<GuideArchetype?> LoadGuideAsync(HearthpulseData data, string format, string playerClass, IReadOnlyDictionary<int, int> deck, CardDb cards,
         string? opponentClass = null, bool? goingFirst = null, string rank = MulliganGuide.DefaultRank, CancellationToken cancellationToken = default)
     {
+        if (await LoadDeckGuideAsync(data, format, playerClass, deck, cards, rank, opponentClass, goingFirst, cancellationToken).ConfigureAwait(false) is { } own)
+        {
+            return own;
+        }
+
         if (MulliganGuide.SourceRank(rank) != MulliganGuide.DefaultRank)
         {
             return await LoadRankGuideAsync(data, format, playerClass, deck, cards, rank, opponentClass, goingFirst, cancellationToken).ConfigureAwait(false);
