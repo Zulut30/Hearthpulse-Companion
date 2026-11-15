@@ -553,6 +553,26 @@
                     </StackPanel>
                 </ScrollViewer>
 
+                <!-- ===== First start: ask before sharing results with the stats pool ===== -->
+                <Border Grid.Row="1" VerticalAlignment="Top" Margin="24,4,24,0" CornerRadius="16" Background="{StaticResource Surface3}" ZIndex="5"
+                        BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="12,12,16,12" IsVisible="{Binding AskPoolConsent}">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Grid Width="46" Height="46">
+                            <c:Scallop Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
+                            <TextBlock Text="&#xF0849;" Classes="icon" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <StackPanel Grid.Column="1" Margin="16,0,24,0" VerticalAlignment="Center">
+                            <TextBlock Text="{i:Loc Main.Pool.Title}" FontWeight="Bold" FontSize="14.5" TextWrapping="Wrap" />
+                            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource Text}" Text="{i:Loc Main.Pool.What}" />
+                            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" Text="{i:Loc Main.Pool.Never}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                            <Button Classes="ghost" Content="{i:Loc Main.Pool.No}" Command="{Binding AnswerPool}" CommandParameter="no" />
+                            <Button Classes="ghost primary" Content="{i:Loc Main.Pool.Yes}" Command="{Binding AnswerPool}" CommandParameter="yes" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
                 <!-- ===== Once: game records are on by default (docs/game-stats.md); a notice, not a consent question ===== -->
                 <Border Grid.Row="1" VerticalAlignment="Top" Margin="24,4,24,0" CornerRadius="16" Background="{StaticResource Surface3}" ZIndex="5"
                         BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="12,12,16,12" IsVisible="{Binding ShowGameStatsNotice}">

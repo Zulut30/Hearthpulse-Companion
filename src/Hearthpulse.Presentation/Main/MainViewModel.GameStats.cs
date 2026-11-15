@@ -68,14 +68,11 @@ public sealed partial class MainViewModel
 
     /// <summary>
     /// The one-time notice in the main window: game records are on by default, what they hold and how to turn them off
-    /// (not a consent question). Nothing is sent before it was shown; in WPF it waits for the stats pool's question.
+    /// (not a consent question). Nothing is sent before it was shown; it waits for the stats pool's question.
     /// </summary>
     public bool ShowGameStatsNotice => GameStatsAvailable && (!Settings.GameStatsNoticeShown ||
         !Settings.GameStatsOff && Settings.SourceCaptureNoticeVersion < SourceCaptureClient.NoticeVersion)
-#if HEARTHPULSE_WPF
-        && !AskPoolConsent
-#endif
-        ;
+        && !AskPoolConsent;
 
     private RelayCommand? _answerGameStats;
 

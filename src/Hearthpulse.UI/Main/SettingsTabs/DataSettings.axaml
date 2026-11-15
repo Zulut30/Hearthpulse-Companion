@@ -28,6 +28,8 @@
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Data.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Data.PoolSharing}" IsChecked="{Binding PoolSharing}"
+                          IsVisible="{Binding PoolAvailable}" Margin="0,0,0,18" ToolTip.Tip="{i:Loc Settings.Data.PoolSharingTip}" />
                 <!-- Game records of every mode for Hearthpulse's statistics (docs/game-stats.md); off until the player agrees -->
                 <CheckBox Classes="switch" Content="{i:Loc Settings.Data.GameStats}" IsChecked="{Binding GameStatsSharing}"
                           IsVisible="{Binding GameStatsAvailable}" Margin="0,0,0,4" ToolTip.Tip="{i:Loc Settings.Data.GameStatsTip}" />

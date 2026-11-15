@@ -141,9 +141,10 @@ rule 6). A slice that is not listed, or that the service does not answer for, is
 
 ## Hearthpulse stats pool - `PoolClient.Endpoint` (server/pool, off until deployed)
 
-- `POST v1/games` - shared Battlegrounds games (`PoolClient.SubmitAsync`, WPF only).
+- `POST v1/games` - shared Battlegrounds games (`PoolClient.SubmitAsync`; sent by both apps through
+  `Core/Hosting/PoolSharingHost.cs`).
 - `POST v1/constructed` - Discover-style picks of shared Ranked/Casual games, consent version 4
-  (`PoolClient.SubmitConstructedAsync`, `ConstructedPoolGame`; WPF only).
+  (`PoolClient.SubmitConstructedAsync`, `ConstructedPoolGame`; the same host).
 - `GET v1/stats`, `v1/meta` - Battlegrounds totals and base stats (`OverlayAsync`).
 - `GET v1/choices?format=standard|wild` - pick totals of shared games; the server still serves it, but since
   2026-10-27 the app does not read it: the pick hint comes from the data API's `v1/hsreplay/card-choices` (above).

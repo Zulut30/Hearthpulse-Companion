@@ -1,6 +1,7 @@
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.GameStats;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.SourceCapture;
 using WpfMain = Hearthpulse.App.Main.MainViewModel;
 using AvaMain = Hearthpulse.UI.Main.MainViewModel;
@@ -60,6 +61,65 @@ public sealed class GameStatsNoticeTests
     [InlineData(false)]
     public void Without_a_pool_there_is_no_notice(bool wpf) =>
         Assert.False((bool)Model(wpf, new AppSettings()).ShowGameStatsNotice);
+
+    /// <summary>One banner at a time: the pool's consent question first, the game records notice once it is answered.</summary>
+    [Theory]
+    [InlineData(true, "yes")]
+    [InlineData(true, "no")]
+    [InlineData(false, "yes")]
+    [InlineData(false, "no")]
+    public void The_notice_waits_for_the_answer_to_the_pools_question(bool wpf, string answer)
+    {
+        var settings = new AppSettings { PoolEndpoint = "https://pool.test" };
+        var model = Model(wpf, settings);
+        var raised = new List<string?>();
+        ((System.ComponentModel.INotifyPropertyChanged)model).PropertyChanged += new System.ComponentModel.PropertyChangedEventHandler((_, e) => raised.Add(e.PropertyName));
+        var consents = 0;
+        model.PoolConsentChanged += new Action(() => consents++);
+        // Without a pool set up by the host there is no question, and the notice does not wait for one.
+        Assert.False((bool)model.AskPoolConsent);
+        Assert.True((bool)model.ShowGameStatsNotice);
+
+        model.PoolAvailable = PoolClient.Available(settings);
+
+        Assert.True((bool)model.AskPoolConsent);
+        Assert.False((bool)model.ShowGameStatsNotice);
+        Assert.Contains("ShowGameStatsNotice", raised);
+        Assert.False(GameStatsClient.Sharing(settings));
+
+        raised.Clear();
+        model.AnswerPool.Execute(answer);
+
+        Assert.False((bool)model.AskPoolConsent);
+        Assert.True((bool)model.ShowGameStatsNotice);
+        Assert.Contains("AskPoolConsent", raised);
+        Assert.Contains("ShowGameStatsNotice", raised);
+        Assert.Equal(answer == "yes", settings.PoolConsent);
+        Assert.Equal(answer == "yes", (bool)model.PoolSharing);
+        Assert.Equal(PoolClient.ConsentVersion, settings.PoolConsentVersion);
+        Assert.Equal(1, consents);
+        // Still nothing sent as a game record: its own notice has not been answered.
+        Assert.False(GameStatsClient.Sharing(settings));
+    }
+
+    /// <summary>A yes to an older list is asked again, and the notice waits for that answer too.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void An_answer_to_an_older_list_is_asked_again_before_the_notice(bool wpf)
+    {
+        var settings = new AppSettings { PoolEndpoint = "https://pool.test", PoolConsent = true, PoolConsentVersion = PoolClient.ConsentVersion - 1 };
+        var model = Model(wpf, settings);
+        model.PoolAvailable = true;
+
+        Assert.True((bool)model.AskPoolConsent);
+        Assert.False((bool)model.ShowGameStatsNotice);
+
+        model.PoolSharing = false;
+
+        Assert.False((bool)model.AskPoolConsent);
+        Assert.True((bool)model.ShowGameStatsNotice);
+    }
 
     [Theory]
     [InlineData(true)]
