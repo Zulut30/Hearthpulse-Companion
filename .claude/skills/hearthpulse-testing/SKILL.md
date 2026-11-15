@@ -14,6 +14,8 @@ rules in Core and shared view-model behavior in `src/Hearthpulse.Presentation`; 
 existing UI assemblies, so both variants must be checked.
 Related: [hearthpulse-tracking](../hearthpulse-tracking/SKILL.md),
 [hearthpulse-counters](../hearthpulse-counters/SKILL.md), [hearthpulse-review](../hearthpulse-review/SKILL.md).
+Which behaviour of a changed contract the existing tests would miss:
+[hearthpulse-test-gaps](../hearthpulse-test-gaps/SKILL.md).
 
 ## Run
 

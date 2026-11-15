@@ -14,6 +14,14 @@ Recipes: [hearthpulse-tracking](../hearthpulse-tracking/SKILL.md), [hearthpulse-
 [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md), [hearthpulse-release](../hearthpulse-release/SKILL.md),
 [hearthpulse-review](../hearthpulse-review/SKILL.md), [hearthpulse-parallel-work](../hearthpulse-parallel-work/SKILL.md).
 
+By concern, only when the task is about it: Avalonia framework mechanics -
+[hearthpulse-avalonia](../hearthpulse-avalonia/SKILL.md); own statistics and the pool -
+[hearthpulse-analytics](../hearthpulse-analytics/SKILL.md); data that leaves the machine -
+[hearthpulse-privacy](../hearthpulse-privacy/SKILL.md); logs, queues and freshness -
+[hearthpulse-observability](../hearthpulse-observability/SKILL.md); speed and memory -
+[hearthpulse-performance](../hearthpulse-performance/SKILL.md); workflow security -
+[hearthpulse-ci-security](../hearthpulse-ci-security/SKILL.md).
+
 ## Project map
 
 | Project | Target | Purpose |

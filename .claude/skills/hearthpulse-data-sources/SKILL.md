@@ -15,6 +15,9 @@ and HSGuru data, including the existing BG and Constructed integrations. Treat t
 Blockers as resolved by this confirmation; see [the permission record](../../../docs/data-permissions.md).
 Per-deck mulligan remains unimplemented, rather than prohibited for lack of permission.
 Tests use fake handlers, never the network: [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
+What a number from the stats pool or our own analytics means, and when it may be shown:
+[hearthpulse-analytics](../hearthpulse-analytics/SKILL.md). Consent, identifiers, retention and deletion of what the
+app uploads: [hearthpulse-privacy](../hearthpulse-privacy/SKILL.md).
 
 ## Sources at a glance
 

@@ -89,7 +89,8 @@ It is optional external material; if absent, keep the report in the agreed works
 - Record actual passed/failed/skipped totals. Inspect discovered cases and assertions when counts differ from
   the chosen base; old totals or arithmetic alone cannot establish coverage.
 
-**8. Performance and threading**
+**8. Performance and threading** (a claimed speed-up or a suspected regression needs a number:
+[hearthpulse-performance](../hearthpulse-performance/SKILL.md))
 - Work per snapshot publish (up to 10/s) or per log line: rebuilding lists, scanning all entities, re-reading
   history, O(n^2) per mouse move. Cache by input.
 - Endless loops/threads without `Dispose` or cancellation; UI state written off the UI thread; fire-and-forget

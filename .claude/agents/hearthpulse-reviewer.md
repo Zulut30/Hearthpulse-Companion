@@ -34,6 +34,9 @@ path, opened when its step comes.
    or `Localization/Strings`: `$repo\.claude\skills\interface-review\SKILL.md` on the same range, findings in the
    report's «Дизайн и паритет» section with the same B/M/m numbering. Renders only if the brief asks, never while
    `Hearthstone.exe` runs.
+4. **By area, only when the diff touches it** (same checkout, `.claude/skills/<name>/SKILL.md`):
+   `.github/workflows/` or `.github/ci/` - `hearthpulse-ci-security`; a field, queue or table of anything uploaded
+   or kept about the player - `hearthpulse-privacy`; a statistic, threshold or pool route - `hearthpulse-analytics`.
 
 Re-review after fixes: only the new commits, and whether each earlier finding is closed.
 
