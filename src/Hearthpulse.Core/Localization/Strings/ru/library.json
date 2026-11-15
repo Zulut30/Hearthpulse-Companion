@@ -72,5 +72,12 @@
   "Library.Search.ResultTip": "Фильтр по результату. В Полях сражений победа — места 1–4, в Дуэтах — 1–2.",
   "Library.Search.Empty": "Ничего не найдено по запросу «{0}». Проверьте написание или очистите поиск.",
   "Library.Search.EmptyResult": "На этой вкладке нет игр с таким результатом.",
-  "Library.Search.Clear": "Очистить поиск"
+  "Library.Search.Clear": "Очистить поиск",
+  "Library.Export.Button": "Экспорт в CSV",
+  "Library.Export.Tip": "Сохранить все игры выбранного режима таблицей для Excel или Google Таблиц. Имён игроков в файле нет.",
+  "Library.Export.Title": "Экспорт истории",
+  "Library.Export.Filter": "Таблица CSV",
+  "Library.Export.Saved": "Сохранена {0} игра.|Сохранено {0} игры.|Сохранено {0} игр.",
+  "Library.Export.Empty": "В этом режиме нет игр для экспорта.",
+  "Library.Export.Failed": "Не удалось сохранить файл. Выберите другую папку и попробуйте ещё раз."
 }

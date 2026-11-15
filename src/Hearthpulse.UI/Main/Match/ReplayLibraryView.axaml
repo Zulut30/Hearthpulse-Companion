@@ -286,6 +286,13 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Button Classes="icon" Content="&#xF0DCF;" Margin="0,0,8,0" ToolTip.Tip="{i:Loc Library.OpenFolder}" AutomationProperties.Name="{i:Loc Library.OpenFolder}"
                         Command="{Binding OpenFolder}" IsVisible="{Binding ShowFolder}" />
+                <Button Name="ExportButton" Classes="ghost" Padding="12,8" Margin="0,0,8,0" IsEnabled="{Binding CanExport}" ToolTip.Tip="{i:Loc Library.Export.Tip}"
+                        ToolTip.ShowOnDisabled="True" Command="{Binding Export}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xF0207;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource OnSecondaryContainer}" VerticalAlignment="Center" />
+                        <TextBlock Text="{i:Loc Library.Export.Button}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
                 <Button Classes="ghost" Padding="12,8" IsEnabled="{Binding CanImport}" ToolTip.Tip="{i:Loc Library.ImportTip}" Command="{Binding Import}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xF02FA;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource OnSecondaryContainer}" VerticalAlignment="Center" />

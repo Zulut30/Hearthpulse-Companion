@@ -72,5 +72,12 @@
   "Library.Search.ResultTip": "Filter by result. In Battlegrounds a win is places 1–4, in Duos 1–2.",
   "Library.Search.Empty": "Nothing matches “{0}”. Check the spelling or clear the search.",
   "Library.Search.EmptyResult": "No games with this result on this tab.",
-  "Library.Search.Clear": "Clear search"
+  "Library.Search.Clear": "Clear search",
+  "Library.Export.Button": "Export to CSV",
+  "Library.Export.Tip": "Save every game of the chosen mode as a table for Excel or Google Sheets. No player names in the file.",
+  "Library.Export.Title": "Export the history",
+  "Library.Export.Filter": "CSV table",
+  "Library.Export.Saved": "Saved {0} game.|Saved {0} games.",
+  "Library.Export.Empty": "No games of this mode to export.",
+  "Library.Export.Failed": "Couldn't save the file. Pick another folder and try again."
 }

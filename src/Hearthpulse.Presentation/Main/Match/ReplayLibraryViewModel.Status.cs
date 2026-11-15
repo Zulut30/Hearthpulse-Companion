@@ -59,6 +59,9 @@ public sealed partial class ReplayLibraryViewModel
 
     internal void Failed(string text) => ShowStatus(text, "Loss", "\U000F05D6");
 
+    /// <summary>Neither done nor failed (nothing to export): the line in the text colour, with the "information" glyph.</summary>
+    internal void Noted(string text) => ShowStatus(text, string.Empty, "\U000F02FD");
+
     /// <summary>The status goes at the next tab, filter, opened match or action; there are no timers.</summary>
     internal void ClearStatus()
     {
