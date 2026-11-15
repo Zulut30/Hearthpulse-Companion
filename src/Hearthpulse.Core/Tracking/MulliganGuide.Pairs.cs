@@ -1,17 +1,22 @@
 namespace Hearthpulse.Core.Tracking;
 
 /// <summary>
-/// The pair part of the guide's maths (docs/mulligan-v2.md 4.2, metric <c>mulligan.pair_winrate</c>): what two cards
-/// kept together add, measured inside Hearthpulse's own statistics of that pair.
+/// The pair part of the guide's maths (docs/mulligan-v2.md 4.2, metric <c>mulligan.pair_winrate</c>): how the games
+/// where two cards were kept together went against the games where one or neither was, inside Hearthpulse's own
+/// statistics of that pair. An observed association: keeping is the player's choice, so nothing here says what keeping
+/// both would do.
 /// </summary>
 public static partial class MulliganGuide
 {
     /// <summary>
-    /// What keeping both cards of a pair adds beyond keeping each alone, with the half-width of its 95 % interval:
+    /// The observed difference between the games with both cards kept and what the games with each kept alone add up
+    /// to, with the half-width of its nominal 95 % interval:
     /// <c>p(both) − p(only A) − p(only B) + p(neither)</c> over the pair's own games (both cards on offer). The four
     /// cells are disjoint sets of games, so the variance of the difference is the sum of the cells' variances
     /// (<c>Σ p(1 − p) / n</c>, each share smoothed by one win and one loss so a 0 % or 100 % cell is not "certain");
-    /// two separate intervals of two win rates would not answer whether the difference is real.
+    /// two separate intervals of two win rates would say nothing about the difference. The interval is nominal and too
+    /// narrow: repeated games of one installation, the patches mixed in the 30-day window, the selection by the keep
+    /// decision and the many pairs looked at are not in it.
     /// Null when a comparison cell is hidden or under <see cref="MinPairCellGames"/>, or the pair is under
     /// <see cref="MinPairGames"/>. Limit: games of one installation count as independent (the pool publishes counts only).
     /// </summary>
@@ -37,8 +42,8 @@ public static partial class MulliganGuide
     }
 
     /// <summary>
-    /// The hand's pairs whose effect is real and worth showing: at least <see cref="MinInteraction"/>, and an interval of
-    /// the difference that does not reach zero.
+    /// The hand's pairs worth a line: a difference of at least <see cref="MinInteraction"/> whose nominal interval does
+    /// not reach zero. A filter against noise, not a proof of an effect.
     /// </summary>
     private static List<MulliganSynergy> Synergies(IReadOnlyList<GuidePair> pairs, IReadOnlyList<OfferedCard> hand)
     {

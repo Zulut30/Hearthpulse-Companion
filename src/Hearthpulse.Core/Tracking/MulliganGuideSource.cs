@@ -9,7 +9,9 @@ namespace Hearthpulse.Core.Tracking;
 /// Finds the mulligan numbers for the deck being played and loads them in the background, so the tracker thread never
 /// waits on the network: the collected deck with the same list, else one within two cards of it, else the API
 /// archetype the deck matches (docs/mulligan-v2.md, "Sources in order"). Whichever guide it is, the class's
-/// opening-hand pairs from Hearthpulse's own statistics are laid beside it (<see cref="MulliganPairs"/>).
+/// opening-hand pairs from Hearthpulse's own statistics are laid beside it (<see cref="MulliganPairs"/>): loaded on
+/// their own, after the guide is out, asked again every <see cref="PairsRefresh"/> and dropped at once when the
+/// deck or the pool's address changes or the pool no longer publishes them.
 /// </summary>
 /// <param name="pairs">The stats pool's pair statistics; null (tests, renders) leaves every guide without pairs.</param>
 public sealed partial class MulliganGuideSource(HearthpulseData data, MulliganPairs? pairs = null)
@@ -17,12 +19,40 @@ public sealed partial class MulliganGuideSource(HearthpulseData data, MulliganPa
     /// <summary>A failed or unmatched lookup is tried again after this long (the deck may still be in the cache then).</summary>
     private static readonly TimeSpan RetryAfter = TimeSpan.FromMinutes(5);
 
+    /// <summary>
+    /// How long pairs stay in memory before <see cref="MulliganPairs"/> is asked again. It answers from its own copy
+    /// while that is young, so this only bounds how long a withdrawn pair can outlive that copy.
+    /// </summary>
+    internal static readonly TimeSpan PairsRefresh = TimeSpan.FromMinutes(5);
+
     private readonly Lock _gate = new();
     private DeckDefinition? _deck;
     private string? _rank;
     private string? _key;
     private GuideArchetype? _result;
     private DateTime _retryAt;
+
+    /// <summary>What <see cref="_pairs"/> belong to: the deck's key and the pool's address; null before the first deck.</summary>
+    private string? _pairsKey;
+    private IReadOnlyList<GuidePair> _pairs = [];
+    private DateTimeOffset _pairsDue;
+    private int _pairsRun;
+    private Task _pairsWork = Task.CompletedTask;
+
+    /// <summary>The clock of the pair refresh (tests advance it).</summary>
+    internal TimeProvider Time { get; init; } = TimeProvider.System;
+
+    /// <summary>Completes when every pair lookup started so far has finished, applied or discarded (for tests).</summary>
+    internal Task PairsWork
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _pairsWork;
+            }
+        }
+    }
 
     /// <summary>
     /// Coin / opponent contexts whose slices were asked for (for the current deck), with the time they may be asked
@@ -96,6 +126,7 @@ public sealed partial class MulliganGuideSource(HearthpulseData data, MulliganPa
                 }
             }
 
+            RefreshPairs(format, playerClass);
             var context = $"{goingFirst}|{opponentClass}";
             if (_result is { } ready && (ready.HsguruArchetype is not null || ready.DeckId is not null) && (goingFirst is not null || opponentClass is { Length: > 0 })
                 && DateTime.UtcNow >= _contexts.GetValueOrDefault(context, DateTime.MinValue))
@@ -115,6 +146,78 @@ public sealed partial class MulliganGuideSource(HearthpulseData data, MulliganPa
             var lookupKey = _key;
             Task.Run(() => LoadAsync(lookupKey!, format, playerClass, deck, cards, opponentClass, goingFirst)).Forget("Mulligan guide lookup");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Under the gate: drops pairs that belong to another deck or another pool, and starts a lookup when they are due.
+    /// </summary>
+    private void RefreshPairs(string format, string playerClass)
+    {
+        if (pairs is null)
+        {
+            return;
+        }
+
+        var key = _key + "|" + pairs.Address;
+        var now = Time.GetUtcNow();
+        if (key != _pairsKey)
+        {
+            _pairsKey = key;
+            _pairsDue = now;
+            SetPairs([]);
+        }
+
+        if (now < _pairsDue)
+        {
+            return;
+        }
+
+        _pairsDue = now + PairsRefresh;
+        var run = ++_pairsRun;
+        var work = Task.Run(() => LoadPairsAsync(key, run, format, playerClass));
+        _pairsWork = Task.WhenAll(_pairsWork, work);
+    }
+
+    /// <summary>Under the gate: the pairs, also on the guide that is out. True when that guide changed.</summary>
+    private bool SetPairs(IReadOnlyList<GuidePair> found)
+    {
+        _pairs = found;
+        if (_result is { } guide && !guide.Pairs.SequenceEqual(found))
+        {
+            _result = guide with { Pairs = found };
+            return true;
+        }
+
+        return false;
+    }
+
+    private async Task LoadPairsAsync(string key, int run, string format, string playerClass)
+    {
+        try
+        {
+            var found = await pairs!.LoadAsync(format, playerClass).ConfigureAwait(false);
+            bool changed;
+            lock (_gate)
+            {
+                // The deck or the pool changed meanwhile, or a later lookup was started: this answer is nobody's.
+                if (key != _pairsKey || run != _pairsRun)
+                {
+                    return;
+                }
+
+                changed = SetPairs(found);
+            }
+
+            if (changed)
+            {
+                Diag.Info($"Mulligan guide: {found.Count} {format} {playerClass} card pairs from Hearthpulse statistics");
+                Changed?.Invoke();
+            }
+        }
+        catch (Exception ex)
+        {
+            Diag.Error("Mulligan pairs not loaded", ex);
         }
     }
 
@@ -155,19 +258,10 @@ public sealed partial class MulliganGuideSource(HearthpulseData data, MulliganPa
     {
         try
         {
-            // Beside the guide, not after it: the pool is another server and must not delay the external numbers.
-            var own = pairs?.LoadAsync(format, playerClass) ?? Task.FromResult<IReadOnlyList<GuidePair>>([]);
             var guide = await LoadGuideAsync(data, format, playerClass, deck.Cards, cards, opponentClass, goingFirst, key.Split('|')[0]).ConfigureAwait(false);
-            var found = await own.ConfigureAwait(false);
             if (guide is null)
             {
                 return;
-            }
-
-            if (found.Count > 0)
-            {
-                Diag.Info($"Mulligan guide: {found.Count} {format} {playerClass} card pairs from Hearthpulse statistics");
-                guide = guide with { Pairs = found };
             }
 
             lock (_gate)
@@ -177,7 +271,9 @@ public sealed partial class MulliganGuideSource(HearthpulseData data, MulliganPa
                     return;
                 }
 
-                _result = guide;
+                // The external guide goes out at once, with whatever pairs of this deck and pool are already in; a
+                // lookup still on its way adds its pairs when it lands.
+                _result = _pairsKey is not null && _pairsKey.StartsWith(key + "|", StringComparison.Ordinal) ? guide with { Pairs = _pairs } : guide;
             }
 
             Changed?.Invoke();

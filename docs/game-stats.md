@@ -100,10 +100,20 @@ server rebuilds every record from known fields only, so anything else is dropped
 - `GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>` → `{v, metric, rules, fmt, cls, window, updated,
   minGames, minInstalls, pairs:[{a, b, installs, both:[games, wins], onlyA, onlyB, none}]}`: opening-hand pairs of
   Ranked games over the last 30 days (metric `mulligan.pair_winrate`, [analytics-metrics.md](analytics-metrics.md)).
+  The window is `day` in [today − 30, today]: a record dated tomorrow (a clock running ahead) waits a day.
   A pair needs 200 games with both cards kept, of 5 installs or more; a comparison cell under 5 installs or 10 games
   is `null`. Built with the summary, withdrawn with it by a forget or the clean-up, answered `no-store`; a missing or
   malformed `fmt` / `cls` is a `400`. It reads the fields a record already holds: nothing new is sent, and the
-  notice does not change. The app reads it in `Core/Pool/MulliganPairs.cs` for the mulligan guide's synergies.
+  notice does not change. The app reads it in `Core/Pool/MulliganPairs.cs` for the mulligan panel's pair lines
+  (an observed association, shown with an approximate interval; the advice does not count it).
+- **Deletion fence.** A forget and the clean-up delete the records, both published views (`snap` rows `events` and
+  `mull-pairs`) and raise row `events-rev` of `snap` in one batch. A build reads that row before the records and
+  writes both views in one batch, each on the condition that the row has not moved; if it has, nothing is written
+  and the build counts again (three times, then the read answers `503` with `Retry-After`). A forget between a
+  build's reads and its write is therefore never published by that build; D1 has no transaction across the reads,
+  the Node service's request queue alone would not cover the Worker.
+- The app keeps a pair answer 6 hours on disk and keeps no older copy for the time the pool is down: a withdrawn
+  pair is not shown from an old file.
 - Table `e` (`WITHOUT ROWID`, indexes by day and install), migration `migrations/0007_events.sql`; kept 180 days.
 - Tests: `node --test server/pool/test/events.test.mjs`.
 

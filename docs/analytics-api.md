@@ -32,6 +32,9 @@ stored, when it is counted and deleted, and the read route. Code: `server/pool/n
    most once a minute when nothing is published yet, it is stale or withdrawn, or the day changed. New facts mark it
    `stale` (the old numbers stay correct to serve). Replaced or deleted facts **withdraw** it in the same transaction
    (`body = ''`): the route answers `rebuilding` until the next build.
+   The compact game records' views (`/v1/events/summary`, `/v1/events/mulligan-pairs`) are outside this pipeline and
+   have a fence of their own: `snap` row `events-rev`, raised by every deletion and checked by every publication
+   (docs/game-stats.md, "Deletion fence").
 5. **Deletion**: `/v1/captures/forget` (generation) and retention (`maintain()`) delete the facts explicitly with the
    receipts and withdraw the snapshot; a worker result arriving after deletion is discarded.
 

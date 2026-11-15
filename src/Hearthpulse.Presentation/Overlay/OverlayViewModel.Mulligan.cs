@@ -298,7 +298,7 @@ public sealed partial class OverlayViewModel
                     lines.Add(Loc.F(arena ? "Mulligan.Arena.EdgeLine" : "Mulligan.EdgeLine", Points(edge), Points(delta), Points(view.ReplaceDelta)));
                     if (Math.Abs(edge - (delta - view.ReplaceDelta)) > OverlayFormat.HalfStep)
                     {
-                        // A kept synergy partner or the other copy changes what keeping this one adds.
+                        // The other copy changes what keeping this one adds.
                         lines.Add(Loc.T("Mulligan.EdgeWithOthers"));
                     }
                 }

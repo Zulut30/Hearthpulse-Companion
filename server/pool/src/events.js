@@ -45,6 +45,18 @@ const MAX_PAIRS = 200;
 const PAIR_FORMATS = new Set(["standard", "wild"]);
 // Every published view built from the records: withdrawn together whenever records are deleted.
 const WITHDRAW = "DELETE FROM snap WHERE mode IN ('events', 'mull-pairs')";
+// The deletion fence. D1 gives a build no transaction across its reads, so a forget can land between the moment a
+// build read the records and the moment it publishes. Row 'events-rev' of `snap` counts deletions (in last_row): every
+// batch that deletes records raises it, a build notes it before its first read, and PUBLISH writes only while it is
+// still the same. A build that lost the race publishes nothing and counts again from the records that are left.
+const REVISION = "SELECT last_row FROM snap WHERE mode = 'events-rev'";
+const DELETED = `INSERT INTO snap (mode, last_row, built, body) VALUES ('events-rev', 1, ?1, '')
+  ON CONFLICT(mode) DO UPDATE SET last_row = last_row + 1, built = ?1`;
+const PUBLISH = `INSERT INTO snap (mode, last_row, built, body)
+  SELECT ?4, ?1, ?2, ?3 WHERE COALESCE((${REVISION}), 0) = ?5
+  ON CONFLICT(mode) DO UPDATE SET last_row = excluded.last_row, built = excluded.built, body = excluded.body`;
+const BUILD_ATTEMPTS = 3;
+const changes = (result) => result?.meta?.changes ?? result?.changes ?? 0;
 
 const MAX = { plays: 400, oplays: 200, choices: 120, draws: 300, exc: 40, mull: 6, turns: 200, buys: 300, sells: 300 };
 
@@ -189,12 +201,13 @@ export async function submitEvents(body, env, reply) {
 export async function forgetEvents(body, env, reply) {
   if (typeof body?.iid !== "string" || !HEX32.test(body.iid)) return reply({ error: "send {iid}" }, 400);
   // One batch (a transaction in D1 and in the Node service): the records and every view built from them go together,
-  // so no published number outlives the records it counted.
+  // and the fence rises with them, so a build that read these records before the delete cannot publish them after it.
   const [result] = await env.DB.batch([
     env.DB.prepare("DELETE FROM e WHERE iid = ?1").bind(body.iid),
     env.DB.prepare(WITHDRAW),
+    env.DB.prepare(DELETED).bind(Date.now()),
   ]);
-  return reply({ ok: true, deleted: result?.meta?.changes ?? result?.changes ?? 0 });
+  return reply({ ok: true, deleted: changes(result) });
 }
 
 /** Deletes records older than KEEP_DAYS and the events' old daily counters. */
@@ -203,12 +216,14 @@ export async function pruneEvents(env, today = Math.floor(Date.now() / DAY)) {
     env.DB.prepare("DELETE FROM e WHERE day < ?1").bind(today - KEEP_DAYS),
     env.DB.prepare("DELETE FROM equota WHERE day < ?1").bind(today - 7),
     env.DB.prepare(WITHDRAW),
+    env.DB.prepare(DELETED).bind(Date.now()),
   ]);
 }
 
 const round = (x) => Math.round(x * 1000) / 1000;
 
-// Opening-hand pairs. The sample: Ranked Standard/Wild records with a class, a win or a loss and a mulligan. Every
+// Opening-hand pairs. The sample: Ranked Standard/Wild records of the last WINDOW_DAYS up to today (a record may be
+// dated tomorrow by a clock that runs ahead, validateEvent allows one day: it waits until that day comes) with a class, a win or a loss and a mulligan. Every
 // pair of different cards offered together in one opening hand falls into one of four cells by what was kept (both,
 // only a, only b, neither). The cells are disjoint and every game of a pair comes from a deck holding both cards, so
 // the comparison cells are the pair's own base numbers, not the class's: two cards of one strong archetype do not
@@ -218,7 +233,7 @@ const PAIRS_SQL = `
   WITH r AS (
     SELECT id, iid, fmt, json_extract(body, '$.cls') AS cls, json_extract(body, '$.res') = 'W' AS won, body
     FROM e
-    WHERE day >= ?1 AND mode = 'ranked' AND fmt IN ('standard', 'wild')
+    WHERE day >= ?1 AND day <= ?4 AND mode = 'ranked' AND fmt IN ('standard', 'wild')
       AND json_extract(body, '$.res') IN ('W', 'L') AND json_extract(body, '$.cls') IS NOT NULL
   ), o AS (
     SELECT DISTINCT r.id, r.iid, r.fmt, r.cls, r.won, x.value AS card,
@@ -239,8 +254,8 @@ const PAIRS_SQL = `
  * {a, b, installs, both: [games, wins], onlyA, onlyB, none}; a comparison cell (only a kept, only b kept, neither
  * kept) is null under MIN_PLAYERS installs or MIN_CELL games. No install id, record id or deck.
  */
-async function buildPairs(env, since) {
-  const rows = (await env.DB.prepare(PAIRS_SQL).bind(since, MIN_PAIR_GAMES, MIN_PLAYERS).all()).results;
+async function buildPairs(env, since, today) {
+  const rows = (await env.DB.prepare(PAIRS_SQL).bind(since, MIN_PAIR_GAMES, MIN_PLAYERS, today).all()).results;
   const groups = {};
   for (const r of rows) {
     const list = groups[`${r.fmt}|${r.cls}`] ??= [];
@@ -256,10 +271,23 @@ async function buildPairs(env, since) {
 
 /**
  * Builds the summary and the opening-hand pair table (when records came in since the last build, or with force) and
- * keeps both in `snap`, written together. Returns the summary's body.
+ * keeps both in `snap`, written together and only behind the deletion fence. Returns the summary's body; throws when
+ * deletions kept overtaking the build (the caller answers 503 and nothing stale is published).
  */
 export async function rebuildEvents(env, force) {
-  const since = Math.floor(Date.now() / DAY) - WINDOW_DAYS;
+  for (let attempt = 0; attempt < BUILD_ATTEMPTS; attempt++) {
+    const built = await buildOnce(env, force);
+    if (built !== undefined) return built;
+  }
+  throw new Error("events_build_overtaken");
+}
+
+/** One build: the summary's body, null when nothing needed building, undefined when a deletion overtook it. */
+async function buildOnce(env, force) {
+  // Before any read of the records: whatever is deleted from here on raises the fence above this number.
+  const revision = (await env.DB.prepare(REVISION).first())?.last_row ?? 0;
+  const today = Math.floor(Date.now() / DAY);
+  const since = today - WINDOW_DAYS;
   const last = (await env.DB.prepare("SELECT COUNT(*) AS n FROM e").first())?.n ?? 0;
   if (!force) {
     const snap = await env.DB.prepare("SELECT last_row, built FROM snap WHERE mode = 'events'").first();
@@ -292,24 +320,26 @@ export async function rebuildEvents(env, force) {
     discover: discover.map((r) => ({ kind: r.kind, card: r.card, offered: r.offered, picked: r.picked, rate: round(r.picked / r.offered) })),
     mulligan: mulligan.map((r) => ({ card: r.card, offered: r.offered, kept: r.kept, rate: round(r.kept / r.offered) })),
   });
-  const pairs = JSON.stringify(await buildPairs(env, since));
-  const store = `INSERT INTO snap (mode, last_row, built, body) VALUES (?4, ?1, ?2, ?3)
-     ON CONFLICT(mode) DO UPDATE SET last_row = ?1, built = ?2, body = ?3`;
+  const pairs = JSON.stringify(await buildPairs(env, since, today));
   const built = Date.now();
-  await env.DB.batch([
-    env.DB.prepare(store).bind(last, built, body, "events"),
-    env.DB.prepare(store).bind(last, built, pairs, "mull-pairs"),
+  // One batch: both views are written, or (a deletion since `revision`) neither.
+  const written = await env.DB.batch([
+    env.DB.prepare(PUBLISH).bind(last, built, body, "events", revision),
+    env.DB.prepare(PUBLISH).bind(last, built, pairs, "mull-pairs", revision),
   ]);
-  return body;
+  return written.every((result) => changes(result) === 1) ? body : undefined;
 }
 
 /** GET /v1/events/summary: a deletion-sensitive published view, never served from an edge cache. */
 export async function eventsSummary(request, env, ctx, reply) {
   // Deletion-sensitive aggregates must never survive a forget in an unpurgeable public cache.
   const row = await env.DB.prepare("SELECT body, built FROM snap WHERE mode = 'events'").first();
-  const body = row && Math.floor(row.built / DAY) === Math.floor(Date.now() / DAY) ? row.body : await rebuildEvents(env, true);
-  const response = reply(body, 200, { "cache-control": "no-store" });
-  return response;
+  if (row && Math.floor(row.built / DAY) === Math.floor(Date.now() / DAY)) return reply(row.body, 200, { "cache-control": "no-store" });
+  try {
+    return reply(await rebuildEvents(env, true), 200, { "cache-control": "no-store" });
+  } catch {
+    return reply({ error: "rebuilding, try again" }, 503, { "cache-control": "no-store", "retry-after": "30" });
+  }
 }
 
 /**
@@ -323,10 +353,17 @@ export async function mulliganPairs(url, env, reply) {
     return reply({ error: "send fmt=standard|wild and cls=<CLASS>" }, 400, { "cache-control": "no-store" });
   }
   const read = () => env.DB.prepare("SELECT body, built FROM snap WHERE mode = 'mull-pairs'").first();
+  const unavailable = () => reply({ error: "rebuilding, try again" }, 503, { "cache-control": "no-store", "retry-after": "30" });
   let row = await read();
   if (!row || Math.floor(row.built / DAY) !== Math.floor(Date.now() / DAY)) {
-    await rebuildEvents(env, true);
+    try {
+      await rebuildEvents(env, true);
+    } catch {
+      return unavailable();
+    }
     row = await read();
+    // A forget between the build and this read took the table away again: nothing published, nothing answered.
+    if (!row) return unavailable();
   }
   const table = JSON.parse(row.body);
   return reply({

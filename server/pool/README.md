@@ -135,9 +135,15 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
   together in the opening hand of Ranked games of that format and class over the last 30 days, each as
   `{a, b, installs, both, onlyA, onlyB, none}` with `[games, wins]` per keep cell. A pair needs 200 games with both
   kept, of 5 installs or more; a comparison cell under 5 installs or 10 games is `null`; at most 200 pairs. No
-  install id, record id or deck in the answer. Built in the same rebuild as the summary into `snap` row
-  `mull-pairs` (no migration), deleted with it by `/v1/events/forget` and the clean-up in one transaction, answered
-  `Cache-Control: no-store`; `400` for a missing or malformed parameter. Behind nginx the route must be in the
+  install id, record id or deck in the answer. The window ends today (a record dated tomorrow waits a day). Built
+  in the same rebuild as the summary into `snap` row `mull-pairs` (no migration), deleted with it by
+  `/v1/events/forget` and the clean-up in one batch, answered `Cache-Control: no-store`; `400` for a missing or
+  malformed parameter, `503` with `Retry-After` when deletions kept overtaking the build. The numbers are an
+  observed association with a nominal interval, not a causal effect (see the catalogue).
+- Deletion fence for both views of the records: `snap` row `events-rev` counts deletions (`last_row`). A forget and
+  the clean-up raise it in the batch that deletes the records and the views; a build reads it first and publishes
+  both views in one batch only while it is unchanged, else it counts again. No migration: the row appears on the
+  first deletion. Behind nginx the route must be in the
   location's list (`deploy/nginx-source-capture.conf`).
 
 For a local test, run `npx wrangler dev --test-scheduled` and open `/__scheduled` to run the cron job.

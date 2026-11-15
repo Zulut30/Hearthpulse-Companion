@@ -7,8 +7,9 @@ namespace Hearthpulse.Core.Tracking;
 /// The mulligan guide maths (docs/mulligan-v2.md, section 3). Card values are HSReplay V1 numbers: delta = win rate
 /// with the card in the opening hand minus the deck's baseline. A hand adds up the deltas of the kept cards and one
 /// replacement delta per replaced card, shrunk by the square root of the hand size because card effects overlap.
-/// Duplicates and the curve use labelled heuristics because the data has no per-copy or per-turn split; synergies come
-/// from Hearthpulse's own pair statistics (MulliganGuide.Pairs.cs).
+/// Duplicates and the curve use labelled heuristics because the data has no per-copy or per-turn split. Card pairs from
+/// Hearthpulse's own statistics (MulliganGuide.Pairs.cs) are shown beside the cards as an observation and do not enter
+/// the estimate or the calls.
 /// </summary>
 public static partial class MulliganGuide
 {
@@ -30,7 +31,7 @@ public static partial class MulliganGuide
     /// <summary>Each comparison cell of a pair (only one of the two kept, neither kept) needs this many games.</summary>
     public const int MinPairCellGames = MinSample;
 
-    /// <summary>Pair interactions smaller than this (in win rate, 0.015 = 1.5 points) are noise.</summary>
+    /// <summary>A pair difference smaller than this (in win rate, 0.015 = 1.5 points) is not shown.</summary>
     public const double MinInteraction = 0.015;
 
     /// <summary>Cards costing this much or less, or usually played by <see cref="EarlyTurn"/>, are early plays.</summary>
@@ -264,7 +265,7 @@ public static partial class MulliganGuide
         }
 
         // Pairs are Hearthpulse's own statistics over all games of the class: measured inside their own sample, so a coin
-        // or class shift of the external card numbers cannot show up as a synergy.
+        // or class shift of the external card numbers cannot show up as a pair difference.
         var synergies = Synergies(data.Pairs, hand);
         var view = new MulliganView(context, baseRate, rows, data.Source)
         {
@@ -343,8 +344,8 @@ public static partial class MulliganGuide
 
     /// <summary>
     /// What keeping the card adds to the recommended keeps: the summed deltas with it kept minus with it replaced, the
-    /// other cards as recommended. For a plain card that is its delta minus the replacement's; a kept synergy partner or a
-    /// kept second copy of the same card count too. The recommendation is the best sum, so the sign always matches the call.
+    /// other cards as recommended. For a plain card that is its delta minus the replacement's; a
+    /// kept second copy of the same card counts too. The recommendation is the best sum, so the sign always matches the call.
     /// </summary>
     private static double Toggle(MulliganView view, IReadOnlySet<int> keep, int entityId)
     {
@@ -354,7 +355,11 @@ public static partial class MulliganGuide
         return Sum(view, with) - Sum(view, without);
     }
 
-    /// <summary>The hand's summed deltas: first kept copies, one replacement per replaced card, kept pair interactions.</summary>
+    /// <summary>
+    /// The hand's summed deltas: first kept copies and one replacement per replaced card. Pair differences are left out
+    /// on purpose: they are an observed association in another population (our own records, the whole class) with a
+    /// nominal interval, so they are shown and never move a call or the estimate.
+    /// </summary>
     private static double Sum(MulliganView view, IReadOnlySet<int> kept)
     {
         var total = 0.0;
@@ -372,7 +377,7 @@ public static partial class MulliganGuide
             }
         }
 
-        return total + view.Synergies.Where(s => kept.Contains(s.EntityA) && kept.Contains(s.EntityB)).Sum(s => s.Interaction);
+        return total;
     }
 
     /// <summary>

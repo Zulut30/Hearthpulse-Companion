@@ -185,12 +185,13 @@ public enum MulliganCall
 }
 
 /// <summary>
-/// Two offered cards that win more (or less) kept together than keeping each alone adds up to, in Hearthpulse's own
-/// statistics (<see cref="MulliganGuide.PairEffect"/>).
+/// Two offered cards whose games with both kept went better (or worse) than the games with each kept alone add up to,
+/// in Hearthpulse's own statistics (<see cref="MulliganGuide.PairEffect"/>). An observation shown beside the cards; it
+/// moves no call and no estimate.
 /// </summary>
 /// <param name="Interaction">The difference, as a fraction (0.03 = 3 points).</param>
 /// <param name="Games">Games with both cards kept.</param>
-/// <param name="Margin">Half-width of the difference's 95 % interval; a synergy is listed only when it is smaller than the difference.</param>
+/// <param name="Margin">Half-width of the difference's nominal 95 % interval (approximate, too narrow); a pair is listed only when it is smaller than the difference.</param>
 public sealed record MulliganSynergy(int EntityA, int EntityB, string NameA, string NameB, double Interaction, int Games, double Margin);
 
 /// <summary>What the current choice of keeps is expected to do.</summary>

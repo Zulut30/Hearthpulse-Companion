@@ -166,12 +166,12 @@ public sealed class MulliganGuideTests
     }
 
     [Fact]
-    public void Synergies_appear_only_with_pair_data()
+    public void A_pair_line_appears_only_with_pair_data_and_moves_no_estimate()
     {
         var hand = new[] { "JAIL_732", "JAIL_719", "CORE_YOP_001" };
         var plain = Compute(Guide(VoidDemonHunter), hand, null);
 
-        // A pair from our own statistics: kept together it wins 3 points more than keeping each alone adds up to
+        // A pair from our own statistics: the games with both kept went 3 points better than keeping each alone adds up to
         // (56 % - 53 % - 52 % + 52 %), over 40,000 games a cell.
         var guide = Guide(VoidDemonHunter);
         var paired = Compute(guide with { Pairs = [Pair("JAIL_719", "JAIL_732", 0.56, 0.53, 0.52, 0.52)] }, hand, null);
@@ -185,7 +185,10 @@ public sealed class MulliganGuideTests
         Assert.InRange(synergy.Margin, 0.009, 0.010);
         Assert.Single(MulliganGuide.Evaluate(paired, [1, 2]).Synergies);
         Assert.Empty(MulliganGuide.Evaluate(paired, [1]).Synergies);
-        Assert.Equal(0.03 / Math.Sqrt(3), MulliganGuide.Expected(paired, Set(1, 2)) - MulliganGuide.Expected(plain, Set(1, 2)), 6);
+        // An observation beside the cards: the estimate, the recommendation and the calls are what they were without it.
+        Assert.Equal(MulliganGuide.Expected(plain, Set(1, 2)), MulliganGuide.Expected(paired, Set(1, 2)), 12);
+        Assert.Equal(plain.Recommended, paired.Recommended);
+        Assert.Equal(plain.Cards.Select(c => (c.Call, c.Edge)), paired.Cards.Select(c => (c.Call, c.Edge)));
 
         // Too few games together: noise, not a synergy.
         var thin = Compute(guide with { Pairs = [Pair("JAIL_719", "JAIL_732", 0.56, 0.53, 0.52, 0.52) with { Both = new PairCell(199, 111) }] }, hand, null);
@@ -214,7 +217,7 @@ public sealed class MulliganGuideTests
     }
 
     [Fact]
-    public void A_pair_shows_only_when_the_difference_is_told_from_zero_and_large_enough()
+    public void A_pair_shows_only_when_the_nominal_interval_of_the_difference_excludes_zero_and_it_is_large_enough()
     {
         var guide = Guide(VoidDemonHunter);
         var hand = new[] { "JAIL_732", "JAIL_719", "CORE_YOP_001" };
@@ -231,7 +234,7 @@ public sealed class MulliganGuideTests
         Assert.Empty(With(Pair("JAIL_719", "JAIL_732", 0.60, 0.50, 0.50, 0.40)).Synergies);
         Assert.Equal(0.20, Assert.Single(With(Pair("JAIL_719", "JAIL_732", 0.60, 0.50, 0.50, 0.60)).Synergies).Interaction, 9);
 
-        // Real but under 1.5 points: left out as before. A real negative one is listed with its sign.
+        // Clear of zero but under 1.5 points: left out as before. A negative one is listed with its sign.
         Assert.Empty(With(Pair("JAIL_719", "JAIL_732", 0.56, 0.55, 0.50, 0.50, games: 400000)).Synergies);
         Assert.Equal(-0.04, Assert.Single(With(Pair("JAIL_719", "JAIL_732", 0.50, 0.53, 0.51, 0.50)).Synergies).Interaction, 9);
 
@@ -384,10 +387,10 @@ public sealed class MulliganGuideTests
     }
 
     [Fact]
-    public void A_real_synergy_shows_in_the_number_of_the_card_it_keeps()
+    public void An_observed_pair_difference_moves_no_call_and_no_number()
     {
-        // B alone is worse than a replacement, but with A it wins 3 points more than the two add up to: keeping B is
-        // worth that, and its number says so.
+        // B alone is worse than a replacement; the games where it was kept with A went 3 points better than the two add
+        // up to. That is an observation about who kept both, not a reason to keep B: the call and its number ignore it.
         var cards = new List<GuideCard>
         {
             new("A", 1, 1, 1000, 0.5, 1000, 0.530, 2),
@@ -405,8 +408,8 @@ public sealed class MulliganGuideTests
 
         Assert.Equal(0.03, Assert.Single(view.Synergies).Interaction, 6);
         Assert.True(b.Delta - view.ReplaceDelta < 0);
-        Assert.Equal(MulliganCall.Keep, b.Call);
-        Assert.Equal(b.Delta!.Value - view.ReplaceDelta + 0.03, b.Edge!.Value, 6);
+        Assert.Equal(MulliganCall.Mulligan, b.Call);
+        Assert.Equal(b.Delta!.Value - view.ReplaceDelta, b.Edge!.Value, 6);
         AssertCallsFollowTheEdge(view);
     }
 
