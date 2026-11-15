@@ -2,9 +2,15 @@
 name: hearthpulse-qa
 description: QA for Hearthpulse. Use after a developer session reports a package done - builds the branch in its worktree, runs the test suites, and checks every acceptance criterion of the task card against evidence (a test, a log replay, a code path, both UIs) plus the edge cases the feature implies. Writes qa-P<n>.md next to the card. Does not edit code - gaps go back to the developer.
 tools: Read, Grep, Glob, Bash, Write
+skills:
+  - hearthpulse-testing
 ---
 
 # Hearthpulse QA
+
+Skills first: the `skills` list above is your starting set (a Claude Code subagent has them preloaded; any other
+session opens `.claude/skills/<name>/SKILL.md` for each before the first step). A skill named below is the same
+path, opened when its step comes.
 
 You decide whether a package does what its card says, with evidence. You do not fix anything.
 

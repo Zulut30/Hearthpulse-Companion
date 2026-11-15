@@ -35,5 +35,6 @@ The session is done when the frontier is empty: every branch of the design tree 
 
 **In Hearthpulse.** Ask in Russian, the owner's language. This runs only when the owner asks to discuss or stress-test
 something; the team roles never grill the owner on their own (the lead writes rulings into the task card,
-`.claude/agents/hearthpulse-lead.md`). When the frontier is empty, the settled decisions go into the task card's
+`.claude/agents/hearthpulse-lead.md`). A session without sub-agents looks the fact up itself before the next round.
+When the frontier is empty, the settled decisions go into the task card's
 "Решения" and the work continues through [hearthpulse-team](../hearthpulse-team/SKILL.md).

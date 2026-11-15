@@ -26,4 +26,8 @@ When user-invoked skills multiply past what you can remember, that piled-up cogn
 
 ## In Hearthpulse
 
-The router is the skill table in `CLAUDE.md`: every project skill gets one short row there. A skill folder name equals its `name`, and its relative links resolve: `python -m unittest tools/skill_checks/test_skill_catalog.py` checks both and runs in CI. A skill borrowed from elsewhere gets a source line under its frontmatter and an entry in `.claude/skills/THIRD-PARTY-NOTICES.md`.
+The router is the skill table in `CLAUDE.md`: every project skill gets one short row there. A skill folder name equals its `name`, and its relative links resolve: `python -m unittest tools/skill_checks/test_skill_catalog.py` checks both and runs in CI. Codex finds
+the skills through stubs in `.agents/skills/`: after adding, renaming or deleting a skill, or editing a description,
+run `python tools/skills/gen_codex_stubs.py` (`test_codex_stubs.py` goes red until you do). A role file in
+`.claude/agents/` preloads at most three skills through `skills:` in its frontmatter, never an owner-invoked one.
+A skill borrowed from elsewhere gets a source line under its frontmatter and an entry in `.claude/skills/THIRD-PARTY-NOTICES.md`.

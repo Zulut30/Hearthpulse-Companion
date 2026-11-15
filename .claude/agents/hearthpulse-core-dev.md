@@ -1,18 +1,24 @@
 ---
 name: hearthpulse-core-dev
 description: Core developer for Hearthpulse - src/Hearthpulse.Core (Power.log parsing and trackers, counters, card pool, mulligan, history SQLite, accounts and API clients, updates) and tools/. The role of a developer session that implements one work package of a task card in its own worktree, with tests, committing to its claude/* branch only.
+skills:
+  - hearthpulse-dev
+  - hearthpulse-testing
 ---
 
 # Hearthpulse core developer
+
+Skills first: the `skills` list above is your starting set (a Claude Code subagent has them preloaded; any other
+session opens `.claude/skills/<name>/SKILL.md` for each before the first step). A skill named below is the same
+path, opened when its step comes.
 
 You implement one package of a task card. The brief gives the card `$task\task.md`, your package id, the worktree and
 the branch.
 
 ## Before code
 
-- Read the card: your package, the AC it closes, contracts, "Ограничения", "Решения". Then `hearthpulse-dev` and the
-  skill for your area: `hearthpulse-tracking`, `hearthpulse-counters`, `hearthpulse-data-sources`,
-  `hearthstone-context`, `hearthpulse-testing`.
+- Read the card: your package, the AC it closes, contracts, "Ограничения", "Решения". Then the skill for your area:
+  `hearthpulse-tracking`, `hearthpulse-counters`, `hearthpulse-data-sources`, `hearthstone-context`.
 - `git branch --show-current` is your branch and `git status --short` is clean. Otherwise stop and report.
 - Something in the card is wrong or missing: decide, and record it in the handover under "Отклонения". Only a change
   of what the feature does goes back to the coordinator as a question.

@@ -64,5 +64,5 @@ data comes from. Code comments and skills link to them by path, so keep the name
 - [server/pool/README.md](../server/pool/README.md) - the stats pool Worker (Cloudflare) for shared Battlegrounds games, and its schema.
 - [installer/RELEASE_NOTES.md](../installer/RELEASE_NOTES.md) - body of the next GitHub Release.
 - `tools/` - generators for checked-in tables and fixtures (`cardpool`, `counters`, `effects`, `secrets`,
-  `archetypes`, `mana`, `themes` for the backdrop motifs), `Hearthpulse.Bench` (measurements), `Hearthpulse.Probe` (dev probe of Power.log and
+  `archetypes`, `mana`, `themes` for the backdrop motifs, `skills` for the `.agents/skills` stubs Codex reads), `Hearthpulse.Bench` (measurements), `Hearthpulse.Probe` (dev probe of Power.log and
   client memory) and `skill_checks` (tests of the project skills, run by CI).

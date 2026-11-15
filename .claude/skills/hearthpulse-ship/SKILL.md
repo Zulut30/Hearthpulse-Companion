@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-ship
-description: Use when the user hands over a Hearthpulse task and wants it carried from request to a working feature in the app without confirmations - split into sessions, verify, merge into main, push, build, restart the app, delete the finished sessions. Triggers - "/hearthpulse-ship", "доведи до приложения", "от задачи до готовой функции", "сделай и залей", "без подтверждений". On by default - any feature or fix request in the coordinating session.
+description: Use for every Hearthpulse feature or fix request in the coordinating session - on by default, no trigger word needed ("сделай", "добавь", "исправь", "доработай") - to carry it from request to a working feature in the app without confirmations - split into sessions, verify, merge into main, push, build, restart the app, delete the finished sessions. Also "/hearthpulse-ship", "доведи до приложения", "сделай и залей", "без подтверждений". A session started in a wt-* worktree does not run it.
 ---
 
 # From a task to a working feature in the app
@@ -28,6 +28,22 @@ Related: [hearthpulse-parallel-work](../hearthpulse-parallel-work/SKILL.md) (how
 
 Paths: repo `D:\HeartLens-main\HeartLens-main` (`$repo`), worktrees `D:\HeartLens-main\wt-<name>`.
 
+## Session tools by environment
+
+The steps below name the action; this table names the tool. T3 tools come from the `t3-code` MCP server.
+
+| Action | Claude desktop | T3 Code |
+|---|---|---|
+| Start a session in a worktree | `start_session`: `initiation: "user_asked"`, `cwd` = the worktree, `use_worktree: false`, `context: "fresh"` | `t3_thread_launch`: `workspaceStrategy: {type: "existing_worktree", worktreePath: <the worktree>}`, `message` = the brief |
+| Write to a session | `SendMessage` | `t3_thread_send` |
+| Wait for its report | уточнить | `t3_thread_wait`, then `t3_thread_read` for the report |
+| Delete a session | `delete_session` | no delete tool: `t3_thread_organize`, `action: "archive"` |
+| Run a role as a subagent | `Agent`, `subagent_type` = the role | Claude: the same `Agent`; Codex: `spawn_agent` (parameters: уточнить) |
+
+The T3 column was read from a Claude session's tool list (2026-11-15); that a Codex session in T3 Code gets the same
+`t3_*` tools is expected, not checked: уточнить. Your environment is not in the table, or the cell you need says
+«уточнить»: ask the owner once how that action is done there, then add it here.
+
 ## 1. Split into sessions
 
 - Anything bigger than a small fix: get the task card, packages and design from
@@ -36,20 +52,23 @@ Paths: repo `D:\HeartLens-main\HeartLens-main` (`$repo`), worktrees `D:\HeartLen
   edits) is one session; never do the feature in the coordinating session itself.
 - Per session create the worktree yourself (the session folder `D:\HeartLens-main` is not a git repo):
   `git -C $repo worktree add D:\HeartLens-main\wt-<name> -b claude/<name> main`.
-- `start_session` with `initiation: "user_asked"`, `cwd` = the worktree, `use_worktree: false`, `context: "fresh"`.
-- Brief: goal in the user's words, owned files, both UIs (WPF + Avalonia) when user-facing, build `-m:2`,
+- Start a session in that worktree, with a fresh context and the brief as its first message.
+- Brief: **the skills the session loads first, by name** (`hearthpulse-dev` and the 1-2 rows of the `CLAUDE.md`
+  table for its area: a session that is not told skips them), goal in the user's words, owned files, both UIs
+  (WPF + Avalonia) when user-facing, build `-m:2`,
   tests `--filter` while working and one full run at the end, renders through `hearthpulse-visual-check` on a data
   copy and never while `Hearthstone.exe` runs (or "no render" when this task forbids it), **commit to
   `claude/<name>` only, no push, no merge**, final report = commits + test counts + what was not checked.
 
 ## 2. Verify each finished session
 
-When a session reports, check it yourself before merging - its note is not proof:
+When a session reports, check it yourself before merging, by the
+[hearthpulse-review](../hearthpulse-review/SKILL.md) checklist - its note is not proof:
 
 - `git -C $repo log --oneline main..claude/<name>` and `git -C $repo diff --stat main...claude/<name>`; read the
   diff of the risky parts (shared files, game memory, settings, data).
 - Does it do what the user asked, in both UIs? Clutter, debug code, leftover TODOs?
-- Missing piece or bug -> `SendMessage` the session to fix it in its branch, wait, check again.
+- Missing piece or bug -> write to the session to fix it in its branch, wait for its report, check again.
 - Touches game memory, input, third-party data/code, paid features or user data -> run the `hearthpulse-legal` agent.
 
 ## 3. Merge, build, test
@@ -89,7 +108,7 @@ After ~10 s: the process `Responding`, and the tail of `%APPDATA%\Hearthpulse\he
 
 For each merged branch:
 
-- `delete_session` for its session (only after its branch is in pushed `main`);
+- delete its session (only after its branch is in pushed `main`);
 - `git -C $repo worktree remove D:\HeartLens-main\wt-<name>` (refuses a dirty tree - then look, do not force);
 - `git -C $repo branch -d claude/<name>` (`-d`, not `-D`: it refuses unmerged work).
 
@@ -101,8 +120,10 @@ no live game), and anything left for later. Nothing else to confirm unless one o
 ## 8. Keep the coordinator's context small
 
 The owner (2026-10-29): `/clear` and `/compact` save the most context, so the coordinating session uses them as a rule.
+Those are Claude Code's commands; elsewhere ask for the same thing in words: a fresh conversation, or a compaction.
 
-- **After a merge round** (step 6 done, no session mid-review): write a handoff with the `handoff` skill to
+- **After a merge round** (step 6 done, no session mid-review): write a handoff (the `handoff` skill when the
+  session has it) to
   `D:\HeartLens-main\reference\tasks\HANDOFF-<yyyy-MM-dd-HHmm>.md` - open branches and their sessions, task cards in
   progress, owner decisions pending, red or flaky tests - and end the report with one line asking the owner to run
   `/clear`. The coordinator cannot clear itself. A fresh coordinator reads the newest handoff and the "Журнал" of
