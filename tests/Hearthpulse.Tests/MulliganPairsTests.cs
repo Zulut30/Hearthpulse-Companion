@@ -411,10 +411,55 @@ public sealed class MulliganPairsTests : IDisposable
         Assert.Equal(asked, pool.Requests.Count);
     }
 
-    private (MulliganGuideSource Source, SemaphoreSlim Changed) Source(FixtureApi api, FakePool pool, Func<string>? address = null)
+    [Fact]
+    public async Task A_backwards_wall_clock_drops_live_guide_pairs_before_the_refresh_deadline()
+    {
+        var pool = new FakePool(GuidePairs(), "WARLOCK");
+        var api = new FixtureApi();
+        var clock = new OffsetClock(_time);
+        var (source, changed) = Source(api, pool, time: clock);
+        var deck = new DeckDefinition("Deck", 0, string.Empty, "FT_STANDARD", [], api.DeckList(Warlock));
+        GuideArchetype? Guide() => source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty);
+        while (Guide() is not { Pairs.Count: 2 })
+        {
+            Assert.True(await changed.WaitAsync(TimeSpan.FromMinutes(1)));
+        }
+
+        // This is the same live source, not a new disk reader. The UTC clock alone moves back a day;
+        // its monotonic timestamp has not advanced through even one five-minute refresh interval.
+        clock.Offset = -TimeSpan.FromDays(1);
+        pool.Body = ForClass(Answer(), "WARLOCK");
+        var hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        pool.Hold = hold;
+        try
+        {
+            Assert.Empty(Guide()!.Pairs);
+        }
+        finally
+        {
+            hold.TrySetResult();
+        }
+
+        await source.PairsWork.WaitAsync(TimeSpan.FromMinutes(1));
+        Assert.Empty(Guide()!.Pairs);
+        Assert.Equal(2, pool.Requests.Count);
+    }
+
+    private sealed class OffsetClock(TimeProvider clock) : TimeProvider
+    {
+        public TimeSpan Offset { get; set; }
+
+        public override DateTimeOffset GetUtcNow() => clock.GetUtcNow() + Offset;
+
+        public override long GetTimestamp() => clock.GetTimestamp();
+
+        public override long TimestampFrequency => clock.TimestampFrequency;
+    }
+
+    private (MulliganGuideSource Source, SemaphoreSlim Changed) Source(FixtureApi api, FakePool pool, Func<string>? address = null, TimeProvider? time = null)
     {
         var source = new MulliganGuideSource(new HearthpulseData(new HearthpulseApi(new HttpClient(api), "https://api.test/"), Path.Combine(_cache, "api")),
-            new MulliganPairs(new HttpClient(pool), address ?? (() => Pool), Path.Combine(_cache, "pool")) { Time = _time }) { Time = _time };
+            new MulliganPairs(new HttpClient(pool), address ?? (() => Pool), Path.Combine(_cache, "pool")) { Time = time ?? _time }) { Time = time ?? _time };
         var changed = new SemaphoreSlim(0);
         source.Changed += () => changed.Release();
         return (source, changed);

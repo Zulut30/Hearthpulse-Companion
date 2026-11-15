@@ -295,6 +295,8 @@ after a clock change, is deleted before the pool is asked; one fetch at a time p
 publishes the external guide at once and adds the pairs when they land, to the deck guide and the archetype guide
 alike; it looks them up again every 5 minutes of a mulligan, drops them when the pool stops publishing them, and
 drops them at once when the deck or the pool's address changes (a late answer for another deck is discarded).
+The five-minute interval uses a monotonic clock. A backwards UTC jump drops the in-memory pairs immediately and
+rechecks the pool, so a guide kept open cannot bypass the disk copy's age or future-date checks.
 `MulliganGuide.PairEffect` computes difference = p(both) − p(onlyA) − p(onlyB) + p(none) with the nominal interval
 of that difference; a pair gets a line when |difference| ≥ 1.5 points, the interval excludes zero, `both` has ≥ 200
 games (`MulliganGuide.MinPairGames`) and every other cell ≥ 30. The base is the pair's own games on purpose:

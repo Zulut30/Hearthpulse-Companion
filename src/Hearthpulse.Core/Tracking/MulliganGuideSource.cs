@@ -35,7 +35,8 @@ public sealed partial class MulliganGuideSource(HearthpulseData data, MulliganPa
     /// <summary>What <see cref="_pairs"/> belong to: the deck's key and the pool's address; null before the first deck.</summary>
     private string? _pairsKey;
     private IReadOnlyList<GuidePair> _pairs = [];
-    private DateTimeOffset _pairsDue;
+    private long? _pairsRefreshedAt;
+    private DateTimeOffset? _pairsObservedAt;
     private int _pairsRun;
     private Task _pairsWork = Task.CompletedTask;
 
@@ -161,19 +162,24 @@ public sealed partial class MulliganGuideSource(HearthpulseData data, MulliganPa
 
         var key = _key + "|" + pairs.Address;
         var now = Time.GetUtcNow();
-        if (key != _pairsKey)
+        var clockMovedBack = _pairsObservedAt is { } observed && now < observed;
+        _pairsObservedAt = now;
+        if (key != _pairsKey || clockMovedBack)
         {
             _pairsKey = key;
-            _pairsDue = now;
+            _pairsRefreshedAt = null;
             SetPairs([]);
         }
 
-        if (now < _pairsDue)
+        // The refresh interval is elapsed time, not a UTC deadline. A backwards wall-clock jump also drops
+        // the numbers immediately, so the disk reader can reject its now-future copy on this lookup.
+        var timestamp = Time.GetTimestamp();
+        if (_pairsRefreshedAt is { } refreshed && Time.GetElapsedTime(refreshed, timestamp) < PairsRefresh)
         {
             return;
         }
 
-        _pairsDue = now + PairsRefresh;
+        _pairsRefreshedAt = timestamp;
         var run = ++_pairsRun;
         var work = Task.Run(() => LoadPairsAsync(key, run, format, playerClass));
         _pairsWork = Task.WhenAll(_pairsWork, work);
