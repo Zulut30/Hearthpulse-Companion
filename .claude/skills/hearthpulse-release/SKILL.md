@@ -7,7 +7,8 @@ description: Use when preparing, cutting or debugging a Hearthpulse release - ve
 
 Publishing is outward-facing and hard to undo: **tagging, pushing, running the release workflow or editing a GitHub
 release happen only on the user's explicit word.** Everything up to that point (bump, notes, local checks) can be
-prepared on a branch.
+prepared on a branch. Editing a workflow for security (permissions, action pins, secrets, triggers):
+[hearthpulse-ci-security](../hearthpulse-ci-security/SKILL.md).
 
 ## How a release is built
 

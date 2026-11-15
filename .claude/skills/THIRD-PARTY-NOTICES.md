@@ -5,7 +5,7 @@ Hearthpulse, and the licence text. Each copied file also carries a one-line sour
 frontmatter. Everything else in `.claude/skills/` and `.claude/agents/` is Hearthpulse's own.
 
 Imported 2026-10-29 (task `TASK-2026-10-29-skills-import`). Only Markdown was taken: no scripts, hooks, settings,
-plugins or MCP servers.
+plugins or MCP servers. Later imports have their own dated section.
 
 ## mattpocock/skills
 
@@ -119,6 +119,142 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Method skills imported 2026-11-15
+
+Seven project skills (`hearthpulse-avalonia`, `-analytics`, `-privacy`, `-ci-security`, `-observability`,
+`-performance`, `-test-gaps`) built on eight third-party skills. Each upstream `SKILL.md` was read whole, with the
+reference files named below, at the commit given (the `HEAD` of the default branch on 2026-11-15). Only Markdown
+was read and no file was copied whole: every project file is rewritten around this repository's code, contracts and
+owner decisions, and keeps the upstream's method, some rule wording and some tables. No scripts, hooks, settings,
+plugins, MCP servers, `agents/openai.yaml` or evaluation files were taken. Upstream files were fetched into the
+ignored `dist/` folder with the Codex `skill-installer` script (`--ref <commit> --dest`), never into a global skills
+folder. `dotnet/skills` is also available to Codex as plugins (`dotnet-diag`, `dotnet-test`); the project skills
+below do not depend on them.
+
+| Project path | Source (repository, path) | Commit, commit date | Licence | Changes |
+|---|---|---|---|---|
+| `hearthpulse-avalonia/SKILL.md` | [codewithmukesh/dotnet-claude-kit](https://github.com/codewithmukesh/dotnet-claude-kit) `skills/avalonia/SKILL.md` | `6de62a5a64c1d4e2c8b14f9c0b8cf8bb4690814d`, 2026-11-04 | MIT, Copyright (c) 2025 Mukesh Murugan | kept: compiled bindings and `x:DataType`, C# `Binding` = reflection binding, `StyledProperty` / `DirectProperty`, pseudo-classes, `ControlTheme` and `PART_*`, dispatcher rules, `TopLevel` services, 12 renames. Replaced: the sample app by `AppHost` / `DesktopApp`, shared-source view models and the two-UI binding check. Dropped: Generic Host and DI, `ViewLocator`, CommunityToolkit.Mvvm, Native AOT and trimming, packaging, Velopack, all sample code |
+| `hearthpulse-analytics/SKILL.md`, `hearthpulse-analytics/reference/statistics.md` | [anthropics/knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins) `data/skills/statistical-analysis/SKILL.md` | `e91a134584eb798bac7fb0379358006a2b63b965`, 2026-11-13 | Apache-2.0 (the `data` plugin's `LICENSE`; the repository has no `NOTICE` file and the licence text names no copyright holder) | kept, reworded for game statistics: choosing a summary, sample-size and practical-significance cautions, correlation vs causation, multiple comparisons, Simpson's paradox, survivorship, false precision. Dropped: business percentiles, pandas snippets, trend, seasonality and forecasting, outlier formulas, the hypothesis-test table. `SKILL.md` itself is the project's own contract (layers, catalogue, thresholds, availability, readiness) and takes only the framing |
+| `hearthpulse-privacy/SKILL.md`, `hearthpulse-privacy/reference/data-flows.md` | [github/awesome-copilot](https://github.com/github/awesome-copilot) `skills/gdpr-compliant/SKILL.md`, `references/data-rights.md` (`references/security.md` not used) | `8ecd5b17f02fe5fbebf35eccd1867265eded811f`, 2026-11-13 | MIT, Copyright GitHub, Inc. | kept: the golden rule, purpose per field, minimisation, retention fixed at design time and enforced by a job, erasure across every store, "log events not data", synthetic test data. Replaced: API, encryption, cloud and CI/CD rules by this project's flows, switches, identifiers, TTLs and forget paths. Dropped: RoPA, DPIA, DPA, DSR tracker, password hashing, KMS, CORS, breach response; opt-in as an absolute rule (the owner's recorded defaults stand) |
+| `hearthpulse-ci-security/SKILL.md`, `hearthpulse-ci-security/reference/workflows.md` | [github/awesome-copilot](https://github.com/github/awesome-copilot) `skills/github-actions-hardening/SKILL.md`, `references/triggers-and-privilege.md`, `injection.md`, `permissions-and-tokens.md`, `supply-chain.md` (`report-format.md` not used) | `8ecd5b17f02fe5fbebf35eccd1867265eded811f`, 2026-11-13 | MIT, Copyright GitHub, Inc. | kept: `${{ }}` as text injection, the trigger trust matrix, least-privilege `permissions:`, SHA pins with a version comment, Dependabot for pins, artifacts as data, `persist-credentials`. Replaced: the fixed seven steps by this repository's order of risk, the emoji severity by B/M/m, "never auto-apply" by the project's workflow with releases on the owner's word. Added: the inventory of the four workflows. Dropped: OIDC cloud recipes, self-hosted runners, the report template |
+| `hearthpulse-observability/SKILL.md` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) `skills/observability-and-instrumentation/SKILL.md` | `39b723ceebf81474d0557c1fecd01eddab585563`, 2026-11-14 | MIT, Copyright (c) 2025 Addy Osmani | kept: questions before signals, a signal per question, events not prose, naming the entry point, bounded fields, symptom alerts with a runbook, verifying the signal, red flags. Replaced: Express, Prometheus and OpenTelemetry examples by `Diag`, the account journal, `/healthz`, the synthetic smoke and data timestamps. Added: three separate planes and the rule that the app sends nothing without a consent setting. Dropped: tracing, RED/USE metrics, pager tiers |
+| `hearthpulse-performance/SKILL.md`, `hearthpulse-performance/reference/patterns.md` | [dotnet/skills](https://github.com/dotnet/skills) `plugins/dotnet-diag/skills/analyzing-dotnet-performance/SKILL.md`, `references/critical-patterns.md` (the six topic references not used) | `2877c712edc20643b72f64e2983b168e6661d607`, 2026-11-12 | MIT, Copyright (c) .NET Foundation and Contributors | kept: the critical patterns and the hot-path allocation patterns as tables, the "do not suggest" pitfalls, exact counts. Replaced: scan-everything by "only a measured path", the grep checklist and emoji report by the bench workflow. Added: the hot-path map, `tools/Hearthpulse.Bench`, the audit document, project threading rules |
+| `hearthpulse-performance/reference/trace-collection.md` | [dotnet/skills](https://github.com/dotnet/skills) `plugins/dotnet-diag/skills/dotnet-trace-collect/SKILL.md`, `references/dotnet-trace-collect.md` (`perfview.md`, `perfcollect.md`, `dotnet-monitor.md`, `dotnet-trace-collect-linux.md` not used) | `2877c712edc20643b72f64e2983b168e6661d607`, 2026-11-12 | MIT, Copyright (c) .NET Foundation and Contributors | kept: symptom to artifact (trace, two dumps, GC trace), the `dotnet-trace` commands, the PerfView notes and the "trigger on the symptom" rule, analysis tools, the hand-over checklist. Dropped: containers, Kubernetes, `dotnet-monitor`, .NET Framework, ASP.NET providers. Added: data-copy and consent limits, the short-lived worker, a privacy note for dumps |
+| `hearthpulse-test-gaps/SKILL.md`, `hearthpulse-test-gaps/reference/mutations.md` | [dotnet/skills](https://github.com/dotnet/skills) `plugins/dotnet-test/skills/test-gap-analysis/SKILL.md`, `references/mutation-catalog.md` (`per-test-read-only.md` not used) | `2877c712edc20643b72f64e2983b168e6661d607`, 2026-11-12 | MIT, Copyright (c) .NET Foundation and Contributors | kept: outcomes before mutations, the six result labels, observable-candidate and equivalence rules, verify-and-revert, closing only verified gaps, the output row. Replaced: scope and baseline by this repository's suites and commands, the risk ranking by the project's (leaks, hidden information, consent, data loss). Added: no tests owed for Markdown-only changes, read-only QA, Stryker targets as the canonical verifier. Dropped: other languages, `grade-tests` composition, the money and authorization walkthroughs |
+
+### Licence texts
+
+codewithmukesh/dotnet-claude-kit:
+
+```
+MIT License
+
+Copyright (c) 2025 Mukesh Murugan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+github/awesome-copilot:
+
+```
+MIT License
+
+Copyright GitHub, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+addyosmani/agent-skills:
+
+```
+MIT License
+
+Copyright (c) 2025 Addy Osmani
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+dotnet/skills:
+
+```
+The MIT License (MIT)
+
+Copyright (c) .NET Foundation and Contributors
+
+All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+anthropics/knowledge-work-plugins: Apache License 2.0, full text in
+[hearthpulse-analytics/LICENSE-Apache-2.0.txt](hearthpulse-analytics/LICENSE-Apache-2.0.txt), copied from the
+plugin's `data/LICENSE` at the commit above (it matches the canonical text). The two project files derived from it
+say in their source note what was changed, as section 4(b) of the licence asks.
 
 ## Ideas only, no text copied
 

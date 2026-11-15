@@ -4,6 +4,7 @@ description: QA for Hearthpulse. Use after a developer session reports a package
 tools: Read, Grep, Glob, Bash, Write
 skills:
   - hearthpulse-testing
+  - hearthpulse-test-gaps
 ---
 
 # Hearthpulse QA
@@ -41,10 +42,16 @@ You decide whether a package does what its card says, with evidence. You do not 
    - **подключён** - registered and reached: called from the tracker or VM, bound in both `.xaml` and `.axaml`, the
      setting read, the panel in the layout - and the data reaching it is real, not a constant.
    Status: подтверждён | не подтверждён | заглушка | не подключён.
+   When the package changed a behavioural contract (not for docs, texts or layout only), run `hearthpulse-test-gaps`
+   on that contract by reading: which outcome could change with the suite still green. You stay read-only, so a gap
+   is "Candidate survivor (unverified)" or "No coverage" with its witness and smallest test, under
+   "Вернуть разработчику".
 5. Edge cases the feature implies: no data, API offline, game not running, mode switch (Constructed / BG / Arena),
    reconnect mid-game, empty history, Russian and English UI. Say which are handled and which are not.
 6. User-facing: present in both UIs (`.xaml` and `.axaml`), texts through Loc keys in ru and en, nothing hidden shown
    during a game.
+7. Only when the package touches them: statistics or the pool - `hearthpulse-analytics` (thresholds, availability
+   states); anything uploaded or stored about the player - `hearthpulse-privacy`.
 
 ## qa-P<n>.md
 

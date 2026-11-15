@@ -33,11 +33,12 @@ gsd-build/get-shit-done (MIT) - see [notices](../THIRD-PARTY-NOTICES.md).
 
 - **Subagent:** run the role as a subagent ([tools](../hearthpulse-ship/SKILL.md#session-tools-by-environment)).
   The session lists the role as an agent type: use it, the role's skills come preloaded. Otherwise a general
-  subagent with "Твоя роль: прочитай `D:\HeartLens-main\HeartLens-main\.claude\agents\<role>.md`, открой скиллы из
+  subagent with "Твоя роль: прочитай `.claude/agents/<role>.md` от корня checkout, открой скиллы из
   его списка `skills` и выполняй" plus the inputs.
-- **Session:** the brief in step 3. Developers are sessions, not subagents: they need their own worktree, and the
-  owner wants to see and steer them.
-- **Task folder** `$task` = `D:\HeartLens-main\reference\tasks\TASK-<yyyy-mm-dd>-<slug>\`: card, design, handovers,
+- **Session:** the brief in step 3. In T3 use an isolated `delegate_task`; a separate top-level chat is created
+  only when the owner requests one. Elsewhere use the environment's supported isolated session.
+- **Task folder** `$task` = the folder given in the brief, otherwise `<repo>/../reference/tasks/TASK-<yyyy-mm-dd>-<slug>/`
+  if the sibling exists, or `<repo>/dist/tasks/TASK-<yyyy-mm-dd>-<slug>/`: card, design, handovers,
   QA. It is the team's ledger. After a compaction or in a new conversation, read the "Журнал" in `task.md` before
   starting or re-sending anything.
 
@@ -61,7 +62,8 @@ the design start at the same time (step 3).
 
 Per package, when its inputs exist (design.md, a contract from another package):
 
-- `git -C $repo worktree add D:\HeartLens-main\wt-<slug>-<pkg> -b claude/<slug>-<pkg> main`;
+- obtain the worktree through the environment's task API (see the tools table linked below); outside such an
+  environment, create a sibling checkout with `git worktree add`;
 - start a session in that worktree ([tools](../hearthpulse-ship/SKILL.md#session-tools-by-environment)): fresh
   context, title `<slug> · P<n> <role>`;
 - brief:

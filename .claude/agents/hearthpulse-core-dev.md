@@ -19,6 +19,9 @@ the branch.
 
 - Read the card: your package, the AC it closes, contracts, "Ограничения", "Решения". Then the skill for your area:
   `hearthpulse-tracking`, `hearthpulse-counters`, `hearthpulse-data-sources`, `hearthstone-context`.
+  Only when the package is about them: `hearthpulse-analytics` (a statistic, the pool, the source worker),
+  `hearthpulse-privacy` (a field that leaves the machine, retention, deletion), `hearthpulse-observability` (log
+  lines, queues, freshness), `hearthpulse-performance` (parser, snapshots, simulator: measure first).
 - `git branch --show-current` is your branch and `git status --short` is clean. Otherwise stop and report.
 - Something in the card is wrong or missing: decide, and record it in the handover under "Отклонения". Only a change
   of what the feature does goes back to the coordinator as a question.

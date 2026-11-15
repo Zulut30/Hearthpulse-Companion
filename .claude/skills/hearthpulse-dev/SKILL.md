@@ -14,6 +14,14 @@ Recipes: [hearthpulse-tracking](../hearthpulse-tracking/SKILL.md), [hearthpulse-
 [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md), [hearthpulse-release](../hearthpulse-release/SKILL.md),
 [hearthpulse-review](../hearthpulse-review/SKILL.md), [hearthpulse-parallel-work](../hearthpulse-parallel-work/SKILL.md).
 
+By concern, only when the task is about it: Avalonia framework mechanics -
+[hearthpulse-avalonia](../hearthpulse-avalonia/SKILL.md); own statistics and the pool -
+[hearthpulse-analytics](../hearthpulse-analytics/SKILL.md); data that leaves the machine -
+[hearthpulse-privacy](../hearthpulse-privacy/SKILL.md); logs, queues and freshness -
+[hearthpulse-observability](../hearthpulse-observability/SKILL.md); speed and memory -
+[hearthpulse-performance](../hearthpulse-performance/SKILL.md); workflow security -
+[hearthpulse-ci-security](../hearthpulse-ci-security/SKILL.md).
+
 ## Project map
 
 | Project | Target | Purpose |
@@ -132,7 +140,8 @@ Hearthstone writes Logs/Hearthstone_<date>/Power.log, Decks.log, LoadingScreen.l
 ```
 
 Combat odds: `BattlegroundsTracker` captures both boards at the first regular attack and runs `CombatSimulator`
-(up to 4000 fights, stops after 200 ms, at least 500) on the log thread.
+(first pass: up to 150 fights with a 40 ms budget on the log thread; refinement runs in a background task with
+the normal simulation options and cancellation). Read `BattlegroundsTracker.Combat.cs` for the current budgets.
 
 ## Data folder (`AppPaths`)
 

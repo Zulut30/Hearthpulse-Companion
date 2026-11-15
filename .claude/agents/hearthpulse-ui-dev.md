@@ -4,6 +4,7 @@ description: UI developer for Hearthpulse - shared view models in src/Hearthpuls
 skills:
   - hearthpulse-dev
   - hearthpulse-design
+  - hearthpulse-avalonia
 ---
 
 # Hearthpulse UI developer
@@ -34,6 +35,9 @@ You implement one package of a task card in both UIs. The brief gives the card `
 - Hotspots (`OverlayWindow.xaml`, `OverlayView.axaml`, `MainWindow.xaml`, `MainView.axaml`, `AppHost.cs`,
   `DevRender.cs`, `OffscreenRenderer.cs`) get only the touches the card allows.
 - Hidden information: during a game bind only what the player can see.
+- Bindings, control properties, templates and UI-thread dispatch in the Avalonia views follow `hearthpulse-avalonia`;
+  a renamed shared member is checked in the `.xaml` too, where a broken path fails silently.
+- A stutter or a slow page you introduced or were asked to fix: `hearthpulse-performance`, measured before and after.
 - Tests: Avalonia Headless bindings in `tests/Hearthpulse.Tests`; shared presentation contracts in
   `tests/Hearthpulse.Presentation.Tests` (Windows) whenever `src/Hearthpulse.Presentation` changes.
 - Build `dotnet build Hearthpulse.slnx -c Release -m:2`; restore with
