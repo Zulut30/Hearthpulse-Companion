@@ -154,7 +154,10 @@ public sealed class OwnBgHeroesTests : IDisposable
     public async Task A_copy_younger_than_thirty_minutes_answers_without_a_request()
     {
         var pool = new FakePool(Fixture());
-        await Load(pool);
+        // A clock between two milliseconds: the answer and its copy still carry one date.
+        _time.Advance(TimeSpan.FromTicks(1234));
+        var first = await Load(pool);
+        Assert.Equal(Start.UtcDateTime, first.FetchedAt);
         _time.Advance(OwnBgHeroes.MaxAge - TimeSpan.FromSeconds(1));
 
         var cached = await Load(pool);
@@ -167,7 +170,7 @@ public sealed class OwnBgHeroesTests : IDisposable
         var fresh = await Load(pool);
 
         Assert.Equal(2, pool.Requests.Count);
-        Assert.Equal(_time.GetUtcNow().UtcDateTime, fresh.FetchedAt);
+        Assert.Equal(Start.UtcDateTime + OwnBgHeroes.MaxAge, fresh.FetchedAt);
     }
 
     [Fact]

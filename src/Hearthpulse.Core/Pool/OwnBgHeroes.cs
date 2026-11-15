@@ -119,7 +119,8 @@ public static class OwnBgHeroes
 
         endpoint = endpoint.TrimEnd('/');
         var file = Path.Combine(cacheDirectory ?? Path.Combine(AppPaths.Cache, "api"), CacheName);
-        var now = (time ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+        // Whole milliseconds, as the copy on disk keeps the time: a fresh answer and its copy carry the same date.
+        var now = DateTimeOffset.FromUnixTimeMilliseconds((time ?? TimeProvider.System).GetUtcNow().ToUnixTimeMilliseconds()).UtcDateTime;
         try
         {
             var copy = await ReadCopyAsync(file, endpoint, cancellationToken).ConfigureAwait(false);
