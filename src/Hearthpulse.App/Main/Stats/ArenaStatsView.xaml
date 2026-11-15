@@ -365,6 +365,13 @@
                                         Visibility="{Binding ArenaCommunityUnavailable, Converter={StaticResource Vis}}" />
                         <ContentControl x:Name="ArenaCommunityNoSplit" Style="{DynamicResource EmptyState}" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityNoSplit}"
                                         Visibility="{Binding ArenaCommunityNoSplit, Converter={StaticResource Vis}}" />
+                        <!-- When the class numbers were collected, and the delay line while their collection is late -->
+                        <StackPanel x:Name="ArenaDataLines" Margin="0,8,0,0" Visibility="{Binding ArenaCommunity, Converter={StaticResource Vis}}">
+                            <TextBlock Text="{Binding ArenaDataDate}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap"
+                                       Visibility="{Binding ArenaDataDate, Converter={StaticResource Vis}}" />
+                            <TextBlock Text="{Binding ArenaDataDelay}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap"
+                                       Visibility="{Binding ArenaDataDelay, Converter={StaticResource Vis}}" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
             </StackPanel>

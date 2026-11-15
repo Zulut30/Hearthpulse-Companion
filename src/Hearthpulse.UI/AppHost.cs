@@ -116,6 +116,7 @@ public sealed partial class AppHost : IDisposable
         };
         // The install's secret or "earlier games shared" is new in the settings; raised off the UI thread.
         _services.PoolSharing.SettingsChanged += () => Dispatcher.UIThread.Post(() => _settingsDebounce.Kick());
+        StartDataHealth();
         Main.CrashReportsChanged += () =>
         {
             // Switched off: consent withdrawn, what waits is not sent.
@@ -427,12 +428,14 @@ public sealed partial class AppHost : IDisposable
         // The tier tabs' lists come from another host: beside the meta, not after it, so a slow answer of either
         // holds the other back as little as a fresh cache does.
         LoadBgSiteAsync().Forget("Battlegrounds site stats load");
+        LoadDataHealthAsync().Forget("Data health");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings);
         if (meta is not null)
         {
             Meta = meta;
             Session.SetMeta(meta);
             Main.SetMeta(meta);
+            Overlay.SetBgDataDate(meta.Updated);
         }
         else
         {

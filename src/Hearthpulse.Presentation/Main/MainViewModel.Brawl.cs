@@ -68,7 +68,12 @@ public sealed partial class MainViewModel
     public string BrawlUnclassed { get => _brawlUnclassed; private set => Set(ref _brawlUnclassed, value); }
 
     /// <summary>"Hearthpulse data · 28,515 games"; empty without any game.</summary>
-    public string BrawlSource { get => _brawlSource; private set => Set(ref _brawlSource, value); }
+    /// <summary>How many games the class table counts; while the collection is late, the delay line goes under it.</summary>
+    public string BrawlSource
+    {
+        get => _brawlSource.Length > 0 ? WithDelay(_brawlSource, BrawlDataDelay) : _brawlSource;
+        private set => Set(ref _brawlSource, value);
+    }
 
     /// <summary>The player's classes in the Brawl played last.</summary>
     public IReadOnlyList<StatGroupRow> BrawlMine

@@ -125,6 +125,7 @@ public partial class App : Application
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
         _mainViewModel.AttachAccount(_account);
         _mainViewModel.AttachTwitch(services.Twitch);
+        StartDataHealth();
         _mainViewModel.CrashReportsChanged += () =>
         {
             // Switched off: consent withdrawn, what waits is not sent.
@@ -412,12 +413,14 @@ public partial class App : Application
         // The tier tabs' lists come from another host: beside the meta, not after it, so a slow answer of either
         // holds the other back as little as a fresh cache does.
         LoadBgSiteAsync().Forget("Battlegrounds site stats load");
+        LoadDataHealthAsync().Forget("Data health");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(_api, _http, _settings);
         if (meta is not null)
         {
             _meta = meta;
             _session.SetMeta(meta);
             _mainViewModel.SetMeta(meta);
+            _overlayViewModel.SetBgDataDate(meta.Updated);
         }
         else
         {

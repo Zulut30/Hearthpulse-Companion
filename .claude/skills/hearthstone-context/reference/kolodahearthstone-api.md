@@ -30,6 +30,8 @@ HSReplay, 22 HSGuru, 8 Firestone, Vicious Syndicate, Metastats, Blizzard, Hearth
 `enabled`, `freshness_state`, `stale`, `age_hours`, `stale_after_hours`, `last_success_at`, `next_run_at`,
 `completeness`, `diagnostics`, `site`, `category`, `url`. `GET /v1/health` summarises (`serving_ok`, `freshness_ok`,
 `degraded`, `stale_sources[]`, `operationally_disabled_sources[]`). Raw stored answers: `GET /datasets/{source_id}`.
+The app reads both since 2026-11-15 (`Core/Api/DataHealth.cs`; `freshness_state` seen: `fresh`, `upstream_pending`,
+`disabled`; a source in `hard_failed_sources[]` can still be `fresh` by age).
 
 **Provenance caveat.** HSReplay mulligan and card-choice answers carry `premium: true` / `premium_session` and are
 collected through scrape.do on a daily credit budget (`stop_reason: scrape_do_budget`); per-opponent-class splits

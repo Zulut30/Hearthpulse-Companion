@@ -25,6 +25,7 @@ public sealed partial class AppHost
             ArenaMeta = meta;
             Session.SetArenaMeta(meta);
             Main.SetArenaMeta(meta);
+            Overlay.SetArenaDataDate(meta.FetchedAt);
         }
         catch (Exception ex)
         {

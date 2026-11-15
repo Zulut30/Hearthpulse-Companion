@@ -90,6 +90,28 @@ public sealed class BrawlPageTests
     }
 
     [Fact]
+    public async Task A_late_collection_puts_the_delay_line_under_the_games_line_and_a_fresh_one_takes_it_off()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var vm = new MainViewModel(HistoryStore.InMemory(), new AppSettings(), TestDataFolder.App);
+        vm.SetBrawlMeta(new BrawlMeta([new BrawlClassStat("PRIEST", 0.56, 0.12, 3540)], 3540, 0) { FetchedAt = DateTime.UtcNow });
+        await Until(() => vm.BrawlClasses.Count == 1);
+        var games = vm.BrawlSource;
+        Assert.DoesNotContain('\n', games);
+
+        var collected = new DateTime(2026, 11, 12, 3, 35, 0, DateTimeKind.Utc);
+        Hearthpulse.Core.Api.DataHealthReport Summary(Hearthpulse.Core.Api.DataFreshness state) =>
+            new([new Hearthpulse.Core.Api.DataSourceHealth("hsguru_brawl", state, 90, 12, collected, null)], DateTime.UtcNow);
+        vm.SetDataHealth(Summary(Hearthpulse.Core.Api.DataFreshness.Stale));
+
+        Assert.Equal(games + "\n" + Loc.F("Source.Health.Delay", collected.ToLocalTime()), vm.BrawlSource);
+        Assert.Equal(string.Empty, vm.ArenaDataDelay);
+
+        vm.SetDataHealth(Summary(Hearthpulse.Core.Api.DataFreshness.Fresh));
+        Assert.Equal(games, vm.BrawlSource);
+    }
+
+    [Fact]
     public async Task Numbers_over_a_week_old_say_when_they_were_fetched()
     {
         // Review m1: the server has not answered for a while; "this week's" would be wrong.

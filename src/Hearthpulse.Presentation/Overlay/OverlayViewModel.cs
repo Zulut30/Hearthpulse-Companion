@@ -185,9 +185,29 @@ public sealed partial class OverlayViewModel : Observable
     public string RatingDelta { get => _ratingDelta; private set => Set(ref _ratingDelta, value); }
     public int RatingDeltaValue { get => _ratingDeltaValue; private set => Set(ref _ratingDeltaValue, value); }
     public IReadOnlyList<CombatDot> Combats { get => _combats; private set => Set(ref _combats, value); }
-    public IReadOnlyList<HeroPickCard> HeroPicks { get => _heroPicks; private set => Set(ref _heroPicks, value); }
+    public IReadOnlyList<HeroPickCard> HeroPicks
+    {
+        get => _heroPicks;
+        private set
+        {
+            if (Set(ref _heroPicks, value))
+            {
+                RaiseDataNotes();
+            }
+        }
+    }
     public IReadOnlyList<ShopBadge> ShopBadges { get => _shopBadges; private set => Set(ref _shopBadges, value); }
-    public IReadOnlyList<TrinketBadge> TrinketPicks { get => _trinketPicks; private set => Set(ref _trinketPicks, value); }
+    public IReadOnlyList<TrinketBadge> TrinketPicks
+    {
+        get => _trinketPicks;
+        private set
+        {
+            if (Set(ref _trinketPicks, value))
+            {
+                RaiseDataNotes();
+            }
+        }
+    }
     public IReadOnlyList<DiscoverBadge> DiscoverBadges { get => _discoverBadges; private set => Set(ref _discoverBadges, value); }
     public string OddsWin { get => _oddsWin; private set => Set(ref _oddsWin, value); }
     public string OddsTie { get => _oddsTie; private set => Set(ref _oddsTie, value); }
@@ -299,6 +319,7 @@ public sealed partial class OverlayViewModel : Observable
     {
         _fingerprints.Clear();
         _handMarksKey = string.Empty;
+        RaiseDataNotes();
         Lobby = null;
         RebuildBrowser();
         RebuildCounters();

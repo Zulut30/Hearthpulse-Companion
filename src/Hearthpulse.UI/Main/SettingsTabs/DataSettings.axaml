@@ -50,6 +50,28 @@
                 <TextBlock Name="ReplayLimitNote" Text="{i:Loc Match.Settings.ReplayLimit}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
             </StackPanel>
         </Border>
+        <!-- How current the numbers from the data API are, by part of the app (Core/Api/DataHealth.cs) -->
+        <Border Name="DataHealthCard" Classes="card" Margin="0,0,0,16">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Source.Health.Title}" Icon="&#xF0450;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Source.Health.Caption}" Classes="caption cardNote" />
+                <ItemsControl Name="DataHealthList" ItemsSource="{Binding DataHealthRows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:DataHealthRow">
+                            <Grid Margin="0,0,0,6" ColumnDefinitions="*,120,220">
+                                <TextBlock Text="{Binding Name}" TextWrapping="Wrap" Margin="0,0,12,0" />
+                                <TextBlock Grid.Column="1" Text="{Binding Date}" Classes="caption" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="{Binding State}" Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center" IsVisible="{Binding !Attention}" />
+                                <TextBlock Grid.Column="2" Text="{Binding State}" Classes="caption" Foreground="{StaticResource Info}" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           IsVisible="{Binding Attention}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Name="DataHealthNote" Text="{Binding DataHealthNote}" Classes="caption" TextWrapping="Wrap" Margin="0,8,0,12" />
+                <Button Name="DataHealthCheck" Classes="ghost" Content="{i:Loc Source.Health.Check}" Command="{Binding CheckDataHealth}" HorizontalAlignment="Left" />
+            </StackPanel>
+        </Border>
         <!-- The settings file (export / import) and "reset everything", which asks first in place -->
         <Border Name="SettingsFileCard" Classes="card">
             <StackPanel>

@@ -417,7 +417,9 @@ on the UI thread after every `LoadAsync`; the hosts give the view model the slic
   `BgSiteStats.Run`; comps have no slice, only `CompsFetchedAt`.
 - **Old numbers.** The cache's old file answers for as long as the service fails or stops giving a list, so the date
   is always in the line, and numbers fetched more than 14 days ago (`MainViewModel.BgStaleAfter`) are marked
-  "out of date" (`Main.Bg.Stale`).
+  "out of date" (`Main.Bg.Stale`). When the data API's own summary says a list's collector is late or failed
+  (`Core/Api/DataHealth.cs`, sections `BgHeroes`, `BgMinions`, `BgTrinkets`, `BgComps`), the tab's line gets a second
+  line, "Data from <date>: the update is delayed.", in place of that mark; the rows stay.
 - **Slices.** Heroes and trinkets have a picker of `BgSiteClient.HeroSlices(duos)` / `TrinketSlices`; the default
   slice is the refresh's own list, another one is asked for when picked (the shown rows stay meanwhile, the line says
   "loading top 5 %..."; for heroes with the mode asked for, "loading Duos, top 20 %..."), and again after each refresh while it stays picked. `null` from a slice method is one neutral
