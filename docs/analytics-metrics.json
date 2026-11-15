@@ -315,6 +315,24 @@
       "smallSample": "every number needs at least 5 installations (owner) among its own observations, else null; value null below 10 games",
       "display": "M1: mulligan helper",
       "status": "needs_fields"
+    },
+    {
+      "id": "mulligan.pair_winrate",
+      "version": 1,
+      "rulesVersion": "mull-pairs-1",
+      "area": "mulligan",
+      "title": "Win rate of two cards offered together in the opening hand, by which of them were kept",
+      "unit": "one compact game record of one installation (table e, docs/game-stats.md): Ranked, Standard or Wild, with a class, a result W or L and a mulligan; window record.day in [today - 30, today]",
+      "numerator": "per pair of different cards (a < b) offered together in one opening hand, per keep cell (both kept, only a kept, only b kept, neither kept): records of the cell with record.res = W",
+      "denominator": "records of the cell; the pair's own cell is both kept: the games where both cards were kept in the opening hand",
+      "fields": ["record.mode", "record.fmt", "record.cls", "record.res", "record.day", "record.mull.offered", "record.mull.kept", "record.iid"],
+      "missing": "a record without a class, a mulligan or a win/loss result (a tie included) is left out of every cell; a card offered twice counts once and two copies of one card are not a pair; a card kept while the other was not on offer is in no cell of that pair; records carry no game build, so the 30-day window is the only bound on patch mix and builds cannot be told apart",
+      "groupBy": ["record.fmt", "record.cls"],
+      "smallSample": "a pair is listed only when its both-kept cell holds 200 games (MIN_PAIR_GAMES) of at least 5 installations (distinct iid), else it is absent, never padded; each comparison cell (only a, only b, neither) is null under 5 installations or under 10 games (MIN_CELL); at most 200 pairs a group, most played first. The app shows a value only with all four cells, 30 games in each comparison cell and an interval of the difference that excludes zero",
+      "statistics": "pair effect = p(both) - p(only a) - p(only b) + p(neither); the four cells are disjoint games, so the 95% interval of the difference is +/- 1.96 * sqrt(sum of p(1-p)/n over the cells), each share smoothed by one win and one loss; shown only when the interval excludes zero and the effect is at least 1.5 points. Games of one installation count as independent (only counts are published), so the interval understates the uncertainty when few installations carry a pair; installs is published beside the counts",
+      "api": "GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>",
+      "display": "M1: mulligan panel of both apps - a synergy flag on both cards, and the effect with its interval, the games with both kept and the label Hearthpulse statistics in the card tooltip and the summary details",
+      "status": "implemented"
     }
   ],
   "fieldMatrix": [
@@ -364,6 +382,14 @@
     { "field": "mulligan.offered", "status": "add", "source": "planned: opening hand instances" },
     { "field": "mulligan.kept", "status": "add", "source": "planned: kept instances" },
     { "field": "mulligan.replaced", "status": "add", "source": "planned: replaced instances" },
-    { "field": "mulligan.received", "status": "add", "source": "planned: cards received after the swap" }
+    { "field": "mulligan.received", "status": "add", "source": "planned: cards received after the swap" },
+    { "field": "record.mode", "status": "have", "source": "compact game record v1, column mode (docs/game-stats.md)" },
+    { "field": "record.fmt", "status": "have", "source": "compact game record v1, column fmt: standard, wild, classic, twist" },
+    { "field": "record.cls", "status": "have", "source": "compact game record v1, cls: the player's class" },
+    { "field": "record.res", "status": "have", "source": "compact game record v1, res: W, L or T" },
+    { "field": "record.day", "status": "have", "source": "compact game record v1, column day (days since 1970, UTC)" },
+    { "field": "record.mull.offered", "status": "have", "source": "compact game record v1, mull.o: cards offered in the opening hand (the Coin left out), at most 6" },
+    { "field": "record.mull.kept", "status": "have", "source": "compact game record v1, mull.k: the offered cards that were kept" },
+    { "field": "record.iid", "status": "have", "source": "column iid of table e: the install id the record came with; counted, never published" }
   ]
 }

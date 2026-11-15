@@ -130,6 +130,15 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
   (1 to 20 records, each rebuilt from known fields only, at most 24 KB; 8,000 a day), `POST /v1/events/forget` with
   `{"iid":...}` deletes every record of that install, `GET /v1/events/summary` returns games per day, the most picked
   Discover options and the mulligan keep rate per card (10 games or more a card). Records are kept 180 days.
+- `GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>` (metric `mulligan.pair_winrate`, rules
+  `mull-pairs-1`, [docs/analytics-metrics.md](../../docs/analytics-metrics.md)): pairs of different cards offered
+  together in the opening hand of Ranked games of that format and class over the last 30 days, each as
+  `{a, b, installs, both, onlyA, onlyB, none}` with `[games, wins]` per keep cell. A pair needs 200 games with both
+  kept, of 5 installs or more; a comparison cell under 5 installs or 10 games is `null`; at most 200 pairs. No
+  install id, record id or deck in the answer. Built in the same rebuild as the summary into `snap` row
+  `mull-pairs` (no migration), deleted with it by `/v1/events/forget` and the clean-up in one transaction, answered
+  `Cache-Control: no-store`; `400` for a missing or malformed parameter. Behind nginx the route must be in the
+  location's list (`deploy/nginx-source-capture.conf`).
 
 For a local test, run `npx wrangler dev --test-scheduled` and open `/__scheduled` to run the cron job.
 

@@ -107,11 +107,28 @@ public sealed record GuideDeck(int Games, IReadOnlyDictionary<int, int> Cards);
 /// <summary>The archetype's results against one opponent archetype.</summary>
 public sealed record GuideMatchup(string OpponentClass, int Games, double WinRate);
 
+/// <summary>Games and wins of one keep choice of a pair.</summary>
+public sealed record PairCell(int Games, int Wins)
+{
+    public double WinRate => Games > 0 ? (double)Wins / Games : 0;
+}
+
 /// <summary>
-/// Two cards in the opening hand together. No server endpoint publishes this yet (docs/mulligan-v2.md, 4.2), so the
-/// list stays empty and no synergy is shown; the maths below is ready for it.
+/// Two different cards offered together in the opening hand, from Hearthpulse's own statistics (metric
+/// <c>mulligan.pair_winrate</c>, <see cref="Pool.MulliganPairs"/>; docs/mulligan-v2.md, 4.2): the games of the player's
+/// class and format by what was kept. Every game here had both cards on offer, so all four cells come from decks that
+/// hold both, and the comparison cells are the pair's own base numbers.
 /// </summary>
-public sealed record GuidePair(string CardA, string CardB, int Games, double WinRate);
+/// <param name="Installations">Installations behind <paramref name="Both"/> (the pool publishes none under five).</param>
+/// <param name="Both">Both cards kept.</param>
+/// <param name="OnlyA">Only <paramref name="CardA"/> kept; null when the pool hid the cell as too small.</param>
+/// <param name="OnlyB">Only <paramref name="CardB"/> kept; null when hidden.</param>
+/// <param name="Neither">Both replaced; null when hidden.</param>
+public sealed record GuidePair(string CardA, string CardB, int Installations, PairCell Both, PairCell? OnlyA, PairCell? OnlyB, PairCell? Neither)
+{
+    /// <summary>Games with both cards kept.</summary>
+    public int Games => Both.Games;
+}
 
 /// <summary>Everything the guide knows about the archetype the player's deck matched.</summary>
 public sealed record GuideArchetype(int Id, string Name, string Class, IReadOnlyList<GuideCard> Cards, IReadOnlyList<GuideMatchup> Matchups, string Source)
@@ -167,8 +184,14 @@ public enum MulliganCall
     Mulligan,
 }
 
-/// <summary>Two offered cards whose results together differ from the sum of their own (needs pair data).</summary>
-public sealed record MulliganSynergy(int EntityA, int EntityB, string NameA, string NameB, double Interaction, int Games);
+/// <summary>
+/// Two offered cards that win more (or less) kept together than keeping each alone adds up to, in Hearthpulse's own
+/// statistics (<see cref="MulliganGuide.PairEffect"/>).
+/// </summary>
+/// <param name="Interaction">The difference, as a fraction (0.03 = 3 points).</param>
+/// <param name="Games">Games with both cards kept.</param>
+/// <param name="Margin">Half-width of the difference's 95 % interval; a synergy is listed only when it is smaller than the difference.</param>
+public sealed record MulliganSynergy(int EntityA, int EntityB, string NameA, string NameB, double Interaction, int Games, double Margin);
 
 /// <summary>What the current choice of keeps is expected to do.</summary>
 /// <param name="Expected">Estimated win rate when exactly these cards are kept.</param>

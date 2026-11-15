@@ -144,7 +144,8 @@ Not used:
 - `/v1/hsguru/archetypes/analysis` has `class_matchups` and per-card `mulligan_impact` / `kept_impact` (Legend, past
   week): the source of the HSGuru guide (Wild, archetypes HSReplay lacks); the slices above add the splits.
 
-Searched and **not found** anywhere on the server: card pairs / "kept with", per-copy stats and HSReplay's G-V2 keep model.
+Searched and **not found** anywhere on the data API: card pairs / "kept with", per-copy stats and HSReplay's G-V2 keep model.
+Card pairs come from Hearthpulse's own game records instead (section 4.2).
 The only card-to-card graph is Vicious Syndicate's radar (`app/vicious_syndicate.py`). Its edges come from deck
 co-occurrence, not from mulligan results.
 
@@ -204,7 +205,7 @@ numbers every card starts kept, so no bar reads as "replace".
 | Keep rate, kept / replaced / drawn | **data (HSGuru slices)** | From the most specific slice that has the card (class, then coin, then all games; Legend first): keep rate, win rate when kept and when replaced, win rate when drawn, all against the deck's. Without a slice: HSReplay's keep rate and `winrate_when_drawn` − baseline. Shown, not used for the call (selection bias, section 2.1). |
 | Duplicates | **heuristic (labelled)** | The stat describes holding the card, so a second copy adds nothing measurable. In the estimate it counts 0 and blocks a replacement. Recommendation: keep the second copy only for an early play (expected turn ≤ 3) that players keep ≥ 50% of the time. |
 | Mana curve | **heuristic (labelled), warnings only** | Early = cost ≤ 2 or `avg_turn_played_on` ≤ 3. Late = cost ≥ 5, or cost 4 and usually played on turn 6+. The average turn alone is misleading: HSReplay counts late plays too, so 1-mana Void Soul averages turn 4.4. Warnings: no early play kept; top-heavy (≥ 2 late cards kept); both copies of a non-early card kept. A late card gets a note on its plate. The numbers do not change. |
-| Synergies | **no data → off** | `GuidePair` is ready for a future endpoint (interaction = pair WR − additive estimate, against the cards' *unshifted* deltas: pair win rates are over all games, so a coin or class shift of both cards would otherwise read as a synergy of the same size). With no pairs the panel says so, and no synergy is ever invented. |
+| Synergies | **own data (Hearthpulse statistics)** | Pairs of the player's class and format from the stats pool (`Core/Pool/MulliganPairs.cs`, metric `mulligan.pair_winrate`, section 4.2), laid beside whichever guide was found: the deck's or the archetype's. Interaction = p(both kept) − p(only A) − p(only B) + p(neither), inside the pair's own games, so neither the external card rows nor their coin or class shifts touch it. Shown only with ≥ 200 games with both kept, ≥ 30 in each other cell, |interaction| ≥ 1.5 points and a 95 % interval of the difference that excludes zero; the line carries the interval, the games and "Hearthpulse statistics". With no pairs (no pool, too few games) the panel says so, and no synergy is ever invented. |
 | Impact of your keeps | **model + heuristic shrink** | E[WR \| keep K] ≈ baseline + (Σ Δ(first copies kept) + (cards replaced) × Δ(replacement) + kept pair interactions) / √(hand size). A plain sum overshoots, because the deltas are marginal and share causes: a real Void DH hand of three strong cards came out at 71%. The √ shrink brings that to 63% and leaves every comparison between keep sets unchanged. The panel compares the estimate with the recommended keeps and with a full mulligan. Clicking a plate toggles that card, and the line updates. |
 | Slices loading | **data** | `MulliganGuideSource` matches the deck to an HSGuru archetype too (by its lists), loads the all-games slices with the guide, and the coin and class slices once the mulligan knows them (`For(..., opponentClass, goingFirst)`, background, `Changed` again). Legend and all ranks, cached 6 h like every answer; 404s are remembered. A coin / class lookup that brought nothing new (offline) is tried again after 5 minutes. When HSGuru lists both an original and its reprint, the deck's id keeps the row with more games. |
 | Sources in order | **data** | 0. The collected deck with the player's exact list, else one within two cards (section 2.2; Standard and Wild); when it matches, the sources below are not asked. 1. HSReplay archetype the deck matches (Standard). 2. HSGuru archetype whose lists the deck matches, with its HSGuru analysis (Legend, past week; Standard and Wild): kept games stand for the opening hand, the class results give the baseline and the class shift. 3. `ConstructedMeta` (docs/constructed-meta-api.md): its archetype by core cards, else the class pool. A guide that cannot compute falls through to the next. The cost replaces the average turn when the source has none. |
@@ -274,21 +275,27 @@ Client: `MulliganGuideSource` would request the opponent's class once the oppone
 
 ### 4.2 Card pairs in the opening hand (synergies)
 
-HSReplay does not publish pair stats for archetypes. They must come from replays the server can see (for example the
-Hearthpulse users' own games, which `docs/accounts-api.md` already plans to upload), or from a bulk export.
+**Done from our own data (plan 2.4.2, 2026-11-15).** HSReplay and HSGuru publish no pair stats, so the pairs come
+from the game records Hearthpulse players send (`docs/game-stats.md`), as the metric `mulligan.pair_winrate`
+(definition, thresholds and limits: [analytics-metrics.md](analytics-metrics.md)):
 
 ```
-GET /api/db/archetypes/{id}/mulligan/pairs?min_games=200&limit=500
-→ { "snapshot": {...}, "pairs": [
-      { "card_a": "CATA_308", "card_b": "JAIL_912",
-        "games_together": 1830,            // both in the opening hand after the mulligan
-        "winrate_together": 58.4,
-        "kept_together": 0.71 }            // share of hands offering both where both were kept
-  ] }
+GET <pool>/v1/events/mulligan-pairs?fmt=standard&cls=WARLOCK
+→ { "v": 1, "metric": "mulligan.pair_winrate", "rules": "mull-pairs-1", "fmt": "standard", "cls": "WARLOCK",
+    "window": 30, "updated": 1794700000000, "minGames": 200, "minInstalls": 5,
+    "pairs": [ { "a": "CATA_308", "b": "JAIL_912", "installs": 14,
+                 "both": [1830, 1069],     // [games, wins]: both offered, both kept
+                 "onlyA": [412, 214], "onlyB": [530, 262], "none": null } ] }   // null: too few installs or games
 ```
 
-The client computes interaction = `winrate_together` − (baseline + Δa + Δb) and highlights a pair when |interaction| ≥ 1.5
-points with ≥ 200 games (`MulliganGuide.MinPairGames`).
+The client (`Core/Pool/MulliganPairs.cs`: https pool only, 5 s, disk cache 6 h, an older copy up to 7 days when the
+pool is down, never throws) hands the pairs to `MulliganGuideSource`, which adds them to the deck guide and to the
+archetype guide alike. `MulliganGuide.PairEffect` computes interaction = p(both) − p(onlyA) − p(onlyB) + p(none)
+with the interval of that difference; a pair is highlighted when |interaction| ≥ 1.5 points, the interval excludes
+zero, `both` has ≥ 200 games (`MulliganGuide.MinPairGames`) and every other cell ≥ 30. The base is the pair's own
+games on purpose: against the class's win rate two cards of one strong archetype would read as an anti-synergy.
+The pairs are per class, not per archetype or deck: the records' deck code is not used. Until the pool holds
+thousands of Ranked games a class, the list is empty and the panel looks as before.
 
 ### 4.3 Per-copy stats
 

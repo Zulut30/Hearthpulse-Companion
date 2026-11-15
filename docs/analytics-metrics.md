@@ -40,6 +40,7 @@ computation of an implemented metric is a new `rulesVersion`.
 | Arena | `arena.draft.offer_pick` | defined |
 | Arena | `arena.run.wins` | needs fields |
 | Mulligan | `mulligan.keep` | needs fields |
+| Mulligan | `mulligan.pair_winrate` (`mull-pairs-1`) | **implemented** |
 
 Statuses: `implemented` — computed end to end; `defined` — every field exists (`have`/`derived`), no computation yet;
 `needs_fields` — a field is `add` (a later F1 round) or `unavailable`, so the number does not exist yet.
@@ -64,11 +65,51 @@ Source: result v2 facts `offers[kind = bg_hero]` and `outcome.placement` (see th
 [CLI contract](../tools/Hearthpulse.SourceWorker/README.md#source-v2-and-result-v2)); the server re-checks both
 against the source rows. API: `GET /stats/v2/analytics/bg/heroes?mode=solo`.
 
+## The implemented metric: `mulligan.pair_winrate`, rules `mull-pairs-1`
+
+Opening-hand pair synergies (plan 2.4.2). Unlike the metrics above it is computed from the **compact game records**
+(`/v1/events`, table `e`, [game-stats.md](game-stats.md)), not from source captures, so its fields are the
+`record.*` rows of the field matrix and it needs no eligibility.
+
+Unit: one game record of one installation. Sample: Ranked, Standard or Wild, with a class, a result `W` or `L` and a
+mulligan; `day` in [today − 30, today]. Group: format × class.
+
+- For every pair of **different** cards `a < b` offered together in one opening hand, the record falls into one of
+  four disjoint cells by what was kept: `both`, `onlyA`, `onlyB`, `none`. Each cell is `[games, wins]`.
+- The pair's own number is `both`: numerator wins, denominator **games where both cards were kept**.
+- The comparison cells are the pair's own base numbers: every game in them had both cards on offer, so it comes from
+  a deck that holds both. The class's totals are deliberately not the base: two cards of one strong archetype both
+  win more than the class does, and "pair win rate − (class + card a + card b)" would call that an anti-synergy.
+- Pair effect = `p(both) − p(onlyA) − p(onlyB) + p(none)`: what keeping the second card adds when the first is kept,
+  beyond what it adds when the first is replaced.
+- **Thresholds.** A pair is listed from 200 games in `both` of at least 5 installations (distinct `iid`), else it is
+  absent. A comparison cell under 5 installations or under 10 games is `null`. At most 200 pairs a group, most
+  played first. Nothing is padded or borrowed from another group.
+- **Uncertainty.** The cells are disjoint, so the 95 % interval of the *difference* is
+  `± 1.96 · √(Σ p(1 − p) / n)` over the four cells (each share smoothed by one win and one loss). The app shows a
+  synergy only with all four cells, 30 games or more in each comparison cell, an interval that excludes zero and an
+  effect of at least 1.5 points (`MulliganGuide.PairEffect`). Two separate intervals of two win rates are not this test.
+- **Limits.** Records carry no game build: the 30-day window is the only bound on patch mix. Games of one
+  installation count as independent (only counts are published), so the interval understates the uncertainty when
+  few installations carry a pair; `installs` is published beside the counts. Keeping is the player's choice: the
+  number says how the players who kept both did, not what keeping both causes. A pair everybody keeps has no
+  comparison cells and therefore no value.
+- **Deletion.** `POST /v1/events/forget` and the clean-up delete the published table in the same transaction as the
+  records; the next read builds it again without them.
+- **Display.** The mulligan panel of both apps: the flag on both cards, and in the card tooltip and the summary
+  details the effect, its interval, the games with both kept and the label "Hearthpulse statistics" (our own
+  numbers; never "Hearthpulse data", which names the external ones). The effect also enters the estimate of the
+  kept hand as the pair interaction (docs/mulligan-v2.md).
+
+API: `GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>` (both pool entrypoints; `server/pool/README.md`).
+Status on 2026-11-15: computed end to end in code and tests; the production pool holds no records, so the route
+answers an empty list and no synergy is on any screen.
+
 ## Field matrix
 
 `fieldMatrix` in the JSON lists every field a metric names, with its status and source:
 `have` (written by the current recorder or compact record), `derived` (computed reliably from `have` fields), `add`
 (planned for a later F1 round, absent today), `unavailable` (not visible to the player or never uploaded — the metric
-stays unavailable). Source v2 added `start.format`, `start.arena` and `choice.choiceType`; the remaining `add` fields
+stays unavailable). The `record.*` rows are the compact game record's fields (`mulligan.pair_winrate`). Source v2 added `start.format`, `start.arena` and `choice.choiceType`; the remaining `add` fields
 (game and run keys, class, deck key, coin, lobby tribes, mulligan phases, combat boundary and results) are the next
 round's F1 work.

@@ -252,7 +252,7 @@ public sealed partial class OverlayViewModel
             MulliganSource = string.Join(" · ", new[] { context, view.Source, slices, initiative }.Where(s => !string.IsNullOrEmpty(s)));
             MulliganScopeLine = ScopeLine(view, culture);
             var notes = impact.Warnings
-                .Concat(impact.Synergies.Select(s => Loc.F("Mulligan.SynergyKept", s.NameA, s.NameB, Points(s.Interaction))))
+                .Concat(impact.Synergies.Select(s => Loc.F("Mulligan.SynergyKept", s.NameA, s.NameB, Points(s.Interaction), Margin(s.Margin), s.Games)))
                 .ToList();
             MulliganDetails = string.Join('\n', new[]
             {
@@ -354,7 +354,7 @@ public sealed partial class OverlayViewModel
 
             if (synergy is not null)
             {
-                lines.Add(Loc.F("Mulligan.SynergyWith", synergy.EntityA == c.EntityId ? synergy.NameB : synergy.NameA, Points(synergy.Interaction)));
+                lines.Add(Loc.F("Mulligan.SynergyWith", synergy.EntityA == c.EntityId ? synergy.NameB : synergy.NameA, Points(synergy.Interaction), Margin(synergy.Margin), synergy.Games));
             }
 
             if (late)
@@ -423,4 +423,7 @@ public sealed partial class OverlayViewModel
 
     /// <summary>A win rate difference in points: 0.023 → "+2.3".</summary>
     private static string Points(double delta) => (delta * 100).ToString("+0.0;−0.0;0.0", CultureInfo.CurrentCulture);
+
+    /// <summary>The half-width of an interval in win rate points, unsigned ("1.4").</summary>
+    private static string Margin(double margin) => (margin * 100).ToString("0.0", CultureInfo.CurrentCulture);
 }

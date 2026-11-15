@@ -95,7 +95,15 @@ server rebuilds every record from known fields only, so anything else is dropped
 - `GET /v1/events/summary` → `{window, updated, games, days:[{day, mode, fmt, games}], discover:[{kind, card, offered,
   picked, rate}], mulligan:[{card, offered, kept, rate}]}` over the last 30 days, each cell from 10 games and 5
   installs or more;
-  rebuilt by the 6-hourly cron job when new records came in, cached at the edge for 30 minutes.
+  rebuilt by the 6-hourly cron job when new records came in (the Node service builds it on a read), never cached
+  (`no-store`): a forget must not leave totals behind.
+- `GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>` → `{v, metric, rules, fmt, cls, window, updated,
+  minGames, minInstalls, pairs:[{a, b, installs, both:[games, wins], onlyA, onlyB, none}]}`: opening-hand pairs of
+  Ranked games over the last 30 days (metric `mulligan.pair_winrate`, [analytics-metrics.md](analytics-metrics.md)).
+  A pair needs 200 games with both cards kept, of 5 installs or more; a comparison cell under 5 installs or 10 games
+  is `null`. Built with the summary, withdrawn with it by a forget or the clean-up, answered `no-store`; a missing or
+  malformed `fmt` / `cls` is a `400`. It reads the fields a record already holds: nothing new is sent, and the
+  notice does not change. The app reads it in `Core/Pool/MulliganPairs.cs` for the mulligan guide's synergies.
 - Table `e` (`WITHOUT ROWID`, indexes by day and install), migration `migrations/0007_events.sql`; kept 180 days.
 - Tests: `node --test server/pool/test/events.test.mjs`.
 

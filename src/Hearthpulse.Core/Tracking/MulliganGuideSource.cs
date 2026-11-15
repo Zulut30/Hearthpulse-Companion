@@ -1,15 +1,18 @@
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Pool;
 
 namespace Hearthpulse.Core.Tracking;
 
 /// <summary>
 /// Finds the mulligan numbers for the deck being played and loads them in the background, so the tracker thread never
 /// waits on the network: the collected deck with the same list, else one within two cards of it, else the API
-/// archetype the deck matches (docs/mulligan-v2.md, "Sources in order").
+/// archetype the deck matches (docs/mulligan-v2.md, "Sources in order"). Whichever guide it is, the class's
+/// opening-hand pairs from Hearthpulse's own statistics are laid beside it (<see cref="MulliganPairs"/>).
 /// </summary>
-public sealed partial class MulliganGuideSource(HearthpulseData data)
+/// <param name="pairs">The stats pool's pair statistics; null (tests, renders) leaves every guide without pairs.</param>
+public sealed partial class MulliganGuideSource(HearthpulseData data, MulliganPairs? pairs = null)
 {
     /// <summary>A failed or unmatched lookup is tried again after this long (the deck may still be in the cache then).</summary>
     private static readonly TimeSpan RetryAfter = TimeSpan.FromMinutes(5);
@@ -152,10 +155,19 @@ public sealed partial class MulliganGuideSource(HearthpulseData data)
     {
         try
         {
+            // Beside the guide, not after it: the pool is another server and must not delay the external numbers.
+            var own = pairs?.LoadAsync(format, playerClass) ?? Task.FromResult<IReadOnlyList<GuidePair>>([]);
             var guide = await LoadGuideAsync(data, format, playerClass, deck.Cards, cards, opponentClass, goingFirst, key.Split('|')[0]).ConfigureAwait(false);
+            var found = await own.ConfigureAwait(false);
             if (guide is null)
             {
                 return;
+            }
+
+            if (found.Count > 0)
+            {
+                Diag.Info($"Mulligan guide: {found.Count} {format} {playerClass} card pairs from Hearthpulse statistics");
+                guide = guide with { Pairs = found };
             }
 
             lock (_gate)

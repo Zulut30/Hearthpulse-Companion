@@ -6,7 +6,9 @@
 // of the install that sent it so the player can have all of their records deleted (POST /v1/events/forget).
 // Records are kept for KEEP_DAYS; the cron job builds the only published view (/v1/events/summary): games per day,
 // the most picked Discover options and the mulligan keep rate per card, each from MIN_CELL games of MIN_PLAYERS
-// installs or more. Records are pseudonymous personal data (ADR 0011): one install's records are never published.
+// installs or more. The same build makes the opening-hand pair table (/v1/events/mulligan-pairs, metric
+// mulligan.pair_winrate of docs/analytics-metrics.md). Records are pseudonymous personal data (ADR 0011): one install's
+// records are never published, and a forget or a clean-up withdraws both published views with the records.
 
 const CARD = /^[A-Za-z0-9_]{3,64}$/;
 const TRIBE = /^[A-Z0-9_]{2,24}$/;
@@ -35,6 +37,14 @@ const MIN_PLAYERS = 5;
 // Ratings at or above this are stored as this ("10000+"): the few players up there are on Blizzard's public leaderboard.
 const MAX_MMR = 10_000;
 const TOP = 200;
+// The opening-hand pair table (rules mull-pairs-1): a pair is published from this many games with both cards kept,
+// of MIN_PLAYERS installs or more; at most MAX_PAIRS pairs a format and class, most played first.
+const PAIR_RULES = "mull-pairs-1";
+const MIN_PAIR_GAMES = 200;
+const MAX_PAIRS = 200;
+const PAIR_FORMATS = new Set(["standard", "wild"]);
+// Every published view built from the records: withdrawn together whenever records are deleted.
+const WITHDRAW = "DELETE FROM snap WHERE mode IN ('events', 'mull-pairs')";
 
 const MAX = { plays: 400, oplays: 200, choices: 120, draws: 300, exc: 40, mull: 6, turns: 200, buys: 300, sells: 300 };
 
@@ -178,8 +188,12 @@ export async function submitEvents(body, env, reply) {
 /** POST /v1/events/forget: {iid}. Deletes every record that install sent. Only the app knows its install id. */
 export async function forgetEvents(body, env, reply) {
   if (typeof body?.iid !== "string" || !HEX32.test(body.iid)) return reply({ error: "send {iid}" }, 400);
-  const result = await env.DB.prepare("DELETE FROM e WHERE iid = ?1").bind(body.iid).run();
-  await env.DB.prepare("DELETE FROM snap WHERE mode = 'events'").run();
+  // One batch (a transaction in D1 and in the Node service): the records and every view built from them go together,
+  // so no published number outlives the records it counted.
+  const [result] = await env.DB.batch([
+    env.DB.prepare("DELETE FROM e WHERE iid = ?1").bind(body.iid),
+    env.DB.prepare(WITHDRAW),
+  ]);
   return reply({ ok: true, deleted: result?.meta?.changes ?? result?.changes ?? 0 });
 }
 
@@ -188,13 +202,62 @@ export async function pruneEvents(env, today = Math.floor(Date.now() / DAY)) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM e WHERE day < ?1").bind(today - KEEP_DAYS),
     env.DB.prepare("DELETE FROM equota WHERE day < ?1").bind(today - 7),
-    env.DB.prepare("DELETE FROM snap WHERE mode = 'events'"),
+    env.DB.prepare(WITHDRAW),
   ]);
 }
 
 const round = (x) => Math.round(x * 1000) / 1000;
 
-/** Builds the summary (when records came in since the last build, or with force) and keeps it in `snap`. */
+// Opening-hand pairs. The sample: Ranked Standard/Wild records with a class, a win or a loss and a mulligan. Every
+// pair of different cards offered together in one opening hand falls into one of four cells by what was kept (both,
+// only a, only b, neither). The cells are disjoint and every game of a pair comes from a deck holding both cards, so
+// the comparison cells are the pair's own base numbers, not the class's: two cards of one strong archetype do not
+// look like a synergy (or its opposite) merely because their deck wins more than the class does.
+const PAIR_CELLS = [["both", 3], ["onlyA", 2], ["onlyB", 1], ["none", 0]];
+const PAIRS_SQL = `
+  WITH r AS (
+    SELECT id, iid, fmt, json_extract(body, '$.cls') AS cls, json_extract(body, '$.res') = 'W' AS won, body
+    FROM e
+    WHERE day >= ?1 AND mode = 'ranked' AND fmt IN ('standard', 'wild')
+      AND json_extract(body, '$.res') IN ('W', 'L') AND json_extract(body, '$.cls') IS NOT NULL
+  ), o AS (
+    SELECT DISTINCT r.id, r.iid, r.fmt, r.cls, r.won, x.value AS card,
+           EXISTS (SELECT 1 FROM json_each(r.body, '$.mull.k') k WHERE k.value = x.value) AS kept
+    FROM r, json_each(r.body, '$.mull.o') x
+  ), p AS (
+    SELECT a.iid, a.fmt, a.cls, a.won, a.card AS a, b.card AS b, a.kept * 2 + b.kept AS cell
+    FROM o a JOIN o b ON b.id = a.id AND a.card < b.card
+  )
+  SELECT fmt, cls, a, b,
+    ${PAIR_CELLS.map(([, n]) => `SUM(cell = ${n}) AS g${n}, SUM(cell = ${n} AND won) AS w${n}, COUNT(DISTINCT CASE WHEN cell = ${n} THEN iid END) AS i${n}`).join(", ")}
+  FROM p GROUP BY fmt, cls, a, b
+  HAVING g3 >= ?2 AND i3 >= ?3
+  ORDER BY fmt, cls, g3 DESC, a, b`;
+
+/**
+ * The pair table as stored: {window, updated, groups: {"<fmt>|<CLASS>": [pair, ...]}}. A pair is
+ * {a, b, installs, both: [games, wins], onlyA, onlyB, none}; a comparison cell (only a kept, only b kept, neither
+ * kept) is null under MIN_PLAYERS installs or MIN_CELL games. No install id, record id or deck.
+ */
+async function buildPairs(env, since) {
+  const rows = (await env.DB.prepare(PAIRS_SQL).bind(since, MIN_PAIR_GAMES, MIN_PLAYERS).all()).results;
+  const groups = {};
+  for (const r of rows) {
+    const list = groups[`${r.fmt}|${r.cls}`] ??= [];
+    if (list.length >= MAX_PAIRS) continue;
+    const pair = { a: r.a, b: r.b, installs: r.i3 };
+    for (const [name, n] of PAIR_CELLS) {
+      pair[name] = r[`i${n}`] >= MIN_PLAYERS && r[`g${n}`] >= MIN_CELL ? [r[`g${n}`], r[`w${n}`]] : null;
+    }
+    list.push(pair);
+  }
+  return { window: WINDOW_DAYS, updated: Date.now(), groups };
+}
+
+/**
+ * Builds the summary and the opening-hand pair table (when records came in since the last build, or with force) and
+ * keeps both in `snap`, written together. Returns the summary's body.
+ */
 export async function rebuildEvents(env, force) {
   const since = Math.floor(Date.now() / DAY) - WINDOW_DAYS;
   const last = (await env.DB.prepare("SELECT COUNT(*) AS n FROM e").first())?.n ?? 0;
@@ -229,9 +292,14 @@ export async function rebuildEvents(env, force) {
     discover: discover.map((r) => ({ kind: r.kind, card: r.card, offered: r.offered, picked: r.picked, rate: round(r.picked / r.offered) })),
     mulligan: mulligan.map((r) => ({ card: r.card, offered: r.offered, kept: r.kept, rate: round(r.kept / r.offered) })),
   });
-  await env.DB.prepare(
-    `INSERT INTO snap (mode, last_row, built, body) VALUES ('events', ?1, ?2, ?3)
-     ON CONFLICT(mode) DO UPDATE SET last_row = ?1, built = ?2, body = ?3`).bind(last, Date.now(), body).run();
+  const pairs = JSON.stringify(await buildPairs(env, since));
+  const store = `INSERT INTO snap (mode, last_row, built, body) VALUES (?4, ?1, ?2, ?3)
+     ON CONFLICT(mode) DO UPDATE SET last_row = ?1, built = ?2, body = ?3`;
+  const built = Date.now();
+  await env.DB.batch([
+    env.DB.prepare(store).bind(last, built, body, "events"),
+    env.DB.prepare(store).bind(last, built, pairs, "mull-pairs"),
+  ]);
   return body;
 }
 
@@ -242,4 +310,28 @@ export async function eventsSummary(request, env, ctx, reply) {
   const body = row && Math.floor(row.built / DAY) === Math.floor(Date.now() / DAY) ? row.body : await rebuildEvents(env, true);
   const response = reply(body, 200, { "cache-control": "no-store" });
   return response;
+}
+
+/**
+ * GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>: the opening-hand pairs of one format and class (metric
+ * mulligan.pair_winrate). Deletion-sensitive like the summary: read from `snap`, rebuilt when missing, never cached.
+ */
+export async function mulliganPairs(url, env, reply) {
+  const fmt = url.searchParams.get("fmt");
+  const cls = url.searchParams.get("cls");
+  if (!PAIR_FORMATS.has(fmt) || typeof cls !== "string" || !CLASS.test(cls)) {
+    return reply({ error: "send fmt=standard|wild and cls=<CLASS>" }, 400, { "cache-control": "no-store" });
+  }
+  const read = () => env.DB.prepare("SELECT body, built FROM snap WHERE mode = 'mull-pairs'").first();
+  let row = await read();
+  if (!row || Math.floor(row.built / DAY) !== Math.floor(Date.now() / DAY)) {
+    await rebuildEvents(env, true);
+    row = await read();
+  }
+  const table = JSON.parse(row.body);
+  return reply({
+    v: 1, metric: "mulligan.pair_winrate", rules: PAIR_RULES, fmt, cls,
+    window: table.window, updated: table.updated, minGames: MIN_PAIR_GAMES, minInstalls: MIN_PLAYERS,
+    pairs: table.groups[`${fmt}|${cls}`] ?? [],
+  }, 200, { "cache-control": "no-store" });
 }
