@@ -1,0 +1,195 @@
+{
+ "source_id": "hsreplay_arena_legendaries",
+ "fetched_at": "2026-11-15T17:00:03.408231+00:00",
+ "data": {
+  "source_id": "hsreplay_arena_legendaries",
+  "category": "arena",
+  "structured": {
+   "type": "arena_legendary_groups",
+   "upstream_freshness": {
+    "status": "fresh",
+    "observed_at": "2026-11-15T17:00:07.112857+00:00",
+    "selected_params": [
+     "ArenaGameTypeFilter.BGT_UNDERGROUND_ARENA",
+     "ArenaTimestampRangeFilter.LAST_4_DAYS"
+    ]
+   },
+   "groups": [
+    {
+     "key_card": {
+      "card_id": "BE_287",
+      "id": "BE_287",
+      "dbfId": 130341,
+      "name": "Г'уун",
+      "cost": 8,
+      "type": "MINION",
+      "rarity": "LEGENDARY",
+      "cardClass": "DEATHKNIGHT",
+      "techLevel": null,
+      "isBattlegroundsPoolMinion": null,
+      "isBattlegroundsPoolSpell": null
+     },
+     "legendary_card": {
+      "card_id": "BE_287",
+      "id": "BE_287",
+      "dbfId": 130341,
+      "name": "Г'уун",
+      "cost": 8,
+      "type": "MINION",
+      "rarity": "LEGENDARY",
+      "cardClass": "DEATHKNIGHT",
+      "techLevel": null,
+      "isBattlegroundsPoolMinion": null,
+      "isBattlegroundsPoolSpell": null
+     },
+     "cards": [
+      {
+       "count": 1,
+       "card_id": "BE_283",
+       "id": "BE_283",
+       "dbfId": 130395,
+       "name": "Кровавое отродье",
+       "cost": 4,
+       "type": "MINION",
+       "rarity": "EPIC",
+       "cardClass": "DEATHKNIGHT",
+       "techLevel": null,
+       "isBattlegroundsPoolMinion": null,
+       "isBattlegroundsPoolSpell": null
+      },
+      {
+       "count": 1,
+       "card_id": "RLK_066",
+       "id": "RLK_066",
+       "dbfId": 78356,
+       "name": "Гематург",
+       "cost": 2,
+       "type": "MINION",
+       "rarity": "RARE",
+       "cardClass": "DEATHKNIGHT",
+       "techLevel": null,
+       "isBattlegroundsPoolMinion": null,
+       "isBattlegroundsPoolSpell": null
+      },
+      {
+       "count": 1,
+       "card_id": "RLK_051",
+       "id": "RLK_051",
+       "dbfId": 78345,
+       "name": "Кровь вампира",
+       "cost": 2,
+       "type": "SPELL",
+       "rarity": "RARE",
+       "cardClass": "DEATHKNIGHT",
+       "techLevel": null,
+       "isBattlegroundsPoolMinion": null,
+       "isBattlegroundsPoolSpell": null
+      }
+     ],
+     "winrate": "59.86%",
+     "pick_rate": "94.11%",
+     "offer_rate": "2.5%",
+     "score": 54.0,
+     "field_availability": {
+      "winrate": {
+       "available": true,
+       "reason": null
+      },
+      "score": {
+       "available": true,
+       "reason": null
+      }
+     },
+     "class": "Death Knight"
+    },
+    {
+     "key_card": {
+      "card_id": "BE_004",
+      "id": "BE_004",
+      "dbfId": 132353,
+      "name": "Радж",
+      "cost": 5,
+      "type": "MINION",
+      "rarity": "LEGENDARY",
+      "cardClass": "PALADIN",
+      "techLevel": null,
+      "isBattlegroundsPoolMinion": null,
+      "isBattlegroundsPoolSpell": null
+     },
+     "legendary_card": {
+      "card_id": "BE_004",
+      "id": "BE_004",
+      "dbfId": 132353,
+      "name": "Радж",
+      "cost": 5,
+      "type": "MINION",
+      "rarity": "LEGENDARY",
+      "cardClass": "PALADIN",
+      "techLevel": null,
+      "isBattlegroundsPoolMinion": null,
+      "isBattlegroundsPoolSpell": null
+     },
+     "cards": [
+      {
+       "count": 1,
+       "card_id": "TOY_811",
+       "id": "TOY_811",
+       "dbfId": 103633,
+       "name": "Плюшевая тигрица",
+       "cost": 3,
+       "type": "MINION",
+       "rarity": "COMMON",
+       "cardClass": "PALADIN",
+       "techLevel": null,
+       "isBattlegroundsPoolMinion": null,
+       "isBattlegroundsPoolSpell": null
+      },
+      {
+       "count": 1,
+       "card_id": "YOG_509",
+       "id": "YOG_509",
+       "dbfId": 101006,
+       "name": "Сила Хранителя",
+       "cost": 4,
+       "type": "SPELL",
+       "rarity": "RARE",
+       "cardClass": "PALADIN",
+       "techLevel": null,
+       "isBattlegroundsPoolMinion": null,
+       "isBattlegroundsPoolSpell": null
+      },
+      {
+       "count": 1,
+       "card_id": "JAM_011",
+       "id": "JAM_011",
+       "dbfId": 95350,
+       "name": "Горн Владыки Ветра",
+       "cost": 6,
+       "type": "WEAPON",
+       "rarity": "RARE",
+       "cardClass": "SHAMAN",
+       "techLevel": null,
+       "isBattlegroundsPoolMinion": null,
+       "isBattlegroundsPoolSpell": null
+      }
+     ],
+     "winrate": "59.07%",
+     "pick_rate": "93.43%",
+     "offer_rate": "2.28%",
+     "score": 54.0,
+     "field_availability": {
+      "winrate": {
+       "available": true,
+       "reason": null
+      },
+      "score": {
+       "available": true,
+       "reason": null
+      }
+     },
+     "class": "Paladin"
+    }
+   ]
+  }
+ }
+}

@@ -238,6 +238,62 @@ public sealed class ViewModelContractTests
         ]
         """)));
 
+    /// <summary>
+    /// The deck-fit adjustment is our own number: both hosts show it on a line of its own with the reasons, and the
+    /// badge's number stays the source's score.
+    /// </summary>
+    [Theory]
+    [InlineData(Loc.English)]
+    [InlineData(Loc.Russian)]
+    public void Overlay_arena_badges_show_the_deck_fit_apart_from_the_score_in_both_hosts(string language)
+    {
+        Loc.Instance.SetLanguage(language);
+        try
+        {
+            var english = language == Loc.English;
+            var meta = new Hearthpulse.Core.Arena.ArenaMeta(
+                [new("BIG", 11, 50, null, null, 0), new("SPELL", 12, 30, null, null, 0), new("ONE", 13, null, null, null, 0)], []);
+            // Eight 2-cost spells and a 1-cost minion (n = 9).
+            // BIG (6-cost minion): slot "6" (0 + 1) - 3 * 10/30 = 0: nothing; minions 1 * 2 < 9 -> +1.
+            // SPELL: slot "2" (8 + 1) - 7 * 10/30 = 6.67 -> -2; spells 9 > 0.4 * 10 -> -1; eight of its name -> -2;
+            // sum -5, kept at -4.
+            string[] deck = ["SPELL", "SPELL", "SPELL", "SPELL", "SPELL", "SPELL", "SPELL", "SPELL", "ONE"];
+            var view = Hearthpulse.Core.Arena.ArenaDraft.Build(new("HERO_07", 0, deck, "DRAFTING"), ["BIG", "SPELL", "ONE"], meta, ArenaCards);
+            var snapshot = LiveSnapshot.Empty with { Scene = "DRAFT", HearthstoneRunning = true, ArenaDraft = view };
+            var settings = new AppSettings { ShowArenaDraft = true };
+            var wpf = new WpfOverlay();
+            var ava = new AvaOverlay();
+            wpf.Update(snapshot, ArenaCards, settings, null, null);
+            ava.Update(snapshot, ArenaCards, settings, null, null);
+
+            Assert.Equal(wpf.ArenaPicks.Select(b => (b.Number, b.DeckFit, b.DeckFitWhy)), ava.ArenaPicks.Select(b => (b.Number, b.DeckFit, b.DeckFitWhy)));
+            // The numbers of the source are untouched by the adjustment.
+            Assert.Equal(("50", "30", "—"), (ava.ArenaPicks[0].Number, ava.ArenaPicks[1].Number, ava.ArenaPicks[2].Number));
+            Assert.Equal(english ? "Deck fit: +1" : "Под колоду: +1", ava.ArenaPicks[0].DeckFit);
+            Assert.Equal(english ? "Few minions" : "Мало существ", ava.ArenaPicks[0].DeckFitWhy);
+            Assert.Equal(english ? "Deck fit: −4" : "Под колоду: −4", ava.ArenaPicks[1].DeckFit);
+            // The two strongest reasons only.
+            Assert.Equal(english ? "Many cards at 2 mana · 8 copies already" : "Много карт за 2 · В колоде уже 8 шт.", ava.ArenaPicks[1].DeckFitWhy);
+            // A card without a score has nothing to adjust.
+            Assert.Equal((string.Empty, string.Empty), (ava.ArenaPicks[2].DeckFit, ava.ArenaPicks[2].DeckFitWhy));
+
+            // Six 6-cost minions (n = 6): neither offered card has a reason, so the badges get no line.
+            // SPELL: slot "2" (0 + 1) - 7 * 7/30 = -0.63; spells 1 > 0.4 * 7 = 2.8: no.
+            // ONE (1-cost minion, scored here): slot "0-1" (0 + 1) - 3 * 7/30 = 0.3; early minions (0 + 1) - 8 * 7/30 = -0.87.
+            var scored = new Hearthpulse.Core.Arena.ArenaMeta([new("SPELL", 12, 30, null, null, 0), new("ONE", 13, 20, null, null, 0)], []);
+            string[] big = ["BIG", "BIG", "BIG", "BIG", "BIG", "BIG"];
+            var plain = Hearthpulse.Core.Arena.ArenaDraft.Build(new("HERO_07", 0, big, "DRAFTING"), ["SPELL", "ONE"], scored, ArenaCards);
+            wpf.Update(snapshot with { ArenaDraft = plain }, ArenaCards, settings, null, null);
+            ava.Update(snapshot with { ArenaDraft = plain }, ArenaCards, settings, null, null);
+            Assert.All(wpf.ArenaPicks, b => Assert.Equal((string.Empty, string.Empty), (b.DeckFit, b.DeckFitWhy)));
+            Assert.All(ava.ArenaPicks, b => Assert.Equal((string.Empty, string.Empty), (b.DeckFit, b.DeckFitWhy)));
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+        }
+    }
+
     [Fact]
     public void Overlay_arena_badges_show_the_same_fit_in_both_hosts_and_hide_for_hero_powers()
     {

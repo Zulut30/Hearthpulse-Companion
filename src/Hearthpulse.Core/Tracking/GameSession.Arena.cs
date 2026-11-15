@@ -159,6 +159,29 @@ public sealed partial class GameSession
             // While catching up on old lines no offer is known yet, and the live one is no stale offer.
             _pickedOffer = null;
             _pickedWithoutOffer = _draftOffer is null && !_catchingUp ? chosen : null;
+            AddListedPackage(chosen);
+        }
+    }
+
+    /// <summary>
+    /// The pick was made while its offer was not read from memory, so the cards that came with a legendary are not
+    /// known from the client. The server's package list stands in, only where it cannot be wrong about what was on
+    /// screen and only after the pick (docs/arena-draft.md, L-M1): an Underground run's first card, which is the
+    /// legendary with its package. An offer that was read is the truth, also when it brought no package; the client's
+    /// deck list and the game's deck still correct the result.
+    /// </summary>
+    private void AddListedPackage(string chosen)
+    {
+        var state = _arenaDraft.State;
+        if (_catchingUp || state.Underground != true || state.Revision != 0 || _arenaMeta?.PackageOf(chosen) is not { Count: > 0 } listed)
+        {
+            return;
+        }
+
+        var deck = state.Cards.Where(id => ArenaDraftTracker.KindOf(id, _cards) == ArenaChoiceKind.Card).ToList();
+        if (deck.Count == 1 && deck[0] == chosen && _arenaDraft.AddPackage(listed))
+        {
+            Diag.Info($"Arena draft: {chosen} came with {string.Join(", ", listed)} (the server's package list: the offer was not read from memory)");
         }
     }
 

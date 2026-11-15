@@ -15,6 +15,10 @@ namespace Hearthpulse.Core.Arena;
 /// <param name="SameType">Cards of the deck so far of this card's type.</param>
 /// <param name="Package">The cards that come with this one (a legendary's package).</param>
 /// <param name="ClassRank">Place of a hero's class by win rate, 1 = best, among <see cref="ArenaDraftView.Classes"/>.</param>
+/// <param name="Fit">
+/// Our own adjustment of a scored card for the deck so far (<see cref="ArenaDeckFit"/>), apart from <paramref name="Score"/>,
+/// which stays the source's number; null for a hero, a card without a score and a card with a package.
+/// </param>
 public sealed record ArenaPickOption(
     string CardId,
     string Name,
@@ -29,7 +33,8 @@ public sealed record ArenaPickOption(
     int SameCost = 0,
     int SameType = 0,
     IReadOnlyList<string>? Package = null,
-    int? ClassRank = null);
+    int? ClassRank = null,
+    ArenaFit? Fit = null);
 
 /// <summary>One distinct card of the drafted deck.</summary>
 public sealed record ArenaDeckCard(string CardId, string Name, int Cost, int Count, double? Score, string? Tier);
@@ -133,7 +138,7 @@ public static class ArenaDraft
         var deckIds = state.Cards.Where(id => ArenaDraftTracker.KindOf(id, cards) == ArenaChoiceKind.Card).ToList();
         var score = ScoreOf(deckIds, meta, cards);
         var types = TypesOf(deckIds, cards);
-        var options = offer is { CardIds.Count: > 0 } ? Options(offer, meta, cards, score, types) : [];
+        var options = offer is { CardIds.Count: > 0 } ? Options(offer, meta, cards, score, types, deckIds) : [];
         var phase = options.Count == 0 ? ArenaDraftPhase.None
             : options.TrueForAll(o => o.Kind == ArenaChoiceKind.Hero) ? ArenaDraftPhase.Hero
             : options.TrueForAll(o => o.Kind == ArenaChoiceKind.HeroPower) ? ArenaDraftPhase.HeroPower
@@ -215,7 +220,8 @@ public static class ArenaDraft
     public static string? ClassOfHero(string? heroCardId, CardDb cards) =>
         heroCardId is null ? null : ArenaMeta.ClassKey(cards.Get(heroCardId)?.CardClass);
 
-    private static List<ArenaPickOption> Options(ArenaDraftOffer offer, ArenaMeta meta, CardDb cards, ArenaDeckScore deck, ArenaDeckTypes types)
+    private static List<ArenaPickOption> Options(ArenaDraftOffer offer, ArenaMeta meta, CardDb cards, ArenaDeckScore deck, ArenaDeckTypes types,
+        IReadOnlyList<string> deckIds)
     {
         var options = new List<ArenaPickOption>(offer.CardIds.Count);
         for (var i = 0; i < offer.CardIds.Count; i++)
@@ -249,7 +255,9 @@ public static class ArenaDraft
                         CardType: card?.Type,
                         SameCost: cost is { } c ? deck.Curve[Bucket(c)] : 0,
                         SameType: card is null ? 0 : types.Of(card.Type),
-                        Package: package));
+                        Package: package,
+                        // The package's average is a number of its own, and a card without a score has nothing to adjust.
+                        Fit: score is null || package.Count > 0 ? null : ArenaDeckFit.Of(id, deckIds, cards)));
                     break;
                 }
             }

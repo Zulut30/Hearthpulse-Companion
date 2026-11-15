@@ -168,6 +168,133 @@ public sealed class ArenaDraftRedraftTests
         Assert.True(second.Incomplete);
     }
 
+    /// <summary>
+    /// The player leaves the draft screen in the middle of a redraft and comes back: the client announces the same deck
+    /// id and the redraft mode again and lists the deck as it is. Still the same run and revision; the list is the base,
+    /// the two picks made before leaving are in it once, and the picks made after the return are added.
+    /// </summary>
+    [Fact]
+    public void Leaving_in_the_middle_of_a_redraft_and_coming_back_keeps_the_revision_and_counts_each_pick_once()
+    {
+        var log = Log();
+        var redraft = RedraftAt(log);
+        var kept = AfterRedraft().Where(c => !Added.Contains(c.Key)).SelectMany(c => Enumerable.Repeat(c.Key, c.Value)).ToList();
+        var lines = log.Take(redraft + 1 + 2).ToList();
+        lines.Add($"D 20:10:00.0000000 DraftManager.OnBegin - Got new draft deck with ID: {DeckId}");
+        lines.Add("D 20:10:00.0000000 SetDraftMode - REDRAFTING");
+        lines.Add($"D 20:10:01.0000000 DraftManager.OnChoicesAndContents - Draft Deck ID: {DeckId}, Hero Card = HERO_07");
+        lines.AddRange(kept.Concat(Added.Take(2)).Select(id => $"D 20:10:01.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card {id}"));
+
+        var back = Read(lines).State;
+        Assert.Equal(1, back.Revision);
+        Assert.Equal(DeckId, back.DeckId);
+        Assert.Equal(27, back.Cards.Count);
+        Assert.Equal(2, back.Cards.Count(Added.Contains));
+        Assert.DoesNotContain(back.Cards, Removed.Contains);
+        // The list arrived and the redraft is still going: the deck is not marked short while it is being drafted.
+        Assert.False(back.Incomplete);
+
+        lines.AddRange(Added.Skip(2).Select((id, i) => $"D 20:10:1{i}.0000000 Client chooses: Card {id[4..]} ({id})"));
+        lines.Add("D 20:10:20.0000000 SetDraftMode - ACTIVE_DRAFT_DECK");
+        var done = Read(lines).State;
+        Assert.Equal(AfterRedraft(), Counts(done.Cards));
+        Assert.Equal(1, done.Revision);
+        Assert.False(done.Incomplete);
+    }
+
+    /// <summary>The app is closed in the middle of a redraft: reading the cut log again gives the same unfinished state.</summary>
+    [Fact]
+    public void A_log_cut_in_the_middle_of_a_redraft_reads_the_same_twice()
+    {
+        var log = Log();
+        var cut = log.Take(RedraftAt(log) + 1 + 3).ToList();
+
+        var once = Read(cut).State;
+        var twice = Read(cut.Concat(cut)).State;
+
+        Assert.Equal(Added.Take(3), once.Cards);
+        Assert.Equal((1, true), (once.Revision, once.Incomplete));
+        Assert.Equal(once.Cards, twice.Cards);
+        Assert.Equal((once.Revision, once.Incomplete, once.DeckId, once.Mode), (twice.Revision, twice.Incomplete, twice.DeckId, twice.Mode));
+    }
+
+    /// <summary>The run is abandoned in the middle of a redraft (the client says there is no draft): nothing of it stays.</summary>
+    [Fact]
+    public void A_run_ended_in_the_middle_of_a_redraft_leaves_nothing_behind()
+    {
+        var log = Log();
+        var lines = log.Take(RedraftAt(log) + 1 + 2).Append("D 20:10:00.0000000 SetDraftMode - NO_ACTIVE_DRAFT");
+
+        var state = Read(lines).State;
+
+        Assert.Empty(state.Cards);
+        Assert.Equal((0, false, 0L), (state.Revision, state.Incomplete, state.DeckId));
+        Assert.Null(state.HeroCardId);
+    }
+
+    /// <summary>
+    /// A new run after a redrafted one starts from nothing: revision 0, no card and no "short deck" mark of the old run,
+    /// its Arena forgotten, and its own picks and list counted as a first draft's (the larger count per card).
+    /// </summary>
+    [Fact]
+    public void A_new_run_after_a_redraft_starts_at_revision_zero_with_its_own_cards()
+    {
+        var tracker = Read(Log());
+        tracker.SetVariant(underground: true);
+        Assert.Equal((1, true), (tracker.State.Revision, tracker.State.Underground));
+        string[] next =
+        [
+            "D 21:00:00.0000000 DraftManager.OnBegin - Got new draft deck with ID: 900000002",
+            "D 21:00:00.0000000 SetDraftMode - DRAFTING",
+        ];
+        foreach (var line in next)
+        {
+            tracker.Feed(line, Cards);
+        }
+
+        var begun = tracker.State;
+        Assert.Equal((0, false, 900000002L), (begun.Revision, begun.Incomplete, begun.DeckId));
+        Assert.Empty(begun.Cards);
+        Assert.Null(begun.HeroCardId);
+        Assert.Null(begun.Underground);
+
+        string[] picks =
+        [
+            "D 21:00:01.0000000 Client chooses: Gul'dan (HERO_07)",
+            "D 21:00:02.0000000 DraftManager.OnChosen(): hero=HERO_07 premium=NORMAL",
+            "D 21:00:03.0000000 Client chooses: Card N01 (TST_N01)",
+            "D 21:00:04.0000000 Client chooses: Card C01 (TST_C01)",
+            "D 21:00:05.0000000 DraftManager.OnChoicesAndContents - Draft Deck ID: 900000002, Hero Card = HERO_07",
+            "D 21:00:05.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card TST_N01",
+        ];
+        foreach (var line in picks)
+        {
+            tracker.Feed(line, Cards);
+        }
+
+        var state = tracker.State;
+        // A first draft again: the list misses a card and the pick fills it in (after a redraft it would not).
+        Assert.Equal(["TST_N01", "TST_C01"], state.Cards);
+        Assert.Equal((0, false, "HERO_07"), (state.Revision, state.Incomplete, state.HeroCardId));
+    }
+
+    /// <summary>A new hero right after a redraft is a new run even when the client's <c>OnBegin</c> line was missed.</summary>
+    [Fact]
+    public void A_new_hero_after_a_redraft_is_a_new_run_without_the_redrafts_cards()
+    {
+        var tracker = Read(Log());
+
+        tracker.Feed("D 21:00:01.0000000 Client chooses: Gul'dan (HERO_07)", Cards);
+        tracker.Feed("D 21:00:02.0000000 Client chooses: Card N01 (TST_N01)", Cards);
+
+        Assert.Equal(["TST_N01"], tracker.State.Cards);
+        Assert.Equal(0, tracker.State.Revision);
+        // The client's mode line of the new run (DRAFTING) ends the old run's "deck ready" mode, and with it the short-deck mark.
+        tracker.Feed("D 21:00:03.0000000 SetDraftMode - DRAFTING", Cards);
+        Assert.Equal((0, false), (tracker.State.Revision, tracker.State.Incomplete));
+        Assert.Equal(["TST_N01"], tracker.State.Cards);
+    }
+
     /// <summary>AC23: the same Arena.log read again (the app restarted, or the lines delivered twice) gives the same state.</summary>
     [Fact]
     public void Reading_the_log_again_gives_the_same_state()
