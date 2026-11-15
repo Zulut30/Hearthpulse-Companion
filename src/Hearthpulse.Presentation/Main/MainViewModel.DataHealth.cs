@@ -85,6 +85,12 @@ public sealed partial class MainViewModel
     /// <summary>The summary the host read (on the UI thread): the card and every page's delay line follow it.</summary>
     public void SetDataHealth(DataHealthReport report)
     {
+        if (!report.Supersedes(_dataHealth))
+        {
+            // An older load's answer that arrived after a newer one: what is shown already knows more.
+            return;
+        }
+
         var bgBefore = BgDelays();
         _dataHealth = report;
         _dataHealthLoaded = true;

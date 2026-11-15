@@ -799,6 +799,74 @@
    "url": "https://hsreplay.net/decks/",
    "has_dataset": true,
    "dataset_fetched_at": "2026-11-15T18:50:07.368293+00:00"
+  },
+  {
+   "enabled": true,
+   "freshness_state": "fresh",
+   "stale": false,
+   "age_hours": 5.28,
+   "stale_after_hours": 30.0,
+   "last_success_at": "2026-11-15T17:01:23.368249+00:00",
+   "last_attempt_at": "2026-11-15T17:01:23.368249+00:00",
+   "next_run_at": "2026-11-15T23:20:00+00:00",
+   "next_run_basis": "nominal",
+   "completeness": {
+    "state": "unknown",
+    "population_state": "unknown",
+    "expected": null,
+    "received": 118,
+    "verified_empty": null,
+    "unverified": null,
+    "patch": null,
+    "filters": {},
+    "observed_at": "2026-11-15T17:01:23.368249+00:00",
+    "upstream_timestamp": null,
+    "retrieval_state": "complete"
+   },
+   "diagnostics": {
+    "reason": "none",
+    "issue": null
+   },
+   "id": "hsreplay_battlegrounds_trinkets_lesser",
+   "site": "hsreplay",
+   "category": "battlegrounds",
+   "url": "https://hsreplay.net/api/v1/battlegrounds/trinkets/?format=json&hl=en&BattlegroundsMMRPercentile=TOP_1_PERCENT&BattlegroundsTimeRange=LAST_7_DAYS",
+   "has_dataset": true,
+   "dataset_fetched_at": "2026-11-15T17:01:23.368249+00:00"
+  },
+  {
+   "enabled": true,
+   "freshness_state": "fresh",
+   "stale": false,
+   "age_hours": 5.28,
+   "stale_after_hours": 30.0,
+   "last_success_at": "2026-11-15T17:01:24.746775+00:00",
+   "last_attempt_at": "2026-11-15T17:01:24.746775+00:00",
+   "next_run_at": "2026-11-15T23:20:00+00:00",
+   "next_run_basis": "nominal",
+   "completeness": {
+    "state": "unknown",
+    "population_state": "unknown",
+    "expected": null,
+    "received": 129,
+    "verified_empty": null,
+    "unverified": null,
+    "patch": null,
+    "filters": {},
+    "observed_at": "2026-11-15T17:01:24.746775+00:00",
+    "upstream_timestamp": null,
+    "retrieval_state": "complete"
+   },
+   "diagnostics": {
+    "reason": "none",
+    "issue": null
+   },
+   "id": "hsreplay_battlegrounds_trinkets_greater",
+   "site": "hsreplay",
+   "category": "battlegrounds",
+   "url": "https://hsreplay.net/api/v1/battlegrounds/trinkets/?format=json&hl=en&BattlegroundsMMRPercentile=TOP_1_PERCENT&BattlegroundsTimeRange=LAST_7_DAYS",
+   "has_dataset": true,
+   "dataset_fetched_at": "2026-11-15T17:01:24.746775+00:00"
   }
  ]
 }

@@ -1,6 +1,10 @@
 using System.Net;
 using System.Text.Json.Nodes;
+using Hearthpulse.Core;
 using Hearthpulse.Core.Api;
+using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
+using Hearthpulse.UI.Main;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Hearthpulse.Tests;
@@ -94,6 +98,127 @@ public sealed class DataHealthTests : IDisposable
 
         Assert.Equal(DataFreshness.Stale, heroes.State);
         Assert.Equal(12, heroes.DataDate!.Value.Day); // the details' date, not the list's of the 15th
+    }
+
+    [Theory]
+    [InlineData("hsreplay_battlegrounds_trinkets_lesser")]
+    [InlineData("hsreplay_battlegrounds_trinkets_greater")]
+    [InlineData("hsreplay_battlegrounds_trinkets_top_5_percent_last_7_days")]
+    public async Task The_trinket_section_is_late_when_only_one_of_its_slices_is(string source)
+    {
+        // The default slice, top 1 %, is built from the lesser and greater lists (the source_id of its rows in
+        // GET api/bg/trinkets?mmr=TOP_1_PERCENT&timeRange=LAST_7_DAYS, 2026-11-15); the wider slices have their own.
+        var server = new Server();
+        server.Edit(source, row =>
+        {
+            row["stale"] = true;
+            row["age_hours"] = 50.0;
+            row["last_success_at"] = "2026-11-13T19:00:00+00:00";
+        });
+
+        var report = await Health(server).LoadAsync();
+
+        var trinkets = report.Section(DataSection.BgTrinkets);
+        Assert.Equal(DataFreshness.Stale, trinkets.State);
+        Assert.Equal(new DateTime(2026, 11, 13, 19, 0, 0, DateTimeKind.Utc), trinkets.DataDate);
+        Assert.All(DataSections.All.Where(s => s != DataSection.BgTrinkets), s => Assert.False(report.Section(s).Delayed, s.ToString()));
+    }
+
+    [Fact]
+    public async Task A_check_now_during_a_refresh_waits_for_it_so_the_older_answer_never_lands_last()
+    {
+        var server = new Server { Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
+        using var health = Health(server);
+
+        // The 30-minute refresh is on the wire with the answer of that moment (everything fresh)...
+        var refresh = health.LoadAsync();
+        await server.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        // ...when the server's picture changes and the player presses "Check now".
+        server.Edit("hsguru_brawl", row =>
+        {
+            row["stale"] = true;
+            row["age_hours"] = 40.0;
+        });
+        server.Health = "{\"data\":{\"hard_failed_sources\":[]}}";
+        var check = health.LoadAsync(force: true);
+        Assert.Equal([DataHealth.SourcesPath], server.Requests); // the check has not gone out beside the refresh
+
+        server.Hold.SetResult();
+        var older = await refresh;
+        var newer = await check;
+
+        Assert.Equal(DataFreshness.Fresh, older.Section(DataSection.Brawl).State);
+        Assert.Equal(DataFreshness.Stale, newer.Section(DataSection.Brawl).State);
+        Assert.True(older.Sequence > 0 && newer.Sequence > older.Sequence);
+        // One load at a time: the refresh's two requests, then the check's two.
+        Assert.Equal([DataHealth.SourcesPath, DataHealth.HealthPath, DataHealth.SourcesPath, DataHealth.HealthPath], server.Requests);
+        // The disk holds the newer answer: another reader gets it without asking.
+        using var reader = Health(server);
+        Assert.Equal(DataFreshness.Stale, (await reader.LoadAsync()).Section(DataSection.Brawl).State);
+        Assert.Equal(4, server.Requests.Count);
+
+        // The screen too, whichever order the two answers reach it in.
+        Loc.Instance.SetLanguage(Loc.English);
+        var vm = new MainViewModel(HistoryStore.InMemory(), new AppSettings(), TestDataFolder.App);
+        vm.SetDataHealth(newer);
+        vm.SetDataHealth(older);
+        Assert.NotEqual(string.Empty, vm.BrawlDataDelay);
+        Assert.Contains(vm.DataHealthRows, r => r.Attention);
+        Assert.False(older.Supersedes(newer));
+        Assert.True(newer.Supersedes(older));
+    }
+
+    [Fact]
+    public async Task A_cancelled_load_leaves_the_next_one_free_to_run()
+    {
+        var server = new Server { Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
+        using var health = Health(server);
+        using var cancel = new CancellationTokenSource();
+
+        var first = health.LoadAsync(cancellationToken: cancel.Token);
+        await server.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        var second = health.LoadAsync(force: true); // waits behind the first
+        await cancel.CancelAsync();
+
+        var cancelled = await first;
+        Assert.True(cancelled.Offline);
+        Assert.Empty(cancelled.Sources);
+        Assert.Empty(Directory.Exists(_cache) ? Directory.GetFiles(_cache) : []); // nothing of the cancelled load on disk
+
+        server.Hold.SetResult();
+        var report = await second.WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.False(report.Offline);
+        Assert.Equal(DataFreshness.Fresh, report.Section(DataSection.Arena).State);
+
+        // A load cancelled while it waited its turn does not take the gate with it either.
+        using var gone = new CancellationTokenSource();
+        await gone.CancelAsync();
+        Assert.True((await health.LoadAsync(force: true, gone.Token)).Offline);
+        Assert.False((await health.LoadAsync(force: true).WaitAsync(TimeSpan.FromSeconds(30))).Offline);
+    }
+
+    [Fact]
+    public async Task Closing_cancels_the_running_load_and_asks_nothing_afterwards()
+    {
+        var server = new Server { Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
+        var health = Health(server);
+
+        var running = health.LoadAsync();
+        await server.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        var waiting = health.LoadAsync(force: true);
+        health.Dispose();
+        health.Dispose(); // twice is once
+
+        Assert.True((await running.WaitAsync(TimeSpan.FromSeconds(30))).Offline);
+        Assert.True((await waiting.WaitAsync(TimeSpan.FromSeconds(30))).Offline);
+        server.Hold.SetResult();
+        var asked = server.Requests.Count;
+
+        var after = await health.LoadAsync(force: true);
+        Assert.True(after.Offline);
+        Assert.Empty(after.Sources);
+        Assert.Equal(asked, server.Requests.Count);
+        Assert.Equal(1, asked); // only the request that was on the wire when the app closed
     }
 
     [Fact]
@@ -280,6 +405,12 @@ public sealed class DataHealthTests : IDisposable
     {
         public List<string> Requests { get; } = [];
 
+        /// <summary>While set and not completed, every answer waits for it (or for the request's cancellation).</summary>
+        public TaskCompletionSource? Hold { get; set; }
+
+        /// <summary>Completes once a held request is waiting.</summary>
+        public TaskCompletionSource Waiting { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public bool Offline { get; set; }
 
         public string Sources { get; set; } = Fixture("system-sources.json");
@@ -295,7 +426,7 @@ public sealed class DataHealthTests : IDisposable
             Sources = root.ToJsonString();
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (Offline)
@@ -304,11 +435,22 @@ public sealed class DataHealthTests : IDisposable
             }
 
             var path = request.RequestUri!.AbsolutePath.TrimStart('/');
-            Requests.Add(path);
+            lock (Requests)
+            {
+                Requests.Add(path);
+            }
+
+            // The answer is what the server had when it was asked, however long it is held on the wire.
             var body = path == DataHealth.SourcesPath ? Sources : path == DataHealth.HealthPath ? Health : null;
-            return Task.FromResult(body is null
+            if (Hold is { Task.IsCompleted: false } hold)
+            {
+                Waiting.TrySetResult();
+                await hold.Task.WaitAsync(cancellationToken);
+            }
+
+            return body is null
                 ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable) { Content = new StringContent("{}") }
-                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
+                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) };
         }
     }
 }

@@ -80,9 +80,13 @@ public static class DataSections
         [DataSection.BgHeroComps] = ["hsreplay_battlegrounds_hero_details", "hsreplay_battlegrounds_compositions"],
         // v1/battlegrounds/minions/stats; the Cards tab's api/bg/library/minion-stats
         [DataSection.BgMinions] = ["hsreplay_battlegrounds_minion_stats", "hsreplay_battlegrounds_minions"],
-        // api/bg/tier-lists?list=trinkets&timeRange=LAST_7_DAYS for the slices the server collects
+        // api/bg/tier-lists?list=trinkets&timeRange=LAST_7_DAYS (the server's api/bg/trinkets): the top 1 % slice,
+        // the default, is built from the lesser and greater lists (its rows' source_id); the wider slices have a
+        // collector each
         [DataSection.BgTrinkets] =
         [
+            "hsreplay_battlegrounds_trinkets_lesser",
+            "hsreplay_battlegrounds_trinkets_greater",
             "hsreplay_battlegrounds_trinkets_top_50_percent_last_7_days",
             "hsreplay_battlegrounds_trinkets_top_20_percent_last_7_days",
             "hsreplay_battlegrounds_trinkets_top_5_percent_last_7_days",
@@ -129,6 +133,18 @@ public sealed class DataHealthReport
     /// <summary>The server did not answer the last check: this is the kept copy (or nothing).</summary>
     public bool Offline { get; }
 
+    /// <summary>
+    /// The order in which <see cref="DataHealth"/> finished its loads, from 1; a later load never knows less than an
+    /// earlier one, so a reader keeps the highest it has seen. 0 for a report made elsewhere (tests, a render scene),
+    /// which is always taken.
+    /// </summary>
+    public long Sequence { get; private init; }
+
+    /// <summary>True when this report may replace <paramref name="shown"/>: it is not an older load's answer.</summary>
+    public bool Supersedes(DataHealthReport shown) => Sequence == 0 || Sequence >= shown.Sequence;
+
+    internal DataHealthReport Numbered(long sequence) => new(_sources.Values, CheckedAt, Offline) { Sequence = sequence };
+
     public IReadOnlyDictionary<string, DataSourceHealth> Sources => _sources;
 
     /// <summary>
@@ -165,9 +181,15 @@ public sealed class DataHealthReport
 /// Reads the data API's freshness summary (<c>v1/system/sources</c>, with the failed list of <c>v1/system/health</c>)
 /// and keeps it on disk for 30 minutes. Offline, the kept copy is returned marked <see cref="DataHealthReport.Offline"/>.
 /// Runs on the thread pool and never throws.
+/// <para>
+/// Loads go one at a time (the 30-minute refresh and "Check now" can meet): the second waits for the first, then
+/// reads the copy the first wrote, or asks the server itself when forced. So an older answer can never land on the
+/// disk or the screen after a newer one, and each report carries its place in that order
+/// (<see cref="DataHealthReport.Sequence"/>). <see cref="Dispose"/> cancels what is running and refuses later loads.
+/// </para>
 /// </summary>
 /// <param name="cacheDirectory">Where the summary is kept; the app's API cache by default (tests pass a scratch one).</param>
-public sealed class DataHealth(HearthpulseApi api, string? cacheDirectory = null, TimeProvider? time = null)
+public sealed class DataHealth(HearthpulseApi api, string? cacheDirectory = null, TimeProvider? time = null) : IDisposable
 {
     public const string SourcesPath = "v1/system/sources";
 
@@ -180,13 +202,69 @@ public sealed class DataHealth(HearthpulseApi api, string? cacheDirectory = null
 
     private readonly string _file = Path.Combine(cacheDirectory ?? Path.Combine(AppPaths.Cache, "api"), CacheName);
     private readonly TimeProvider _time = time ?? TimeProvider.System;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "A load cancelled by Dispose releases the gate while it unwinds, after Dispose returned; a semaphore whose wait handle was never asked for holds nothing to free.")]
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly CancellationTokenSource _closing = new();
+    private long _sequence;
+    private int _closed;
 
     /// <summary>
     /// The summary: the kept one while it is younger than <see cref="MaxAge"/> (unless <paramref name="force"/>, the
-    /// "Check now" button), else the server's, else the kept copy marked offline.
+    /// "Check now" button), else the server's, else the kept copy marked offline. A cancelled load, or one after
+    /// <see cref="Dispose"/>, answers <see cref="DataHealthReport.None"/> and leaves the next one free to run.
     /// </summary>
     public Task<DataHealthReport> LoadAsync(bool force = false, CancellationToken cancellationToken = default) =>
-        Task.Run(() => LoadCoreAsync(force, cancellationToken), CancellationToken.None);
+        Task.Run(() => LoadGatedAsync(force, cancellationToken), CancellationToken.None);
+
+    /// <summary>Cancels the load that is running and those waiting for it; later loads answer nothing.</summary>
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _closed, 1) != 0)
+        {
+            return;
+        }
+
+        _closing.Cancel();
+        _closing.Dispose();
+    }
+
+    /// <summary>Cancelled by <see cref="Dispose"/>; already cancelled when asked for after it.</summary>
+    private CancellationToken Closing()
+    {
+        try
+        {
+            return _closing.Token;
+        }
+        catch (ObjectDisposedException)
+        {
+            return new CancellationToken(canceled: true);
+        }
+    }
+
+    private async Task<DataHealthReport> LoadGatedAsync(bool force, CancellationToken cancellationToken)
+    {
+        using var both = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, Closing());
+        try
+        {
+            await _gate.WaitAsync(both.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return DataHealthReport.None;
+        }
+
+        try
+        {
+            var report = await LoadCoreAsync(force, both.Token).ConfigureAwait(false);
+            // Numbered inside the gate: the order of the numbers is the order the loads finished in.
+            return report.Numbered(Interlocked.Increment(ref _sequence));
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
 
     private async Task<DataHealthReport> LoadCoreAsync(bool force, CancellationToken cancellationToken)
     {

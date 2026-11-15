@@ -273,6 +273,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _mainViewModel?.StopMigration();
+        StopDataHealth();
         _watchdog?.Stop();
         _uiProbe?.Dispose();
         _watcher?.Dispose();
@@ -422,7 +423,7 @@ public partial class App : Application
             _meta = meta;
             _session.SetMeta(meta);
             _mainViewModel.SetMeta(meta);
-            _overlayViewModel.SetBgDataDate(meta.Updated);
+            _overlayViewModel.SetBgData(meta);
         }
         else
         {

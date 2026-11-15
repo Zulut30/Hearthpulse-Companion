@@ -188,7 +188,7 @@ public sealed class DataHealthContractTests
         Assert.EndsWith("update delayed", (string)overlay.ArenaDataNote, StringComparison.Ordinal);
 
         // No hero badges on screen: no line under them, whatever date the stats have.
-        overlay.SetBgDataDate((DateTime?)Collected);
+        overlay.SetBgData((DateTime?)Collected, true);
         Assert.Equal(string.Empty, (string)overlay.BgHeroDataNote);
     }
 
@@ -210,7 +210,7 @@ public sealed class DataHealthContractTests
     {
         Loc.Instance.SetLanguage(Loc.English);
         dynamic overlay = wpf ? new WpfOverlay() : new AvaOverlay();
-        overlay.SetBgDataDate((DateTime?)Collected);
+        overlay.SetBgData((DateTime?)Collected, true);
         overlay.SetDataHealth(Report());
         var heroes = new[]
         {
@@ -229,6 +229,14 @@ public sealed class DataHealthContractTests
         Assert.Equal($"data from {day} · update delayed", (string)overlay.BgHeroDataNote);
         overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_heroes", DataFreshness.Failed)));
         Assert.Equal($"data from {day} · update delayed", (string)overlay.BgHeroDataNote);
+        // Stats that are the stats pool's alone: the summary's collectors are not theirs, so the date stays plain.
+        overlay.SetBgData((DateTime?)Collected, false);
+        Assert.Equal($"data from {day}", (string)overlay.BgHeroDataNote);
+        overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_hero_details", DataFreshness.Stale), ("hsreplay_battlegrounds_compositions", DataFreshness.Failed)));
+        Assert.Equal($"data from {day}", (string)overlay.BgHeroDataNote);
+        overlay.SetBgData((DateTime?)Collected, true);
+        Assert.Equal($"data from {day} · update delayed", (string)overlay.BgHeroDataNote);
+
         // Another section's delay is not the heroes'.
         overlay.SetDataHealth(Report(false, ("hsguru_brawl", DataFreshness.Stale), ("hsreplay_arena_cards_advanced", DataFreshness.Stale)));
         Assert.Equal($"data from {day}", (string)overlay.BgHeroDataNote);
@@ -260,7 +268,7 @@ public sealed class DataHealthContractTests
             return [.. dates];
         }
 
-        overlay.SetBgDataDate((DateTime?)Late); // the meta's own date is not a second date on the badges
+        overlay.SetBgData((DateTime?)Late, true); // the meta's own date is not a second date on the badges
         overlay.SetDataHealth(Report());
         overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
         Assert.Equal([$"data from {day}", $"data from {day}", string.Empty], Dates());

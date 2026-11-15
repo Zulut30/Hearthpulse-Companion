@@ -437,7 +437,7 @@ public sealed partial class AppHost : IDisposable
             Meta = meta;
             Session.SetMeta(meta);
             Main.SetMeta(meta);
-            Overlay.SetBgDataDate(meta.Updated);
+            Overlay.SetBgData(meta);
         }
         else
         {
@@ -573,6 +573,7 @@ public sealed partial class AppHost : IDisposable
         _services.GameStats.Dispose();
         _services.SourceCaptures.Dispose();
         _metaRefresh.Stop();
+        StopDataHealth();
         Memory.Dispose();
         Settings.Save();
         StopUpdateLoop();
