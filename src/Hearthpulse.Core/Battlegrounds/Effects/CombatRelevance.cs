@@ -109,6 +109,9 @@ public static partial class CombatRelevance
 
     public static bool MechanicsSuggestCombatEffect(IEnumerable<string> mechanics) => mechanics.Any(m => EffectMechanics.Contains(m));
 
+    /// <summary>The effect marker tags an entity carries (deathrattle, trigger, aura, Avenge, Overkill, Rally), in a fixed order.</summary>
+    public static IReadOnlyList<string> EffectMarkers(Func<string, bool> hasTag) => EffectMechanics.Where(hasTag).ToList();
+
     /// <summary>Entity tags that suggest an effect, for minions whose card is unknown.</summary>
     public static bool TagsSuggestCombatEffect(Func<string, bool> hasTag) => EffectMechanics.Any(hasTag);
 

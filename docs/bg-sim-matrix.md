@@ -10,12 +10,12 @@
 
 | Вид | no_effect | resolved | implemented | missing_effect | missing_input | unknown | всего |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Существа | 224 | 10 | 67 | 18 | 0 | 3 | 322 |
+| Существа | 229 | 10 | 68 | 18 | 0 | 3 | 328 |
 | Силы героя | 102 | 7 | 5 | 1 | 1 | 0 | 116 |
 | Тринкеты | 331 | 36 | 27 | 25 | 1 | 0 | 420 |
 | Тёмные дары | 34 | 5 | 6 | 0 | 0 | 2 | 47 |
 | Боевые зачарования | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Без «вне пула»** | 568 | 37 | 88 | 28 | 2 | 5 | 728 |
+| **Без «вне пула»** | 573 | 37 | 89 | 28 | 2 | 5 | 734 |
 
 ## Существа
 
@@ -28,6 +28,7 @@
 | BG36_181 | Air Baller | no_effect | да | SELL |
 | BG34_858 | Air Revenant | no_effect | да | PLAY_BUY_TRIGGER |
 | BG_BOT_911 | Annoy-o-Module | no_effect | да | KEYWORDS |
+| BG31_360 | Arcane Behemoth | no_effect | да | нет в таблице; по тексту |
 | BG32_873 | Ashen Corruptor | no_effect | да | HERO_DAMAGE_TRIGGER |
 | BG32_236 | Aureate Laureate | no_effect | да | KEYWORDS |
 | BG34_170 | Auto Accelerator | no_effect | да | BATTLECRY |
@@ -70,6 +71,7 @@
 | BG36_762 | Devilish Distractor | no_effect | да | SPELL_CAST_TAVERN |
 | BG28_303 | Disguised Graverobber | no_effect | да | BATTLECRY |
 | BGDUO_107 | Doting Dracthyr | no_effect | да | END_OF_TURN |
+| BG31_176 | Dr. Boom's Monster | no_effect | да | нет в таблице; по тексту |
 | BG34_633 | Draconic Warden | no_effect | да | DR_TAVERN |
 | BG26_ICC_901 | Drakkari Enchanter | no_effect | да | AURA_TAVERN |
 | BG36_506 | Drone Duplicator | no_effect | да | ACTIVATE |
@@ -112,6 +114,7 @@
 | BG31_148 | Hackerfin | no_effect | да | BATTLECRY |
 | BGFYM_005 | Harbinger Aph'lass | no_effect | да | HAND_DISCARD_TRIGGER |
 | BG36_204 | Headhunter Gryphon | no_effect | да | RALLY_TAVERN |
+| BG25_010t | Helping Hand | no_effect | да | TOKEN |
 | BG34_319 | Highkeeper Ra | no_effect | да | RALLY_TAVERN |
 | BG36_240 | Hired Mount | no_effect | да | ACTIVATE |
 | BG36_372 | Holy Vanguard | no_effect | да | AURA_STATIC |
@@ -186,6 +189,7 @@
 | BG28_550 | Rodeo Performer | no_effect | да | BATTLECRY |
 | BG25_013 | Rot Hide Gnoll | no_effect | пул не подтверждён | нет в таблице; по тексту |
 | BG36_362 | Sacrificial Wrathguard | no_effect | да | DR_TAVERN |
+| BG31_171t | Satellite | no_effect | да | нет в таблице; по тексту |
 | BG27_514 | Sea Witch Zar'jira | no_effect | пул не подтверждён | SPELLCRAFT |
 | BGDUO31_205 | Selfless Sightseer | no_effect | да | BATTLECRY |
 | BGS_115 | Sellemental | no_effect | да | SELL |
@@ -218,6 +222,7 @@
 | BG31_924 | Thaumaturgist | no_effect | пул не подтверждён | SPELLCRAFT |
 | BG31_327 | Thorned Trailblazer | no_effect | да | CHOOSE_ONE |
 | BG26_523 | Tichondrius | no_effect | да | HERO_DAMAGE_TRIGGER |
+| BG34_Giant_314 | Timewarped Poet | no_effect | да | TIMEWARPED_COMBAT_OTHER |
 | BG24_018 | Tortollan Blue Shell | no_effect | да | SELL |
 | BG32_835 | Tranquil Meditative | no_effect | пул не подтверждён | SPELLCRAFT |
 | BGDUO31_211 | Transport Reactor | no_effect | да | AURA_STATIC |
@@ -295,6 +300,7 @@
 | BG23_318 | Leeroy the Reckless | implemented | да | DR_DESTROY |
 | BG35_602 | Lurking Leviathan | implemented | да | ON_SUMMON |
 | BG28_309 | Mummifier | implemented | да | DR_KEYWORD |
+| BG27_023 | Murcules | implemented | да | KILL_HAND_BUFF; у соперника missing_input (рука скрыта) |
 | BGS_040 | Nadina the Red | implemented | да | DR_KEYWORD |
 | BG27_017 | Obsidian Ravager | implemented | да | RALLY_DAMAGE |
 | BG34_690 | Plaguerunner | implemented | да | DR_BUFF |
@@ -341,7 +347,7 @@
 | BG36_622 | Torrential Ruiner | missing_effect | пул не подтверждён | условный (SPELL_TRIGGER): бой не помечается |
 | BG36_108 | Vicious Mindslasher | missing_effect | да | условный (SPELL_TRIGGER): бой не помечается |
 | BG36_205 | Fishbait | unknown | да | нет в таблице; текст похож на боевой |
-| BG27_023 | Murcules | unknown | да | нет в таблице; текст похож на боевой |
+| BG27_513 | Tide Oracle Morgl | unknown | да | нет в таблице; текст похож на боевой |
 | BGS_115t | Water Droplet | unknown | да | нет в таблице и нет текста |
 
 ## Силы героя
