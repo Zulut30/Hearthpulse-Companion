@@ -484,4 +484,3 @@ public sealed partial class MovablePanel : ContentControl, IArmablePanel
         return PanelLayout.Placement(origin.X, origin.Y, surface?.ActualWidth ?? 0, surface?.ActualHeight ?? 0, _scale.ScaleX);
     }
 }
-
