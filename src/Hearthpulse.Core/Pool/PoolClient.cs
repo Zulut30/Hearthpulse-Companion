@@ -227,7 +227,16 @@ public static partial class PoolClient
     {
         try
         {
-            var stream = await http.GetStreamAsync(endpoint + "/v1/meta", cancellationToken).ConfigureAwait(false);
+            using var response = await http.GetAsync(new Uri(endpoint + "/v1/meta"), HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                // A pool that ships no base stats answers 503 by design (server/pool/README.md): absence, not a failure.
+                Diag.Debug("Stats pool has no base meta");
+                return null;
+            }
+
+            response.EnsureSuccessStatusCode();
+            var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             await using var streamScope = stream.ConfigureAwait(false);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
             return ParseMeta(doc.RootElement);
