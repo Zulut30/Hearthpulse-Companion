@@ -25,8 +25,10 @@ A shared Constructed game holds only its id, day, format (standard or wild), whe
 and its picks: the source card, the cards it offered and the one taken. No deck, class, rank or opponent.
 No player name, BattleTag, account or IP address is stored, and nothing about other players. Shared games are kept
 for 60 days, then the cron job deletes them (the totals use the last 30). The totals are public: anyone can read
-them, and the app's notice says so. No published cell (a hero or trinket in a rating bracket, a hero with a
-lobby tribe) holds fewer than 10 games. Workers logs are off (`wrangler.toml`), so no IP address or request body
+them, and the app's notice says so. No published row or cell (a hero, comp, card, trinket, tier, pick or play, in
+all or in a rating bracket, a hero with a lobby tribe) holds fewer than 10 games; an average over fewer than 10 picks
+is null and the combat odds line needs 10 fights. The pool keeps no installation id for these games, so the floor is
+in games, not in players. Workers logs are off (`wrangler.toml`), so no IP address or request body
 lands in Cloudflare's logs either.
 
 ## Free plan budget
@@ -122,8 +124,8 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
   (up to 60 picks, 2 to 8 offered, 1 to 4 picked among the offered). A bad pick is dropped; a game without a valid
   pick is rejected. Needs `migrations/0005_constructed.sql` on an existing pool.
 - `GET /v1/choices?format=standard` (or `wild`) returns `{format, days, updated, games, sources:[{source, choices,
-  options:[[card, offered, picked, wonWhenPicked], ...]}]}` over the last 30 days; options offered fewer than 3
-  times are left out. Rebuilt by the same cron job into `snap` rows `choices-standard` / `choices-wild`.
+  options:[[card, offered, picked, wonWhenPicked], ...]}]}` over the last 30 days; options offered fewer than 10
+  times are left out, and the wins of an option picked fewer than 10 times are null. Rebuilt by the same cron job into `snap` rows `choices-standard` / `choices-wild`.
 - `GET /v1/meta` returns the base stats (see above) when the table has rows, cached at the edge for 30 minutes.
 - Game records of every mode (`src/events.js`, [docs/game-stats.md](../../docs/game-stats.md), ADR 0011; needs
   `migrations/0007_events.sql` on an existing pool): `POST /v1/events` with `{"v":1,"iid":"<32 hex>","games":[...]}`
