@@ -5,7 +5,7 @@
 - **Replay library.** History keeps your games as replays in Recent, Saved and Imported tabs: star a game, share it, import one, or upload it to hearthpulse.net to share a link. Export any replay step as a picture.
 - **Move over from HDT or Firestone.** Bring your past games and decks from Hearthstone Deck Tracker or Firestone into History, My Stats and your deck library.
 - **New overlay panels.** The opponent's likely deck, a graveyard for both sides, how much damage each board can deal to the enemy hero, and related cards next to the card you hover. Unlock the panels to move them with the mouse during a game.
-- **Battlegrounds.** A clearer bar with turn, tavern tiers and fights, one-row combat odds with damage ranges, an opponent popup at the top, the Duos partner's board and the final board after the game.
+- **Battlegrounds.** A clearer bar with turn, tavern tiers and fights, one-row combat odds with damage ranges, an opponent popup at the top, the Duos partner's board and the final board after the game. The tier tabs (heroes, comps, trinkets, cards) show the site's lists by MMR, for Solo and Duos.
 - **Arena and Brawl.** An Arena draft helper (beta, off by default) and rewards for each run; Arena and Underground Arena counted apart. A new Tavern Brawl page with the best classes of the week.
 
 ### More
@@ -35,6 +35,6 @@
 - Release notes are in English only.
 
 ### Other
-- Data: Hearthpulse data, HearthstoneJSON (card data and art), Blizzard's public Battlegrounds leaderboard (opponents' MMR, off by default), hs-manacost.ru (the Brawl article), icons from game-icons.net (CC BY 3.0). The update signature check is ported from RFC 8032. Full list in THIRD-PARTY-NOTICES.txt next to the app.
+- Data: Hearthpulse data, HearthstoneJSON (card data and art), Blizzard's public Battlegrounds leaderboard (opponents' MMR, off by default), bg.hs-manacost.ru (the Battlegrounds tier tabs), hs-manacost.ru (the Brawl article), icons from game-icons.net (CC BY 3.0). The update signature check is ported from RFC 8032. Full list in THIRD-PARTY-NOTICES.txt next to the app.
 - Hearthpulse is proprietary software (All rights reserved).
 - Hearthpulse is not affiliated with or endorsed by Blizzard Entertainment. Hearthstone is a trademark of Blizzard Entertainment, Inc. Use it at your own risk.
