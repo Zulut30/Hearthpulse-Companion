@@ -45,8 +45,8 @@ public sealed class UpdateSignatureTests
     [Fact]
     public void The_shipped_key_file_parses()
     {
-        // The repository's file is comments only until the owner adds the key; either way it must parse.
-        var path = Path.Combine(FindRepo(), "src", "Hearthpulse.Core", "Updates", "update-signing-key.pub");
+        // Whatever the repository's file holds (comments only, one key, several for rotation) is what the build embeds.
+        var path = Path.Combine(RepoFiles.Root, "src", "Hearthpulse.Core", "Updates", "update-signing-key.pub");
         Assert.Equal(UpdateSignature.ParseKeys(File.ReadAllText(path)).Count, UpdateSignature.EmbeddedKeys.Count);
     }
 
@@ -221,17 +221,6 @@ public sealed class UpdateSignatureTests
             length = 0;
             return false;
         }
-    }
-
-    private static string FindRepo()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Hearthpulse.slnx")))
-        {
-            dir = dir.Parent;
-        }
-
-        return dir?.FullName ?? throw new DirectoryNotFoundException("Hearthpulse.slnx");
     }
 
     private sealed record Fixture(string PublicKey, string OtherPublicKey, string Sums, string Signature, string SignatureByOtherKey, Dictionary<string, string> Assets)
