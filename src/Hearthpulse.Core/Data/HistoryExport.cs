@@ -130,11 +130,11 @@ public static class HistoryExport
 
     /// <summary>
     /// A text field, safe to open in a spreadsheet: a value that starts with <c>=</c>, <c>+</c>, <c>-</c>, <c>@</c>, a tab
-    /// or a carriage return would be run as a formula, so it gets an apostrophe in front (deck names are the player's own
+    /// or a line break can be interpreted as a formula, so it gets an apostrophe in front (deck names are the player's own
     /// text). Numbers and dates are written by this class and never pass through here, so "-25" stays a number.
     /// </summary>
     private static string Text(string? value) =>
-        string.IsNullOrEmpty(value) ? string.Empty : value[0] is '=' or '+' or '-' or '@' or '\t' or '\r' ? "'" + value : value;
+        string.IsNullOrEmpty(value) ? string.Empty : value[0] is '=' or '+' or '-' or '@' or '\t' or '\r' or '\n' ? "'" + value : value;
 
     private static string Quoted(string field) =>
         field.AsSpan().IndexOfAny(",\"\r\n") < 0 && !Padded(field) ? field : "\"" + field.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";

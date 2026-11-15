@@ -110,9 +110,10 @@ public sealed class DiscordPresenceTests
         }
 
         // The answer is in the buffer before Write returns, so the asynchronous calls finish on the caller's thread. The
-        // base Stream sends each of them to the thread pool (some 390 work items a test); on a pool that stood still
-        // for DiscordIpc's 5 s answer timeout the handshake then failed, the next try was RetryInterval (30 s) away and
-        // the test's wait ran out (CI run 43744050859). Here nothing is scheduled between a frame and its answer.
+        // base Stream sends each of them to the thread pool (some 390 work items a test). A pool delay exceeding
+        // DiscordIpc's 5 s answer timeout can fail the handshake; RetryInterval (30 s) then exceeds the test's wait.
+        // That mechanism was reproduced; a stall in CI run 43744050859 was not measured. Here nothing is scheduled
+        // between a frame and its answer.
         public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
             lock (_gate)

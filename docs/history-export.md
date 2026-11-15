@@ -49,7 +49,7 @@ row shows none of the names, so the file has none.
   end is in quotes, a quote inside is doubled.
 - UTF-8 with a byte order mark, so Excel opens Russian deck names as they are.
 - Numbers and dates are written with the invariant culture: no thousands separators, no local date order.
-- **Formulas are defused.** A text field that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets an
+- **Formulas are defused.** A text field that starts with `=`, `+`, `-`, `@`, a tab, CR or LF gets an
   apostrophe in front (a deck name is the player's own text and a spreadsheet would run it). Numbers are written by the
   exporter itself and are not touched, so a rating change stays `-25`.
 

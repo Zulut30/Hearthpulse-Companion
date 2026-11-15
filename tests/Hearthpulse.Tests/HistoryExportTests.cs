@@ -108,6 +108,8 @@ public sealed class HistoryExportTests : IDisposable
     [InlineData("-2+3", "'-2+3")]
     [InlineData("@SUM(A1)", "'@SUM(A1)")]
     [InlineData("\tcmd", "'\tcmd")]
+    [InlineData("\rcmd", "\"'\rcmd\"")]
+    [InlineData("\n=1+1", "\"'\n=1+1\"")]
     [InlineData("a=b", "a=b")]
     public void A_text_that_a_spreadsheet_would_run_as_a_formula_gets_an_apostrophe(string deck, string written)
     {
