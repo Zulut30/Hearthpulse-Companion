@@ -18,10 +18,16 @@
         <StackPanel Margin="40,0,40,120">
             <Grid>
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal">
+                    <!-- The glyph, then the title in the rest of the width: a long title wraps under itself
+                         instead of running past the page's edge. -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
                         <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Battlegrounds}" />
-                        <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Style="{StaticResource PageTitle}" />
-                    </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Mode.Battlegrounds}" Style="{StaticResource PageTitle}" TextWrapping="Wrap" />
+                    </Grid>
                     <c:Wave Style="{StaticResource PageRule}" />
                 </StackPanel>
                 <!-- Solo / Duos: on My stats, and on Heroes when the service has a Duos list. It lies over the head's right

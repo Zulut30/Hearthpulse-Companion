@@ -65,9 +65,12 @@ public sealed class MainWindowLookTests
         Assert.All(avaTitles, t => Assert.Equal("pageRule", (string?)Next(Head(t))?.Attribute("Classes")));
         Assert.All(avaTitles, t => Assert.Contains(Head(t).Descendants(), e => e.Name.LocalName == "GoldGlyph"));
 
-        // A title stands in a horizontal row after its page's gold glyph (V3 icons I1); the rule follows the row.
+        // A title stands in a row after its page's gold glyph (V3 icons I1); the rule follows the row. The row is a
+        // horizontal stack, or a grid whose second column takes the rest of the width so a long title wraps (Battlegrounds).
         static XElement Head(XElement title) =>
-            title.Parent is { Name.LocalName: "StackPanel" } row && (string?)row.Attribute("Orientation") == "Horizontal" ? row : title;
+            title.Parent is { Name.LocalName: "StackPanel" } row && (string?)row.Attribute("Orientation") == "Horizontal" ? row
+            : title.Parent is { Name.LocalName: "Grid" } grid && (string?)title.Attribute("Grid.Column") == "1" && (string?)title.Attribute("TextWrapping") == "Wrap" ? grid
+            : title;
     }
 
     [Fact]

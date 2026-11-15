@@ -32,10 +32,12 @@
         <StackPanel>
             <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal">
+                    <!-- The glyph, then the title in the rest of the width: a long title (Russian in the compact
+                         layout) wraps under itself instead of running past the page's edge. -->
+                    <Grid ColumnDefinitions="Auto,*">
                         <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Battlegrounds}" />
-                        <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Classes="display pageTitle" />
-                    </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Mode.Battlegrounds}" Classes="display pageTitle" TextWrapping="Wrap" />
+                    </Grid>
                     <c:Wave Classes="pageRule" />
                 </StackPanel>
                 <!-- Solo / Duos: on My stats, and on Heroes when the service has a Duos list. Where it does not apply it is
