@@ -10,6 +10,7 @@
     <i:SignBrush x:Key="SignBrush" />
     <i:FractionWidth x:Key="Fraction" />
     <i:LeftMargin x:Key="LeftMargin" />
+    <i:ZoomTransform x:Key="ZoomTransform" />
 
     <!-- Opponent's played card: hover shows the whole card beside the panel, as in the deck tracker (the full name too) -->
     <DataTemplate x:Key="PlayedTemplate" x:DataType="o:PlayedTile">
@@ -220,9 +221,9 @@
         <Border Width="8" Height="8" CornerRadius="4" Margin="0,0,4,0" Background="{Binding Result, Converter={StaticResource KeyBrush}}" ToolTip.Tip="{Binding Tooltip}" />
     </DataTemplate>
 
-    <!-- Hero pick: compact badge centred above each hero portrait (slot = HDT hero pitch, 340 units) -->
+    <!-- Hero pick: compact badge centred above each hero portrait (its slot, one hero step of the game, comes from the row: PickRowLayout) -->
     <DataTemplate x:Key="HeroPickTemplate" x:DataType="o:HeroPickCard">
-        <Panel Width="340" Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
+        <Panel Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
             <Border Classes="overlayCard solid pickCard" HorizontalAlignment="Center"
                     Width="232" Padding="10,8" Margin="0,8,0,0">
               <StackPanel>
@@ -261,9 +262,9 @@
         </Panel>
     </DataTemplate>
 
-    <!-- Trinket pick: compact badge above each offered trinket (slot = HDT trinket pitch, 277 units) -->
+    <!-- Trinket pick: compact badge above each offered trinket (its slot, one trinket step of the game, comes from the row: PickRowLayout) -->
     <DataTemplate x:Key="TrinketBadgeTemplate" x:DataType="o:TrinketBadge">
-        <Panel Width="277" Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
+        <Panel Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
             <Border Classes="overlayCard solid pickCard" HorizontalAlignment="Center"
                     Width="196" Padding="9,7" Margin="0,8,0,0">
                 <Grid ColumnDefinitions="Auto,*">

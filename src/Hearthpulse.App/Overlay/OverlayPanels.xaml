@@ -354,9 +354,9 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!-- Hero pick: compact badge centred above each hero portrait (slot = HDT hero pitch, 340 units) -->
+    <!-- Hero pick: compact badge centred above each hero portrait (its slot, one hero step of the game, comes from the row: PickRowLayout) -->
     <DataTemplate x:Key="HeroPickTemplate" DataType="{x:Type o:HeroPickCard}">
-        <Grid Width="340">
+        <Grid>
             <Border x:Name="Halo" Width="268" HorizontalAlignment="Center" Margin="0,-6,0,-14" CornerRadius="18"
                     Background="{StaticResource BestHalo}" IsHitTestVisible="False" Visibility="Collapsed" />
             <Border x:Name="Card" Style="{StaticResource OverlayCardSolid}" HorizontalAlignment="Center"
@@ -418,9 +418,9 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!-- Trinket pick: compact badge above each offered trinket (slot = HDT trinket pitch, 277 units) -->
+    <!-- Trinket pick: compact badge above each offered trinket (its slot, one trinket step of the game, comes from the row: PickRowLayout) -->
     <DataTemplate x:Key="TrinketBadgeTemplate" DataType="{x:Type o:TrinketBadge}">
-        <Grid Width="277">
+        <Grid>
             <Border x:Name="Halo" Width="232" HorizontalAlignment="Center" Margin="0,-6,0,-14" CornerRadius="18"
                     Background="{StaticResource BestHalo}" IsHitTestVisible="False" Visibility="Collapsed" />
             <Border x:Name="Card" Style="{StaticResource OverlayCardSolid}" HorizontalAlignment="Center"

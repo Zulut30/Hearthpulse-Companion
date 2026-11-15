@@ -75,7 +75,7 @@
                                 <ColumnDefinition Width="56" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{i:Loc Settings.Overlay.Size}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" ToolTip="{i:Loc Settings.Overlay.SizeTip}" />
-                            <Slider x:Name="SizeSlider" Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" ValueChanged="RaiseSliderChanged" />
+                            <Slider x:Name="SizeSlider" Grid.Column="1" Minimum="{x:Static core:AppSettings.MinScale}" Maximum="{x:Static core:AppSettings.MaxScale}" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" ValueChanged="RaiseSliderChanged" />
                             <TextBlock Grid.Column="2" Text="{Binding OverlayScale, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
                         </Grid>
                         <Grid>

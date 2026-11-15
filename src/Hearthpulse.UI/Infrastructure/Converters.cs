@@ -83,6 +83,15 @@ public sealed class FractionWidth : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
+/// <summary>A number to a uniform scale, for a row that is scaled on top of the overlay (the pick badges); no transform at 1.</summary>
+public sealed class ZoomTransform : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is double zoom and > 0 && Math.Abs(zoom - 1) > 0.0005 ? new Avalonia.Media.ScaleTransform(zoom, zoom) : null;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 /// <summary>A number to a left margin, for items placed at an x offset inside an overlapping panel.</summary>
 public sealed class LeftMargin : IValueConverter
 {
