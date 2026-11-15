@@ -17,7 +17,9 @@ presentation contracts together; run it on Windows as well when changing shared 
 Feature specs, data contracts and project records: [docs/README.md](docs/README.md). Shared build settings (satellite
 languages, no symbols in published apps): `Directory.Build.props` / `Directory.Build.targets`.
 
-Project skills live in `.claude/skills/`. Start from the one that matches the task:
+Project skills live in `.claude/skills/<name>/SKILL.md`. **First action on any task, unprompted: pick the 1-3 rows
+below that match and load those skills** - they hold the file names, traps and checks this file leaves out. Every
+brief you write for a session or subagent names the skills it loads first: a fresh context starts without them.
 
 | Task | Skill |
 |---|---|
@@ -47,21 +49,18 @@ Project skills live in `.claude/skills/`. Start from the one that matches the ta
 | One component under hostile data, PNGs (owner-invoked) | `ui-break` |
 | Every state of one component, PNGs (owner-invoked) | `ui-states` |
 | Variants of one UI piece to pick from (owner-invoked) | `ui-variant` |
-| Test first, red -> green, honest tests | `test-driven-development` |
-| Acting on QA / review findings | `receiving-code-review` |
-| Parallel subagents inside one session | `dispatching-parallel-agents` |
 | Module interfaces, seams, deep modules | `codebase-design` |
-| Architecture review report (owner-invoked) | `improve-codebase-architecture` |
 | Project glossary `docs/GLOSSARY.md`, ADRs `docs/adr/` | `domain-modeling` |
-| Interview the owner about a plan, on request | `grilling`, `grill-with-docs` |
-| Research from primary sources into a file | `research` |
-| Writing skills, agent files, CLAUDE.md | `writing-for-agents` |
-| Session retrospective (owner-invoked) | `retro` |
-| Re-explain the last message plainly (owner-invoked) | `wait-what` |
+| Interview the owner about a plan, on request | `grilling` |
+| Writing skills, agent files, CLAUDE.md, AGENTS.md | `writing-for-agents` |
 
 The rows from `better-interface` to `ui-variant` are UI skills rewritten for WPF/Avalonia from jakubkrehel/skills;
-the last eleven rows are general practices adapted from mattpocock/skills and obra/superpowers (all MIT): sources and
-changes in `.claude/skills/THIRD-PARTY-NOTICES.md`.
+the last four rows are general practices adapted from mattpocock/skills (all MIT): sources and changes in
+`.claude/skills/THIRD-PARTY-NOTICES.md`.
+
+Other agents: Codex starts from `AGENTS.md` and finds the same skills through generated stubs in `.agents/skills/`.
+After adding, renaming or deleting a skill, or editing a description, run `python tools/skills/gen_codex_stubs.py`
+(CI compares the stubs with the skills).
 
 Team agents (`.claude/agents/`, run by `hearthpulse-team`): `hearthpulse-lead` (task card and work packages),
 `hearthpulse-designer` (design.md), `hearthpulse-core-dev` and `hearthpulse-ui-dev` (developer sessions),

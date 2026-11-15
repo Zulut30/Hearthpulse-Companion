@@ -31,8 +31,10 @@ gsd-build/get-shit-done (MIT) - see [notices](../THIRD-PARTY-NOTICES.md).
 | Reviewer | [hearthpulse-reviewer](../../agents/hearthpulse-reviewer.md) | subagent | `reference/reviews/HeartLens-claude-*.md` |
 | Legal, when triggered | [hearthpulse-legal](../../agents/hearthpulse-legal.md) | subagent | `reference/reviews/LEGAL-*.md` |
 
-- **Subagent:** `subagent_type` = the role name when this session lists it; otherwise `general-purpose` with "Твоя
-  роль: прочитай и выполняй `D:\HeartLens-main\HeartLens-main\.claude\agents\<role>.md`" plus the inputs.
+- **Subagent:** run the role as a subagent ([tools](../hearthpulse-ship/SKILL.md#session-tools-by-environment)).
+  The session lists the role as an agent type: use it, the role's skills come preloaded. Otherwise a general
+  subagent with "Твоя роль: прочитай `D:\HeartLens-main\HeartLens-main\.claude\agents\<role>.md`, открой скиллы из
+  его списка `skills` и выполняй" plus the inputs.
 - **Session:** the brief in step 3. Developers are sessions, not subagents: they need their own worktree, and the
   owner wants to see and steer them.
 - **Task folder** `$task` = `D:\HeartLens-main\reference\tasks\TASK-<yyyy-mm-dd>-<slug>\`: card, design, handovers,
@@ -44,7 +46,7 @@ gsd-build/get-shit-done (MIT) - see [notices](../THIRD-PARTY-NOTICES.md).
 - **S** (one area, a few files, no UI decision): no lead. Write `$task\task.md` yourself from
   [the template](reference/task-template.md), only goal, AC, files and one package. Go to step 3.
 - **M / L:** lead subagent with the owner's request verbatim, today's date and `$task`. Read the card it writes.
-  "Вопросы владельцу" not empty: `AskUserQuestion` with those questions only, write the answers into the card in
+  "Вопросы владельцу" not empty: ask the owner those questions only, write the answers into the card in
   place of their `[NEEDS CLARIFICATION]` markers. Otherwise ask nothing. Packages go out only when its "Проверка
   карточки" is fully ticked.
 - The card's "Журнал" opens with a "Сейчас" line (phase, next step, what we wait for): update it at every step
@@ -60,12 +62,13 @@ the design start at the same time (step 3).
 Per package, when its inputs exist (design.md, a contract from another package):
 
 - `git -C $repo worktree add D:\HeartLens-main\wt-<slug>-<pkg> -b claude/<slug>-<pkg> main`;
-- `start_session`: `initiation: "user_asked"`, `cwd` = the worktree, `use_worktree: false`, `context: "fresh"`,
-  title `<slug> · P<n> <role>`;
+- start a session in that worktree ([tools](../hearthpulse-ship/SKILL.md#session-tools-by-environment)): fresh
+  context, title `<slug> · P<n> <role>`;
 - brief:
 
   ```
   Твоя роль — <role>: прочитай и выполняй .claude/agents/<role>.md.
+  Первым делом загрузи скиллы: <список `skills` из файла роли + 1-2 скилла области пакета по таблице CLAUDE.md>.
   Задача: <$task>\task.md, пакет P<n>. Дизайн: <$task>\design.md (если есть).
   Worktree <path>, ветка claude/<slug>-<pkg>. Коммить только в неё, без push и merge.
   Рендер — через hearthpulse-visual-check на копии данных, оба UI, нужные темы, никогда при запущенном
@@ -84,9 +87,9 @@ When a session reports (its note is not proof):
 
 - QA and reviewer subagents in parallel on its worktree and branch. Legal as well when the diff touches game memory,
   input, third-party code/data, paid features or user data.
-- QA "вернуть разработчику" or a reviewer B/M: `SendMessage` the session with the ids, wait, re-run only the side that
-  failed (the reviewer checks the new commits and the closed ids). A third failed round on the same finding: stop and
-  tell the owner.
+- QA "вернуть разработчику" or a reviewer B/M: write to the session with the ids, wait for its report, re-run only
+  the side that failed (the reviewer checks the new commits and the closed ids). A third failed round on the same
+  finding: stop and tell the owner.
 - Minor findings: the session may fix them in the same round; they never block the merge.
 - "Журнал": "принят", with the QA and review report paths.
 

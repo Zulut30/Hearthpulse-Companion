@@ -25,7 +25,7 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). PNG proof
 | Navigation code | `MainWindow.xaml.cs`: `ShowPage`, `CurrentPage`, `OnNavigate`, `PlacePill`, `Reveal`, `ShowConstructedTab`, tab handlers `OnBgTab`/`OnCtTab` | `MainView.axaml.cs`: `ShowPage`, `UpdatePages`, `UpdateTabs`, `ApplyWidth` (compact), `ApplyChoice` |
 | Platform VM partials | Small `MainViewModel*.cs` adapters; `.Constructed` is the WPF clipboard copy of a deck code, `.Theme` is WPF-only | Small `MainViewModel*.cs` adapters for framework/established platform differences |
 | My Stats views | `Stats/BattlegroundsStatsView`, `ConstructedStatsView`, `ArenaStatsView`, `StatsResources.xaml` | same names, `.axaml` |
-| Composition | `src/Hearthpulse.App/App.xaml.cs` (+ `App.CardPool.cs`) | `src/Hearthpulse.UI/AppHost.cs` (+ `AppHost.CardPool.cs`) |
+| Composition | `src/Hearthpulse.App/App.xaml.cs` (+ `App.CardPool.cs`) | `src/Hearthpulse.UI/AppHost.cs` (+ `AppHost.Arena.cs`, `AppHost.Brawl.cs`) |
 | Logic | `src/Hearthpulse.Core` (e.g. `Stats/BattlegroundsStats.cs`, `ConstructedStats.cs`, `ArenaStats.cs`) | same |
 
 Element names match between the UIs (`NavArena`/`PageArena`, `TabHeroes`...): WPF `x:Name`, Avalonia `Name`.
@@ -102,7 +102,7 @@ Twist/Classic decks (no page of their own); My stats count the page's format onl
 
 Community stats are kept per format, never one shared slice: the VM asks for the page's format
 (`ConstructedMetaRequested`), the game session for the game's (`GameSession.ConstructedMetaNeeded`), and the host
-(`App.EnsureConstructedMeta` / `AppHost.EnsureConstructedMeta`) downloads each once and hands it to both. Navigation
+(`ConstructedMetaLoader`, created in `App.xaml.cs` / `AppHost.cs`) downloads each once and hands it to both. Navigation
 never writes `Settings.MetaFormat` (it only names the format loaded at start).
 
 ## Recipe: a tab inside a page
@@ -145,15 +145,15 @@ whose tag in the window is named `Settings<Tag>`; a new card goes into the tab t
 Every user-facing page goes into both UIs. Known accepted gaps (check before "fixing" them, and do not add new
 ones silently - list them in [hearthpulse-design](../hearthpulse-design/SKILL.md)):
 
-- WPF only: theme picker (`MainViewModel.Theme.cs`), page reveal/nav pill animation, hero
-  banner, overlay tribe focus.
+- WPF only: page reveal/nav pill animation, hero banner, overlay tribe focus.
 - Avalonia only: compact layout, separate Hearthstone/memory status dots, an extra overlay switch in Settings.
 
 ## Render scene
 
 - Pages in the render loop: Overview, Battlegrounds, Standard, Wild, History, Settings (`DevRender.cs`,
   `OffscreenRenderer.cs`); My Stats full/hover/compact in `DevRender.MyStats.cs` / `OffscreenRenderer.MyStats.cs`;
-  WPF Constructed tabs `main-constructed-tiers|top`. **Arena is not in the loop** (only `main-arena-full`).
+  WPF Constructed tabs `main-constructed-tiers|top`. **Arena is not in the loop** (only `main-arena-full` and the scenes of
+  `DevRender.Arena.cs` / `OffscreenRenderer.Arena.cs`).
 - A new page: add its name to both page loops (the PNG becomes `main-foo.png`); a tab or scrolled section: a public
   helper on `MainWindow`/`MainView` (like `ShowConstructedTab`, `HoverBattlegroundsGame`) called from your own
   render partial. If the baseline loop changes, update `REQUIRED_SCENES` in the visual-check wrapper and its focused

@@ -2,9 +2,16 @@
 name: hearthpulse-reviewer
 description: Code reviewer for Hearthpulse. Use after a developer session reports a package done, in parallel with QA - read-only review of git diff main...claude/<branch> - does it match the task card (nothing missing, nothing extra), the hearthpulse-review checklist (hidden information, both UIs, tokens, licences, threads, tests), and for UI changes the interface-review pass. Writes the report to ../reference/reviews/. Never edits code.
 tools: Read, Grep, Glob, Bash, Write
+skills:
+  - hearthpulse-review
+  - interface-review
 ---
 
 # Hearthpulse reviewer
+
+Skills first: the `skills` list above is your starting set (a Claude Code subagent has them preloaded; any other
+session opens `.claude/skills/<name>/SKILL.md` for each before the first step). A skill named below is the same
+path, opened when its step comes.
 
 ## Ground rules
 

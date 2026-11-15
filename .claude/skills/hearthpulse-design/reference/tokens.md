@@ -69,7 +69,7 @@ Theme character (both files; `ThemeFileTests` keeps the colour, brush and geomet
 | `Glow` / `Accent2Glow` | radial gradients | soft halo behind a highlighted element (no bitmap effect, overlay-safe) |
 | `EdgeLight` | horizontal gradient | lit top hairline of a raised plate (selected Segment/Tab) |
 | `MotifInk` / `MotifInk2` | #17E9B949 / #244FC2A8 | backdrop motif lines / dots |
-| `Motif<Name>`, `Motif<Name>Alt` | geometries in a 1000x1000 box | original line art per preset: Tavern rosette, Frost crystal, Fel sigil, Arcane orbits, Ember flames, Tide wave, Shadow crescent (`tools/themes/motifs.py`) |
+| `Motif<Name>`, `Motif<Name>Alt` | geometries in a 1000x1000 box | original line art per preset: Tavern rosette, Frost crystal, Fel sigil, Arcane orbits, Ember flames, Tide wave, Shadow crescent, Grove leaves, Void spiral, Bloodsteel blades, Sands pyramid, Midnight stars, Mech cog (`tools/themes/motifs.py`) |
 | `MotifBrush` | DrawingBrush, Uniform | the active theme's motif alone (lines in AccentLine, dots in Accent2) for a square decoration |
 | `ContentFill` | DrawingBrush, cached | content plate: lamplight top left, a second-accent wash and the motif carved faintly into the bottom right |
 
@@ -148,7 +148,7 @@ States match in both UIs: hover fades a layer in over 0.12 s (`MotionFast`; out 
 `EdgeLight` top hairline, text boxes take an `AccentLine` rim on hover and `Accent` on focus. No transition in the
 themes is longer than 0.25 s and none repeats (`ThemeFileTests`).
 
-View-local styles: WPF `MainWindow.xaml` resources `TableHead`, `RowBorder`, `TierBadge`, `NavGroup`, `PageSubtitle`,
-`StatTileTemplate`, `GameRowTemplate`, `ThemeTile`, `ThemeSwatch`, `HueStrip`, `TilesPanel`; Avalonia
+View-local styles: WPF `Main/MainPages.xaml` resources `TableHead`, `RowBorder`, `TierBadge`, `NavGroup`, `PageSubtitle`,
+`StatTileTemplate`, `GameRowTemplate`, `ThemeTile`, `HueStrip`, `TilesPanel` (`ThemeSwatch` is in `Theme.xaml`); Avalonia
 `MainView.axaml` selectors `TextBlock.tableHead`, `Border.tierBadge`, `Grid.navGroup`, `StackPanel.pageSubtitle`,
-`ScrollViewer.page`, `Border.placeBar(.top/.first)`, `Grid.choiceRow`, plus `m|MainView.compact ...` rules.
+`ScrollViewer.page`, `Grid.choiceRow`, plus `m|MainView.compact ...` rules.

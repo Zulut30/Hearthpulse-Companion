@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: Writing documents for agents. Use when creating or editing skills, or modifying AGENTS.md or CLAUDE.md.
+description: Writing documents for agents. Use when creating or editing skills, agent role files or briefs for sessions, or modifying AGENTS.md or CLAUDE.md. Triggers - "скилл", "инструкции для агентов", "файл агента", "бриф".
 ---
 
 > Source: [mattpocock/skills](https://github.com/mattpocock/skills) `skills/productivity/writing-for-agents/SKILL.md` at
