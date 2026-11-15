@@ -95,6 +95,7 @@ public sealed partial class OverlayViewModel
     private IReadOnlyList<MulliganPlate> _mulliganCards = [];
     private string _mulliganSummary = string.Empty;
     private string _mulliganSource = string.Empty;
+    private string _mulliganScopeLine = string.Empty;
     private string _mulliganDetails = string.Empty;
     private bool _mulliganImpactGood;
     private bool _mulliganImpactBad;
@@ -122,6 +123,12 @@ public sealed partial class OverlayViewModel
 
     /// <summary>"Egg Death Knight · HSReplay Legend EU · on the coin", "Arena · card win rate when drawn" (small, under the summary).</summary>
     public string MulliganSource { get => _mulliganSource; private set => Set(ref _mulliganSource, value); }
+
+    /// <summary>
+    /// The line under the summary when the numbers are a decklist's, not an archetype's: "By your deck, 26,946 games,
+    /// data from 14.11.2026" or "By a close deck, ..."; empty for an archetype's numbers (their source stays in the tooltip).
+    /// </summary>
+    public string MulliganScopeLine { get => _mulliganScopeLine; private set => Set(ref _mulliganScopeLine, value); }
 
     /// <summary>The summary's tooltip: average hand, full mulligan, recommended keeps, curve and synergy notes.</summary>
     public string MulliganDetails { get => _mulliganDetails; private set => Set(ref _mulliganDetails, value); }
@@ -196,7 +203,7 @@ public sealed partial class OverlayViewModel
 
         // Snapshots arrive every 100 ms while anything changes; rebuild the badges only when what they show changed. The
         // language is part of it: after a switch the host pushes the last snapshot again and the texts are made anew.
-        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|{view.SliceRank}|{view.ArenaBasis}|{_mulliganCompact}|"
+        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|{view.SliceRank}|{view.ArenaBasis}|{_mulliganCompact}|{view.Scope}|{view.DeckGames}|{view.DataAsOf:O}|{view.DeckDifference}|"
                     + $"{string.Join(',', _mulliganKept.Order())}|"
                     + string.Join(';', view.Cards.Select(c => $"{c.EntityId}|{c.CardId}|{c.Call}|{c.Delta:0.0000}|{c.Edge:0.0000}|{c.KeepRate:0.0000}|{c.KeptDelta:0.0000}|{c.DrawnDelta:0.0000}"));
         if (print == _mulliganPrint)
@@ -211,6 +218,7 @@ public sealed partial class OverlayViewModel
         {
             MulliganSummary = missing;
             MulliganSource = initiative ?? string.Empty;
+            MulliganScopeLine = string.Empty;
             // The source line heads the tooltip: the strip itself carries only the impact.
             MulliganDetails = string.Join('\n', new[] { MulliganSource, Loc.T("Mulligan.NoNumbers") }.Where(s => s.Length > 0));
             MulliganImpactGood = MulliganImpactBad = MulliganHasWarnings = false;
@@ -228,6 +236,7 @@ public sealed partial class OverlayViewModel
                 ? Loc.F("Mulligan.SliceSource", SliceRankName(rank))
                 : null;
             MulliganSource = string.Join(" · ", new[] { context, view.Source, slices, initiative }.Where(s => !string.IsNullOrEmpty(s)));
+            MulliganScopeLine = ScopeLine(view, culture);
             var notes = impact.Warnings
                 .Concat(impact.Synergies.Select(s => Loc.F("Mulligan.SynergyKept", s.NameA, s.NameB, Points(s.Interaction))))
                 .ToList();
@@ -235,6 +244,8 @@ public sealed partial class OverlayViewModel
             {
                 view.ArenaBasis is null ? string.Empty : Loc.T("Mulligan.Arena.Note"),
                 MulliganSource,
+                MulliganScopeLine,
+                view.Scope == MulliganScope.NearDeck ? Loc.P("Mulligan.Scope.NearNote", view.DeckDifference) : string.Empty,
                 Loc.F("Mulligan.AverageHand", vsClass + (initiative is null ? string.Empty : " " + initiative), view.BaseWinRate.ToString("P1", culture)),
                 Loc.F("Mulligan.YourKeeps", impact.Kept, view.Cards.Count, impact.Expected.ToString("P1", culture)),
                 Loc.F("Mulligan.FullMulligan", impact.FullMulligan.ToString("P1", culture), impact.Recommended.ToString("P1", culture)),
@@ -286,7 +297,10 @@ public sealed partial class OverlayViewModel
                 }
                 else
                 {
-                    lines.Add(Loc.P("Mulligan.CardWinRate", c.Sample, rate.ToString("P1", culture), view.CardBaseline.ToString("P1", culture)));
+                    // A deck's slice has no per-card counts (its sample is the deck's games, on the source line).
+                    lines.Add(view.Scope == MulliganScope.Archetype
+                        ? Loc.P("Mulligan.CardWinRate", c.Sample, rate.ToString("P1", culture), view.CardBaseline.ToString("P1", culture))
+                        : Loc.F("Mulligan.Deck.CardWinRate", rate.ToString("P1", culture), view.CardBaseline.ToString("P1", culture)));
                     lines.Add(Loc.F("Mulligan.KeptBy", c.KeepRate?.ToString("P0", culture), c.ExpectedTurn.ToString("0.#", culture)));
                 }
                 if (c.CoinShift is { } coinShift)
@@ -356,6 +370,23 @@ public sealed partial class OverlayViewModel
                 _mulliganCompact ? string.Empty : c.PickTier ?? string.Empty,
                 arena);
         }).ToList();
+    }
+
+    /// <summary>
+    /// "By your deck, N games, data from <date>" for a decklist's numbers (the date in the player's local day and
+    /// culture); empty for an archetype's.
+    /// </summary>
+    internal static string ScopeLine(MulliganView view, CultureInfo culture)
+    {
+        if (view.Scope == MulliganScope.Archetype || view.DeckGames is not { } games)
+        {
+            return string.Empty;
+        }
+
+        var own = view.Scope == MulliganScope.Deck;
+        return view.DataAsOf is { } asOf
+            ? Loc.P(own ? "Mulligan.Scope.Deck" : "Mulligan.Scope.NearDeck", games, DateTime.SpecifyKind(asOf, DateTimeKind.Utc).ToLocalTime().ToString("d", culture))
+            : Loc.P(own ? "Mulligan.Scope.DeckNoDate" : "Mulligan.Scope.NearDeckNoDate", games);
     }
 
     /// <summary>The rank of a slice as the player reads it: Legend, all ranks, or the mulligan filter's rank (plan 2.4).</summary>

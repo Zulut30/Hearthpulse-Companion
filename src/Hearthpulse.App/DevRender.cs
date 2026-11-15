@@ -163,6 +163,7 @@ public partial class App
             await RenderWidgetsAsync(folder);
             await RenderSecretsAsync(folder);
             await RenderGraveyardAsync(folder);
+            await RenderMulliganDeckAsync(folder);
             await RenderLikelyDeckAsync(folder);
             await RenderStreamAsync(folder);
 

@@ -188,6 +188,14 @@ public static class MulliganGuide
     /// <param name="goingFirst">True going first, false on the coin, null when unknown.</param>
     public static MulliganView? Compute(GuideArchetype data, IReadOnlyList<OfferedCard> hand, IReadOnlyDictionary<string, int>? deck, string? opponentClass, bool? goingFirst, string context)
     {
+        // A deck guide carries one slice per context: the most specific that fits this game replaces the all-games rows,
+        // so its numbers already are "on the coin" or "against this class" and need no shift.
+        var deckSlice = DeckSliceFor(data.DeckSlices, opponentClass, goingFirst);
+        if (deckSlice is not null)
+        {
+            data = data with { Cards = deckSlice.Cards, BaselineWinRate = deckSlice.BaseWinRate };
+        }
+
         if (hand.Count == 0 || (data.BaselineWinRate ?? Baseline(data.Cards)) is not { } baseline)
         {
             return null;
@@ -263,9 +271,13 @@ public static class MulliganGuide
         {
             ReplaceDelta = replace,
             CardBaseline = baseline,
-            OpponentClass = classShift is not null || rows.Exists(r => r.OpponentShift is not null) ? opponentClass : null,
+            OpponentClass = classShift is not null || rows.Exists(r => r.OpponentShift is not null) || deckSlice is { OpponentClass: not AnyOpponent } ? opponentClass : null,
             ClassShift = classShift,
-            GoingFirst = initiativeShift is not null || rows.Exists(r => r.CoinShift is not null) ? goingFirst : null,
+            GoingFirst = initiativeShift is not null || rows.Exists(r => r.CoinShift is not null) || deckSlice is { Initiative: not DeckMulliganSlice.AllGames } ? goingFirst : null,
+            Scope = deckSlice is null ? MulliganScope.Archetype : data.Scope,
+            DeckGames = deckSlice?.Games,
+            DataAsOf = deckSlice?.AsOf,
+            DeckDifference = deckSlice is null ? 0 : data.DeckDifference,
             HasPairData = data.Pairs.Count > 0,
             Synergies = synergies,
             SliceRank = rows.Select(r => r.Slice?.Rank).OfType<string>().GroupBy(r => r).MaxBy(g => g.Count())?.Key,
@@ -393,6 +405,52 @@ public static class MulliganGuide
             }
         }
     }
+
+    /// <summary>
+    /// The deck slice that fits a game, most specific first: this initiative against this class, against this class, this
+    /// initiative, then all games. A split slice under <see cref="MinSliceGames"/> games is passed over. Null without slices.
+    /// </summary>
+    public static DeckMulliganSlice? DeckSliceFor(IReadOnlyList<DeckMulliganSlice> slices, string? opponentClass, bool? goingFirst)
+    {
+        if (slices.Count == 0)
+        {
+            return null;
+        }
+
+        var initiative = goingFirst switch { true => "first", false => "coin", null => null };
+        var opponent = opponentClass is { Length: > 0 } ? opponentClass : null;
+        var keys = new List<(string Initiative, string Opponent)>();
+        if (initiative is not null && opponent is not null)
+        {
+            keys.Add((initiative, opponent));
+        }
+
+        if (opponent is not null)
+        {
+            keys.Add((DeckMulliganSlice.AllGames, opponent));
+        }
+
+        if (initiative is not null)
+        {
+            keys.Add((initiative, AnyOpponent));
+        }
+
+        foreach (var (i, o) in keys)
+        {
+            if (slices.FirstOrDefault(s => s.Games >= MinSliceGames && s.Initiative == i && string.Equals(s.OpponentClass, o, StringComparison.OrdinalIgnoreCase)) is { } split)
+            {
+                return split;
+            }
+        }
+
+        return slices.FirstOrDefault(s => s is { Initiative: DeckMulliganSlice.AllGames, OpponentClass: AnyOpponent });
+    }
+
+    /// <summary>
+    /// How many cards of the larger deck the other lacks (copies counted): 0 for the same list, 2 for two swapped cards.
+    /// </summary>
+    public static int DeckDifference(IReadOnlyDictionary<int, int> deck, IReadOnlyDictionary<int, int> other) =>
+        Math.Max(deck.Values.Sum(), other.Values.Sum()) - deck.Sum(c => Math.Min(c.Value, other.GetValueOrDefault(c.Key)));
 
     /// <summary>
     /// How much better (+) or worse the card is offered in the <paramref name="coin"/> / <paramref name="opponent"/> slice
