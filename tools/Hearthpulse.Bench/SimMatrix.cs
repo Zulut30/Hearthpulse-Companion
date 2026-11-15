@@ -236,12 +236,21 @@ internal static class SimMatrix
 
     private static string RepoRoot()
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Hearthpulse.slnx")))
+        // Above the bench itself, else above the working directory: a build with --artifacts-path lives outside the repository.
+        foreach (var start in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() })
         {
-            dir = dir.Parent;
+            var dir = new DirectoryInfo(start);
+            while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Hearthpulse.slnx")))
+            {
+                dir = dir.Parent;
+            }
+
+            if (dir is not null)
+            {
+                return dir.FullName;
+            }
         }
 
-        return dir?.FullName ?? throw new DirectoryNotFoundException("Hearthpulse.slnx not found above the bench");
+        throw new DirectoryNotFoundException("Hearthpulse.slnx not found above the bench or the working directory");
     }
 }

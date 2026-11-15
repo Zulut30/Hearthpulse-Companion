@@ -152,7 +152,8 @@ the normal simulation options and cancellation). Read `BattlegroundsTracker.Comb
   app or `--render-ui` during development.
 - Contents: `settings.json`, `history.db`, `account.dat` (signed-in session; never copy it into scratch data),
   `updates/` (staged update), `hearthpulse.log` (`Diag.Info/Debug/Error`, rotated at 4 MB to
-  `.old.log`), `cache/` (card JSON, meta), `cache/images/`.
+  `.old.log`), `cache/` (card JSON, meta), `cache/images/`, `replays/`, `combat-captures/` (each Battlegrounds game's
+  fights as the simulator got them, `Tracking/CombatCaptureStore`; local only, never sent; `docs/bg-combat-sim.md`).
 
 ## Conventions
 

@@ -34,6 +34,10 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     // (e.g. Stitched Salvager's start-of-combat destroy), as they were when removed, by the trigger's source.
     private readonly Dictionary<int, List<SimMinion>> _removedBy = new();
     private readonly List<CombatRecord> _combats = new();
+
+    // The fights of this game as the simulator got them, and what the log said about the minions of the fight being captured.
+    private readonly List<CapturedFight> _captures = new();
+    private readonly Dictionary<int, MinionFacts> _minionFacts = new();
     private readonly List<TierStep> _tiers = new();
     private readonly HashSet<string> _shopRaces = new(StringComparer.Ordinal);
 
@@ -106,7 +110,10 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     /// after 200 ms (at least 500 fights). Keyword-only boards need ~20–60 ms; a full 7v7 board full of effects
     /// ~100–160 ms once the code is warm, more on the first fight after start-up.
     /// </summary>
-    public SimOptions SimOptions { get; set; } = new()
+    public SimOptions SimOptions { get; set; } = DefaultSimOptions;
+
+    /// <summary>What <see cref="SimOptions"/> starts as.</summary>
+    internal static SimOptions DefaultSimOptions { get; } = new()
     {
         TimeBudget = TimeSpan.FromMilliseconds(200),
 
@@ -139,6 +146,8 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _lastVisibleCards = Array.Empty<string>();
         _boards.Clear();
         _combats.Clear();
+        _captures.Clear();
+        _minionFacts.Clear();
         _tiers.Clear();
         _shopRaces.Clear();
         _inCombat = false;

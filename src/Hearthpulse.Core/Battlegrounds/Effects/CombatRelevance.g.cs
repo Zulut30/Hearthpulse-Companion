@@ -5,6 +5,7 @@
 //       --tokens bg_tokens.csv --timewarped bg_timewarped_auto.csv --carddefs carddefs_parsed.json
 // Source: HearthSim/hsdata CardDefs.Bacon.xml @ e456d49 (patch 37.0.0.255130)
 // Pool rows are labelled by hand from card text; Timewarped rows come from the text heuristic.
+// Additions: tools/effects/relevance_additions.json (pool minions the patch's research files lack; labelled by hand from HearthstoneJSON enUS card text)
 // </auto-generated>
 
 namespace Hearthpulse.Core.Battlegrounds.Effects;
@@ -491,5 +492,7 @@ internal static partial class CombatRelevanceTable
         new("BG34_Giant_677", "BG34_Giant_677_G", Relevance.None, "TIMEWARPED_MAGNETIC_TAVERN", "Timewarped Wargear", Origin.Heuristic),
         new("BG34_Giant_331", "BG34_Giant_331_G", Relevance.None, "TIMEWARPED_DEATHRATTLE", "Timewarped Warghoul", Origin.Heuristic),
         new("BG34_Giant_599", "BG34_Giant_599_G", Relevance.None, "TIMEWARPED_SOC", "Timewarped Whirl-O-Tron", Origin.Heuristic),
+        new("BG27_023", "BG27_023_G", Relevance.Relevant, "KILL_HAND_BUFF", "Murcules", Origin.Pool),
+        new("BG26_350", "BG26_350_G", Relevance.Relevant, "DR_SUMMON", "Bassgill", Origin.Pool),
     ];
 }

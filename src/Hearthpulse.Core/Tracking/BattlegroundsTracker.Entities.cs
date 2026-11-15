@@ -193,13 +193,9 @@ public sealed partial class BattlegroundsTracker
         var golden = goldenId || e.GetInt(GameTag.Premium) > 0;
         var mechanics = card?.Mechanics ?? Array.Empty<string>();
         var attached = enchantments[e.Id].ToList();
-        // Known card: the generated table (or the text fallback for a newer card). Unknown card: its effect tags.
-        var relevant = card is null && CombatRelevance.Find(e.CardId) is null
-            ? CombatRelevance.TagsSuggestCombatEffect(e.Has)
-            : CombatRelevance.IsCombatRelevant(e.CardId, card, Cards.Locale);
-        // A deathrattle, Avenge or Rally the card does not print came from an enchantment (Dark Gift, Tamsin...).
-        var granted = card is not null ? CombatRelevance.GrantedMechanics(e.Has, mechanics) : [];
-        var unsimulated = CombatRelevance.IsUnsimulated(cardId, golden, relevant, granted, attached, isOpponent, Effects);
+        var facts = new MinionFacts(e.Id, e.CardId, CombatRelevance.EffectMarkers(e.Has));
+        _minionFacts[e.Id] = facts;
+        var unsimulated = IsUnsimulated(facts, cardId, golden, attached, isOpponent, Cards, Effects);
 
         var keywords = KeywordsOf(e);
         // A reborn copy is a fresh copy of the card. Without card data, keep what the minion has minus one-shot keywords.
@@ -233,6 +229,23 @@ public sealed partial class BattlegroundsTracker
             Enchantments = attached,
             Remembered = _removedBy.TryGetValue(e.Id, out var removed) ? removed.ToArray() : Array.Empty<SimMinion>(),
         };
+    }
+
+    /// <summary>
+    /// The "not simulated" flag of a captured minion, from what the log said about it (<paramref name="facts"/>) and the
+    /// card data and effects of now. A saved capture is flagged again with it, so effects added later count.
+    /// </summary>
+    internal static bool IsUnsimulated(MinionFacts facts, string cardId, bool golden, IReadOnlyList<string> enchantments, bool isOpponent,
+                                       CardDb cards, EffectRegistry effects)
+    {
+        var card = cards.Get(facts.CardId);
+        // Known card: the generated table (or the text fallback for a newer card). Unknown card: its effect tags.
+        var relevant = card is null && CombatRelevance.Find(facts.CardId) is null
+            ? facts.Markers.Count > 0
+            : CombatRelevance.IsCombatRelevant(facts.CardId, card, cards.Locale);
+        // A deathrattle, Avenge or Rally the card does not print came from an enchantment (Dark Gift, Tamsin...).
+        var granted = card is not null ? CombatRelevance.GrantedMechanics(facts.Markers.Contains, card.Mechanics) : [];
+        return CombatRelevance.IsUnsimulated(cardId, golden, relevant, granted, enchantments, isOpponent, effects);
     }
 
     private static Keyword KeywordsOf(Entity e) =>
@@ -275,4 +288,16 @@ public sealed partial class BattlegroundsTracker
 
     /// <summary>What the last combat simulation was given (for tests and diagnostics).</summary>
     internal CombatCapture? LastCapture { get; private set; }
+
+    /// <summary>
+    /// The options <see cref="LastCapture"/> was simulated with (damage cap, Duos, first attacker, budget), so a
+    /// measurement can run the same fight again.
+    /// </summary>
+    internal SimOptions? LastCaptureOptions { get; private set; }
+
+    /// <summary>
+    /// Every fight of this game the simulator was given, in order, with the index of its combat in <see cref="Combats"/>
+    /// (the combat is added when the fight ends). Kept for the local capture file (<see cref="CombatCaptureStore"/>).
+    /// </summary>
+    internal IReadOnlyList<CapturedFight> Captures => _captures;
 }

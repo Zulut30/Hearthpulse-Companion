@@ -21,7 +21,9 @@ disagrees with them, fix the row in the same change. Paths are from the reposito
 
 `history.db`, `replays/` (the full replay with post-game reveals, capped at 300 MB and 3000 files),
 `hearthpulse.log` (rotated at 4 MB), `settings.json`, `account.dat` (the signed-in session, protected by
-`TokenStore`), `cache/`. The local match page may show everything the log revealed by the end of the game; nothing
+`TokenStore`), `cache/`, `combat-captures/` (the fights of the player's Battlegrounds games as the combat simulator got
+them, for measuring it with Bench `simcover --captures`: 500 games or 32 MB, oldest first; no sender reads it, and
+`CombatCaptureStoreTests` fails when another source file starts to). The local match page may show everything the log revealed by the end of the game; nothing
 derived from the post-game part leaves the machine. Reading Hearthstone's memory is read-only and Windows-only;
 the opponents' MMR lookup is off by default under the conditions in `docs/bg-opponent-mmr.md`.
 
