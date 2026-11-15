@@ -127,13 +127,17 @@ invalid JSON or a non-https endpoint. Hidden numbers arrive as `null` (`Picked`,
 `PoolClient.Endpoint(settings)`; without an https pool nothing is asked (`NotConfigured`, block hidden, as for
 `unsupported_mode`). Each answer is kept in `cache/api/pool-bg-heroes-solo.json` with its address and time and reused
 for 30 minutes. A "not available" answer (`not_published`, `rebuilding`, `unsupported_mode`) withdraws every
-copy with numbers for good, and no clock is compared to decide it: the withdrawal is remembered in the process; the
+copy with numbers for that address, and no clock is compared to decide it: the withdrawal is remembered per copy
+file and pool address in the process; the
 copy is replaced by the answer; if that fails, a marker `pool-bg-heroes-solo.revoked` is written, and while it is there
-no copy is read at all; if that fails too, the copy is deleted; and if nothing can be written the process keeps the
-withdrawal and writes the marker on a later load. An unreadable marker counts as a marker. Only a new publication
-removes it, after that publication is on disk (copy first, marker second). Answers are applied in the order their
-requests started, under one gate per copy: an answer of a request that began before the one applied last changes
-nothing, so a slow answer with numbers cannot undo a later withdrawal. When
+no copy of its address is read; if that fails too, the copy is deleted; and if nothing can be written the process keeps the
+withdrawal and writes the marker on a later load. A marker names one pool; overlapping withdrawals of different
+pools use `endpoint: null`, which hides every pool's copy, as does an unreadable marker. An unreadable marker is
+not overwritten with one pool's marker. A successful replacement of the single copy file, by a publication or a
+"not available" answer, allows the marker to be removed: no earlier numbers remain on disk (copy first, marker
+second). The file gate and request counter are shared by all its pools, but applied results and request ordering
+are kept per address. An answer older than the last applied answer of its own pool changes nothing and never
+returns another pool's result, so a slow answer with numbers cannot undo a later withdrawal. When
 the pool does not answer, an earlier copy with numbers is shown with its own date, otherwise the state is `Offline`.
 The block shows the newest build's rows only (builds are never merged): offered, picked, pick rate, mean place and
 top 4 with their intervals, above them games (`captures`), installations (`sources`), the window, the publication
