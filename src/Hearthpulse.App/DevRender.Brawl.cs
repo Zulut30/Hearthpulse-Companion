@@ -112,6 +112,12 @@ public partial class App
             await RenderMulliganDeckAsync(folder);
         }
 
+        if (RenderOnly("picks"))
+        {
+            // The hero and trinket pick badges on made-up offers (DevRender.Picks.cs).
+            await RenderPicksAsync(folder);
+        }
+
         if (RenderOnly("odds"))
         {
             // The combat odds and the Battlegrounds bar (DevRender.CombatOdds.cs).

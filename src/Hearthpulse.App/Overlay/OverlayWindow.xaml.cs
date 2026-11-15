@@ -460,15 +460,12 @@ public partial class OverlayWindow : Window
     }
 
     /// <summary>
-    /// Renders the overlay off-screen to a PNG (developer check of the layout; nothing is shown on screen).
+    /// Lays the surface out for a game screen of <paramref name="width"/> x <paramref name="height"/> at the settings'
+    /// overlay scale, as a frame of the running overlay does: the off-screen render and the layout tests. Returns the
+    /// scale the surface is drawn at.
     /// </summary>
-    public async Task RenderToFileAsync(string path, int width, int height, int hoverSlot)
+    public double LayOutFor(int width, int height)
     {
-        _timer.Stop();
-        Left = -20000;
-        Top = -20000;
-        Width = width;
-        Height = height;
         Root.Visibility = Visibility.Visible;
         _scale = height / ReferenceHeight * OverlayViewModel.SurfaceScale(_settings);
         SurfaceScale.ScaleX = SurfaceScale.ScaleY = _scale;
@@ -478,6 +475,20 @@ public partial class OverlayWindow : Window
         ApplyLayout();
         FadeBackdrops(OverlayViewModel.SurfaceOpacity(_settings));
         ViewModel.ArrangeLeaderboard(Surface.Width, Surface.Height, _settings);
+        return _scale;
+    }
+
+    /// <summary>
+    /// Renders the overlay off-screen to a PNG (developer check of the layout; nothing is shown on screen).
+    /// </summary>
+    public async Task RenderToFileAsync(string path, int width, int height, int hoverSlot)
+    {
+        _timer.Stop();
+        Left = -20000;
+        Top = -20000;
+        Width = width;
+        Height = height;
+        LayOutFor(width, height);
         ViewModel.HoverLeaderboard(hoverSlot);
 
         // Give card art time to download and decode.

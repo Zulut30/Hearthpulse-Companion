@@ -83,6 +83,9 @@ public partial class OverlayView : UserControl
         }
     }
 
+    /// <summary>The scale the surface is drawn at since the last <see cref="Fit"/>: the screen's height over 1080 times the overlay scale.</summary>
+    public double SurfaceScaleNow => _scale;
+
     /// <summary>Scales the surface to a client area of <paramref name="width"/> x <paramref name="height"/> device-independent pixels.</summary>
     public void Fit(double width, double height)
     {
