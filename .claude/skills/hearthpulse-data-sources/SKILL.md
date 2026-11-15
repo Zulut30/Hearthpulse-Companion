@@ -8,7 +8,7 @@ description: Use when Hearthpulse code talks to anything outside the machine or 
 Endpoint-by-endpoint detail: [reference/endpoints.md](reference/endpoints.md). Field-level notes on the data API:
 [hearthstone-context reference/kolodahearthstone-api.md](../hearthstone-context/reference/kolodahearthstone-api.md).
 Before adding a new data API call, check that reference first: it lists what exists but the app does not call yet
-(matchup matrix, BG hero detail and trinkets, leaderboards, balance radar, streamers, Brawl decks, esports; Brawl meta is
+(BG hero detail and trinkets, leaderboards, balance radar, streamers, Brawl decks, esports; the matchup matrix and Brawl meta are
 called since stage 4) and which answers
 are premium-sourced. The owner confirmed on 2026-11-15 that Hearthpulse has permission to use HSReplay
 and HSGuru data, including the existing BG and Constructed integrations. Treat the former missing-permission

@@ -39,9 +39,11 @@ permission. `v1/hsreplay/card-choices` falls under the same Blocker, but **the o
 covers card choices only, not the per-deck mulligan.
 The two Arena endpoints above (ArenaSmith scores, class results) are HSReplay data too: the owner decided on
 2026-10-27 to use them for the Arena draft helper and accepted the legal risk (`docs/arena-draft.md`, Legal status).
+The HSGuru matchup matrix `v1/hsguru/matchups` is called by `LoadHsguruMatchupsAsync`
+and `ApiConstructedMeta` for the Constructed matchup view.
 Available without a token but not called yet (fields in
-[kolodahearthstone-api.md](../../hearthstone-context/reference/kolodahearthstone-api.md)): HSGuru
-matchup matrix `v1/hsguru/matchups`, BG hero detail `api/bg/heroes/{dbf}` and trinkets
+[kolodahearthstone-api.md](../../hearthstone-context/reference/kolodahearthstone-api.md)):
+BG hero detail `api/bg/heroes/{dbf}` and trinkets
 `api/bg/trinkets`, Blizzard leaderboards `v1/leaderboards*`, balance radar, patches, streamers, Brawl decks
 `v1/hsguru/brawl/decks`, esports.
 Premium-sourced HSReplay data needs a `hearthpulse-legal` check before it reaches players.

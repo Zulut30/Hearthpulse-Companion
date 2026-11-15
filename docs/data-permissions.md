@@ -1,6 +1,6 @@
 # HSReplay and HSGuru data permission
 
-On 2026-11-15 the owner confirmed: ??? ????? ???????????? ?????? hsreplay ? hsguru ? ??? ???? ???????????.
+On 2026-11-15 the owner confirmed: «мы можем использовать данные hsreplay и hsguru у нас есть разрешение».
 
 For Hearthpulse project decisions, permission to use HSReplay and HSGuru data is confirmed by the owner.
 This resolves the missing-permission premise of L-B1 in LEGAL-release-0.15.0.md and earlier reports,

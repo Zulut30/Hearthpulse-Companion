@@ -13,14 +13,14 @@ Discover со статистикой выбора, гайд по муллига�
 **Как сервис статистики Hearthpulse пока не аналог HSReplay, а клиент его данных.** Каждое общее число в
 приложении (мета, матчапы, муллиган, герои и тринкеты BG, оценки Арены, выбор Discover) приходит с
 `api.kolodahearthstone.com`, который собирает HSReplay и HSGuru. Разрешение на эти данные владелец подтвердил
-2026-11-15 (`docs/data-permissions.md`); это закрывает юридический вопрос, но не делает данные своими.
+2026-11-15 (`docs/data-permissions.md`); это закрывает вопрос подтверждения разрешения в проекте, но не делает данные своими.
 Собственный контур «игра → загрузка → агрегат → число на экране» написан и покрыт тестами, но в работающей
 системе пуст: пул статистики развёрнут и отвечает `games: 0`, адрес пула в приложении не задан, маршрут
 собственной аналитики `v2` на сервере отвечает 404.
 
 **Три вещи, которые мешают честно назвать продукт полноценным аналогом:**
 
-1. Нет собственной выборки. Пока она пуста, нельзя дать то, чего источник не публикует: синергии пар карт в
+1. Проверенный публичный пул сообщает нулевую выборку; содержимое профилей сайта не проверено. Пока пул пуст, нельзя дать то, чего источник не публикует: синергии пар карт в
    муллигане, муллиган по конкретной колоде, статистику героя под трайбы лобби, срез по регионам.
 2. Нет коллекции игрока (ни чтения из клиента, ни «могу собрать», ни пыли до колоды).
 3. Часть заявленного не доведена до пользователя: 0.15.0 не выпущен, Twitch-расширение ждёт серверной части,
@@ -166,7 +166,7 @@ Discover со статистикой выбора, гайд по муллига�
 
 Выводы по контуру данных:
 
-- **Собственная выборка равна нулю.** `Core/Pool/PoolClient.cs:19` `DefaultEndpoint = ""`, адрес берётся только
+- **В проверенном публичном пуле `games: 0`.** Это не доказывает отсутствие игр в профилях сайта или локальных историях игроков: эти хранилища не проверены. `Core/Pool/PoolClient.cs:19` `DefaultEndpoint = ""`, адрес берётся только
   из `settings.json` (`:54-57`), в интерфейсе поля нет. Поэтому `GameStatsUploader` (`GameStats/GameStatsUploader.cs:137`)
   и захват источника (`SourceCapture/SourceCaptureQueue.cs:63`) ничего не отправляют, а совет BG не получает
   композиций и влияния трайбов.
@@ -221,7 +221,7 @@ Discover со статистикой выбора, гайд по муллига�
 
 **Не позволяет называться полноценным аналогом:**
 
-1. Нулевая собственная выборка и неразвёрнутая аналитика (4.2). Это корень разрывов в муллигане, BG под лобби и
+1. Нулевая выборка в проверенном пуле и неразвёрнутый публичный маршрут аналитики (4.2). Это корень разрывов в муллигане, BG под лобби и
    регионах.
 2. Нет коллекции.
 3. Зависимость от скрейпинга: давность до 3 дней, один регион, деградация источников видна прямо сейчас.
@@ -294,13 +294,18 @@ P0.1 на стенде без релиза: поднять пул с мигра�
 - Глобально (`~/.claude/skills`): `diagnosing-bugs`, `systematic-debugging`, `verification-before-completion`,
   `requesting-code-review`, `writing-plans`, `handoff`, `wordpress-plugin-dev`, `manacost-ship`, `blender`.
   Встроенные: `code-review`, `security-review`, `simplify`.
-- В `~/.codex/skills` для этого проекта полезного нет (видео, GSAP, Playwright).
+- В каталоге сессии Codex уже доступны плагины `dotnet-diag` и `dotnet-test`, включая
+  `analyzing-dotnet-performance`, `dotnet-trace-collect` и `test-gap-analysis`. Проверка только
+  `~/.codex/skills` пропустила кэш плагинов. Повторная установка в Codex не нужна;
+  наличие тех же навыков у Claude проверяется отдельно.
 - Сайт (`HeartPulse`) уже ведёт `skills-lock.json` (три скилла `sofa*`) и 13 своих скиллов.
 
 Пробелы, под которые искал: производительность .NET, покрытие тестами, Avalonia 12, статистика для своей
 аналитики, приватность данных игроков, безопасность CI, наблюдаемость серверной части.
 
-### 8.2. Рекомендуемые
+### 8.2. Кандидаты: уже доступные и новые
+
+Список предварительный: инструкции кандидатов прочитаны частично; перед установкой или адаптацией нужен полный просмотр.
 
 Все восемь страниц skills.sh и репозитории отвечали 200 на момент проверки. Формат `SKILL.md` общий для Claude
 Code, Codex и T3; в проект скилл попадает вместе с записью в `.claude/skills/THIRD-PARTY-NOTICES.md` и
@@ -308,9 +313,9 @@ Code, Codex и T3; в проект скилл попадает вместе с �
 
 | # | Скилл и источник | Какой пробел закрывает | Ожидаемый результат | Дублирование | Лицензия | Решение |
 |---|---|---|---|---|---|---|
-| 1 | `analyzing-dotnet-performance` — [skills.sh](https://skills.sh/dotnet/skills/analyzing-dotnet-performance), [исходник](https://github.com/dotnet/skills/blob/main/plugins/dotnet-diag/skills/analyzing-dotnet-performance/SKILL.md) (`dotnet/skills`, 9 файлов) | Поиск ~50 антипаттернов в горячих путях: поток логов, симулятор, сборка снимка. У нас есть `tools/Hearthpulse.Bench` и аудит, но нет чек-листа для агента | Отчёт с приоритетами перед P1.6 и при правке `GameSession` | нет | MIT, обновлён 15.11.2026 | **Установить как есть** |
-| 2 | `dotnet-trace-collect` — [skills.sh](https://skills.sh/dotnet/skills/dotnet-trace-collect), [исходник](https://github.com/dotnet/skills/blob/main/plugins/dotnet-diag/skills/dotnet-trace-collect/SKILL.md) | Выбор инструмента и команд для снятия трассы и дампа: память в трее, зависания оверлея | Воспроизводимый сбор диагностики на Windows | частично с `diagnosing-bugs` (тот про цикл, а не про инструменты .NET) | MIT | **Установить как есть**, глобально: нужен редко |
-| 3 | `test-gap-analysis` — [skills.sh](https://skills.sh/dotnet/skills/test-gap-analysis), [исходник](https://github.com/dotnet/skills/blob/main/plugins/dotnet-test/skills/test-gap-analysis/SKILL.md) | «Какие изменения поведения тесты не заметят» для модулей вне Stryker (`docs/mutation-testing.md` покрывает четыре области) | Список непокрытых исходов для `hearthpulse-qa` | частично с `hearthpulse-testing` (тот про запуск и приёмы) | MIT | **Установить как есть**, назвать в файле роли QA |
+| 1 | `analyzing-dotnet-performance` — [skills.sh](https://skills.sh/dotnet/skills/analyzing-dotnet-performance), [исходник](https://github.com/dotnet/skills/blob/main/plugins/dotnet-diag/skills/analyzing-dotnet-performance/SKILL.md) (`dotnet/skills`, 9 файлов) | Поиск ~50 антипаттернов в горячих путях: поток логов, симулятор, сборка снимка. У нас есть `tools/Hearthpulse.Bench` и аудит, но нет чек-листа для агента | Отчёт с приоритетами перед P1.6 и при правке `GameSession` | нет | MIT, обновлён 15.11.2026 | **Уже доступен в Codex**; проверить доступность у Claude |
+| 2 | `dotnet-trace-collect` — [skills.sh](https://skills.sh/dotnet/skills/dotnet-trace-collect), [исходник](https://github.com/dotnet/skills/blob/main/plugins/dotnet-diag/skills/dotnet-trace-collect/SKILL.md) | Выбор инструмента и команд для снятия трассы и дампа: память в трее, зависания оверлея | Воспроизводимый сбор диагностики на Windows | частично с `diagnosing-bugs` (тот про цикл, а не про инструменты .NET) | MIT | **Уже доступен в Codex**; для Claude проверить глобальную установку |
+| 3 | `test-gap-analysis` — [skills.sh](https://skills.sh/dotnet/skills/test-gap-analysis), [исходник](https://github.com/dotnet/skills/blob/main/plugins/dotnet-test/skills/test-gap-analysis/SKILL.md) | «Какие изменения поведения тесты не заметят» для модулей вне Stryker (`docs/mutation-testing.md` покрывает четыре области) | Список непокрытых исходов для `hearthpulse-qa` | частично с `hearthpulse-testing` (тот про запуск и приёмы) | MIT | **Уже доступен в Codex**; подключать при нужной задаче QA, проверить доступность у Claude |
 | 4 | `avalonia` — [skills.sh](https://skills.sh/codewithmukesh/dotnet-claude-kit/avalonia), [исходник](https://github.com/codewithmukesh/dotnet-claude-kit/blob/main/skills/avalonia/SKILL.md) | Единственный найденный скилл, сверенный с Avalonia 12.1.x (у нас 12.1.4, compiled bindings включены) | Правила `x:DataType`, `StyledProperty`/`DirectProperty`, потоки, антипаттерны | наши UI-скиллы про вид, а не про механику фреймворка | MIT | **Адаптировать**: взять привязки, свойства, потоки, антипаттерны; убрать Generic Host, DI и `ViewLocator` — у нас свой корень композиции (`AppHost`) и общие модели представления |
 | 5 | `statistical-analysis` — [skills.sh](https://skills.sh/anthropics/knowledge-work-plugins/statistical-analysis), [исходник](https://github.com/anthropics/knowledge-work-plugins/blob/main/data/skills/statistical-analysis/SKILL.md) | Методика для своей аналитики: распределения, выбросы, значимость, когда числу нельзя верить | Основа проектного скилла про метрики: правила каталога `docs/analytics-metrics.json`, порог 5 установок, интервалы Уилсона, усадка малых выборок | нет | Apache-2.0 | **Адаптировать** в проектный скилл к P0.3 и P1.2 |
 | 6 | `gdpr-compliant` — [skills.sh](https://skills.sh/github/awesome-copilot/gdpr-compliant), [исходник](https://github.com/github/awesome-copilot/blob/main/skills/gdpr-compliant/SKILL.md) | Инженерный чек-лист для загрузки игр, реплеев, отчётов о сбоях: минимизация, сроки хранения, удаление по запросу | Проверка контракта пула и сайта до включения P0.1 | агент `hearthpulse-legal` оценивает риск, а не проектирует хранение | MIT | **Адаптировать** как справочник для `hearthpulse-legal` и работ по `server/pool` |
@@ -357,3 +362,15 @@ https://github.com/Manacost-Labs/HeartPulse (PR #352, #353, #356), API данн�
 https://github.com/Manacost-Labs/api.kolodahearthstone.com .
 
 skills.sh: https://skills.sh/ , поиск `https://www.skills.sh/api/search?q=…`; ссылки на скиллы — в 8.2.
+
+## 10. Уточнения координатора
+
+- Статусы «готово» означают подтверждённую статическую связность кода и UI, а не
+  независимую проверку каждого сценария в живой игре.
+- После рефакторинга `34923d59` отправка в пул вынесена из `App.xaml.cs` в `App.StatsPool.cs`
+  (`ShareWithPool`); прежние ссылки на строки относятся к базе исследования `fff06cd5`.
+- Пустой DefaultEndpoint означает выключенную стандартную конфигурацию; отдельные установки могут
+  переопределять адрес в settings.json. Все установки и все хранилища не проверялись.
+- Собственная выборка полезна для независимости сервиса. Использование разрешённых внешних данных
+  само по себе не исключает функциональную сопоставимость: её определяют доступные сценарии,
+  полнота, надёжность и свежесть данных.
