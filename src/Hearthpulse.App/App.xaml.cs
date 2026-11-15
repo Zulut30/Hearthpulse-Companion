@@ -126,6 +126,7 @@ public partial class App : Application
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
         _mainViewModel.AttachAccount(_account);
         _mainViewModel.AttachTwitch(services.Twitch);
+        StartDataHealth();
         _mainViewModel.CrashReportsChanged += () =>
         {
             // Switched off: consent withdrawn, what waits is not sent.
@@ -273,6 +274,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _mainViewModel?.StopMigration();
+        StopDataHealth();
         _watchdog?.Stop();
         _uiProbe?.Dispose();
         _watcher?.Dispose();
@@ -416,12 +418,14 @@ public partial class App : Application
         var site = LoadBgSiteAsync();
         site.Forget("Battlegrounds site stats load");
         LoadBgOwnAsync().Forget("Own Battlegrounds hero statistics load");
+        LoadDataHealthAsync().Forget("Data health");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(_api, _http, _settings, () => BattlegroundsMeta.LoadExternalAsync(_bgSite!, site), _cards);
         if (meta is not null)
         {
             _meta = meta;
             _session.SetMeta(meta);
             _mainViewModel.SetMeta(meta);
+            _overlayViewModel.SetBgData(meta);
         }
         else
         {

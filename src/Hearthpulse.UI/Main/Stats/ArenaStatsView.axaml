@@ -312,6 +312,13 @@
                         <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Arena.Page.CommunityLoading}" IsVisible="{Binding ArenaCommunityLoading}" />
                         <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityEmpty}" IsVisible="{Binding ArenaCommunityUnavailable}" />
                         <ContentControl Name="ArenaCommunityNoSplit" Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityNoSplit}" IsVisible="{Binding ArenaCommunityNoSplit}" />
+                        <!-- When the class numbers were collected, and the delay line while their collection is late -->
+                        <StackPanel Name="ArenaDataLines" Margin="0,8,0,0" IsVisible="{Binding ArenaCommunity, Converter={StaticResource Truthy}}">
+                            <TextBlock Text="{Binding ArenaDataDate}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap"
+                                       IsVisible="{Binding ArenaDataDate, Converter={StaticResource Truthy}}" />
+                            <TextBlock Text="{Binding ArenaDataDelay}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap"
+                                       IsVisible="{Binding ArenaDataDelay, Converter={StaticResource Truthy}}" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
             </StackPanel>

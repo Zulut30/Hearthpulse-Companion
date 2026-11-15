@@ -65,6 +65,11 @@ internal static partial class OffscreenRenderer
             await RenderArenaPageAsync(main, view, host, folder);
         }
 
+        if (RenderOnly("datahealth"))
+        {
+            await RenderDataHealthAsync(main, view, host, folder);
+        }
+
         if (RenderOnly("settings"))
         {
             await RenderSettingsToolsAsync(main, view, folder);

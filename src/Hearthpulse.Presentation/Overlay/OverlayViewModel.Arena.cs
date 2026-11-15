@@ -128,7 +128,17 @@ public sealed partial class OverlayViewModel
     public IReadOnlyList<ArenaClassRow> ArenaClasses { get => _arenaClasses; private set => Set(ref _arenaClasses, value); }
 
     /// <summary>Why there are no numbers (server and cache empty), else empty.</summary>
-    public string ArenaNoData { get => _arenaNoData; private set => Set(ref _arenaNoData, value); }
+    public string ArenaNoData
+    {
+        get => _arenaNoData;
+        private set
+        {
+            if (Set(ref _arenaNoData, value))
+            {
+                Raise(nameof(ArenaDataNote));
+            }
+        }
+    }
 
     /// <summary>"Underground Arena" or "Normal Arena" once the client told the run's mode, else empty.</summary>
     public string ArenaMode { get => _arenaMode; private set => Set(ref _arenaMode, value); }

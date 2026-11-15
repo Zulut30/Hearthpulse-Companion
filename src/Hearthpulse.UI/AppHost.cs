@@ -117,6 +117,7 @@ public sealed partial class AppHost : IDisposable
         };
         // The install's secret or "earlier games shared" is new in the settings; raised off the UI thread.
         _services.PoolSharing.SettingsChanged += () => Dispatcher.UIThread.Post(() => _settingsDebounce.Kick());
+        StartDataHealth();
         Main.CrashReportsChanged += () =>
         {
             // Switched off: consent withdrawn, what waits is not sent.
@@ -431,12 +432,14 @@ public sealed partial class AppHost : IDisposable
         var site = LoadBgSiteAsync();
         site.Forget("Battlegrounds site stats load");
         LoadBgOwnAsync().Forget("Own Battlegrounds hero statistics load");
+        LoadDataHealthAsync().Forget("Data health");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings, () => BattlegroundsMeta.LoadExternalAsync(_bgSite!, site), Cards);
         if (meta is not null)
         {
             Meta = meta;
             Session.SetMeta(meta);
             Main.SetMeta(meta);
+            Overlay.SetBgData(meta);
         }
         else
         {
@@ -578,6 +581,7 @@ public sealed partial class AppHost : IDisposable
         _services.GameStats.Dispose();
         _services.SourceCaptures.Dispose();
         _metaRefresh.Stop();
+        StopDataHealth();
         Memory.Dispose();
         Settings.Save();
         StopUpdateLoop();

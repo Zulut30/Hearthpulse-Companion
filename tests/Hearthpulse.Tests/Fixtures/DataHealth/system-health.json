@@ -1,0 +1,49 @@
+{
+ "data": {
+  "ok": false,
+  "serving_ok": false,
+  "freshness_ok": true,
+  "degraded": true,
+  "sources": 110,
+  "operationally_disabled_sources": [
+   "firestone_standard"
+  ],
+  "states": {
+   "ok": 108,
+   "disabled": 1,
+   "partial": 1
+  },
+  "hard_failed_sources": [
+   "hsguru_brawl"
+  ],
+  "semantic_failed_sources": [],
+  "semantic_failures": [],
+  "publication_failed_sources": [],
+  "publication_failures": [],
+  "publication_stale_sources": [],
+  "publication_stale_details": [],
+  "fresh_only_failed_sources": [],
+  "cached_sources": [],
+  "cached_after_failure_sources": [],
+  "stale_sources": [],
+  "stale_count": 0,
+  "upstream_pending_sources": [
+   "vicious_syndicate_radars"
+  ],
+  "freshness_monitor_errors": [],
+  "cached_count": 0,
+  "cached_after_failure_count": 0
+ },
+ "meta": {
+  "source_id": "system_health",
+  "fetched_at": "2026-11-15T21:11:22.678749+00:00",
+  "stale": false,
+  "beta": null,
+  "serving_cached_dataset": null,
+  "cached_after_failure": null,
+  "fresh_candidate_published": null,
+  "count": 110,
+  "limit": null,
+  "offset": null
+ }
+}

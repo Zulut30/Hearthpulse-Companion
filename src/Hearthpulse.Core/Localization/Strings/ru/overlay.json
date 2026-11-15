@@ -126,7 +126,6 @@
   "Overlay.Hero.Personal": "Вы: {1:0.0} за {0} игру|Вы: {1:0.0} за {0} игры|Вы: {1:0.0} за {0} игр",
   "Overlay.Hero.CompsTitle": "Лучшие доступные сборки",
   "Overlay.Hero.CompTier": "тир {0}",
-  "Overlay.Trinket.Updated": "данные от {0:d MMM}",
   "Overlay.Source.External": "Данные Hearthpulse",
   "Overlay.Source.Pool": "Пул статистики Hearthpulse",
   "Overlay.Source.Updated": "обновлено {0:d MMM HH:mm}",

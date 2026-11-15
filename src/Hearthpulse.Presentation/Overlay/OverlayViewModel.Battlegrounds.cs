@@ -5,6 +5,7 @@ using Hearthpulse.App.Infrastructure;
 using Hearthpulse.UI.Infrastructure;
 #endif
 using Hearthpulse.Core;
+using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -95,7 +96,8 @@ public sealed partial class OverlayViewModel
             .ToList());
 
         var trinketTierTip = Loc.T("Overlay.Tier.Heroes");
-        Replace(nameof(TrinketPicks), view.TrinketOptions, t => $"{trinketTierTip}{t.CardId}{t.Meta}{highlight && t.Recommended}", () => TrinketPicks = !view.TrinketOptions.Any(t => t.Meta is not null) ? [] : view.TrinketOptions
+        var trinketsLate = _dataHealth.Section(DataSection.BgTrinkets).Delayed;
+        Replace(nameof(TrinketPicks), view.TrinketOptions, t => $"{trinketTierTip}{t.CardId}{t.Meta}{highlight && t.Recommended}{trinketsLate}", () => TrinketPicks = !view.TrinketOptions.Any(t => t.Meta is not null) ? [] : view.TrinketOptions
             .Select(t => new TrinketBadge(
                 t.CardId,
                 t.Name,
@@ -106,7 +108,8 @@ public sealed partial class OverlayViewModel
                 t.Meta is not null)
             {
                 TierTip = t.Meta is null ? trinketTierTip : trinketTierTip + "\n" + TrinketSource(t.Meta),
-                Updated = t.Meta?.Updated is { } at ? Loc.F("Overlay.Trinket.Updated", at.ToLocalTime()) : string.Empty,
+                // One date line per badge; the data API's numbers add "update delayed" while their collector is late.
+                Updated = DataHealthText.Overlay(t.Meta?.Updated, _dataHealth, t.Meta is { External: true } ? [DataSection.BgTrinkets] : []),
             })
             .ToList());
 

@@ -59,6 +59,11 @@ public partial class App
             await RenderArenaPageAsync(folder);
         }
 
+        if (RenderOnly("datahealth"))
+        {
+            await RenderDataHealthAsync(folder);
+        }
+
         if (RenderOnly("share"))
         {
             await RenderShareAsync(folder);

@@ -261,7 +261,7 @@ public sealed class BgSiteTabsContractTests
     /// 40 solo heroes and 20 Duos ones, 20 minions on each of two tavern tiers with numbers, 10 trinkets and 6 comps in
     /// three tiers; the average places rise through each list.
     /// </summary>
-    private static BgSiteStats Stats()
+    internal static BgSiteStats Stats()
     {
         BgSiteTierEntry[] Heroes(string prefix, int count) => Enumerable.Range(0, count)
             .Select(i => new BgSiteTierEntry($"{prefix}{i:000}", i, Letters[i * 5 / count], $"Герой {i}", $"Hero {i}", 0, 3.2 + (i * 0.05), 0.9 - (i * 0.01), 0.7 - (i * 0.005), 0.3 - (i * 0.004), null))

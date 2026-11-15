@@ -82,3 +82,14 @@ Gained:
 
 Done since: see `docs/bg-meta-sources.md` (what each number comes from, what stays empty until the stats pool runs,
 and what the server could add).
+
+## 5. Freshness
+
+`Core/Api/DataHealth.cs` reads the server's summary (`v1/system/sources`, the failed list of `v1/system/health`;
+30-minute disk cache `cache/api/data-health.json`) and maps source ids to the app's sections (`DataSections`, one
+table). Settings, Data shows each section's date and state ("Data status", "Check now"); a page whose section is
+stale or failed adds "Data from <date>: the update is delayed." under its source line (the meta page, the
+Battlegrounds tabs, Arena, the Brawl). In the overlay each element has one date in one wording, "data from 15 Nov"
+(`DataHealthText.Overlay`): a line under the hero pick badges, each trinket badge's own date, the bottom of the Arena
+draft panel; a late collector adds "update delayed" to it (for a trinket only when its numbers are the data API's).
+A source waiting for its origin is not a delay; offline nothing is called stale. Numbers are never hidden.

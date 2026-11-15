@@ -231,6 +231,42 @@ public sealed class MetaTierListTests : IDisposable
     }
 
     [Fact]
+    public void A_late_tier_list_collection_puts_the_delay_line_under_the_meta_status_and_no_other_source_does()
+    {
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        vm.ShowConstructedFormat("FT_STANDARD");
+        vm.SetConstructedMeta(Meta());
+        var status = vm.ConstructedMetaStatus;
+        Assert.NotEmpty(vm.MetaArchetypes);
+        Assert.DoesNotContain('\n', status);
+
+        var collected = new DateTime(2026, 11, 12, 3, 35, 0, DateTimeKind.Utc);
+        Hearthpulse.Core.Api.DataHealthReport Summary(string id, Hearthpulse.Core.Api.DataFreshness state) =>
+            new([new Hearthpulse.Core.Api.DataSourceHealth(id, state, 90, 36, collected, null)], DateTime.UtcNow);
+        var raised = new List<string?>();
+        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        vm.SetDataHealth(Summary("hsguru_meta_matrix", Hearthpulse.Core.Api.DataFreshness.Stale));
+        Assert.Equal(status + "\n" + Loc.F("Source.Health.Delay", collected.ToLocalTime()), vm.ConstructedMetaStatus);
+        Assert.Contains(nameof(MainViewModel.ConstructedMetaStatus), raised);
+
+        // The matchup matrix is on the same page; the Arena's collector is not.
+        vm.SetDataHealth(Summary("hsguru_matchups", Hearthpulse.Core.Api.DataFreshness.Failed));
+        Assert.EndsWith("\n" + Loc.F("Source.Health.Delay", collected.ToLocalTime()), vm.ConstructedMetaStatus, StringComparison.Ordinal);
+        vm.SetDataHealth(Summary("hsreplay_arena_cards_advanced", Hearthpulse.Core.Api.DataFreshness.Stale));
+        Assert.Equal(status, vm.ConstructedMetaStatus);
+        vm.SetDataHealth(Summary("hsguru_meta_matrix", Hearthpulse.Core.Api.DataFreshness.Pending));
+        Assert.Equal(status, vm.ConstructedMetaStatus);
+
+        // A page without stats has its "unavailable" text alone, never a delay line.
+        var empty = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        empty.ShowConstructedFormat("FT_STANDARD");
+        empty.SetConstructedMeta(null);
+        empty.SetDataHealth(Summary("hsguru_meta_matrix", Hearthpulse.Core.Api.DataFreshness.Stale));
+        Assert.Equal(Loc.T("Main.Meta.Unavailable"), empty.ConstructedMetaStatus);
+    }
+
+    [Fact]
     public void The_side_card_shows_the_name_and_summary_at_once_and_its_sections_when_the_view_runs_them()
     {
         var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
