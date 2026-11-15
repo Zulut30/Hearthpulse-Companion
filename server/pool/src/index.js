@@ -25,7 +25,7 @@ const MIN_BRACKET_GAMES = 50;
 // The floor counts DIFFERENT games (rows), never repeated picks, offers or tier-ups inside one game.
 // No published row or cell holds fewer games than this: a hero, comp, card, trinket, tier, pick or play of a few games
 // would show single games of single players (the pool has no installation id to count players by). An average over
-// fewer picks than this is null, and the combat odds line needs as many fights.
+// fewer distinct picked games than this is null, and combat odds need predictions from as many distinct games.
 const MIN_CELL = 10;
 // Games stored per day, both kinds together. A game writes its row and an index entry; the nightly clean-up deletes as
 // many; the daily counter adds one write per request: about 4 rows per game, inside D1's 100,000 rows written a day.
@@ -305,10 +305,6 @@ export function validateConstructed(g, today) {
 // ---- Reading ---------------------------------------------------------------------------------------------
 
 async function stats(request, env, ctx, url) {
-  const cache = env.CACHE ?? globalThis.caches?.default;
-  const hit = cache ? await cache.match(request) : null;
-  if (hit) return hit;
-
   const mode = url.searchParams.get("mode") === "duos" ? "duos" : "solo";
   const row = await env.DB.prepare("SELECT body, built FROM snap WHERE mode = ?1").bind(mode).first();
   let body = row && Math.floor(row.built / DAY) === Math.floor(Date.now() / DAY) ? row.body : await rebuild(env, mode, true);
@@ -317,23 +313,16 @@ async function stats(request, env, ctx, url) {
     body = JSON.stringify({ mode: s.mode, days: s.days, minRating: 0, updated: s.updated, games: s.games, heroes: s.heroes });
   }
 
-  const response = reply(body, 200, { "cache-control": "public, max-age=1800" });
-  if (cache) ctx.waitUntil(cache.put(request, response.clone()));
-  return response;
+  // Own aggregates must not outlive a withdrawal or a corrected publication threshold in an HTTP cache.
+  return reply(body, 200, { "cache-control": "no-store" });
 }
 
 /** What Constructed players pick from each Discover-style card, over the last 30 days of one format. */
 async function choices(request, env, ctx, url) {
-  const cache = env.CACHE ?? globalThis.caches?.default;
-  const hit = cache ? await cache.match(request) : null;
-  if (hit) return hit;
-
   const format = url.searchParams.get("format") === "wild" ? "wild" : "standard";
   const row = await env.DB.prepare("SELECT body, built FROM snap WHERE mode = ?1").bind(`choices-${format}`).first();
   const body = row && Math.floor(row.built / DAY) === Math.floor(Date.now() / DAY) ? row.body : await rebuildChoices(env, format, true);
-  const response = reply(body, 200, { "cache-control": "public, max-age=1800" });
-  if (cache) ctx.waitUntil(cache.put(request, response.clone()));
-  return response;
+  return reply(body, 200, { "cache-control": "no-store" });
 }
 
 /**
@@ -366,7 +355,7 @@ export async function rebuildChoices(env, format, force) {
   for (const r of offers) {
     const pick = pickBy.get(`${r.source}|${r.card}`);
     if (!optionsBy.has(r.source)) optionsBy.set(r.source, []);
-    // Wins of a handful of picks would describe single games: published from MIN_CELL picks only.
+    // Wins of repeated picks can describe one game: require MIN_CELL distinct games that picked the card.
     optionsBy.get(r.source).push([r.card, r.n, pick?.n ?? 0, (pick?.games ?? 0) >= MIN_CELL ? pick.won : null]);
   }
 

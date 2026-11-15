@@ -296,20 +296,20 @@ async function buildOnce(env, force) {
 
   const days = (await env.DB.prepare(
     `SELECT day, mode, fmt, COUNT(*) AS games FROM e WHERE day >= ?1 GROUP BY day, mode, fmt
-     HAVING COUNT(DISTINCT iid) >= ?2 ORDER BY day, mode, fmt`).bind(since, MIN_PLAYERS).all()).results;
+     HAVING COUNT(DISTINCT iid) >= ?2 AND COUNT(*) >= ?3 ORDER BY day, mode, fmt`).bind(since, MIN_PLAYERS, MIN_CELL).all()).results;
   // An option offered by a Discover-style card, and whether it was the one taken.
   const discover = (await env.DB.prepare(
     `SELECT json_extract(c.value, '$[1]') AS kind, o.value AS card, COUNT(*) AS offered,
             SUM(EXISTS (SELECT 1 FROM json_each(c.value, '$[4]') p WHERE p.value = o.value)) AS picked
      FROM e, json_each(e.body, '$.choices') c, json_each(c.value, '$[3]') o
      WHERE e.day >= ?1 AND json_extract(c.value, '$[1]') IN ('discover', 'adapt', 'chooseone', 'dredge')
-     GROUP BY kind, card HAVING offered >= ?2 AND COUNT(DISTINCT e.iid) >= ?4 ORDER BY picked DESC, offered DESC LIMIT ?3`)
+     GROUP BY kind, card HAVING COUNT(DISTINCT e.id) >= ?2 AND COUNT(DISTINCT e.iid) >= ?4 ORDER BY picked DESC, offered DESC LIMIT ?3`)
     .bind(since, MIN_CELL, TOP, MIN_PLAYERS).all()).results;
   const mulligan = (await env.DB.prepare(
     `SELECT o.value AS card, COUNT(*) AS offered,
             SUM(EXISTS (SELECT 1 FROM json_each(e.body, '$.mull.k') k WHERE k.value = o.value)) AS kept
      FROM e, json_each(e.body, '$.mull.o') o
-     WHERE e.day >= ?1 GROUP BY card HAVING offered >= ?2 AND COUNT(DISTINCT e.iid) >= ?4 ORDER BY offered DESC LIMIT ?3`)
+     WHERE e.day >= ?1 GROUP BY card HAVING COUNT(DISTINCT e.id) >= ?2 AND COUNT(DISTINCT e.iid) >= ?4 ORDER BY offered DESC LIMIT ?3`)
     .bind(since, MIN_CELL, TOP, MIN_PLAYERS).all()).results;
 
   const body = JSON.stringify({

@@ -26,8 +26,9 @@ and its picks: the source card, the cards it offered and the one taken. No deck,
 No player name, BattleTag, account or IP address is stored, and nothing about other players. Shared games are kept
 for 60 days, then the cron job deletes them (the totals use the last 30). The totals are public: anyone can read
 them, and the app's notice says so. No published row or cell (a hero, comp, card, trinket, tier, pick or play, in
-all or in a rating bracket, a hero with a lobby tribe) holds fewer than 10 games; an average over fewer than 10 picks
-is null and the combat odds line needs 10 fights. The pool keeps no installation id for these games, so the floor is
+all or in a rating bracket, a hero with a lobby tribe) holds fewer than 10 distinct games; a picked-outcome average
+is null below 10 distinct games that picked that option, and combat odds need predictions from 10 distinct games.
+Repeated observations within a game remain frequencies, but do not help it cross the publication floor. The pool keeps no installation id for these games, so the floor is
 in games, not in players. Workers logs are off (`wrangler.toml`), so no IP address or request body
 lands in Cloudflare's logs either.
 
@@ -42,7 +43,11 @@ The free plan allows 100,000 requests a day, 100,000 rows written and 5 million 
 - A game is one row (plus one index entry). The app sends a game when it ends, and earlier games in batches of 20,
   so a batch of 20 games is one request and one `INSERT` statement.
 - The totals are not worked out on each read. A cron job (every 6 hours) rebuilds them only when new games came in,
-  and stores them as one JSON row in `snap`. A read returns that row and is cached at the edge for 30 minutes.
+  and stores them as one JSON row in `snap`. Own totals (`/v1/stats`, `/v1/heroes`, `/v1/choices`) read that row
+  with `Cache-Control: no-store` and bypass the HTTP response cache. Base `/v1/meta` retains its 30-minute cache.
+  On upgrade from older publication rules, clear and rebuild `solo`, `duos`, `choices-standard`, `choices-wild`
+  and `events` snapshot rows before serving traffic. Already downloaded responses under the previous 30-minute
+  HTTP policy cannot be recalled by this change.
 - Each rebuild reads the last 30 days of games about 16 times (the per-bracket totals take one pass each, a column
   set per bracket). At 10,000 games in 30 days that is about 1.3 million rows read a day for both modes, well under
   the limit.

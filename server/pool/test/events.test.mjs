@@ -192,6 +192,30 @@ test("the summary leaves out cards seen in fewer than 10 games, or from fewer th
   assert.deepEqual(summary.mulligan, []);
 });
 
+test("summary cells require ten distinct games even when five installs repeat the same choice", async () => {
+  for (const count of [5, 9, 10]) {
+    const env = sqlite();
+    for (let i = 0; i < count; i++) {
+      const game = ranked({
+        id: (1000 + i).toString(16).padStart(32, "0"),
+        choices: [[3, "discover", "SRC", ["CARD_X", "CARD_Y"], ["CARD_X"]],
+                  [4, "discover", "SRC", ["CARD_X", "CARD_Y"], ["CARD_X"]]],
+      });
+      assert.equal((await post("/v1/events", { v: 1, iid: ((i % 5) + 1).toString(16).padStart(32, "0"), games: [game] }, env)).status, 200);
+    }
+    const summary = JSON.parse(await rebuildEvents(env, true));
+    if (count < 10) {
+      assert.deepEqual(summary.days, [], `${count} games cannot publish a day`);
+      assert.deepEqual(summary.discover, [], `${count * 2} offers are only ${count} games`);
+      assert.deepEqual(summary.mulligan, []);
+    } else {
+      assert.equal(summary.days[0].games, 10);
+      assert.deepEqual(summary.discover.find(r => r.card === "CARD_X"), { kind: "discover", card: "CARD_X", offered: 20, picked: 20, rate: 1 });
+      assert.equal(summary.mulligan.find(r => r.card === "CARD_A").offered, 10);
+    }
+  }
+});
+
 // ---- Opening-hand pairs (metric mulligan.pair_winrate, rules mull-pairs-1) ---------------------------------------
 
 let sequence = 0x1000;
