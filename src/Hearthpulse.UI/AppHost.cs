@@ -409,8 +409,8 @@ public sealed partial class AppHost : IDisposable
 
     /// <summary>
     /// Community stats: heroes and minions from the Hearthpulse API, the external comps and trinkets, and, when a stats
-    /// pool is set up, the pool's meta laid over them (or the pool's own meta when the API did not load). The heroes'
-    /// compositions follow on their own. docs/bg-meta-sources.md.
+    /// pool is set up, the pool's meta laid over them (or the pool's own meta when the API did not load).
+    /// docs/bg-meta-sources.md.
     /// </summary>
     public async Task LoadMetaAsync()
     {
@@ -426,8 +426,6 @@ public sealed partial class AppHost : IDisposable
             Meta = meta;
             Session.SetMeta(meta);
             Main.SetMeta(meta);
-            HeroCompsLoad = LoadHeroCompsAsync(meta);
-            HeroCompsLoad.Forget("Battlegrounds hero compositions load");
         }
         else
         {
@@ -440,23 +438,6 @@ public sealed partial class AppHost : IDisposable
 
         // The Standard and Wild pages show these stats; they also feed the in-game mulligan panel.
         await _constructedLoader.ReloadAllAsync();
-    }
-
-    /// <summary>The load of the heroes' compositions the last meta started; the render waits for it.</summary>
-    public Task HeroCompsLoad { get; private set; } = Task.CompletedTask;
-
-    /// <summary>
-    /// Every hero's compositions for the advisor's lobby adjustment: a request per hero (four at a time, cached for
-    /// hours), so the meta is in use before they arrive. Only the advisor reads them: the pages are not rebuilt.
-    /// </summary>
-    private async Task LoadHeroCompsAsync(BattlegroundsMeta meta)
-    {
-        var full = await meta.WithHeroCompsAsync(new HearthpulseData(Api));
-        if (!ReferenceEquals(full, meta) && ReferenceEquals(Meta, meta))
-        {
-            Meta = full;
-            Session.SetMeta(full);
-        }
     }
 
     /// <summary>

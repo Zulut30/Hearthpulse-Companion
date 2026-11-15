@@ -34,7 +34,7 @@ API: `.claude/skills/hearthstone-context/reference/kolodahearthstone-api.md`.
 | MMR floor of each percentile (`mmrPercentiles`) | pool: `/v1/meta` `percentiles`, else `/v1/stats` `percentiles` (since 0.17: floors over the pool's own rated games, likely above the ladder's average; used only from 1,000 rated games and 50 at or above each floor, else the widest bracket as before). The pool's own hero brackets merge into the matching API brackets | **Missing** in the API. Without floors the advisor cannot pick a bracket from the rating and uses the widest one (top 50%). The page lets the player pick a bracket by hand. |
 | Card stats per bracket: average place of players who played the card | **API** `GET /v1/battlegrounds/minions/stats?mmr=ALL\|TOP_50_PERCENT\|TOP_20_PERCENT&period=CURRENT_BATTLEGROUNDS_PATCH&limit=500` → `normal.avg_placement_with`, `normal.games_with_minion`. Brackets: all ranks, top 50%, top 20% | Minions only (no tavern spells). Golden numbers are not used. |
 | Card stats per turn played (`turnStats`) | pool (cards with turn results) | **Missing** in the API in bulk. `/v1/battlegrounds/minions/{id}/stats` has `rounds[]`/`purchases[]` per minion, mostly null per round, 270+ requests. Tavern and Discover picks get no community placement until the pool has it. |
-| Comp stats (`comp-stats`): placement, per MMR, per hero | pool (`/v1/meta` comps), beside **the site service's HSReplay comps** (section 4.1) | The external comps have **no placement and no sample** (the service sends `avgPlacement: ""`): they are ordered by the hero's own tribe-family numbers (`/api/bg/heroes/{dbf}` → `compositions[]`, top 50%) and the source's tier letter, and no comp placement is shown. |
+| Comp stats (`comp-stats`): placement, per MMR, per hero | pool (`/v1/meta` comps), beside **the site service's HSReplay comps** (section 4.1) | The external comps have **no placement and no sample** (the service sends `avgPlacement: ""`): they are ordered by the hero's own tribe-family numbers (section 4.3, top 50%) and the source's tier letter, and no comp placement is shown. |
 | Comp guides (`comps-strategies`): cards core/addon, tips, when to commit, tribes, power level, difficulty | pool (`/v1/meta` guides), beside the external comps' core cards, tier letter, difficulty and advice (section 4.1) | The external comps have core cards only (no add-ons, no "when to commit") and name no tribes. Titles and advice are in Russian only. |
 | Trinket stats: placement, pick rate, per MMR | pool (`/v1/stats` trinkets and, since 0.17, `trinketsByBracket`; `/v1/meta` trinkets), behind them **the site service's trinket tier list** per MMR slice (section 4.2) | The external `games` is "the minimum sample compatible with the rounded distribution", not a count: used as a lower bound and shown as one. |
 | Tribe results of final boards | pool (`/v1/stats` tribes) | Shown instead of comps when the pool is on and there are no comps. |
@@ -51,9 +51,8 @@ Duos: the API has `/api/bg/heroes/duos` (top 50%), but the app's meta has no Duo
   The external lists are those `BgSiteClient` loads for the tabs (`BattlegroundsMeta.LoadExternalAsync`: the comps of
   the refresh and the trinket tier list of the four MMR slices, three more cached requests) and become rows marked
   `External` (`BattlegroundsMeta.WithExternal`). The source line stays "Hearthpulse data".
-- The heroes' compositions come after the meta is in use (`BattlegroundsMeta.WithHeroCompsAsync`, section 4.3): one
-  request per hero of the top 50% slice, four at a time, off the UI and log threads; the advisor gets the meta again
-  when they are in.
+- The heroes' compositions (section 4.3) are part of the API step: one more request beside the hero and minion
+  slices, `GET /v1/battlegrounds/heroes/compositions?mmr=TOP_50_PERCENT`, cached like them.
 - The pool's address: `PoolEndpoint` in `settings.json` when set, else `PoolClient.DefaultEndpoint` (empty until the
   owner deploys the server, `server/pool/README.md`); only `https://` addresses count. There is no field for it in the
   interface.
@@ -92,10 +91,9 @@ All read-only, `{"data": ..., "meta": {source_id, fetched_at, stale}}` like `/v1
    pool or editorial content.
 7. **Trinkets with real sample sizes** - `games` as counted, not estimated; the trinket pick then shows a count
    instead of a lower bound.
-8. **Hero compositions in bulk** - `GET /v1/battlegrounds/heroes/compositions?mmr=` from the stored
-   `hsreplay_battlegrounds_hero_details`: one request instead of one per hero (section 4.3). Checked 2026-11-15: the
-   route does not exist (404), and neither `/api/bg/heroes` (only `best_composition`) nor the site service (no hero
-   detail route) has every composition of a hero.
+8. ~~Hero compositions in bulk~~ - **done on the server, 2026-11-15**: `GET
+   /v1/battlegrounds/heroes/compositions?mmr=TOP_50_PERCENT`, 116 heroes in one answer (~240 KB), each composition
+   with its `tribes`. The app reads it (section 4.3) and makes no request per hero. Other slices answer 422.
 
 ## 4. External data in the advisor: definitions and small-sample rules
 
@@ -145,10 +143,13 @@ heroes and trinkets, the lobby's tribes); nothing about other players is read or
 
 ### 4.3. Lobby adjustment of the hero pick
 
-- **Source.** `GET https://api.kolodahearthstone.com/api/bg/heroes/{dbfId}` → `compositions[]` (`composition_id`,
-  `name`, `num_games`, `avg_placement`), solo, top 50%, current patch. A composition there is a tribe family of final
-  boards ("Mechs", "Demons": ten of them on 2026-11-15), mapped to a tribe by id, else by name. An answer of another
-  mode or slice, or one taken from Firestone, is not read.
+- **Source.** `GET https://api.kolodahearthstone.com/v1/battlegrounds/heroes/compositions?mmr=TOP_50_PERCENT` →
+  `data[]` of heroes (`id`, `compositions[]`: `composition_id`, `name`, `tribes`, `num_games`, `avg_placement`), solo,
+  top 50%, current patch; `meta.source_id` is `hsreplay_battlegrounds_hero_details`. One request for every hero
+  (checked 2026-11-15: 116 heroes, ten families). A composition is a tribe family of final boards ("Mechs",
+  "Demons"); its tribe is the answer's `tribes` (HearthstoneJSON race keys), and for a family sent without them
+  ("Aberrations" on that date) the one its id or name is known by. An answer of another slice, or one whose source
+  names Firestone, is not read.
 - **Definition.** For a hero `h` and a lobby `L` (the tribes the player sees):
 
   `delta(h, L) = (P_in − P_all) · n / (n + 150)`
@@ -166,7 +167,7 @@ heroes and trinkets, the lobby's tribes); nothing about other players is read or
 - **Limits of the claim.** A composition is the family of the *final* board, so the averages are of players who
   ended there: the adjustment says how the hero fares in the families this lobby allows, not what the tribe's
   presence causes. It is top 50% whatever the player's bracket, and it is added to the bracket's average.
-- **Loading.** One request per hero of the top 50% slice (116 on 2026-11-15, ~150 KB each), at most four at once,
-  after the meta is already in use. Cache `cache/api/bg-hero-comps-<dbfId>.json`, 6 h, written through a temporary
-  file, **only the compositions' numbers kept** (under 1 KB a hero); a 404 is cached as "no data". Offline the old
-  files answer.
+- **Loading.** With the hero and minion slices (`HearthpulseData.LoadHeroCompositionsAsync`), on the hosts' meta
+  load, never on the log thread. Cache `cache/api/bg-hero-comps-top_50_percent.json`, 6 h, written through a
+  temporary file, without the placement distributions; a 404 or 422 is cached as "no data" (the heroes then have no
+  adjustment). Offline the old file answers.

@@ -307,8 +307,7 @@ public sealed partial class BattlegroundsMeta
     /// Community stats as both apps load them, in this order: heroes and minions from the Hearthpulse API
     /// (<see cref="LoadAsync"/>), the external comps and trinkets (<see cref="WithExternal"/>), and, when a stats pool
     /// is set up, the pool's meta laid over them (or the pool's own meta when the API did not load). Each failure is
-    /// logged; null when neither loaded. The heroes' compositions come after, apart
-    /// (<see cref="WithHeroCompsAsync"/>): they are a request per hero. docs/bg-meta-sources.md.
+    /// logged; null when neither loaded. docs/bg-meta-sources.md.
     /// </summary>
     /// <param name="external">
     /// Loads the external comps and trinket lists (<see cref="LoadExternalAsync"/>); they are laid over the API meta
@@ -368,7 +367,8 @@ public sealed partial class BattlegroundsMeta
 
     /// <summary>
     /// Loads the community stats from the Hearthpulse API (HSReplay data): hero results for each MMR slice the API
-    /// publishes (<see cref="HeroSlices"/>) and minion results per bracket (<see cref="CardSlices"/>). Comps and
+    /// publishes (<see cref="HeroSlices"/>), minion results per bracket (<see cref="CardSlices"/>) and every hero's
+    /// compositions of the top 50% (one request; the lobby adjustment of the hero pick). Comps and
     /// trinkets come from the external lists (<see cref="WithExternal"/>); turn results and MMR floors are not in the
     /// API: they stay empty until the stats pool supplies them (<see cref="PoolClient.OverlayAsync"/>). Null when no hero slice could be had (offline, no cache).
     /// </summary>
@@ -376,18 +376,16 @@ public sealed partial class BattlegroundsMeta
     {
         var heroTasks = HeroSlices.Select(s => api.LoadHeroesAsync(s.Mmr, cancellationToken)).ToList();
         var cardTasks = CardSlices.Select(s => api.LoadMinionsAsync(s.Mmr, cancellationToken)).ToList();
-        await Task.WhenAll(heroTasks.Concat<Task>(cardTasks)).ConfigureAwait(false);
+        var compsTask = api.LoadHeroCompositionsAsync(cancellationToken);
+        await Task.WhenAll(heroTasks.Concat<Task>(cardTasks).Append(compsTask)).ConfigureAwait(false);
 
         var heroes = new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>();
-        IReadOnlyDictionary<string, int> dbfIds = new Dictionary<string, int>(StringComparer.Ordinal);
         DateTime updated = default;
         for (var i = 0; i < HeroSlices.Length; i++)
         {
             var slice = await heroTasks[i].ConfigureAwait(false);
             if (slice.Heroes.Count > 0)
             {
-                // The widest slice comes first: its heroes are the ones whose compositions are asked for.
-                dbfIds = dbfIds.Count == 0 ? slice.DbfIds : dbfIds;
                 heroes[HeroSlices[i].Bracket] = slice.Heroes;
                 updated = slice.FetchedAt > updated ? slice.FetchedAt : updated;
             }
@@ -407,11 +405,12 @@ public sealed partial class BattlegroundsMeta
             }
         }
 
-        Diag.Info($"Battlegrounds meta from the Hearthpulse API: heroes in brackets {string.Join('/', heroes.Keys)}, minions in {string.Join('/', cards.Keys)}");
+        var heroComps = (await compsTask.ConfigureAwait(false)).Heroes;
+        Diag.Info($"Battlegrounds meta from the Hearthpulse API: heroes in brackets {string.Join('/', heroes.Keys)}, minions in {string.Join('/', cards.Keys)}, compositions of {heroComps.Count} heroes");
         return new BattlegroundsMeta(heroes, [], [], new Dictionary<string, MetaTrinket>(StringComparer.Ordinal), cards,
             updated == default ? DateTime.UtcNow : updated)
         {
-            HeroDbfIds = dbfIds,
+            HeroComps = heroComps,
         };
     }
 

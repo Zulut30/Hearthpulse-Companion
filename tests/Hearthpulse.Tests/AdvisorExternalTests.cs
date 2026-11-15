@@ -25,7 +25,7 @@ public sealed class AdvisorExternalTests : IDisposable
     private const string Elementals = "Элементали - Живой азерит";
     private const string Undead = "Нежить - APM-нежить";
 
-    // The fixture's compositions of Jaraxxus (hero-59807.json): tribe, games, average place.
+    // The fixture's compositions of Jaraxxus (hero-compositions-top_50_percent.json): tribe, games, average place.
     private static readonly (string Tribe, int Games, double Place)[] JaraxxusComps =
     [
         ("MURLOC", 35, 3.59), ("DEMON", 6371, 3.911), ("MECHANICAL", 59, 4.2), ("UNDEAD", 37, 4.224), ("BEAST", 104, 4.32),
@@ -329,8 +329,9 @@ public sealed class AdvisorExternalTests : IDisposable
         Assert.Equal(3, meta.Comps.Count);
         Assert.Contains("BG36_MagicItem_216", meta.Trinkets.Keys);
         Assert.Equal("Hearthpulse data", meta.Source);
-        // The heroes' compositions are a step of their own: the meta is in use before they come.
-        Assert.Empty(meta.HeroComps);
+        // Every hero's compositions come with the API step, in one request; no hero is asked for by itself.
+        Assert.Equal(4, meta.HeroComps.Count);
+        Assert.Single(server.Requests, r => r.Contains("heroes/compositions", StringComparison.Ordinal));
         Assert.DoesNotContain(server.Requests, r => r.Contains("api/bg/heroes/", StringComparison.Ordinal));
         Assert.DoesNotContain(server.Requests, r => r.Contains("zerotoheroes", StringComparison.OrdinalIgnoreCase) || r.Contains("firestone", StringComparison.OrdinalIgnoreCase));
     }
@@ -338,97 +339,97 @@ public sealed class AdvisorExternalTests : IDisposable
     [Fact]
     public void Hero_compositions_parse_from_the_real_answer()
     {
-        using var doc = JsonDocument.Parse(MetaFixture("hero-59807.json"));
+        using var doc = JsonDocument.Parse(MetaFixture("hero-compositions-top_50_percent.json"));
 
-        var hero = HearthpulseData.ParseHeroCompositions(doc.RootElement)!;
+        var slice = HearthpulseData.ParseHeroCompositions(doc.RootElement);
 
-        Assert.Equal(Jaraxxus, hero.HeroCardId);
-        Assert.Equal(new DateTime(2026, 11, 11, 19, 6, 58, DateTimeKind.Utc), hero.AsOf!.Value, TimeSpan.FromSeconds(1));
+        Assert.Equal(4, slice.Heroes.Count);
+        Assert.Equal(new DateTime(2026, 11, 12, 3, 35, 3, DateTimeKind.Utc), slice.FetchedAt!.Value, TimeSpan.FromSeconds(1));
+        // The answer names the tribes itself; it has none for "Aberrations", which the family's id is known by.
         Assert.Equal(JaraxxusComps.OrderBy(c => c.Tribe, StringComparer.Ordinal),
-            hero.Comps.Select(c => (c.Tribes.Single(), c.Games, c.Placement)).OrderBy(c => c.Item1, StringComparer.Ordinal));
+            slice.Heroes[Jaraxxus].Select(c => (c.Tribes.Single(), c.Games, c.Placement)).OrderBy(c => c.Item1, StringComparer.Ordinal));
     }
 
     [Fact]
     public void Hero_compositions_of_another_slice_or_source_are_not_read_and_broken_rows_are_dropped()
     {
-        static BgHeroComps? Parse(string json)
+        static BgHeroCompsSlice Parse(string json)
         {
             using var doc = JsonDocument.Parse(json);
             return HearthpulseData.ParseHeroCompositions(doc.RootElement);
         }
 
-        const string comps = """
-            "compositions": [
-              {"composition_id": 9, "name": "Демоны", "num_games": 500, "avg_placement": 3.9},
-              {"composition_id": 999, "name": "Наги", "num_games": 120, "avg_placement": 4.4},
-              {"composition_id": 998, "name": "Что-то новое", "num_games": 80, "avg_placement": 4.1},
-              {"composition_id": 3, "name": "Звери", "num_games": 0, "avg_placement": 4.0},
-              {"composition_id": 2, "name": "Мурлоки", "num_games": 50, "avg_placement": 9.5},
-              {"composition_id": "x", "num_games": 50, "avg_placement": 4.0}, "junk"]
+        const string data = """
+            "data": [
+              {"id": "HERO_X", "compositions": [
+                {"composition_id": 9, "name": "Демоны", "tribes": ["DEMON"], "num_games": 500, "avg_placement": 3.9},
+                {"composition_id": 999, "name": "Наги", "tribes": [], "num_games": 120, "avg_placement": 4.4},
+                {"composition_id": 998, "name": "Что-то новое", "num_games": 80, "avg_placement": 4.1},
+                {"composition_id": 997, "name": "Два племени", "tribes": ["BEAST", "MURLOC", 5], "num_games": 70, "avg_placement": 4.2},
+                {"composition_id": 3, "name": "Звери", "tribes": ["BEAST"], "num_games": 0, "avg_placement": 4.0},
+                {"composition_id": 2, "name": "Мурлоки", "tribes": ["MURLOC"], "num_games": 50, "avg_placement": 9.5},
+                {"composition_id": "x", "num_games": 50, "avg_placement": 4.0}, "junk"]},
+              {"id": "HERO_EMPTY", "compositions": []}, {"compositions": []}, "junk"]
             """;
 
-        var hero = Parse($$"""{"hero": {"id": "HERO_X"}, "mode": "solo", "filters": {"mmr_percentile": "TOP_50_PERCENT"}, {{comps}}}""")!;
-        // The family is known by id, else by name; an unknown one keeps its numbers and has no tribe.
-        Assert.Equal([("DEMON", 500), ("NAGA", 120), (string.Empty, 80)], hero.Comps.Select(c => (c.Tribes.FirstOrDefault() ?? string.Empty, c.Games)));
-        Assert.Null(hero.AsOf);
+        var hero = Assert.Single(Parse($$"""{ {{data}}, "meta": {"source_id": "hsreplay_battlegrounds_hero_details", "mmr": "TOP_50_PERCENT"} }""").Heroes);
+        Assert.Equal("HERO_X", hero.Key);
+        // The answer's tribes; without them the family known by id or name; an unknown one keeps its numbers and has no tribe.
+        Assert.Equal(["DEMON", "NAGA", "", "BEAST+MURLOC"], hero.Value.Select(c => string.Join('+', c.Tribes)));
+        Assert.Equal([500, 120, 80, 70], hero.Value.Select(c => c.Games));
 
-        Assert.Null(Parse($$"""{"hero": {"id": "HERO_X"}, "mode": "duos", {{comps}}}"""));
-        Assert.Null(Parse($$"""{"hero": {"id": "HERO_X"}, "filters": {"mmr_percentile": "TOP_20_PERCENT"}, {{comps}}}"""));
-        Assert.Null(Parse($$"""{"hero": {"id": "HERO_X"}, "source_url": "https://static.zerotoheroes.com/x", {{comps}}}"""));
-        Assert.Null(Parse($$"""{"hero": {}, {{comps}}}"""));
-        Assert.Null(Parse("[]"));
+        Assert.Empty(Parse($$"""{ {{data}}, "meta": {"mmr": "TOP_20_PERCENT"} }""").Heroes);
+        Assert.Empty(Parse($$"""{ {{data}}, "meta": {"source_id": "firestone_battlegrounds_comps"} }""").Heroes);
+        Assert.Empty(Parse($$"""{ {{data}}, "meta": {"source_id": "hsreplay", "tribes_source_id": "zerotoheroes"} }""").Heroes);
+        Assert.Empty(Parse("""{"data": null}""").Heroes);
+        Assert.Empty(Parse("[]").Heroes);
+        Assert.Null(Parse("[]").FetchedAt);
 
         Assert.Empty(BattlegroundsMeta.CompositionTribes(998, "Что-то новое"));
         Assert.Equal(["MECHANICAL"], BattlegroundsMeta.CompositionTribes(8, "whatever"));
     }
 
     [Fact]
-    public async Task Hero_compositions_load_four_at_a_time_into_a_small_cache_and_a_missing_hero_is_remembered()
+    public async Task Hero_compositions_are_one_request_kept_small_on_disk_and_a_missing_slice_is_remembered()
     {
         var server = ApiServer.Full();
-        server.HoldDetails = true;
         var data = new HearthpulseData(new HearthpulseApi(new HttpClient(server), HearthpulseApi.DefaultBaseUrl), _dir);
-        var api = await BattlegroundsMeta.LoadAsync(data);
-        // The fixture's four heroes and eight more the server does not know: twelve requests to make.
-        var meta = WithHeroes(api!, Enumerable.Range(1, 8).ToDictionary(i => $"HERO_GONE_{i}", i => 900_000 + i));
 
-        var loading = meta.WithHeroCompsAsync(data);
-        await server.FourInFlight.Task.WaitAsync(TimeSpan.FromMinutes(1));
-        server.Release();
-        var loaded = await loading;
-
-        Assert.Equal(4, server.MostInFlight);
-        Assert.Equal(12, server.Requests.Count(r => r.Contains("api/bg/heroes/", StringComparison.Ordinal)));
-        Assert.Equal([Jaraxxus, Millificent], loaded.HeroComps.Keys.Order(StringComparer.Ordinal));
-        Assert.Equal(10, loaded.HeroComps[Jaraxxus].Count);
-        Assert.Same(meta.Comps, loaded.Comps);
-
-        // Only the compositions' numbers are kept: the answer's lineups and per-turn tables are not written to disk.
-        var cached = File.ReadAllText(Path.Combine(_dir, "bg-hero-comps-59807.json"));
-        Assert.InRange(cached.Length, 200, 2000);
-        Assert.DoesNotContain("lineup", cached, StringComparison.Ordinal);
-        Assert.DoesNotContain("tavern_up", cached, StringComparison.Ordinal);
-        Assert.Equal("{\"data\":null}", File.ReadAllText(Path.Combine(_dir, "bg-hero-comps-900001.json")));
-
-        // Answers and the 404s are kept for hours: a second load asks nothing and reads the same.
+        var first = await BattlegroundsMeta.LoadAsync(data);
         var requests = server.Requests.Count;
-        var again = await meta.WithHeroCompsAsync(data);
-        Assert.Equal(requests, server.Requests.Count);
-        Assert.Equal(loaded.HeroComps[Millificent].Select(c => (c.Id, c.Games, c.Placement)), again.HeroComps[Millificent].Select(c => (c.Id, c.Games, c.Placement)));
+        var second = await BattlegroundsMeta.LoadAsync(data);
 
-        // Offline with nothing cached: the meta stays as it is.
-        var offline = new HearthpulseData(new HearthpulseApi(new HttpClient(new ApiServer()), HearthpulseApi.DefaultBaseUrl), Path.Combine(_dir, "empty"));
-        Assert.Same(meta, await meta.WithHeroCompsAsync(offline));
+        Assert.Equal(10, first!.HeroComps[Jaraxxus].Count);
+        Assert.Equal(first.HeroComps[Millificent].Select(c => (c.Id, c.Games, c.Placement)), second!.HeroComps[Millificent].Select(c => (c.Id, c.Games, c.Placement)));
+        // One request for all heroes, cached for hours like the other answers; none per hero.
+        Assert.Equal(requests, server.Requests.Count);
+        Assert.Single(server.Requests, r => r.EndsWith("v1/battlegrounds/heroes/compositions?mmr=TOP_50_PERCENT", StringComparison.Ordinal));
+        Assert.DoesNotContain(server.Requests, r => r.Contains("api/bg/heroes/", StringComparison.Ordinal));
+
+        // Only what is read is kept on disk: no placement distributions.
+        var cached = File.ReadAllText(Path.Combine(_dir, "bg-hero-comps-top_50_percent.json"));
+        Assert.DoesNotContain("placement_distribution", cached, StringComparison.Ordinal);
+        Assert.Contains("\"fetched_at\"", cached, StringComparison.Ordinal);
+
+        // A server without the slice (422, or 404 before the route existed): remembered, and the meta has no compositions.
+        var bare = ApiServer.Full();
+        bare.Remove("heroes/compositions");
+        var other = Path.Combine(_dir, "bare");
+        var without = await BattlegroundsMeta.LoadAsync(new HearthpulseData(new HearthpulseApi(new HttpClient(bare), HearthpulseApi.DefaultBaseUrl), other));
+        Assert.Empty(without!.HeroComps);
+        Assert.Equal("{\"data\":null}", File.ReadAllText(Path.Combine(other, "bg-hero-comps-top_50_percent.json")));
+        Assert.Equal(without.Hero(Jaraxxus, 50)!.AveragePosition, new BattlegroundsAdvisor { Meta = without }
+            .Enrich(HeroPick(["DRAGON", "MURLOC", "MECHANICAL", "BEAST", "QUILBOAR"]), 7000, Cards()).HeroOptions[0].Meta!.AdjustedPosition);
     }
 
     // ---- data ----------------------------------------------------------------------------------
 
-    /// <summary>The API meta (fixtures), the external lists (fixtures) and the fixture heroes' compositions; no pool.</summary>
+    /// <summary>The API meta with the heroes' compositions (fixtures) and the external lists (fixtures); no pool.</summary>
     private async Task<BattlegroundsMeta> ExternalMetaAsync()
     {
-        var data = new HearthpulseData(new HearthpulseApi(new HttpClient(ApiServer.Full()), HearthpulseApi.DefaultBaseUrl), _dir);
+        var data = new HearthpulseData(new HearthpulseApi(new HttpClient(ApiServer.Full()), HearthpulseApi.DefaultBaseUrl), Path.Combine(_dir, "meta"));
         var meta = await BattlegroundsMeta.LoadAsync(data);
-        return await meta!.WithExternal(Lists(), Cards()).WithHeroCompsAsync(data);
+        return meta!.WithExternal(Lists(), Cards());
     }
 
     /// <summary>The comps and the trinket lists of two brackets as the site client parses them, Firestone rows refused.</summary>
@@ -465,12 +466,6 @@ public sealed class AdvisorExternalTests : IDisposable
             HeroComps = new Dictionary<string, IReadOnlyList<MetaHeroComp>>(StringComparer.Ordinal) { ["HERO_A"] = Comps(3.5, 4.5), ["HERO_B"] = Comps(4.2, 4.0) },
         };
     }
-
-    private static BattlegroundsMeta WithHeroes(BattlegroundsMeta meta, Dictionary<string, int> more) =>
-        new(meta.HeroesByBracket, meta.Percentiles, meta.Comps, meta.Trinkets, meta.CardsByBracket, meta.Updated)
-        {
-            HeroDbfIds = meta.HeroDbfIds.Concat(more).ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal),
-        };
 
     /// <summary>The stats pool's own rows: a comp, a trinket the external list has too and one it has not.</summary>
     private static BattlegroundsMeta PoolMeta(int sharedTrinketGames = 200)
@@ -571,24 +566,14 @@ public sealed class AdvisorExternalTests : IDisposable
     private static string SiteFixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "BgSite", name));
 
     /// <summary>
-    /// The Hearthpulse API in miniature: the hero and minion slices and two heroes' details from Fixtures/BgMeta, 404 for
-    /// the rest. With <see cref="HoldDetails"/> a hero detail request waits for <see cref="Release"/>.
+    /// The Hearthpulse API in miniature: the hero and minion slices and the heroes' compositions from Fixtures/BgMeta,
+    /// 404 for the rest.
     /// </summary>
     private sealed class ApiServer : HttpMessageHandler
     {
         private readonly List<(string Fragment, string Body)> _routes = [];
-        private readonly TaskCompletionSource _released = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private int _inFlight;
 
         public List<string> Requests { get; } = [];
-
-        public bool HoldDetails { get; set; }
-
-        /// <summary>The most hero detail requests waiting at once.</summary>
-        public int MostInFlight { get; private set; }
-
-        /// <summary>Set when four hero detail requests wait at once.</summary>
-        public TaskCompletionSource FourInFlight { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public static ApiServer Full()
         {
@@ -603,14 +588,13 @@ public sealed class AdvisorExternalTests : IDisposable
                 server._routes.Add(($"minions/stats?mmr={mmr}", MetaFixture($"minions-{mmr.ToLowerInvariant()}.json")));
             }
 
-            server._routes.Add(("api/bg/heroes/59807", MetaFixture("hero-59807.json")));
-            server._routes.Add(("api/bg/heroes/60366", MetaFixture("hero-60366.json")));
+            server._routes.Add(("heroes/compositions?mmr=TOP_50_PERCENT", MetaFixture("hero-compositions-top_50_percent.json")));
             return server;
         }
 
-        public void Release() => _released.TrySetResult();
+        public void Remove(string fragment) => _routes.RemoveAll(r => r.Fragment.Contains(fragment, StringComparison.Ordinal));
 
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var url = request.RequestUri!.ToString();
             lock (Requests)
@@ -618,28 +602,10 @@ public sealed class AdvisorExternalTests : IDisposable
                 Requests.Add(url);
             }
 
-            if (HoldDetails && url.Contains("api/bg/heroes/", StringComparison.Ordinal))
-            {
-                lock (Requests)
-                {
-                    MostInFlight = Math.Max(MostInFlight, ++_inFlight);
-                    if (_inFlight == 4)
-                    {
-                        FourInFlight.TrySetResult();
-                    }
-                }
-
-                await _released.Task.WaitAsync(cancellationToken);
-                lock (Requests)
-                {
-                    _inFlight--;
-                }
-            }
-
             var route = _routes.FirstOrDefault(r => url.Contains(r.Fragment, StringComparison.Ordinal));
-            return route.Body is null
+            return Task.FromResult(route.Body is null
                 ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{\"detail\": \"Not Found\"}", Encoding.UTF8, "application/json") }
-                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(route.Body, Encoding.UTF8, "application/json") };
+                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(route.Body, Encoding.UTF8, "application/json") });
         }
     }
 

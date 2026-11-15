@@ -39,9 +39,6 @@ public partial class App : Application
     private AppSettings _settings = new();
     private HttpClient _http = null!;
     private BgSiteClient? _bgSite;
-
-    /// <summary>The load of the heroes' compositions the last meta started; the render waits for it.</summary>
-    private Task _heroComps = Task.CompletedTask;
     private HearthpulseApi _api = null!;
     private AccountService _account = null!;
     private ProfileUploader _uploader = null!;
@@ -405,8 +402,8 @@ public partial class App : Application
 
     /// <summary>
     /// Community stats: heroes and minions from the Hearthpulse API, the external comps and trinkets, and, when a stats
-    /// pool is set up, the pool's meta laid over them (or the pool's own meta when the API did not load). The heroes'
-    /// compositions follow on their own. docs/bg-meta-sources.md.
+    /// pool is set up, the pool's meta laid over them (or the pool's own meta when the API did not load).
+    /// docs/bg-meta-sources.md.
     /// </summary>
     private async Task LoadMetaAsync()
     {
@@ -422,8 +419,6 @@ public partial class App : Application
             _meta = meta;
             _session.SetMeta(meta);
             _mainViewModel.SetMeta(meta);
-            _heroComps = LoadHeroCompsAsync(meta);
-            _heroComps.Forget("Battlegrounds hero compositions load");
         }
         else
         {
@@ -433,20 +428,6 @@ public partial class App : Application
         LoadArenaMetaAsync().Forget("Arena stats load");
         LoadBrawlMetaAsync().Forget("Brawl stats load");
         _session.RequestMemoryTrimWhenWindowAway();
-    }
-
-    /// <summary>
-    /// Every hero's compositions for the advisor's lobby adjustment: a request per hero (four at a time, cached for
-    /// hours), so the meta is in use before they arrive. Only the advisor reads them: the pages are not rebuilt.
-    /// </summary>
-    private async Task LoadHeroCompsAsync(BattlegroundsMeta meta)
-    {
-        var full = await meta.WithHeroCompsAsync(new HearthpulseData(_api));
-        if (!ReferenceEquals(full, meta) && ReferenceEquals(_meta, meta))
-        {
-            _meta = full;
-            _session.SetMeta(full);
-        }
     }
 
     /// <summary>

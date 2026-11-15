@@ -54,21 +54,17 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     }
 
     /// <summary>
-    /// The compositions of one hero (<c>/api/bg/heroes/{dbfId}</c>, top 50%, current patch): what the lobby adjustment
-    /// of the hero pick is made of (docs/bg-meta-sources.md, section 4). Only the compositions' numbers are kept in
-    /// the cache (the answer is ~150 KB, the kept part under 1 KB). Null when the server has no such hero (cached like
-    /// an answer), the answer is another slice, or it could not be had.
+    /// Every hero's compositions of the top 50% (<c>/v1/battlegrounds/heroes/compositions</c>, current patch, one
+    /// request): what the lobby adjustment of the hero pick is made of (docs/bg-meta-sources.md, section 4). The
+    /// placement distributions are not kept in the cache. Empty when the server has no such slice (cached like an
+    /// answer), names a source the app does not use, or could not be had.
     /// </summary>
-    public async Task<BgHeroComps?> LoadHeroCompositionsAsync(int dbfId, CancellationToken cancellationToken = default)
+    public async Task<BgHeroCompsSlice> LoadHeroCompositionsAsync(CancellationToken cancellationToken = default)
     {
-        if (dbfId <= 0)
-        {
-            return null;
-        }
-
-        var id = dbfId.ToString(CultureInfo.InvariantCulture);
-        using var doc = await FetchAsync($"api/bg/heroes/{id}", $"bg-hero-comps-{id}.json", cancellationToken, ShrinkHeroDetail).ConfigureAwait(false);
-        return doc is null ? null : Read(() => ParseHeroCompositions(Data(doc)), "hero compositions", (BgHeroComps?)null);
+        var empty = new BgHeroCompsSlice(new Dictionary<string, IReadOnlyList<MetaHeroComp>>(StringComparer.Ordinal), null);
+        using var doc = await FetchAsync("v1/battlegrounds/heroes/compositions?mmr=TOP_50_PERCENT", "bg-hero-comps-top_50_percent.json", cancellationToken, ShrinkHeroCompositions)
+            .ConfigureAwait(false);
+        return doc is null ? empty : Read(() => ParseHeroCompositions(doc.RootElement), "hero compositions", empty);
     }
 
     /// <summary>
@@ -383,14 +379,10 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
 }
 
 /// <summary>One MMR slice of hero results and when the server fetched it (default when unknown).</summary>
-public sealed record BgHeroSlice(IReadOnlyDictionary<string, MetaHero> Heroes, DateTime FetchedAt)
-{
-    /// <summary>The heroes' dbfIds by card id, where the answer gives them: what the hero detail route is asked by.</summary>
-    public IReadOnlyDictionary<string, int> DbfIds { get; init; } = new Dictionary<string, int>(StringComparer.Ordinal);
-}
+public sealed record BgHeroSlice(IReadOnlyDictionary<string, MetaHero> Heroes, DateTime FetchedAt);
 
 /// <summary>
-/// A hero's compositions (top 50%, current patch) from the hero detail route: games and average place per tribe
-/// family. <see cref="AsOf"/> is when the source computed them, UTC, when it says.
+/// Every hero's compositions (solo, top 50%, current patch) by hero card id: games and average place per tribe family.
+/// <see cref="FetchedAt"/> is when the server fetched them, UTC, when it says.
 /// </summary>
-public sealed record BgHeroComps(string HeroCardId, IReadOnlyList<MetaHeroComp> Comps, DateTime? AsOf);
+public sealed record BgHeroCompsSlice(IReadOnlyDictionary<string, IReadOnlyList<MetaHeroComp>> Heroes, DateTime? FetchedAt);

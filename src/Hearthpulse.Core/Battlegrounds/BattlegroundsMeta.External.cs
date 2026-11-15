@@ -23,16 +23,16 @@ public sealed record BgExternalLists(IReadOnlyList<BgSiteComp> Comps, IReadOnlyD
 /// </summary>
 public sealed partial class BattlegroundsMeta
 {
-    /// <summary>Hero detail requests in flight at once (one per hero of the widest slice, ~150 KB each).</summary>
-    internal const int HeroDetailParallelism = 4;
-
     /// <summary>Games the hero needs in the compositions the lobby allows before the lobby adjustment is used.</summary>
     public const int LobbyMinGames = 100;
 
     /// <summary>The prior of the lobby adjustment: it is shrunk toward zero by <c>n / (n + 150)</c>.</summary>
     public const int LobbyPrior = 150;
 
-    /// <summary>The source's composition ids (HSReplay tribe families, checked 2026-11-15) as race keys.</summary>
+    /// <summary>
+    /// The source's composition ids (HSReplay tribe families, checked 2026-11-15) as race keys: for a family the API
+    /// sends without tribes (it does for "Aberrations"), and for the families the external comps' titles lead with.
+    /// </summary>
     private static readonly Dictionary<int, string> CompositionRaces = new()
     {
         [2] = "MURLOC", [3] = "BEAST", [8] = "MECHANICAL", [9] = "DEMON", [20] = "DRAGON",
@@ -52,13 +52,10 @@ public sealed partial class BattlegroundsMeta
 
     /// <summary>
     /// Each hero's compositions (top 50%, current patch), by hero card id: the lobby adjustment of the hero pick and
-    /// the order of a hero's comps. Empty until <see cref="WithHeroCompsAsync"/> has loaded them.
+    /// the order of a hero's comps. Empty when the API has no such slice or the pool's meta stands alone.
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyList<MetaHeroComp>> HeroComps { get; init; } =
         new Dictionary<string, IReadOnlyList<MetaHeroComp>>(StringComparer.Ordinal);
-
-    /// <summary>The dbfIds of the API's heroes (widest slice), by card id: what the hero detail route is asked by.</summary>
-    internal IReadOnlyDictionary<string, int> HeroDbfIds { get; init; } = new Dictionary<string, int>(StringComparer.Ordinal);
 
     /// <summary>
     /// External trinket rows that a row of the stats pool stands in front of in <see cref="Trinkets"/>: they answer when
@@ -176,60 +173,20 @@ public sealed partial class BattlegroundsMeta
         }
 
         Diag.Info($"Battlegrounds meta: {comps.Count} external comps, {trinkets.Values.Count(t => t.External) + shadowed.Count} external trinkets in brackets {string.Join('/', lists.TrinketsByBracket.Keys.OrderDescending())}");
-        return Copy([.. Comps, .. comps], trinkets, shadowed, HeroComps);
+        return Copy([.. Comps, .. comps], trinkets, shadowed);
     }
 
-    /// <summary>
-    /// This meta with every hero's compositions (<see cref="HeroComps"/>), loaded through the API's disk cache with at
-    /// most <see cref="HeroDetailParallelism"/> requests at once, off the caller's thread. The same instance when there is
-    /// nothing to ask for or nothing came. Never throws.
-    /// </summary>
-    public Task<BattlegroundsMeta> WithHeroCompsAsync(Api.HearthpulseData data, CancellationToken cancellationToken = default) =>
-        HeroDbfIds.Count == 0 ? Task.FromResult(this) : Task.Run(() => LoadHeroCompsAsync(data, cancellationToken), CancellationToken.None);
-
-    private async Task<BattlegroundsMeta> LoadHeroCompsAsync(Api.HearthpulseData data, CancellationToken cancellationToken)
-    {
-        using var gate = new SemaphoreSlim(HeroDetailParallelism);
-        try
-        {
-            var loaded = await Task.WhenAll(HeroDbfIds.Select(async hero =>
-            {
-                await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
-                try
-                {
-                    return (Hero: hero.Key, Comps: await data.LoadHeroCompositionsAsync(hero.Value, cancellationToken).ConfigureAwait(false));
-                }
-                finally
-                {
-                    gate.Release();
-                }
-            })).ConfigureAwait(false);
-
-            // The answer names the hero itself; a row that names another one is not this hero's.
-            var comps = loaded
-                .Where(x => x.Comps is { Comps.Count: > 0 } answer && answer.HeroCardId == x.Hero)
-                .ToDictionary(x => x.Hero, x => x.Comps!.Comps, StringComparer.Ordinal);
-            Diag.Info($"Battlegrounds meta: compositions of {comps.Count} of {HeroDbfIds.Count} heroes");
-            return comps.Count == 0 ? this : Copy(Comps, Trinkets, ShadowedTrinkets, comps);
-        }
-        catch (OperationCanceledException)
-        {
-            return this;
-        }
-    }
-
-    /// <summary>A copy with other comps, trinkets and hero compositions; everything else as it is.</summary>
+    /// <summary>A copy with other comps and trinkets; everything else as it is.</summary>
     private BattlegroundsMeta Copy(IReadOnlyList<MetaComp> comps, IReadOnlyDictionary<string, MetaTrinket> trinkets,
-        IReadOnlyDictionary<string, MetaTrinket> shadowed, IReadOnlyDictionary<string, IReadOnlyList<MetaHeroComp>> heroComps) =>
+        IReadOnlyDictionary<string, MetaTrinket> shadowed) =>
         new(HeroesByBracket, Percentiles, comps, trinkets, CardsByBracket, Updated)
         {
             Tribes = Tribes,
             SharedGames = SharedGames,
             SharedHeroRows = SharedHeroRows,
             Source = _source,
-            HeroDbfIds = HeroDbfIds,
             ShadowedTrinkets = shadowed,
-            HeroComps = heroComps,
+            HeroComps = HeroComps,
         };
 
     /// <summary>

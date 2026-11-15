@@ -77,7 +77,6 @@ public static partial class PoolClient
             SharedGames = pool.SharedGames,
             Source = baseMeta.StoredSource == pool.StoredSource ? baseMeta.StoredSource : $"{baseMeta.StoredSource} + {BattlegroundsMeta.PoolName}",
             HeroComps = baseMeta.HeroComps,
-            HeroDbfIds = baseMeta.HeroDbfIds,
             ShadowedTrinkets = shadowed,
         };
     }
