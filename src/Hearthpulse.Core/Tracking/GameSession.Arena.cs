@@ -18,6 +18,17 @@ public sealed partial class GameSession
     /// <summary>The card of the last pick while no offer was known: the first offer read with it is the stale one.</summary>
     private string? _pickedWithoutOffer;
 
+    /// <summary>
+    /// The offer read from memory that the current one replaced before any pick was logged from it. The memory read
+    /// can move on to the next offer before Arena.log names the pick, so the pick's own offer is kept until that pick
+    /// (or the next one) is handled: what the client showed with it, a package or none, is then still known. Never
+    /// carried into another run or across a redraft (<see cref="ForgetOffersOfAnotherRun"/>).
+    /// </summary>
+    private ArenaDraftOffer? _replacedOffer;
+
+    /// <summary>The offer in memory when the run or its revision changed: it belongs to the draft before and is never kept as <see cref="_replacedOffer"/>.</summary>
+    private ArenaDraftOffer? _offerOfAnotherRun;
+
     /// <summary>The game whose deck was checked against the draft (once per game).</summary>
     private GameState? _arenaCheckedGame;
 
@@ -59,6 +70,7 @@ public sealed partial class GameSession
             if (!enabled)
             {
                 SetDraftOffer(null);
+                _replacedOffer = null;
             }
 
             _dirty = true;
@@ -80,6 +92,13 @@ public sealed partial class GameSession
         }
 
         if (offer is null) CaptureUnpickedDraftOffer();
+        if (_draftOffer is { } replaced && !ReferenceEquals(replaced, _offerOfAnotherRun) && !replaced.SameAs(_pickedOffer))
+        {
+            // No pick was logged from the offer that goes away: its pick may still be on its way through Arena.log.
+            _replacedOffer = replaced;
+        }
+
+        _offerOfAnotherRun = null;
         _draftOffer = offer;
         if (offer is not null)
         {
@@ -111,10 +130,13 @@ public sealed partial class GameSession
 
     private void HandleArena(string line)
     {
+        var before = _arenaDraft.State;
         if (!_arenaDraft.Feed(line, _cards))
         {
             return;
         }
+
+        ForgetOffersOfAnotherRun(before, _arenaDraft.State);
 
         if (!_catchingUp)
         {
@@ -143,6 +165,11 @@ public sealed partial class GameSession
         }
 
         var index = _draftOffer is null ? -1 : IndexOf(_draftOffer.CardIds, chosen);
+        // The offer this pick was made from when the memory read has already moved on: read, so it is the truth.
+        var replaced = index < 0 && !_catchingUp ? _replacedOffer : null;
+        var replacedIndex = replaced is null ? -1 : IndexOf(replaced.CardIds, chosen);
+        // Whatever the pick, the kept offer was for it or for an earlier one: it is used at most once.
+        _replacedOffer = null;
         if (!_catchingUp && _sourceCapture.Enabled)
             _sourceCapture.CaptureDraftChoice(index >= 0 ? _draftOffer : null, _arenaDraft.PickCount, index >= 0 ? index : null, DateOnly.FromDateTime(Clock()));
         if (index >= 0)
@@ -152,6 +179,17 @@ public sealed partial class GameSession
             if (!_catchingUp && _arenaDraft.AddPackage(_draftOffer!.PackageOf(index)))
             {
                 Diag.Info($"Arena draft: {chosen} came with {string.Join(", ", _draftOffer.PackageOf(index))}");
+            }
+        }
+        else if (replacedIndex >= 0)
+        {
+            // The offer now in memory is the next one and stays on screen; the pick's own offer says what came with
+            // the card, a package or nothing. The server's list is not asked.
+            _pickedOffer = null;
+            _pickedWithoutOffer = null;
+            if (_arenaDraft.AddPackage(replaced!.PackageOf(replacedIndex)))
+            {
+                Diag.Info($"Arena draft: {chosen} came with {string.Join(", ", replaced.PackageOf(replacedIndex))} (the offer before the one now in memory)");
             }
         }
         else
@@ -164,8 +202,25 @@ public sealed partial class GameSession
     }
 
     /// <summary>
-    /// The pick was made while its offer was not read from memory, so the cards that came with a legendary are not
-    /// known from the client. The server's package list stands in, only where it cannot be wrong about what was on
+    /// A new run (the run ended, another hero, another deck id) or a redraft: the offers read so far belong to the
+    /// draft before. The kept one is dropped and the one still in memory is marked, so neither answers for a pick of
+    /// the new draft. The hero pick of a run already begun (no hero yet -> its hero) is the same run.
+    /// </summary>
+    private void ForgetOffersOfAnotherRun(ArenaDraftState before, ArenaDraftState after)
+    {
+        var another = before.Revision != after.Revision
+                      || (before.HeroCardId is not null && before.HeroCardId != after.HeroCardId)
+                      || (before.DeckId != 0 && after.DeckId != 0 && before.DeckId != after.DeckId);
+        if (another)
+        {
+            _replacedOffer = null;
+            _offerOfAnotherRun = _draftOffer;
+        }
+    }
+
+    /// <summary>
+    /// The pick was made while its offer was not read from memory at all (neither the offer now in memory nor the one
+    /// it replaced holds the card), so the cards that came with a legendary are not known from the client. The server's package list stands in, only where it cannot be wrong about what was on
     /// screen and only after the pick (docs/arena-draft.md, L-M1): an Underground run's first card, which is the
     /// legendary with its package. An offer that was read is the truth, also when it brought no package; the client's
     /// deck list and the game's deck still correct the result.

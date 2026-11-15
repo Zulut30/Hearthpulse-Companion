@@ -306,6 +306,112 @@ public sealed class ArenaDataRouteTests : IDisposable
         Assert.Equal(1, draft.Session.Current.ArenaDraft!.Picks);
     }
 
+    /// <summary>
+    /// Review m1: the memory read moved on to the next offer before Arena.log named the pick. The pick's own offer was
+    /// read and brought no package, so the server's list is not asked although the card is the run's first.
+    /// </summary>
+    [Fact]
+    public void A_pick_from_an_offer_the_memory_read_already_left_keeps_what_that_offer_showed()
+    {
+        using var draft = Session(Meta());
+        draft.HeroPowerOffer(underground: true);
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["BE_287", "RLK_066", "BE_283"], true));
+        draft.Tick();
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["TLC_231", "RLK_051", "RLK_066"], true));
+        draft.Tick();
+
+        draft.Choose("BE_287");
+
+        var view = draft.Session.Current.ArenaDraft!;
+        Assert.Equal(1, view.Picks);
+        Assert.Equal("BE_287", Assert.Single(view.Deck).CardId);
+        // The offer now in memory is the next one: it stays on screen.
+        Assert.Equal(["TLC_231", "RLK_051", "RLK_066"], view.Options.Select(o => o.CardId));
+
+        // The same when the memory read had nothing between the two offers.
+        using var gap = Session(Meta());
+        gap.HeroPowerOffer(underground: true);
+        gap.Session.SetDraftOffer(new ArenaDraftOffer(["BE_287", "RLK_066", "BE_283"], true));
+        gap.Tick();
+        gap.Session.SetDraftOffer((ArenaDraftOffer?)null);
+        gap.Choose("BE_287");
+        Assert.Equal(1, gap.Session.Current.ArenaDraft!.Picks);
+    }
+
+    /// <summary>The package the client showed with the pick's own offer is the one added, not the server's (three cards).</summary>
+    [Fact]
+    public void A_pick_from_an_offer_the_memory_read_already_left_gets_the_clients_package()
+    {
+        using var draft = Session(Meta());
+        draft.HeroPowerOffer(underground: true);
+        IReadOnlyList<IReadOnlyList<string>> packages = [["BE_283", "TLC_231"], [], []];
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["BE_287", "RLK_066", "BE_283"], true, packages));
+        draft.Tick();
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["TLC_231", "RLK_051", "RLK_066"], true));
+        draft.Tick();
+
+        draft.Choose("BE_287");
+
+        var view = draft.Session.Current.ArenaDraft!;
+        Assert.Equal(["BE_283", "BE_287", "TLC_231"], view.Deck.Select(c => c.CardId).Order(StringComparer.Ordinal));
+        Assert.Equal(3, view.Picks);
+
+        // The kept offer answers for one pick: a later pick the memory read never saw is not matched with it.
+        draft.Session.SetDraftOffer((ArenaDraftOffer?)null);
+        draft.Choose("RLK_051");
+        draft.Choose("BE_283");
+        Assert.Equal(5, draft.Session.Current.ArenaDraft!.Picks);
+    }
+
+    /// <summary>
+    /// An offer read in one run never answers for a pick of the next: its package is not added to the new run's first
+    /// card (whose Arena is not known yet, so the server's list is not asked either).
+    /// </summary>
+    [Fact]
+    public void A_new_run_forgets_the_offer_kept_from_the_run_before()
+    {
+        using var draft = Session(Meta());
+        draft.HeroPowerOffer(underground: true);
+        IReadOnlyList<IReadOnlyList<string>> packages = [["BE_283", "TLC_231"], [], []];
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["BE_287", "RLK_066", "BE_283"], true, packages));
+        draft.Tick();
+
+        draft.Session.OnLines("Arena.log",
+        [
+            "D 21:02:00.0000000 SetDraftMode - NO_ACTIVE_DRAFT",
+            "D 21:02:01.0000000 DraftManager.OnBegin - Got new draft deck with ID: 900000003",
+            "D 21:02:01.0000000 SetDraftMode - DRAFTING",
+            "D 21:02:02.0000000 Client chooses: Gul'dan (HERO_07)",
+            "D 21:02:02.0000000 DraftManager.OnChosen(): hero=HERO_07 premium=NORMAL",
+        ], catchingUp: false);
+        draft.Session.SetDraftOffer((ArenaDraftOffer?)null);
+        draft.Choose("BE_287");
+
+        var view = draft.Session.Current.ArenaDraft!;
+        Assert.Equal(1, view.Picks);
+        Assert.Equal("BE_287", Assert.Single(view.Deck).CardId);
+    }
+
+    /// <summary>The same across a redraft: an offer read before it is not the offer of a pick made in it.</summary>
+    [Fact]
+    public void A_redraft_forgets_the_offer_kept_from_before_it()
+    {
+        using var draft = Session(Meta());
+        draft.HeroPowerOffer(underground: true);
+        draft.Choose("RLK_066");
+        IReadOnlyList<IReadOnlyList<string>> packages = [["BE_283", "TLC_231"], [], []];
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["BE_287", "RLK_051", "BE_283"], true, packages));
+        draft.Tick();
+
+        draft.Session.OnLines("Arena.log", ["D 21:02:00.0000000 SetDraftMode - REDRAFTING"], catchingUp: false);
+        draft.Session.SetDraftOffer((ArenaDraftOffer?)null);
+        draft.Choose("BE_287");
+
+        var state = draft.Session.ArenaDraftState;
+        Assert.Equal(1, state.Revision);
+        Assert.Equal(["BE_287"], state.Cards);
+    }
+
     [Fact]
     public void The_servers_package_is_not_added_to_a_normal_run_or_after_the_first_card()
     {
