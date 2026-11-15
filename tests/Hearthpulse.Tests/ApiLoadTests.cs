@@ -202,6 +202,29 @@ public sealed class ApiLoadTests : IDisposable
     }
 
     [Fact]
+    public async Task A_deck_no_collected_list_is_close_to_keeps_its_archetype_guide()
+    {
+        // The server collects one Warlock deck (C'Thun); the Zoolock list is nowhere near it.
+        var server = FixtureServer.Standard();
+        server.Route("v1/hsreplay/mulligan/decks?format=standard", FixtureServer.Text("hsreplay-mulligan-decks-standard.json"));
+        var list = Assert.Single(HearthpulseData.ParseHsguruArchetypes(FixtureServer.Json("hsguru-archetypes-standard.json")), a => a.Name == "Zoolock").Decks[0];
+        var deck = DeckString.TryDecode(list.Code)!;
+        var before = await MulliganGuideSource.LoadGuideAsync(Data(FixtureServer.Standard(), "without"), "standard", "WARLOCK", deck.Cards, CardDb.Empty, "MAGE", false);
+
+        var guide = await MulliganGuideSource.LoadGuideAsync(Data(server, "with"), "standard", "WARLOCK", deck.Cards, CardDb.Empty, "MAGE", false);
+
+        // The same archetype guide as without the per-deck data, marked as an archetype's.
+        Assert.NotNull(guide);
+        Assert.Equal((before!.Id, before.Name, before.HsguruArchetype, before.Source), (guide.Id, guide.Name, guide.HsguruArchetype, guide.Source));
+        Assert.Equal(before.Cards, guide.Cards);
+        Assert.Equal((MulliganScope.Archetype, (string?)null), (guide.Scope, guide.DeckId));
+        Assert.Empty(guide.DeckSlices);
+        // The list of decks named the collected deck's cards: not one slice of it was asked.
+        Assert.Single(server.Requests, r => r.StartsWith("v1/hsreplay/mulligan/decks", StringComparison.Ordinal));
+        Assert.DoesNotContain(server.Requests, r => r.StartsWith("v1/hsreplay/mulligan?", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task A_new_mulligan_rank_rebuilds_the_overlay_guide_at_once()
     {
         var server = FixtureServer.Standard();
