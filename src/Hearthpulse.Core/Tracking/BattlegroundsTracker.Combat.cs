@@ -139,8 +139,20 @@ public sealed partial class BattlegroundsTracker
             CountDamage = !game.IsDuos,
         };
         LastCapture = new CombatCapture(ours, theirs, oursFirst, options.FirstAttackerEntityId);
+        LastCaptureOptions = options;
         StartSimulation(ours, theirs, oursFirst, options);
     }
+
+    /// <summary>
+    /// The first pass of a fight, made on the log thread so the odds are on screen at once: few fights and a short
+    /// time budget. The background pass then runs <paramref name="options"/> as they are.
+    /// </summary>
+    internal static SimOptions QuickPass(SimOptions options) => options with
+    {
+        Runs = 150,
+        MinRuns = 0,
+        TimeBudget = TimeSpan.FromMilliseconds(40),
+    };
 
     /// <summary>
     /// The local player's player-level cards in play (hero power, trinkets, quest rewards) at capture, by card id: only
@@ -210,12 +222,7 @@ public sealed partial class BattlegroundsTracker
 
         try
         {
-            _combatOdds = CombatSimulator.Run(ours, theirs, oursFirst, options with
-            {
-                Runs = 150,
-                MinRuns = 0,
-                TimeBudget = TimeSpan.FromMilliseconds(40),
-            });
+            _combatOdds = CombatSimulator.Run(ours, theirs, oursFirst, QuickPass(options));
         }
         catch (Exception ex)
         {

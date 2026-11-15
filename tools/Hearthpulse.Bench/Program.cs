@@ -11,6 +11,7 @@ internal static class Program
 {
     private const string Usage = """
         Hearthpulse.Bench <command> [--logs <dir>] [--rounds <n>] [--games <n>]
+                                   [--replays <dir>] [--out <file>] [--before <file> --after <file>]
 
           cards     load the card database: time, allocations, live heap, LOH
           replay    replay kept Power logs through GameSession: parse and publish timings, allocations
@@ -29,7 +30,10 @@ internal static class Program
                     HP_BENCH_PACE=n: each game lasts its log time / n; HP_BENCH_MAIN=0: no main window;
                     HP_BENCH_DROPART=1: image caches emptied before each count; HP_BENCH_SOFTWARE=1: overlay SoftwareOnly)
           simcover  combat simulator coverage: Battlegrounds fights of the logs (Power*.log at any depth) without "not
-                    simulated", what was not, result accuracy and Brier; popular minions without an effect
+                    simulated", result accuracy, damage and Brier under three budgets (first pass, the app's background
+                    pass, full), what was not simulated; popular minions without an effect
+                    (--out <file>: per-fight scores; --before <file> --after <file>: two such files of the same fights
+                    compared pair by pair; --replays <dir>: fights the .hpr replays hold, Duos fights with both tables)
           simmatrix combat simulator coverage matrix of the current pool (six statuses) -> docs/bg-sim-matrix.md
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
           art       decode the cached portraits and deck tiles at once (--games caps the count): time, allocations, GCs
@@ -121,8 +125,7 @@ internal static class Program
                 GamesBench.Run(options);
                 break;
             case "simcover":
-                SimCoverBench.Run(options);
-                break;
+                return SimCoverBench.Run(options);
             case "simmatrix":
                 SimMatrix.Run();
                 break;
@@ -159,11 +162,23 @@ internal static class Program
 /// <summary>Command-line options shared by the commands.</summary>
 internal sealed record Options(string Logs, int Rounds, int Games)
 {
+    /// <summary>simcover: a folder of .hpr replays to count.</summary>
+    public string Replays { get; init; } = string.Empty;
+
+    /// <summary>simcover: where the per-fight scores go.</summary>
+    public string Out { get; init; } = string.Empty;
+
+    /// <summary>simcover: the two per-fight files to compare.</summary>
+    public string Before { get; init; } = string.Empty;
+
+    public string After { get; init; } = string.Empty;
+
     public static Options Parse(string[] args)
     {
         var logs = @"D:\Hearthstone\Logs";
         var rounds = 1;
         var games = 0;
+        string replays = string.Empty, output = string.Empty, before = string.Empty, after = string.Empty;
         for (var i = 0; i + 1 < args.Length; i += 2)
         {
             switch (args[i])
@@ -177,9 +192,21 @@ internal sealed record Options(string Logs, int Rounds, int Games)
                 case "--games":
                     games = int.Parse(args[i + 1], CultureInfo.InvariantCulture);
                     break;
+                case "--replays":
+                    replays = args[i + 1];
+                    break;
+                case "--out":
+                    output = args[i + 1];
+                    break;
+                case "--before":
+                    before = args[i + 1];
+                    break;
+                case "--after":
+                    after = args[i + 1];
+                    break;
             }
         }
 
-        return new Options(logs, rounds, games);
+        return new Options(logs, rounds, games) { Replays = replays, Out = output, Before = before, After = after };
     }
 }

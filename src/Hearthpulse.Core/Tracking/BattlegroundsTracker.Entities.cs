@@ -275,4 +275,10 @@ public sealed partial class BattlegroundsTracker
 
     /// <summary>What the last combat simulation was given (for tests and diagnostics).</summary>
     internal CombatCapture? LastCapture { get; private set; }
+
+    /// <summary>
+    /// The options <see cref="LastCapture"/> was simulated with (damage cap, Duos, first attacker, budget), so a
+    /// measurement can run the same fight again.
+    /// </summary>
+    internal SimOptions? LastCaptureOptions { get; private set; }
 }

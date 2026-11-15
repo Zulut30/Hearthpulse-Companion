@@ -1,12 +1,10 @@
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Text.Json;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Cards;
-using Hearthpulse.Core.Data;
-using Hearthpulse.Core.Power;
-using Hearthpulse.Core.Stats;
 using Hearthpulse.Core.Tracking;
 using static Hearthpulse.Bench.Measure;
 
@@ -16,10 +14,13 @@ namespace Hearthpulse.Bench;
 /// How much of a real Battlegrounds fight the combat simulator models (plan 1.5). Two reports:
 /// <list type="bullet">
 /// <item>Real fights: every Battlegrounds game in the logs (Power*.log under --logs, any depth) is replayed through
-/// <see cref="BattlegroundsTracker"/> with the real card database, as the app does. Per fight: whether anything was
-/// "not simulated" and what (card, side, golden, granted by which enchantment); then the share of fights without it,
-/// the result accuracy the Battlegrounds page shows (<see cref="BattlegroundsStats.SimAccuracy"/>) and the Brier score of
-/// the win/tie/loss odds.</item>
+/// <see cref="BattlegroundsTracker"/> with the real card database, as the app does, and every captured fight is then
+/// simulated under each budget (<see cref="SimBudget"/>): the share of fights without "not simulated", the result
+/// accuracy and damage hit the Battlegrounds page shows, and the Brier score of the win/tie/loss odds, each with its
+/// interval; then what was not simulated (card, side, golden, granted by which enchantment). <c>--out</c> writes
+/// the per-fight scores; <c>--before</c> and <c>--after</c> compare two such files of the same fights pair by pair.</item>
+/// <item>Replays (<c>--replays</c>): the Battlegrounds fights local .hpr files hold and, for Duos, how many show both
+/// tables of the team (<see cref="ReplayFights"/>).</item>
 /// <item>Popularity: the community minion list the app caches (cache/api/bg-minions-all.json, share of boards with the
 /// minion) against the effect registry: which combat-relevant minions have no effect, by popularity, and the chance
 /// that a board (and a fight, two boards) holds none of them.</item>
@@ -27,13 +28,24 @@ namespace Hearthpulse.Bench;
 /// </summary>
 internal static class SimCoverBench
 {
-    public static void Run(Options options)
+    public static int Run(Options options)
     {
+        if (options.Before.Length > 0 || options.After.Length > 0)
+        {
+            return Compare(options);
+        }
+
         using var http = Http();
         // English: the relevance fallback reads English card text, and the report names stay readable in any console.
         var cards = CardDb.LoadAsync("enUS", http).GetAwaiter().GetResult();
         RealFights(options, cards);
+        if (options.Replays.Length > 0)
+        {
+            Replays(options.Replays);
+        }
+
         Popularity(cards);
+        return 0;
     }
 
     private static void RealFights(Options options, CardDb cards)
@@ -41,95 +53,45 @@ internal static class SimCoverBench
         var logs = Directory.Exists(options.Logs)
             ? Directory.EnumerateFiles(options.Logs, "Power*.log", SearchOption.AllDirectories)
                 .Where(f => File.ReadLines(f).Any(l => l.Contains("GameType=GT_BATTLEGROUNDS", StringComparison.Ordinal)))
+                .Order(StringComparer.Ordinal)
                 .ToList()
             : [];
-        var records = new List<GameRecord>();
-        var reasons = new Dictionary<string, int>(StringComparer.Ordinal);
-        int fights = 0, clean = 0, scored = 0, noOdds = 0;
-        double brier = 0;
+        var games = new List<SimGame>();
         foreach (var log in logs)
         {
-            var parser = new PowerParser(DateOnly.FromDateTime(File.GetLastWriteTime(log)));
-            var tracker = new BattlegroundsTracker { Cards = cards };
-            parser.AddListener(tracker);
-            var games = new List<IReadOnlyList<CombatRecord>>();
-            IReadOnlyList<CombatRecord> combats = [];
-            var captures = new List<BattlegroundsTracker.CombatCapture>();
-            var count = 0;
-            foreach (var line in File.ReadLines(log))
+            var source = $"{Path.GetFileName(Path.GetDirectoryName(log))}/{Path.GetFileName(log)}";
+            foreach (var game in SimSample.Read(File.ReadLines(log), source, DateOnly.FromDateTime(File.GetLastWriteTime(log)), cards))
             {
-                parser.Feed(line);
-                if (tracker.LastCapture is { } capture && (captures.Count == 0 || !ReferenceEquals(captures[^1], capture)))
-                {
-                    captures.Add(capture);
-                }
-
-                // Views now and then, as the overlay builds them: that is when the background simulation's result is taken.
-                if (++count % 200 == 0 && line.Contains(" TAG_CHANGE ", StringComparison.Ordinal) && parser.Game is { IsBattlegrounds: true, LocalPlayerId: > 0 } game)
-                {
-                    parser.Flush();
-                    tracker.BuildView(game);
-                }
-
-                if (tracker.Combats.Count < combats.Count)
-                {
-                    games.Add(combats); // the next game started
-                    combats = [];
-                }
-
-                if (tracker.Combats.Count > 0)
-                {
-                    combats = tracker.Combats.ToList();
-                }
+                games.Add(game);
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                    $"[sim] {game.Key}: {game.StartedAt:yyyy-MM-dd} build {game.Build} {(game.Duos ? "duos" : "solo")}, {game.Fights.Count} fights, {game.Fights.Count(f => f.Capture is not null)} with boards"));
             }
-
-            // The last background simulation lands after the last line.
-            Thread.Sleep(3000);
-            if (parser.Game is { IsBattlegrounds: true, LocalPlayerId: > 0 } last)
-            {
-                parser.Flush();
-                tracker.BuildView(last);
-                combats = tracker.Combats.Count > 0 ? tracker.Combats.ToList() : combats;
-            }
-
-            games.Add(combats);
-            foreach (var capture in captures)
-            {
-                foreach (var reason in Reasons(capture, cards))
-                {
-                    reasons[reason] = reasons.GetValueOrDefault(reason) + 1;
-                }
-            }
-
-            foreach (var game in games.Where(g => g.Count > 0))
-            {
-                records.Add(Record(game));
-                foreach (var c in game)
-                {
-                    if (c.Odds is not { } o)
-                    {
-                        noOdds++;
-                        continue;
-                    }
-
-                    fights++;
-                    clean += o.Unsimulated == 0 ? 1 : 0;
-                    var (w, t, l) = c.Result switch { "Win" => (1, 0, 0), "Loss" => (0, 0, 1), "Tie" => (0, 1, 0), _ => (-1, -1, -1) };
-                    if (w >= 0)
-                    {
-                        scored++;
-                        brier += Math.Pow(o.Win - w, 2) + Math.Pow(o.Tie - t, 2) + Math.Pow(o.Loss - l, 2);
-                    }
-                }
-            }
-
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"[sim] {Path.GetFileName(Path.GetDirectoryName(log))}/{Path.GetFileName(log)}: {games.Count(g => g.Count > 0)} game(s), {games.Sum(g => g.Count)} fights, {captures.Count} captures"));
         }
 
-        var accuracy = BattlegroundsStats.SimAccuracy(records);
+        var all = games.SelectMany(g => g.Fights).ToList();
+        var fights = all.Where(f => f.Capture is not null).ToList();
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"[sim] fights without odds (not counted below) {noOdds}; fights with odds {fights}, without \"not simulated\" {clean} = {(fights > 0 ? clean / (double)fights : 0):P0} (Wilson 95 % {Wilson(clean, fights).Low:P0}..{Wilson(clean, fights).High:P0}); result hit {accuracy.ResultRate:P0} of {accuracy.Fights}; damage in range {accuracy.DamageRate:P0}; Brier {(scored > 0 ? brier / scored : 0):N3} over {scored}"));
+            $"[sim] sample: {games.Count} games ({games.Count(g => g.Duos)} duos), {all.Count} fights, {all.Count - fights.Count} without boards (not counted below); builds {string.Join(' ', games.Select(g => g.Build).Distinct().Order())}"));
+
+        // The full budget first: it also warms the code up, as a running app is by the time a fight starts.
+        var scores = new Dictionary<SimBudget, List<SimScore>>();
+        foreach (var budget in new[] { SimBudget.Full, SimBudget.App, SimBudget.Quick })
+        {
+            scores[budget] = fights.Select(f => SimSample.Score(f, budget)!).ToList();
+        }
+
+        foreach (var budget in Enum.GetValues<SimBudget>())
+        {
+            Console.WriteLine($"[sim] {budget,-5} {Describe(budget)}");
+            Console.WriteLine($"[sim]   {Summary(scores[budget])}");
+        }
+
+        var reasons = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var reason in fights.SelectMany(f => Reasons(f.Capture!, cards)))
+        {
+            reasons[reason] = reasons.GetValueOrDefault(reason) + 1;
+        }
+
         foreach (var (code, n) in reasons.GroupBy(r => r.Key[..r.Key.IndexOf(':', StringComparison.Ordinal)]).Select(g => (g.Key, g.Sum(r => r.Value))))
         {
             Console.WriteLine($"[sim]   reason {code}: {n}");
@@ -138,6 +100,105 @@ internal static class SimCoverBench
         foreach (var (reason, n) in reasons.OrderByDescending(r => r.Value).ThenBy(r => r.Key, StringComparer.Ordinal))
         {
             Console.WriteLine($"[sim]   {n,3} × {reason}");
+        }
+
+        if (options.Out.Length > 0)
+        {
+            using var writer = new StreamWriter(options.Out, append: false);
+            SimSample.Write(writer, Enum.GetValues<SimBudget>().SelectMany(b => scores[b]));
+            Console.WriteLine($"[sim] per-fight scores -> {options.Out}");
+        }
+    }
+
+    private static string Describe(SimBudget budget)
+    {
+        var o = SimSample.Budgeted(new SimOptions(), budget);
+        var time = o.TimeBudget is { } t ? string.Create(CultureInfo.InvariantCulture, $", stops after {t.TotalMilliseconds:N0} ms (at least {o.MinRuns} fights)") : ", no time limit";
+        return budget switch
+        {
+            SimBudget.Quick => $"first pass on the log thread: up to {o.Runs} fights{time}",
+            SimBudget.App => $"background pass of the app: up to {o.Runs} fights{time}",
+            _ => $"full budget: {o.Runs} fights{time}",
+        };
+    }
+
+    private static string Summary(List<SimScore> scores)
+    {
+        var n = scores.Count;
+        var clean = scores.Count(s => s.Clean);
+        var hit = scores.Count(s => s.Hit);
+        var damage = scores.Count(s => s.DamageSeen);
+        var damageHit = scores.Count(s => s.DamageHit);
+        var scored = scores.Where(s => s.Brier is not null).Select(s => s.Brier!.Value).ToList();
+        var brier = SimStats.Mean(scored);
+        return string.Create(CultureInfo.InvariantCulture,
+            $"fights {n}; without \"not simulated\" {Share(clean, n)}; result hit {Share(hit, n)}; damage in range {Share(damageHit, damage)}; Brier {brier.Mean:N3} ({brier.Low:N3}..{brier.High:N3}) over {scored.Count}; runs avg {(n > 0 ? scores.Average(s => s.Runs) : 0):N0}, min {(n > 0 ? scores.Min(s => s.Runs) : 0)}");
+    }
+
+    private static string Share(int k, int n)
+    {
+        var (low, high) = SimStats.Wilson(k, n);
+        return n == 0 ? "none" : string.Create(CultureInfo.InvariantCulture, $"{k} / {n} = {k / (double)n:P1} (Wilson 95 % {low:P1}..{high:P1})");
+    }
+
+    /// <summary>Two per-fight files of the same fights (<c>--before</c>, <c>--after</c>), compared pair by pair.</summary>
+    private static int Compare(Options options)
+    {
+        if (!File.Exists(options.Before) || !File.Exists(options.After))
+        {
+            Console.Error.WriteLine("simcover --before <file> --after <file>: both per-fight files (written by --out) are needed.");
+            return 2;
+        }
+
+        foreach (var c in SimSample.Compare(SimSample.Parse(File.ReadLines(options.Before)), SimSample.Parse(File.ReadLines(options.After))))
+        {
+            Console.WriteLine($"[cmp] {c.Budget}");
+            Console.WriteLine($"[cmp]   without \"not simulated\": {Pairs(c.Clean)}");
+            Console.WriteLine($"[cmp]   result hit: {Pairs(c.Hit)}");
+            Console.WriteLine($"[cmp]   damage in range: {Pairs(c.Damage)}");
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"[cmp]   Brier, after minus before: {c.Brier.Mean:N4} (95 % {c.Brier.Low:N4}..{c.Brier.High:N4}) over {c.Brier.Pairs} fights"));
+        }
+
+        return 0;
+    }
+
+    private static string Pairs(PairedShare p) => string.Create(CultureInfo.InvariantCulture,
+        $"{p.Before} -> {p.After} of {p.Pairs}; gained {p.Gained}, lost {p.Lost}; exact McNemar p = {p.P:G3}");
+
+    /// <summary>
+    /// The local replays (.hpr) of a folder: how many Battlegrounds fights they hold, and for Duos how many show both
+    /// tables of the team. Their fights are not simulated: a replay lacks part of what a fight is captured with.
+    /// </summary>
+    private static void Replays(string folder)
+    {
+        if (!Directory.Exists(folder))
+        {
+            Console.WriteLine($"[hpr] no {folder}");
+            return;
+        }
+
+        var inventory = ReplayFights.Inventory(Directory.EnumerateFiles(folder, "*.hpr", SearchOption.AllDirectories).Order(StringComparer.Ordinal).Select(ReadReplay));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"[hpr] {inventory.Games} Battlegrounds replays, {inventory.Fights} fights, {inventory.FightsWithFirstAttack} with a first minion attack; duos: {inventory.DuosGames} games, {inventory.DuosFights} fights, both tables of the team shown in {Share(inventory.DuosBothTables, inventory.DuosFights)}"));
+        Console.WriteLine("[hpr] not simulated: a replay does not hold");
+        foreach (var missing in ReplayFights.Missing)
+        {
+            Console.WriteLine($"[hpr]   {missing}");
+        }
+    }
+
+    private static string ReadReplay(string path)
+    {
+        try
+        {
+            using var gz = new GZipStream(File.OpenRead(path), CompressionMode.Decompress);
+            using var reader = new StreamReader(gz);
+            return reader.ReadToEnd();
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException)
+        {
+            return string.Empty;
         }
     }
 
@@ -166,21 +227,6 @@ internal static class SimCoverBench
                 yield return $"{item.Code}: {m.CardId}{(m.Golden ? " golden" : string.Empty)} {cards.Get(m.CardId)?.Name} ({what}){enchantments}{theirs}";
             }
         }
-    }
-
-    /// <summary>Wilson score interval (95 %) of a share <paramref name="k"/> / <paramref name="n"/>.</summary>
-    private static (double Low, double High) Wilson(int k, int n)
-    {
-        if (n == 0)
-        {
-            return (0, 0);
-        }
-
-        const double z = 1.959964;
-        var p = k / (double)n;
-        var center = (p + z * z / (2 * n)) / (1 + z * z / n);
-        var half = z * Math.Sqrt(p * (1 - p) / n + z * z / (4.0 * n * n)) / (1 + z * z / n);
-        return (Math.Max(0, center - half), Math.Min(1, center + half));
     }
 
     private static void Popularity(CardDb cards)
@@ -225,13 +271,4 @@ internal static class SimCoverBench
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"[pop]   {share * 100,5:N2} % {id,-14} {why}"));
         }
     }
-
-    private static GameRecord Record(IReadOnlyList<CombatRecord> combats) => new()
-    {
-        Key = Guid.NewGuid().ToString(),
-        Mode = "Battlegrounds",
-        CombatResults = JsonSerializer.Serialize(combats.Select(c => new
-            { turn = c.Turn, result = c.Result, opponent = c.OpponentHeroCardId, taken = c.DamageTaken, dealt = c.DamageDealt })),
-        CombatOdds = GameRecords.CombatOddsJson(combats),
-    };
 }
