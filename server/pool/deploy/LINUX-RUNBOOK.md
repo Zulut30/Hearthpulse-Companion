@@ -120,8 +120,10 @@ different system. Do not promise backup erasure until P4 has verified the actual
 The cap conservatively reserves uncompressed input + compressed bytes + derived JSON + bounded running output.
 Filesystem free space is also checked before intake. `/healthz` tells "alive" from "producing": `intake` (rows
 taken today: `shared` = `/v1/games` + `/v1/constructed`, `records` = `/v1/events`), `stored` (rows kept per table)
-and `analytics` (`built`, `stale`, `published` of the `bg-heroes-solo` snapshot). Zero intake with a green `ok` means
-no client is configured to upload, not a healthy flow. Monitor health counts, disk/WAL growth, worker failures and
+and `analytics` (`built`, `stale`, `published` of the `bg-heroes-solo` snapshot). Intake counts quota-accounted writes,
+including repeated submissions, not unique games. Zero intake with a green `ok` means none were counted today;
+check client configuration and expected activity before calling the flow healthy or broken. Monitor health counts,
+disk/WAL growth, worker failures and
 503 rates without IDs or source snippets. Directory/SQL orphan cleanup runs before listening after a crash.
 Provision larger capacity only after measured synthetic/pilot mode-specific size, parser time and retention
 estimates; the 180-day TTL is an upper retention limit, not a capacity guarantee.
