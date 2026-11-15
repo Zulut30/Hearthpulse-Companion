@@ -122,8 +122,8 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
   (up to 60 picks, 2 to 8 offered, 1 to 4 picked among the offered). A bad pick is dropped; a game without a valid
   pick is rejected. Needs `migrations/0005_constructed.sql` on an existing pool.
 - `GET /v1/choices?format=standard` (or `wild`) returns `{format, days, updated, games, sources:[{source, choices,
-  options:[[card, offered, picked, wonWhenPicked], ...]}]}` over the last 30 days; options offered fewer than 3
-  times are left out. Rebuilt by the same cron job into `snap` rows `choices-standard` / `choices-wild`.
+  options:[[card, offered, picked, wonWhenPicked], ...]}]}` over the last 30 days; options offered fewer than 10
+  times are left out, and the wins of an option picked fewer than 10 times are null. Rebuilt by the same cron job into `snap` rows `choices-standard` / `choices-wild`.
 - `GET /v1/meta` returns the base stats (see above) when the table has rows, cached at the edge for 30 minutes.
 - Game records of every mode (`src/events.js`, [docs/game-stats.md](../../docs/game-stats.md), ADR 0011; needs
   `migrations/0007_events.sql` on an existing pool): `POST /v1/events` with `{"v":1,"iid":"<32 hex>","games":[...]}`

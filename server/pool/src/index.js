@@ -22,7 +22,9 @@ const BRACKET_TOPS = [50, 20, 5, 1];
 // Blizzard's public leaderboard).
 const MIN_RATED_GAMES = 1000;
 const MIN_BRACKET_GAMES = 50;
-// No published cell (hero or trinket per bracket, hero per lobby tribe) holds fewer games than this.
+// No published row or cell holds fewer games than this: a hero, comp, card, trinket, tier, pick or play of a few games
+// would show single games of single players (the pool has no installation id to count players by). An average over
+// fewer picks than this is null, and the combat odds line needs as many fights.
 const MIN_CELL = 10;
 // Games stored per day, both kinds together. A game writes its row and an index entry; the nightly clean-up deletes as
 // many; the daily counter adds one write per request: about 4 rows per game, inside D1's 100,000 rows written a day.
@@ -352,7 +354,7 @@ export async function rebuildChoices(env, format, force) {
     q(`SELECT COUNT(*) AS games FROM c WHERE ${w}`),
     q(`SELECT json_extract(p.value, '$[1]') AS source, COUNT(*) AS n FROM c, json_each(c.picks) p WHERE ${w} GROUP BY source`),
     q(`SELECT json_extract(p.value, '$[1]') AS source, o.value AS card, COUNT(*) AS n
-       FROM c, json_each(c.picks) p, json_each(p.value, '$[2]') o WHERE ${w} GROUP BY source, card HAVING n >= 3`),
+       FROM c, json_each(c.picks) p, json_each(p.value, '$[2]') o WHERE ${w} GROUP BY source, card HAVING n >= ${MIN_CELL}`),
     q(`SELECT json_extract(p.value, '$[1]') AS source, k.value AS card, COUNT(*) AS n, SUM(c.won) AS won
        FROM c, json_each(c.picks) p, json_each(p.value, '$[3]') k WHERE ${w} GROUP BY source, card`),
   ])).map((r) => r.results);
@@ -362,7 +364,8 @@ export async function rebuildChoices(env, format, force) {
   for (const r of offers) {
     const pick = pickBy.get(`${r.source}|${r.card}`);
     if (!optionsBy.has(r.source)) optionsBy.set(r.source, []);
-    optionsBy.get(r.source).push([r.card, r.n, pick?.n ?? 0, pick?.won ?? 0]);
+    // Wins of a handful of picks would describe single games: published from MIN_CELL picks only.
+    optionsBy.get(r.source).push([r.card, r.n, pick?.n ?? 0, (pick?.n ?? 0) >= MIN_CELL ? pick.won : null]);
   }
 
   const body = JSON.stringify({
@@ -445,7 +448,7 @@ export async function rebuild(env, mode, force) {
     q(`SELECT j.value AS hero, COUNT(*) AS n, SUM(j.value = g.hero) AS p FROM g, json_each(g.offers) j WHERE ${w} GROUP BY j.value`),
     q(`SELECT c, COUNT(*) AS n, AVG(pl) AS avg FROM
          (SELECT DISTINCT g.rowid AS r, json_extract(j.value, '$.c') AS c, g.placement AS pl FROM g, json_each(g.board) j WHERE ${w})
-       GROUP BY c HAVING n >= 3`),
+       GROUP BY c HAVING n >= ${MIN_CELL}`),
     q(`SELECT j.value AS card, COUNT(*) AS n FROM g, json_each(g.trinkets, '$.o') j WHERE ${w} GROUP BY j.value`),
     q(`SELECT j.value AS card, COUNT(*) AS n, AVG(g.placement) AS avg FROM g, json_each(g.trinkets, '$.p') j WHERE ${w} GROUP BY j.value`),
     q3(`SELECT g.comp AS comp, COUNT(*) AS n, AVG(g.placement) AS avg, SUM(g.placement <= ?3) AS top, SUM(g.placement = 1) AS first
@@ -455,13 +458,13 @@ export async function rebuild(env, mode, force) {
     q(`SELECT COUNT(*) AS n, AVG(json_extract(j.value, '$[4]')) AS predicted, AVG(json_extract(j.value, '$[1]') = 'W') AS won
        FROM g, json_each(g.combats) j WHERE ${w} AND json_extract(j.value, '$[4]') IS NOT NULL`),
     q(`SELECT json_extract(c.value, '$[1]') AS kind, o.value AS card, COUNT(*) AS n
-       FROM g, json_each(g.choices) c, json_each(c.value, '$[3]') o WHERE ${w} GROUP BY kind, card HAVING n >= 3`),
+       FROM g, json_each(g.choices) c, json_each(c.value, '$[3]') o WHERE ${w} GROUP BY kind, card HAVING n >= ${MIN_CELL}`),
     q(`SELECT json_extract(c.value, '$[1]') AS kind, p.value AS card, COUNT(*) AS n, AVG(g.placement) AS avg
        FROM g, json_each(g.choices) c, json_each(c.value, '$[4]') p WHERE ${w} GROUP BY kind, card`),
     q(`SELECT card, COUNT(*) AS n, AVG(pl) AS avg, AVG(t) AS turn FROM
          (SELECT g.rowid AS r, json_extract(j.value, '$[1]') AS card, MIN(json_extract(j.value, '$[0]')) AS t, g.placement AS pl
           FROM g, json_each(g.plays) j WHERE ${w} GROUP BY g.rowid, card)
-       GROUP BY card HAVING n >= 3`),
+       GROUP BY card HAVING n >= ${MIN_CELL}`),
     q(`SELECT g.bracket AS b, COUNT(*) AS n FROM g WHERE ${w} AND g.bracket > 0 GROUP BY g.bracket`),
     // Lobby tribes are validated tribe names (A-Z, 0-9, _), so they can be turned into a JSON array here.
     q(`SELECT g.hero AS hero, t.value AS tribe, COUNT(*) AS n, AVG(g.placement) AS avg
@@ -496,20 +499,23 @@ export async function rebuild(env, mode, force) {
     updated: new Date().toISOString(),
     games: totals[0]?.games ?? 0,
     detailedGames: totals[0]?.detailed ?? 0,
-    heroes: heroes.map((r) => ({
+    heroes: heroes.filter((r) => r.n >= MIN_CELL).map((r) => ({
       hero: r.hero, games: r.n, avgPlacement: round(r.avg), top: round(r.top / r.n), first: round(r.first / r.n),
       offered: offerBy.get(r.hero)?.n ?? 0, picked: offerBy.get(r.hero)?.p ?? 0,
     })),
     cards: boards.map((r) => ({ card: r.c, games: r.n, avgPlacement: round(r.avg) })),
-    trinkets: trinketOffers.map((r) => ({
-      card: r.card, offered: r.n, picked: pickBy.get(r.card)?.n ?? 0, avgPlacement: round(pickBy.get(r.card)?.avg),
+    trinkets: trinketOffers.filter((r) => r.n >= MIN_CELL).map((r) => ({
+      card: r.card, offered: r.n, picked: pickBy.get(r.card)?.n ?? 0,
+      avgPlacement: (pickBy.get(r.card)?.n ?? 0) >= MIN_CELL ? round(pickBy.get(r.card).avg) : null,
     })),
-    comps: comps.map((r) => ({ comp: r.comp, games: r.n, avgPlacement: round(r.avg), top: round(r.top / r.n), first: round(r.first / r.n) })),
-    tierUps: tierups.map((r) => ({ tier: r.tier, games: r.n, avgTurn: round(r.turn), avgPlacement: round(r.avg) })),
-    combatOdds: { fights: odds[0]?.n ?? 0, predictedWin: round(odds[0]?.predicted), actualWin: round(odds[0]?.won) },
+    comps: comps.filter((r) => r.n >= MIN_CELL).map((r) => ({ comp: r.comp, games: r.n, avgPlacement: round(r.avg), top: round(r.top / r.n), first: round(r.first / r.n) })),
+    tierUps: tierups.filter((r) => r.n >= MIN_CELL).map((r) => ({ tier: r.tier, games: r.n, avgTurn: round(r.turn), avgPlacement: round(r.avg) })),
+    combatOdds: (odds[0]?.n ?? 0) >= MIN_CELL
+      ? { fights: odds[0].n, predictedWin: round(odds[0].predicted), actualWin: round(odds[0].won) }
+      : { fights: 0, predictedWin: null, actualWin: null },
     choices: choiceOffers.map((r) => {
       const pick = choicePickBy.get(`${r.kind}|${r.card}`);
-      return { kind: r.kind, card: r.card, offered: r.n, picked: pick?.n ?? 0, avgPlacement: round(pick?.avg) };
+      return { kind: r.kind, card: r.card, offered: r.n, picked: pick?.n ?? 0, avgPlacement: (pick?.n ?? 0) >= MIN_CELL ? round(pick.avg) : null };
     }),
     plays: plays.map((r) => ({ card: r.card, games: r.n, avgPlacement: round(r.avg), avgTurn: round(r.turn) })),
     // Added in pool 0.17 (app 2.1 plan); older apps ignore them.
