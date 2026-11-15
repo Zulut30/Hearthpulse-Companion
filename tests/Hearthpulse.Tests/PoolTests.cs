@@ -598,4 +598,53 @@ public sealed class PoolTests
         Assert.Equal(200, trinket.DataPoints);
         Assert.Equal(3.5, trinket.Placement, 3);
     }
+
+    [Fact]
+    public async Task A_pool_without_base_stats_still_gives_its_shared_totals()
+    {
+        // The deployed pool ships no base stats: /v1/meta answers 503 by design. That is absence, never a failed load.
+        using var handler = new BaseMetaHandler();
+        using var http = new HttpClient(handler);
+
+        var meta = await PoolClient.LoadMetaAsync(http, "https://pool.test");
+
+        Assert.NotNull(meta);
+        Assert.Equal(42, meta.SharedGames);
+        Assert.Contains("DEBUG Stats pool has no base meta", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+        Assert.Equal(["/v1/meta", "/v1/stats"], handler.Paths.Order(StringComparer.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("{\"error\":\"temporarily unavailable\"}")]
+    [InlineData("<html>Service unavailable</html>")]
+    public async Task An_unexpected_base_meta_503_is_still_an_error_and_keeps_shared_totals(string body)
+    {
+        using var handler = new BaseMetaHandler(body);
+        using var http = new HttpClient(handler);
+        var before = TestDataFolder.ReadLog().Length;
+
+        var meta = await PoolClient.LoadMetaAsync(http, "https://pool.test");
+
+        Assert.NotNull(meta);
+        Assert.Equal(42, meta.SharedGames);
+        var log = TestDataFolder.ReadLog();
+        Assert.Contains("ERROR Stats pool meta unavailable", log[Math.Min(before, log.Length)..], StringComparison.Ordinal);
+    }
+
+    private sealed class BaseMetaHandler(string body = "{\"error\":\"meta not imported\"}") : HttpMessageHandler
+    {
+        public System.Collections.Concurrent.ConcurrentBag<string> Paths { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            Paths.Add(path);
+            return Task.FromResult(path == "/v1/meta"
+                ? new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable) { Content = new StringContent(body) }
+                : new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"mode\":\"solo\",\"days\":30,\"games\":42,\"detailedGames\":0,\"heroes\":[],\"cards\":[],\"trinkets\":[],\"comps\":[],\"tierUps\":[],\"choices\":[],\"plays\":[],\"ratedGames\":0,\"percentiles\":[],\"heroesByBracket\":{},\"trinketsByBracket\":{},\"heroTribes\":[]}"),
+                });
+        }
+    }
 }
