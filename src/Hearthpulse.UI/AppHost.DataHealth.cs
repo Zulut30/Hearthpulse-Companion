@@ -21,7 +21,10 @@ public sealed partial class AppHost
         Main.DataHealthCheckRequested += () => LoadDataHealthAsync(force: true).Forget("Data health check");
         _dataHealthRefresh = new DispatcherTimer { Interval = DataHealth.MaxAge };
         _dataHealthRefresh.Tick += (_, _) => LoadDataHealthAsync().Forget("Data health refresh");
-        _dataHealthRefresh.Start();
+        if (!_rendering)
+        {
+            _dataHealthRefresh.Start();
+        }
     }
 
     /// <summary>The app is closing: no further refresh, the load that is running is cancelled and its answer dropped.</summary>
