@@ -125,8 +125,8 @@ public sealed partial class CardDb
     {
         string id = string.Empty, name = string.Empty, text = string.Empty, type = string.Empty, rarity = string.Empty,
             cardClass = string.Empty, set = string.Empty, race = string.Empty;
-        int dbfId = 0, cost = 0, attack = 0, health = 0, armor = 0, techLevel = 0, premiumDbfId = 0, normalDbfId = 0, skinParentId = 0;
-        bool collectible = false, poolMinion = false, poolSpell = false, hero = false, duosExclusive = false;
+        int dbfId = 0, cost = 0, attack = 0, health = 0, armor = 0, techLevel = 0, premiumDbfId = 0, normalDbfId = 0, skinParentId = 0, copyOf = 0;
+        bool howToEarn = false, collectible = false, poolMinion = false, poolSpell = false, hero = false, duosExclusive = false;
         IReadOnlyList<string> races = Array.Empty<string>(), mechanics = Array.Empty<string>(), runes = Array.Empty<string>();
         while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
         {
@@ -159,6 +159,8 @@ public sealed partial class CardDb
                 case CardField.PremiumDbfId: premiumDbfId = ReadInt(ref reader); break;
                 case CardField.NormalDbfId: normalDbfId = ReadInt(ref reader); break;
                 case CardField.SkinParentId: skinParentId = ReadInt(ref reader); break;
+                case CardField.CountAsCopyOf: copyOf = ReadInt(ref reader); break;
+                case CardField.HowToEarn: howToEarn = ReadString(ref reader).Length > 0; break;
                 default: SkipValue(ref reader); break;
             }
         }
@@ -194,6 +196,8 @@ public sealed partial class CardDb
             BattlegroundsPremiumDbfId = premiumDbfId,
             BattlegroundsNormalDbfId = normalDbfId,
             BattlegroundsSkinParentId = skinParentId,
+            CountAsCopyOfDbfId = copyOf,
+            HasHowToEarn = howToEarn,
         };
     }
 
@@ -201,6 +205,7 @@ public sealed partial class CardDb
     {
         Other, Id, DbfId, Name, Text, Cost, Attack, Health, Armor, Type, Rarity, CardClass, Set, Race, Races, Mechanics,
         RuneCost, Collectible, TechLevel, PoolMinion, PoolSpell, Hero, DuosExclusive, PremiumDbfId, NormalDbfId, SkinParentId,
+        CountAsCopyOf, HowToEarn,
     }
 
     private static CardField FieldOf(ref Utf8JsonReader reader) =>
@@ -229,6 +234,8 @@ public sealed partial class CardDb
         : reader.ValueTextEquals("battlegroundsPremiumDbfId"u8) ? CardField.PremiumDbfId
         : reader.ValueTextEquals("battlegroundsNormalDbfId"u8) ? CardField.NormalDbfId
         : reader.ValueTextEquals("battlegroundsSkinParentId"u8) ? CardField.SkinParentId
+        : reader.ValueTextEquals("countAsCopyOfDbfId"u8) ? CardField.CountAsCopyOf
+        : reader.ValueTextEquals("howToEarn"u8) ? CardField.HowToEarn
         : CardField.Other;
 
     /// <summary>A string value, else empty (an object or array value is skipped).</summary>

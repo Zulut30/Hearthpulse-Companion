@@ -51,6 +51,18 @@ public sealed class Card
 
     public int BattlegroundsSkinParentId { get; init; }
 
+    /// <summary>
+    /// HearthstoneJSON <c>countAsCopyOfDbfId</c>: the card whose copy this printing counts as for deck building (a
+    /// Core printing names the original); 0 when the card data links it to no other printing.
+    /// </summary>
+    public int CountAsCopyOfDbfId { get; init; }
+
+    /// <summary>
+    /// The card data has a <c>howToEarn</c> text: the game gives the card in some way (a reward, an adventure, a free
+    /// set). A hint only: such a card may or may not be craftable right now.
+    /// </summary>
+    public bool HasHowToEarn { get; init; }
+
     public bool IsLegendary => Rarity == "LEGENDARY";
 
     public bool HasRace(string race) => Races.Contains(race) || Races.Contains("ALL");
