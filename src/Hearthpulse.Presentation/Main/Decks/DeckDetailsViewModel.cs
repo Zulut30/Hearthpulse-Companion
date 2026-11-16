@@ -412,7 +412,7 @@ public sealed partial class DeckDetailsViewModel : Observable
         var (sortColumn, descending) = (MatchupSort.Column, MatchupSort.Descending);
         try
         {
-            var apply = await Task.Run(() => Build(family, families, suggestions, meta, cards, matchup, sortColumn, descending)).ConfigureAwait(true);
+            var apply = await _owner.Background.RunAsync(() => Build(family, families, suggestions, meta, cards, matchup, sortColumn, descending)).ConfigureAwait(true);
             if (build == _build)
             {
                 apply();

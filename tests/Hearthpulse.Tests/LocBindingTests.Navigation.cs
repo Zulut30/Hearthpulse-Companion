@@ -28,10 +28,9 @@ public sealed partial class LocBindingTests
             var open = model.OpenMatchPageAsync(game.Key);
             Assert.True(model.MatchOpen);
             Assert.Equal("History", view.CurrentPage);
-            // The page loads on a worker and lands on this thread: run its loop until then (at most 10 s).
-            var landed = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            _ = open.ContinueWith(_ => landed.Cancel(), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-            Dispatcher.UIThread.MainLoop(landed.Token);
+            // The page is read on this thread (BackgroundWork.Inline): it has landed by now, with no pool thread or
+            // clock in between.
+            Dispatcher.UIThread.RunJobs();
 
             Assert.True(open.IsCompletedSuccessfully && open.Result);
             Assert.True(model.MatchOpen);
@@ -41,7 +40,7 @@ public sealed partial class LocBindingTests
             view.ShowPage("Overview");
             Dispatcher.UIThread.RunJobs();
             Assert.False(model.MatchOpen);
-        }, model: new MainViewModel(history, new AppSettings(), TestDataFolder.App));
+        }, model: new MainViewModel(history, new AppSettings(), TestDataFolder.App) { Background = Hearthpulse.UI.Infrastructure.BackgroundWork.Inline });
     });
 
     /// <summary>Standard → Wild → Standard: each step shows only the format it goes to.</summary>

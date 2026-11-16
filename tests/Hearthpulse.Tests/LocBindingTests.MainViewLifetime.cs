@@ -6,6 +6,7 @@ using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Threading;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 
 namespace Hearthpulse.Tests;
@@ -31,6 +32,10 @@ public sealed partial class LocBindingTests
         try
         {
             var view = BuildAndLetGo(model);
+            // The pages asked for card art (three page pictures), and each load holds its element, and with it the view,
+            // until a pool thread has run it. With the pool busy the loads were still queued when the collections below
+            // ran, and the view stayed (8 of 8 runs): the loads' own end is waited for; the bound only ends a hang.
+            Assert.True(CardArt.LoadsInFlightAsync().Wait(TimeSpan.FromMinutes(5)), "the card art loads did not end");
             for (var i = 0; i < 5 && view.IsAlive; i++)
             {
                 // The compositor keeps the closed window in a frame it has not sent yet; the app sends it on its next

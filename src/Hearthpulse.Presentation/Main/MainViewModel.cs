@@ -279,12 +279,15 @@ public sealed partial class MainViewModel : Observable
         ShowLibrary(games);
     }
 
+    /// <summary>Where the history reads and the page builds run: the thread pool, or the caller's thread in a test.</summary>
+    internal BackgroundWork Background { get; init; } = BackgroundWork.Pool;
+
     public async Task RefreshAsync()
     {
         var cards = _cards;
         var mode = BgMode;
         var request = ++_refreshRequest;
-        var data = await Task.Run(() =>
+        var data = await Background.RunAsync(() =>
         {
             var recent = _history.Recent(400);
             var bgGames = recent.Where(g => g.Mode == mode && g.Placement > 0).ToList();

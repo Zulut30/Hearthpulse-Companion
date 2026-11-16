@@ -150,6 +150,25 @@ delays are injected too (`AccountService.Delay`, a swappable clock, a `TimeProvi
 Background work is awaited through its event (`Changed`, `PropertyChanged`) or a `TaskCompletionSource`; a timeout on
 that wait only bounds a hang (10 s or more), it never decides the result.
 
+### Waits: signals and injected time, a timeout only as a backstop
+
+A bounded wait still decides the result when the awaited work crosses the thread pool the whole run shares: timers
+are served ahead of queued work, so the timeout fires while the work waits for a thread (7-12 s a hop measured on 4
+cores beside CPU-bound work on the pool; inventory and numbers in `docs/mutation-testing.md`, "Tests that wait").
+
+- No pool hop between the act and the assertion where a seam exists: a view model built with
+  `Background = BackgroundWork.Inline` reads the history and builds its pages (My Stats, deck, match) inside the call,
+  so the test asserts right after it; `LiveFeed.Offload` and a fake that answers on the caller's thread do the same.
+  Product code a new test must wait for through `Task.Run` gets such a seam instead of a longer timeout.
+- CPU-bound work of a test runs on threads of its own (`new Thread`), never `Parallel.For` or `Task.Run`: a worker per
+  core kept busy starves every other class's `Task.Run`.
+- No polling (`SpinWait.SpinUntil`, a loop with `Task.Delay`/`Thread.Sleep`) and no real pause "until nothing
+  happens" in a new test: hold the fake with a `TaskCompletionSource` and wait for the signal.
+- A view that must be collected: wait for what holds it first (`CardArt.LoadsInFlightAsync()` for card art asked for by
+  its pages), then collect.
+- A flaky wait is fixed at its cause. Never by a longer timeout, a retry, `GC.Collect`, or a `[Collection]` put on
+  "so they do not disturb each other" before the cause is known.
+
 ### Data isolation
 
 - Tests normally run in parallel. `LocBindingTests` uses the nonparallel `GlobalLanguage` collection because it

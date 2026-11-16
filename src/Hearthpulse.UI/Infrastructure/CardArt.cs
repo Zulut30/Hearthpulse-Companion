@@ -96,6 +96,12 @@ public static class CardArt
     /// <summary>Number of image loads still in flight (the off-screen renderer waits for them).</summary>
     public static int InFlight => Pending.Count(p => !p.Value.IsCompleted);
 
+    /// <summary>
+    /// The image loads in flight, as one task. Each holds the element it loads for until a pool thread has run it, so a
+    /// closed view is collected only after this is done.
+    /// </summary>
+    internal static Task LoadsInFlightAsync() => Task.WhenAll(Pending.Values.ToArray());
+
     // Property callbacks cannot await; a failed load is logged instead of reaching the app's crash handler.
     private static void Apply(Control target, ArtKind kind, string? cardId) => ApplyAsync(target, kind, cardId).Forget("Card art");
 
