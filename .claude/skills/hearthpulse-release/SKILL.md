@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-release
-description: Use when preparing, cutting or debugging a Hearthpulse release - version numbers, tags vX.Y.Z, .github/workflows/release.yml, installers (NSIS setup, Avalonia preview zip, deb/rpm/tar.gz/AppImage, macOS dmg/pkg/zip), release notes, SHA256SUMS, and the in-app updater (UpdateService, GitHub repo Zulut30/Hearthpulse_App, asset names, digest check, staged install). Triggers - "релиз", "выпусти версию", "bump version", "tag", "installer", "update didn't arrive", "auto-update".
+description: Use when preparing, cutting or debugging a Hearthpulse release - version numbers, tags vX.Y.Z, .github/workflows/release.yml, installers (NSIS setup, Avalonia preview zip, deb/rpm/tar.gz/AppImage, macOS dmg/pkg/zip), release notes, SHA256SUMS, and the in-app updater (UpdateService, GitHub repo Zulut30/Hearthpulse-Companion, asset names, digest check, staged install). Triggers - "релиз", "выпусти версию", "bump version", "tag", "installer", "update didn't arrive", "auto-update".
 ---
 
 # Releasing Hearthpulse
@@ -25,7 +25,7 @@ Each build job makes its packages in parallel from one publish (`installer/*/bui
 | `release` | ubuntu | merges artifacts into `dist/`, checks every expected installer is there (and the manifest; the delta exactly when `installer/windows/previous.sh` finds a previous manifest), `sha256sum * > SHA256SUMS.txt`, checks the file count (23 without a delta, 24 with one), signs it (`installer/sign-sums.sh`: `SHA256SUMS.txt.sig`, one more file: 24 / 25), publishes with `softprops/action-gh-release@v2`: tag `vV`, name "Hearthpulse V", `body_path: installer/RELEASE_NOTES.md`, `fail_on_unmatched_files: true` |
 
 It publishes into the repository the workflow runs in. Verify `git remote -v` and the intended GitHub repository
-before publishing: the updater is configured for `Zulut30/Hearthpulse_App`. CI (`ci.yml`) is separate: build + tests
+before publishing: the updater is configured for `Zulut30/Hearthpulse-Companion`. CI (`ci.yml`) is separate: build + tests
 on Windows/Linux/macOS (Linux and macOS also publish the self-contained app and start it with `--smoke-test`, under
 `xvfb-run` on Linux: exit 0 only when the card data loaded) and the pool API/Python skill checks on Linux for every push
 to `main` and every PR.
@@ -101,7 +101,7 @@ Two independent signatures; both scripts run in trial runs too, so a trial run s
 
 ## Updater (`src/Hearthpulse.Core/Updates/UpdateService.cs`)
 
-- `CheckAsync(http)` -> `https://api.github.com/repos/Zulut30/Hearthpulse_App/releases/latest` (`RepoOwner`/`RepoName`);
+- `CheckAsync(http)` -> `https://api.github.com/repos/Zulut30/Hearthpulse-Companion/releases/latest` (`RepoOwner`/`RepoName`);
   skips drafts and prereleases, strips `v` from `tag_name`, picks the asset whose name equals
   `AssetName(version, target, arch, linuxFlavor)` - the same names the installers produce. **Renaming an installer
   file breaks updates** for everyone on older versions.

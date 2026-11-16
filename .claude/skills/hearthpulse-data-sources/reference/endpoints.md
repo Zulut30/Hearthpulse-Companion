@@ -157,4 +157,4 @@ rule 6). A slice that is not listed, or that the service does not answer for, is
 
 ## GitHub
 
-`https://api.github.com/repos/Zulut30/Hearthpulse_App/releases/latest` - see `hearthpulse-release`.
+`https://api.github.com/repos/Zulut30/Hearthpulse-Companion/releases/latest` - see `hearthpulse-release`.

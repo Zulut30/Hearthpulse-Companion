@@ -34,7 +34,7 @@ public sealed record UpdateInfo(string Version, string AssetName, string Downloa
     /// <summary>Release body as plain text (markdown stripped), at most 1500 chars cut at a line end with "…"; null when empty.</summary>
     public string? Notes { get; init; }
 
-    /// <summary>The release page, only when it starts with https://github.com/Zulut30/Hearthpulse_App/releases/; else null.</summary>
+    /// <summary>The release page, only when it starts with https://github.com/Zulut30/Hearthpulse-Companion/releases/ (or its former name); else null.</summary>
     public Uri? PageUrl { get; init; }
 
     /// <summary>The release's SHA256SUMS.txt, when it has one.</summary>

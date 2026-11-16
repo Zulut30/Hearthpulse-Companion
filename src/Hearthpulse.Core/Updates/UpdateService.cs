@@ -19,7 +19,13 @@ public static partial class UpdateService
 {
     public const string RepoOwner = "Zulut30";
 
-    public const string RepoName = "Hearthpulse_App";
+    public const string RepoName = "Hearthpulse-Companion";
+
+    /// <summary>
+    /// The repository's name until 2026-11-16. GitHub redirects it, and builds up to 0.14.0 still ask for it; the name
+    /// must never be taken by another repository of the owner.
+    /// </summary>
+    public const string FormerRepoName = "Hearthpulse_App";
 
     /// <summary>The Apps &amp; features entry the setup writes under HKCU (installer/windows/hearthpulse.nsi).</summary>
     public const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Hearthpulse";
