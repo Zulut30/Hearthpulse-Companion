@@ -7,7 +7,8 @@ namespace Hearthpulse.Core.GameStats;
 /// Game records waiting to be sent: one small file per record in the data folder (<c>game-stats/</c>), so a record
 /// survives a restart or a day offline. Bounded: at most <see cref="MaxRecords"/> records, <see cref="MaxBytes"/> in
 /// all and <see cref="MaxAge"/> old; past a bound the oldest go first. A <c>forget</c> file marks a deletion request
-/// the pool has not confirmed yet.
+/// the pool has not confirmed yet. A queue belongs to one pool address (<see cref="Destination"/>, written beside the
+/// records in the <c>destination</c> file): <see cref="GameStatsQueues"/> keeps one folder per address.
 /// </summary>
 public sealed class GameStatsQueue
 {
@@ -17,11 +18,31 @@ public sealed class GameStatsQueue
 
     public static readonly TimeSpan MaxAge = TimeSpan.FromDays(14);
 
-    private const string ForgetFile = "forget";
-    private readonly string _folder;
-    private readonly Lock _lock = new();
+    internal const string ForgetFile = "forget";
 
-    public GameStatsQueue(string folder) => _folder = folder;
+    /// <summary>The file naming the pool this queue is for; without a <c>.json</c> ending, so it is never read as a record.</summary>
+    internal const string DestinationFile = "destination";
+
+    private readonly string _folder;
+    private readonly Lock _lock;
+
+    public GameStatsQueue(string folder)
+        : this(folder, null, new Lock())
+    {
+    }
+
+    internal GameStatsQueue(string folder, string? destination, Lock gate)
+    {
+        _folder = folder;
+        Destination = destination;
+        _lock = gate;
+    }
+
+    /// <summary>
+    /// The pool address (<see cref="Pool.PoolDestination"/>) these records and the deletion request were queued for,
+    /// and the only one they are sent to. Null for a bare folder that <see cref="GameStatsQueues"/> does not manage.
+    /// </summary>
+    public string? Destination { get; }
 
     /// <summary>UTC clock; tests move it.</summary>
     internal Func<DateTime> UtcNow { get; init; } = () => DateTime.UtcNow;
@@ -50,7 +71,7 @@ public sealed class GameStatsQueue
 
         lock (_lock)
         {
-            Directory.CreateDirectory(_folder);
+            EnsureFolder();
             var path = Path.Combine(_folder, id + ".json");
             var temp = path + ".tmp";
             File.WriteAllText(temp, record.ToJsonString());
@@ -121,17 +142,58 @@ public sealed class GameStatsQueue
 
             if (forget)
             {
-                Directory.CreateDirectory(_folder);
+                EnsureFolder();
                 File.WriteAllText(Path.Combine(_folder, ForgetFile), string.Empty);
             }
         }
     }
 
+    /// <summary>
+    /// Takes over record files (and a deletion request) another folder held for this queue's pool: the files keep
+    /// their age, so the usual bounds still drop the oldest.
+    /// </summary>
+    internal void Adopt(IEnumerable<string> recordFiles, bool forget)
+    {
+        lock (_lock)
+        {
+            EnsureFolder();
+            foreach (var file in recordFiles)
+            {
+                File.Move(file, Path.Combine(_folder, Path.GetFileName(file)), overwrite: true);
+            }
+
+            if (forget)
+            {
+                File.WriteAllText(Path.Combine(_folder, ForgetFile), string.Empty);
+            }
+
+            Trim();
+        }
+    }
+
+    /// <summary>The folder, with the destination written before the first record: a record never lies there unaddressed.</summary>
+    private void EnsureFolder()
+    {
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, DestinationFile);
+        if (Destination is null || File.Exists(path))
+        {
+            return;
+        }
+
+        var temp = path + ".tmp";
+        File.WriteAllText(temp, new JsonObject { ["v"] = 1, ["endpoint"] = Destination }.ToJsonString());
+        File.Move(temp, path, overwrite: true);
+    }
+
     /// <summary>The pool confirmed the deletion.</summary>
     public void Forgotten() => TryDelete(Path.Combine(_folder, ForgetFile));
 
-    private List<FileInfo> Files() =>
-        Directory.Exists(_folder) ? new DirectoryInfo(_folder).GetFiles("*.json").ToList() : [];
+    private List<FileInfo> Files() => RecordFiles(_folder);
+
+    /// <summary>The record files of a queue folder.</summary>
+    internal static List<FileInfo> RecordFiles(string folder) =>
+        Directory.Exists(folder) ? new DirectoryInfo(folder).GetFiles("*.json").ToList() : [];
 
     private void Trim()
     {

@@ -49,6 +49,50 @@ installation generation, removes its archive/derived contributions and prevents 
 them. An HTTP 202 deleting response is not final confirmation. A new generation is created only after an explicit
 subsequent enabling action. Source identities are unrelated to site accounts and are never put in request URLs.
 
+### Queue destination
+
+A spool belongs to one pool address, the endpoint its generation was made for (`state.json`), because the install key
+is the same for every pool: sources and deletion requests of a test pool must not reach another host when
+`PoolEndpoint` changes or is removed. The address is `PoolDestination.Normalize` (`https://host[:port]/path`, lower
+case host, no trailing slash; credentials, a query or a fragment make it no address). It is local metadata and never
+part of a payload or a log line.
+
+- **Layout.** `source-capture/<16 hex of the address hash>/` is the spool of one address (`SourceCaptureQueue.Folder`):
+  its `state.json` (install key, generation, endpoint, deletion requests) and its sources. `SourceCaptureHost` opens
+  the spool of the address the settings name now; a new address gets a spool and a generation of its own. When the
+  address changes, also without a settings event, the old spool is flushed and closed untouched.
+- **Sending.** Before every chunk, manifest and deletion request the sender compares the pool the settings name at
+  that moment with the endpoint in the spool's state, and sends nothing while they differ or no pool is set up. An
+  answer that arrives after the address changed settles nothing locally: the chunk or manifest is sent again when its
+  pool is back (the server stores a repeated chunk once).
+- **Other addresses.** Their spools keep sources and deletion requests and are sent when the settings name that
+  address again, also after a restart. The 14 days are applied to their sources whenever settings are applied; the
+  2 GB budget is per spool. A deletion request waits for its own address without a time limit.
+- **Switching off** revokes the current spool's generation as before, and opens every other address's spool to delete
+  its sources and persist its deletion request, which waits for that address. A spool set aside without an address is
+  deleted; no deletion request can be made for it.
+- **Returning** to an address that was left by an opt-out does not resume capture by itself (a revoked generation is
+  never resumed): it captures again after the next explicit enabling, as on one address.
+- **Spool of an earlier version** (`state.json` and sources directly in `source-capture/`), moved once per run before
+  a spool is opened. Its state names its pool, so the sources go to that address's folder whatever the settings say
+  now, and each deletion request goes to the folder of the address it carries (a request of another address keeps
+  the install key there, so that address needs an explicit enable). A request without a valid address is dropped
+  with a count in the log. Unreadable state means an unknown pool: the spool is renamed to
+  `source-capture/unknown-<8 hex>/`, never opened or sent, dropped after 14 days or on switching off.
+- **Unreadable or contradicting state of an address's spool.** Unreadable `state.json`: the host reports
+  `unavailable`, logs `Source capture: unavailable`, sends nothing and does not throw. A state that names another
+  pool than its folder: status `other_pool`, sources kept, nothing sent.
+- **Seen from outside.** `SourceCaptureState.Status == "other_pool"` and the counts `HeldCaptures` / `HeldDeletions`
+  are apart from `disabled`, `unavailable` and `offline`; Settings → Data shows them in both apps
+  (`MainViewModel.SourceCaptureStatusText`, strings `Settings.Data.HeldData` / `HeldDeletions`). Log lines, one per
+  event, with counts and no address: `Source capture: queues for other pools kept, N capture(s), M deletion
+  request(s)` (when the counts change), `Source capture: queue for another pool kept, …` (an open spool stopped for
+  the address), `Source capture: earlier queue kept for its own pool, …`, `Source capture: earlier queue has
+  unreadable state, set aside, …`, `Source capture: dropped N expired capture(s) kept for another pool`,
+  `Source capture: sharing turned off, cleared N queue(s) kept for other pools`.
+- Tests: `SourceCaptureDestinationTests` (chunk, manifest and forget across an address change, removed override,
+  held answers, restart, both earlier-version cases, unreadable state, opt-out, expiry).
+
 The target retention is 180 days, subject to the configured service/archive budget and a verified capacity plan.
 Disk pressure rejects new intake for retry; it must not acknowledge data it discarded. Pilot deployment has an
 explicit storage ceiling. Server backups and restore procedures must preserve revocation/deletion semantics.

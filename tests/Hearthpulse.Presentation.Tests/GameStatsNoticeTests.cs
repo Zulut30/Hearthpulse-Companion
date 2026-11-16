@@ -322,4 +322,35 @@ public sealed class GameStatsNoticeTests
         model.UpdateSourceCaptureState(new SourceCaptureState("disabled", 0, 0, 0));
         Assert.Equal(Hearthpulse.Core.Localization.Loc.T("Settings.Data.SourceOff"), (string)model.SourceCaptureStatusText);
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Data_kept_for_another_pool_address_is_a_state_of_its_own_apart_from_off_offline_and_empty(bool wpf)
+    {
+        var settings = new AppSettings { PoolEndpoint = "https://pool.test", GameStatsNoticeShown = true, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion };
+        var model = Model(wpf, settings);
+        var ready = Hearthpulse.Core.Localization.Loc.T("Settings.Data.SourceReady");
+        model.UpdateSourceCaptureState(new SourceCaptureState("idle", 0, 0, 0));
+        Assert.Equal(ready, (string)model.SourceCaptureStatusText);
+
+        // Game records of another pool alone change the line, in both apps through the shared view model.
+        model.UpdateGameStatsState(new Hearthpulse.Core.GameStats.GameStatsState(0, 7, 0));
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.F("Settings.Data.HeldData", 7, 0), (string)model.SourceCaptureStatusText);
+        model.UpdateSourceCaptureState(new SourceCaptureState("offline", 0, 0, 0, HeldCaptures: 2));
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.F("Settings.Data.HeldData", 7, 2), (string)model.SourceCaptureStatusText);
+        // The open spool itself is another pool's: its captures count as kept, not as "waiting to be sent".
+        model.UpdateSourceCaptureState(new SourceCaptureState("other_pool", 0, 1, 0));
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.F("Settings.Data.HeldData", 7, 1), (string)model.SourceCaptureStatusText);
+
+        // A deletion request for another pool shows even while sharing is off: it is not "off", it waits.
+        settings.GameStatsOff = true;
+        model.UpdateGameStatsState(new Hearthpulse.Core.GameStats.GameStatsState(0, 0, 1));
+        model.UpdateSourceCaptureState(new SourceCaptureState("disabled", 0, 0, 0, HeldDeletions: 1));
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.F("Settings.Data.HeldDeletions", 2), (string)model.SourceCaptureStatusText);
+
+        model.UpdateGameStatsState(new Hearthpulse.Core.GameStats.GameStatsState(0, 0, 0));
+        model.UpdateSourceCaptureState(new SourceCaptureState("disabled", 0, 0, 0));
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.T("Settings.Data.SourceOff"), (string)model.SourceCaptureStatusText);
+    }
 }

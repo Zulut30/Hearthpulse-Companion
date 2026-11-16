@@ -97,7 +97,7 @@ public sealed class SourceCaptureHostTests
             Assert.Equal(1, host.State.PendingDeletions);
             Assert.Empty(Directory.GetFiles(scratch.Path, "*.jsonl", SearchOption.AllDirectories));
         }
-        await using var reopened = await SourceCaptureQueue.OpenAsync(scratch.Path);
+        await using var reopened = await SourceCaptureQueue.OpenAsync(SourceCaptureQueue.Folder(scratch.Path, SourceScratch.Endpoint));
         Assert.Null(reopened.Generation);
         Assert.Equal(1, reopened.State.PendingDeletions);
         settings.GameStatsOff = false; // Last successfully saved settings still said enabled.
@@ -119,7 +119,7 @@ public sealed class SourceCaptureHostTests
             session.OnLines("LoadingScreen.log", ["D 12:30:00.0000000 LoadingScreen.OnSceneLoaded() - prevMode=HUB currMode=DRAFT"], false);
             session.SetDraftOffer(["DRAFT_A", "DRAFT_B", "DRAFT_C"]);
         }
-        await using var reopened = await SourceCaptureQueue.OpenAsync(scratch.Path);
+        await using var reopened = await SourceCaptureQueue.OpenAsync(SourceCaptureQueue.Folder(scratch.Path, SourceScratch.Endpoint));
         Assert.Equal(1, reopened.State.PendingCaptures);
         var source = string.Join('\n', Directory.GetFiles(scratch.Path, "*.jsonl", SearchOption.AllDirectories).Select(File.ReadAllText));
         Assert.Contains("draft_choice", source);

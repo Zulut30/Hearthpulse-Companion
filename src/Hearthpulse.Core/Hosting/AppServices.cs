@@ -70,7 +70,7 @@ public sealed class AppServices
         Session.GameFinished += _ => Usage.GameFinished();
         // Every finished game the player agreed to share, as a game record for Hearthpulse's statistics (docs/game-stats.md).
         GameStats = new GameStatsUploader(settings, http, History, () => Data.Replays, TryCards, version,
-            new GameStatsQueue(Path.Combine(data.Root, "game-stats")));
+            new GameStatsQueues(Path.Combine(data.Root, "game-stats")));
         Session.GameFinished += GameStats.OnGameFinished;
         // Shared games are on after the informational notice, unless the player turned them off.
         PoolSharing = new PoolSharingHost(settings, http, History, cards);

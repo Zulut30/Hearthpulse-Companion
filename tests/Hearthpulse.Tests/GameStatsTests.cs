@@ -12,7 +12,7 @@ using Hearthpulse.Core.Tracking;
 namespace Hearthpulse.Tests;
 
 /// <summary>Game records (docs/game-stats.md): what one holds, the queue, and the client against a fake pool.</summary>
-public sealed class GameStatsTests : IDisposable
+public sealed partial class GameStatsTests : IDisposable
 {
     private const string Endpoint = "https://pool.test";
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "hp-gamestats-" + Guid.NewGuid().ToString("N"));
@@ -302,7 +302,8 @@ public sealed class GameStatsTests : IDisposable
     public async Task The_uploader_sends_in_batches_and_keeps_what_the_pool_did_not_take()
     {
         var settings = new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeShown = true, PoolSecret = new string('5', 64) };
-        var queue = new GameStatsQueue(_folder);
+        var queues = new GameStatsQueues(_folder);
+        var queue = queues.For(Endpoint)!;
         for (var i = 0; i < 25; i++)
         {
             queue.Add(Record(i));
@@ -311,7 +312,7 @@ public sealed class GameStatsTests : IDisposable
         var pool = new FakePool(HttpStatusCode.ServiceUnavailable);
         using var http = new HttpClient(pool);
         var history = new HistoryStore(Path.Combine(_folder, "h.db"));
-        using var uploader = new GameStatsUploader(settings, http, history, () => null, () => null, null, queue) { Delay = TimeSpan.Zero };
+        using var uploader = new GameStatsUploader(settings, http, history, () => null, () => null, null, queues) { Delay = TimeSpan.Zero };
 
         Assert.False(await uploader.PassAsync(CancellationToken.None));
         Assert.Equal(25, queue.Count);
@@ -326,12 +327,13 @@ public sealed class GameStatsTests : IDisposable
     public async Task Withdrawing_drops_the_queue_and_asks_the_pool_to_delete_until_it_answers()
     {
         var settings = new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeShown = true, PoolSecret = new string('5', 64) };
-        var queue = new GameStatsQueue(_folder);
+        var queues = new GameStatsQueues(_folder);
+        var queue = queues.For(Endpoint)!;
         queue.Add(Record('a'));
         var pool = new FakePool(HttpStatusCode.ServiceUnavailable);
         using var http = new HttpClient(pool);
         var history = new HistoryStore(Path.Combine(_folder, "h.db"));
-        using var uploader = new GameStatsUploader(settings, http, history, () => null, () => null, null, queue) { Delay = TimeSpan.Zero };
+        using var uploader = new GameStatsUploader(settings, http, history, () => null, () => null, null, queues) { Delay = TimeSpan.Zero };
 
         settings.GameStatsOff = true;
         uploader.Withdraw();
@@ -350,10 +352,11 @@ public sealed class GameStatsTests : IDisposable
     public void A_game_ending_while_sharing_is_off_is_not_queued()
     {
         var settings = new AppSettings { PoolEndpoint = Endpoint, GameStatsOff = true };
-        var queue = new GameStatsQueue(_folder);
+        var queues = new GameStatsQueues(_folder);
+        var queue = queues.For(Endpoint)!;
         using var http = new HttpClient(new FakePool(HttpStatusCode.OK));
         var history = new HistoryStore(Path.Combine(_folder, "h.db"));
-        using var uploader = new GameStatsUploader(settings, http, history, () => null, () => null, null, queue);
+        using var uploader = new GameStatsUploader(settings, http, history, () => null, () => null, null, queues);
         uploader.OnGameFinished(new GameOutcome("Ranked", "Win", 0, null, null, "HERO_08") { Key = "k" });
         Assert.Equal(0, queue.Count);
     }
@@ -368,7 +371,7 @@ public sealed class GameStatsTests : IDisposable
         var history = new HistoryStore(Path.Combine(_folder, "h.db"));
         history.Add(game with { Replay = name });
         using var http = new HttpClient(new FakePool(HttpStatusCode.OK));
-        using var uploader = new GameStatsUploader(settings, http, history, () => replays, Cards, "0.18.0", new GameStatsQueue(_folder));
+        using var uploader = new GameStatsUploader(settings, http, history, () => replays, Cards, "0.18.0", new GameStatsQueues(_folder));
 
         var record = uploader.Build(new GameOutcome("Ranked", "Win", 0, null, null, "HERO_08") { Key = game.Key })!;
 

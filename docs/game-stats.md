@@ -77,16 +77,67 @@ server rebuilds every record from known fields only, so anything else is dropped
     was shared expires after 60 days.
 - Records are pseudonymous personal data (ADR 0011): only totals over 10 games and 5 installs are ever shown.
 - Switching off: the queue is emptied and `POST /v1/events/forget` deletes every record of this install; the request
-  waits in the queue (`game-stats/forget`) until the pool answers.
+  waits in the queue (`game-stats/<address>/forget`) until the pool it is for answers. Queues kept for other pool
+  addresses are emptied too (see "Queue destination").
 
 ## Queue and sending
 
-- `game-stats/` in the data folder, one JSON file per record; at most 300 records, 4 MB and 14 days (oldest dropped).
+- `game-stats/<address>/` in the data folder (one folder per pool address, see "Queue destination"), one JSON file
+  per record; at most 300 records, 4 MB and 14 days (oldest dropped).
 - Batches of up to 20, 12 s apart (the pool takes 6 requests a minute from one address). `2xx` removes the batch;
   `400`/`413`/`422` drop it for good; anything else (offline, `429`, `503` daily budget, `404` before the deploy) waits
   and retries after 30 s, doubling up to 30 min. Never on the UI or log thread; nothing waits for it.
 - The install id is a keyed hash of the pool secret (`GameStatsClient.InstallId`), never shown and never linked to an
   account. Turning the switch on makes the secret at once, so the settings saved with the change keep it.
+
+## Queue destination
+
+The install id and the record ids are keyed hashes of the pool secret and are the same for every pool address, so a
+queue must not follow the address in the settings: a record or a forget queued for a test pool would otherwise go
+to production when `PoolEndpoint` is removed. Each queue therefore belongs to one address
+(`Core/GameStats/GameStatsQueues.cs`, `Core/Pool/PoolDestination.cs`).
+
+- **Address.** `PoolDestination.Normalize`: `https://host[:port]/path`, host in lower case, no trailing slash. An
+  address that is not https or carries credentials, a query or a fragment is no destination: nothing is queued or
+  sent for it. The address is local metadata only; it is never part of a request body, and it is not written to the
+  log.
+- **Layout.** `game-stats/<16 hex of the address hash>/` holds that pool's records, its `forget` mark and the file
+  `destination` (`{"v":1,"endpoint":"https://…"}`), written before the first record. The folder name must be the
+  hash of the address in the file.
+- **Queueing.** A finished game is queued for the address read when the game ended, also when the address changes
+  while its record is built.
+- **Sending.** A pass serves the pool the settings name now and sends to the address stored with the queue. Before
+  the forget and before every batch the current address is read again; when it is no longer the queue's, the pass
+  stops and the rest waits in its folder. An answer removes records only from the queue the batch was taken from.
+- **Other addresses.** Their queues are kept, not sent, and sent again in the usual way when the settings name that
+  address again (also after a restart). They keep the 300 records / 4 MB they were filled under, and the 14 days are
+  applied to them on every pass; a folder left with neither a record nor a forget is removed. A forget waits for its
+  own address with no time limit and is never sent elsewhere.
+- **Switching off** empties the current pool's queue and marks its forget, deletes the records of every other
+  queue, and marks a forget in each queue whose address is known; that forget waits until the settings name that
+  address. Queues set aside without an address are deleted; no forget can be made for them.
+- **Unknown destination.** A queue folder whose `destination` is missing next to data, unreadable, or names another
+  address than the folder is renamed to `game-stats/unknown-<8 hex>/`: never sent, never adopted, dropped after 14
+  days or on switching off; its forget mark cannot be delivered and is dropped. The pool gets a fresh queue. One log
+  line, nothing throws.
+- **Queue of an earlier version** (record files and `forget` directly in `game-stats/`), moved once per run before
+  anything is queued or sent. It may have been filled for any address. When `settings.json` names a pool by itself
+  (`PoolEndpoint` is a valid address), the queue and its forget go to that address. Without an override (or with one
+  that is no address, such as `off`) it is set aside as an unknown destination and never reaches the default pool:
+  before 2026-11-16 the default was empty, so such a queue can only be left over from an override that was removed.
+- **Seen from outside.** Log lines, one per event, with counts and no address:
+  `Game stats: queue for another pool kept, N record(s), M deletion request(s)` (when the counts change),
+  `Game stats: earlier queue kept for the pool named in the settings, …`,
+  `Game stats: earlier queue has no known pool, set aside, …`,
+  `Game stats: queue with an unreadable destination set aside, …`,
+  `Game stats: dropped N expired record(s) kept for another pool`,
+  `Game stats: sharing turned off, deleted N record(s) kept for other pools, …`.
+  `GameStatsUploader.State` (`Pending`, `HeldRecords`, `HeldDeletions`) feeds the status line under the switch in
+  Settings → Data of both apps (`MainViewModel.SourceCaptureStatusText`): «Сохранено для другого адреса пула
+  статистики…» / "Kept for another stats pool address…" and «Запросы на удаление ждут другого адреса…» are states of
+  their own, apart from off, unavailable and an empty queue.
+- Tests: `GameStatsTests.Destination.cs` (address change, removed override, held answers both ways, restart, both
+  migrations, unreadable destination, forget per address, expiry).
 
 ## Server (`server/pool`)
 
