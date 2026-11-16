@@ -1,4 +1,5 @@
 using System.Text;
+using System.Windows.Media;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -226,9 +227,14 @@ public sealed class CardPageContractTests
                 Assert.True(left >= -0.5 && left + block.ActualWidth <= view.ActualWidth + 0.5, $"\"{block.Text}\" at {left}..{left + block.ActualWidth} of {view.ActualWidth}");
                 if (block.TextWrapping == TextWrapping.NoWrap)
                 {
-                    var free = new TextBlock { Text = block.Text, FontSize = block.FontSize, FontFamily = block.FontFamily, FontWeight = block.FontWeight };
-                    free.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    Assert.True(free.DesiredSize.Width <= block.ActualWidth + 0.5, $"\"{block.Text}\" needs {free.DesiredSize.Width}, has {block.ActualWidth}");
+                    // Match the displayed element's glyph metrics: a detached TextBlock uses the default DPI and
+                    // formatting mode, which can report a different width on the CI runner's scaled desktop.
+                    var dpi = VisualTreeHelper.GetDpi(block);
+                    var text = new FormattedText(block.Text, block.Language.GetSpecificCulture(), block.FlowDirection,
+                        new Typeface(block.FontFamily, block.FontStyle, block.FontWeight, block.FontStretch),
+                        block.FontSize, block.Foreground, null, TextOptions.GetTextFormattingMode(block), dpi.PixelsPerDip);
+                    Assert.True(text.WidthIncludingTrailingWhitespace <= block.ActualWidth + 0.5,
+                        $"\"{block.Text}\" needs {text.WidthIncludingTrailingWhitespace}, has {block.ActualWidth}; DPI={dpi.PixelsPerDip}");
                 }
             }
 
