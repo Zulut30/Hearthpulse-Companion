@@ -274,8 +274,9 @@ public sealed partial class CollectionViewTests : IDisposable
     public void With_the_game_running_and_no_collection_the_status_says_the_read_did_not_work_yet()
     {
         var vm = Shown(null);
-        var raised = new List<string?>();
-        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        // The view model's background work raises changes from pool threads meanwhile: a queue that takes that.
+        var raised = new System.Collections.Concurrent.ConcurrentQueue<string?>();
+        vm.PropertyChanged += (_, e) => raised.Enqueue(e.PropertyName);
 
         vm.Apply(LiveSnapshot.Empty with { HearthstoneRunning = true, Scene = "HUB" });
 
@@ -343,8 +344,9 @@ public sealed partial class CollectionViewTests : IDisposable
     public void A_new_collection_prices_the_lists_again()
     {
         var vm = Shown(Collection());
-        var raised = new List<string?>();
-        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        // The view model's background work raises changes from pool threads meanwhile: a queue that takes that.
+        var raised = new System.Collections.Concurrent.ConcurrentQueue<string?>();
+        vm.PropertyChanged += (_, e) => raised.Enqueue(e.PropertyName);
         Assert.Equal("NeedsDust", Row(vm, NeedsDust).Build!.Kind);
 
         // The same cards with dust for everything: what lacked dust is craftable now.

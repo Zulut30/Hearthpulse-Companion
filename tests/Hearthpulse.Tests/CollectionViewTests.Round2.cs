@@ -159,12 +159,12 @@ public sealed partial class CollectionViewTests
         };
 
         var caller = Environment.CurrentManagedThreadId;
-        var appliedOn = new List<int>();
+        var appliedOn = new ConcurrentQueue<int>();
         vm.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(MainViewModel.MetaDecks))
             {
-                appliedOn.Add(Environment.CurrentManagedThreadId);
+                appliedOn.Enqueue(Environment.CurrentManagedThreadId);
             }
         };
 
