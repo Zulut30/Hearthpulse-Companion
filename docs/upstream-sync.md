@@ -92,7 +92,8 @@ the branch (`git rev-list --objects`); the upstream remote still has them, so ne
 
 - Client (`src/Hearthpulse.Core/Pool/PoolClient.cs`) and server (`server/pool/`, Cloudflare Worker + D1) are in
   the repository with the rebrand, otherwise as upstream wrote them.
-- **Off by default.** `PoolClient.DefaultEndpoint` is empty, so `Available`/`Sharing` are false: nothing is sent,
+- **(State at the sync; since 2026-11-16 `DefaultEndpoint` is Hearthpulse's own pool and sharing is on by default with a
+  notice and an opt-out, docs/game-stats.md.)** Off by default. `PoolClient.DefaultEndpoint` is empty, so `Available`/`Sharing` are false: nothing is sent,
   no pool stats are read, the consent banner and the Settings switch stay hidden. Upstream's deployed worker is not
   referenced anywhere (`7f288b1`'s address and D1 database id were not taken; `wrangler.toml` keeps the
   placeholder).

@@ -42,13 +42,16 @@ public sealed class OwnBgHeroesTests : IDisposable
         var pool = new FakePool(Fixture());
         using var http = new HttpClient(pool);
 
-        // The shipped default: no address at all.
-        var result = await OwnBgHeroes.LoadAsync(http, new AppSettings(), _cache, _time);
+        // A pool switched off by the setting (an address that is not https); the shipped default is the production pool.
+        var result = await OwnBgHeroes.LoadAsync(http, new AppSettings { PoolEndpoint = "off" }, _cache, _time);
 
         Assert.Equal(OwnBgHeroesState.NotConfigured, result.State);
         Assert.Null(result.Snapshot);
         Assert.Empty(pool.Requests);
         Assert.False(File.Exists(Path.Combine(_cache, OwnBgHeroes.CacheName)));
+        var direct = await OwnBgHeroes.LoadAsync(http, string.Empty, _cache, _time);
+        Assert.Equal(OwnBgHeroesState.NotConfigured, direct.State);
+        Assert.Empty(pool.Requests);
     }
 
     [Theory]
@@ -56,7 +59,7 @@ public sealed class OwnBgHeroesTests : IDisposable
     [InlineData("ftp://pool.example/stats")]
     [InlineData("https://user:secret@pool.example/stats")]
     [InlineData("pool.example/stats")]
-    [InlineData("")]
+    [InlineData("off")]
     public async Task An_address_that_is_not_plain_https_is_not_asked(string endpoint)
     {
         var pool = new FakePool(Fixture());

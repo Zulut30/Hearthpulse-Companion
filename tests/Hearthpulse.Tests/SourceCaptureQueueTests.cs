@@ -12,10 +12,12 @@ public sealed class SourceCaptureQueueTests
         using var scratch = new SourceScratch(); await using var queue = await SourceCaptureQueue.OpenAsync(scratch.Path);
         var settings = new Hearthpulse.Core.AppSettings { GameStatsNoticeShown = true, PoolEndpoint = SourceScratch.Endpoint };
         await queue.ConfigureAsync(settings); Assert.False(queue.Capturing); Assert.Null(queue.Generation);
-        settings.SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion; await queue.ConfigureAsync(settings); Assert.True(queue.Capturing);
+        settings.SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion; await queue.ConfigureAsync(settings); Assert.False(queue.Capturing); // Not without the one-time notice of the current version.
+        settings.PoolNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion; await queue.ConfigureAsync(settings); Assert.True(queue.Capturing);
         var generation = queue.Generation; settings.PoolEndpoint = null; await queue.ConfigureAsync(settings); Assert.False(queue.Capturing); Assert.Equal(generation, queue.Generation);
         settings.PoolEndpoint = SourceScratch.Endpoint; await queue.ConfigureAsync(settings); Assert.True(queue.Capturing); Assert.Equal(generation, queue.Generation);
-        settings.GameStatsOff = true; await queue.ConfigureAsync(settings); Assert.False(queue.Capturing); Assert.Null(queue.Generation); Assert.Equal(1, queue.State.PendingDeletions);
+        // Nothing of this generation was ever handed to the pool: the opt-out revokes it locally and asks the pool nothing.
+        settings.GameStatsOff = true; await queue.ConfigureAsync(settings); Assert.False(queue.Capturing); Assert.Null(queue.Generation); Assert.Equal(0, queue.State.PendingDeletions);
         settings.GameStatsOff = false; await queue.ConfigureAsync(settings); Assert.False(queue.Capturing);
         await queue.ConfigureAsync(settings, explicitEnable: true); Assert.True(queue.Capturing); Assert.NotEqual(generation, queue.Generation);
     }
@@ -88,6 +90,8 @@ public sealed class SourceCaptureQueueTests
         await using (var queue = await scratch.Open())
         {
             old = queue.Generation; SourceScratch.Complete(queue); await queue.FlushAsync();
+            // A chunk was handed to the pool (its answer is a refusal to take it now): from here an opt-out owes a forget.
+            using var http = new HttpClient(new Busy()); await queue.SendPendingAsync(new(http));
             await queue.ConfigureAsync(SourceScratch.Iid, SourceScratch.Endpoint, sharing: false);
             Assert.Empty(Directory.GetFiles(scratch.Path, "*.jsonl", SearchOption.AllDirectories));
         }
@@ -124,6 +128,11 @@ public sealed class SourceCaptureQueueTests
             Assert.Empty(Directory.GetFiles(scratch.Path, "*.jsonl", SearchOption.AllDirectories));
         }
         await using var reopened = await SourceCaptureQueue.OpenAsync(scratch.Path); Assert.Equal(1, reopened.State.Dropped);
+    }
+
+    private sealed class Busy : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable));
     }
 
     private sealed class NeverSend : HttpMessageHandler

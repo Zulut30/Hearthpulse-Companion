@@ -193,6 +193,7 @@ public partial class App : Application
             _services.SourceCaptures.ApplySettingsAsync(explicitEnable: on).Forget("Source capture settings");
         };
         _services.SourceCaptures.StateChanged += state => _ = Dispatcher.BeginInvoke(() => _mainViewModel.UpdateSourceCaptureState(state));
+        _services.GameStats.StateChanged += state => _ = Dispatcher.BeginInvoke(() => _mainViewModel.UpdateGameStatsState(state));
         _mainViewModel.PoolSharingChanged += () =>
         {
             _settingsDebounce.Kick();

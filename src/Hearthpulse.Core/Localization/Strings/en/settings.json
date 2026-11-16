@@ -225,5 +225,7 @@
   "Settings.Data.SourceDropped": "Some journals could not be saved: {0}. These records are not treated as complete.",
   "Settings.Data.SourceUnavailable": "Journal sending is unavailable. Saved data remains queued.",
   "Settings.Data.SourcePending": "Journals waiting to be sent: {0}.",
-  "Settings.Data.SourceReady": "The journal queue is empty."
+  "Settings.Data.SourceReady": "The journal queue is empty.",
+  "Settings.Data.HeldData": "Kept for another stats pool address: game records: {0}, journals: {1}. They are not sent to the current address and wait for their own.",
+  "Settings.Data.HeldDeletions": "Deletion requests waiting for another stats pool address: {0}. They are sent when that address is set again."
 }

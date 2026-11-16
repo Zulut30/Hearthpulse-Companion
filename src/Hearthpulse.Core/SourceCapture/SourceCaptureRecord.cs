@@ -32,8 +32,16 @@ public sealed class SourceCaptureRecord
 /// <summary>Metadata and one observation passed to a background spool; no source game/account identifiers.</summary>
 public sealed record SourceCaptureFrame(string CaptureId, string CaptureKind, string Mode, int Day, SourceCaptureRecord Record);
 
-/// <summary>A transport-neutral technical state, suitable for presentation without exposing source contents.</summary>
-public sealed record SourceCaptureState(string Status, long Dropped, int PendingCaptures, int PendingDeletions);
+/// <summary>
+/// A transport-neutral technical state, suitable for presentation without exposing source contents. Status
+/// <c>other_pool</c> and the two <c>Held</c> counts tell of what is kept for a pool address other than the current
+/// one: it is not sent to the current pool and waits for its own.
+/// </summary>
+/// <param name="Revision">
+/// The number of this report as the host published it, growing with every report: a listener that gets reports
+/// through its own queue drops one older than what it already shows. Zero for a state nobody published.
+/// </param>
+public sealed record SourceCaptureState(string Status, long Dropped, int PendingCaptures, int PendingDeletions, int HeldCaptures = 0, int HeldDeletions = 0, long Revision = 0);
 
 internal static class SourceCaptureTokens
 {

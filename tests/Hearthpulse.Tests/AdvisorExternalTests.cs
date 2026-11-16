@@ -323,7 +323,7 @@ public sealed class AdvisorExternalTests : IDisposable
 
         var data = new HearthpulseData(new HearthpulseApi(http, HearthpulseApi.DefaultBaseUrl), _dir);
 
-        var meta = await BattlegroundsMeta.LoadCommunityAsync(data, http, new AppSettings(), () => Task.FromResult<BgExternalLists?>(Lists()), Cards());
+        var meta = await BattlegroundsMeta.LoadCommunityAsync(data, http, new AppSettings { PoolEndpoint = "off" }, () => Task.FromResult<BgExternalLists?>(Lists()), Cards());
 
         Assert.NotNull(meta);
         Assert.Equal(3, meta.Comps.Count);
