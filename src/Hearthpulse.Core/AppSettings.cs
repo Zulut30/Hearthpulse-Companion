@@ -228,7 +228,10 @@ public sealed partial class AppSettings
     /// <summary>Version of the source capture notice actually shown; legacy GameStats notice never authorizes source.</summary>
     public int SourceCaptureNoticeVersion { get; set; }
 
-    /// <summary>Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own.</summary>
+    /// <summary>
+    /// Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own. A value that is not an
+    /// https address (for example "off") leaves the app without a pool: nothing is sent and nothing is read from it.
+    /// </summary>
     public string? PoolEndpoint { get; set; }
 
     // One bool per option of the two choices above, for the settings page's segmented radio buttons. Setting false is

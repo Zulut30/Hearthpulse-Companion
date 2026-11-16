@@ -15,8 +15,14 @@ namespace Hearthpulse.Core.Pool;
 /// </summary>
 public static partial class PoolClient
 {
-    /// <summary>Address of the deployed pool (see server/pool/README.md). Empty keeps the pool off.</summary>
-    public const string DefaultEndpoint = "";
+    /// <summary>
+    /// Address of the deployed pool: the Hearthpulse stats service on the project's own server (server/pool/README.md,
+    /// docs/source-capture-verification.md). Set on 2026-11-16, once the published privacy policy described the host, the
+    /// game journal and the opt-out, and the pilot had carried a game from the app to the totals. Nothing is sent before
+    /// the one-time notice was shown, and a refusal (<see cref="AppSettings.PoolConsent"/>, <see cref="AppSettings.GameStatsOff"/>)
+    /// is always kept. An isolated run (<see cref="Isolation"/>) has no default pool.
+    /// </summary>
+    public const string DefaultEndpoint = "https://api.kolodahearthstone.com/stats";
 
     /// <summary>
     /// Version of the notice that describes what is shared (the main window's one-time notice, docs/game-stats.md).
@@ -53,7 +59,7 @@ public static partial class PoolClient
     public const int HistoryDays = 30;
 
     public static string Endpoint(AppSettings settings) =>
-        (settings.PoolEndpoint is { Length: > 0 } custom ? custom : DefaultEndpoint).TrimEnd('/');
+        (settings.PoolEndpoint is { Length: > 0 } custom ? custom : Isolation.On ? string.Empty : DefaultEndpoint).TrimEnd('/');
 
     public static bool Available(AppSettings settings) => Endpoint(settings).StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 

@@ -60,7 +60,19 @@ public sealed class GameStatsNoticeTests
     [InlineData(true)]
     [InlineData(false)]
     public void Without_a_pool_there_is_no_notice(bool wpf) =>
-        Assert.False((bool)Model(wpf, new AppSettings()).ShowGameStatsNotice);
+        Assert.False((bool)Model(wpf, new AppSettings { PoolEndpoint = "off" }).ShowGameStatsNotice);
+
+    /// <summary>The shipped default is the production pool: a fresh install sees the notice before anything is sent.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_fresh_install_sees_the_notice_first(bool wpf)
+    {
+        var settings = new AppSettings();
+        Assert.True((bool)Model(wpf, settings).ShowGameStatsNotice);
+        Assert.False(Hearthpulse.Core.Pool.PoolClient.Sharing(settings));
+        Assert.False(Hearthpulse.Core.GameStats.GameStatsClient.Sharing(settings));
+    }
 
     /// <summary>
     /// Shared games of the stats pool are on by default (the owner's decision, 2026-11-15): there is no question, the

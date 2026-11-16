@@ -14,7 +14,9 @@ disagrees with them, fix the row in the same change. Paths are from the reposito
 | **Twitch extension state** (`/api/v1/twitch/state`) | off; `AppSettings.TwitchExtension`, only while signed in; the card itself is hidden until the wide release | account token | the site's side, not verified here | switch off stops sending | `docs/streaming.md` (the player's own deck rows and turn, never the hand, deck order or the opponent) |
 | **Requests for data** (data API, HearthstoneJSON, hsbg.cards, GitHub releases, Brawl articles) | always; they send no player data, only `User-Agent: Hearthpulse/<version>` | none | - | - | [hearthpulse-data-sources](../../hearthpulse-data-sources/SKILL.md) |
 
-`PoolClient.DefaultEndpoint` is empty in the shipped configuration: the three pool flows send nothing unless
+`PoolClient.DefaultEndpoint` is the production pool (`https://api.kolodahearthstone.com/stats`, since 2026-11-16): the
+three pool flows send once the one-time notice was shown and the player has not refused; an isolated run has no default
+pool, and a `PoolEndpoint` that is not https switches the pool off. Before that date the default was empty and the flows sent nothing unless
 `PoolEndpoint` is set in `settings.json`. Treat that as the present state, not as a reason to skip their rules.
 
 ## What stays on the machine

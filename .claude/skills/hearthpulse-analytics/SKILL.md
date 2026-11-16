@@ -107,7 +107,8 @@ State which one you checked:
   `published` prove it.
 
 The research of 2026-11-15 found the first true and the other two false in production (`PoolClient.DefaultEndpoint`
-empty, the pool answering `games: 0`, the v2 route 404). That is a dated observation: re-check with a read-only GET
+empty, the pool answering `games: 0`, the v2 route 404). On 2026-11-16 the pool was deployed with the v2 route, the
+default endpoint was set and one pilot installation was sending; nothing was published yet (thresholds). Both are dated observations: re-check with a read-only GET
 when the task depends on it, and write the date beside the result. Production deployment and endpoint changes need
 authorization for that target; an explicit task may already supply it, so do not ask again when it is present.
 The rollout order is in `analytics-api.md`.

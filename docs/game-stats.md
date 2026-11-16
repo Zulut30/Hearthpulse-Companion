@@ -2,8 +2,9 @@
 
 The compact-record contract below remains supported by the isolated Linux service on server 151. The expanded
 ordered journal, updated notice, durable generation deletion and synthetic-pilot activation limits are documented
-in [source-capture.md](source-capture.md). The default endpoint remains unset pending matching public policy and
-verified operational deletion/backup procedures; older Cloudflare deployment instructions are historical.
+in [source-capture.md](source-capture.md). The default endpoint is the production pool since 2026-11-16
+(`PoolClient.DefaultEndpoint`): the public policy matches the host and the journal, the pool's data is outside the host
+backups, and nothing is sent before the one-time notice. Older Cloudflare deployment instructions are historical.
 
 Every finished game goes to the stats pool as one compact, versioned **game record**: all
 modes we track (Ranked, Casual, Arena, Brawl, Battlegrounds solo and duos), not only Battlegrounds. The records are
