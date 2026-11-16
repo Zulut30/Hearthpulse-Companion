@@ -90,7 +90,10 @@ public sealed class ViewModelContractTests
     public async Task Deck_matchup_filter_survives_a_refresh_but_resets_for_another_family(bool wpf)
     {
         var history = History();
-        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
+        // The deck page is built on this thread: each change below has raised its notification before it returns.
+        dynamic owner = wpf
+            ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) { Background = Hearthpulse.App.Infrastructure.BackgroundWork.Inline }
+            : new AvaMain(history, new AppSettings(), TestApp.Data) { Background = Hearthpulse.UI.Infrastructure.BackgroundWork.Inline };
         dynamic model = wpf ? (object)new Hearthpulse.App.Main.Decks.DeckDetailsViewModel(owner)
             : new Hearthpulse.UI.Main.Decks.DeckDetailsViewModel(owner);
         var games = new[] { Game(0), Game(1, opponent: "MAGE"), Game(2, "Second deck"), Game(3, "Second deck", "MAGE") };

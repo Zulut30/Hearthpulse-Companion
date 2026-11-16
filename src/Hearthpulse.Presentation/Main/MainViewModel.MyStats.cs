@@ -382,7 +382,7 @@ public sealed partial class MainViewModel
         {
             _statsStale = false;
             var load = ++_statsLoad;
-            var games = await Task.Run(() => _history.Recent(int.MaxValue)).ConfigureAwait(true);
+            var games = await Background.RunAsync(() => _history.Recent(int.MaxValue)).ConfigureAwait(true);
             if (load != _statsLoad)
             {
                 return;
@@ -426,7 +426,7 @@ public sealed partial class MainViewModel
 
         try
         {
-            var apply = await Task.Run(build).ConfigureAwait(true);
+            var apply = await Background.RunAsync(build).ConfigureAwait(true);
             // Without a UI thread (tests, renders before the window) two builds can finish on two threads: the check and
             // the apply go together, so a stale build never lands after a newer one.
             lock (_statsBuildGate)

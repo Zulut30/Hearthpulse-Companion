@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Arena;
 using Hearthpulse.Core.Data;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 using Microsoft.Data.Sqlite;
 
@@ -14,8 +15,6 @@ namespace Hearthpulse.Tests;
 /// </summary>
 public sealed class ArenaRewardsPageTests : IDisposable
 {
-    private static readonly TimeSpan Wait = TimeSpan.FromSeconds(10);
-
     private readonly string _db = Path.Combine(Path.GetTempPath(), $"hp-arena-page-{Guid.NewGuid():N}.db");
     private readonly HistoryStore _history;
 
@@ -44,7 +43,7 @@ public sealed class ArenaRewardsPageTests : IDisposable
     [Fact]
     public async Task The_editor_survives_a_rebuild_keeps_a_failed_save_and_closes_with_its_run()
     {
-        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App) { Background = BackgroundWork.Inline };
         await Runs(vm, () => vm.RefreshAsync(), rows => rows.Count == 2);
         // Four numbers at the top of the page; time played and the rewards wait under «Подробнее».
         Assert.Equal(MainViewModel.HeadlineTiles, vm.ArenaStatTiles.Count);
@@ -77,7 +76,7 @@ public sealed class ArenaRewardsPageTests : IDisposable
     [Fact]
     public async Task A_save_shows_the_rewards_and_gives_the_focus_back_to_the_chip()
     {
-        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App) { Background = BackgroundWork.Inline };
         await Runs(vm, () => vm.RefreshAsync(), rows => rows.Count == 2);
 
         vm.EditArenaRewards.Execute(ArenaRunsScene.FinishedKey);
@@ -100,7 +99,10 @@ public sealed class ArenaRewardsPageTests : IDisposable
 
     private static ArenaRunRow Row(MainViewModel vm) => vm.ArenaRuns.Single(r => r.Key == ArenaRunsScene.FinishedKey);
 
-    /// <summary>Runs <paramref name="act"/> and waits until the run list it makes (built in the background) matches.</summary>
+    /// <summary>
+    /// Runs <paramref name="act"/> and checks that the run list it makes matched on the way: the page is built on this
+    /// thread (<see cref="BackgroundWork.Inline"/>), so there is nothing to wait for and no pool thread to wait on.
+    /// </summary>
     private static async Task Runs(MainViewModel vm, Func<Task> act, Func<IReadOnlyList<ArenaRunRow>, bool> done)
     {
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -115,9 +117,9 @@ public sealed class ArenaRewardsPageTests : IDisposable
         vm.PropertyChanged += Changed;
         try
         {
-            // Every act here rebuilds the list in the background: wait for a list that matches, after the act.
+            // Every act here rebuilds the list, and the build runs inside the act.
             await act();
-            await ready.Task.WaitAsync(Wait);
+            Assert.True(ready.Task.IsCompleted, "the run list was not rebuilt by the time the act returned");
         }
         finally
         {

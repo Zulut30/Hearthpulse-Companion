@@ -66,7 +66,7 @@ public sealed partial class MainViewModel
         try
         {
             // A History game's file, else its starred copy; or a library file without a History row (MainViewModel.Library.cs).
-            page = await Task.Run(() => LoadMatch(key, cards, metas)).ConfigureAwait(true);
+            page = await Background.RunAsync(() => LoadMatch(key, cards, metas)).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -103,7 +103,7 @@ public sealed partial class MainViewModel
     private async Task FillHeaderCardAsync(LibraryCard card, string file)
     {
         var files = LibraryFiles;
-        var (hasReplay, starred) = await Task.Run(() =>
+        var (hasReplay, starred) = await Background.RunAsync(() =>
         {
             var saved = files.SavedNames().Contains(file);
             return (saved || files.Header(Core.Replay.ReplayShelf.Recent, file) is not null, saved);

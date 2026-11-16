@@ -3,6 +3,7 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Arena;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Stats;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 using Microsoft.Data.Sqlite;
 
@@ -14,8 +15,6 @@ namespace Hearthpulse.Tests;
 /// </summary>
 public sealed class ArenaPageKindTests : IDisposable
 {
-    private static readonly TimeSpan Wait = TimeSpan.FromSeconds(10);
-
     private readonly string _db = Path.Combine(Path.GetTempPath(), $"hp-arena-kind-{Guid.NewGuid():N}.db");
     private readonly HistoryStore _history;
 
@@ -65,7 +64,7 @@ public sealed class ArenaPageKindTests : IDisposable
     [Fact]
     public async Task Each_tab_shows_its_own_arena_and_underground_has_no_community_class_numbers()
     {
-        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App) { Background = BackgroundWork.Inline };
         vm.SetArenaMeta(new ArenaMeta([], [new ArenaClassStat("MAGE", 0.55, 0.1, 0.2, 1000)], underground: false));
         await Runs(vm, () => vm.RefreshAsync(), rows => rows.Count == 2 && vm.ArenaCommunity.Count > 0);
         Assert.True(vm.ArenaTabRegular);
@@ -136,7 +135,10 @@ public sealed class ArenaPageKindTests : IDisposable
         Assert.True(MainViewModel.FilterMatch(underground, "All"));
     }
 
-    /// <summary>Runs <paramref name="act"/> and waits until the run list it makes (built in the background) matches.</summary>
+    /// <summary>
+    /// Runs <paramref name="act"/> and checks that the run list it makes matched on the way: the page is built on this
+    /// thread (<see cref="BackgroundWork.Inline"/>), so there is nothing to wait for and no pool thread to wait on.
+    /// </summary>
     private static async Task Runs(MainViewModel vm, Func<Task> act, Func<IReadOnlyList<ArenaRunRow>, bool> done)
     {
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -153,7 +155,7 @@ public sealed class ArenaPageKindTests : IDisposable
         try
         {
             await act();
-            await ready.Task.WaitAsync(Wait);
+            Assert.True(ready.Task.IsCompleted, "the run list was not rebuilt by the time the act returned");
         }
         finally
         {
