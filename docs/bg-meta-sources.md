@@ -53,7 +53,7 @@ Duos: the API has `/api/bg/heroes/duos` (top 50%), but the app's meta has no Duo
   `External` (`BattlegroundsMeta.WithExternal`). The source line stays "Hearthpulse data".
 - The heroes' compositions (section 4.3) are part of the API step: one more request beside the hero and minion
   slices, `GET /v1/battlegrounds/heroes/compositions?mmr=TOP_50_PERCENT`, cached like them.
-- The pool's address: `PoolEndpoint` in `settings.json` when set, else `PoolClient.DefaultEndpoint` (empty until the
+- The pool's address: `PoolEndpoint` in `settings.json` when set, else `PoolClient.DefaultEndpoint` (the production pool `https://api.kolodahearthstone.com/stats` since 2026-11-16; empty until the
   owner deploys the server, `server/pool/README.md`); only `https://` addresses count. There is no field for it in the
   interface.
 - Hearthpulse's own hero statistics (the pool's snapshot `/v2/analytics/bg/heroes`, [analytics-api.md](analytics-api.md))

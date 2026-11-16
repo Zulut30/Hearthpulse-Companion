@@ -237,9 +237,13 @@ public sealed class SourceCaptureRecorderTests
             Assert.Empty(frames);
         }
         Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", GameStatsNoticeShown = true }));
-        Assert.False(SourceCaptureClient.Sharing(new AppSettings { SourceCaptureNoticeVersion = 1 }));
+        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "off", SourceCaptureNoticeVersion = 1 }));
         Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1, GameStatsOff = true }));
-        Assert.True(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1 }));
+        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1 }), "the source notice of an earlier pool is not the current one-time notice");
+        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1, GameStatsNoticeShown = true, PoolNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion - 1 }));
+        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", GameStatsNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion }));
+        Assert.True(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1, GameStatsNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion }));
+        Assert.True(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1, GameStatsNoticeShown = true, PoolNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion }));
     }
 
     [Fact]

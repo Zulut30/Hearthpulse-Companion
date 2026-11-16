@@ -61,6 +61,12 @@ this is not a demonstrated capacity for 180 days of public traffic.
 
 ## Activation conditions and remaining limits
 
+**Update 2026-11-16: the conditions below were met and `PoolClient.DefaultEndpoint` is the production pool.** The site's
+policy (section 9, published 2026-11-15) names the host, the game journal, retention and the opt-out; the pool's data
+root is outside the host backups; the pilot carried games from the app to the service (7 shared games, 3 records, 3
+captures, 1 Constructed game of one installation; nothing published below the thresholds). The text below is the
+state of 2026-11-09.
+
 `PoolClient.DefaultEndpoint` remains empty. Public expanded sending must wait for the published privacy policy
 to match the new host, draft/source processing and verified backup/deletion policy. Installer/in-app notices and
 developer docs have been updated; the website policy has not been changed in this implementation.

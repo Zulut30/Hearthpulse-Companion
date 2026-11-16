@@ -4,11 +4,17 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
+using Hearthpulse.Core.Pool;
 
 namespace Hearthpulse.Core.SourceCapture;
 
-/// <summary>Bounded background disk spool. One owner per directory; HTTP never runs under the disk gate.</summary>
-public sealed class SourceCaptureQueue : IAsyncDisposable
+/// <summary>
+/// Bounded background disk spool. One owner per directory; HTTP never runs under the disk gate. A spool belongs to one
+/// pool address (the endpoint its generation was made for): before every chunk, manifest and deletion request the
+/// sender compares that address with the pool the settings name now, and sends nothing while they differ
+/// (docs/source-capture.md, "Queue destination").
+/// </summary>
+public sealed partial class SourceCaptureQueue : IAsyncDisposable
 {
     public const int TargetChunkBytes = 1024 * 1024;
     public const int MaxChunkBytes = 4 * 1024 * 1024;
@@ -17,12 +23,15 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
     private readonly string _root;
     private readonly long _maxBytes;
     private readonly TimeProvider _time;
+    private readonly Func<string?>? _current;
+    private string? _configured;
+    private bool _wasConfigured;
     private readonly SemaphoreSlim _disk = new(1);
     private readonly SemaphoreSlim _sender = new(1);
     private readonly Channel<Command> _commands;
     private readonly Task _pump;
     private readonly Lock _gate = new();
-    private StoreState _store = new(null, null, null, false, 0, []);
+    private StoreState _store = new(null, null, null, false, 0, [], null);
     private string? _acceptGeneration;
     private bool _disposed;
     private long _dropped;
@@ -31,19 +40,24 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
     private readonly ConcurrentDictionary<string, SourceCaptureManifest> _manifests = new(StringComparer.Ordinal);
     private readonly HashSet<string> _failed = new(StringComparer.Ordinal);
 
-    private SourceCaptureQueue(string root, long maxBytes, int capacity, TimeProvider time)
+    private SourceCaptureQueue(string root, long maxBytes, int capacity, TimeProvider time, Func<string?>? current)
     {
-        _root = Path.GetFullPath(root); _maxBytes = maxBytes; _time = time;
+        _root = Path.GetFullPath(root); _maxBytes = maxBytes; _time = time; _current = current;
         _commands = Channel.CreateBounded<Command>(new BoundedChannelOptions(capacity) { SingleReader = true, FullMode = BoundedChannelFullMode.Wait });
         _pump = Task.Run(PumpAsync);
     }
 
     /// <summary>Loads durable generation/revocations and seals crash-interrupted sources as incomplete, off the UI thread.</summary>
-    public static async Task<SourceCaptureQueue> OpenAsync(string directory, long maxBytes = 2L * 1024 * 1024 * 1024, int pendingRecords = 4096, TimeProvider? timeProvider = null)
+    /// <param name="currentDestination">
+    /// Reads the pool address the settings name at this moment (<see cref="PoolDestination.Of"/>), asked before every
+    /// request. Without it the address given to the last <see cref="ConfigureAsync(string, string?, bool, bool, string?)"/> counts
+    /// (both hosts pass it; a bare spool is for tools and tests).
+    /// </param>
+    public static async Task<SourceCaptureQueue> OpenAsync(string directory, long maxBytes = 2L * 1024 * 1024 * 1024, int pendingRecords = 4096, TimeProvider? timeProvider = null, Func<string?>? currentDestination = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(maxBytes, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(pendingRecords, 1);
-        var queue = new SourceCaptureQueue(directory, maxBytes, pendingRecords, timeProvider ?? TimeProvider.System);
+        var queue = new SourceCaptureQueue(directory, maxBytes, pendingRecords, timeProvider ?? TimeProvider.System, currentDestination);
         try { await Task.Run(queue.Load).ConfigureAwait(false); return queue; }
         catch { await queue.DisposeAsync().ConfigureAwait(false); throw; }
     }
@@ -60,18 +74,28 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
     /// <summary>Both hosts use this overload: opt-out revokes; a missing notice or endpoint only pauses admission/delivery.</summary>
     public Task ConfigureAsync(AppSettings settings, bool explicitEnable = false) => ConfigureAsync(
         Hearthpulse.Core.GameStats.GameStatsClient.InstallId(settings),
-        settings.SourceCaptureNoticeVersion >= SourceCaptureClient.NoticeVersion ? Hearthpulse.Core.Pool.PoolClient.Endpoint(settings) : null,
-        sharing: !settings.GameStatsOff, explicitEnable);
+        SourceCaptureClient.NoticeSeen(settings) ? PoolClient.Endpoint(settings) : null,
+        sharing: !settings.GameStatsOff, explicitEnable, PoolDestination.Of(settings));
 
     /// <summary>
     /// Persist lifecycle settings before attaching a recorder. A revoked generation is never resumed; only explicitEnable creates its successor.
     /// Call with sharing=false for opt-out; missing notice/endpoint pauses capture without granting consent.
     /// </summary>
-    public async Task ConfigureAsync(string iid, string? endpoint, bool sharing, bool explicitEnable = false)
+    /// <param name="destination">
+    /// The pool the settings name now, when <paramref name="endpoint"/> is withheld for a missing notice: a deletion
+    /// request still goes to its own pool then. Defaults to <paramref name="endpoint"/>.
+    /// </param>
+    /// <param name="iid">
+    /// The install key. Null is allowed where none is needed (opt-out, a missing notice or endpoint), so that a refusal
+    /// never makes one.
+    /// </param>
+    public async Task ConfigureAsync(string? iid, string? endpoint, bool sharing, bool explicitEnable = false, string? destination = null)
     {
-        if (!SourceCaptureTokens.Hex(iid, 32)) throw new ArgumentException("Invalid source install key.", nameof(iid));
-        var available = Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps && string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment);
-        lock (_gate) _acceptGeneration = null; // Immediately stop parser admission; no UI thread I/O.
+        var target = PoolDestination.Normalize(endpoint);
+        var available = target is not null;
+        if (iid is null ? sharing && available : !SourceCaptureTokens.Hex(iid, 32)) throw new ArgumentException("Invalid source install key.", nameof(iid));
+        // Immediately stop parser admission; no UI thread I/O.
+        lock (_gate) { _acceptGeneration = null; _configured = PoolDestination.Normalize(destination ?? endpoint); _wasConfigured = true; }
         await FlushAsync().ConfigureAwait(false);
         await Task.Run(async () =>
         {
@@ -83,8 +107,11 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
                     if (_store.Generation is { } generation && _store.Endpoint is { } oldEndpoint && _store.Iid is { } oldIid)
                     {
                         var revoked = _store.Revocations.ToList();
-                        revoked.Add(new(oldIid, generation, oldEndpoint));
-                        _store = _store with { Generation = null, Enabled = false, Revocations = revoked };
+                        // Only a generation that may have reached the pool is revoked there: a refusal before the first
+                        // chunk left makes no request. A state written before this mark existed counts as sent.
+                        if (_store.Sent != false) revoked.Add(new(oldIid, generation, oldEndpoint));
+                        else Diag.Info("Source capture: nothing was sent for this generation, no deletion request");
+                        _store = _store with { Generation = null, Enabled = false, Revocations = revoked, Sent = null };
                         SaveStore(); // Tombstone first, source removal second. Never regenerated by startup.
                     }
                     // Include quarantined/corrupt sources omitted from the sendable manifest inventory.
@@ -98,14 +125,16 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
                 else if (available)
                 {
                     if (_store.Generation is null && (_store.Iid is null || explicitEnable))
-                        _store = _store with { Iid = iid, Generation = Guid.NewGuid().ToString("N"), Endpoint = endpoint!.TrimEnd('/'), Enabled = true };
-                    // Identity/endpoint changes must be handled as opt-out then explicit enable; never move old source to another endpoint.
-                    if (_store.Iid == iid && _store.Endpoint == endpoint!.TrimEnd('/') && _store.Generation is not null)
+                        _store = _store with { Iid = iid, Generation = Guid.NewGuid().ToString("N"), Endpoint = target, Enabled = true, Sent = false };
+                    // Never move old source to another endpoint: a spool of another pool keeps its source and waits for
+                    // that pool (the host opens a spool of its own for every address).
+                    var foreign = _store.Generation is not null && PoolDestination.Normalize(_store.Endpoint) != target;
+                    if (_store.Iid == iid && !foreign && _store.Generation is not null)
                         _store = _store with { Enabled = true };
                     else _store = _store with { Enabled = false };
                     SaveStore();
                     lock (_gate) _acceptGeneration = _store.Enabled ? _store.Generation : null;
-                    SetStatus(_store.Enabled ? "ready" : "disabled");
+                    if (foreign) Hold(); else SetStatus(_store.Enabled ? "ready" : "disabled");
                 }
                 else
                 {
@@ -205,6 +234,8 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
         if (!OperatingSystem.IsWindows())
             File.SetUnixFileMode(_root, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         if (File.Exists(StorePath)) _store = Read<StoreState>(StorePath);
+        // A state without its list of deletion requests is damaged: fail closed instead of reading it as "none".
+        if (_store.Revocations is null) throw new InvalidDataException("Invalid spool metadata.");
         _dropped = _store.Dropped;
         // Startup never accepts new captures until settings/new notice have been checked by the host.
         foreach (var directory in Directory.GetDirectories(_root))
@@ -299,13 +330,24 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
         try
         {
             if (_time.GetUtcNow() < _retryAt) return;
+            var waiting = false;
             foreach (var revocation in _store.Revocations.ToArray())
             {
+                // A deletion request is for the pool that holds the source: it waits for that address.
+                if (!Addressed(revocation.Endpoint)) { waiting = true; continue; }
                 var answer = await client.ForgetAsync(revocation, token).ConfigureAwait(false);
                 if (!answer.Accepted) { Backoff(answer); return; }
                 await _disk.WaitAsync(token).ConfigureAwait(false);
                 try { _store = _store with { Revocations = _store.Revocations.Where(r => r != revocation).ToList() }; SaveStore(); }
                 finally { _disk.Release(); }
+            }
+            if (_store.Generation is not null && !Addressed(_store.Endpoint))
+            {
+                // Kept for another pool, but not past the age bound.
+                await _disk.WaitAsync(token).ConfigureAwait(false);
+                try { PruneExpired(); }
+                finally { _disk.Release(); }
+                Hold(); return;
             }
             SourceCaptureManifest[] captures;
             await _disk.WaitAsync(token).ConfigureAwait(false);
@@ -325,6 +367,8 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
                     try
                     {
                         if (!CanSend(capture)) return;
+                        // Marked before the first request of a generation: from here on an opt-out has something to delete.
+                        if (_store.Sent == false) { _store = _store with { Sent = true }; SaveStore(); }
                         if (new FileInfo(ChunkPath(capture.CaptureId, chunk.Index)).Length != chunk.UncompressedBytes) { SetStatus("corrupt_local"); return; }
                         bytes = await File.ReadAllBytesAsync(ChunkPath(capture.CaptureId, chunk.Index), token).ConfigureAwait(false);
                         if (bytes.Length != chunk.UncompressedBytes || Hash(bytes) != chunk.Sha256) { SetStatus("corrupt_local"); return; }
@@ -350,7 +394,7 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
                 try { if (CanSend(capture)) DeleteCapture(capture.CaptureId); }
                 finally { _disk.Release(); }
             }
-            SetStatus(_store.Enabled ? "idle" : "disabled");
+            if (waiting) Hold(); else SetStatus(_store.Enabled ? "idle" : "disabled");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { SetStatus("disk_error"); }
         finally { _sender.Release(); }
@@ -358,6 +402,7 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
 
     private bool CanSend(SourceCaptureManifest capture)
     {
+        if (!Addressed(_store.Endpoint)) return false;
         lock (_gate) return _acceptGeneration == capture.Generation && _store.Enabled && _store.Generation == capture.Generation
             && !_failed.Contains(capture.CaptureId) && _manifests.ContainsKey(capture.CaptureId);
     }
@@ -370,6 +415,25 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
                 Drop(id, "expired_local");
         }
         if (_store.Dropped != Interlocked.Read(ref _dropped)) SaveStore();
+    }
+    /// <summary>The settings name the pool this endpoint belongs to; with no pool set up nothing is addressed.</summary>
+    private bool Addressed(string? endpoint)
+    {
+        string? now;
+        if (_current is not null) now = _current();
+        else
+        {
+            // A bare spool nobody configured yet has no settings to compare with: its own state is all there is.
+            lock (_gate) { if (!_wasConfigured) return true; now = _configured; }
+        }
+        return now is not null && now == PoolDestination.Normalize(endpoint);
+    }
+    /// <summary>What this spool holds is for another pool: kept, not sent. One log line per change into this state.</summary>
+    private void Hold()
+    {
+        bool first;
+        lock (_gate) { first = _status != "other_pool"; _status = "other_pool"; }
+        if (first) Diag.Info($"Source capture: queue for another pool kept, {_manifests.Count} capture(s), {_store.Revocations.Count} deletion request(s)");
     }
     private void Backoff(SourceCaptureAnswer answer) { _retryAt = _time.GetUtcNow() + answer.RetryAfter; SetStatus(answer.Status); }
     private void SetStatus(string status) { lock (_gate) _status = status; }
@@ -414,5 +478,9 @@ public sealed class SourceCaptureQueue : IAsyncDisposable
     }
 
     private sealed record Command(SourceCaptureFrame? Frame, string? Generation, TaskCompletionSource? Done);
-    private sealed record StoreState(string? Iid, string? Generation, string? Endpoint, bool Enabled, long Dropped, List<SourceCaptureRevocation> Revocations);
+    /// <summary>
+    /// Sent: whether a chunk of this generation was handed to the pool (false from its creation to the first request;
+    /// null in a state written before the mark existed, which counts as sent). Local metadata only.
+    /// </summary>
+    private sealed record StoreState(string? Iid, string? Generation, string? Endpoint, bool Enabled, long Dropped, List<SourceCaptureRevocation> Revocations, bool? Sent = null);
 }

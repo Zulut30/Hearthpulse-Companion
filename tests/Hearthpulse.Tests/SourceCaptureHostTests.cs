@@ -22,9 +22,13 @@ public sealed class SourceCaptureHostTests
         await using var host = new SourceCaptureHost(settings, http, session, scratch.Path, () => saved++);
         await host.ApplySettingsAsync();
         Assert.False(host.Capturing); Assert.Equal(0, handler.Requests);
+        Assert.Null(settings.PoolSecret); // No install secret before the notice: there is nothing to identify yet.
         settings.SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion;
         await host.ApplySettingsAsync();
-        Assert.True(host.Capturing); Assert.Equal(2, saved);
+        Assert.False(host.Capturing); Assert.Null(settings.PoolSecret); // The source notice of an earlier pool is not the current one-time notice.
+        settings.PoolNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion;
+        await host.ApplySettingsAsync();
+        Assert.True(host.Capturing); Assert.Equal(3, saved);
         Assert.Equal(64, settings.PoolSecret?.Length);
         Assert.Equal(0, handler.Requests);
     }
@@ -34,10 +38,11 @@ public sealed class SourceCaptureHostTests
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
         var session = new GameSession(HistoryStore.InMemory(), memory) { ReadsMemory = false };
-        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion };
+        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, GameStatsNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion };
         using var handler = new DeletionHandler(); using var http = new HttpClient(handler);
         await using var host = new SourceCaptureHost(settings, http, session, scratch.Path, () => { });
         await host.ApplySettingsAsync(); Assert.True(host.Capturing);
+        await UploadOneAsync(host, session); // The pool holds a source of this generation: the opt-out owes it a forget.
         settings.GameStatsOff = true;
         await host.ApplySettingsAsync();
         Assert.False(host.Capturing); Assert.Equal(1, host.State.PendingDeletions); Assert.Equal(0, handler.Requests);
@@ -53,7 +58,7 @@ public sealed class SourceCaptureHostTests
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
         var session = new GameSession(HistoryStore.InMemory(), memory) { ReadsMemory = false };
-        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion };
+        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, GameStatsNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion };
         using var handler = new DeletionHandler(); using var http = new HttpClient(handler);
         await using var host = new SourceCaptureHost(settings, http, session, scratch.Path, () => throw new IOException("synthetic_save_failure"));
         await host.ApplySettingsAsync(); await host.SendPendingAsync();
@@ -65,7 +70,7 @@ public sealed class SourceCaptureHostTests
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
         var session = new GameSession(HistoryStore.InMemory(), memory) { ReadsMemory = false };
-        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion };
+        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, GameStatsNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion };
         using var handler = new DeletionHandler(); using var http = new HttpClient(handler);
         var blocked = Path.Combine(scratch.Path, "missing", "settings.json");
         await using var host = new SourceCaptureHost(settings, http, session, Path.Combine(scratch.Path, "spool"), () => settings.SaveRequired(blocked));
@@ -79,7 +84,7 @@ public sealed class SourceCaptureHostTests
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
         var session = new GameSession(HistoryStore.InMemory(), memory) { ReadsMemory = false };
-        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion };
+        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, GameStatsNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion };
         using var handler = new DeletionHandler(); using var http = new HttpClient(handler);
         var failSave = false;
         await using (var host = new SourceCaptureHost(settings, http, session, scratch.Path, () => { if (failSave) throw new IOException("synthetic_save_failure"); }))
@@ -91,13 +96,15 @@ public sealed class SourceCaptureHostTests
             session.StopSourceCapture();
             await host.ApplySettingsAsync(); // Flush the captured source before testing withdrawal.
             Assert.Equal(1, host.State.PendingCaptures);
+            // A chunk is handed to the pool, which does not take it now: the source stays, and the pool may hold a part.
+            handler.Busy = true; await host.SendPendingAsync(); Assert.Equal(1, host.State.PendingCaptures);
             failSave = true; settings.GameStatsOff = true;
             await host.ApplySettingsAsync();
             Assert.False(host.Capturing);
             Assert.Equal(1, host.State.PendingDeletions);
             Assert.Empty(Directory.GetFiles(scratch.Path, "*.jsonl", SearchOption.AllDirectories));
         }
-        await using var reopened = await SourceCaptureQueue.OpenAsync(scratch.Path);
+        await using var reopened = await SourceCaptureQueue.OpenAsync(SourceCaptureQueue.Folder(scratch.Path, SourceScratch.Endpoint));
         Assert.Null(reopened.Generation);
         Assert.Equal(1, reopened.State.PendingDeletions);
         settings.GameStatsOff = false; // Last successfully saved settings still said enabled.
@@ -111,7 +118,7 @@ public sealed class SourceCaptureHostTests
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
         var session = new GameSession(HistoryStore.InMemory(), memory) { ReadsMemory = false, Clock = () => new(2026, 11, 9) };
-        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion };
+        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, GameStatsNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion };
         using var handler = new DeletionHandler(); using var http = new HttpClient(handler);
         await using (var host = new SourceCaptureHost(settings, http, session, scratch.Path, () => { }))
         {
@@ -119,7 +126,7 @@ public sealed class SourceCaptureHostTests
             session.OnLines("LoadingScreen.log", ["D 12:30:00.0000000 LoadingScreen.OnSceneLoaded() - prevMode=HUB currMode=DRAFT"], false);
             session.SetDraftOffer(["DRAFT_A", "DRAFT_B", "DRAFT_C"]);
         }
-        await using var reopened = await SourceCaptureQueue.OpenAsync(scratch.Path);
+        await using var reopened = await SourceCaptureQueue.OpenAsync(SourceCaptureQueue.Folder(scratch.Path, SourceScratch.Endpoint));
         Assert.Equal(1, reopened.State.PendingCaptures);
         var source = string.Join('\n', Directory.GetFiles(scratch.Path, "*.jsonl", SearchOption.AllDirectories).Select(File.ReadAllText));
         Assert.Contains("draft_choice", source);
@@ -137,10 +144,11 @@ public sealed class SourceCaptureHostTests
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
         var session = new GameSession(HistoryStore.InMemory(), memory) { ReadsMemory = false };
-        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion };
+        var settings = new AppSettings { PoolEndpoint = SourceScratch.Endpoint, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, GameStatsNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion };
         using var handler = new DeletionHandler(); using var http = new HttpClient(handler);
         await using var host = new SourceCaptureHost(settings, http, session, scratch.Path, () => { });
         await host.ApplySettingsAsync();
+        await UploadOneAsync(host, session);
         settings.GameStatsOff = true; var off = host.ApplySettingsAsync();
         settings.GameStatsOff = false; var on = host.ApplySettingsAsync(explicitEnable: true);
         await Task.WhenAll(off, on);
@@ -149,14 +157,40 @@ public sealed class SourceCaptureHostTests
         Assert.Equal(1, handler.Requests); Assert.Equal(0, host.State.PendingDeletions);
     }
 
+    /// <summary>One synthetic game captured and uploaded: from here the pool holds a source of the current generation.</summary>
+    private static async Task UploadOneAsync(SourceCaptureHost host, GameSession session)
+    {
+        session.OnSessionStarted("synthetic", new(2026, 11, 9), attachedMidSession: false);
+        session.OnLines("Power.log", ReplayRecorderTests.Setup.Select(b => "D 12:30:00.0000000 GameState." + b).ToArray(), catchingUp: false);
+        session.StopSourceCapture();
+        await host.ApplySettingsAsync();
+        Assert.Equal(1, host.State.PendingCaptures);
+        await host.SendPendingAsync();
+        Assert.Equal(0, host.State.PendingCaptures);
+    }
+
+    /// <summary>Counts deletion requests and confirms them; takes uploads with valid receipts, or with <see cref="Busy"/> answers 503 to them.</summary>
     private sealed class DeletionHandler : HttpMessageHandler
     {
         public int Requests { get; private set; }
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        public bool Busy { get; set; }
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            var route = request.RequestUri!.AbsolutePath.Split('/')[^1];
+            if (route is "chunks" or "complete")
+            {
+                if (Busy) return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+                using var json = System.Text.Json.JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                var body = json.RootElement;
+                object receipt = route == "chunks"
+                    ? new { ok = true, stored = true, duplicate = false, index = body.GetProperty("index").GetInt32(), sha256 = body.GetProperty("sha256").GetString() }
+                    : new { ok = true, status = "stored", captureId = body.GetProperty("captureId").GetString() };
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(receipt) };
+            }
+
             Requests++;
-            Assert.EndsWith("/v1/captures/forget", request.RequestUri!.AbsolutePath, StringComparison.Ordinal);
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { ok = true, status = "deleted" }) });
+            Assert.Equal("forget", route);
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { ok = true, status = "deleted" }) };
         }
     }
 }

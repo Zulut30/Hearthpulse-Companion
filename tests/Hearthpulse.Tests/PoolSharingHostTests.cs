@@ -165,7 +165,7 @@ public sealed class PoolSharingHostTests : IDisposable
     }
 
     [Theory]
-    [InlineData("")]
+    [InlineData("off")]
     [InlineData("http://pool.test")]
     [InlineData("pool.test")]
     public async Task Without_an_https_pool_nothing_is_sent(string endpoint)

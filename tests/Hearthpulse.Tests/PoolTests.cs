@@ -165,9 +165,8 @@ public sealed class PoolTests
     }
 
     [Fact]
-    public void StaysOffUntilAnEndpointIsSet()
+    public void An_address_set_by_hand_replaces_the_default_one()
     {
-        Assert.Equal(PoolClient.DefaultEndpoint.Length > 0, PoolClient.Available(new Hearthpulse.Core.AppSettings()));
         Assert.True(PoolClient.Available(new Hearthpulse.Core.AppSettings { PoolEndpoint = "https://pool.example.workers.dev/" }));
         Assert.Equal("https://pool.example.workers.dev", PoolClient.Endpoint(new Hearthpulse.Core.AppSettings { PoolEndpoint = "https://pool.example.workers.dev/" }));
         Assert.False(PoolClient.Available(new Hearthpulse.Core.AppSettings { PoolEndpoint = "http://insecure.example" }));
@@ -300,12 +299,42 @@ public sealed class PoolTests
     }
 
     [Fact]
-    public void SharesNothingUntilAPoolIsSetUp()
+    public void The_shipped_pool_is_the_production_one_and_still_waits_for_the_notice()
     {
-        // Hearthpulse ships without a pool address: sharing on by default sends nothing anywhere.
-        var settings = new Hearthpulse.Core.AppSettings { PoolNoticeVersion = PoolClient.NoticeVersion };
-        Assert.False(PoolClient.Available(settings));
-        Assert.False(PoolClient.Sharing(settings));
+        // The default address is the project's own stats service, over https.
+        Assert.Equal("https://api.kolodahearthstone.com/stats", PoolClient.DefaultEndpoint);
+        var fresh = new Hearthpulse.Core.AppSettings();
+        Assert.Equal(PoolClient.DefaultEndpoint, PoolClient.Endpoint(fresh));
+        Assert.True(PoolClient.Available(fresh));
+        // A fresh install has seen no notice: nothing is shared, whatever the address.
+        Assert.False(PoolClient.Sharing(fresh));
+        Assert.False(Hearthpulse.Core.GameStats.GameStatsClient.Sharing(fresh));
+        Assert.False(Hearthpulse.Core.SourceCapture.SourceCaptureClient.Sharing(fresh));
+        // After the notice the default pool is used; a refusal still holds.
+        Assert.True(PoolClient.Sharing(new Hearthpulse.Core.AppSettings { PoolNoticeVersion = PoolClient.NoticeVersion }));
+        Assert.False(PoolClient.Sharing(new Hearthpulse.Core.AppSettings { PoolNoticeVersion = PoolClient.NoticeVersion, PoolConsent = false }));
+    }
+
+    [Fact]
+    public void A_setting_that_is_not_an_https_address_and_an_isolated_run_leave_the_app_without_a_pool()
+    {
+        var off = new Hearthpulse.Core.AppSettings { PoolEndpoint = "off", PoolNoticeVersion = PoolClient.NoticeVersion };
+        Assert.False(PoolClient.Available(off));
+        Assert.False(PoolClient.Sharing(off));
+
+        Hearthpulse.Core.Isolation.Forced.Value = true;
+        try
+        {
+            var isolated = new Hearthpulse.Core.AppSettings { PoolNoticeVersion = PoolClient.NoticeVersion };
+            Assert.Equal(string.Empty, PoolClient.Endpoint(isolated));
+            Assert.False(PoolClient.Available(isolated));
+            // An address set by hand is still used: the offline client of an isolated run refuses the request itself.
+            Assert.True(PoolClient.Available(new Hearthpulse.Core.AppSettings { PoolEndpoint = "https://pool.test" }));
+        }
+        finally
+        {
+            Hearthpulse.Core.Isolation.Forced.Value = null;
+        }
     }
 
     /// <summary>On by default with an opt-out (the owner's decision, 2026-11-15): a refusal always holds, the notice comes first.</summary>

@@ -130,14 +130,17 @@ public sealed class SourceCaptureClientTests
     public async Task Forget_202_is_pending_across_restart_until_200_deleted_and_uploads_stay_off()
     {
         using var scratch = new SourceScratch(); var deleted = false; var calls = 0;
-        using var handler = new Fake(request =>
+        using var handler = new Fake(async request =>
         {
-            Assert.EndsWith("/v1/captures/forget", request.RequestUri!.AbsolutePath); calls++;
-            return Task.FromResult(Reply(deleted ? HttpStatusCode.OK : HttpStatusCode.Accepted, new { ok = true, status = deleted ? "deleted" : "deleting" }));
+            // The capture is uploaded first: only a generation the pool may hold is asked to be deleted there.
+            if (request.RequestUri!.AbsolutePath.EndsWith("chunks")) { using var json = JsonDocument.Parse(await request.Content!.ReadAsStringAsync()); return ChunkReceipt(json.RootElement); }
+            if (request.RequestUri.AbsolutePath.EndsWith("complete")) return Reply(HttpStatusCode.Accepted, new { ok = true, status = "stored", captureId = SourceScratch.CaptureId });
+            Assert.EndsWith("/v1/captures/forget", request.RequestUri.AbsolutePath); calls++;
+            return Reply(deleted ? HttpStatusCode.OK : HttpStatusCode.Accepted, new { ok = true, status = deleted ? "deleted" : "deleting" });
         }); using var http = new HttpClient(handler); var client = new SourceCaptureClient(http);
         await using (var queue = await scratch.Open())
         {
-            SourceScratch.Complete(queue); await queue.FlushAsync(); await queue.ConfigureAsync(SourceScratch.Iid, SourceScratch.Endpoint, false);
+            SourceScratch.Complete(queue); await queue.FlushAsync(); await queue.SendPendingAsync(client); await queue.ConfigureAsync(SourceScratch.Iid, SourceScratch.Endpoint, false);
             await queue.SendPendingAsync(client); Assert.Equal(1, queue.State.PendingDeletions); Assert.Equal("deleting", queue.State.Status);
         }
         deleted = true;

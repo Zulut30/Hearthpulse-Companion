@@ -2,8 +2,9 @@
 
 The compact-record contract below remains supported by the isolated Linux service on server 151. The expanded
 ordered journal, updated notice, durable generation deletion and synthetic-pilot activation limits are documented
-in [source-capture.md](source-capture.md). The default endpoint remains unset pending matching public policy and
-verified operational deletion/backup procedures; older Cloudflare deployment instructions are historical.
+in [source-capture.md](source-capture.md). The default endpoint is the production pool since 2026-11-16
+(`PoolClient.DefaultEndpoint`): the public policy matches the host and the journal, the pool's data is outside the host
+backups, and nothing is sent before the one-time notice. Older Cloudflare deployment instructions are historical.
 
 Every finished game goes to the stats pool as one compact, versioned **game record**: all
 modes we track (Ranked, Casual, Arena, Brawl, Battlegrounds solo and duos), not only Battlegrounds. The records are
@@ -56,9 +57,9 @@ server rebuilds every record from known fields only, so anything else is dropped
   `AppSettings.GameStatsOff` (false = sending).
 - **One-time notice** in the main window, both UIs («Hearthpulse отправляет ваши игры для своей статистики»: what is
   sent, what never, 180 days, how to turn off; buttons «Понятно» / «Выключить» / «Подробнее» → the policy). Not a
-  consent question: it tells players who updated silently and never saw the installer. Nothing is sent before it was
-  shown (`AppSettings.GameStatsNoticeShown`). The install secret is made when the notice is answered or the switch
-  goes on, not before.
+  consent question: it tells players who updated silently and never saw the installer. Nothing is sent before the notice
+  of the current version was seen (`GameStatsClient.NoticeSeen`, see "Notice contract"). The install secret is made
+  when the notice is answered «Понятно» or the switch goes on, not before, and never by a refusal.
 - **Shared games of the stats pool** (`/v1/games`, `/v1/constructed`: public Battlegrounds totals and Discover-style
   picks) are a separate purpose with a switch of their own, and since the owner's decision of 2026-11-15 they are
   **on by default with an opt-out too, with no consent question** ("we do not ask whether to share"). The question
@@ -75,17 +76,116 @@ server rebuilds every record from known fields only, so anything else is dropped
     (`Core/Hosting/PoolSharingHost.cs` asks before each batch). These routes have **no deletion on request**: what
     was shared expires after 60 days.
 - Records are pseudonymous personal data (ADR 0011): only totals over 10 games and 5 installs are ever shown.
-- Switching off: the queue is emptied and `POST /v1/events/forget` deletes every record of this install; the request
-  waits in the queue (`game-stats/forget`) until the pool answers.
+- Switching off: the queue is emptied, and when a batch was ever handed to that pool `POST /v1/events/forget`
+  deletes every record of this install there; the request waits in the queue (`game-stats/<address>/forget`) until
+  the pool it is for answers. A refusal before anything was sent makes no request and no install secret. Queues kept
+  for other pool addresses are emptied too (see "Queue destination").
+
+## Notice contract
+
+The owner's decision stands: on by default, no consent question, one one-time notice, and an explicit refusal is
+kept for ever. What "the notice was seen" means is fixed per flow, because flags and versions left by an earlier
+version may date from a notice that named another pool (a test pool in `PoolEndpoint`); they do not stand in for
+the current notice. The current notice is version `PoolClient.NoticeVersion` (5).
+
+| Flow | Sent while all of these hold | Refusal that is always kept | "Seen" is recorded by |
+|---|---|---|---|
+| Shared games (`/v1/games`, `/v1/constructed`) `PoolClient.Sharing` | `PoolConsent != false`; `PoolNoticeVersion >= 5`; a pool address | `PoolConsent == false` | the notice's «Понятно» / «Выключить» (`PoolNoticeVersion = 5`) |
+| Game records (`/v1/events`) `GameStatsClient.Sharing` | `GameStatsOff == false`; `GameStatsClient.NoticeSeen`: `GameStatsNoticeVersion >= 5`, or `GameStatsNoticeShown` together with `PoolNoticeVersion >= 5`; a pool address | `GameStatsOff == true` | the notice's buttons (all three values), or turning the switch on in Settings, where the same text is shown (`GameStatsNoticeVersion = 5`, not `PoolNoticeVersion`) |
+| Source journals (`/v1/captures/*`) `SourceCaptureClient.Sharing` | `GameStatsOff == false`; `SourceCaptureClient.NoticeSeen`: `SourceCaptureNoticeVersion >= SourceCaptureClient.NoticeVersion` (1) **and** `GameStatsClient.NoticeSeen`; a pool address | `GameStatsOff == true` | the notice's buttons, or the same switch in Settings |
+
+- `GameStatsNoticeShown == true` alone authorizes nothing: an install that used a pool of its own with an earlier
+  version (flag set, `PoolNoticeVersion` 1-4 from the old question, possibly `SourceCaptureNoticeVersion` 1) sends
+  no game record and no journal to the default pool after its override is removed, until the current notice was
+  answered. The second form of `GameStatsClient.NoticeSeen` only spares a player who already answered notice 5 a
+  second one.
+- The notice shows (`MainViewModel.ShowGameStatsNotice`) while any flow the player has not turned off lacks what the
+  table asks for; so a player who refused the shared games still sees it once for game records and journals, and
+  «Понятно» never turns back on what was turned off.
+- The Settings switch for game records speaks for game records and journals only: it does not count as the shared
+  games' notice and does not touch `PoolConsent`.
+- Tests: `GameStatsTests.Sharing_is_on_by_default…`, `…An_old_notice_flag_does_not_send_to_the_default_pool…`,
+  `SourceCaptureRecorderTests.Excluded_modes_and_disabled_capture_emit_nothing`, `SourceCaptureHostTests.An_old_notice…`,
+  `GameStatsNoticeTests` (both apps).
 
 ## Queue and sending
 
-- `game-stats/` in the data folder, one JSON file per record; at most 300 records, 4 MB and 14 days (oldest dropped).
+- `game-stats/<address>/` in the data folder (one folder per pool address, see "Queue destination"), one JSON file
+  per record; at most 300 records, 4 MB and 14 days (oldest dropped).
 - Batches of up to 20, 12 s apart (the pool takes 6 requests a minute from one address). `2xx` removes the batch;
   `400`/`413`/`422` drop it for good; anything else (offline, `429`, `503` daily budget, `404` before the deploy) waits
   and retries after 30 s, doubling up to 30 min. Never on the UI or log thread; nothing waits for it.
 - The install id is a keyed hash of the pool secret (`GameStatsClient.InstallId`), never shown and never linked to an
   account. Turning the switch on makes the secret at once, so the settings saved with the change keep it.
+
+## Queue destination
+
+The install id and the record ids are keyed hashes of the pool secret and are the same for every pool address, so a
+queue must not follow the address in the settings: a record or a forget queued for a test pool would otherwise go
+to production when `PoolEndpoint` is removed. Each queue therefore belongs to one address
+(`Core/GameStats/GameStatsQueues.cs`, `Core/Pool/PoolDestination.cs`).
+
+- **Address.** `PoolDestination.Normalize`: `https://host[:port]/path`, host in lower case, no trailing slash. An
+  address that is not https or carries credentials, a query or a fragment is no destination: nothing is queued or
+  sent for it. The address is local metadata only; it is never part of a request body, and it is not written to the
+  log.
+- **Layout.** `game-stats/<16 hex of the address hash>/` holds that pool's records, its `forget` mark and the file
+  `destination` (`{"v":1,"endpoint":"https://…"}`), written before the first record. The folder name must be the
+  hash of the address in the file.
+- **Queueing.** A finished game is queued for the address read when the game ended, also when the address changes
+  while its record is built. It also carries the withdrawal count of that moment (`GameStatsQueues.Generation`):
+  once sharing was turned off in between, the record is not queued, also when sharing is back on before the build
+  ends. What was withdrawn does not come back.
+- **Sending.** A pass serves the pool the settings name now and sends to the address stored with the queue. Before
+  the forget and before every batch the current address is read again; when it is no longer the queue's, the pass
+  stops and the rest waits in its folder. An answer removes records only from the queue the batch was taken from.
+- **"Something was sent" mark.** The file `sent` in a queue folder is written before the first batch is handed to
+  that pool (before, because an answer that never arrives may still have stored it) and removed when the pool
+  confirmed a forget. Only a queue with the mark gets a forget: a first refusal before anything was sent makes no
+  request and no install secret. A forget whose install secret is gone is dropped with a log line instead of being
+  sent under a new id. The mark is local metadata, like the address; no payload changes.
+  One-time step for the upgrade (`game-stats/layout`): when this layout first runs in a data folder whose settings
+  show that an earlier version could already send (`GameStatsNoticeShown`, sharing on, a secret), the pool named
+  then is marked, so its forget is not lost. `GameStatsUploader.Start` does this before the notice can be answered.
+- **Other addresses.** Their queues are kept, not sent, and sent again in the usual way when the settings name that
+  address again (also after a restart). They keep the 300 records / 4 MB they were filled under, and the 14 days are
+  applied to them on every pass; a folder left with no record, no forget and no `sent` mark is removed. A forget
+  waits for its own address with no time limit and is never sent elsewhere.
+- **Switching off** empties every queue: the current pool's, the other addresses', what was set aside and anything
+  an earlier version left in the root, moved or not. Each queue with the `sent` mark gets a forget, which waits until
+  the settings name that address; queues without an address are deleted. While sharing is off this is repeated on
+  every pass, so it does not depend on the click or on the move of the earlier queue having worked.
+- **Unknown destination.** A queue folder whose `destination` is missing next to data, unreadable, or names another
+  address than the folder is renamed to `game-stats/unknown-<8 hex>/` (when the settings name its address, or on the
+  next pass otherwise): never sent, never adopted, dropped after 14 days or on switching off; its forget mark cannot
+  be delivered, is dropped and does not count as waiting. The pool gets a fresh queue. One log line, nothing throws.
+- **Queue of an earlier version** (record files and `forget` directly in `game-stats/`). It names no pool and may
+  have been filled for any, so it is **never** given to the pool the settings name now, whether that is the default
+  or an explicit `PoolEndpoint`: "filled for A, settings say B by the time of the update" would send A's games to B.
+  The records are set aside as an unknown destination (deleted at once when sharing is off). The move is tried on
+  every pass until it works; what stays in the root meanwhile is never sent.
+  Its `forget` does not know the pool it was meant for either. It is **not delivered**: sending it to whichever pool
+  is current would not reach the pool that holds the records. It is dropped with the log line
+  `Game stats: earlier deletion request names no pool, cannot be delivered, dropped`. The records it asked to delete
+  stay on that pool until they expire there (180 days at most, `e` table retention); the player can still have a pool
+  delete them by naming it in `PoolEndpoint`, sending once and turning sharing off.
+- **Seen from outside.** Log lines, one per event, with counts and no address:
+  `Game stats: queue for another pool kept, N record(s), M deletion request(s)` (when the counts change),
+  `Game stats: earlier queue names no pool, set aside, N record(s) not sent`,
+  `Game stats: earlier deletion request names no pool, cannot be delivered, dropped`,
+  `Game stats: queue with an unreadable destination set aside, …`,
+  `Game stats: a record built across a withdrawal was not queued`,
+  `Game stats: deletion request without an install id dropped`,
+  `Game stats: dropped N expired record(s) kept for another pool`,
+  `Game stats: sharing is off, deleted N record(s) kept for other pools, …`.
+  `GameStatsUploader.State` (`Pending`, `HeldRecords`, `HeldDeletions`) feeds the status line under the switch in
+  Settings → Data of both apps (`MainViewModel.SourceCaptureStatusText`): «Сохранено для другого адреса пула
+  статистики…» / "Kept for another stats pool address…" and «Запросы на удаление ждут другого адреса…» are states of
+  their own, apart from off, unavailable and an empty queue. Reports are counted and raised under one lock and
+  carry a growing `Revision`; the view model drops a report older than the one it shows.
+- Tests: `GameStatsTests.Destination.cs` (address change, removed override, held answers both ways, restart, the
+  earlier queue never adopted, unreadable destination, forget per address and only after a send, first refusal,
+  a record built across a withdrawal, sharing off against leftovers, report order, expiry).
 
 ## Server (`server/pool`)
 
