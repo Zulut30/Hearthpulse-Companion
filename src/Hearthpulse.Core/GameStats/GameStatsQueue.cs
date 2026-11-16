@@ -23,6 +23,13 @@ public sealed class GameStatsQueue
     /// <summary>The file naming the pool this queue is for; without a <c>.json</c> ending, so it is never read as a record.</summary>
     internal const string DestinationFile = "destination";
 
+    /// <summary>
+    /// The mark that a batch was handed to this queue's pool (written before the first request, kept until the pool
+    /// confirmed a deletion). Only a queue with it asks its pool to delete: a refusal before anything was sent makes no
+    /// request at all. Local metadata, like the destination.
+    /// </summary>
+    internal const string SentFile = "sent";
+
     private readonly string _folder;
     private readonly Lock _lock;
 
@@ -148,29 +155,6 @@ public sealed class GameStatsQueue
         }
     }
 
-    /// <summary>
-    /// Takes over record files (and a deletion request) another folder held for this queue's pool: the files keep
-    /// their age, so the usual bounds still drop the oldest.
-    /// </summary>
-    internal void Adopt(IEnumerable<string> recordFiles, bool forget)
-    {
-        lock (_lock)
-        {
-            EnsureFolder();
-            foreach (var file in recordFiles)
-            {
-                File.Move(file, Path.Combine(_folder, Path.GetFileName(file)), overwrite: true);
-            }
-
-            if (forget)
-            {
-                File.WriteAllText(Path.Combine(_folder, ForgetFile), string.Empty);
-            }
-
-            Trim();
-        }
-    }
-
     /// <summary>The folder, with the destination written before the first record: a record never lies there unaddressed.</summary>
     private void EnsureFolder()
     {
@@ -186,8 +170,47 @@ public sealed class GameStatsQueue
         File.Move(temp, path, overwrite: true);
     }
 
-    /// <summary>The pool confirmed the deletion.</summary>
-    public void Forgotten() => TryDelete(Path.Combine(_folder, ForgetFile));
+    /// <summary>The pool confirmed the deletion: nothing of this install is left there, so the queue counts as unused again.</summary>
+    public void Forgotten()
+    {
+        lock (_lock)
+        {
+            TryDelete(Path.Combine(_folder, ForgetFile));
+            TryDelete(Path.Combine(_folder, SentFile));
+        }
+    }
+
+    /// <summary>Whether something was handed to this queue's pool since its last confirmed deletion.</summary>
+    public bool Used => File.Exists(Path.Combine(_folder, SentFile));
+
+    /// <summary>Called before a batch leaves: from here on a refusal has something to delete at this pool.</summary>
+    public void MarkUsed()
+    {
+        lock (_lock)
+        {
+            if (!Used)
+            {
+                EnsureFolder();
+                File.WriteAllText(Path.Combine(_folder, SentFile), string.Empty);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The player turned sharing off: every waiting record goes, and a deletion request is marked only when this pool
+    /// may hold something (<see cref="Used"/>). Returns whether a request waits now.
+    /// </summary>
+    public bool Withdraw()
+    {
+        lock (_lock)
+        {
+            Clear(forget: Used);
+            return ForgetPending;
+        }
+    }
+
+    /// <summary>A deletion request that can no longer be made (the install id is gone) is dropped with its mark.</summary>
+    internal void DropForget() => Forgotten();
 
     private List<FileInfo> Files() => RecordFiles(_folder);
 

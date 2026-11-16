@@ -31,7 +31,7 @@ public sealed partial class MainViewModel
         ? Loc.T("Settings.Data.SourceDeleting")
         : HeldDeletions > 0 ? Loc.F("Settings.Data.HeldDeletions", HeldDeletions)
         : Settings.GameStatsOff ? Loc.T("Settings.Data.SourceOff")
-        : Settings.SourceCaptureNoticeVersion < SourceCaptureClient.NoticeVersion ? Loc.T("Settings.Data.SourceNotice")
+        : !SourceCaptureClient.NoticeSeen(Settings) ? Loc.T("Settings.Data.SourceNotice")
         : _gameStatsState.HeldRecords > 0 || _sourceCaptureState.HeldCaptures > 0 || _sourceCaptureState.Status == "other_pool"
             ? Loc.F("Settings.Data.HeldData", _gameStatsState.HeldRecords, _sourceCaptureState.HeldCaptures + (_sourceCaptureState.Status == "other_pool" ? _sourceCaptureState.PendingCaptures : 0))
         : _sourceCaptureState.Dropped > 0 ? Loc.F("Settings.Data.SourceDropped", _sourceCaptureState.Dropped)
@@ -41,6 +41,12 @@ public sealed partial class MainViewModel
 
     public void UpdateSourceCaptureState(SourceCaptureState state)
     {
+        // Reports are numbered by the host: one that was overtaken on its way here does not replace a newer one.
+        if (state.Revision < _sourceCaptureState.Revision)
+        {
+            return;
+        }
+
         _sourceCaptureState = state;
         Raise(nameof(SourceCaptureStatusText));
     }
@@ -48,6 +54,11 @@ public sealed partial class MainViewModel
     /// <summary>The game record queues changed: what waits for the current pool and what is kept for others.</summary>
     public void UpdateGameStatsState(GameStatsState state)
     {
+        if (state.Revision < _gameStatsState.Revision)
+        {
+            return;
+        }
+
         _gameStatsState = state;
         Raise(nameof(SourceCaptureStatusText));
     }
@@ -71,6 +82,8 @@ public sealed partial class MainViewModel
             Settings.GameStatsNoticeShown = true;
             if (value)
             {
+                // Game records and journals only: the shared games keep waiting for the notice itself.
+                Settings.GameStatsNoticeVersion = PoolClient.NoticeVersion;
                 Settings.SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion;
                 GameStatsClient.InstallId(Settings);
             }
@@ -90,9 +103,11 @@ public sealed partial class MainViewModel
     /// they hold and how to turn them off (not a consent question). Nothing is sent before it was shown. It shows
     /// again for whichever of its texts the player has not seen and has not turned off: game records, source
     /// journals (<see cref="SourceCaptureClient.NoticeVersion"/>), shared games (<see cref="PoolClient.NoticeVersion"/>).
+    /// A flag or version left by an earlier notice does not stand in for the current one: the notice shows while any
+    /// flow the player has not turned off still lacks it (docs/game-stats.md, "Notice contract").
     /// </summary>
     public bool ShowGameStatsNotice => GameStatsAvailable && (!Settings.GameStatsNoticeShown
-        || !Settings.GameStatsOff && Settings.SourceCaptureNoticeVersion < SourceCaptureClient.NoticeVersion
+        || !Settings.GameStatsOff && !SourceCaptureClient.NoticeSeen(Settings)
         || Settings.PoolConsent != false && Settings.PoolNoticeVersion < PoolClient.NoticeVersion);
 
     private RelayCommand? _answerGameStats;
@@ -110,6 +125,7 @@ public sealed partial class MainViewModel
         }
 
         Settings.GameStatsNoticeShown = true;
+        Settings.GameStatsNoticeVersion = PoolClient.NoticeVersion;
         Settings.SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion;
         Settings.PoolNoticeVersion = PoolClient.NoticeVersion;
         if (p as string == "off")

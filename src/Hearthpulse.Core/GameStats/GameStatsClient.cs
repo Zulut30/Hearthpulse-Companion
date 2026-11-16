@@ -30,10 +30,20 @@ public static class GameStatsClient
     public const int MaxBatch = 20;
 
     /// <summary>
-    /// Game records go out: on by default, unless the player turned them off, once the pool is set up and the player
-    /// has seen the one-time notice in the main window.
+    /// The player has seen the one-time notice of the current version (<see cref="PoolClient.NoticeVersion"/>) for game
+    /// records: <see cref="AppSettings.GameStatsNoticeVersion"/> says so, or the notice itself was answered (it sets the
+    /// flag and the pool's version together). The flag of an earlier notice alone is not enough: it may date from a
+    /// notice that named another pool (docs/game-stats.md, "Notice contract").
     /// </summary>
-    public static bool Sharing(AppSettings settings) => !settings.GameStatsOff && settings.GameStatsNoticeShown && PoolClient.Available(settings);
+    public static bool NoticeSeen(AppSettings settings) =>
+        settings.GameStatsNoticeVersion >= PoolClient.NoticeVersion
+        || settings.GameStatsNoticeShown && settings.PoolNoticeVersion >= PoolClient.NoticeVersion;
+
+    /// <summary>
+    /// Game records go out: on by default, unless the player turned them off, once the pool is set up and the player
+    /// has seen the one-time notice of the current version (<see cref="NoticeSeen"/>).
+    /// </summary>
+    public static bool Sharing(AppSettings settings) => !settings.GameStatsOff && NoticeSeen(settings) && PoolClient.Available(settings);
 
     /// <summary>
     /// The install's id for its records: a keyed hash of the pool secret, never shown and never linked to an account.

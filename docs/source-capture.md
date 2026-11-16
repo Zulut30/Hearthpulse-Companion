@@ -38,7 +38,8 @@ uncompressed bytes. Receipts must match the submitted index and hash before a ch
 The manifest is committed after all chunks; `stored`, `processing`, `parsed`, `partial` and `failed` are distinct
 states. Missing parts, conflicting hashes, rejected data and revoked generations are not successful delivery.
 
-Source sending follows the existing game-statistics switch and additionally requires the current source notice.
+Source sending follows the existing game-statistics switch and additionally requires the current source notice
+and the one-time notice of the current version (the table in [game-stats.md](game-stats.md), "Notice contract").
 Seeing the old compact-record notice does not authorize the expanded sender to start before the updated notice.
 The in-app and installer texts describe the expanded fields, the Hearthpulse server and retention. Public source
 activation remains gated: the default endpoint is unset, and the published privacy policy must first match the
@@ -66,32 +67,43 @@ part of a payload or a log line.
   answer that arrives after the address changed settles nothing locally: the chunk or manifest is sent again when its
   pool is back (the server stores a repeated chunk once).
 - **Other addresses.** Their spools keep sources and deletion requests and are sent when the settings name that
-  address again, also after a restart. The 14 days are applied to their sources whenever settings are applied; the
-  2 GB budget is per spool. A deletion request waits for its own address without a time limit.
+  address again, also after a restart. The 14 days are applied to their sources on every delivery pass (every 30 s
+  while the app runs) and whenever settings are applied; an open spool that turns out to be another pool's applies
+  them too. The 2 GB budget is per spool. A deletion request waits for its own address without a time limit.
+- **"Something was sent" mark.** `state.json` carries `sent` for the current generation: `false` from its creation,
+  `true` from just before its first chunk is handed to the pool (before, because an answer that never arrives may
+  still have stored it). A state written before the mark existed has none and counts as sent. Local metadata only.
 - **Switching off** revokes the current spool's generation as before, and opens every other address's spool to delete
-  its sources and persist its deletion request, which waits for that address. A spool set aside without an address is
-  deleted; no deletion request can be made for it.
+  its sources and revoke its generation. A deletion request is persisted only for a generation that may have reached
+  its pool (`sent` not `false`), and waits for that address; a refusal before the first chunk left makes no request.
+  The host makes no install secret for a refusal or before the notice (`SourceCaptureHost.ApplySettingsAsync`). A
+  spool set aside without an address is deleted, and so are the sources of a spool whose state cannot be read and
+  whatever an earlier version left in the root that could not be moved; no deletion request can be made for those.
 - **Returning** to an address that was left by an opt-out does not resume capture by itself (a revoked generation is
   never resumed): it captures again after the next explicit enabling, as on one address.
-- **Spool of an earlier version** (`state.json` and sources directly in `source-capture/`), moved once per run before
-  a spool is opened. Its state names its pool, so the sources go to that address's folder whatever the settings say
+- **Spool of an earlier version** (`state.json` and sources directly in `source-capture/`), moved before a spool is
+  opened; a move that fails is tried again whenever settings are applied, and nothing in the root is sent meanwhile. Its state names its pool, so the sources go to that address's folder whatever the settings say
   now, and each deletion request goes to the folder of the address it carries (a request of another address keeps
   the install key there, so that address needs an explicit enable). A request without a valid address is dropped
   with a count in the log. Unreadable state means an unknown pool: the spool is renamed to
   `source-capture/unknown-<8 hex>/`, never opened or sent, dropped after 14 days or on switching off.
-- **Unreadable or contradicting state of an address's spool.** Unreadable `state.json`: the host reports
-  `unavailable`, logs `Source capture: unavailable`, sends nothing and does not throw. A state that names another
+- **Unreadable or contradicting state of an address's spool.** Unreadable `state.json`, also one that parses but
+  lacks its list of deletion requests (`{}`): the host reports `unavailable`, logs `Source capture: unavailable`,
+  sends nothing and does not throw; the delivery loop keeps running. A state that names another
   pool than its folder: status `other_pool`, sources kept, nothing sent.
 - **Seen from outside.** `SourceCaptureState.Status == "other_pool"` and the counts `HeldCaptures` / `HeldDeletions`
   are apart from `disabled`, `unavailable` and `offline`; Settings → Data shows them in both apps
-  (`MainViewModel.SourceCaptureStatusText`, strings `Settings.Data.HeldData` / `HeldDeletions`). Log lines, one per
+  (`MainViewModel.SourceCaptureStatusText`, strings `Settings.Data.HeldData` / `HeldDeletions`). The host publishes
+  its state under one lock with a growing `Revision`; the view model drops a report older than the one it shows. Log lines, one per
   event, with counts and no address: `Source capture: queues for other pools kept, N capture(s), M deletion
   request(s)` (when the counts change), `Source capture: queue for another pool kept, …` (an open spool stopped for
   the address), `Source capture: earlier queue kept for its own pool, …`, `Source capture: earlier queue has
   unreadable state, set aside, …`, `Source capture: dropped N expired capture(s) kept for another pool`,
-  `Source capture: sharing turned off, cleared N queue(s) kept for other pools`.
+  `Source capture: sharing turned off, cleared N queue(s) kept for other pools`,
+  `Source capture: nothing was sent for this generation, no deletion request`.
 - Tests: `SourceCaptureDestinationTests` (chunk, manifest and forget across an address change, removed override,
-  held answers, restart, both earlier-version cases, unreadable state, opt-out, expiry).
+  held answers, restart, both earlier-version cases, unreadable and incomplete state, opt-out with and without a
+  send, first refusal, a failed move, report order, expiry on a delivery pass).
 
 The target retention is 180 days, subject to the configured service/archive budget and a verified capacity plan.
 Disk pressure rejects new intake for retry; it must not acknowledge data it discarded. Pilot deployment has an

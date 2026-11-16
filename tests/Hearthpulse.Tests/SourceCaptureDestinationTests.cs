@@ -25,16 +25,33 @@ public sealed class SourceCaptureDestinationTests
 
     private static AppSettings Settings(string? endpoint) => new()
     {
-        PoolEndpoint = endpoint, GameStatsNoticeShown = true, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, PoolSecret = new string('7', 64),
+        PoolEndpoint = endpoint, GameStatsNoticeShown = true, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, PoolNoticeVersion = PoolClient.NoticeVersion,
+        PoolSecret = new string('7', 64),
     };
 
-    /// <summary>One finished capture in a spool folder, generation made for <paramref name="endpoint"/>.</summary>
-    private static async Task SpoolAsync(string folder, AppSettings settings, string endpoint)
+    /// <summary>
+    /// One finished capture in a spool folder, generation made for <paramref name="endpoint"/>. With
+    /// <paramref name="earlierVersion"/> the state is as a version before the "sent" mark wrote it: such a generation
+    /// counts as one the pool may hold.
+    /// </summary>
+    private static async Task SpoolAsync(string folder, AppSettings settings, string endpoint, bool earlierVersion = false)
     {
-        await using var queue = await SourceCaptureQueue.OpenAsync(folder, pendingRecords: 20000);
-        await queue.ConfigureAsync(GameStatsClient.InstallId(settings), endpoint, sharing: true);
-        SourceScratch.Complete(queue);
-        await queue.FlushAsync();
+        await using (var queue = await SourceCaptureQueue.OpenAsync(folder, pendingRecords: 20000))
+        {
+            await queue.ConfigureAsync(GameStatsClient.InstallId(settings), endpoint, sharing: true);
+            SourceScratch.Complete(queue);
+            await queue.FlushAsync();
+        }
+
+        if (earlierVersion) WithoutSentMark(folder);
+    }
+
+    private static void WithoutSentMark(string folder)
+    {
+        var path = Path.Combine(folder, "state.json");
+        var state = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        Assert.True(state.Remove("sent"));
+        File.WriteAllText(path, state.ToJsonString());
     }
 
     private static SourceCaptureHost Host(AppSettings settings, HttpClient http, HearthstoneMemory memory, string root) =>
@@ -79,6 +96,8 @@ public sealed class SourceCaptureDestinationTests
         using var pool = new CapturePool(); using var http = new HttpClient(pool);
         await using var host = Host(settings, http, memory, scratch.Path);
         await host.ApplySettingsAsync();
+        await host.SendPendingAsync(); // Uploaded to the custom pool: it holds something of this generation.
+        Assert.Equal([(HostA, "chunks"), (HostA, "complete")], pool.Requests);
         settings.GameStatsOff = true;
         await host.ApplySettingsAsync();
         Assert.Equal(1, host.State.PendingDeletions); Assert.Empty(Sources(scratch.Path));
@@ -88,14 +107,14 @@ public sealed class SourceCaptureDestinationTests
         await host.ApplySettingsAsync(explicitEnable: true);
         await host.SendPendingAsync();
 
-        Assert.Empty(pool.Requests);
+        Assert.Equal(2, pool.Requests.Count);
         Assert.Equal((0, 1), (host.State.PendingDeletions, host.State.HeldDeletions));
         Assert.True(host.Capturing);
 
         settings.PoolEndpoint = PoolA;
         await host.SendPendingAsync();
 
-        Assert.Equal([(HostA, "forget")], pool.Requests);
+        Assert.Equal([(HostA, "chunks"), (HostA, "complete"), (HostA, "forget")], pool.Requests);
         Assert.Equal((0, 0), (host.State.PendingDeletions, host.State.HeldDeletions));
         Assert.False(host.Capturing, "a pool left by an opt-out captures again only after an explicit enable");
     }
@@ -228,9 +247,11 @@ public sealed class SourceCaptureDestinationTests
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
         var settings = Settings(PoolB); var iid = GameStatsClient.InstallId(settings);
+        await using (var first = await SourceCaptureQueue.OpenAsync(scratch.Path, pendingRecords: 20000))
+            await first.ConfigureAsync(iid, PoolA, sharing: true);
+        WithoutSentMark(scratch.Path); // Written by the earlier version, which may have uploaded for pool A.
         await using (var legacy = await SourceCaptureQueue.OpenAsync(scratch.Path, pendingRecords: 20000))
         {
-            await legacy.ConfigureAsync(iid, PoolA, sharing: true);
             await legacy.ConfigureAsync(iid, PoolA, sharing: false);
             await legacy.ConfigureAsync(iid, PoolB, sharing: true, explicitEnable: true);
             SourceScratch.Complete(legacy); await legacy.FlushAsync();
@@ -318,11 +339,14 @@ public sealed class SourceCaptureDestinationTests
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
         var settings = Settings(PoolB);
-        await SpoolAsync(SourceCaptureQueue.Folder(scratch.Path, PoolA), settings, PoolA);
+        // Both pools may hold sources of this install (spools of a version that uploaded to them), a third never got any.
+        await SpoolAsync(SourceCaptureQueue.Folder(scratch.Path, PoolA), settings, PoolA, earlierVersion: true);
+        await SpoolAsync(SourceCaptureQueue.Folder(scratch.Path, PoolB), settings, PoolB, earlierVersion: true);
+        await SpoolAsync(SourceCaptureQueue.Folder(scratch.Path, "https://capture-c.test"), settings, "https://capture-c.test");
         using var pool = new CapturePool(); using var http = new HttpClient(pool);
         await using var host = Host(settings, http, memory, scratch.Path);
         await host.ApplySettingsAsync();
-        Assert.True(host.Capturing); Assert.Equal(1, host.State.HeldCaptures);
+        Assert.True(host.Capturing); Assert.Equal(2, host.State.HeldCaptures);
 
         settings.GameStatsOff = true;
         await host.ApplySettingsAsync();
@@ -338,6 +362,163 @@ public sealed class SourceCaptureDestinationTests
         await host.SendPendingAsync();
         Assert.Equal([(HostB, "forget"), (HostA, "forget")], pool.Requests);
         Assert.Equal((0, 0), (host.State.PendingDeletions, host.State.HeldDeletions));
+
+        // The pool nothing was sent to is asked nothing, now or when it is the current one.
+        settings.PoolEndpoint = "https://capture-c.test";
+        await host.SendPendingAsync();
+        Assert.Equal(2, pool.Requests.Count);
+        Assert.Equal(0, host.State.PendingDeletions);
+    }
+
+    [Fact]
+    public async Task A_first_refusal_before_anything_was_sent_makes_no_request_and_no_install_secret()
+    {
+        using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
+        // A fresh install: no notice answered, no secret.
+        var settings = new AppSettings { PoolEndpoint = PoolA };
+        using var pool = new CapturePool(); using var http = new HttpClient(pool);
+        await using var host = Host(settings, http, memory, scratch.Path);
+        await host.ApplySettingsAsync();
+        Assert.Null(settings.PoolSecret);
+
+        // "Turn off" on the notice (MainViewModel.AnswerGameStats), then what the hosts call.
+        settings.GameStatsNoticeShown = true;
+        settings.SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion;
+        settings.PoolNoticeVersion = PoolClient.NoticeVersion;
+        settings.GameStatsOff = true;
+        settings.PoolConsent = false;
+        await host.ApplySettingsAsync();
+        await host.SendPendingAsync();
+
+        Assert.Empty(pool.Requests);
+        Assert.Null(settings.PoolSecret);
+        Assert.Equal((0, 0), (host.State.PendingDeletions, host.State.HeldDeletions));
+    }
+
+    [Fact]
+    public async Task Turning_the_switch_off_before_the_first_chunk_left_makes_no_request()
+    {
+        using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
+        var settings = Settings(PoolA);
+        // The notice was answered "ok" and a game was captured; nothing has been handed to the pool yet.
+        await SpoolAsync(SourceCaptureQueue.Folder(scratch.Path, PoolA), settings, PoolA);
+        using var pool = new CapturePool(); using var http = new HttpClient(pool);
+        await using var host = Host(settings, http, memory, scratch.Path);
+        await host.ApplySettingsAsync();
+        Assert.Equal(1, host.State.PendingCaptures);
+
+        settings.GameStatsOff = true;
+        await host.ApplySettingsAsync();
+        await host.SendPendingAsync();
+
+        Assert.Empty(pool.Requests);
+        Assert.Empty(Sources(scratch.Path));
+        Assert.Equal((0, 0), (host.State.PendingCaptures, host.State.PendingDeletions));
+        Assert.Contains("Source capture: nothing was sent for this generation, no deletion request", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+
+        // It stays revoked: back on without an explicit enable captures nothing.
+        settings.GameStatsOff = false;
+        await host.ApplySettingsAsync();
+        Assert.False(host.Capturing);
+    }
+
+    [Fact]
+    public async Task A_state_without_its_deletion_list_fails_closed_instead_of_stopping_the_sender()
+    {
+        using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
+        var settings = Settings(PoolA);
+        await SpoolAsync(SourceCaptureQueue.Folder(scratch.Path, PoolA), settings, PoolA);
+        File.WriteAllText(Path.Combine(SourceCaptureQueue.Folder(scratch.Path, PoolA), "state.json"), "{}");
+        await Assert.ThrowsAsync<InvalidDataException>(() => SourceCaptureQueue.OpenAsync(SourceCaptureQueue.Folder(scratch.Path, PoolA)));
+        using var pool = new CapturePool(); using var http = new HttpClient(pool);
+        await using var host = Host(settings, http, memory, scratch.Path);
+
+        await host.ApplySettingsAsync();
+        await host.SendPendingAsync();
+
+        Assert.Empty(pool.Requests);
+        Assert.False(host.Capturing);
+        Assert.Equal("unavailable", host.State.Status);
+        Assert.Contains("Source capture: unavailable", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+
+        // The refusal still works: the sources of the unreadable spool go, and nothing is asked of any pool.
+        settings.GameStatsOff = true;
+        await host.ApplySettingsAsync();
+        Assert.Empty(Sources(scratch.Path));
+        Assert.Empty(pool.Requests);
+    }
+
+    [Fact]
+    public async Task Sharing_off_clears_an_earlier_spool_that_could_not_be_moved()
+    {
+        using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
+        var settings = Settings(PoolB);
+        // The earlier version's spool for pool A is in the root, and the folder it should move to has unreadable state.
+        await SpoolAsync(scratch.Path, settings, PoolA);
+        Directory.CreateDirectory(SourceCaptureQueue.Folder(scratch.Path, PoolA));
+        File.WriteAllText(Path.Combine(SourceCaptureQueue.Folder(scratch.Path, PoolA), "state.json"), "{\"iid\":");
+        using var pool = new CapturePool(); using var http = new HttpClient(pool);
+        await using var host = Host(settings, http, memory, scratch.Path);
+
+        await host.ApplySettingsAsync();
+        await host.SendPendingAsync();
+        Assert.Empty(pool.Requests);
+        Assert.Single(Sources(scratch.Path)); // Still in the root, not sent.
+        Assert.Contains("Source capture: earlier queue could not be moved, not sent", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+
+        settings.GameStatsOff = true;
+        await host.ApplySettingsAsync();
+
+        Assert.Empty(Sources(scratch.Path));
+        Assert.Empty(pool.Requests);
+    }
+
+    [Fact]
+    public async Task State_reports_are_numbered_in_the_order_they_were_published()
+    {
+        using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
+        var settings = Settings(PoolA);
+        await SpoolAsync(SourceCaptureQueue.Folder(scratch.Path, PoolA), settings, PoolA);
+        using var pool = new CapturePool(); using var http = new HttpClient(pool);
+        await using var host = Host(settings, http, memory, scratch.Path);
+        var reports = new List<SourceCaptureState>();
+        host.StateChanged += state => { lock (reports) reports.Add(state); };
+        await host.ApplySettingsAsync();
+
+        // A send waits for the pool while the settings task publishes; the send publishes after it.
+        var held = pool.Hold("chunks");
+        var sending = host.SendPendingAsync();
+        await pool.Arrived.WaitAsync(TimeSpan.FromSeconds(30));
+        settings.PoolEndpoint = PoolB;
+        var applying = host.ApplySettingsAsync();
+        held.SetResult();
+        await sending; await applying;
+
+        Assert.True(reports.Count >= 3);
+        Assert.Equal(Enumerable.Range(1, reports.Count).Select(i => (long)i), reports.Select(r => r.Revision));
+        Assert.Equal(1, reports[^1].HeldCaptures);
+    }
+
+    [Fact]
+    public async Task An_open_spool_that_belongs_to_another_pool_still_applies_the_age_bound()
+    {
+        using var scratch = new SourceScratch(); string? current = PoolA;
+        var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow);
+        await using var queue = await SourceCaptureQueue.OpenAsync(scratch.Path, pendingRecords: 20000, timeProvider: time, currentDestination: () => current);
+        await queue.ConfigureAsync(SourceScratch.Iid, PoolA, sharing: true);
+        SourceScratch.Complete(queue); await queue.FlushAsync();
+        using var pool = new CapturePool(); using var http = new HttpClient(pool); var client = new SourceCaptureClient(http);
+
+        current = PoolB;
+        await queue.SendPendingAsync(client);
+        Assert.Equal(("other_pool", 1), (queue.State.Status, queue.State.PendingCaptures));
+
+        time.Advance(TimeSpan.FromDays(15));
+        await queue.SendPendingAsync(client);
+
+        Assert.Equal(0, queue.State.PendingCaptures);
+        Assert.Empty(Sources(scratch.Path));
+        Assert.Empty(pool.Requests);
     }
 
     [Fact]
@@ -353,8 +534,9 @@ public sealed class SourceCaptureDestinationTests
         await host.ApplySettingsAsync();
         Assert.Equal(1, host.State.HeldCaptures);
 
+        // A delivery pass, not a settings change: the bound holds in a long session too.
         time.Advance(TimeSpan.FromDays(15));
-        await host.ApplySettingsAsync();
+        await host.SendPendingAsync();
 
         Assert.Equal(0, host.State.HeldCaptures);
         Assert.Empty(Sources(scratch.Path));

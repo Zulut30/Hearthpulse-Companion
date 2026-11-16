@@ -141,8 +141,9 @@ public sealed class GameStatsNoticeTests
     }
 
     /// <summary>
-    /// A player who saw the earlier notice (or answered the question older versions asked) sees the wider one before
-    /// anything goes to the pool; game records they already knew of keep going meanwhile.
+    /// A player who saw the earlier notice (or answered the question older versions asked) sees the current one before
+    /// anything goes to the pool. Game records wait for it as well: the earlier notice may have named another pool
+    /// (docs/game-stats.md, "Notice contract").
     /// </summary>
     [Theory]
     [InlineData(true, null, 0)]
@@ -163,12 +164,15 @@ public sealed class GameStatsNoticeTests
 
         Assert.True((bool)model.ShowGameStatsNotice);
         Assert.False(PoolClient.Sharing(settings));
-        Assert.True(GameStatsClient.Sharing(settings));
+        Assert.False(GameStatsClient.Sharing(settings));
+        Assert.False(SourceCaptureClient.Sharing(settings));
 
         model.AnswerGameStats.Execute("ok");
 
         Assert.False((bool)model.ShowGameStatsNotice);
         Assert.True(PoolClient.Sharing(settings));
+        Assert.True(GameStatsClient.Sharing(settings));
+        Assert.True(SourceCaptureClient.Sharing(settings));
     }
 
     /// <summary>A refusal given earlier ("no" to the old question, or the switch) holds: no notice for it, and "ok" does not undo it.</summary>
@@ -296,7 +300,12 @@ public sealed class GameStatsNoticeTests
         Assert.False(SourceCaptureClient.Sharing(settings));
         model.GameStatsSharing = true;
         Assert.True(SourceCaptureClient.Sharing(settings));
+        Assert.True(GameStatsClient.Sharing(settings));
         Assert.Equal(SourceCaptureClient.NoticeVersion, settings.SourceCaptureNoticeVersion);
+        // The switch speaks for game records and journals only: it neither undoes the refusal of the shared games
+        // nor counts as their notice.
+        Assert.False(PoolClient.Sharing(settings));
+        Assert.Equal(0, settings.PoolNoticeVersion);
     }
 
     [Theory]
@@ -304,7 +313,7 @@ public sealed class GameStatsNoticeTests
     [InlineData(false)]
     public void Spool_storage_failure_is_not_displayed_as_an_empty_ready_queue(bool wpf)
     {
-        var settings = new AppSettings { PoolEndpoint = "https://pool.test", SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion };
+        var settings = new AppSettings { PoolEndpoint = "https://pool.test", SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, GameStatsNoticeVersion = PoolClient.NoticeVersion };
         var model = Model(wpf, settings);
         model.UpdateSourceCaptureState(new SourceCaptureState("disk_error", 0, 0, 0));
         Assert.Equal(Hearthpulse.Core.Localization.Loc.T("Settings.Data.SourceUnavailable"), (string)model.SourceCaptureStatusText);
@@ -328,7 +337,7 @@ public sealed class GameStatsNoticeTests
     [InlineData(false)]
     public void Data_kept_for_another_pool_address_is_a_state_of_its_own_apart_from_off_offline_and_empty(bool wpf)
     {
-        var settings = new AppSettings { PoolEndpoint = "https://pool.test", GameStatsNoticeShown = true, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion };
+        var settings = new AppSettings { PoolEndpoint = "https://pool.test", GameStatsNoticeShown = true, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, PoolNoticeVersion = PoolClient.NoticeVersion };
         var model = Model(wpf, settings);
         var ready = Hearthpulse.Core.Localization.Loc.T("Settings.Data.SourceReady");
         model.UpdateSourceCaptureState(new SourceCaptureState("idle", 0, 0, 0));
@@ -352,5 +361,58 @@ public sealed class GameStatsNoticeTests
         model.UpdateGameStatsState(new Hearthpulse.Core.GameStats.GameStatsState(0, 0, 0));
         model.UpdateSourceCaptureState(new SourceCaptureState("disabled", 0, 0, 0));
         Assert.Equal(Hearthpulse.Core.Localization.Loc.T("Settings.Data.SourceOff"), (string)model.SourceCaptureStatusText);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_state_report_that_was_overtaken_on_its_way_does_not_replace_a_newer_one(bool wpf)
+    {
+        var settings = new AppSettings { PoolEndpoint = "https://pool.test", GameStatsNoticeShown = true, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, PoolNoticeVersion = PoolClient.NoticeVersion };
+        var model = Model(wpf, settings);
+
+        // The senders number their reports; here the older one of each arrives last.
+        model.UpdateGameStatsState(new Hearthpulse.Core.GameStats.GameStatsState(0, 7, 0) { Revision = 2 });
+        model.UpdateGameStatsState(new Hearthpulse.Core.GameStats.GameStatsState(0, 0, 0) { Revision = 1 });
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.F("Settings.Data.HeldData", 7, 0), (string)model.SourceCaptureStatusText);
+        model.UpdateSourceCaptureState(new SourceCaptureState("idle", 0, 0, 0, HeldCaptures: 3, Revision: 5));
+        model.UpdateSourceCaptureState(new SourceCaptureState("idle", 0, 0, 0, Revision: 4));
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.F("Settings.Data.HeldData", 7, 3), (string)model.SourceCaptureStatusText);
+
+        // The next report of each replaces it as usual.
+        model.UpdateGameStatsState(new Hearthpulse.Core.GameStats.GameStatsState(0, 0, 0) { Revision = 3 });
+        model.UpdateSourceCaptureState(new SourceCaptureState("idle", 0, 0, 0, Revision: 6));
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.T("Settings.Data.SourceReady"), (string)model.SourceCaptureStatusText);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Older_flags_do_not_stand_in_for_the_current_notice_and_a_refusal_survives_it(bool wpf)
+    {
+        // An install that used a pool of its own with an earlier version: the old flag, the source notice, the old
+        // question's version, and a "no" to the shared games.
+        var settings = new AppSettings
+        {
+            PoolEndpoint = "https://pool.test", GameStatsNoticeShown = true, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion,
+            PoolNoticeVersion = PoolClient.NoticeVersion - 1, PoolConsent = false,
+        };
+        var model = Model(wpf, settings);
+
+        // Nothing is sent before the notice of the current version, and the notice shows although shared games are off:
+        // game records and journals still wait for it.
+        Assert.False(Hearthpulse.Core.GameStats.GameStatsClient.Sharing(settings));
+        Assert.False(SourceCaptureClient.Sharing(settings));
+        Assert.False(PoolClient.Sharing(settings));
+        Assert.True((bool)model.ShowGameStatsNotice);
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.T("Settings.Data.SourceNotice"), (string)model.SourceCaptureStatusText);
+
+        model.AnswerGameStats.Execute("ok");
+
+        Assert.False((bool)model.ShowGameStatsNotice);
+        Assert.True(Hearthpulse.Core.GameStats.GameStatsClient.Sharing(settings));
+        Assert.True(SourceCaptureClient.Sharing(settings));
+        Assert.False(PoolClient.Sharing(settings));
+        Assert.False(settings.PoolConsent);
     }
 }

@@ -32,6 +32,8 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
     private volatile string? _destination;
     private volatile string _idle = "disabled";
     private volatile SourceCaptureHeld _held = new(0, 0);
+    private readonly Lock _publishGate = new();
+    private long _published;
     private bool _migrated;
 
     public SourceCaptureHost(AppSettings settings, HttpClient http, GameSession session, string directory, Action persistSettings)
@@ -72,10 +74,12 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
     {
         if (_disposed) return Task.CompletedTask;
         _session.SetSourceCaptureEnabled(false);
-        var iid = GameStatsClient.InstallId(_settings);
         var destination = PoolDestination.Of(_settings);
-        var endpoint = _settings.SourceCaptureNoticeVersion >= SourceCaptureClient.NoticeVersion ? destination : null;
+        var endpoint = SourceCaptureClient.NoticeSeen(_settings) ? destination : null;
         var sharing = !_settings.GameStatsOff;
+        // The install key is a hash of the pool secret. It is made only for a player who shares after the notice; before
+        // the notice and for a refusal the existing one is used, or none: a refusal never makes a secret.
+        var iid = _settings.PoolSecret is { Length: 64 } || sharing && endpoint is not null ? GameStatsClient.InstallId(_settings) : null;
         lock (_gate)
         {
             if (_disposed) return Task.CompletedTask;
@@ -87,12 +91,21 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
                 try { await before.ConfigureAwait(false); } catch (Exception) { /* Each operation publishes its own safe failure. */ }
                 try
                 {
-                    var queue = await OpenForAsync(destination).ConfigureAwait(false);
+                    SourceCaptureQueue? queue = null;
+                    var unreadable = false;
+                    try { queue = await OpenForAsync(destination).ConfigureAwait(false); }
+                    catch (Exception ex) when (!sharing && ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidDataException)
+                    { unreadable = true; }
                     // Withdrawal must survive even when settings storage is broken. Enabling needs a durable identity first.
                     if (!sharing)
                     {
+                        // The refusal reaches everything, whatever could not be opened or moved: the current pool's
+                        // spool, the spools of other pools, and what an earlier version left in the root.
                         if (queue is not null) await queue.ConfigureAsync(iid, endpoint, sharing: false, destination: destination).ConfigureAwait(false);
+                        else if (unreadable && destination is not null) DeleteUnreadable(SourceCaptureQueue.Folder(_directory, destination));
                         await WithdrawOthersAsync(destination, iid).ConfigureAwait(false);
+                        if (!_migrated) DeleteUnreadable(_directory);
+                        if (unreadable) throw new InvalidDataException("Source spool is unavailable.");
                     }
                     _persistSettings();
                     if (sharing && queue is not null) await queue.ConfigureAsync(iid, endpoint, sharing: true, explicitEnable, destination).ConfigureAwait(false);
@@ -122,11 +135,8 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
     /// </summary>
     private async Task<SourceCaptureQueue?> OpenForAsync(string? destination)
     {
-        if (!_migrated)
-        {
-            SourceCaptureQueue.MigrateLegacy(_directory);
-            _migrated = true;
-        }
+        // Tried again on every settings pass until it works; what stays in the root meanwhile is never sent.
+        _migrated = _migrated || SourceCaptureQueue.MigrateLegacy(_directory);
 
         if (_queue is { } open && _destination == destination) return open;
         if (_queue is { } old)
@@ -150,7 +160,7 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
     /// request for its own pool, which is sent when the settings name that pool again. A spool without a readable
     /// address is only deleted.
     /// </summary>
-    private async Task WithdrawOthersAsync(string? destination, string iid)
+    private async Task WithdrawOthersAsync(string? destination, string? iid)
     {
         var cleared = 0;
         foreach (var folder in SourceCaptureQueue.OtherFolders(_directory, destination, unknown: true))
@@ -165,14 +175,31 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidDataException)
             {
-                var sources = 0;
-                try { sources = SourceCaptureQueue.DeleteSources(folder); }
-                catch (Exception delete) when (delete is IOException or UnauthorizedAccessException) { }
-                Diag.Info($"Source capture: a queue kept for another pool has unreadable state, {sources} capture(s) deleted, no deletion request possible");
+                DeleteUnreadable(folder);
             }
         }
 
         if (cleared > 0) Diag.Info($"Source capture: sharing turned off, cleared {cleared} queue(s) kept for other pools");
+    }
+
+    /// <summary>Sharing is off and this folder's state cannot be read: its sources go; no deletion request can be made for it.</summary>
+    private static void DeleteUnreadable(string folder)
+    {
+        var sources = 0;
+        try { sources = SourceCaptureQueue.DeleteSources(folder); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        if (sources > 0) Diag.Info($"Source capture: sharing is off, {sources} capture(s) of a queue with unreadable state deleted, no deletion request possible");
+    }
+
+    /// <summary>
+    /// The periodic part of a delivery pass: the age bound of what is kept for other pools holds in a long session too,
+    /// not only when settings are applied.
+    /// </summary>
+    private void SweepHeld()
+    {
+        try { ReportHeld(_destination); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        { Diag.Info($"Source capture: queues kept for other pools could not be checked ({ex.GetType().Name})"); }
     }
 
     /// <summary>Counts what waits for other pools (after the age bound) and writes one log line when that changed.</summary>
@@ -209,7 +236,14 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
             if (!_disposed && _wake.CurrentCount == 0) _wake.Release();
     }
 
-    private void Publish() => StateChanged?.Invoke(State);
+    /// <summary>
+    /// Reads and raises the state under one lock and numbers it: the settings task and the delivery loop both publish,
+    /// and a report must not overtake a newer one on its way to the UI.
+    /// </summary>
+    private void Publish()
+    {
+        lock (_publishGate) StateChanged?.Invoke(State with { Revision = ++_published });
+    }
 
     /// <summary>Explicit durability/delivery pass, also used by diagnostics without starting a periodic loop.</summary>
     public async Task SendPendingAsync(CancellationToken cancellationToken = default)
@@ -218,7 +252,7 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
         lock (_gate) { if (_disposed) return; configuration = _configuration; }
         await configuration.ConfigureAwait(false);
         await FollowDestinationAsync().ConfigureAwait(false);
-        if (_queue is not { } queue) return;
+        if (_queue is not { } queue) { SweepHeld(); Publish(); return; }
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token, cancellationToken);
         try
         {
@@ -229,6 +263,7 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
         {
             // The address changed meanwhile and this spool was closed with its contents: nothing of it was sent.
         }
+        SweepHeld();
         Publish();
     }
 
@@ -263,6 +298,7 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
                     lock (_gate) { if (_sending == sending) _sending = null; }
                     sending.Dispose();
                 }
+                SweepHeld();
                 Publish();
                 await _wake.WaitAsync(TimeSpan.FromSeconds(30), _stop.Token).ConfigureAwait(false);
             }

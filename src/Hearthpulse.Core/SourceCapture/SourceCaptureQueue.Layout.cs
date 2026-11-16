@@ -26,12 +26,13 @@ public sealed partial class SourceCaptureQueue
     /// folder, and every deletion request to the folder of the pool it is addressed to. Unreadable state means an
     /// unknown pool: the spool is set aside and never sent.
     /// </summary>
-    internal static void MigrateLegacy(string root)
+    /// <returns>False when it could not be moved: the caller tries again, and nothing in the root is ever sent.</returns>
+    internal static bool MigrateLegacy(string root)
     {
-        if (!Directory.Exists(root)) return;
+        if (!Directory.Exists(root)) return true;
         var statePath = Path.Combine(root, StoreFile);
         var captures = CaptureFolders(root);
-        if (!File.Exists(statePath) && captures.Count == 0) return;
+        if (!File.Exists(statePath) && captures.Count == 0) return true;
         try
         {
             StoreState? store = null;
@@ -47,7 +48,7 @@ public sealed partial class SourceCaptureQueue
                 File.Move(statePath, Path.Combine(aside, StoreFile), overwrite: true);
                 foreach (var capture in captures) Directory.Move(capture, Path.Combine(aside, Path.GetFileName(capture)));
                 Diag.Info($"Source capture: earlier queue has unreadable state, set aside, {captures.Count} capture(s) not sent");
-                return;
+                return true;
             }
 
             var own = PoolDestination.Normalize(store?.Endpoint);
@@ -58,7 +59,7 @@ public sealed partial class SourceCaptureQueue
                 if (group.Key is not { } destination) { undeliverable += group.Count(); continue; }
                 if (destination == own) continue;
                 // The pool was left by an opt-out: its folder keeps the install key, so returning to it needs an explicit enable.
-                Merge(Folder(root, destination), new(group.First().Iid, null, destination, false, 0, []), group);
+                Merge(Folder(root, destination), new(group.First().Iid, null, destination, false, 0, [], null), group);
             }
 
             if (own is not null)
@@ -82,11 +83,13 @@ public sealed partial class SourceCaptureQueue
             Diag.Info(own is not null
                 ? $"Source capture: earlier queue kept for its own pool, {captures.Count} capture(s), {revocations.Count - undeliverable} deletion request(s), {undeliverable} without a pool dropped"
                 : $"Source capture: earlier queue had no pool, {captures.Count} capture(s) deleted, {revocations.Count - undeliverable} deletion request(s) kept, {undeliverable} without a pool dropped");
+            return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
         {
             // What stays directly in the root is no spool any more: it is not sent, and the next start tries again.
             Diag.Info($"Source capture: earlier queue could not be moved, not sent ({ex.GetType().Name})");
+            return false;
         }
     }
 

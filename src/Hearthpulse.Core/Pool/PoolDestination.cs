@@ -15,12 +15,6 @@ public static class PoolDestination
     public static string? Of(AppSettings settings) => Normalize(PoolClient.Endpoint(settings));
 
     /// <summary>
-    /// The pool <see cref="AppSettings.PoolEndpoint"/> names by itself, without the default: the only address a queue
-    /// written before queues had a destination may be given to.
-    /// </summary>
-    public static string? Explicit(AppSettings settings) => settings.PoolEndpoint is { Length: > 0 } custom ? Normalize(custom) : null;
-
-    /// <summary>
     /// <c>https://host[:port]/path</c> with the host in lower case and no trailing slash. An address that is not https,
     /// or carries credentials, a query or a fragment, is not a destination: it could not be stored or logged safely.
     /// </summary>

@@ -11,19 +11,28 @@ public readonly record struct GameStatsHeld(int Records, int Deletions);
 /// The game record queues of the data folder (<c>game-stats/</c>), one per pool address: a record or a deletion
 /// request queued for one pool waits in that pool's folder (<c>game-stats/&lt;hash of the address&gt;/</c>) and is sent
 /// only there, also after the address in the settings changed or the app restarted. A queue whose address cannot be
-/// read is set aside (<c>unknown-*</c>) and never sent. docs/game-stats.md, "Queue destination".
+/// read is set aside (<c>unknown-*</c>) and never sent; so is every queue written before queues had a destination.
+/// docs/game-stats.md, "Queue destination".
 /// </summary>
 public sealed class GameStatsQueues
 {
     private const string UnknownPrefix = "unknown-";
+    private const string LayoutFile = "layout";
     private readonly string _root;
     private readonly Lock _lock = new();
     private readonly Dictionary<string, GameStatsQueue> _open = new(StringComparer.Ordinal);
+    private int _generation;
 
     public GameStatsQueues(string root) => _root = root;
 
     /// <summary>UTC clock; tests move it.</summary>
     internal Func<DateTime> UtcNow { get; init; } = () => DateTime.UtcNow;
+
+    /// <summary>
+    /// Counts the withdrawals of this run. A record is built in the background: it carries the number read when its
+    /// game ended, and <see cref="Add"/> refuses it once a withdrawal came in between.
+    /// </summary>
+    public int Generation => Volatile.Read(ref _generation);
 
     /// <summary>
     /// The queue of one pool address (<see cref="PoolDestination.Normalize"/>). Null when its folder holds something
@@ -39,8 +48,7 @@ public sealed class GameStatsQueues
                 if (Directory.Exists(folder) && !Owned(folder, destination))
                 {
                     _open.Remove(destination);
-                    var (records, deletions) = SetAside(folder);
-                    Diag.Info($"Game stats: queue with an unreadable destination set aside, {records} record(s) not sent, {deletions} deletion request(s) dropped");
+                    SetAside(folder);
                 }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -59,11 +67,64 @@ public sealed class GameStatsQueues
     }
 
     /// <summary>
-    /// Moves a queue written before queues had a destination (files directly in <c>game-stats/</c>). It may have been
-    /// filled for any pool, so it goes to <paramref name="explicitDestination"/>, the address the settings name by
-    /// themselves, and with none it is set aside and never sent: the default pool did not exist when it was filled.
+    /// Queues a record built for a game that ended while <paramref name="generation"/> was current. False when sharing
+    /// was withdrawn since (also when it is back on by now): what was withdrawn does not come back.
     /// </summary>
-    public void MigrateLegacy(string? explicitDestination)
+    public bool Add(string destination, JsonObject record, int generation)
+    {
+        lock (_lock)
+        {
+            if (generation != _generation)
+            {
+                Diag.Info("Game stats: a record built across a withdrawal was not queued");
+                return false;
+            }
+
+            if (For(destination) is not { } queue)
+            {
+                return false;
+            }
+
+            queue.Add(record);
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// True once per data folder, the first time this layout runs there (the answer is remembered in the
+    /// <c>layout</c> file). The sender uses it to mark the pool an earlier version may already have sent to.
+    /// </summary>
+    public bool FirstRun()
+    {
+        lock (_lock)
+        {
+            var path = Path.Combine(_root, LayoutFile);
+            try
+            {
+                if (File.Exists(path))
+                {
+                    return false;
+                }
+
+                Directory.CreateDirectory(_root);
+                File.WriteAllText(path, "2");
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Diag.Info($"Game stats: the queue layout mark could not be written ({ex.GetType().Name})");
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Takes a queue written before queues had a destination (files directly in <c>game-stats/</c>) out of the way. It
+    /// names no pool and may have been filled for any, so it is never given to the pool the settings name now: its
+    /// records are set aside unsent, or deleted when sharing is off, and its deletion request cannot be delivered.
+    /// Returns false when it could not be moved; the caller tries again, and nothing in the root is ever sent.
+    /// </summary>
+    public bool MigrateLegacy(bool sharingOff)
     {
         lock (_lock)
         {
@@ -72,18 +133,15 @@ public sealed class GameStatsQueues
             var forget = File.Exists(forgetFile);
             if (records.Count == 0 && !forget)
             {
-                return;
+                return true;
             }
 
-            var deletions = forget ? 1 : 0;
             try
             {
-                if (explicitDestination is not null && For(explicitDestination) is { } queue)
+                if (sharingOff)
                 {
-                    queue.Adopt(records, forget);
-                    File.Delete(forgetFile);
-                    Diag.Info($"Game stats: earlier queue kept for the pool named in the settings, {records.Count} record(s), {deletions} deletion request(s)");
-                    return;
+                    DeleteLegacy();
+                    return true;
                 }
 
                 var aside = Path.Combine(_root, UnknownPrefix + Guid.NewGuid().ToString("N")[..8]);
@@ -94,12 +152,18 @@ public sealed class GameStatsQueues
                 }
 
                 File.Delete(forgetFile);
-                Diag.Info($"Game stats: earlier queue has no known pool, set aside, {records.Count} record(s) not sent, {deletions} deletion request(s) dropped");
+                Diag.Info($"Game stats: earlier queue names no pool, set aside, {records.Count} record(s) not sent");
+                if (forget)
+                {
+                    Diag.Info("Game stats: earlier deletion request names no pool, cannot be delivered, dropped");
+                }
+
+                return true;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // What stays directly in game-stats/ is no queue any more: it is not sent, and the next start tries again.
                 Diag.Info($"Game stats: earlier queue could not be moved, not sent ({ex.GetType().Name})");
+                return false;
             }
         }
     }
@@ -114,7 +178,8 @@ public sealed class GameStatsQueues
             foreach (var folder in Others(current))
             {
                 records += GameStatsQueue.RecordFiles(folder).Count;
-                deletions += File.Exists(Path.Combine(folder, GameStatsQueue.ForgetFile)) ? 1 : 0;
+                // Only a request that can still reach a pool waits; one without a readable address never will.
+                deletions += File.Exists(Path.Combine(folder, GameStatsQueue.ForgetFile)) && DestinationOf(folder) is not null ? 1 : 0;
             }
 
             return new(records, deletions);
@@ -122,15 +187,23 @@ public sealed class GameStatsQueues
     }
 
     /// <summary>
-    /// The player turned sharing off: what waits for other pools is deleted here as well. A pool whose address is
-    /// known gets a deletion request that waits for that address; a queue set aside without one is only deleted.
+    /// Sharing is off: every waiting record goes, in the current pool's queue, in the queues kept for other pools, in
+    /// what was set aside and in what an earlier version left in the root, whether or not that was moved yet. A pool
+    /// that may hold something of this install (<see cref="GameStatsQueue.Used"/>) gets a deletion request that waits
+    /// for its own address; a pool nothing was sent to gets none. Safe to repeat.
     /// </summary>
-    public void WithdrawOthers(string? current)
+    public void Withdraw(string? current)
     {
         lock (_lock)
         {
+            Interlocked.Increment(ref _generation);
             var records = 0;
             var deletions = 0;
+            if (current is not null && For(current) is { } own)
+            {
+                own.Withdraw();
+            }
+
             foreach (var folder in Others(current))
             {
                 try
@@ -138,8 +211,7 @@ public sealed class GameStatsQueues
                     records += GameStatsQueue.RecordFiles(folder).Count;
                     if (DestinationOf(folder) is { } destination && For(destination) is { } queue)
                     {
-                        queue.Clear(forget: true);
-                        deletions++;
+                        deletions += queue.Withdraw() ? 1 : 0;
                     }
                     else if (Directory.Exists(folder))
                     {
@@ -152,16 +224,26 @@ public sealed class GameStatsQueues
                 }
             }
 
-            if (records > 0 || deletions > 0)
+            try
             {
-                Diag.Info($"Game stats: sharing turned off, deleted {records} record(s) kept for other pools, {deletions} deletion request(s) wait for their pools");
+                DeleteLegacy();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Diag.Info($"Game stats: earlier queue could not be deleted ({ex.GetType().Name})");
+            }
+
+            if (records > 0)
+            {
+                Diag.Info($"Game stats: sharing is off, deleted {records} record(s) kept for other pools, {deletions} deletion request(s) wait for their pools");
             }
         }
     }
 
     /// <summary>
     /// Applies the age bound to what waits for other pools (the current pool's queue trims itself): records older than
-    /// <see cref="GameStatsQueue.MaxAge"/> go, and a folder left with neither a record nor a deletion request goes too.
+    /// <see cref="GameStatsQueue.MaxAge"/> go, and a folder left with nothing to send or to remember goes too. A folder
+    /// whose address cannot be read is set aside, so its deletion request does not count as waiting for ever.
     /// </summary>
     public void Sweep(string? current)
     {
@@ -173,6 +255,13 @@ public sealed class GameStatsQueues
             {
                 try
                 {
+                    var name = Path.GetFileName(folder);
+                    if (PoolDestination.IsKey(name) && DestinationOf(folder) is null)
+                    {
+                        SetAside(folder);
+                        continue;
+                    }
+
                     var left = 0;
                     foreach (var file in GameStatsQueue.RecordFiles(folder))
                     {
@@ -187,7 +276,7 @@ public sealed class GameStatsQueues
                         }
                     }
 
-                    if (left == 0 && !File.Exists(Path.Combine(folder, GameStatsQueue.ForgetFile)))
+                    if (left == 0 && !File.Exists(Path.Combine(folder, GameStatsQueue.ForgetFile)) && !File.Exists(Path.Combine(folder, GameStatsQueue.SentFile)))
                     {
                         Directory.Delete(folder, recursive: true);
                     }
@@ -202,6 +291,29 @@ public sealed class GameStatsQueues
             {
                 Diag.Info($"Game stats: dropped {expired} expired record(s) kept for another pool");
             }
+        }
+    }
+
+    /// <summary>Deletes what an earlier version left directly in the root; its deletion request names no pool.</summary>
+    private void DeleteLegacy()
+    {
+        var records = GameStatsQueue.RecordFiles(_root);
+        var forgetFile = Path.Combine(_root, GameStatsQueue.ForgetFile);
+        var forget = File.Exists(forgetFile);
+        foreach (var file in records)
+        {
+            file.Delete();
+        }
+
+        File.Delete(forgetFile);
+        if (records.Count > 0)
+        {
+            Diag.Info($"Game stats: sharing is off, deleted {records.Count} record(s) of the earlier queue");
+        }
+
+        if (forget)
+        {
+            Diag.Info("Game stats: earlier deletion request names no pool, cannot be delivered, dropped");
         }
     }
 
@@ -245,8 +357,11 @@ public sealed class GameStatsQueues
         }
     }
 
-    /// <summary>Renames a folder with an unknown address so it is never sent; its deletion request cannot be delivered.</summary>
-    private (int Records, int Deletions) SetAside(string folder)
+    /// <summary>
+    /// Renames a folder with an unknown address so it is never sent. Its deletion request cannot be delivered and goes
+    /// with the marks that only meant something for a known pool.
+    /// </summary>
+    private void SetAside(string folder)
     {
         var aside = Path.Combine(_root, UnknownPrefix + Guid.NewGuid().ToString("N")[..8]);
         Directory.Move(folder, aside);
@@ -254,6 +369,13 @@ public sealed class GameStatsQueues
         var deletions = File.Exists(forget) ? 1 : 0;
         File.Delete(forget);
         File.Delete(Path.Combine(aside, GameStatsQueue.DestinationFile));
-        return (GameStatsQueue.RecordFiles(aside).Count, deletions);
+        File.Delete(Path.Combine(aside, GameStatsQueue.SentFile));
+        var records = GameStatsQueue.RecordFiles(aside).Count;
+        if (records == 0)
+        {
+            Directory.Delete(aside, recursive: true);
+        }
+
+        Diag.Info($"Game stats: queue with an unreadable destination set aside, {records} record(s) not sent, {deletions} deletion request(s) dropped");
     }
 }

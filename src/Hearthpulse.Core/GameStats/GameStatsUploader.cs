@@ -38,7 +38,9 @@ public sealed class GameStatsUploader : IDisposable
     private readonly CancellationTokenSource _stop = new();
     private Task? _loop;
     private int _failures;
-    private int _migrated;
+    private readonly Lock _prepareGate = new();
+    private bool _migrated;
+    private bool _layoutChecked;
     private GameStatsState _state = new(0, 0, 0);
 
     public GameStatsUploader(AppSettings settings, HttpClient http, HistoryStore history, Func<ReplayStore?> replays, Func<CardDb?> cards, string? version, GameStatsQueues queues)
@@ -67,7 +69,10 @@ public sealed class GameStatsUploader : IDisposable
         }
     }
 
-    /// <summary>Raised when <see cref="State"/> changed; on the sender's thread, not the UI thread.</summary>
+    /// <summary>
+    /// Raised when <see cref="State"/> changed, in order, on the thread that changed it (not the UI thread). Handlers
+    /// only hand the state on: they run under the sender's state lock.
+    /// </summary>
     public event Action<GameStatsState>? StateChanged;
 
     /// <summary>Pause before a batch; tests make it zero.</summary>
@@ -76,6 +81,9 @@ public sealed class GameStatsUploader : IDisposable
     /// <summary>Starts the background sender (live hosts only; a render never starts it).</summary>
     public void Start()
     {
+        // Before the player can answer the notice: an install that never sent anything is told apart here.
+        Prepare();
+
         // The install id comes from the pool secret: make and save it before the first record, so a crash before exit
         // cannot leave sent records that turning the switch off later no longer finds (LEGAL-game-stats L-m2).
         if (GameStatsClient.Sharing(_settings) && _settings.PoolSecret is not { Length: 64 })
@@ -115,11 +123,14 @@ public sealed class GameStatsUploader : IDisposable
             return;
         }
 
+        // And the withdrawal count it ended under: a record still being built when sharing is turned off is not queued
+        // afterwards, also when sharing is back on before the build ends.
+        var generation = _queues.Generation;
         Task.Run(() =>
         {
             try
             {
-                Enqueue(outcome, destination);
+                Enqueue(outcome, destination, generation);
             }
             catch (Exception ex)
             {
@@ -128,13 +139,15 @@ public sealed class GameStatsUploader : IDisposable
         }).Forget("Game stats");
     }
 
-    /// <summary>Builds the record of a finished game and queues it for <paramref name="destination"/>, the pool it ended under.</summary>
-    internal void Enqueue(GameOutcome outcome, string destination)
+    /// <summary>
+    /// Builds the record of a finished game and queues it for <paramref name="destination"/>, the pool it ended under,
+    /// unless sharing was withdrawn since <paramref name="generation"/> (<see cref="GameStatsQueues.Generation"/>).
+    /// </summary>
+    internal void Enqueue(GameOutcome outcome, string destination, int generation)
     {
-        MigrateOnce();
-        if (Build(outcome) is { } record && _queues.For(destination) is { } queue)
+        Prepare();
+        if (Build(outcome) is { } record && _queues.Add(destination, record, generation))
         {
-            queue.Add(record);
             Kick();
         }
     }
@@ -156,20 +169,16 @@ public sealed class GameStatsUploader : IDisposable
     }
 
     /// <summary>
-    /// The player turned sharing off: what waits is dropped and the pool is asked to delete what this install sent.
-    /// The queues kept for other pools are emptied as well; each of those pools gets its own deletion request, which
-    /// waits until the settings name that pool again.
+    /// The player turned sharing off: what waits is dropped, in every pool's queue, and each pool that may hold
+    /// something of this install is asked to delete it (the request waits for that pool's address). A pool nothing
+    /// was sent to is asked nothing, and no install id is made for the occasion. Works whatever state the move of an
+    /// earlier version's queue is in.
     /// </summary>
     public void Withdraw()
     {
-        MigrateOnce();
+        Prepare();
         var destination = PoolDestination.Of(_settings);
-        if (destination is not null)
-        {
-            _queues.For(destination)?.Clear(forget: true);
-        }
-
-        _queues.WithdrawOthers(destination);
+        _queues.Withdraw(destination);
         Report(destination);
         Kick();
     }
@@ -181,8 +190,14 @@ public sealed class GameStatsUploader : IDisposable
     /// </summary>
     internal async Task<bool> PassAsync(CancellationToken cancellationToken)
     {
-        MigrateOnce();
+        Prepare();
         var destination = PoolDestination.Of(_settings);
+        if (_settings.GameStatsOff)
+        {
+            // The refusal holds on every pass, not only at the click: also for what a late move or a restart brought in.
+            _queues.Withdraw(destination);
+        }
+
         _queues.Sweep(destination);
         Report(destination);
         if (destination is null || _queues.For(destination) is not { } queue)
@@ -190,22 +205,32 @@ public sealed class GameStatsUploader : IDisposable
             return true;
         }
 
-        var install = GameStatsClient.InstallId(_settings);
         if (queue.ForgetPending && Addressed(queue))
         {
-            if (!await GameStatsClient.ForgetAsync(_http, destination, install, cancellationToken).ConfigureAwait(false))
+            if (_settings.PoolSecret is not { Length: 64 })
+            {
+                // Without the secret there is no install id the pool knows: a request with a new one would delete nothing.
+                Diag.Info("Game stats: deletion request without an install id dropped");
+                queue.DropForget();
+            }
+            else if (!await GameStatsClient.ForgetAsync(_http, destination, GameStatsClient.InstallId(_settings), cancellationToken).ConfigureAwait(false))
             {
                 return false;
             }
-
-            queue.Forgotten();
+            else
+            {
+                queue.Forgotten();
+            }
         }
 
         while (GameStatsClient.Sharing(_settings) && Addressed(queue) && queue.Take(GameStatsClient.MaxBatch) is { Count: > 0 } batch)
         {
-            switch (await GameStatsClient.SubmitAsync(_http, destination, install, batch, cancellationToken).ConfigureAwait(false))
+            // Marked before the request: an answer that never arrives may still have stored the batch.
+            queue.MarkUsed();
+            switch (await GameStatsClient.SubmitAsync(_http, destination, GameStatsClient.InstallId(_settings), batch, cancellationToken).ConfigureAwait(false))
             {
                 case GameStatsAnswer.Later:
+                    Report(PoolDestination.Of(_settings));
                     return false;
                 case GameStatsAnswer.Refused:
                     Diag.Info($"Game stats: dropped {batch.Count} record(s) the pool refused");
@@ -233,39 +258,55 @@ public sealed class GameStatsUploader : IDisposable
     /// <summary>The settings still name the pool this queue was filled for.</summary>
     private bool Addressed(GameStatsQueue queue) => PoolDestination.Of(_settings) == queue.Destination;
 
-    /// <summary>The queue of the version before destinations, moved once per run before anything is queued or sent.</summary>
-    private void MigrateOnce()
+    /// <summary>
+    /// Brings the data folder to this layout before anything is queued, sent or withdrawn. Once per data folder: an
+    /// install whose settings show that an earlier version could already send (notice seen, sharing on, a secret) has
+    /// its current pool marked as used, so turning sharing off still asks that pool to delete. And until it works:
+    /// the earlier version's queue is taken out of the root.
+    /// </summary>
+    internal void Prepare()
     {
-        if (Interlocked.Exchange(ref _migrated, 1) == 0)
+        lock (_prepareGate)
         {
-            _queues.MigrateLegacy(PoolDestination.Explicit(_settings));
+            if (!_layoutChecked)
+            {
+                _layoutChecked = true;
+                if (_queues.FirstRun() && _settings is { GameStatsNoticeShown: true, GameStatsOff: false, PoolSecret.Length: 64 }
+                    && PoolDestination.Of(_settings) is { } destination)
+                {
+                    _queues.For(destination)?.MarkUsed();
+                }
+            }
+
+            _migrated = _migrated || _queues.MigrateLegacy(_settings.GameStatsOff);
         }
     }
 
-    /// <summary>Publishes the state, and writes one log line when what is kept for other pools changed.</summary>
+    /// <summary>
+    /// Publishes the state, and writes one log line when what is kept for other pools changed. Counted and raised
+    /// under one lock and numbered: a report never overtakes a newer one, and a listener can tell them apart.
+    /// </summary>
     private void Report(string? destination)
     {
-        var held = _queues.Held(destination);
-        var pending = destination is not null && _queues.For(destination) is { } queue ? queue.Count : 0;
-        var state = new GameStatsState(pending, held.Records, held.Deletions);
-        GameStatsState before;
         lock (_stateGate)
         {
-            before = _state;
+            var held = _queues.Held(destination);
+            var pending = destination is not null && _queues.For(destination) is { } queue ? queue.Count : 0;
+            var before = _state;
+            var state = new GameStatsState(pending, held.Records, held.Deletions) { Revision = before.Revision + 1 };
+            if (state == before)
+            {
+                return;
+            }
+
             _state = state;
-        }
+            if ((state.HeldRecords, state.HeldDeletions) != (before.HeldRecords, before.HeldDeletions) && (state.HeldRecords > 0 || state.HeldDeletions > 0))
+            {
+                Diag.Info($"Game stats: queue for another pool kept, {state.HeldRecords} record(s), {state.HeldDeletions} deletion request(s)");
+            }
 
-        if (state == before)
-        {
-            return;
+            StateChanged?.Invoke(state);
         }
-
-        if ((state.HeldRecords, state.HeldDeletions) != (before.HeldRecords, before.HeldDeletions) && (state.HeldRecords > 0 || state.HeldDeletions > 0))
-        {
-            Diag.Info($"Game stats: queue for another pool kept, {state.HeldRecords} record(s), {state.HeldDeletions} deletion request(s)");
-        }
-
-        StateChanged?.Invoke(state);
     }
 
     private async Task LoopAsync(CancellationToken cancellationToken)
@@ -307,4 +348,16 @@ public sealed class GameStatsUploader : IDisposable
 /// The game record queues in numbers: <paramref name="Pending"/> wait for the current pool; <paramref name="HeldRecords"/>
 /// and <paramref name="HeldDeletions"/> wait for other pool addresses and are not sent to the current one.
 /// </summary>
-public sealed record GameStatsState(int Pending, int HeldRecords, int HeldDeletions);
+public sealed record GameStatsState(int Pending, int HeldRecords, int HeldDeletions)
+{
+    /// <summary>
+    /// The number of this report, growing with every change: a listener that gets reports through its own queue drops
+    /// one older than what it already shows. Not part of equality: two reports with the same numbers are the same state.
+    /// </summary>
+    public long Revision { get; init; }
+
+    public bool Equals(GameStatsState? other) =>
+        other is not null && Pending == other.Pending && HeldRecords == other.HeldRecords && HeldDeletions == other.HeldDeletions;
+
+    public override int GetHashCode() => HashCode.Combine(Pending, HeldRecords, HeldDeletions);
+}
