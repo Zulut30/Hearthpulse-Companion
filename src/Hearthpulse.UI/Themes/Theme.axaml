@@ -1045,7 +1045,7 @@
          where a view's styles do not reach it (it stood bare over the page). -->
     <Style Selector="FlyoutPresenter.deckBuild">
         <Setter Property="Foreground" Value="{StaticResource Text}" />
-        <Setter Property="Background" Value="{StaticResource CardFill}" />
+        <Setter Property="Background" Value="{StaticResource Surface2}" />
         <Setter Property="BorderBrush" Value="{StaticResource CardEdge}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="8" />

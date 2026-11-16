@@ -52,6 +52,11 @@ public partial class ConstructedMetaView
         if (_deckBuild is { } popup)
         {
             popup.IsOpen = false;
+            // Closed can be dispatched later: release handlers before a programmatic reopen replaces the popup.
+            if (ReferenceEquals(_deckBuild, popup))
+            {
+                OnDeckBuildClosed(popup, EventArgs.Empty);
+            }
         }
     }
 

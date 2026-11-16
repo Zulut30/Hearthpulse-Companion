@@ -25,6 +25,7 @@
     </DataTemplate>
     <DataTemplate x:Key="DeckMissingList" x:DataType="m:DeckBuildView">
         <StackPanel>
+            <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,8" />
             <TextBlock Text="{Binding Tip}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,8" IsVisible="{Binding HasTip}" />
             <TextBlock Text="{i:Loc Collection.Missing.Title}" Classes="tableHead" Margin="0,0,0,4" IsVisible="{Binding HasMissing}" />
             <ItemsControl ItemsSource="{Binding Missing}" ItemTemplate="{StaticResource MissingCardTemplate}" />

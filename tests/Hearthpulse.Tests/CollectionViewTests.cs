@@ -56,6 +56,7 @@ public sealed partial class CollectionViewTests : IDisposable
         var vm = Shown(Collection());
 
         Assert.Equal(("Owned", "All cards owned"), (Row(vm, Owned).Build!.Kind, Row(vm, Owned).Build!.Label));
+        Assert.Equal(Row(vm, Owned).Build!.Name, Row(vm, Owned).Build!.Details);
         Assert.Equal(("CraftableNow", $"Craftable: {N(800)} dust"), (Row(vm, Craftable).Build!.Kind, Row(vm, Craftable).Build!.Label));
         Assert.Equal(("NeedsDust", $"{N(1400)} dust short"), (Row(vm, NeedsDust).Build!.Kind, Row(vm, NeedsDust).Build!.Label));
         Assert.Equal(("NotCraftable", "Can't be crafted"), (Row(vm, NotCraftable).Build!.Kind, Row(vm, NotCraftable).Build!.Label));

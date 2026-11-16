@@ -201,8 +201,9 @@ public sealed partial class CollectionLayoutTests
             Assert.True(presenter.IsEffectivelyVisible);
             Assert.Contains("deckBuild", presenter.Classes);
 
-            // It stands on its own plate (the theme's card fill and edge, with room around the text), not bare over the page.
-            Assert.Same(window.FindResource("CardFill"), presenter.Background);
+            // A floating plate must be opaque: the page's translucent card fill would show deck rows through it.
+            Assert.Same(window.FindResource("Surface2"), presenter.Background);
+            Assert.Equal((byte)255, Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(presenter.Background).Color.A);
             Assert.Same(window.FindResource("CardEdge"), presenter.BorderBrush);
             Assert.Equal(new Thickness(16, 14), presenter.Padding);
             Assert.True(presenter.Bounds.Width is >= 260 and <= 420, $"flyout width {presenter.Bounds.Width}");

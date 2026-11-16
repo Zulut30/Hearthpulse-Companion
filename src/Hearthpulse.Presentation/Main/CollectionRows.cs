@@ -66,7 +66,7 @@ public sealed record DeckBuildView(
     /// <summary>The label, its reason and the missing cards as text: the help text of the label's button.</summary>
     public string Details => string.Join(
         Environment.NewLine,
-        new[] { Tip }.Concat(Missing.Select(m => m.Line)).Append(Total).Where(line => line.Length > 0));
+        new[] { Name, Tip }.Concat(Missing.Select(m => m.Line)).Append(Total).Where(line => line.Length > 0));
 }
 
 /// <summary>

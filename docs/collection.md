@@ -479,5 +479,7 @@ en, the longest texts whole; names, help texts, tab stops, the 24 px target; the
 with focus in and back; the compact row; the pricing lines), `CollectionMarkupTests` (the two markups side by
 side), `CollectionPrivacyTests` (above), and on Windows `Hearthpulse.Presentation.Tests/CollectionContractTests`
 (both view models the same in every state; the WPF page, its popup with focus in and back, the real deck page, and
-a closed main window collected after its popup was shown). The fixture
+a closed popup with no remaining references to its owner (reference traversal, not a GC collection proof)). The fixture
 (`CollectionFixture`) is made up: no real collection or dust balance is in the tests or in this document.
+
+Integration review limits (2026-11-16): theme folders and theme.txt alone did not establish Sands or every other theme. Some supplied PNGs were identical. Contrast across all themes remains unverified. The reference-traversal regression does not prove collection of an owner window by GC after a real popup. Six additional full runs on the corrected author head were reported green by the author; the coordinator independently reruns the merged head.
