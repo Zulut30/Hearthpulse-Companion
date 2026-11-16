@@ -1877,6 +1877,80 @@
    "NameRu": "Элементаль воды",
    "Runes": [],
    "IsNeutral": false
+  },
+  {
+   "Id": "DS1_184",
+   "DbfId": 1047,
+   "Name": "Tracking",
+   "Text": "Discover a card from your deck.",
+   "Type": "SPELL",
+   "Rarity": "FREE",
+   "Cost": 1,
+   "Classes": [
+    "HUNTER"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "DISCOVER"
+   ],
+   "ReferencedTags": [],
+   "Set": "LEGACY",
+   "Standard": false,
+   "NameRu": "Выслеживание",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "BRM_027",
+   "DbfId": 2281,
+   "Name": "Majordomo Executus",
+   "Text": "Deathrattle: Replace your hero with Ragnaros the Firelord.",
+   "Type": "MINION",
+   "Rarity": "LEGENDARY",
+   "Cost": 9,
+   "Attack": 9,
+   "Health": 7,
+   "Classes": [
+    "NEUTRAL"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "DEATHRATTLE"
+   ],
+   "ReferencedTags": [],
+   "Set": "BRM",
+   "Standard": false,
+   "NameRu": "Мажордом Экзекутус",
+   "Runes": [],
+   "IsNeutral": true
+  },
+  {
+   "Id": "GDB_846",
+   "DbfId": 111074,
+   "Name": "Exarch Naielle",
+   "Text": "Battlecry: Replace your Hero Power with Tracking (Discover a card from your deck).",
+   "Type": "MINION",
+   "Rarity": "LEGENDARY",
+   "Cost": 3,
+   "Attack": 3,
+   "Health": 4,
+   "Classes": [
+    "HUNTER"
+   ],
+   "Races": [
+    "DRAENEI"
+   ],
+   "Mechanics": [
+    "BATTLECRY"
+   ],
+   "ReferencedTags": [
+    "DISCOVER"
+   ],
+   "Set": "SPACE",
+   "Standard": false,
+   "NameRu": "Экзарх Найель",
+   "Runes": [],
+   "IsNeutral": false
   }
  ]
 }

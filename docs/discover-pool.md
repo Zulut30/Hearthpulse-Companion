@@ -332,7 +332,14 @@ data only (no hand-made table):
     with no cost or stats and no token says nothing to check a single candidate against. A name under six letters
     in one word is never found (Hex, Swipe, Brawl). A card that speaks of another card's tokens shows the card, not
     its tokens (`BE_012` shows `BE_013`; the abilities are `BE_013`'s own related cards).
-  - **Audit, 2026-11-16** (catalog of 2026-11-15, 6 501 cards; tokens from HearthstoneJSON). The name rule gives 121
+    CORE reprints share a generic set: the same-set exception can still be ambiguous when both a source and a
+    namesake are reprinted into CORE (no such token/name collision was found in this snapshot).
+  - A text that explicitly replaces the hero or Hero Power requires that target type, before same-set selection.
+    Majordomo (`BRM_027`) therefore does not show the minion Ragnaros; Exarch Naielle (`GDB_846`) does not show the
+    spell Tracking. If the replacement itself is absent from the collectible catalog, the named row is omitted.
+    This does not infer new token links or show Hero Powers, which remain outside the preview's allowed types.
+  - **Audit of `c4ad4cc0`, 2026-11-16** (catalog of 2026-11-15, 6 501 cards; tokens from HearthstoneJSON; before the
+    later replacement-type filter). The name rule gives 121
     named cards on 100 cards. By what backs each: 20 have stats or a cost in the text equal to the card's; 60 are
     cards of the text's own set under their full name; 8 are the same-set short name (C'Thun, Cho'gall); 32 are the
     only card of that name, in another set, with nothing in the data to check them against beyond the name (Gift

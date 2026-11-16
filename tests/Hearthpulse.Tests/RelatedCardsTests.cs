@@ -98,7 +98,7 @@ public sealed class RelatedCardsTests
     }
 
     /// <summary>
-    /// 78 real catalog records, cut as they are (order kept) from the app's disk cache of the Hearthpulse API catalog
+    /// 81 real catalog records, cut as they are from the app's disk cache of the Hearthpulse API catalog
     /// (<c>api/v1/constructed-cards?format=wild</c>, 6 501 cards, fetched 2026-11-15T21:38:55Z) by card id: the cards
     /// of the cases below and every card their texts could mean.
     /// </summary>
@@ -284,7 +284,11 @@ public sealed class RelatedCardsTests
               {"id":"EX1_298","dbfId":4,"name":"Ragnaros the Firelord","type":"MINION","cost":8,"set":"EXPERT1","collectible":true},
               {"id":"FP1_014","dbfId":5,"name":"Stalagg","type":"MINION","cost":5,"set":"NAXX","collectible":true},
               {"id":"FP1_014t","dbfId":6,"name":"Thaddius","type":"MINION","cost":10,"set":"NAXX"},
-              {"id":"FP1_015","dbfId":7,"name":"Feugen","type":"MINION","cost":5,"set":"NAXX","collectible":true}
+              {"id":"FP1_015","dbfId":7,"name":"Feugen","type":"MINION","cost":5,"set":"NAXX","collectible":true},
+              {"id":"SW_313","dbfId":64308,"name":"Rise to the Occasion","type":"SPELL","cost":1,"set":"STORMWIND","collectible":true},
+              {"id":"SW_313t","dbfId":8,"name":"Next stage","type":"SPELL","cost":1,"set":"STORMWIND"},
+              {"id":"SW_313t4","dbfId":9,"name":"Quest reward","type":"MINION","cost":5,"set":"STORMWIND"},
+              {"id":"CS2_091","dbfId":383,"name":"Light's Justice","type":"WEAPON","cost":1,"set":"LEGACY","collectible":true}
             ]
             """u8.ToArray()));
         string[] Related(string id, CardPoolCatalog catalog) => [.. RelatedCards.Of(id, cards, catalog)!.Rows.Select(r => r.CardId).Order(StringComparer.Ordinal)];
@@ -295,11 +299,39 @@ public sealed class RelatedCardsTests
             Assert.Equal(["TRL_316t"], Related("TRL_316", catalog));
             // A card of the text's own set stays beside the token: Stalagg names Feugen and makes Thaddius.
             Assert.Equal(["FP1_014t", "FP1_015"], Related("FP1_014", catalog));
+            // Spell/minion tokens do not hide the explicitly named weapon (review m5).
+            Assert.Equal(["CS2_091", "SW_313t", "SW_313t4"], Related("SW_313", catalog));
         }
 
         // With no token of that type in the card data the name is all there is.
         Assert.Equal(["AT_019"], NamedBy("SW_087", Real.Value));
         Assert.Equal(["EX1_298"], NamedBy("TRL_316", Real.Value));
+    }
+
+    /// <summary>Real normalized texts from the same 2026-11-15 catalog: replacement heroes/powers are not their collectible namesakes.</summary>
+    [Theory]
+    [InlineData("BRM_027")]
+    [InlineData("GDB_846")]
+    public void A_replacement_hero_or_power_is_not_a_collectible_minion_or_spell(string id)
+    {
+        foreach (var catalog in new[] { Real.Value, Reversed(Real.Value) })
+        {
+            Assert.Empty(NamedBy(id, catalog));
+        }
+    }
+
+    [Fact]
+    public void The_replacement_type_keeps_a_matching_hero_and_does_not_hide_an_unrelated_spell()
+    {
+        // Synthetic hero candidate and text, to distinguish a type restriction from suppressing the whole name.
+        var catalog = With(Real.Value,
+            Pool("TEST_HERO_RAG", "Ragnaros the Firelord", "Hero text.") with { Type = "HERO", Set = "BRM" },
+            Pool("TEST_POWER_SOURCE", "Power teacher", "Your Hero Power adds a Tracking to your hand."));
+        foreach (var c in new[] { catalog, Reversed(catalog) })
+        {
+            Assert.Equal(["TEST_HERO_RAG"], NamedBy("BRM_027", c));
+            Assert.Equal(["DS1_184"], NamedBy("TEST_POWER_SOURCE", c));
+        }
     }
 
     /// <summary>

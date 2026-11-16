@@ -275,7 +275,7 @@ public static partial class RelatedCards
     /// What the text says of a card right before its name: "a 2-Cost Sabotage", "a 3/6 Water Elemental". A weapon's
     /// second number is its durability, which the catalog does not have: only its attack is compared.
     /// </summary>
-    private readonly record struct Qualifier(int? Cost, int? Attack, int? Health)
+    private readonly record struct Qualifier(int? Cost, int? Attack, int? Health, string? Type = null)
     {
         public static Qualifier Before(string text, int start)
         {
@@ -286,11 +286,16 @@ public static partial class RelatedCards
 
             var at = text.LastIndexOf(' ', start - 2) + 1;
             var match = Count().Match(text[at..(start - 1)]);
-            return new Qualifier(Number(match.Groups["cost"]), Number(match.Groups["attack"]), Number(match.Groups["health"]));
+            // A replacement hero/power can share a name with a collectible minion/spell. The text names its type.
+            var prefix = text[..start];
+            var type = prefix.EndsWith("Hero Power with ", StringComparison.OrdinalIgnoreCase) ? "HERO_POWER"
+                : prefix.EndsWith("hero with ", StringComparison.OrdinalIgnoreCase) ? "HERO" : null;
+            return new Qualifier(Number(match.Groups["cost"]), Number(match.Groups["attack"]), Number(match.Groups["health"]), type);
         }
 
         public bool Fits(PoolCard card) =>
-            (Cost is null || card.Cost == Cost)
+            (Type is null || card.Type == Type)
+            && (Cost is null || card.Cost == Cost)
             && (Attack is null || (card.Type is "MINION" or "WEAPON" && card.Attack == Attack && (card.Type != "MINION" || card.Health == Health)));
 
         private static int? Number(Group group) =>
