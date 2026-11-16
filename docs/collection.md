@@ -271,11 +271,31 @@ statement:
   too; only `collection.json` holds them. A second test proves the search itself finds a marker in each of those
   places.
 
-  **Not run by that test**, so covered only by the two points above: the Twitch publisher and the replay upload and
-  share (both need a signed-in account; neither reads the collection), Discord presence (a local pipe), the account's
-  own calls (`/me`, sign-in), the mulligan guide's and the leaderboard's downloads, and anything a later change adds
-  without adding it to the test. The test answers every request with 503, so a second request that a sender makes
-  only after a successful first one is not seen either (the source capture's `complete` call).
+  **What this proves, and what it does not.** For these **six flows** (the downloads, the game record, shared games,
+  the source capture, the profile upload, the crash report) "the collection does not leave" is shown by behaviour.
+  For everything else it rests on the first two points alone (reading the sources, the static check of names), and
+  is **not** network proof:
+
+  - the Twitch publisher, the replay upload and the replay share are not run (they need a signed-in account);
+  - Discord presence is a named pipe: an `HttpMessageHandler` cannot see it at all;
+  - the account's own calls (`/me`, the sign-in), the mulligan guide's and the leaderboard's downloads, the card
+    art downloads;
+  - the profile upload and the crash report are run as the same classes on the same client, not as the instances
+    a host owns (the services' own uploader is signed out; the reporter is built by the host);
+  - the hosts' own wiring (`App.xaml.cs`, `AppHost.cs`) is not executed: the view model of the test is wired by the
+    test as the hosts wire it;
+  - every answer is 503, so a request a sender makes only after a successful first one is not seen (the source
+    capture's `complete` call); a client made beside the `HttpClient` that was handed in would not be seen either;
+  - `.db` files are left out of the search on disk; the markers are the card id and the dust balance, so a number
+    derived from the collection (a deck's price, the count of cards) is not looked for;
+  - anything a later change adds without adding it to the test.
+
+  **The count of cards in the log.** `CollectionWatch` writes "Collection read from the client: N cards" to
+  `hearthpulse.log`, and nothing else of the collection. A crash report is made from the exception alone
+  (`CrashReport.Build`: the place, the exception's type, message and stack through `CrashReport.Scrub`; it reads no
+  log), so that line does not travel with it. The wire test checks this on a made-up count: the line is in the log,
+  and neither it nor the count is in the report as sent. Were a later change to attach the log's tail to a report,
+  this line would go with it and that test would fail.
 
 Card ids: the views show card names and never put a card id of the collection into an address or a file name (the
 missing-card rows carry the id the **deck** names, from the card data; they load no art by it). Ids that come from
@@ -312,11 +332,64 @@ the deck list with the label of the main version, its missing cards and the stat
 The words and the glyph carry the meaning; no colour is used for it. `Estimated` adds the mark "estimate" / «оценка»
 and the reason in the label's help text (another printing in the collection; a card the game hands out). The label
 is a button: its accessible name is the label with its marks, its help text and tooltip the reason and the missing
-cards, and pressing it opens them (WPF: the view's one popup, Escape closes it and gives focus back; Avalonia: a
-flyout). A missing card shows its name ("2 × Name"), its price ("2 × 400 dust", or "can't be crafted") and what makes
-it an estimate; the sum is `DustNeeded`, and for `NotCraftable` never a price of the deck ("Dust can't complete this
-deck", or the cost of the craftable part named as that). Copies are counted as `OwnedCopies.Total`: the split by
-finish is not shown anywhere (`CollectionMarkupTests`).
+cards, and pressing it opens them (WPF: a popup; Avalonia: a flyout). Opened, the list takes focus and is named for
+a screen reader; Escape closes it and focus returns to the label (in WPF Enter and Space close it too); a new
+collection or a new list, which replaces the row, closes it rather than leave the old numbers on screen. A missing
+card shows its name ("2 × Name"), its price ("2 × 400 dust", or "can't be crafted") and what makes it an estimate.
+Copies are counted as `OwnedCopies.Total`: the split by finish is not shown anywhere (`CollectionMarkupTests`).
+
+**Three dust numbers, told apart.** The column "Dust" of the list is the price of the whole deck from nothing (it was
+there before the collection; its head's tooltip now says so and points at the label). The label of a deck that
+lacks dust names what is **lacking** (`DustShort`: "400 dust short"). Its reason puts all of it in one sentence:
+"The missing cards cost 2,400 dust and you have 1,000: 1,400 short." The sum under the missing cards is the price of
+the missing cards (`DustNeeded`: "Missing cards: 2,400 dust"); for `NotCraftable` it is never a price of the deck
+("Dust can't complete this deck", or the cost of the craftable part named as that).
+
+**Never a made-up zero.** A label is built only from numbers the deck cost gives: a state whose label needs a number
+that is null (`CraftableNow` without `DustNeeded` or `DustAvailable`, `NeedsDust` without `DustShort`) gets no
+label, like `Unknown`, and is ranked with the unknown in the order by dust. Core gives these numbers for these
+states today; the views do not depend on it.
+
+**Why a deck has no label** (the deck page says it under the block's title, by `DeckCost.Gap`): no deck code; card
+data not loaded; a card the card data does not know; a missing card without a known rarity (so without a price); a
+sideboard in the code that cannot be read; and a neutral "couldn't work out what this deck is missing" for anything
+else.
+
+**The WPF popup stands by itself.** It is made for each opening, has neither a parent nor a placement target (it is
+put at the label's place on the screen and given the page's font and text colour), closes with its window, and is
+emptied when it closes (content, template, focus entry, handlers). `CollectionPopupTests` holds this by walking what
+a closed popup reaches: neither the view, the window nor the label, whichever way it was closed; the same walk does
+find the window from a stock popup that was placed at a label.
+
+### The closed window and UI Automation
+
+`MainWindowLifetimeTests.A_closed_wpf_main_window_is_collected_while_its_view_model_lives_on` failed in a full run of
+the Windows suite on this branch. What was found (2026-11-16, this machine, where something listens to UI
+Automation: `AutomationPeer.ListenerExists` is true for focus, structure and property events):
+
+- **Series.** 8 full runs on the commit before the interface (`237c5e12`): 0 failures. 8 full runs on `3bac37b4`
+  with a hook that looks at the window after the test's five turns of the dispatcher: the closed window was still
+  alive in 5 of 8. By the TRX order of each run those are exactly the 5 runs in which the test that opened the
+  collection's popup ran **before** the lifetime test; in the 3 runs where it ran after, the window was collected.
+- **Not a root that stays.** Left alone (more turns of the dispatcher and collections, no change to the test), the
+  window went away after 60 to 68 seconds in 3 of the 5; in the other 2 the extra turns ended sooner than that.
+- **The root** (`dotnet-dump`, `gcroot` of the window): ref-counted handles on `MS.Internal.Automation.ElementProxy`,
+  each leading through an `ItemsControlItemAutomationPeer` to a list of the window (the rank filter's, in the dump
+  read) and from it to the window. UI Automation holds them; no field of the app does.
+- **Not the collection's code.** A fresh process that opens a stock context menu, a tool tip or an empty `Popup` and
+  then runs the lifetime test's steps leaves the window alive every time (2 of 2 each); without a popup, or with
+  only a window, or only a focus change, never (0 of 2 each). The same on `237c5e12`, which has no collection
+  interface: 2 of 2 for each kind of popup, 0 of 2 without. So: after the first popup of a process, UI Automation
+  keeps elements of later windows for about a minute after they close, on a machine with a listener. For the app
+  that means a main window closed by a theme change or to the tray may stay in memory for about a minute while a
+  screen reader or a similar tool runs; it is not kept for good, and tool tips have always done this.
+- **What was wrong in the branch, and is fixed.** The popup was a child of the view. With that, the peer of its
+  popup root led to the view and the window (first dump), and as a parentless popup placed at a label still to the
+  window through the values it inherited (second dump): the window a popup had been opened in was reachable from
+  the popup itself for as long as UI Automation held the popup's peer. That is the paragraph above.
+- **What was wrong in the tests, and is fixed.** A test that opens a real popup changes the process for the tests
+  after it. Such tests are now in one collection that runs last (`RealPopups`, `RealPopupsLast` in
+  `Hearthpulse.Presentation.Tests`); the lifetime test is not changed.
 
 **A saved collection** (`Confirmed == false`; called "saved", never "from a file"). Rule of the legal review: by a
 collection nobody vouches for now, the app does not state "you can build this" as a fact.
@@ -326,9 +399,12 @@ collection nobody vouches for now, the app does not state "you can build this" a
 - **"Can build" is off limits** (disabled, with the reason in a line beside it and in its tooltip), not "on with a
   note". Decision of this package: a filter hides lists, and hiding by saved numbers states "you cannot build the
   rest" about every hidden list at once, with nowhere to put a mark on what is not shown; the file does not even say
-  whose collection it holds. The labels stay, each with its mark; the order by missing dust stays too (it hides
-  nothing and every row keeps its mark). The player's choice is kept and applies again once the collection is
-  confirmed. Both UIs do the same (`CollectionContractTests`).
+  whose collection it holds. The labels stay, each with its mark. The player's choice is kept and applies again
+  once the collection is confirmed. Both UIs do the same (`CollectionContractTests`).
+- **The order by missing dust stays, and decides nothing about which lists are shown.** The page shows at most sixty
+  lists. By a confirmed collection the order picks those sixty from every list (the cheapest for this player). By a
+  saved one the win rate picks the sixty, as without any order, and the saved numbers only arrange them: no list is
+  left off the page, or put on it, by numbers nobody vouches for now (`CollectionViewTests`, with 61 lists).
 
 **The status line** (`MainViewModel.CollectionStatus`; the date of `ReadAt` is always in it when there is a collection):
 
@@ -345,18 +421,31 @@ The view model cannot tell "not read yet" from "the read fails": the session giv
 both, and it names the step that asks for a new read (opening the collection screen).
 
 **Pricing.** A page's lists are priced when its stats, the collection or the card data change: up to 80 lists at
-once, more on a pool thread (the labels appear when it is done; a newer change drops an older result). "Can build"
-keeps `Owned` and `CraftableNow`; while prices are being made its empty state is not shown. The order by missing
-dust: what needs no more dust than the player has (by its cost), then by the dust lacking, then the lists no dust
-completes, then the unknown.
+once, more on a pool thread, coming back on the caller's context (the UI thread: both hosts set the collection and
+the stats there); a newer change drops an older result. While a long list is being priced there are no labels yet,
+and with "can build" on the card says "Working out which of these decks you can build…" in place of the rows it
+waits for. A pricing that fails is logged, ends the wait and shows a line with "Check again"
+(`MainViewModel.RetryDeckCosts`); the same inputs are not priced again by themselves. "Can build" keeps `Owned` and
+`CraftableNow`. The order by missing dust: what needs no more dust than the player has (by its cost), then by the
+dust lacking, then the lists no dust completes, then the unknown.
+
+**The compact row (Avalonia, below 900).** A top-deck row gives the deck's name the room of the games and dust
+columns, which hide with their heads, and its Copy button moves to the second line beside the label; the Copy
+column of the head and of the rows is one shared width. Before, the name was squeezed to nothing and the button cut
+(`CollectionLayoutTests`). WPF has no compact layout.
 
 **Render.** `HEARTHPULSE_RENDER_ONLY=collection` (`DevRender.Collection.cs`, `OffscreenRenderer.Collection.cs`) shows
 all of it on `Core/Constructed/CollectionScene.cs`: a made-up collection and made-up lists of real card names. The
-player's own collection is never put into a render's data copy.
+player's own collection is never put into a render's data copy. `main-collection-missing` is the opened list of a
+label (the popup or flyout itself). The deck frames are taken on the real deck page: the scene opens the made-up
+deck through `MainViewModel.OpenSampleDeck`, checks that the page and its collection block are on screen, and fails
+the render otherwise. (Until the second round those frames showed the tier list: the scene sets the stats before
+every frame, new stats rebuild the deck list from the history, the history has no such deck, and the page closed.
+The made-up deck now stays open through a rebuild until its page is closed.)
 
-**Known limits.** The Avalonia compact layout (420 wide) cuts the columns of a top-deck row as it did before this
-package (the row's fixed columns are wider than the card); the label under them wraps and is whole. WPF's popup is
-not in the render scenes (an off-screen render draws no popup); `CollectionContractTests` opens it.
+**Known limits.** The side card of the tier list is as narrow as before: the name of a best list is squeezed and its
+Copy button cut there in both UIs (not changed by this package). A screen reader's walk through the page was not
+done by hand; names, help texts, tab stops, focus and the 24 px targets are held by tests.
 
 ## The Core interface the views use
 
@@ -382,9 +471,13 @@ confirmed and stale results, a failed save, the static check of sending files). 
 collection is in the repository.
 
 The interface: `CollectionViewTests` (the five states, estimates, a saved collection, none, a system without the
-read, the filter, the order, a new collection, the session's event through a host-style dispatch, a long list priced
-off the calling thread, the deck page), `CollectionLayoutTests` (Avalonia, headless: 420 and 1280 wide, ru and en,
-the longest texts whole; names, help texts, tab stops, the 24 px target), `CollectionMarkupTests` (the two markups
-side by side), `CollectionPrivacyTests` (above), and on Windows `Hearthpulse.Presentation.Tests/CollectionContractTests`
-(both view models the same in every state; the WPF page, its popup and the deck page). The fixture
+read, the filter, the order and its sixty, a new collection, the session's event through a host-style dispatch, a
+reason per gap, no label from a missing number, a long list priced off the calling thread and applied on the
+caller's context with a superseded pricing dropped, a failed pricing and its retry, one build per change, the
+made-up deck staying open, the deck page), `CollectionLayoutTests` (Avalonia, headless: 420 and 1280 wide, ru and
+en, the longest texts whole; names, help texts, tab stops, the 24 px target; the real deck page; the opened flyout
+with focus in and back; the compact row; the pricing lines), `CollectionMarkupTests` (the two markups side by
+side), `CollectionPrivacyTests` (above), and on Windows `Hearthpulse.Presentation.Tests/CollectionContractTests`
+(both view models the same in every state; the WPF page, its popup with focus in and back, the real deck page, and
+a closed main window collected after its popup was shown). The fixture
 (`CollectionFixture`) is made up: no real collection or dust balance is in the tests or in this document.

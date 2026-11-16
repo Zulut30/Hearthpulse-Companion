@@ -7,8 +7,8 @@
   "Collection.Label.WithMarks": "{0} · {1}",
   "Collection.Mark.Estimate": "estimate",
   "Collection.Mark.Saved": "by a saved collection",
-  "Collection.Tip.Craftable": "The missing cards cost {0} dust; you have {1}.",
-  "Collection.Tip.NeedsDust": "The missing cards cost {0} dust; you have only {1}.",
+  "Collection.Tip.Craftable": "The missing cards cost {0} dust and you have {1}: enough.",
+  "Collection.Tip.NeedsDust": "The missing cards cost {0} dust and you have {1}: {2} short.",
   "Collection.Tip.NotCraftable": "One of the missing cards can't be crafted with dust.",
   "Collection.Tip.OtherPrinting": "An estimate: your collection has another printing of a missing card. The game may accept it, and then the card isn't needed.",
   "Collection.Tip.CraftUncertain": "An estimate: the game hands out a missing card itself, and it may not be craftable right now.",
@@ -22,7 +22,7 @@
   "Collection.Missing.CraftUncertain": "may not be craftable now",
   "Collection.Missing.Line": "{0} — {1}",
   "Collection.Missing.LineNote": "{0} — {1} ({2})",
-  "Collection.Missing.Total": "Total: {0} dust",
+  "Collection.Missing.Total": "Missing cards: {0} dust",
   "Collection.Missing.TotalPartial": "Craftable cards: {0} dust. That won't complete the deck.",
   "Collection.Missing.TotalNone": "Dust can't complete this deck.",
   "Collection.Status.Confirmed": "Collection read from the game {0}.",
@@ -44,5 +44,12 @@
   "Collection.Sort.Dust": "By missing dust",
   "Collection.Deck.NoCode": "This deck has no code, so it can't be checked against your collection.",
   "Collection.Deck.NoCardData": "Card data isn't loaded yet, so the deck can't be checked against your collection.",
-  "Collection.Deck.UnknownCards": "Couldn't check this deck against your collection: the card data lacks some of its cards."
+  "Collection.Deck.UnknownCards": "Couldn't check this deck against your collection: the card data lacks some of its cards.",
+  "Collection.Deck.UnknownRarity": "Couldn't check this deck against your collection: a missing card has no known rarity, so no price.",
+  "Collection.Deck.UnreadableSideboard": "Couldn't check this deck against your collection: the sideboard in the deck code can't be read.",
+  "Collection.Deck.Unpriced": "Couldn't work out what this deck is missing.",
+  "Collection.Dust.ColumnTip": "Dust to craft the whole deck from nothing. What you need yourself is in the label under the deck.",
+  "Collection.Pricing": "Working out which of these decks you can build…",
+  "Collection.PricingFailed": "Couldn't check the decks against your collection.",
+  "Collection.PricingRetry": "Check again"
 }

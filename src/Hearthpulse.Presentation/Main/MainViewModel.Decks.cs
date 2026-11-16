@@ -41,6 +41,12 @@ public sealed partial class MainViewModel
     private IReadOnlyList<MergeSuggestion> _mergeSuggestions = [];
     private IReadOnlyList<DeckSuggestionRow> _deckSuggestions = [];
     private DeckDetailsViewModel? _deckPage;
+
+    /// <summary>How many builds of the deck list were applied (a test waits for the one a change started).</summary>
+    internal int DeckListBuilds { get; private set; }
+
+    /// <summary>A deck opened without a history row of its own (<see cref="OpenSampleDeck"/>); null once its page is closed.</summary>
+    private DeckFamily? _sampleDeck;
     private bool _deckOpen;
     private string? _openDeckKey;
     private int _decksBuild;
@@ -80,7 +86,9 @@ public sealed partial class MainViewModel
     /// <summary>Opens a deck page by family key (also used by the UI render check). False when there is no such deck.</summary>
     public bool OpenDeckPage(string key)
     {
-        if (_deckFamilies.FirstOrDefault(f => f.Key == key) is not { } family)
+        // The render check's made-up deck is in no history: it stays openable while its page is open, through every
+        // rebuild of the deck list (new stats rebuild it, and the history does not have this deck).
+        if ((_deckFamilies.FirstOrDefault(f => f.Key == key) ?? (_sampleDeck?.Key == key ? _sampleDeck : null)) is not { } family)
         {
             return false;
         }
@@ -101,6 +109,7 @@ public sealed partial class MainViewModel
     {
         DeckOpen = false;
         _openDeckKey = null;
+        _sampleDeck = null;
     }
 
     /// <summary>The history, for the deck page's card columns (read on its build thread).</summary>
@@ -357,6 +366,8 @@ public sealed partial class MainViewModel
             {
                 CloseDeck();
             }
+
+            DeckListBuilds++;
         }
         catch (Exception ex)
         {

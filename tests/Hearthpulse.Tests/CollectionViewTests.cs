@@ -17,7 +17,7 @@ namespace Hearthpulse.Tests;
 /// state, and that a new collection prices the lists again.
 /// </summary>
 [Collection(nameof(GlobalLanguage))]
-public sealed class CollectionViewTests : IDisposable
+public sealed partial class CollectionViewTests : IDisposable
 {
     private readonly string _db = TestDataFolder.Scratch("hp-collection-view") + ".db";
     private readonly HistoryStore _history;
@@ -94,7 +94,7 @@ public sealed class CollectionViewTests : IDisposable
         Assert.Equal(("2 × Epic", $"2 × {N(400)} dust"), (epic.Name, epic.Price));
         var legend = build.Missing.Single(m => m.CardId == "C_LEGEND");
         Assert.Equal((LongName, $"{N(1600)} dust"), (legend.Name, legend.Price));
-        Assert.Equal($"Total: {N(2400)} dust", build.Total);
+        Assert.Equal($"Missing cards: {N(2400)} dust", build.Total);
 
         // The accessible text of the label says all of it.
         Assert.StartsWith(build.Label, build.Name, StringComparison.Ordinal);
@@ -110,7 +110,7 @@ public sealed class CollectionViewTests : IDisposable
         var reward = Assert.Single(build.Missing);
         Assert.Equal(("Event Reward", "can't be crafted"), (reward.Name, reward.Price));
         Assert.Equal("Dust can't complete this deck.", build.Total);
-        Assert.DoesNotContain("Total", build.Total, StringComparison.Ordinal);
+        Assert.DoesNotContain("Missing cards:", build.Total, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -442,7 +442,7 @@ public sealed class CollectionViewTests : IDisposable
         Assert.True(block.HasBuild);
         Assert.Equal($"{N(1400)} dust short", block.Build!.Label);
         Assert.Equal(new[] { "C_EPIC", "C_LEGEND" }, block.Build.Missing.Select(m => m.CardId).Order(StringComparer.Ordinal));
-        Assert.Equal($"Total: {N(2400)} dust", block.Build.Total);
+        Assert.Equal($"Missing cards: {N(2400)} dust", block.Build.Total);
         Assert.Equal(string.Empty, block.Note);
     }
 

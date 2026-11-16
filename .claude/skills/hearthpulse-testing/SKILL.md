@@ -32,6 +32,12 @@ dotnet restore tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tes
 dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj -c Release --no-restore
 ```
 
+A test of the Windows suite that opens a real WPF popup (a `Popup`, a context menu, a tool tip) goes into the
+collection `RealPopups`, which runs last: on a machine where anything listens to UI Automation the first popup of a
+process makes later closed windows stay alive for about a minute, and `MainWindowLifetimeTests` after it fails
+(`tests/Hearthpulse.Presentation.Tests/RealPopups.cs`, `docs/collection.md`). Check what a closed popup holds by
+what it reaches (`CollectionPopupTests.PathTo`), not by a garbage collection.
+
 Build both UI hosts as well: the shared import selects `HEARTHPULSE_WPF` / `HEARTHPULSE_AVALONIA` from
 `HearthpulsePresentationFlavor`. Tests against Avalonia alone cannot validate the WPF compile branch. Linux CI
 runs the cross-platform suite; Windows also runs the presentation suite. Keep their results and skips separate.

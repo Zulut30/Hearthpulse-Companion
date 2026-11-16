@@ -38,6 +38,9 @@ public sealed partial class CollectionPrivacyTests
     /// <summary>A dust balance only the collection holds (under the 1 000 000 000 bound; not a real balance).</summary>
     private const long MarkerDust = 918_273_645;
 
+    /// <summary>How many different cards the made-up collection holds: the one number of it the log writes down.</summary>
+    private const int MarkerCount = 7391;
+
     private const string Pool = "https://pool.test";
     private const string Site = "https://site.test/api/v1/";
 
@@ -179,6 +182,16 @@ public sealed partial class CollectionPrivacyTests
             Talked("profile upload", r => r.Method == "POST" && r.Url == Site + "tracker/events/batch" && r.Headers.Contains("access-token", StringComparison.Ordinal));
             Talked("crash report", r => r.Method == "POST" && r.Url == Site + "crash-reports" && r.Body.Contains("The collection view failed", StringComparison.Ordinal));
 
+            // ---- The log names a read by its number of cards (CollectionWatch). A crash report is made from the exception
+            // alone (CrashReport.Build reads no log), so that line is not in it: checked here on the report as sent.
+            var counted = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Collection read from the client: {MarkerCount} cards");
+            Assert.Contains(counted, TestDataFolder.ReadLog(), StringComparison.Ordinal);
+            var crash = Assert.Single(sent, r => r.Url == Site + "crash-reports");
+            Assert.DoesNotContain("Collection read", crash.Body, StringComparison.Ordinal);
+            Assert.DoesNotContain(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{MarkerCount} cards"), crash.Body, StringComparison.Ordinal);
+            Assert.DoesNotContain("HPFILL_", crash.Everything, StringComparison.Ordinal);
+            Assert.All(sent, r => Assert.DoesNotContain("HPFILL_", r.Everything, StringComparison.Ordinal));
+
             // ---- And none of them said a word of the collection.
             Assert.All(sent, r => Assert.True(Markers(r.Everything).Count == 0, $"{r.Method} {r.Url} carries {string.Join(", ", Markers(r.Everything))}"));
 
@@ -244,14 +257,26 @@ public sealed partial class CollectionPrivacyTests
         Assert.Equal(new[] { true, true, true, true, true, false }, wire.Requests.Select(r => Markers(r.Everything).Count > 0));
     }
 
-    private static CardCollection Marked() =>
-        new(new Dictionary<string, OwnedCopies>(StringComparer.Ordinal)
+    /// <summary>
+    /// The marker card and dust, the fixture's owned cards, and made-up cards up to <see cref="MarkerCount"/> in all:
+    /// the number the log names for a read ("Collection read from the client: N cards").
+    /// </summary>
+    private static CardCollection Marked()
+    {
+        var cards = new Dictionary<string, OwnedCopies>(StringComparer.Ordinal)
         {
             [MarkerCard] = new(2, 0, 0),
             ["C_COMMON"] = new(2, 0, 0),
             ["C_RARE"] = new(1, 1, 0),
             ["CORE_ALIKE"] = new(1, 0, 0),
-        }, MarkerDust, new DateTime(2026, 11, 14, 9, 30, 0, DateTimeKind.Utc));
+        };
+        for (var i = 0; cards.Count < MarkerCount; i++)
+        {
+            cards["HPFILL_" + i.ToString(System.Globalization.CultureInfo.InvariantCulture)] = new(1, 0, 0);
+        }
+
+        return new CardCollection(cards, MarkerDust, new DateTime(2026, 11, 14, 9, 30, 0, DateTimeKind.Utc));
+    }
 
     private static GameRecord Ranked() => new()
     {

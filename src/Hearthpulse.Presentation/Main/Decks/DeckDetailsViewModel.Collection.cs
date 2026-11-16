@@ -13,6 +13,12 @@ public sealed partial class DeckDetailsViewModel
     public DeckCollectionView Collection { get => _collection; private set => Set(ref _collection, value); }
 
     /// <summary>Reads the block again: the deck, the collection, the card data or the client's state changed.</summary>
-    internal void RefreshCollection() =>
+    internal void RefreshCollection()
+    {
+        CollectionRefreshes++;
         Collection = _family is { } family ? _owner.DeckCollectionFor(family.Main.DeckCode) : DeckCollectionView.Empty;
+    }
+
+    /// <summary>How many times the block was read (a test counts the reads one change costs).</summary>
+    internal int CollectionRefreshes { get; private set; }
 }

@@ -280,6 +280,7 @@ public sealed partial class MainViewModel
         Raise(nameof(MetaEmpty));
         Raise(nameof(MetaDecksEmpty));
         Raise(nameof(MetaCanBuildEmpty));
+        Raise(nameof(MetaPricingShown));
         Raise(nameof(MetaMatchupsEmpty));
         Raise(nameof(MetaStatusShown));
     }

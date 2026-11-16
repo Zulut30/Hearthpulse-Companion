@@ -79,14 +79,14 @@ internal static class CollectionFixture
     /// A Standard meta of one archetype with <see cref="Decks"/>, then <paramref name="more"/> lists of another class
     /// whose codes do not decode (they only make the list long enough to be priced on a pool thread).
     /// </summary>
-    public static ConstructedMeta Meta(int more = 0)
+    public static ConstructedMeta Meta(int more = 0, double moreWinRate = 0.30)
     {
         var seen = new DateTime(2026, 11, 13, 12, 0, 0, DateTimeKind.Utc);
         var archetype = new MetaArchetype(1, "Test Mage", "Test Mage", "MAGE", 5000, 2800, 0.56, 0.2, 0, 0, 0, 0, [], []);
         var decks = Decks.Select((code, i) => new MetaDeck(code, 1, "Test Mage", "MAGE", 900, 500, 0.60 - (i * 0.01), seen)).ToList();
         for (var i = 0; i < more; i++)
         {
-            decks.Add(new MetaDeck("extra-list-" + i.ToString(System.Globalization.CultureInfo.InvariantCulture), 2, "Other", "ROGUE", 900, 300, 0.30, seen));
+            decks.Add(new MetaDeck("extra-list-" + i.ToString(System.Globalization.CultureInfo.InvariantCulture), 2, "Other", "ROGUE", 900, 300, moreWinRate, seen));
         }
 
         // Core builds these from the API (an internal constructor); the Windows suite, which links this file, is no friend of Core.

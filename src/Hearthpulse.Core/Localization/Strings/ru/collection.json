@@ -7,8 +7,8 @@
   "Collection.Label.WithMarks": "{0} · {1}",
   "Collection.Mark.Estimate": "оценка",
   "Collection.Mark.Saved": "по сохранённой коллекции",
-  "Collection.Tip.Craftable": "На недостающие карты нужно {0} пыли, у вас {1}.",
-  "Collection.Tip.NeedsDust": "На недостающие карты нужно {0} пыли, у вас только {1}.",
+  "Collection.Tip.Craftable": "Недостающие карты стоят {0} пыли, у вас {1}: хватает.",
+  "Collection.Tip.NeedsDust": "Недостающие карты стоят {0} пыли, у вас {1}: не хватает {2}.",
   "Collection.Tip.NotCraftable": "Среди недостающих есть карта, которую нельзя создать за пыль.",
   "Collection.Tip.OtherPrinting": "Оценка: в коллекции есть другое издание недостающей карты. Игра может принять его, и тогда карта не нужна.",
   "Collection.Tip.CraftUncertain": "Оценка: недостающую карту игра выдаёт сама, и сейчас её, возможно, нельзя создать.",
@@ -22,7 +22,7 @@
   "Collection.Missing.CraftUncertain": "возможно, сейчас нельзя создать",
   "Collection.Missing.Line": "{0} — {1}",
   "Collection.Missing.LineNote": "{0} — {1} ({2})",
-  "Collection.Missing.Total": "Итого: {0} пыли",
+  "Collection.Missing.Total": "Недостающие карты: {0} пыли",
   "Collection.Missing.TotalPartial": "Создаваемые карты: {0} пыли. Колоду это не завершит.",
   "Collection.Missing.TotalNone": "За пыль эту колоду не собрать.",
   "Collection.Status.Confirmed": "Коллекция прочитана из игры {0}.",
@@ -44,5 +44,12 @@
   "Collection.Sort.Dust": "По недостающей пыли",
   "Collection.Deck.NoCode": "У этой колоды нет кода, поэтому сверить её с коллекцией нельзя.",
   "Collection.Deck.NoCardData": "Данные о картах ещё не загружены: сверить колоду с коллекцией пока нельзя.",
-  "Collection.Deck.UnknownCards": "Сверить колоду с коллекцией не удалось: в данных о картах нет части её карт."
+  "Collection.Deck.UnknownCards": "Сверить колоду с коллекцией не удалось: в данных о картах нет части её карт.",
+  "Collection.Deck.UnknownRarity": "Сверить колоду с коллекцией не удалось: у недостающей карты неизвестна редкость, а значит и цена.",
+  "Collection.Deck.UnreadableSideboard": "Сверить колоду с коллекцией не удалось: в коде колоды не читается дополнительный набор карт.",
+  "Collection.Deck.Unpriced": "Посчитать, чего этой колоде не хватает, не удалось.",
+  "Collection.Dust.ColumnTip": "Пыль на создание всей колоды с нуля. Сколько нужно именно вам, показывает метка под колодой.",
+  "Collection.Pricing": "Считаем, какие из этих колод вы можете собрать…",
+  "Collection.PricingFailed": "Не удалось сверить колоды с коллекцией.",
+  "Collection.PricingRetry": "Сверить ещё раз"
 }

@@ -50,7 +50,7 @@ public sealed record DeckBuildView(
     string Total) : IImmutableView
 {
     /// <summary>A label by a saved collection is dimmed: it is not a statement about the collection as it is now.</summary>
-    public const double SavedOpacity = 0.62;
+    public const double SavedOpacity = 0.72;
 
     public bool HasMarks => Marks.Length > 0;
 
@@ -86,24 +86,49 @@ public sealed record DeckCollectionView(string Status, DeckBuildView? Build, str
 internal static class DeckBuildViews
 {
     /// <summary>The label of a priced deck; null for <see cref="DeckBuild.Unknown"/> (nothing is shown, never "owned" or "0 dust").</summary>
-    public static DeckBuildView? Of(DeckCost cost, CardDb cards)
+    public static DeckBuildView? Of(DeckCost cost, CardDb cards) =>
+        Of(cost.State, cost.DustNeeded, cost.DustShort, cost.DustAvailable, cost.DustForCraftable, cost.Estimated, cost.Confirmed, cost.Missing, cards);
+
+    /// <summary>
+    /// The label from the numbers of a deck cost. A dust number the state needs and does not have gives no label: an
+    /// unknown amount is never shown as "0 dust" (Core gives these numbers for these states today; were that to change,
+    /// the label goes rather than lie).
+    /// </summary>
+    internal static DeckBuildView? Of(DeckBuild state, long? dustNeeded, long? dustShort, long? dustAvailable, long? dustForCraftable, bool estimated,
+        bool confirmed, IReadOnlyList<MissingCard> missingCards, CardDb cards)
     {
-        if (cost.State == DeckBuild.Unknown)
+        string glyph;
+        string label;
+        string reason;
+        string total;
+        switch (state)
         {
-            return null;
+            case DeckBuild.Owned:
+                (glyph, label, reason, total) = ("\U000F05E0", Loc.T("Collection.Label.Owned"), string.Empty, string.Empty);
+                break;
+            case DeckBuild.CraftableNow when dustNeeded is { } needed && dustAvailable is { } available:
+                (glyph, label) = ("\U000F08EA", Loc.F("Collection.Label.Craftable", Dust(needed)));
+                reason = Loc.F("Collection.Tip.Craftable", Dust(needed), Dust(available));
+                total = Loc.F("Collection.Missing.Total", Dust(needed));
+                break;
+            case DeckBuild.NeedsDust when dustNeeded is { } needed && dustAvailable is { } available && dustShort is { } lacking:
+                (glyph, label) = ("\U000F0028", Loc.F("Collection.Label.NeedsDust", Dust(lacking)));
+                reason = Loc.F("Collection.Tip.NeedsDust", Dust(needed), Dust(available), Dust(lacking));
+                total = Loc.F("Collection.Missing.Total", Dust(needed));
+                break;
+            case DeckBuild.NotCraftable:
+                (glyph, label, reason) = ("\U000F0159", Loc.T("Collection.Label.NotCraftable"), Loc.T("Collection.Tip.NotCraftable"));
+                // No dust completes the deck: the sum of the craftable part is named as that, not as the deck's price.
+                total = dustForCraftable is > 0 and var part ? Loc.F("Collection.Missing.TotalPartial", Dust(part)) : Loc.T("Collection.Missing.TotalNone");
+                break;
+            default:
+                // Unknown, or a state without the numbers its label states.
+                return null;
         }
 
-        var (glyph, label) = cost.State switch
-        {
-            DeckBuild.Owned => ("\U000F05E0", Loc.T("Collection.Label.Owned")),
-            DeckBuild.CraftableNow => ("\U000F08EA", Loc.F("Collection.Label.Craftable", Dust(cost.DustNeeded ?? 0))),
-            DeckBuild.NeedsDust => ("\U000F0028", Loc.F("Collection.Label.NeedsDust", Dust(cost.DustShort ?? 0))),
-            _ => ("\U000F0159", Loc.T("Collection.Label.NotCraftable")),
-        };
-
-        var saved = !cost.Confirmed;
+        var saved = !confirmed;
         var marks = new List<string>(2);
-        if (cost.Estimated)
+        if (estimated)
         {
             marks.Add(Loc.T("Collection.Mark.Estimate"));
         }
@@ -114,25 +139,17 @@ internal static class DeckBuildViews
         }
 
         var tips = new List<string>(4);
-        switch (cost.State)
+        if (reason.Length > 0)
         {
-            case DeckBuild.CraftableNow:
-                tips.Add(Loc.F("Collection.Tip.Craftable", Dust(cost.DustNeeded ?? 0), Dust(cost.DustAvailable ?? 0)));
-                break;
-            case DeckBuild.NeedsDust:
-                tips.Add(Loc.F("Collection.Tip.NeedsDust", Dust(cost.DustNeeded ?? 0), Dust(cost.DustAvailable ?? 0)));
-                break;
-            case DeckBuild.NotCraftable:
-                tips.Add(Loc.T("Collection.Tip.NotCraftable"));
-                break;
+            tips.Add(reason);
         }
 
-        if (cost.Missing.Any(m => m.MayOwnOtherPrinting))
+        if (missingCards.Any(m => m.MayOwnOtherPrinting))
         {
             tips.Add(Loc.T("Collection.Tip.OtherPrinting"));
         }
 
-        if (cost.Missing.Any(m => m.CraftUncertain))
+        if (missingCards.Any(m => m.CraftUncertain))
         {
             tips.Add(Loc.T("Collection.Tip.CraftUncertain"));
         }
@@ -142,18 +159,8 @@ internal static class DeckBuildViews
             tips.Add(Loc.T("Collection.Tip.Saved"));
         }
 
-        var missing = cost.Missing.Select(m => Row(m, cards)).ToList();
-        var total = cost.State switch
-        {
-            DeckBuild.Owned => string.Empty,
-            // No dust completes the deck: the sum of the craftable part is named as that, not as the deck's price.
-            DeckBuild.NotCraftable => cost.DustForCraftable is > 0
-                ? Loc.F("Collection.Missing.TotalPartial", Dust(cost.DustForCraftable.Value))
-                : Loc.T("Collection.Missing.TotalNone"),
-            _ => Loc.F("Collection.Missing.Total", Dust(cost.DustNeeded ?? 0)),
-        };
-
-        return new DeckBuildView(cost.State.ToString(), glyph, label, string.Join(" · ", marks), string.Join(' ', tips), saved, missing, total);
+        var missing = missingCards.Select(m => Row(m, cards)).ToList();
+        return new DeckBuildView(state.ToString(), glyph, label, string.Join(" · ", marks), string.Join(' ', tips), saved, missing, total);
     }
 
     private static MissingCardRow Row(MissingCard card, CardDb cards)

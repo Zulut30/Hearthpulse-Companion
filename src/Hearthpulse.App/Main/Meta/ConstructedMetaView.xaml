@@ -122,13 +122,6 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <!-- The missing cards of the build label that was pressed: one popup for every row (Escape or a click away closes it) -->
-        <Popup x:Name="DeckBuildPopup" StaysOpen="False" Placement="Bottom" VerticalOffset="4" AllowsTransparency="True" Closed="OnDeckBuildClosed">
-            <Border Style="{StaticResource Card}" Padding="16,14" MaxWidth="420" MinWidth="260">
-                <ContentControl x:Name="DeckBuildDetails" Content="{Binding}" ContentTemplate="{StaticResource DeckMissingList}" Focusable="True"
-                                FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding Details}" KeyDown="OnDeckBuildKey" />
-            </Border>
-        </Popup>
         <!-- Filters: rank and period, then class and minimum games (hearthpulse.net's "Рейтинг", "Период", "Минимум игр") -->
         <StackPanel x:Name="MetaFilters" Margin="0,0,0,12">
             <!-- Plan 2.4: eight rank chips; the periods move below them when the row is too narrow, as in Avalonia -->
@@ -374,6 +367,13 @@
                     </WrapPanel>
                     <TextBlock x:Name="CanBuildNote" Text="{Binding CanBuildNote}" Style="{StaticResource Caption}" TextWrapping="Wrap"
                                Visibility="{Binding HasCanBuildNote, Converter={StaticResource Vis}}" />
+                    <!-- Pricing the lists failed: no labels, and a way to try again -->
+                    <WrapPanel x:Name="DeckCostsFailedLine" Visibility="{Binding DeckCostsFailed, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{i:Loc Collection.PricingFailed}" Style="{StaticResource Caption}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"
+                                   AutomationProperties.LiveSetting="Polite" />
+                        <Button Style="{StaticResource GhostButton}" Content="{i:Loc Collection.PricingRetry}" Padding="12,4" MinHeight="24" FontSize="{StaticResource FontSizeLabel}"
+                                Command="{Binding RetryDeckCosts}" />
+                    </WrapPanel>
                 </StackPanel>
                 <Grid Margin="8,0,8,8">
                     <Grid.ColumnDefinitions>
@@ -387,7 +387,8 @@
                     <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Deck}" Style="{StaticResource TableHead}" />
                     <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.WinRate}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
                     <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.Games}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
-                    <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Dust}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Dust}" Style="{StaticResource TableHead}" HorizontalAlignment="Right"
+                               ToolTip="{i:Loc Collection.Dust.ColumnTip}" />
                 </Grid>
                 <ItemsControl ItemsSource="{Binding MetaDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" ItemsPanel="{StaticResource PageRows}" Focusable="False" />
                 <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}"
@@ -398,6 +399,8 @@
                                 Visibility="{Binding MetaDecksEmpty, Converter={StaticResource Vis}}" />
                 <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF0232;" Content="{i:Loc Collection.Filter.Empty}"
                                 Visibility="{Binding MetaCanBuildEmpty, Converter={StaticResource Vis}}" />
+                <ContentControl x:Name="MetaPricing" Style="{StaticResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Collection.Pricing}"
+                                Visibility="{Binding MetaPricingShown, Converter={StaticResource Vis}}" />
                 <TextBlock Text="{Binding CopyNote}" Style="{StaticResource Caption}" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                            Visibility="{Binding CopyNote, Converter={StaticResource Vis}}" />
                 <TextBlock Text="{Binding ConstructedMetaStatus}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"

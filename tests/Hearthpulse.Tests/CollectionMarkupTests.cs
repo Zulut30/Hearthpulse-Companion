@@ -34,7 +34,8 @@ public sealed partial class CollectionMarkupTests
             new HashSet<string>(StringComparer.Ordinal)
             {
                 "Collection.Filter.CanBuild", "Collection.Filter.CanBuildTip", "Collection.Filter.Empty", "Collection.Sort.Label",
-                "Collection.Missing.Title", "Collection.Title",
+                "Collection.Missing.Title", "Collection.Title", "Collection.Dust.ColumnTip", "Collection.Pricing", "Collection.PricingFailed",
+                "Collection.PricingRetry",
             },
             all);
     }
@@ -45,12 +46,13 @@ public sealed partial class CollectionMarkupTests
         string[] names =
         [
             "CollectionBar", "CollectionStatusLine", "CanBuildFilter", "DeckSortPicker", "CanBuildNote", "BestListsCollection",
+            "DeckCostsFailedLine", "MetaPricing",
             "DeckCollection", "DeckBuild", "DeckMissing", "DeckCollectionStatus",
         ];
         string[] bindings =
         [
             "{Binding CollectionStatus}", "{Binding CanBuildOnly, Mode=TwoWay}", "{Binding CanBuildAvailable}", "{Binding MetaDeckSorts}",
-            "{Binding CanBuildNote}", "{Binding MetaCanBuildEmpty", "{Binding Build}", "{Binding Build.Name}", "{Binding Build.Details}",
+            "{Binding CanBuildNote}", "{Binding MetaCanBuildEmpty", "{Binding MetaPricingShown", "{Binding DeckCostsFailed", "{Binding RetryDeckCosts}", "{Binding Build}", "{Binding Build.Name}", "{Binding Build.Details}",
             "{Binding HasBuild", "{Binding Collection}", "{Binding Status}", "{Binding Glyph}", "{Binding Name}", "{Binding Opacity}",
             "{Binding Missing}", "{Binding Total", "{Binding Price}", "{Binding Note}", "{Binding Tip}",
         ];
@@ -88,11 +90,16 @@ public sealed partial class CollectionMarkupTests
             Assert.DoesNotContain("IsTabStop=\"False\"", label, StringComparison.Ordinal);
         }
 
-        // WPF opens the view's one popup from the click; Avalonia has the flyout on the button. Both show the same template.
+        // WPF opens a popup from the click, made in code for that opening and never part of the view's markup (a
+        // popup in the tree kept the closed window alive, docs/collection.md); Avalonia has the flyout on the button,
+        // with focus handled on opening and closing. Both show the same template.
         Assert.Contains("Click=\"OnDeckBuild\"", wpfLabel, StringComparison.Ordinal);
-        Assert.Contains("<Popup x:Name=\"DeckBuildPopup\" StaysOpen=\"False\"", wpf, StringComparison.Ordinal);
+        Assert.DoesNotContain("<Popup", wpf, StringComparison.Ordinal);
+        var wpfCode = Read("src/Hearthpulse.App/Main/Meta/ConstructedMetaView.Collection.cs");
+        Assert.Contains("FindResource(\"DeckMissingList\")", wpfCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("PlacementTarget =", wpfCode, StringComparison.Ordinal);
         Assert.Contains("<Flyout ", avalonia, StringComparison.Ordinal);
-        Assert.Equal(1, Count(wpf, "ContentTemplate=\"{StaticResource DeckMissingList}\""));
+        Assert.Contains("Opened=\"OnDeckBuildOpened\" Closed=\"OnDeckBuildClosed\"", avalonia, StringComparison.Ordinal);
         Assert.Equal(1, Count(avalonia, "ContentTemplate=\"{StaticResource DeckMissingList}\""));
 
         // The filter says why it is off limits where a disabled control would otherwise say nothing.

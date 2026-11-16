@@ -21,12 +21,13 @@ namespace Hearthpulse.Presentation.Tests;
 /// The collection in both hosts (docs/collection.md, "In the interface"): the WPF and the Avalonia view model show the
 /// same labels, marks, missing cards, filter state, order and status line for the same collection, in every state;
 /// and the WPF page shows them - the status line, the filter that a saved collection puts off limits, a named
-/// keyboard-reachable label per list with its missing cards in a popup, and the block on the deck page. The Avalonia
+/// keyboard-reachable label per list, and the block on the deck page (the popup of a label's missing cards is opened
+/// in <see cref="CollectionPopupTests"/>, which runs last: <see cref="RealPopups"/>). The Avalonia
 /// page: <c>Hearthpulse.Tests/CollectionLayoutTests</c>; the two markups side by side: <c>CollectionMarkupTests</c>.
 /// </summary>
-public sealed class CollectionContractTests
+public sealed partial class CollectionContractTests
 {
-    private static HistoryStore History() => new(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db"));
+    internal static HistoryStore History() => new(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db"));
 
     [Fact]
     public void Both_view_models_show_the_same_for_the_same_collection_in_every_state()
@@ -173,24 +174,6 @@ public sealed class CollectionContractTests
                 Assert.Equal(Hearthpulse.App.Main.DeckBuildView.SavedOpacity, Descendants(label).OfType<DockPanel>().First().Opacity);
             }
 
-            // The label's button opens its missing cards; Escape closes them and gives focus back.
-            var opener = labels.Single(b => ((Hearthpulse.App.Main.DeckBuildView)b.Content).Kind == "NeedsDust" && ((Hearthpulse.App.Main.DeckBuildView)b.Content).Missing.Count == 2);
-            var popup = Named<Popup>("DeckBuildPopup");
-            Assert.False(popup.IsOpen);
-            opener.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
-            Pump();
-            Assert.True(popup.IsOpen);
-            var shown = Descendants(popup.Child).OfType<TextBlock>().Where(t => t.IsVisible).Select(t => t.Text).ToList();
-            var needs = (Hearthpulse.App.Main.DeckBuildView)opener.Content;
-            Assert.Contains(CollectionFixture.LongName, shown);
-            Assert.All(needs.Missing, m => Assert.Contains(m.Price, shown));
-            Assert.Contains(needs.Total, shown);
-            Assert.Contains(needs.Tip, shown);
-            var details = Named<ContentControl>("DeckBuildDetails");
-            details.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(details)!, 0, Key.Escape) { RoutedEvent = UIElement.KeyDownEvent });
-            Pump();
-            Assert.False(popup.IsOpen);
-
             // Confirmed: the filter works, and leaves the lists that can be built.
             model.SetCollection(CollectionFixture.Collection());
             Pump();
@@ -245,11 +228,23 @@ public sealed class CollectionContractTests
         Pump();
         try
         {
-            var families = DeckFamilies.Build(DeckFamilies.Versions(games), []);
-            model.DeckPage.Show(families.Single(), families, [], null, CollectionFixture.Cards);
-            var page = window.DeckDetailsPage;
-            window.PageDeck.Visibility = Visibility.Visible;
+            // As the render scene does: a deck opened by the view model (here one the history has), then new stats, which
+            // rebuild the deck list. The window follows the view model to the deck page: nothing is made visible by hand.
+            window.ShowPage("Standard");
             Pump();
+            var built = model.DeckListBuilds;
+            model.SetConstructedMeta(CollectionFixture.Meta());
+            PumpUntil(() => model.DeckListBuilds > built);
+            var family = Assert.Single(model.DeckFamiliesShown);
+            Assert.True(model.OpenDeckPage(family.Key));
+            built = model.DeckListBuilds;
+            model.SetConstructedMeta(CollectionFixture.Meta());
+            PumpUntil(() => model.DeckListBuilds > built && model.DeckPage.DeckList.Count > 0);
+            Assert.True(model.DeckOpen);
+            Assert.True(window.PageDeck.IsVisible);
+            var page = window.DeckDetailsPage;
+            Assert.True(page.IsVisible);
+            Assert.Same(model.DeckPage, page.DataContext);
 
             var block = (StackPanel)page.FindName("DeckCollection");
             Assert.True(block.IsVisible);
@@ -283,14 +278,27 @@ public sealed class CollectionContractTests
         }
     });
 
-    private static void Pump()
+    /// <summary>Runs the dispatcher until <paramref name="done"/>: the view model's background work comes back through it.</summary>
+    internal static void PumpUntil(Func<bool> done)
+    {
+        var hang = System.Diagnostics.Stopwatch.StartNew();
+        while (!done())
+        {
+            Assert.True(hang.Elapsed < TimeSpan.FromSeconds(30), "the awaited change did not come");
+            Pump();
+        }
+
+        Pump();
+    }
+
+    internal static void Pump()
     {
         var frame = new DispatcherFrame();
         _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
     }
 
-    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+    internal static IEnumerable<DependencyObject> Descendants(DependencyObject root)
     {
         for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
         {

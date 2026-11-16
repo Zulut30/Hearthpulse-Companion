@@ -26,6 +26,9 @@ public sealed partial class MainViewModel
     /// <summary>Up to this many deck lists are priced at once on the calling thread; more are priced on a pool thread.</summary>
     internal const int InlineDeckCosts = 80;
 
+    /// <summary>The top decks show at most this many lists.</summary>
+    internal const int MetaDeckLimit = 60;
+
     private static readonly IReadOnlyDictionary<string, DeckCost> NoDeckCosts = new Dictionary<string, DeckCost>(StringComparer.Ordinal);
 
     private CardCollection? _collection;
@@ -37,6 +40,8 @@ public sealed partial class MainViewModel
     private (ConstructedMeta? Meta, CardCollection? Collection, CardDb? Cards) _deckCostsOf;
     private int _deckCostsBuild;
     private RelayCommand? _setMetaDeckSort;
+    private RelayCommand? _retryDeckCosts;
+    private bool _deckCostsFailed;
 
     /// <summary>
     /// Whether this system can read the collection from the game client at all (Windows). The host leaves the default;
@@ -112,13 +117,47 @@ public sealed partial class MainViewModel
             {
                 _canBuildWanted = value;
                 Raise(nameof(CanBuildOnly));
+                Raise(nameof(MetaPricingShown));
                 ShowMetaDecks();
             }
         }
     }
 
     /// <summary>"Can build" is on and no list passes it: its own empty state, not "not enough games".</summary>
-    public bool MetaCanBuildEmpty => MetaStatusShown && CanBuildOnly && !_deckCostsPending && _metaDecks.Count == 0;
+    public bool MetaCanBuildEmpty => MetaStatusShown && CanBuildOnly && !_deckCostsPending && !_deckCostsFailed && _metaDecks.Count == 0;
+
+    /// <summary>
+    /// A long list is being priced on a pool thread: the labels are not in yet. With "can build" on the list is empty
+    /// meanwhile, and <see cref="MetaPricingShown"/> says why instead of an empty card.
+    /// </summary>
+    public bool DeckCostsPending { get => _deckCostsPending; private set { if (Set(ref _deckCostsPending, value)) RaisePricing(); } }
+
+    /// <summary>Pricing the lists failed: there are no labels, and <see cref="RetryDeckCosts"/> prices them again.</summary>
+    public bool DeckCostsFailed { get => _deckCostsFailed; private set { if (Set(ref _deckCostsFailed, value)) RaisePricing(); } }
+
+    /// <summary>"Working out which decks you can build": shown in place of the rows the filter waits for.</summary>
+    public bool MetaPricingShown => MetaStatusShown && CanBuildOnly && _deckCostsPending;
+
+    /// <summary>Prices the page's lists again after a failure.</summary>
+    public RelayCommand RetryDeckCosts => _retryDeckCosts ??= new RelayCommand(_ =>
+    {
+        // The inputs are the same ones: forget them, so the next look prices anew.
+        _deckCostsOf = default;
+        DeckCostsFailed = false;
+        ShowMetaDecks();
+    });
+
+    /// <summary>How many times the top decks were built (a test counts the builds one change costs).</summary>
+    internal int MetaDeckBuilds { get; private set; }
+
+    /// <summary>How a list of deck codes is priced; a test puts its own here to hold a pricing or make it fail.</summary>
+    internal Func<IReadOnlyList<string>, CardCollection, CardDb, IReadOnlyDictionary<string, DeckCost>> PriceDecksWith { get; set; } = PriceDecks;
+
+    private void RaisePricing()
+    {
+        Raise(nameof(MetaPricingShown));
+        Raise(nameof(MetaCanBuildEmpty));
+    }
 
     /// <summary>The order of the top decks: by win rate, or by the dust the player lacks for each (with a collection).</summary>
     public IReadOnlyList<MetaChoice> MetaDeckSorts =>
@@ -159,16 +198,15 @@ public sealed partial class MainViewModel
         Raise(nameof(CanBuildOnly));
         Raise(nameof(MetaDeckSorts));
         ShowMetaDecks();
-        _deckPage?.RefreshCollection();
     }
 
     /// <summary>
     /// Opens the deck page on a deck the history does not have (the UI render check: the collection block on a made-up
-    /// deck). The next read of the history puts the player's own decks back.
+    /// deck). It stays open through rebuilds of the deck list (new stats, a history read) until the page is closed.
     /// </summary>
-    public void OpenSampleDeck(Hearthpulse.Core.Stats.DeckFamily deck)
+    internal void OpenSampleDeck(Hearthpulse.Core.Stats.DeckFamily deck)
     {
-        _deckFamilies = [deck];
+        _sampleDeck = deck;
         OpenDeckPage(deck.Key);
     }
 
@@ -182,15 +220,22 @@ public sealed partial class MainViewModel
         }
 
         var cost = DeckCost.For(DeckString.TryDecode(deckCode ?? string.Empty), collection, _cards);
-        return cost.State != DeckBuild.Unknown
-            ? new DeckCollectionView(status, DeckBuildViews.Of(cost, _cards), string.Empty)
-            : new DeckCollectionView(status, null, Loc.T(cost.Gap switch
-            {
-                DeckCostGap.EmptyDeck => "Collection.Deck.NoCode",
-                DeckCostGap.NoCardData => "Collection.Deck.NoCardData",
-                _ => "Collection.Deck.UnknownCards",
-            }));
+        return DeckBuildViews.Of(cost, _cards) is { } build
+            ? new DeckCollectionView(status, build, string.Empty)
+            : new DeckCollectionView(status, null, Loc.T(DeckGapText(cost)));
     }
+
+    /// <summary>Why a deck has no label, by what the deck cost says is missing to tell (<see cref="DeckCost.Gap"/>).</summary>
+    internal static string DeckGapText(DeckCost cost) => (cost.State, cost.Gap) switch
+    {
+        (DeckBuild.Unknown, DeckCostGap.EmptyDeck) => "Collection.Deck.NoCode",
+        (DeckBuild.Unknown, DeckCostGap.NoCardData) => "Collection.Deck.NoCardData",
+        (DeckBuild.Unknown, DeckCostGap.UnknownCard) => "Collection.Deck.UnknownCards",
+        (DeckBuild.Unknown, DeckCostGap.UnknownRarity) => "Collection.Deck.UnknownRarity",
+        (DeckBuild.Unknown, DeckCostGap.UnreadableSideboard) => "Collection.Deck.UnreadableSideboard",
+        // No gap named, or a state whose numbers are missing: nothing more precise can be said.
+        _ => "Collection.Deck.Unpriced",
+    };
 
     /// <summary>The Hearthstone client started or closed, or the system's ability changed: the status line names another next step.</summary>
     private void RaiseCollectionStatus()
@@ -218,6 +263,7 @@ public sealed partial class MainViewModel
     /// </summary>
     private void ShowMetaDecks()
     {
+        MetaDeckBuilds++;
         var priced = EnsureDeckCosts();
         if (PageMeta is not { } meta)
         {
@@ -235,10 +281,13 @@ public sealed partial class MainViewModel
             decks = decks.Where(d => _deckCosts.TryGetValue(d.DeckString, out var cost) && cost.State is DeckBuild.Owned or DeckBuild.CraftableNow);
         }
 
-        var ordered = SortsByDust
-            ? decks.OrderBy(d => DustRank(d).Group).ThenBy(d => DustRank(d).Short).ThenBy(d => DustRank(d).Needed).ThenByDescending(d => d.WinRate)
-            : decks.OrderByDescending(d => d.WinRate);
-        MetaDecks = ordered.Take(60).Select(DeckRowOf).ToList();
+        // By a confirmed collection the order by dust picks the sixty from every list. By a saved one it only orders
+        // the sixty the win rate picks: numbers nobody vouches for now never decide which lists are left off the page.
+        var byWinRate = decks.OrderByDescending(d => d.WinRate);
+        IEnumerable<MetaDeck> shown = !SortsByDust ? byWinRate.Take(MetaDeckLimit)
+            : CollectionSaved ? ByDust(byWinRate.Take(MetaDeckLimit))
+            : ByDust(decks).Take(MetaDeckLimit);
+        MetaDecks = shown.Select(DeckRowOf).ToList();
         Raise(nameof(MetaCanBuildEmpty));
         Raise(nameof(MetaDecksEmpty));
         if (priced)
@@ -252,12 +301,18 @@ public sealed partial class MainViewModel
     /// what they cost), then by how much dust is lacking, then the ones no dust completes, then the unknown.
     /// </summary>
     private (int Group, long Short, long Needed) DustRank(MetaDeck deck) =>
-        !_deckCosts.TryGetValue(deck.DeckString, out var cost) ? (3, 0, 0) : cost.State switch
+        !_deckCosts.TryGetValue(deck.DeckString, out var cost) ? (3, 0, 0) : cost switch
         {
-            DeckBuild.Owned or DeckBuild.CraftableNow or DeckBuild.NeedsDust => (0, cost.DustShort ?? 0, cost.DustNeeded ?? 0),
-            DeckBuild.NotCraftable => (1, 0, cost.DustForCraftable ?? 0),
+            { State: DeckBuild.Owned } => (0, 0, 0),
+            { State: DeckBuild.CraftableNow, DustNeeded: { } needed } => (0, 0, needed),
+            { State: DeckBuild.NeedsDust, DustShort: { } lacking, DustNeeded: { } needed } => (0, lacking, needed),
+            { State: DeckBuild.NotCraftable } => (1, 0, 0),
+            // Unknown, or a number the state should have and does not: never ranked as "nothing missing".
             _ => (2, 0, 0),
         };
+
+    private IOrderedEnumerable<MetaDeck> ByDust(IEnumerable<MetaDeck> decks) =>
+        decks.OrderBy(d => DustRank(d).Group).ThenBy(d => DustRank(d).Short).ThenBy(d => DustRank(d).Needed).ThenByDescending(d => d.WinRate);
 
     /// <summary>The side card's best lists with the labels of the prices known now (the lists themselves stay).</summary>
     private void ShowArchetypeDeckBuilds()
@@ -287,35 +342,71 @@ public sealed partial class MainViewModel
         if (PageMeta is not { } meta || _collection is not { } collection)
         {
             _deckCosts = NoDeckCosts;
-            _deckCostsPending = false;
+            DeckCostsPending = false;
+            DeckCostsFailed = false;
             return true;
         }
 
         var codes = meta.Decks.Select(d => d.DeckString).Distinct(StringComparer.Ordinal).ToList();
         if (codes.Count <= InlineDeckCosts)
         {
-            _deckCosts = PriceDecks(codes, collection, cards);
-            _deckCostsPending = false;
+            // A short list is priced here; a failure is shown and logged as the long list's, not thrown at the caller.
+            try
+            {
+                _deckCosts = PriceDecksWith(codes, collection, cards);
+                DeckCostsFailed = false;
+            }
+            catch (Exception ex)
+            {
+                Diag.Error("Pricing the deck lists failed", ex);
+                _deckCosts = NoDeckCosts;
+                DeckCostsFailed = true;
+            }
+
+            DeckCostsPending = false;
             return true;
         }
 
         // The labels of the old collection do not stand in for the new one's while it is priced.
         _deckCosts = NoDeckCosts;
-        _deckCostsPending = true;
+        DeckCostsFailed = false;
+        DeckCostsPending = true;
         PriceDecksLaterAsync(build, codes, collection, cards).Forget("Deck costs");
         return true;
     }
 
+    /// <summary>
+    /// Prices on a pool thread and comes back on the caller's context (the UI thread: both hosts call
+    /// <see cref="SetCollection"/> and the meta setters there). A result that something newer replaced is dropped; a
+    /// failure ends the wait, is logged and shown, and <see cref="RetryDeckCosts"/> starts again.
+    /// </summary>
     private async Task PriceDecksLaterAsync(int build, IReadOnlyList<string> codes, CardCollection collection, CardDb cards)
     {
-        var costs = await Task.Run(() => PriceDecks(codes, collection, cards)).ConfigureAwait(true);
+        IReadOnlyDictionary<string, DeckCost>? costs = null;
+        Exception? failure = null;
+        var price = PriceDecksWith;
+        try
+        {
+            costs = await Task.Run(() => price(codes, collection, cards)).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+
         if (build != _deckCostsBuild)
         {
             return;
         }
 
-        _deckCosts = costs;
-        _deckCostsPending = false;
+        if (failure is not null)
+        {
+            Diag.Error("Pricing the deck lists failed", failure);
+        }
+
+        _deckCosts = costs ?? NoDeckCosts;
+        DeckCostsFailed = costs is null;
+        DeckCostsPending = false;
         ShowMetaDecks();
         ShowArchetypeDeckBuilds();
     }

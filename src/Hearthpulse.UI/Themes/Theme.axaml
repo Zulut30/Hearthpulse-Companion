@@ -1040,6 +1040,30 @@
     </Style>
 
     <!-- ===== Tooltips ===== -->
+    <!-- The missing cards behind a deck's build label (Main/Meta/ConstructedMetaView): the tooltip's surface, wide enough
+         for a card name and its price. Here and not in the view's styles: a flyout is shown in a layer of its own,
+         where a view's styles do not reach it (it stood bare over the page). -->
+    <Style Selector="FlyoutPresenter.deckBuild">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+        <Setter Property="Background" Value="{StaticResource CardFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource CardEdge}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16,14" />
+        <Setter Property="MinWidth" Value="260" />
+        <Setter Property="MaxWidth" Value="420" />
+        <!-- The list wraps inside the flyout's width: the presenter's own scroller would give it endless room -->
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    </Style>
+    <!-- The list itself takes focus when it opens: the theme's ring, as on Button.bare -->
+    <Style Selector="ContentControl.deckBuildDetails">
+        <Setter Property="FocusAdorner">
+            <FocusAdornerTemplate>
+                <Border CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource Accent}" Margin="-6" />
+            </FocusAdornerTemplate>
+        </Setter>
+    </Style>
+
     <Style Selector="ToolTip">
         <Setter Property="Foreground" Value="{StaticResource Text}" />
         <Setter Property="Background" Value="{StaticResource CardFill}" />

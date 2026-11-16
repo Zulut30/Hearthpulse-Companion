@@ -19,34 +19,53 @@
                 <Border Classes="row" Padding="8,8">
                     <!-- The list's columns, and under them (in the room of the row, not of the columns) the collection's label -->
                     <StackPanel>
-                    <Grid ColumnDefinitions="40,*,64,64,64,Auto">
+                    <!-- The number columns take their own width (64 each, as the head's), so the ones compact hides (metaWide:
+                         games, dust and this Copy button) give their room to the deck's name -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <!-- As wide as the widest Copy button of the list, and the table's head leaves the same room -->
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="DeckCopy" />
+                        </Grid.ColumnDefinitions>
                         <Border Width="30" Height="30" CornerRadius="15" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                                 ClipToBounds="True" i:CardArt.Portrait="{Binding HeroId}" />
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
                             <TextBlock Text="{Binding Class}" Classes="caption" />
                         </StackPanel>
-                        <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" MinWidth="64" TextAlignment="Right" VerticalAlignment="Center"
                                    Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip.Tip="{i:Loc Main.Table.WinRate}" />
-                        <TextBlock Grid.Column="3" Text="{Binding Games}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="3" Text="{Binding Games}" Classes="caption metaWide" MinWidth="64" TextAlignment="Right" VerticalAlignment="Center"
                                    ToolTip.Tip="{i:Loc Main.Meta.ExactListTip}" />
-                        <TextBlock Grid.Column="4" Text="{Binding Dust}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="4" Text="{Binding Dust}" Classes="caption metaWide" MinWidth="64" TextAlignment="Right" VerticalAlignment="Center"
                                    ToolTip.Tip="{i:Loc Main.Meta.DustTip}" />
-                        <Button Grid.Column="5" Classes="ghost" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" FontSize="{StaticResource FontSizeLabel}" Margin="12,0,0,0"
+                        <Button Grid.Column="5" Classes="ghost metaWide" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" MinHeight="24" FontSize="{StaticResource FontSizeLabel}" Margin="12,0,0,0"
                                 Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).CopyDeck}" CommandParameter="{Binding}"
                                 ToolTip.Tip="{i:Loc Main.Meta.CopyTip}" />
                     </Grid>
-                    <!-- What the player's collection says of the list; the button opens its missing cards -->
-                    <Button Classes="bare deckBuild" HorizontalAlignment="Left" Margin="40,2,0,0" MinHeight="24" VerticalContentAlignment="Center"
-                            Content="{Binding Build}" ContentTemplate="{StaticResource DeckBuildLabel}"
-                            AutomationProperties.Name="{Binding Build.Name}" AutomationProperties.HelpText="{Binding Build.Details}"
-                            ToolTip.Tip="{Binding Build.Details}" IsVisible="{Binding HasBuild}">
-                        <Button.Flyout>
-                            <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterClasses="deckBuild">
-                                <ContentControl Content="{Binding Build}" ContentTemplate="{StaticResource DeckMissingList}" />
-                            </Flyout>
-                        </Button.Flyout>
-                    </Button>
+                    <DockPanel Margin="40,2,0,0">
+                        <!-- Compact: the Copy button stands here, under the label, where both have the room -->
+                        <Button DockPanel.Dock="Bottom" Classes="ghost metaNarrow" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" MinHeight="24" FontSize="{StaticResource FontSizeLabel}"
+                                Margin="0,4,0,0" HorizontalAlignment="Left"
+                                Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).CopyDeck}" CommandParameter="{Binding}"
+                                ToolTip.Tip="{i:Loc Main.Meta.CopyTip}" />
+                        <!-- What the player's collection says of the list; the button opens its missing cards -->
+                        <Button Classes="bare deckBuild" HorizontalAlignment="Left" MinHeight="24" VerticalContentAlignment="Center"
+                                Content="{Binding Build}" ContentTemplate="{StaticResource DeckBuildLabel}"
+                                AutomationProperties.Name="{Binding Build.Name}" AutomationProperties.HelpText="{Binding Build.Details}"
+                                ToolTip.Tip="{Binding Build.Details}" IsVisible="{Binding HasBuild}">
+                            <Button.Flyout>
+                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterClasses="deckBuild" Opened="OnDeckBuildOpened" Closed="OnDeckBuildClosed">
+                                    <ContentControl Classes="deckBuildDetails" Content="{Binding Build}" ContentTemplate="{StaticResource DeckMissingList}" Focusable="True" MaxWidth="386"
+                                                    AutomationProperties.Name="{Binding Build.Details}" />
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                    </DockPanel>
                     </StackPanel>
                 </Border>
             </DataTemplate>
@@ -318,7 +337,7 @@
 
         <!-- Top decks -->
         <Border Name="MetaDecksPanel" Classes="card" IsVisible="False">
-            <StackPanel>
+            <StackPanel Grid.IsSharedSizeScope="True">
                 <!-- The player's collection over the lists: where its numbers come from, "can build" and the order -->
                 <StackPanel Name="CollectionBar" Margin="8,0,8,16">
                     <TextBlock Name="CollectionStatusLine" Text="{Binding CollectionStatus}" Classes="caption" TextWrapping="Wrap"
@@ -340,18 +359,36 @@
                         </Border>
                     </WrapPanel>
                     <TextBlock Name="CanBuildNote" Text="{Binding CanBuildNote}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding HasCanBuildNote}" />
+                    <!-- Pricing the lists failed: no labels, and a way to try again -->
+                    <WrapPanel Name="DeckCostsFailedLine" IsVisible="{Binding DeckCostsFailed}">
+                        <TextBlock Text="{i:Loc Collection.PricingFailed}" Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"
+                                   AutomationProperties.LiveSetting="Polite" />
+                        <Button Classes="ghost" Content="{i:Loc Collection.PricingRetry}" Padding="12,4" MinHeight="24" FontSize="{StaticResource FontSizeLabel}"
+                                Command="{Binding RetryDeckCosts}" />
+                    </WrapPanel>
                 </StackPanel>
-                <Grid Margin="8,0,8,8" ColumnDefinitions="40,*,64,64,64,76">
+                <!-- No right margin: a row's plate ends at the card's content edge, and the head's columns end with the rows' -->
+                <Grid Margin="8,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="32" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="DeckCopy" />
+                    </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Deck}" Classes="tableHead" />
-                    <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.WinRate}" Classes="tableHead" HorizontalAlignment="Right" />
-                    <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.Games}" Classes="tableHead" HorizontalAlignment="Right" />
-                    <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Dust}" Classes="tableHead" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.WinRate}" Classes="tableHead" MinWidth="64" TextAlignment="Right" />
+                    <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.Games}" Classes="tableHead metaWide" MinWidth="64" TextAlignment="Right" />
+                    <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Dust}" Classes="tableHead metaWide" MinWidth="64" TextAlignment="Right"
+                               ToolTip.Tip="{i:Loc Collection.Dust.ColumnTip}" />
                 </Grid>
                 <ItemsControl ItemsSource="{Binding MetaDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" />
                 <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaLoading}" />
                 <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Main.Meta.Unavailable}" IsVisible="{Binding MetaUnavailable}" />
                 <ContentControl Classes="emptyState" Tag="&#xF0639;" Content="{i:Loc Main.Meta.DecksEmpty}" IsVisible="{Binding MetaDecksEmpty}" />
                 <ContentControl Classes="emptyState" Tag="&#xF0232;" Content="{i:Loc Collection.Filter.Empty}" IsVisible="{Binding MetaCanBuildEmpty}" />
+                <ContentControl Name="MetaPricing" Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Collection.Pricing}" IsVisible="{Binding MetaPricingShown}" />
                 <TextBlock Text="{Binding CopyNote}" Classes="caption" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                            IsVisible="{Binding CopyNote, Converter={StaticResource Truthy}}" />
                 <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"

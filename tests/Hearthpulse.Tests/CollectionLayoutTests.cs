@@ -20,7 +20,7 @@ namespace Hearthpulse.Tests;
 /// never cut, the controls are named for a screen reader and reachable from the keyboard.
 /// </summary>
 [Collection(nameof(GlobalLanguage))]
-public sealed class CollectionLayoutTests
+public sealed partial class CollectionLayoutTests
 {
     /// <summary>As in <see cref="BgOwnLayoutTests"/>: the headless platform gives every character its font size as width.</summary>
     private const double GlyphScale = 0.6;
