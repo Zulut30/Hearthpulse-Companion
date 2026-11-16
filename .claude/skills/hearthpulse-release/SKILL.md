@@ -197,6 +197,11 @@ Two independent signatures; both scripts run in trial runs too, so a trial run s
 8. Asset names unchanged (or `UpdateService.AssetName` updated in the same release and old clients considered).
 8a. Trial run on the release commit: `gh workflow run release.yml --ref <branch> -f version=X.Y.Z -f publish=false
    -f sign_selftest=true` is green and `gh release list` is unchanged.
+8b. Repository rename compatibility: **never create another `Zulut30/Hearthpulse_App` repository**. Installed 0.14.0
+   clients still ask its `releases/latest` API URL and rely on GitHub redirecting it to `Hearthpulse-Companion`.
+   Before tagging, verify that redirect still reaches this repository and that release-page links under both names
+   remain accepted. Do not treat a live 0.14.0-to-new-version installation as verified until the Sandbox scenario
+   in 7a has actually run against the published release.
 9. Ask the user: tag `vX.Y.Z` and push, or run the workflow by hand. After it finishes: the release has all files +
    `SHA256SUMS.txt` (23, or 24 with a delta) + `SHA256SUMS.txt.sig` when signed (24 / 25), assets show a `digest`,
    and an older build offers the update.
