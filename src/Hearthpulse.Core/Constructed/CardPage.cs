@@ -95,6 +95,14 @@ public sealed record CardPage(
 /// <summary>Builds the card page: pure functions over what was loaded and the player's own games.</summary>
 public static partial class CardPages
 {
+    /// <summary>
+    /// Opening hands a mulligan row needs before its win-rate difference is coloured as better or worse. A win rate near
+    /// 50 % over n hands has a 95 % interval of about ±98/√n points: ±17 at 33 hands, ±9.8 at 100, ±4.9 at 400. The
+    /// differences shown are a few points, so under 400 hands the sign of one is not established and it stays neutral
+    /// (it is still shown, with its hands beside it).
+    /// </summary>
+    public const int MulliganVerdictHands = 400;
+
     /// <param name="formatType">"FT_STANDARD" or "FT_WILD".</param>
     /// <param name="stats">The format's card list, or null when it could not be loaded.</param>
     /// <param name="meta">The format's loaded meta, or null.</param>

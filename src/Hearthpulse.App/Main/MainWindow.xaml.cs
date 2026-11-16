@@ -198,6 +198,8 @@ public partial class MainWindow : Window
 
                 break;
             case nameof(MainViewModel.CardOpen):
+                // Read before the page is hidden: a focus the player moved elsewhere (a sidebar button) is left alone.
+                var cardHadFocus = FocusIsOnCardPage();
                 if (ConstructedShown)
                 {
                     // Back from a card leaves the page under it where the player was reading.
@@ -208,6 +210,19 @@ public partial class MainWindow : Window
                 else if (_viewModel.CardOpen)
                 {
                     ShowPage(ConstructedPage.PageOf(_viewModel.ConstructedFormat));
+                }
+
+                if (_viewModel.CardOpen)
+                {
+                    FocusCardPage();
+                }
+                else if (ConstructedShown && cardHadFocus)
+                {
+                    RestoreCardFocus();
+                }
+                else
+                {
+                    _cardOrigin = null;
                 }
 
                 break;

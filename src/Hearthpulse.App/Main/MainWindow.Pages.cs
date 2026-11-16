@@ -129,13 +129,6 @@ public partial class MainWindow
     /// <summary>True while the card page closes: the page under it keeps its scroll position.</summary>
     private bool _cardClosing;
 
-    /// <summary>A card row was clicked (<see cref="Controls.CardLink"/>): its card page opens.</summary>
-    private void OnCardLink(object? sender, Controls.CardLinkEventArgs e)
-    {
-        _viewModel.OpenCard.Execute(e.CardId);
-        e.Handled = true;
-    }
-
     /// <summary>A page view built late, bound to its view model and placed in its scrolling page.</summary>
     private static T Fill<T>(ScrollViewer page, T view, string path) where T : FrameworkElement
     {

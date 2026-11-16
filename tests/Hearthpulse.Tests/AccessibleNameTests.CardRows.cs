@@ -39,6 +39,30 @@ public sealed partial class AccessibleNameTests
         }
     }
 
+    /// <summary>
+    /// A WPF <c>ItemsControl</c> is itself a Tab stop unless it says <c>Focusable="False"</c>: with it left out, a list
+    /// of card rows would be two stops (the list, then its rows), not the one <c>CardLink</c> promises.
+    /// </summary>
+    [Fact]
+    public void Every_wpf_list_of_card_rows_is_not_a_tab_stop_itself()
+    {
+        var root = Path.Combine(RepoFiles.Root, "src/Hearthpulse.App", "Main");
+        string[] rowTemplates = ["{StaticResource DiffTile}", "{StaticResource DeckListTile}"];
+        var lists = new[] { Path.Combine(root, "Decks", "DeckDetailsView.xaml"), Path.Combine(root, "Meta", "ConstructedMetaView.xaml") }
+            .SelectMany(f => XDocument.Load(f, LoadOptions.SetLineInfo).Descendants().Where(e => e.Name.LocalName == "ItemsControl")
+                .Where(e => rowTemplates.Contains((string?)e.Attribute("ItemTemplate"))
+                            // An inline template: the row's nearest list is this one.
+                            || e.Descendants().Any(d => Attribute(d, "CardLink.CardId") is not null
+                                                        && ReferenceEquals(d.Ancestors().First(a => a.Name.LocalName == "ItemsControl"), e)))
+                .Select(e => (File: Path.GetFileName(f), List: e)))
+            .ToList();
+
+        // The two version-difference lists, the deck list, "Your mulligan", "Card results", the meta's mulligan guide.
+        Assert.Equal(6, lists.Count);
+        Assert.All(lists, l => Assert.True((string?)l.List.Attribute("Focusable") == "False",
+            $"{l.File}:{((System.Xml.IXmlLineInfo)l.List).LineNumber}: a list of card rows without Focusable=\"False\" is a Tab stop of its own"));
+    }
+
     [Fact]
     public void Both_apps_link_the_same_card_rows()
     {

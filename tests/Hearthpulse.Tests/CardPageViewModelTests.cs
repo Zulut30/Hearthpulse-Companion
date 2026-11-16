@@ -87,17 +87,60 @@ public sealed class CardPageViewModelTests : IDisposable
         Assert.Equal((P(0.55, "P1"), 1000.ToString("N0", CultureInfo.CurrentCulture)), (row.WinRate, row.Games));
         Assert.Equal(0.05, row.Edge, 6);
 
-        // In hand 60 % against the same games' 52 %: +8.0 points over 200 hands, kept 80 %.
+        // In hand 60 % against the same games' 52 %: +8.0 points over 200 hands, kept 80 %. 200 hands are under the 400
+        // a verdict needs (about ±7 points at 200): the difference is shown, without a colour.
         var mulligan = Assert.Single(page.Mulligan);
         Assert.Equal((P(0.80, "P0"), P(0.60, "P1"), 200.ToString("N0", CultureInfo.CurrentCulture)), (mulligan.KeepRate, mulligan.WinRate, mulligan.Hands));
         Assert.Equal(Loc.F("Card.Mulligan.Points", "+" + 8.0.ToString("0.0", CultureInfo.CurrentCulture)), mulligan.Impact);
-        Assert.Equal(0.08, mulligan.Edge, 6);
+        Assert.Equal(0, mulligan.Edge);
+        Assert.True(mulligan.Few);
+        Assert.Equal(Loc.P("Card.Mulligan.Hands", 200), mulligan.HandsLabel);
+        Assert.Equal(Loc.P("Stats.Games", 1000), row.GamesLabel);
 
         Assert.Equal(
             $"{Loc.F("Card.Meta.Source", HearthpulseData.Attribution, ConstructedMeta.Label(ConstructedMeta.Ranks, "legend"), ConstructedMeta.Label(ConstructedMeta.Periods, "past_week"))}"
             + $" · {Loc.F("Card.Updated", MetaUpdated.ToLocalTime())}",
             page.MetaSource);
         Assert.Equal((string.Empty, string.Empty), (page.ArchetypesEmpty, page.MulliganEmpty));
+    }
+
+    [Theory]
+    [InlineData(33, 0.233, 0)]
+    [InlineData(399, 0.08, 0)]
+    [InlineData(400, 0.08, 0.08)]
+    [InlineData(5000, -0.038, -0.038)]
+    public async Task A_mulligan_difference_takes_a_colour_only_from_enough_hands(int hands, double difference, double edge)
+    {
+        Assert.Equal(400, CardPages.MulliganVerdictHands);
+        var vm = Model(out _);
+        var meta = Meta();
+        var archetype = meta.Archetypes[0] with { Mulligan = [new MetaMulliganCard("T_BOLT", hands, 0.5, hands, 0.52 + difference)] };
+        vm.SetConstructedMeta(new ConstructedMeta("standard", "legend", "past_week", MetaUpdated, 1000, [archetype], meta.Decks));
+
+        await vm.OpenCardPageAsync("T_BOLT");
+
+        var row = Assert.Single(vm.CardPage.Mulligan);
+        // The number itself is always there with its hands; only the green or red waits for the sample.
+        var points = Math.Abs(difference * 100).ToString("0.0", CultureInfo.CurrentCulture);
+        Assert.Equal(Loc.F("Card.Mulligan.Points", (difference > 0 ? "+" : "−") + points), row.Impact);
+        Assert.Equal(edge, row.Edge, 6);
+        Assert.Equal(hands < 400, row.Few);
+        Assert.Equal(hands.ToString("N0", CultureInfo.CurrentCulture), row.Hands);
+    }
+
+    [Theory]
+    [InlineData("en", "Difference")]
+    [InlineData("ru", "Разность")]
+    public void The_mulligan_column_names_a_difference_and_its_tip_says_it_is_not_the_cards_effect(string language, string head)
+    {
+        Loc.Instance.SetLanguage(language == "ru" ? Loc.Russian : Loc.English);
+
+        Assert.Equal(head, Loc.T("Card.Col.Impact"));
+        var tip = Loc.T("Card.Col.ImpactTip");
+        Assert.Contains(language == "ru" ? "наблюдаемая разность, а не эффект карты" : "observed difference, not the card's effect", tip, StringComparison.Ordinal);
+        Assert.Contains(CardPages.MulliganVerdictHands.ToString(CultureInfo.InvariantCulture), tip, StringComparison.Ordinal);
+        string[] causal = language == "ru" ? ["Влияние", "влияет", "благодаря", "улучшает"] : ["Impact", "improves", "because of", "thanks to"];
+        Assert.All(causal, word => Assert.DoesNotContain(word, head + " " + tip, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

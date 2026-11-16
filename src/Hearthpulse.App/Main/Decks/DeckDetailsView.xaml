@@ -525,7 +525,7 @@
                                             <Button Style="{StaticResource DiffToggle}" Margin="0,4,0,0" Visibility="{Binding HasDiff, Converter={StaticResource Vis}}"
                                                     Command="{Binding DataContext.ToggleDiff, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}"
                                                     Content="{Binding Changes}" Tag="{Binding DiffOpen}" ToolTip="{i:Loc Deck.Versions.DiffTip}" />
-                                            <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,4,0,0"
+                                            <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Focusable="False" Margin="0,4,0,0"
                                                           Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" />
                                         </StackPanel>
                                     </Border>
@@ -582,7 +582,7 @@
                                                                 Command="{Binding DataContext.Dismiss, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                                                     </StackPanel>
                                                 </Grid>
-                                                <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,8,0,0"
+                                                <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Focusable="False" Margin="0,8,0,0"
                                                               Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" />
                                             </StackPanel>
                                         </Border>
@@ -746,7 +746,7 @@
                         </Grid>
                     </Grid>
                 </Border>
-                <ItemsControl ItemsSource="{Binding MulliganRows}" ItemsPanel="{StaticResource PageRows}">
+                <ItemsControl ItemsSource="{Binding MulliganRows}" ItemsPanel="{StaticResource PageRows}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type d:DeckCardStatRow}">
                             <Button Style="{StaticResource CardRowButton}" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
@@ -839,7 +839,7 @@
                         </Grid>
                     </Grid>
                 </Border>
-                <ItemsControl ItemsSource="{Binding PerformanceRows}" ItemsPanel="{StaticResource PageRows}">
+                <ItemsControl ItemsSource="{Binding PerformanceRows}" ItemsPanel="{StaticResource PageRows}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type d:DeckCardStatRow}">
                             <Button Style="{StaticResource CardRowButton}" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">

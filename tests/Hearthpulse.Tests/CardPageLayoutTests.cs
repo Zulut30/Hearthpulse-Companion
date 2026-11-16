@@ -94,6 +94,17 @@ public sealed class CardPageLayoutTests
             // The columns the compact page has no room for are gone there, and only there.
             string[] wideOnly = [Loc.T("Card.Col.Copies"), Loc.T("Card.Col.Games"), Loc.T("Card.Col.HandWinRate"), Loc.T("Card.Col.Hands")];
             Assert.All(wideOnly, text => Assert.Equal(!compact, texts.Contains(text)));
+            // ... and there the sample they held stands under its number: no win rate or difference without its count.
+            string[] compactOnly = [.. vm.Archetypes.Select(a => a.GamesLabel), .. vm.Mulligan.Select(m => m.HandsLabel)];
+            Assert.All(compactOnly, text => Assert.Equal(compact, texts.Contains(text)));
+            Assert.Equal(Loc.P("Stats.Games", 148300), vm.Archetypes[0].GamesLabel);
+            if (compact)
+            {
+                var sample = shown.First(t => t.Text == vm.Mulligan[0].HandsLabel);
+                var number = shown.First(t => t.Text == vm.Mulligan[0].Impact);
+                Assert.True(sample.TranslatePoint(default, page)!.Value.Y >= number.TranslatePoint(default, page)!.Value.Y + number.Bounds.Height - 0.5);
+                Assert.Equal(sample.TranslatePoint(new Point(sample.Bounds.Width, 0), page)!.Value.X, number.TranslatePoint(new Point(number.Bounds.Width, 0), page)!.Value.X, 1.0);
+            }
 
             // Nothing cut: no ellipsis, no line wider than its block, no block past the page's edge.
             foreach (var block in shown)
@@ -250,6 +261,141 @@ public sealed class CardPageLayoutTests
             Loc.Instance.SetLanguage(Loc.English);
         }
     });
+
+    [Fact]
+    public void Enter_on_a_deck_row_moves_the_focus_to_the_page_and_Esc_or_Back_returns_it_to_that_row() => LocBindingTests.Headless.Run(() =>
+    {
+        var theme = PageRowsPanelAvaloniaTests.Theme();
+        var cards = Cards("en");
+        var history = new HistoryStore(TestDataFolder.Scratch("hp-card-focus") + ".db");
+        var code = DeckString.Encode(new Dictionary<string, int>(StringComparer.Ordinal) { ["T_LONG"] = 2, ["T_FILL"] = 2 }, "DEMONHUNTER", "FT_STANDARD", cards)!;
+        for (var i = 0; i < 3; i++)
+        {
+            var at = new DateTime(2026, 11, 10, 12, 0, 0, DateTimeKind.Local).AddMinutes(i * 10);
+            Assert.True(history.Add(new GameRecord
+            {
+                Key = "card-focus-" + i, StartedAt = at, EndedAt = at.AddMinutes(8), Mode = "Ranked", GameType = "GT_RANKED", Format = "FT_STANDARD", Result = "Win",
+                PlayerClass = "DEMONHUNTER", OpponentClass = "PRIEST", DeckName = "Focus deck", DeckCode = code,
+            }));
+        }
+
+        var model = new MainViewModel(history, new AppSettings(), TestDataFolder.App);
+        model.SetCards(cards);
+        var view = new MainView { DataContext = model };
+        var window = new Window { Width = 1280, Height = 1400 };
+        window.Resources["UiFont"] = FontFamily.Default;
+        window.Content = view;
+        window.Show();
+        try
+        {
+            Pump(Done(model.RefreshAsync()));
+            view.ShowPage("Standard");
+            var until = Stopwatch.StartNew();
+            while (model.DeckFamiliesShown.Count == 0 && until.Elapsed < TimeSpan.FromSeconds(30))
+            {
+                Dispatcher.UIThread.RunJobs();
+            }
+
+            Assert.True(model.OpenDeckPage(model.DeckFamiliesShown.Single().Key));
+            // The deck page is built off the UI thread.
+            until.Restart();
+            while (model.DeckPage.DeckList.Count == 0 && until.Elapsed < TimeSpan.FromSeconds(30))
+            {
+                Dispatcher.UIThread.RunJobs();
+            }
+
+            PageRowsPanelAvaloniaTests.Settle(window);
+            T Named<T>(string name) where T : Control => view.GetVisualDescendants().OfType<T>().Single(c => c.Name == name);
+            var deck = Named<ScrollViewer>("PageDeck");
+            var cardPage = Named<ScrollViewer>("PageCard");
+            Assert.True(deck.IsVisible);
+
+            // The real rows of the deck page's list: buttons the deck list template built, in a list that is one Tab stop.
+            List<Button> Rows() => deck.GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible && CardLink.GetCardId(b) is { Length: > 0 }).ToList();
+            var rows = Rows();
+            Assert.True(rows.Count >= 2, $"card rows on the deck page: {rows.Count}");
+            var row = rows.First(r => CardLink.GetCardId(r) == "T_LONG");
+            var list = row.FindAncestorOfType<ItemsControl>()!;
+            Assert.Equal(Avalonia.Input.KeyboardNavigationMode.Once, Avalonia.Input.KeyboardNavigation.GetTabNavigation(list));
+            Assert.Equal(Loc.F("Card.OpenName", cards.NameOf("T_LONG")), Avalonia.Automation.AutomationProperties.GetName(row));
+            Avalonia.Input.IInputElement? Focused() => TopLevel.GetTopLevel(view)!.FocusManager!.GetFocusedElement();
+            void Press(Avalonia.Input.InputElement on, Avalonia.Input.Key key, Avalonia.Input.KeyModifiers modifiers = Avalonia.Input.KeyModifiers.None) =>
+                on.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = key, KeyModifiers = modifiers, Source = on });
+            void Loaded()
+            {
+                var wait = Stopwatch.StartNew();
+                while (model.CardPage.Loading && wait.Elapsed < TimeSpan.FromSeconds(30))
+                {
+                    Dispatcher.UIThread.RunJobs();
+                }
+
+                PageRowsPanelAvaloniaTests.Settle(window);
+            }
+
+            // Enter on the row: the card page is shown and the focus is on its first control, Back.
+            Assert.True(row.Focus(Avalonia.Input.NavigationMethod.Tab));
+            Press(row, Avalonia.Input.Key.Enter);
+            Loaded();
+            Assert.True(model.CardOpen);
+            Assert.True(cardPage.IsVisible);
+            Assert.False(deck.IsVisible);
+            var back = Named<Button>("BackButton");
+            Assert.Same(back, Focused());
+            Assert.Equal(Loc.T("Card.Back"), back.GetVisualDescendants().OfType<TextBlock>().Last().Text);
+
+            // Esc, handled by the window: the deck page returns and the focus is on the row the page was opened from.
+            Press(back, Avalonia.Input.Key.Escape);
+            PageRowsPanelAvaloniaTests.Settle(window);
+            Assert.False(model.CardOpen);
+            Assert.True(deck.IsVisible);
+            Assert.Same(row, Focused());
+
+            // The Back button and Alt+Left do the same.
+            Press(row, Avalonia.Input.Key.Enter);
+            Loaded();
+            Assert.Same(back, Focused());
+            back.Command!.Execute(null);
+            PageRowsPanelAvaloniaTests.Settle(window);
+            Assert.Same(row, Focused());
+            Press(row, Avalonia.Input.Key.Enter);
+            Loaded();
+            Press(back, Avalonia.Input.Key.Left, Avalonia.Input.KeyModifiers.Alt);
+            PageRowsPanelAvaloniaTests.Settle(window);
+            Assert.False(model.CardOpen);
+            Assert.Same(row, Focused());
+
+            // The list was built again while the card was open: the focus lands on the same card's row of that list.
+            Press(row, Avalonia.Input.Key.Enter);
+            Loaded();
+            list.ItemsSource = model.DeckPage.DeckList.ToList();
+            Press(back, Avalonia.Input.Key.Escape);
+            PageRowsPanelAvaloniaTests.Settle(window);
+            var landed = Assert.IsType<Button>(Focused());
+            Assert.Equal("T_LONG", CardLink.GetCardId(landed));
+            Assert.Same(list, landed.FindAncestorOfType<ItemsControl>());
+
+            // A focus the player moved off the card page (the sidebar) is not pulled back to the row.
+            Press(landed, Avalonia.Input.Key.Enter);
+            Loaded();
+            var nav = Named<RadioButton>("NavStandard");
+            nav.Focus(Avalonia.Input.NavigationMethod.Tab);
+            model.CardPage.Back.Execute(null);
+            PageRowsPanelAvaloniaTests.Settle(window);
+            Assert.Same(nav, Focused());
+        }
+        finally
+        {
+            window.Close();
+            Application.Current!.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+        }
+    });
+
+    private static async Task<bool> Done(Task task)
+    {
+        await task.ConfigureAwait(true);
+        return true;
+    }
 
     /// <summary>Runs the UI thread's jobs until the task is done (its continuations come back to this thread).</summary>
     private static T Pump<T>(Task<T> task)

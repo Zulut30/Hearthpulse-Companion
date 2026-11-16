@@ -110,7 +110,7 @@ public static class CardLink
         e.Handled = true;
     }
 
-    private static ItemsControl? ListOf(DependencyObject row)
+    internal static ItemsControl? ListOf(DependencyObject row)
     {
         for (var parent = VisualTreeHelper.GetParent(row); parent is not null; parent = VisualTreeHelper.GetParent(parent))
         {
@@ -124,7 +124,7 @@ public static class CardLink
     }
 
     /// <summary>The card rows built in a list, top to bottom.</summary>
-    private static IEnumerable<ButtonBase> Rows(DependencyObject root)
+    internal static IEnumerable<ButtonBase> Rows(DependencyObject root)
     {
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
         {

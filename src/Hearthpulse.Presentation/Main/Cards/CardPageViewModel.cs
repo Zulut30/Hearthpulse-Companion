@@ -20,12 +20,20 @@ namespace Hearthpulse.UI.Main.Cards;
 
 /// <summary>An archetype whose lists run the card: share of its lists, copies, the archetype's own win rate and games.</summary>
 /// <param name="Edge">The archetype's win rate minus 50 %, for the number's colour.</param>
-public sealed record CardArchetypeRow(string Name, string ClassName, string HeroId, string Lists, string Share, string Copies, string WinRate, double Edge, string Games)
-    : IImmutableView;
+/// <param name="GamesLabel">"132 games": the sample beside the win rate where the Games column is hidden (compact).</param>
+public sealed record CardArchetypeRow(string Name, string ClassName, string HeroId, string Lists, string Share, string Copies, string WinRate, double Edge, string Games,
+    string GamesLabel) : IImmutableView;
 
-/// <summary>The card in one archetype's opening hand: keep rate, win rate in hand, impact and the sample.</summary>
-/// <param name="Edge">The impact as a fraction, for the number's colour.</param>
-public sealed record CardMulliganRow(string Name, string ClassName, string HeroId, string KeepRate, string WinRate, string Impact, double Edge, string Hands) : IImmutableView;
+/// <summary>
+/// The card in one archetype's opening hand: keep rate, win rate in hand, the difference from the archetype's win rate
+/// and the sample. The difference is an observation, not the card's effect: kept cards sit in hands that were good.
+/// </summary>
+/// <param name="Impact">The difference in points, signed ("+8.0 pp").</param>
+/// <param name="Edge">The difference as a fraction for the number's colour; 0 (neutral) under <see cref="CardPages.MulliganVerdictHands"/> hands.</param>
+/// <param name="HandsLabel">"1,200 hands": the sample beside the difference where the Hands column is hidden (compact).</param>
+/// <param name="Few">Too few hands to tell better from worse: the difference is shown without a colour.</param>
+public sealed record CardMulliganRow(string Name, string ClassName, string HeroId, string KeepRate, string WinRate, string Impact, double Edge, string Hands,
+    string HandsLabel, bool Few) : IImmutableView;
 
 /// <summary>
 /// The card page: one Constructed card in the format of the Standard or Wild page - the card itself, its numbers in
@@ -158,7 +166,8 @@ public sealed partial class CardPageViewModel : Observable
             a.AverageCopies.ToString("0.#", CultureInfo.CurrentCulture),
             Percent(a.WinRate, "P1"),
             a.WinRate - 0.5,
-            a.Games.ToString("N0", CultureInfo.CurrentCulture))).ToList();
+            a.Games.ToString("N0", CultureInfo.CurrentCulture),
+            Loc.P("Stats.Games", a.Games))).ToList();
         ArchetypesEmpty = Archetypes.Count > 0 ? string.Empty : Loc.T(meta is null ? "Card.Archetypes.NoMeta" : "Card.Archetypes.None");
 
         Mulligan = page.Mulligan.Select(m => new CardMulliganRow(
@@ -168,8 +177,11 @@ public sealed partial class CardPageViewModel : Observable
             Percent(m.KeepRate, "P0"),
             Percent(m.InHandWinRate, "P1"),
             Loc.F("Card.Mulligan.Points", Signed(m.Impact * 100)),
-            Math.Round(m.Impact * 100, 1) / 100,
-            m.InHand.ToString("N0", CultureInfo.CurrentCulture))).ToList();
+            // A few dozen hands cannot tell a better card from a worse one: no green or red until there are enough.
+            m.InHand >= CardPages.MulliganVerdictHands ? Math.Round(m.Impact * 100, 1) / 100 : 0,
+            m.InHand.ToString("N0", CultureInfo.CurrentCulture),
+            Loc.P("Card.Mulligan.Hands", m.InHand),
+            m.InHand < CardPages.MulliganVerdictHands)).ToList();
         MulliganEmpty = Mulligan.Count > 0 ? string.Empty : Loc.T(meta is null ? "Card.Archetypes.NoMeta" : "Card.Mulligan.None");
 
         var source = meta is null ? string.Empty : Joined(

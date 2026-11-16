@@ -184,8 +184,12 @@
                                             <TextBlock Text="{Binding Lists}" Classes="caption" TextAlignment="Right" TextWrapping="Wrap" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="3" Text="{Binding Copies}" Classes="cardNumber wide cA2" />
-                                        <TextBlock Grid.Column="4" Text="{Binding WinRate}" Classes="cardNumber cA3" FontWeight="Bold"
-                                                   Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" />
+                                        <!-- Compact hides the Games column: the sample then stands under its number -->
+                                        <StackPanel Grid.Column="4" Classes="cardNum cA3" VerticalAlignment="Center" Margin="8,0,0,0">
+                                            <TextBlock Text="{Binding WinRate}" FontWeight="Bold" TextAlignment="Right"
+                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" />
+                                            <TextBlock Text="{Binding GamesLabel}" Classes="caption narrow" TextAlignment="Right" TextWrapping="Wrap" />
+                                        </StackPanel>
                                         <TextBlock Grid.Column="5" Text="{Binding Games}" Classes="cardNumber wide cA4" />
                                     </Grid>
                                 </Border>
@@ -225,8 +229,12 @@
                                         </StackPanel>
                                         <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Classes="cardNumber cM1" />
                                         <TextBlock Grid.Column="3" Text="{Binding WinRate}" Classes="cardNumber wide cM2" />
-                                        <TextBlock Grid.Column="4" Text="{Binding Impact}" Classes="cardNumber cM1" FontWeight="Bold"
-                                                   Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" />
+                                        <!-- Compact hides the Opening hands column: the sample then stands under its number -->
+                                        <StackPanel Grid.Column="4" Classes="cardNum cM1" VerticalAlignment="Center" Margin="8,0,0,0">
+                                            <TextBlock Text="{Binding Impact}" FontWeight="Bold" TextAlignment="Right"
+                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" />
+                                            <TextBlock Text="{Binding HandsLabel}" Classes="caption narrow" TextAlignment="Right" TextWrapping="Wrap" />
+                                        </StackPanel>
                                         <TextBlock Grid.Column="5" Text="{Binding Hands}" Classes="cardNumber wide cM4" />
                                     </Grid>
                                 </Border>

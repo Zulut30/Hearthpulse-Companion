@@ -257,6 +257,119 @@ public sealed class CardPageContractTests
         }
     });
 
+    [Fact]
+    public void In_the_wpf_window_Enter_on_a_deck_row_moves_the_focus_to_the_page_and_Esc_or_Back_returns_it_to_that_row() => WpfThread.RunFresh(() =>
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var cards = Cards();
+        var history = History();
+        var code = DeckString.Encode(new Dictionary<string, int>(StringComparer.Ordinal) { ["T_LONG"] = 2, ["T_FILL"] = 2 }, "DEMONHUNTER", "FT_STANDARD", cards)!;
+        for (var i = 0; i < 3; i++)
+        {
+            var at = new DateTime(2026, 11, 11, 12, 0, 0, DateTimeKind.Local).AddMinutes(i * 10);
+            Assert.True(history.Add(new GameRecord
+            {
+                Key = "card-focus-" + i, StartedAt = at, EndedAt = at.AddMinutes(8), Mode = "Ranked", GameType = "GT_RANKED", Format = "FT_STANDARD", Result = "Win",
+                PlayerClass = "DEMONHUNTER", OpponentClass = "PRIEST", DeckName = "Focus deck", DeckCode = code,
+            }));
+        }
+
+        var model = new WpfMain(history, new AppSettings(), TestApp.Data);
+        model.SetCards(cards);
+        model.LoadCardStats = Loader([]);
+        var window = OffScreen(new WpfWindow(model));
+        window.Show();
+        Pump();
+        try
+        {
+            void Until(Func<bool> done)
+            {
+                var wait = System.Diagnostics.Stopwatch.StartNew();
+                while (!done() && wait.Elapsed < TimeSpan.FromSeconds(30))
+                {
+                    Pump();
+                }
+
+                Assert.True(done());
+                Pump();
+                window.UpdateLayout();
+            }
+
+            var refresh = model.RefreshAsync();
+            Until(() => refresh.IsCompleted);
+            window.ShowPage(ConstructedPage.Standard);
+            Until(() => model.DeckFamiliesShown.Count > 0);
+            Assert.True(model.OpenDeckPage(model.DeckFamiliesShown.Single().Key));
+            Until(() => model.DeckPage.DeckList.Count > 0);
+            var deck = (ScrollViewer)window.FindName("PageDeck");
+            var cardPage = (ScrollViewer)window.FindName("PageCard");
+            Assert.Equal(Visibility.Visible, deck.Visibility);
+
+            // The real rows of the deck page's list: buttons the deck list template built, in a list that is one Tab stop.
+            var rows = Descendants<Button>(deck).Where(b => b.IsVisible && WpfLink.GetCardId(b) is { Length: > 0 }).ToList();
+            Assert.True(rows.Count >= 2, $"card rows on the deck page: {rows.Count}");
+            var row = rows.First(r => WpfLink.GetCardId(r) == "T_LONG");
+            var list = WpfLink.ListOf(row)!;
+            Assert.False(list.Focusable);
+            Assert.Equal(System.Windows.Input.KeyboardNavigationMode.Once, System.Windows.Input.KeyboardNavigation.GetTabNavigation(list));
+            Assert.Same(window.FindResource("FocusRingRow"), row.FocusVisualStyle);
+            Assert.Equal(Loc.F("Card.OpenName", cards.NameOf("T_LONG")), System.Windows.Automation.AutomationProperties.GetName(row));
+            // Every list of card rows on the page is a list, not a stop of its own.
+            Assert.All(Descendants<Button>(deck).Where(b => WpfLink.GetCardId(b) is { Length: > 0 }).Select(b => WpfLink.ListOf(b)!).Distinct(),
+                l => Assert.False(l.Focusable));
+            object? Focused() => System.Windows.Input.FocusManager.GetFocusedElement(window);
+            void Press(UIElement on, System.Windows.Input.Key key) => on.RaiseEvent(
+                new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(on)!, 0, key) { RoutedEvent = UIElement.KeyDownEvent });
+
+            // Enter on the row: the card page is shown and the focus is on its first control, Back.
+            System.Windows.Input.FocusManager.SetFocusedElement(window, row);
+            Press(row, System.Windows.Input.Key.Enter);
+            Until(() => model.CardOpen && !model.CardPage.Loading);
+            Assert.Equal(Visibility.Visible, cardPage.Visibility);
+            Assert.Equal(Visibility.Collapsed, deck.Visibility);
+            var back = (Button)window.CardDetailsPage.FindName("BackButton");
+            Assert.Same(back, Focused());
+
+            // Esc, handled by the window: the deck page returns and the focus is on the row the page was opened from.
+            Press(back, System.Windows.Input.Key.Escape);
+            Until(() => !model.CardOpen);
+            Assert.Equal(Visibility.Visible, deck.Visibility);
+            Assert.Same(row, Focused());
+
+            // The Back button does the same.
+            Press(row, System.Windows.Input.Key.Enter);
+            Until(() => model.CardOpen && !model.CardPage.Loading);
+            Assert.Same(back, Focused());
+            back.Command.Execute(null);
+            Until(() => !model.CardOpen);
+            Assert.Same(row, Focused());
+
+            // The list was built again while the card was open: the focus lands on the same card's row of that list.
+            Press(row, System.Windows.Input.Key.Enter);
+            Until(() => model.CardOpen && !model.CardPage.Loading);
+            list.SetCurrentValue(ItemsControl.ItemsSourceProperty, model.DeckPage.DeckList.ToList());
+            Press(back, System.Windows.Input.Key.Escape);
+            Until(() => !model.CardOpen);
+            var landed = Assert.IsType<Button>(Focused());
+            Assert.NotSame(row, landed);
+            Assert.Equal("T_LONG", WpfLink.GetCardId(landed));
+            Assert.Same(list, WpfLink.ListOf(landed));
+
+            // A focus the player moved off the card page (the sidebar) is not pulled back to the row.
+            Press(landed, System.Windows.Input.Key.Enter);
+            Until(() => model.CardOpen && !model.CardPage.Loading);
+            var nav = (UIElement)window.FindName("NavStandard");
+            System.Windows.Input.FocusManager.SetFocusedElement(window, nav);
+            model.CardPage.Back.Execute(null);
+            Until(() => !model.CardOpen);
+            Assert.Same(nav, Focused());
+        }
+        finally
+        {
+            window.CloseForReal();
+        }
+    });
+
     /// <summary>Every line a page shows, in order: tiles, sources, rows, notes.</summary>
     private static List<string> Lines(dynamic page)
     {

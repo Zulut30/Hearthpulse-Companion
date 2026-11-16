@@ -41,11 +41,7 @@ public partial class MainView : UserControl
         SettingsData.ReimportClicked += e => OnReimport(SettingsData, e);
         SettingsData.OpenDataClicked += e => OnOpenData(SettingsData, e);
         // A card row was clicked (Controls.CardLink): its card page opens.
-        AddHandler(global::Hearthpulse.UI.Controls.CardLink.OpenEvent, (_, e) =>
-        {
-            _viewModel?.OpenCard.Execute(e.CardId);
-            e.Handled = true;
-        });
+        AddHandler(global::Hearthpulse.UI.Controls.CardLink.OpenEvent, OnCardLink);
         _page = CurrentPage;
         var pages = PageButtons;
         for (var i = 0; i < pages.Length; i++)
@@ -327,11 +323,22 @@ public partial class MainView : UserControl
                     ShowPage(ConstructedPage.PageOf(_viewModel.ConstructedFormat));
                 }
 
+                // Read before the page is hidden: a focus the player moved elsewhere (a sidebar button) is left alone.
+                var cardHadFocus = FocusIsOnCardPage();
                 // Back from a card leaves the page under it where the player was reading.
                 UpdatePages(null);
                 if (_viewModel.CardOpen)
                 {
                     PageCard.Offset = default;
+                    FocusCardPage();
+                }
+                else if (ConstructedShown && cardHadFocus)
+                {
+                    RestoreCardFocus();
+                }
+                else
+                {
+                    _cardOrigin = null;
                 }
 
                 break;
