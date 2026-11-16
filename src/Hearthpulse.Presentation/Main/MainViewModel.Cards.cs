@@ -38,6 +38,17 @@ public sealed partial class MainViewModel
     private (string Format, Task<IReadOnlyList<Core.Data.GameRecord>> Games)? _cardGames;
     private volatile bool _cardGamesStale;
     private bool _cardGamesWatching;
+    private IReadOnlyList<Core.Data.GameRecord>? _cardGamesSample;
+
+    /// <summary>
+    /// The UI render check shows "Your games" on made-up games (<see cref="CardPageScene.Games"/>) instead of the data
+    /// copy's history; null puts the history back. Not called outside a render.
+    /// </summary>
+    public void ShowCardGamesSample(IReadOnlyList<Core.Data.GameRecord>? games)
+    {
+        _cardGamesSample = games;
+        _cardGames = null;
+    }
     private RelayCommand? _openCard;
 
     /// <summary>
@@ -159,6 +170,11 @@ public sealed partial class MainViewModel
     /// </summary>
     private Task<IReadOnlyList<Core.Data.GameRecord>> CardGamesFor(string format)
     {
+        if (_cardGamesSample is { } sample)
+        {
+            return Task.FromResult(sample);
+        }
+
         if (!_cardGamesWatching)
         {
             _cardGamesWatching = true;

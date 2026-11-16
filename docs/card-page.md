@@ -17,7 +17,13 @@ style `CardRowButton`, Avalonia classes `bare`) around what the row draws, with 
 `CardLink.CardName` (`Controls/CardLink.cs` in each UI): the button raises a bubbling `CardLink.Open` event and the main
 window calls `MainViewModel.OpenCard`. A new card row elsewhere needs only that button.
 
-Keyboard and screen reader: each list of card rows is one Tab stop, Up and Down move between its rows (stopping at
+Focus: opening the page moves the keyboard focus to its Back button; closing it (Back, Esc, Alt+Left, the mouse's back
+button) returns the focus to the row the page was opened from. When that row is gone (the list was built again while
+the card was open) the focus goes to the same card's row of that list, else the list's first row, else the page's
+sidebar button; a focus the player moved elsewhere meanwhile is left alone (`MainWindow.CardFocus.cs`,
+`MainView.CardFocus.cs`).
+
+Keyboard and screen reader: each list of card rows is one Tab stop (in WPF the list itself is `Focusable="False"`), Up and Down move between its rows (stopping at
 the ends), the focused row shows the theme's row focus ring, and the button's name is "Open the card page of <card>"
 (`Card.OpenName`). `AccessibleNameTests` checks that every linked row in both UIs' markup is such a button.
 
@@ -32,7 +38,7 @@ and Wild sidebar items switch the open card to the other format; any other page 
 | Header | name, cost, class, set, text, art | card data (`CardDb`, HearthstoneJSON), `CardArt` |
 | In ranked games | share of decks (copies per deck), deck win rate, win rate when drawn, win rate when played (times played), kept in the mulligan (win rate in the opening hand), turn played | the format's card list from the data API |
 | Archetypes that run it | lists with the card of the archetype's lists, copies, the archetype's own win rate and games | the loaded meta of the format (`ConstructedMeta.Decks`, `Archetypes`) |
-| Mulligan by archetype | kept, win rate in hand, impact (in hand minus the archetype's win rate over the same games), opening hands | the loaded meta (`MetaArchetype.Mulligan`, `MulliganBaseline`) |
+| Mulligan by archetype | kept, win rate in hand, difference (in hand minus the archetype's win rate over the same games), opening hands | the loaded meta (`MetaArchetype.Mulligan`, `MulliganBaseline`) |
 | Your games | games drawn in and played in with their record and win rate, kept of offered | the local history only (`HistoryStore.WithCards`) |
 
 Rules the model keeps (`Core/Constructed/CardPage.cs`, `CardPages.Build`, pure and tested by hand-made data):
@@ -45,6 +51,12 @@ Rules the model keeps (`Core/Constructed/CardPage.cs`, `CardPages.Build`, pure a
   and period are read from the answer (`rank_range`, `time_range`), never from the source's name. Archetype and
   mulligan rows carry the meta's own source, rank, period and date; each mulligan row has its opening hands.
 - The other format's list or meta is never shown on a page (`Build` checks `Format`).
+- The mulligan column is a **difference** of two win rates, not the card's effect: a card is kept in hands that are
+  already good, so the column and its tip claim no cause. Under `CardPages.MulliganVerdictHands` (400) opening hands
+  the difference has no green or red: a win rate near 50 % over n hands has a 95 % interval of about ±98/√n points
+  (±17 at 33 hands, ±4.9 at 400), wider than the few points shown. The number and its hands are always shown.
+- In the compact Avalonia layout the Games and Opening hands columns are hidden and their values stand under the win
+  rate and the difference ("132 games", "1,182 hands"): no number is left without its sample.
 - Archetypes that share one set of mulligan numbers (`MulliganArchetypeId`) give one mulligan row, the most played.
 - Own games are Ranked and Casual games of the page's format, abandoned ones left out, counted per game (two copies
   drawn count once). A win rate from fewer than five own games stays neutral (`DeckDetails.SmallSample`).
@@ -62,7 +74,11 @@ list is shown with its own date, and a late source adds the "update is delayed" 
 
 ## Data API
 
-One request per format, read only (`HearthpulseData.LoadCardStatsAsync`, `Core/Api/HearthpulseData.Cards.cs`):
+One request per format, read only (`HearthpulseData.LoadCardStatsAsync`, `Core/Api/HearthpulseData.Cards.cs`). Callers
+that ask while a format's list loads share that load (one request, one answer for all); a caller's cancellation ends
+only its own wait. The page never cancels a load: opening another card, a rebuild (a meta, a language, a data summary)
+or Back only stop waiting, the list the open page has is reused, and a result for a card or format the page has left
+is not shown (`MainViewModel.Cards.cs`).
 
 | Format | Request | What the answer is (checked live 2026-11-16) |
 |---|---|---|
@@ -80,6 +96,17 @@ Cache: `cache/api/card-stats-{format}.json`, six hours, written atomically, trim
 `meta.fetched_at` - about 95 KB for Standard and 300 KB for Wild. A 404 (the source is gone) is remembered as
 `{"data":null}` for the cache's age; a failed request serves the old file. The loader never throws, a cancelled load
 included (the page that asked is closed: it gets null).
+
+**A 200 answer is not always a list.** The answer describes itself (checked live 2026-11-16): `structured.type`
+(`card_stats`), `structured.blocked` (false; true when the origin refused the collector), `schema_validation.ok` (true),
+`structured.row_retrieval` (`raw_rows` = `normalized_rows` = 1 324, `unexplained_drops` 0), `publication.mode`
+(`stable`). `UsableCardStats` refuses an answer with another type, `blocked: true`, a failed validation, no
+`structured.cards`, or fewer than `MinCardRows` = 300 rows with a card id. The floor: the smallest Standard pool of a
+rotation is over 700 collectible cards and nearly all are played by someone in two weeks (1 324 and 4 393 rows seen),
+so a list of a few dozen or a couple of hundred cards is a collection cut short, not a quiet fortnight. A refused
+answer is a failed load: the cache file is not written and keeps its age (so the next open asks again), the older copy
+is served with its own date, and without one the page shows the error with "Try again". It is not remembered the way
+a 404 is.
 
 Checked and not used:
 
@@ -107,8 +134,13 @@ Fixtures: `tests/Hearthpulse.Tests/Fixtures/Cards/` (how they were cut is in its
 | Views | `App/Main/Cards/CardPageView.xaml`, `UI/Main/Cards/CardPageView.axaml`; `PageCard` in `MainWindow.xaml` / `MainView.axaml` |
 | Card rows | `App/Controls/CardLink.cs`, `UI/Controls/CardLink.cs` |
 | Strings | `Localization/Strings/{en,ru}/card.json` |
-| Render scenes | `HEARTHPULSE_RENDER_ONLY=card` (`DevRender.Card.cs`, `OffscreenRenderer.Card.cs`): `main-card`, `main-card-full`, Avalonia also `main-card-compact`; `HEARTHPULSE_RENDER_CARD=<card id>` picks the card |
+| Render scenes | `HEARTHPULSE_RENDER_ONLY=card` (`DevRender.Card.cs`, `OffscreenRenderer.Card.cs`): `main-card`, `main-card-full` (live list and meta, "Your games" on the made-up games of `CardPageScene`), `main-card-loading`, `main-card-error` ("Try again"), `main-card-stale` (an older copy under a late source), Avalonia also `main-card-compact` and `main-card-error-compact`; `main-card-theme.txt` names the theme and its accent and background colours; `HEARTHPULSE_RENDER_CARD=<card id>` picks the card, `HEARTHPULSE_THEME=<preset>` the theme |
 | Tests | `CardStatsLoadTests`, `CardPageTests`, `CardPageViewModelTests`, `CardPageLayoutTests` (Hearthpulse.Tests), `CardPageContractTests` (Hearthpulse.Presentation.Tests) |
+
+"Your games" reads the history once for the open page (all Ranked and Casual games of the format with their card
+columns) and again after `HistoryStore.Changed`; a load that another card overtook does not read it. Measured on the
+developer's data copy (84 games, 60 of them Standard, 50 KB of card columns): 1.7 ms for the query and the JSON of
+every row, so the read is kept as one query per page rather than narrowed per card.
 
 Nothing leaves the machine: the page sends two read-only requests with no player data in them, and the own-games block
 is read from `history.db`.
