@@ -98,6 +98,150 @@ public sealed class RelatedCardsTests
     }
 
     /// <summary>
+    /// 54 real catalog records, cut as they are (order kept) from the app's disk cache of the Hearthpulse API catalog
+    /// (<c>api/v1/constructed-cards?format=wild</c>, 6 501 cards, fetched 2026-11-15T21:38:55Z) by card id: the cards
+    /// of the cases below and every card their texts could mean.
+    /// </summary>
+    private static readonly Lazy<CardPoolCatalog> Real = new(() =>
+    {
+        using var file = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Fixtures", "RelatedCards", "catalog.json"));
+        return CardPoolCatalog.Read(file)!;
+    });
+
+    private static CardPoolCatalog Reversed(CardPoolCatalog catalog) => new(catalog.Cards.Reverse().ToList(), "test", DateTime.UtcNow);
+
+    private static CardPoolCatalog With(CardPoolCatalog catalog, params PoolCard[] more) => new([.. catalog.Cards, .. more], "test", DateTime.UtcNow);
+
+    /// <summary>The ids of the cards <paramref name="cardId"/>'s text names, with card data made of the catalog's own cards (no tokens).</summary>
+    private static string[] NamedBy(string cardId, CardPoolCatalog catalog)
+    {
+        var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(catalog.Cards.Select(c =>
+            new { id = c.Id, dbfId = c.DbfId, name = c.Name, text = c.Text, type = c.Type, cost = c.Cost, set = c.Set, rarity = c.Rarity, collectible = true }));
+        var cards = CardDb.Parse("enUS", new MemoryStream(json));
+        return RelatedCards.Of(cardId, cards, catalog)?.Rows.Select(r => r.CardId).Order(StringComparer.Ordinal).ToArray() ?? [];
+    }
+
+    /// <summary>
+    /// The owner's screenshot (2026-11-16): Dark Deacon <c>BE_012</c>, "choose a C'Thun ability to trigger", showed the
+    /// Old Gods C'Thun (8 mana 6/6, <c>OG_280</c>). "C'Thun" is that card's whole name and the short name of two more;
+    /// in a card of the 2026 set it is that set's <c>BE_013</c>, whatever order the catalog lists them in.
+    /// </summary>
+    [Theory]
+    [InlineData("BE_012")] // Dark Deacon
+    [InlineData("BE_014")] // Spawn of C'Thun: "If C'Thun started in your deck"
+    [InlineData("BE_204")] // Gargantuan Slitherer
+    [InlineData("BE_726")] // Ritual of C'Thun
+    public void A_short_name_means_the_card_of_the_texts_own_set(string cardId)
+    {
+        Assert.Equal(["BE_013"], NamedBy(cardId, Real.Value));
+        Assert.Equal(["BE_013"], NamedBy(cardId, Reversed(Real.Value)));
+    }
+
+    /// <summary>The Old Gods cards keep the old C'Thun, each set its own printing: the same card, so no guess.</summary>
+    [Theory]
+    [InlineData("OG_281", "OG_280")] // Beckoner of Evil: "Give your C'Thun +2/+2"
+    [InlineData("WON_131", "WON_135")] // Crazed Worshipper, the Wonders reprint
+    [InlineData("CATA_725", "CATA_726")] // "Herald Cho'gall": Cho'gall, Mastermind of that set, not the Old Gods Cho'gall
+    [InlineData("CATA_158", "CATA_154")] // "Herald Sinestra": the only Sinestra
+    [InlineData("FP1_014", "FP1_015")] // Stalagg: "If Feugen also died this game"
+    [InlineData("FP1_015", "FP1_014")]
+    public void A_named_card_is_found_in_either_catalog_order(string cardId, string expected)
+    {
+        Assert.Equal([expected], NamedBy(cardId, Real.Value));
+        Assert.Equal([expected], NamedBy(cardId, Reversed(Real.Value)));
+    }
+
+    /// <summary>
+    /// Reprints of one card (same type, cost, stats and text) are one card: the printing of the text's own set, else the
+    /// lowest id. The old code took whichever the catalog listed first.
+    /// </summary>
+    [Fact]
+    public void A_reprinted_card_gives_the_same_row_in_either_catalog_order()
+    {
+        foreach (var catalog in new[] { Real.Value, Reversed(Real.Value) })
+        {
+            // Broll Bearmantle (Emerald Dream): Animal Companion is NEW1_031 and CORE_NEW1_031.
+            Assert.Equal(["CORE_NEW1_031"], NamedBy("EDR_853", catalog));
+            // Jaina's Gift (LEGACY): "a Temporary Frostbolt, Arcane Intellect, or Fireball", each also in CORE.
+            Assert.Equal(["CS2_023", "CS2_024", "CS2_029"], NamedBy("GIFT_02", catalog));
+        }
+    }
+
+    /// <summary>
+    /// Two different cards of one name (Reincarnate: <c>FP1_025</c> any minion, <c>WON_335</c> a non-Legendary one) and
+    /// a text that names it (the texts here are written for the test): only the one of the text's own set; from another
+    /// set, or with two different ones in the set, nothing.
+    /// </summary>
+    [Fact]
+    public void Different_cards_of_one_name_are_told_apart_by_the_texts_set_or_not_shown()
+    {
+        var naxx = Pool("TEST_1", "Naxx Caster", "Get a Reincarnate.") with { Set = "NAXX" };
+        var other = Pool("TEST_2", "Other Caster", "Get a Reincarnate.") with { Set = "TGT" };
+        var catalog = With(Real.Value, naxx, other);
+
+        foreach (var c in new[] { catalog, Reversed(catalog) })
+        {
+            Assert.Equal(["FP1_025"], NamedBy("TEST_1", c));
+            Assert.Empty(NamedBy("TEST_2", c));
+        }
+
+        var twoInTheSet = With(catalog, Pool("TEST_3", "Reincarnate", "Another card of the name.") with { Set = "NAXX" });
+        Assert.Empty(NamedBy("TEST_1", twoInTheSet));
+        Assert.Empty(NamedBy("TEST_1", Reversed(twoInTheSet)));
+    }
+
+    /// <summary>Real texts whose words are a card's name and no reference to it: nothing is shown, in either order.</summary>
+    [Theory]
+    [InlineData("BE_013")] // C'Thun, Eye of the Empire: "all 4 C'Thun abilities" is the card itself
+    [InlineData("TID_712")] // Neptulon the Tidehunter: "Whenever Neptulon attacks" is itself, not GVG_042
+    [InlineData("TOY_330")] // Zilliax Deluxe 3000 names itself, not BOT_548 Zilliax
+    [InlineData("ONY_010")] // Dragonbane Shot: "Add a Dragonbane Shot" is not DRG_256 Dragonbane
+    [InlineData("CATA_156")] // "Herald Onyxia": EX1_562 or Onyxia the Broodmother, neither of this set
+    [InlineData("RLK_061")] // "a 1/3 Risen Footman" is a token, not TOY_102 Footman
+    [InlineData("RLK_070")] // "a 2/2 Undead Peasant", not SW_319 Peasant
+    [InlineData("TLC_631")] // "Reward: Gorishi Colossus", not SC_758 Colossus
+    [InlineData("TRL_308")] // "Battlecry: Convert all but 1 of your Hero's Health": a verb, not AT_015 Convert
+    [InlineData("ETC_320")] // "Tradeable Convert a friendly Divine Shield"
+    [InlineData("CATA_489")] // "Shatter Deal 4 damage": the keyword, not OG_081 Shatter
+    public void Words_that_only_look_like_a_card_name_give_no_related_card(string cardId)
+    {
+        Assert.NotNull(Real.Value.Get(cardId));
+        Assert.Empty(NamedBy(cardId, Real.Value));
+        Assert.Empty(NamedBy(cardId, Reversed(Real.Value)));
+    }
+
+    /// <summary>
+    /// Both apps read related cards through <see cref="GameSession.RelatedCardsOf"/> (the hover list and
+    /// <c>CardPreview.Related</c>): the screenshot's card gives the 2026 C'Thun there, and its row.
+    /// </summary>
+    [Fact]
+    public void The_session_gives_both_apps_the_new_cthun_for_dark_deacon()
+    {
+        var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(Real.Value.Cards.Select(c =>
+            new { id = c.Id, dbfId = c.DbfId, name = c.Name, text = c.Text, type = c.Type, cost = c.Cost, set = c.Set, rarity = c.Rarity, collectible = true }));
+        using var memory = new HearthstoneMemory();
+        var session = new GameSession(HistoryStore.InMemory(), memory) { Cards = CardDb.Parse("enUS", new MemoryStream(json)) };
+        session.SetCardPoolCatalog(Real.Value);
+
+        var row = Assert.Single(session.RelatedCardsOf("BE_012"));
+        Assert.Equal(("BE_013", "C'Thun, Eye of the Empire", 10), (row.CardId, row.Name, row.Cost));
+    }
+
+    /// <summary>A hero skin's id with a suffix is another skin (<c>HERO_01b</c> → <c>HERO_01ba</c>), not its token.</summary>
+    [Fact]
+    public void A_hero_skin_has_no_tokens()
+    {
+        var cards = CardDb.Parse("enUS", new MemoryStream("""
+            [
+              {"id":"HERO_01b","dbfId":1,"name":"Skin","type":"HERO","set":"HERO_SKINS","collectible":true},
+              {"id":"HERO_01ba","dbfId":2,"name":"Another skin","type":"HERO","set":"HERO_SKINS"}
+            ]
+            """u8.ToArray()));
+
+        Assert.Null(RelatedCards.Of("HERO_01b", cards, CardPoolCatalog.Empty));
+    }
+
+    /// <summary>
     /// TASK-2026-11-09 AC7: a card that looks back at this game shows that list and, beside it, its related cards
     /// (N'Zoth's four abilities, not the enchantment); a card without a rule has its related cards as its list.
     /// </summary>

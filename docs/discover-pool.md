@@ -289,16 +289,40 @@ data only (no hand-made table):
 - **Tokens:** a card that is not collectible, of a drawable type (minion, spell, weapon, location, hero), in the same
   set, whose id is the card's id with a suffix (`t`, `t2`, `ta`, `a`, `b`, `A`, `B`: `CS2_101` → `CS2_101t`, `BE_017` →
   `BE_017t3`, `EDR_872` → `EDR_872A`); a `CORE_` or `Core_` reprint takes the original's tokens (`Core_LOE_115` →
-  `LOE_115a`). An enchantment (`BE_017t6e`) is no related card. Two related cards with the same name and the same text are one row
-  (C'Thun's two identical Eyes `BE_013t3`/`BE_013t6`); the same name with another text shows both.
+  `LOE_115a`). An enchantment (`BE_017t6e`) is no related card, and a hero skin (set `HERO_SKINS`) has no tokens: its
+  suffixed ids are other skins (`HERO_01b` → `HERO_01ba`). Two related cards with the same name and the same text are
+  one row (C'Thun's two identical Eyes `BE_013t3`/`BE_013t6`); the same name with another text shows both.
 - **Named cards:** a collectible card whose English name (two words or six letters at least) stands as whole words in
   the English text (the pool catalog's), outside bold keywords, and is no keyword itself (a mechanic or a referenced
-  tag of some card, or one of Rewind, Resurrect, Silence, Freeze, Discover, Recruit, Corrupt, Overload).
+  tag of some card, or one of Rewind, Resurrect, Silence, Freeze, Discover, Recruit, Corrupt, Overload, Shatter). The
+  card data has no field that links a card to the cards it names, so the text is the only source and a name counts
+  only when it is certain; otherwise no row, never a guess (2026-11-16, after Dark Deacon `BE_012` showed the Old Gods
+  C'Thun):
+  - *The longest name wins its place:* "Add a Dragonbane Shot" is not Dragonbane, and a card's own name is never a
+    reference (Zilliax Deluxe 3000).
+  - *The text leads into the name as a card:* before it a lowercase word ("summon a", "your"), a number or stats
+    ("3", "1/3", "2-Cost"), a list comma, or the keywords Herald and Temporary; or the name is the subject after a
+    clause's first word ("If Feugen also died"). A name that opens the text or a clause is grammar's capital letter
+    ("Convert all but 1 of your Hero's Health", "Tradeable Convert a friendly Divine Shield"), and a capitalised word
+    on either side makes it part of a longer name the catalog does not have ("a 1/3 Risen Footman", "Reward: Gorishi
+    Colossus").
+  - *The name means one card:* the candidates are the cards of that name plus the cards it is the short name of (the
+    name before ", " or " the ": "C'Thun" → `OG_280`/`WON_135` C'Thun, `DMF_254` C'Thun, the Shattered, `BE_013`
+    C'Thun, Eye of the Empire). Reprints (the same type, cost, stats and text) are one card: the printing in the
+    text's own set, else the lowest id, whatever the catalog's order. Of several different cards only the one in the
+    text's own set, when it is the only one there (`BE_012` → `BE_013`, Old Gods cards → `OG_280`, their Wonders
+    reprints → `WON_135`, "Herald Cho'gall" → `CATA_726`); with none or two there, nothing ("Herald Onyxia"). A card
+    whose own name starts with the short name means itself (Neptulon the Tidehunter, `BE_013`). Set equality is
+    used only to choose among the cards a name can mean, never as a closeness score.
+  - On the catalog of 2026-11-15 (6 501 cards) 101 cards have named cards, every one read by hand. The old rule gave
+    124: the 23 dropped were a keyword or verb, part of a longer name, the card itself, or a name the data cannot
+    decide. Known limits: a name under six letters in one word is never found
+    (Hex, Swipe, Brawl), and a card that speaks of another card's tokens shows the card, not its tokens (`BE_012`
+    shows `BE_013`; its abilities are `BE_013`'s own related cards).
 - Names in the client's language (`CardDb`); more than 12 related cards is no list. Without the catalog the tokens still
   show (they come from `CardDb`), the named cards do not. Cached per card for the card data, catalog and interface
   language. `GameSession.RelatedCardsOf(cardId)` gives any card's rows by id alone (no game state, thread-safe; empty
-  for none or more than 12) for card previews. On the 2026-11 catalog (6 501 cards) 1 069 cards
-  have a list: 1 020 with tokens, 65 with named cards.
+  for none or more than 12) for card previews.
 - Only the player's own hand; the hover thread now also runs when a card in hand has related cards.
 
 ### Card preview: related cards
