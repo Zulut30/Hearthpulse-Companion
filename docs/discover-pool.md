@@ -289,16 +289,62 @@ data only (no hand-made table):
 - **Tokens:** a card that is not collectible, of a drawable type (minion, spell, weapon, location, hero), in the same
   set, whose id is the card's id with a suffix (`t`, `t2`, `ta`, `a`, `b`, `A`, `B`: `CS2_101` → `CS2_101t`, `BE_017` →
   `BE_017t3`, `EDR_872` → `EDR_872A`); a `CORE_` or `Core_` reprint takes the original's tokens (`Core_LOE_115` →
-  `LOE_115a`). An enchantment (`BE_017t6e`) is no related card. Two related cards with the same name and the same text are one row
-  (C'Thun's two identical Eyes `BE_013t3`/`BE_013t6`); the same name with another text shows both.
+  `LOE_115a`). An enchantment (`BE_017t6e`) is no related card, and a hero skin (set `HERO_SKINS`) has no tokens: its
+  suffixed ids are other skins (`HERO_01b` → `HERO_01ba`). Two related cards with the same name and the same text are
+  one row (C'Thun's two identical Eyes `BE_013t3`/`BE_013t6`); the same name with another text shows both.
 - **Named cards:** a collectible card whose English name (two words or six letters at least) stands as whole words in
   the English text (the pool catalog's), outside bold keywords, and is no keyword itself (a mechanic or a referenced
-  tag of some card, or one of Rewind, Resurrect, Silence, Freeze, Discover, Recruit, Corrupt, Overload).
+  tag of some card, or one of Rewind, Resurrect, Silence, Freeze, Discover, Recruit, Corrupt, Overload, Shatter). The
+  card data has no field that links a card to the cards it names, so this is a reading of the text: a heuristic that
+  prefers no row to a doubtful one, not a proven link (2026-11-16, after Dark Deacon `BE_012` showed the Old Gods
+  C'Thun). Its steps:
+  - *The longest name wins its place:* "Add a Dragonbane Shot" is not Dragonbane, and a card's own name is never a
+    reference (Zilliax Deluxe 3000).
+  - *The text leads into the name as a card:* before it a lowercase word ("summon a", "your"), a count, stats or a
+    cost written whole ("3", "1/3", "2-Cost"), a list comma, or the keywords Herald and Temporary; or the name is the
+    subject after a clause's first word ("If Feugen also died"). A name that opens the text or a clause is grammar's
+    capital letter ("Convert all but 1 of your Hero's Health", "Tradeable Convert a friendly Divine Shield", after a
+    keyword's number "Spell Damage +1 Duplicate your hand", after "; or"), and a capitalised word on either side makes
+    it part of a longer name the catalog does not have ("a 1/3 Risen Footman", "Reward: Gorishi Colossus").
+  - *What the text says of the card comes first:* a candidate whose cost differs from the "N-Cost" before the name,
+    or whose attack (and, for a minion, health) differs from the "A/H", is not that card, whatever its set. Stickybomb
+    Saboteur `CATA_186`, "a 2-Cost Sabotage", makes its token `CATA_186t`, not the 4-Cost `GVG_047`. A weapon's second
+    number is its durability, which the catalog does not have (Truesilver Champion is 4/0 there): only its attack is
+    compared. Stats before a spell's name fit no card.
+  - *The name means one card:* the candidates are the cards of that name plus the cards it is the short name of: the
+    name before ", " of any card, before " the " of a minion or hero ("C'Thun" → `OG_280`/`WON_135` C'Thun, `DMF_254`
+    C'Thun, the Shattered, `BE_013` C'Thun, Eye of the Empire; a spell's "Infest the Scullery" is a phrase, not
+    another Infest). Reprints (the same type, cost, stats and text) are one card: the printing in the text's own set,
+    else the lowest id, whatever the catalog's order. Of several different cards only the one in the text's own set,
+    when it is the only one there (`BE_012` → `BE_013`, Old Gods cards → `OG_280`, their Wonders reprints →
+    `WON_135`, "Herald Cho'gall" → `CATA_726`); with none or two there, nothing. A card whose own name starts with
+    the short name means itself (Neptulon the Tidehunter, `BE_013`).
+  - *The card's own token comes before a card of another set:* a named card of another set is not shown when the
+    card has a token of that type (Dreaded Mount `SW_087`, "an endless Dreadsteed", makes `SW_087t`, not `AT_019`;
+    Jan'alai's Ragnaros is `TRL_316t`). A named card of the text's own set stays beside the tokens (Stalagg: Feugen
+    and Thaddius).
+  - **Limits of the heuristic.** "The same set" is how the sets of the 2026-11-15 catalog write their own cards, not
+    a rule of the game: a text that means an older card of the name while its set has its own would show the set's
+    card ("Give your Deathwing +2 Attack" in Cataclysm → `CATA_190h`). An epithet before the name is no candidate:
+    "Herald Onyxia" (`CATA_156`, `CATA_780`) means that set's Arisen Onyxia `CATA_155` and shows nothing, because
+    the candidates are `EX1_562` and Onyxia the Broodmother of other sets; by the same gap a name with one older
+    card and a new "Arisen X" in the text's set would show the older card (no such text in this catalog). A text
+    with no cost or stats and no token says nothing to check a single candidate against. A name under six letters
+    in one word is never found (Hex, Swipe, Brawl). A card that speaks of another card's tokens shows the card, not
+    its tokens (`BE_012` shows `BE_013`; the abilities are `BE_013`'s own related cards).
+  - **Audit, 2026-11-16** (catalog of 2026-11-15, 6 501 cards; tokens from HearthstoneJSON). The name rule gives 121
+    named cards on 100 cards. By what backs each: 20 have stats or a cost in the text equal to the card's; 60 are
+    cards of the text's own set under their full name; 8 are the same-set short name (C'Thun, Cho'gall); 32 are the
+    only card of that name, in another set, with nothing in the data to check them against beyond the name (Gift
+    spells, Animal Companion, Ragnaros the Firelord, Leper Gnome...); 1 is also the card's own token (King Krush).
+    The token step then takes 5 of them (`SW_087`, `TRL_316`, and three whose token is the same card: `DRG_232`,
+    `ICC_833`, `ULD_156`). The audit is mechanical where the data allows (stats, costs, tokens, sets) and a reading
+    of the text otherwise; it found `CATA_186` and `SW_087` only when the tokens were compared, so it is no proof
+    that the rest is right.
 - Names in the client's language (`CardDb`); more than 12 related cards is no list. Without the catalog the tokens still
   show (they come from `CardDb`), the named cards do not. Cached per card for the card data, catalog and interface
   language. `GameSession.RelatedCardsOf(cardId)` gives any card's rows by id alone (no game state, thread-safe; empty
-  for none or more than 12) for card previews. On the 2026-11 catalog (6 501 cards) 1 069 cards
-  have a list: 1 020 with tokens, 65 with named cards.
+  for none or more than 12) for card previews.
 - Only the player's own hand; the hover thread now also runs when a card in hand has related cards.
 
 ### Card preview: related cards
