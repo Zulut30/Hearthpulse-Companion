@@ -163,7 +163,10 @@ public sealed partial class MainViewModel
         d.WinRate - 0.5,
         d.Games.ToString("N0", CultureInfo.CurrentCulture),
         DustOf(d.DeckString) is var dust and > 0 ? dust.ToString("N0", CultureInfo.CurrentCulture) : "—",
-        d.DeckString);
+        d.DeckString)
+    {
+        Build = BuildOf(d.DeckString),
+    };
 
     /// <summary>Dust to craft every card of the deck; Core set cards are free for everyone.</summary>
     private int DustOf(string deckCode)

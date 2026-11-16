@@ -349,6 +349,7 @@ public sealed partial class DeckDetailsViewModel : Observable
         _cards = cards;
         UndoText = _owner.MergeUndoText(family.Key) ?? string.Empty;
         Raise(nameof(Key));
+        RefreshCollection();
         Rebuild();
     }
 

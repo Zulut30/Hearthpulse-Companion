@@ -1,8 +1,8 @@
 # Collection, "can build", dust
 
 Roadmap `docs/roadmaps/2026-11-15-hsreplay-remediation.md` 2.3. This document covers the Core part (package L1): what
-is read from the game client, how it is kept, and how a deck is priced. The UI part (labels in the meta deck lists,
-the "can build" filter, missing cards on the own deck page) is a separate package and is not built yet.
+is read from the game client, how it is kept, and how a deck is priced; and the UI part (package L2, "In the
+interface" below): the labels in the meta deck lists, the "can build" filter, the missing cards on the own deck page.
 
 ## Clean-room statement
 
@@ -239,24 +239,126 @@ read, and when the collection stops being confirmed. A subscriber that throws is
 
 The collection is kept in `collection.json` on this machine, and no code in the repository sends it: it is not part
 of a game record, a shared game, a source capture, a profile upload, a replay or a crash report, and there is no
-switch for it. What supports that statement today:
+switch for it. The app asks the player nothing about it and counts nothing about its use. What supports that
+statement:
 
-- reading the sources: the collection's types, file and reads are named only in its own files and in the session and
-  memory-poller files that ask for the read;
+- reading the sources: the collection's types, file and reads are named only in its own files, in the session and
+  memory-poller files that ask for the read, and in the files that show it (the view model partials
+  `MainViewModel.Collection.cs`, `CollectionRows.cs`, `DeckDetailsViewModel.Collection.cs`, the hosts'
+  `App.Collection.cs` / `AppHost.Collection.cs`, the render scenes);
 - `CollectionStoreTests.No_source_file_with_a_sending_call_names_the_collection`, a **static check of names in source
   text**: a source file that contains an HTTP sending call, a crash report, a named pipe or a web socket must not
   contain the collection's names. It does not see a sender without those words, a payload built in another file, or
-  a path through a view model, and it is not a check of what goes over the wire.
+  a path through a view model, and it is not a check of what goes over the wire. The hosts subscribe to the
+  collection in a file of their own for this check (`App.xaml.cs` and `AppHost.cs` hold sending words);
+- `CollectionPrivacyTests`, a **check of what goes over the wire** (2026-11-16, with the UI package).
+  `AppServices` is built as a host builds it, on an `HttpMessageHandler` that records every request and answers
+  "unavailable". The session holds a collection with a marker card id and a marker dust balance (saved to its file,
+  loaded at start, then read as from the client), and the main view model shows it (labels, the filter, the order,
+  the deck page). Then these senders run, each is checked to have sent a request, and no request has a marker in its
+  address, its headers or its body (also percent-encoded, inside gzip, and inside base64 of gzip):
 
-A behavioural check (a collection with a marker, a fake `HttpMessageHandler` behind every uploader and publisher, the
-marker in no body and no address) belongs to the UI package, which is the first code that hands the collection to
-anything else; until then the statement above rests on the two points and no more. Uploading the collection to the
-site is outside this version (roadmap 2.3): it would be a new data flow with its own notice.
+  | Sender | How it is run | Requests seen |
+  |---|---|---|
+  | Constructed and Battlegrounds stats, archetype names, card pool, update check, usage limits | the loaders on the services' client | `GET` to the data API, GitHub, the site |
+  | Game record | a finished game through the session's `GameFinished` handlers, then `GameStatsUploader.PassAsync` (notice shown, a test pool address) | `POST <pool>/v1/events` |
+  | Shared games | `PoolSharingHost` started, a Battlegrounds and a Constructed outcome | `POST <pool>/v1/games`, `/v1/constructed` |
+  | Source capture | the services' `SourceCaptureHost` with the notice shown, a game's Power.log lines through the session, `SendPendingAsync` | `POST <pool>/v1/captures/chunks` |
+  | Profile upload | `ProfileUploader` with a **made-up signed-in session** on the same client and history (the services' own uploader is signed out: a real sign-in is a device flow against the site) | `POST <site>/tracker/events/batch` |
+  | Crash report | `CrashReporter.SendAsync` with an exception | `POST <site>/crash-reports` |
+
+  The files those senders leave in the data folder (queues, spools, the crash folder) are searched for the markers
+  too; only `collection.json` holds them. A second test proves the search itself finds a marker in each of those
+  places.
+
+  **Not run by that test**, so covered only by the two points above: the Twitch publisher and the replay upload and
+  share (both need a signed-in account; neither reads the collection), Discord presence (a local pipe), the account's
+  own calls (`/me`, sign-in), the mulligan guide's and the leaderboard's downloads, and anything a later change adds
+  without adding it to the test. The test answers every request with 503, so a second request that a sender makes
+  only after a successful first one is not seen either (the source capture's `complete` call).
+
+Card ids: the views show card names and never put a card id of the collection into an address or a file name (the
+missing-card rows carry the id the **deck** names, from the card data; they load no art by it). Ids that come from
+the collection are checked against `[A-Za-z0-9_]`, at most 64 characters, when the file is loaded and when the client
+is read. Uploading the collection to the site is outside this version (roadmap 2.3): it would be a new data flow
+with its own notice.
 
 The texts the player reads about what the app reads from the game (the installer notices) do not name the
 collection yet; they are updated by the coordinator before a release that carries this read.
 
-## For the UI package
+## In the interface (package L2)
+
+Both apps show the same, from shared view models (`Presentation/Main/MainViewModel.Collection.cs`,
+`CollectionRows.cs`, `Main/Decks/DeckDetailsViewModel.Collection.cs`) and the twin dictionaries
+`Main/CollectionResources.xaml` / `.axaml`; texts are the `Collection.*` keys (`Strings/{en,ru}/collection.json`).
+The hosts hand the view model `GameSession.Collection` at start and on every `CollectionChanged`, on the UI thread
+(`App.Collection.cs`, `AppHost.Collection.cs`).
+
+**Where.** Standard and Wild, tab "Top decks": over the list the collection's status line, the switch "Can build"
+and the order ("By win rate" / "By missing dust"); under each list its build label. The same label under the best
+lists of the tier list's side card, with the status line under them. The own deck page: a block "Collection" under
+the deck list with the label of the main version, its missing cards and the status line.
+
+**The label** (`DeckBuildView`, made from `DeckCost` and nothing else):
+
+| `DeckCost.State` | Label (en / ru) | Glyph |
+|---|---|---|
+| `Owned` | All cards owned / Все карты есть | check in a circle |
+| `CraftableNow` | Craftable: N dust / Можно создать: N пыли | hammer |
+| `NeedsDust` | N dust short / Не хватает N пыли (`DustShort`) | exclamation in a circle |
+| `NotCraftable` | Can't be crafted / Нельзя создать | cross in a circle |
+| `Unknown` | no label at all | |
+
+The words and the glyph carry the meaning; no colour is used for it. `Estimated` adds the mark "estimate" / «оценка»
+and the reason in the label's help text (another printing in the collection; a card the game hands out). The label
+is a button: its accessible name is the label with its marks, its help text and tooltip the reason and the missing
+cards, and pressing it opens them (WPF: the view's one popup, Escape closes it and gives focus back; Avalonia: a
+flyout). A missing card shows its name ("2 × Name"), its price ("2 × 400 dust", or "can't be crafted") and what makes
+it an estimate; the sum is `DustNeeded`, and for `NotCraftable` never a price of the deck ("Dust can't complete this
+deck", or the cost of the craftable part named as that). Copies are counted as `OwnedCopies.Total`: the split by
+finish is not shown anywhere (`CollectionMarkupTests`).
+
+**A saved collection** (`Confirmed == false`; called "saved", never "from a file"). Rule of the legal review: by a
+collection nobody vouches for now, the app does not state "you can build this" as a fact.
+
+- Every label is dimmed (`DeckBuildView.SavedOpacity`) and carries the mark "by a saved collection" / «по сохранённой
+  коллекции», in its text, its accessible name and its help text.
+- **"Can build" is off limits** (disabled, with the reason in a line beside it and in its tooltip), not "on with a
+  note". Decision of this package: a filter hides lists, and hiding by saved numbers states "you cannot build the
+  rest" about every hidden list at once, with nowhere to put a mark on what is not shown; the file does not even say
+  whose collection it holds. The labels stay, each with its mark; the order by missing dust stays too (it hides
+  nothing and every row keeps its mark). The player's choice is kept and applies again once the collection is
+  confirmed. Both UIs do the same (`CollectionContractTests`).
+
+**The status line** (`MainViewModel.CollectionStatus`; the date of `ReadAt` is always in it when there is a collection):
+
+| State | Text (ru) |
+|---|---|
+| confirmed | «Коллекция прочитана из игры сегодня в 14:05.» (another day: the date and the time) |
+| saved, client not running | «Сохранённая коллекция от <дата>: запустите Hearthstone, чтобы обновить.» |
+| saved, client running | «Сохранённая коллекция от <дата>: прочитать её из игры пока не удалось. Откройте раздел «Коллекция» в Hearthstone.» |
+| none, client not running | «Коллекции пока нет. Запустите Hearthstone: приложение прочитает её из игры.» |
+| none, client running (not read yet, or the read fails) | «Прочитать коллекцию из игры пока не удалось. Откройте раздел «Коллекция» в Hearthstone: чтение повторится.» |
+| a system without the read (`!HearthstoneMemory.IsSupported`) | «Коллекция читается из клиента игры на Windows. На этой системе меток «могу собрать» нет.» |
+
+The view model cannot tell "not read yet" from "the read fails": the session gives no reason, so one text covers
+both, and it names the step that asks for a new read (opening the collection screen).
+
+**Pricing.** A page's lists are priced when its stats, the collection or the card data change: up to 80 lists at
+once, more on a pool thread (the labels appear when it is done; a newer change drops an older result). "Can build"
+keeps `Owned` and `CraftableNow`; while prices are being made its empty state is not shown. The order by missing
+dust: what needs no more dust than the player has (by its cost), then by the dust lacking, then the lists no dust
+completes, then the unknown.
+
+**Render.** `HEARTHPULSE_RENDER_ONLY=collection` (`DevRender.Collection.cs`, `OffscreenRenderer.Collection.cs`) shows
+all of it on `Core/Constructed/CollectionScene.cs`: a made-up collection and made-up lists of real card names. The
+player's own collection is never put into a render's data copy.
+
+**Known limits.** The Avalonia compact layout (420 wide) cuts the columns of a top-deck row as it did before this
+package (the row's fixed columns are wider than the card); the label under them wraps and is whole. WPF's popup is
+not in the render scenes (an off-screen render draws no popup); `CollectionContractTests` opens it.
+
+## The Core interface the views use
 
 - `GameSession.Collection` (`AppServices.Session.Collection`): `CardCollection?`, safe from any thread. Show
   `Confirmed == false` as "as of `ReadAt`".
@@ -278,3 +380,11 @@ counts past the bounds give null), `DeckCostTests` (the five states, decks price
 `CollectionStoreTests` (round trip, damaged and out-of-bounds files, version, temp files, when a read is wanted,
 confirmed and stale results, a failed save, the static check of sending files). No recorded memory image of a real
 collection is in the repository.
+
+The interface: `CollectionViewTests` (the five states, estimates, a saved collection, none, a system without the
+read, the filter, the order, a new collection, the session's event through a host-style dispatch, a long list priced
+off the calling thread, the deck page), `CollectionLayoutTests` (Avalonia, headless: 420 and 1280 wide, ru and en,
+the longest texts whole; names, help texts, tab stops, the 24 px target), `CollectionMarkupTests` (the two markups
+side by side), `CollectionPrivacyTests` (above), and on Windows `Hearthpulse.Presentation.Tests/CollectionContractTests`
+(both view models the same in every state; the WPF page, its popup and the deck page). The fixture
+(`CollectionFixture`) is made up: no real collection or dust balance is in the tests or in this document.

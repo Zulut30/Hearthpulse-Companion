@@ -12,6 +12,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/CollectionResources.axaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Card cell: cost gem, round art, name and copies -->
@@ -611,6 +612,17 @@
                     <ItemsControl ItemsSource="{Binding DeckList}" ItemTemplate="{StaticResource DeckListTile}" />
                     <ContentControl Classes="emptyState" Tag="&#xF0638;" Content="{i:Loc Deck.List.Empty}"
                                     IsVisible="{Binding DeckList, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+
+                    <!-- The player's collection: can the main version be built, and which cards are missing -->
+                    <StackPanel Name="DeckCollection" DataContext="{Binding Collection}" x:DataType="m:DeckCollectionView" Margin="0,20,0,0">
+                        <c:Ornament Text="{i:Loc Collection.Title}" Icon="&#xF0638;" Size="13" Margin="0,0,0,8" />
+                        <ContentControl Name="DeckBuild" Content="{Binding Build}" ContentTemplate="{StaticResource DeckBuildLabel}" Margin="0,0,0,8"
+                                        AutomationProperties.Name="{Binding Build.Name}" IsVisible="{Binding HasBuild}" />
+                        <ContentControl Name="DeckMissing" Content="{Binding Build}" ContentTemplate="{StaticResource DeckMissingList}" Margin="0,0,0,8"
+                                        IsVisible="{Binding HasBuild}" />
+                        <TextBlock Text="{Binding Note}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,8" IsVisible="{Binding HasNote}" />
+                        <TextBlock Name="DeckCollectionStatus" Text="{Binding Status}" Classes="caption" TextWrapping="Wrap" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>

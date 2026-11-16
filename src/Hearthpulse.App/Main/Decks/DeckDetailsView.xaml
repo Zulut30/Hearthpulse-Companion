@@ -9,6 +9,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Hearthpulse;component/Main/Stats/StatsResources.xaml" />
+                <ResourceDictionary Source="/Hearthpulse;component/Main/CollectionResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- The card lists: only the rows near the page's viewport are built -->
@@ -691,6 +692,18 @@
                     <ItemsControl ItemsSource="{Binding DeckList}" ItemTemplate="{StaticResource DeckListTile}" Focusable="False" />
                     <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0638;" Content="{i:Loc Deck.List.Empty}"
                                     Visibility="{Binding DeckList, Converter={StaticResource Vis}, ConverterParameter=!}" />
+
+                    <!-- The player's collection: can the main version be built, and which cards are missing -->
+                    <StackPanel x:Name="DeckCollection" DataContext="{Binding Collection}" Margin="0,20,0,0">
+                        <c:Ornament Text="{i:Loc Collection.Title}" Icon="&#xF0638;" Size="13" Margin="0,0,0,8" />
+                        <ContentControl x:Name="DeckBuild" Content="{Binding Build}" ContentTemplate="{StaticResource DeckBuildLabel}" Focusable="False" Margin="0,0,0,8"
+                                        AutomationProperties.Name="{Binding Build.Name}" Visibility="{Binding HasBuild, Converter={StaticResource Vis}}" />
+                        <ContentControl x:Name="DeckMissing" Content="{Binding Build}" ContentTemplate="{StaticResource DeckMissingList}" Focusable="False" Margin="0,0,0,8"
+                                        Visibility="{Binding HasBuild, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="{Binding Note}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Visibility="{Binding HasNote, Converter={StaticResource Vis}}" />
+                        <TextBlock x:Name="DeckCollectionStatus" Text="{Binding Status}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>

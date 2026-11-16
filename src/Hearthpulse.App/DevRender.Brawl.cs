@@ -36,6 +36,7 @@ public partial class App
         if (RenderOnly("metatiers")) await RenderMetaTiersAsync(folder);
         if (RenderOnly("bgtabs")) await RenderBgTabsAsync(folder);
         if (RenderOnly("bgown")) await RenderBgOwnAsync(folder);
+        if (RenderOnly("collection")) await RenderCollectionAsync(folder);
         if (RenderOnly("sourcecapture"))
         {
             _main.ShowPage("Overview");

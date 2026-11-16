@@ -103,7 +103,13 @@ public sealed record MetaArchetypeRow(
 /// <summary>The sort arrow of each sortable column ("▼", "▲" or empty), so a header shows how the table is ordered.</summary>
 public sealed record MetaSortArrows(string Tier, string Name, string WinRate, string Popularity, string Games) : IImmutableView;
 
-public sealed record MetaDeckRow(string Name, string Class, string HeroId, string WinRate, double Edge, string Games, string Dust, string Code) : IImmutableView;
+public sealed record MetaDeckRow(string Name, string Class, string HeroId, string WinRate, double Edge, string Games, string Dust, string Code) : IImmutableView
+{
+    /// <summary>What the player's collection says of this list ("craftable: 1,200 dust"); null without an answer.</summary>
+    public DeckBuildView? Build { get; init; }
+
+    public bool HasBuild => Build is not null;
+}
 
 /// <summary>One card of the mulligan guide; <see cref="Seen"/> is its tooltip ("Seen in 1,234 opening hands").</summary>
 public sealed record MulliganRow(string CardId, string Name, string WinRate, double Edge, string KeepRate, string Seen) : IImmutableView;

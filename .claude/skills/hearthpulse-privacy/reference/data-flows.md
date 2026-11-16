@@ -25,8 +25,12 @@ disagrees with them, fix the row in the same change. Paths are from the reposito
 them, for measuring it with Bench `simcover --captures`: 500 games or 32 MB, oldest first; no sender reads it, and
 `CombatCaptureStoreTests` fails when another source file starts to), `collection.json` (the player's card collection
 and dust balance as read from the game client on Windows, `docs/collection.md`: local, it does not leave the machine;
-no code sends it, which rests on the sources and on a static check of names in `CollectionStoreTests`, not yet on a
-check of what goes over the wire; the file carries no account, so it is unconfirmed until the running client was read). The local match page may show everything the log revealed by the end of the game; nothing
+no code sends it, which rests on the sources, on a static check of names in `CollectionStoreTests`, and on
+`CollectionPrivacyTests`, a check of what goes over the wire: marker card id and dust in the session's collection, the
+usual senders run on a recording handler, no marker in any address, header or body. A new sender is added to that
+test; the ones it does not run are listed in `docs/collection.md`. The file carries no account, so it is unconfirmed
+until the running client was read, and by an unconfirmed collection the views mark every label and keep the "can
+build" filter off). The local match page may show everything the log revealed by the end of the game; nothing
 derived from the post-game part leaves the machine. Reading Hearthstone's memory is read-only and Windows-only;
 the opponents' MMR lookup is off by default under the conditions in `docs/bg-opponent-mmr.md`.
 

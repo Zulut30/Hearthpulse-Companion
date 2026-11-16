@@ -42,8 +42,12 @@ Besides settings, history, replays, the log and the cache, the data folder holds
 - `collection.json` - the player's card collection as last read from the game client on Windows (`CollectionStore`,
   [collection.md](collection.md)): copies by card id (plain, golden, other finishes), the arcane dust balance and the
   time of the read. Local, it does not leave the machine: no code sends it (no upload, share, profile sync, game
-  record, source capture or crash report reads it), and there is no switch for it. That rests on reading the sources
-  and on a static check of names (`CollectionStoreTests`: a source file with a sending call must not name the
-  collection); a check of what goes over the wire comes with the UI package. There is no name, BattleTag, account id
+  record, source capture or crash report reads it), and there is no switch for it. That rests on reading the sources,
+  on a static check of names (`CollectionStoreTests`: a source file with a sending call must not name the
+  collection), and since 2026-11-16 on a check of what goes over the wire (`CollectionPrivacyTests`: the app's
+  services on a recording HTTP handler, a collection with a marker card id and a marker dust balance shown by the
+  main view model; the meta downloads, a finished game's record, shared games, a source capture, a profile upload
+  with a made-up sign-in and a crash report are sent, and no request carries a marker in its address, headers or
+  body; the senders it does not run are listed in [collection.md](collection.md)). There is no name, BattleTag, account id
   or region in it, so a loaded file is shown as unconfirmed until the running client was read
   ([collection.md](collection.md)). Deleting the file loses nothing: the next start of the game client writes it again.

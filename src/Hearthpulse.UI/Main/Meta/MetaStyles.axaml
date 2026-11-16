@@ -113,4 +113,14 @@
     <Style Selector="m|MainView.compact :is(Control).metaWide">
         <Setter Property="IsVisible" Value="False" />
     </Style>
+    <!-- The missing cards behind a deck's build label: the tooltip's surface, wide enough for a card name and its price -->
+    <Style Selector="FlyoutPresenter.deckBuild">
+        <Setter Property="Background" Value="{StaticResource CardFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource CardEdge}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16,14" />
+        <Setter Property="MinWidth" Value="260" />
+        <Setter Property="MaxWidth" Value="420" />
+    </Style>
 </Styles>

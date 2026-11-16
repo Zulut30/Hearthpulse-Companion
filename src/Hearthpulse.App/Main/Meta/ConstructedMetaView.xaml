@@ -11,6 +11,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Hearthpulse;component/Main/MainLook.xaml" />
                 <ResourceDictionary Source="/Hearthpulse;component/Main/Meta/MetaResources.xaml" />
+                <ResourceDictionary Source="/Hearthpulse;component/Main/CollectionResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- One archetype, 14 visuals from the button down: rank, portrait, name over its detail (English name, class,
@@ -81,6 +82,8 @@
 
             <DataTemplate x:Key="MetaDeckTemplate" DataType="{x:Type m:MetaDeckRow}">
                 <Border Style="{StaticResource RowBorder}" Padding="8,8">
+                    <!-- The list's columns, and under them (in the room of the row, not of the columns) the collection's label -->
+                    <StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="40" />
@@ -106,6 +109,12 @@
                                 Command="{Binding DataContext.CopyDeck, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                 ToolTip="{i:Loc Main.Meta.CopyTip}" />
                     </Grid>
+                    <!-- What the player's collection says of the list; the button opens its missing cards -->
+                    <Button Style="{StaticResource DeckBuildButton}" HorizontalAlignment="Left" Margin="40,2,0,0"
+                            Content="{Binding Build}" ContentTemplate="{StaticResource DeckBuildLabel}" Click="OnDeckBuild"
+                            AutomationProperties.Name="{Binding Build.Name}" AutomationProperties.HelpText="{Binding Build.Details}"
+                            ToolTip="{Binding Build.Details}" Visibility="{Binding HasBuild, Converter={StaticResource Vis}}" />
+                    </StackPanel>
                 </Border>
             </DataTemplate>
 
@@ -113,6 +122,13 @@
     </UserControl.Resources>
 
     <StackPanel>
+        <!-- The missing cards of the build label that was pressed: one popup for every row (Escape or a click away closes it) -->
+        <Popup x:Name="DeckBuildPopup" StaysOpen="False" Placement="Bottom" VerticalOffset="4" AllowsTransparency="True" Closed="OnDeckBuildClosed">
+            <Border Style="{StaticResource Card}" Padding="16,14" MaxWidth="420" MinWidth="260">
+                <ContentControl x:Name="DeckBuildDetails" Content="{Binding}" ContentTemplate="{StaticResource DeckMissingList}" Focusable="True"
+                                FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding Details}" KeyDown="OnDeckBuildKey" />
+            </Border>
+        </Popup>
         <!-- Filters: rank and period, then class and minimum games (hearthpulse.net's "Рейтинг", "Период", "Минимум игр") -->
         <StackPanel x:Name="MetaFilters" Margin="0,0,0,12">
             <!-- Plan 2.4: eight rank chips; the periods move below them when the row is too narrow, as in Avalonia -->
@@ -324,6 +340,8 @@
                     <ItemsControl x:Name="BestLists" ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" Focusable="False" />
                     <TextBlock Text="{i:Loc Main.Meta.ListsEmpty}" Style="{StaticResource Caption}" Margin="0,4"
                                Visibility="{Binding ArchetypeDecks, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <TextBlock x:Name="BestListsCollection" Text="{Binding CollectionStatus}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Visibility="{Binding ArchetypeDecks, Converter={StaticResource Vis}}" />
                     <TextBlock Text="{Binding CopyNote}" Style="{StaticResource Caption}" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                                Visibility="{Binding CopyNote, Converter={StaticResource Vis}}" />
                     </StackPanel>
@@ -334,6 +352,29 @@
         <!-- Top decks -->
         <Border x:Name="MetaDecksPanel" Style="{StaticResource Card}" Visibility="Collapsed">
             <StackPanel>
+                <!-- The player's collection over the lists: where its numbers come from, "can build" and the order -->
+                <StackPanel x:Name="CollectionBar" Margin="8,0,8,16">
+                    <TextBlock x:Name="CollectionStatusLine" Text="{Binding CollectionStatus}" Style="{StaticResource Caption}" TextWrapping="Wrap"
+                               AutomationProperties.LiveSetting="Polite" />
+                    <WrapPanel Margin="0,8,0,0">
+                        <CheckBox x:Name="CanBuildFilter" Style="{StaticResource Switch}" Content="{i:Loc Collection.Filter.CanBuild}" Margin="0,0,24,8" VerticalAlignment="Center"
+                                  IsChecked="{Binding CanBuildOnly, Mode=TwoWay}" IsEnabled="{Binding CanBuildAvailable}"
+                                  ToolTip="{i:Loc Collection.Filter.CanBuildTip}" ToolTipService.ShowOnDisabled="True" />
+                        <Border x:Name="DeckSortPicker" Margin="0,0,0,8" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Collection.Sort.Label}"
+                                AutomationProperties.Name="{i:Loc Collection.Sort.Label}" Visibility="{Binding HasCollection, Converter={StaticResource Vis}}">
+                            <ItemsControl ItemsSource="{Binding MetaDeckSorts}" ItemsPanel="{StaticResource ChoiceWrap}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type m:MetaChoice}">
+                                        <RadioButton Style="{StaticResource MetaSegment}" Content="{Binding Label}" GroupName="MetaDeckSort" IsChecked="{Binding Selected, Mode=OneWay}"
+                                                     Command="{Binding DataContext.SetMetaDeckSort, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </WrapPanel>
+                    <TextBlock x:Name="CanBuildNote" Text="{Binding CanBuildNote}" Style="{StaticResource Caption}" TextWrapping="Wrap"
+                               Visibility="{Binding HasCanBuildNote, Converter={StaticResource Vis}}" />
+                </StackPanel>
                 <Grid Margin="8,0,8,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="40" />
@@ -355,6 +396,8 @@
                                 Visibility="{Binding MetaUnavailable, Converter={StaticResource Vis}}" />
                 <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF0639;" Content="{i:Loc Main.Meta.DecksEmpty}"
                                 Visibility="{Binding MetaDecksEmpty, Converter={StaticResource Vis}}" />
+                <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF0232;" Content="{i:Loc Collection.Filter.Empty}"
+                                Visibility="{Binding MetaCanBuildEmpty, Converter={StaticResource Vis}}" />
                 <TextBlock Text="{Binding CopyNote}" Style="{StaticResource Caption}" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                            Visibility="{Binding CopyNote, Converter={StaticResource Vis}}" />
                 <TextBlock Text="{Binding ConstructedMetaStatus}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"

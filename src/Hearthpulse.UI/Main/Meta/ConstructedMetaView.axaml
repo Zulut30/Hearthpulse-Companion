@@ -12,10 +12,13 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Hearthpulse.UI/Main/Meta/MetaResources.axaml" />
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/CollectionResources.axaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <DataTemplate x:Key="MetaDeckTemplate" x:DataType="m:MetaDeckRow">
                 <Border Classes="row" Padding="8,8">
+                    <!-- The list's columns, and under them (in the room of the row, not of the columns) the collection's label -->
+                    <StackPanel>
                     <Grid ColumnDefinitions="40,*,64,64,64,Auto">
                         <Border Width="30" Height="30" CornerRadius="15" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                                 ClipToBounds="True" i:CardArt.Portrait="{Binding HeroId}" />
@@ -33,6 +36,18 @@
                                 Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).CopyDeck}" CommandParameter="{Binding}"
                                 ToolTip.Tip="{i:Loc Main.Meta.CopyTip}" />
                     </Grid>
+                    <!-- What the player's collection says of the list; the button opens its missing cards -->
+                    <Button Classes="bare deckBuild" HorizontalAlignment="Left" Margin="40,2,0,0" MinHeight="24" VerticalContentAlignment="Center"
+                            Content="{Binding Build}" ContentTemplate="{StaticResource DeckBuildLabel}"
+                            AutomationProperties.Name="{Binding Build.Name}" AutomationProperties.HelpText="{Binding Build.Details}"
+                            ToolTip.Tip="{Binding Build.Details}" IsVisible="{Binding HasBuild}">
+                        <Button.Flyout>
+                            <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterClasses="deckBuild">
+                                <ContentControl Content="{Binding Build}" ContentTemplate="{StaticResource DeckMissingList}" />
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                    </StackPanel>
                 </Border>
             </DataTemplate>
         </ResourceDictionary>
@@ -292,6 +307,8 @@
                     <ItemsControl Name="BestLists" ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" />
                     <TextBlock Text="{i:Loc Main.Meta.ListsEmpty}" Classes="caption" Margin="0,4"
                                IsVisible="{Binding ArchetypeDecks, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    <TextBlock Name="BestListsCollection" Text="{Binding CollectionStatus}" Classes="caption" TextWrapping="Wrap" Margin="0,8,0,0"
+                               IsVisible="{Binding ArchetypeDecks, Converter={StaticResource Truthy}}" />
                     <TextBlock Text="{Binding CopyNote}" Classes="caption" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                                IsVisible="{Binding CopyNote, Converter={StaticResource Truthy}}" />
                     </StackPanel>
@@ -302,6 +319,28 @@
         <!-- Top decks -->
         <Border Name="MetaDecksPanel" Classes="card" IsVisible="False">
             <StackPanel>
+                <!-- The player's collection over the lists: where its numbers come from, "can build" and the order -->
+                <StackPanel Name="CollectionBar" Margin="8,0,8,16">
+                    <TextBlock Name="CollectionStatusLine" Text="{Binding CollectionStatus}" Classes="caption" TextWrapping="Wrap"
+                               AutomationProperties.LiveSetting="Polite" />
+                    <WrapPanel Margin="0,8,0,0">
+                        <CheckBox Name="CanBuildFilter" Classes="switch" Content="{i:Loc Collection.Filter.CanBuild}" Margin="0,0,24,8" VerticalAlignment="Center"
+                                  IsChecked="{Binding CanBuildOnly, Mode=TwoWay}" IsEnabled="{Binding CanBuildAvailable}"
+                                  ToolTip.Tip="{i:Loc Collection.Filter.CanBuildTip}" ToolTip.ShowOnDisabled="True" />
+                        <Border Name="DeckSortPicker" Classes="segmentBar" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Collection.Sort.Label}"
+                                AutomationProperties.Name="{i:Loc Collection.Sort.Label}" IsVisible="{Binding HasCollection}">
+                            <ItemsControl ItemsSource="{Binding MetaDeckSorts}" ItemsPanel="{StaticResource ChoiceWrap}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:MetaChoice">
+                                        <RadioButton Classes="segment" Content="{Binding Label}" GroupName="MetaDeckSort" IsChecked="{Binding Selected, Mode=OneWay}"
+                                                     Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SetMetaDeckSort}" CommandParameter="{Binding Key}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </WrapPanel>
+                    <TextBlock Name="CanBuildNote" Text="{Binding CanBuildNote}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding HasCanBuildNote}" />
+                </StackPanel>
                 <Grid Margin="8,0,8,8" ColumnDefinitions="40,*,64,64,64,76">
                     <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Deck}" Classes="tableHead" />
                     <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.WinRate}" Classes="tableHead" HorizontalAlignment="Right" />
@@ -312,6 +351,7 @@
                 <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaLoading}" />
                 <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Main.Meta.Unavailable}" IsVisible="{Binding MetaUnavailable}" />
                 <ContentControl Classes="emptyState" Tag="&#xF0639;" Content="{i:Loc Main.Meta.DecksEmpty}" IsVisible="{Binding MetaDecksEmpty}" />
+                <ContentControl Classes="emptyState" Tag="&#xF0232;" Content="{i:Loc Collection.Filter.Empty}" IsVisible="{Binding MetaCanBuildEmpty}" />
                 <TextBlock Text="{Binding CopyNote}" Classes="caption" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                            IsVisible="{Binding CopyNote, Converter={StaticResource Truthy}}" />
                 <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"

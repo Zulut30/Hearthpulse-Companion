@@ -98,7 +98,7 @@ public sealed partial class MainViewModel
     public bool MetaEmpty => MetaStatusShown && MetaArchetypes.Count == 0;
 
     /// <summary>Stats are in and the top-decks tab has no list.</summary>
-    public bool MetaDecksEmpty => MetaStatusShown && _metaDecks.Count == 0;
+    public bool MetaDecksEmpty => MetaStatusShown && _metaDecks.Count == 0 && !CanBuildOnly;
 
     /// <summary>Stats are in and the matchups tab has no matrix.</summary>
     public bool MetaMatchupsEmpty => MetaStatusShown && !HasMatchupMatrix;
@@ -110,7 +110,7 @@ public sealed partial class MainViewModel
     public bool MetaHasPlaySplit => MetaArchetypes.Any(r => r.HasPlaySplit);
 
     /// <summary>Most played decklists, best first among those with enough games.</summary>
-    public IReadOnlyList<MetaDeckRow> MetaDecks { get => _metaDecks; private set { if (Set(ref _metaDecks, value)) Raise(nameof(MetaDecksEmpty)); } }
+    public IReadOnlyList<MetaDeckRow> MetaDecks { get => _metaDecks; private set { if (Set(ref _metaDecks, value)) { Raise(nameof(MetaDecksEmpty)); Raise(nameof(MetaCanBuildEmpty)); } } }
 
     public IReadOnlyList<MetaDeckRow> ArchetypeDecks { get => _archetypeDecks; private set => Set(ref _archetypeDecks, value); }
 
@@ -279,6 +279,7 @@ public sealed partial class MainViewModel
     {
         Raise(nameof(MetaEmpty));
         Raise(nameof(MetaDecksEmpty));
+        Raise(nameof(MetaCanBuildEmpty));
         Raise(nameof(MetaMatchupsEmpty));
         Raise(nameof(MetaStatusShown));
     }
@@ -370,7 +371,7 @@ public sealed partial class MainViewModel
         {
             MetaClasses = [];
             ShowArchetypeRows([]);
-            MetaDecks = [];
+            ShowMetaDecks();
             MatchupHeads = [];
             MatchupMatrix = [];
             SelectedArchetype = null;
@@ -410,15 +411,8 @@ public sealed partial class MainViewModel
             .ToList();
         ShowArchetypeRows(rows);
 
-        // Prefer lists with 200+ games; a thin slice (high rank, few days) falls back to every list.
-        var minGames = meta.Decks.Count(d => d.Games >= 200) >= 20 ? 200 : 0;
-        MetaDecks = meta.Decks
-            .Where(d => _metaClass.Length == 0 || string.Equals(d.Class, _metaClass, StringComparison.OrdinalIgnoreCase))
-            .Where(d => d.Games >= minGames)
-            .OrderByDescending(d => d.WinRate)
-            .Take(60)
-            .Select(DeckRowOf)
-            .ToList();
+        // The top decks, with what the player's collection says of each (MainViewModel.Collection.cs).
+        ShowMetaDecks();
 
         RebuildMatchupMatrix(meta.Matchups);
 

@@ -134,6 +134,7 @@ public sealed partial class AppHost : IDisposable
         Session.SnapshotChanged += _feed.Publish;
         Controls.CardPreview.Related = Session.RelatedCardsOf;
         Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => _constructedLoader.Ensure(format));
+        ShowCollection();
         Main.ConstructedMetaRequested += format =>
         {
             if (format is not null)

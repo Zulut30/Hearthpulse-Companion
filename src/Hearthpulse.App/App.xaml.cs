@@ -250,6 +250,7 @@ public partial class App : Application
         _session.SnapshotChanged += _feed.Publish;
         Controls.CardPreview.Related = _session.RelatedCardsOf;
         _session.ConstructedMetaNeeded += format => _ = Dispatcher.BeginInvoke(() => _constructedLoader.Ensure(format));
+        ShowCollection();
         _session.GameFinished += outcome => _ = Dispatcher.BeginInvoke(() => OnGameFinished(outcome));
         _history.Changed += () => _ = Dispatcher.BeginInvoke(() =>
         {
