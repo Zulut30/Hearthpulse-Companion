@@ -45,7 +45,7 @@
   "Card.Col.HandWinRate": "Win rate in hand",
   "Card.Col.HandWinRateTip": "Win rate of games where the card stayed in the opening hand",
   "Card.Col.Impact": "Difference",
-  "Card.Col.ImpactTip": "Win rate with the card in the opening hand minus the archetype's win rate over the same games. An observed difference, not the card's effect: a card is kept in hands that are already good. Under 400 hands it has no colour.",
+  "Card.Col.ImpactTip": "Win rate with the card in the opening hand minus the archetype's win rate over the same games. An observed difference, not the card's effect: a card is kept in hands that are already good. The difference stays neutral because the source gives no uncertainty interval.",
   "Card.Col.Hands": "Opening hands",
   "Card.Mulligan.Title": "Mulligan by archetype",
   "Card.Mulligan.None": "No mulligan data for this card.",
@@ -60,5 +60,6 @@
   "Card.Mine.KeptDetail": "opening hands with the card",
   "Card.Mine.Note": "Only your own games of this format, counted per game: {0:N0} game with card data out of {1:N0}.|Only your own games of this format, counted per game: {0:N0} games with card data out of {1:N0}.",
   "Card.Mine.None": "You haven't drawn this card in a game of this format yet. Your numbers appear here after such a game.",
-  "Card.Mine.NoGames": "No games of this format yet. Played games appear here automatically."
+  "Card.Mine.NoGames": "No games of this format yet. Played games appear here automatically.",
+  "Card.Mine.NoCardData": "Your games of this format have no recorded card data yet."
 }

@@ -11,7 +11,7 @@ public sealed partial class HearthpulseData
     /// <c>rank_range: GOLD</c>; <c>…_included_winrate</c> holds the same rows in another order). Wild: Legend, last 14
     /// days. The page names the slice from the answer, never from the source id. Null for a format without a list.
     /// </summary>
-    internal static string? CardStatsSource(string? format) => format switch
+    public static string? CardStatsSource(string? format) => format switch
     {
         "standard" => "hsreplay_cards_legend_included_popularity",
         "wild" => "hsreplay_cards_wild_legend_14d",
@@ -131,7 +131,8 @@ public sealed partial class HearthpulseData
             return false;
         }
 
-        return Items(list).Count(c => Str(c, "id") is { Length: > 0 }) >= Math.Max(1, minRows);
+        return Items(list).Select(c => Str(c, "id")).Where(id => !string.IsNullOrEmpty(id))
+            .Distinct(StringComparer.Ordinal).Count() >= Math.Max(1, minRows);
     }
 
     /// <summary>The cached row's columns, in order; a missing number is null.</summary>
@@ -162,7 +163,8 @@ public sealed partial class HearthpulseData
             row[1] = (int)(Num(c, "dbfId") ?? 0);
             for (var i = 0; i < CardStatColumns.Length; i++)
             {
-                row[2 + i] = PercentOrNull(c, CardStatColumns[i]);
+                var value = PercentOrNull(c, CardStatColumns[i]);
+                row[2 + i] = value is { } number && double.IsFinite(number) ? number : null;
             }
 
             rows.Add(row);

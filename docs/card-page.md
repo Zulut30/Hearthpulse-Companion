@@ -51,10 +51,12 @@ Rules the model keeps (`Core/Constructed/CardPage.cs`, `CardPages.Build`, pure a
   and period are read from the answer (`rank_range`, `time_range`), never from the source's name. Archetype and
   mulligan rows carry the meta's own source, rank, period and date; each mulligan row has its opening hands.
 - The other format's list or meta is never shown on a page (`Build` checks `Format`).
-- The mulligan column is a **difference** of two win rates, not the card's effect: a card is kept in hands that are
-  already good, so the column and its tip claim no cause. Under `CardPages.MulliganVerdictHands` (400) opening hands
-  the difference has no green or red: a win rate near 50 % over n hands has a 95 % interval of about ±98/√n points
-  (±17 at 33 hands, ±4.9 at 400), wider than the few points shown. The number and its hands are always shown.
+- The mulligan column is a **difference** of two win rates, not the card's effect. It stays neutral:
+  the source gives no interval for the difference, and a sample threshold alone does not establish a verdict.
+  The number and its hands are always shown; under 400 hands the sample is additionally marked small.
+- Card statistics show delay only for the current format's source. Non-finite percentages remain missing;
+  duplicate card rows cannot satisfy the completeness threshold. History without card columns is identified
+  separately from games where this card was not encountered. Missing live values inside card text remain `?`.
 - In the compact Avalonia layout the Games and Opening hands columns are hidden and their values stand under the win
   rate and the difference ("132 games", "1,182 hands"): no number is left without its sample.
 - Archetypes that share one set of mulligan numbers (`MulliganArchetypeId`) give one mulligan row, the most played.

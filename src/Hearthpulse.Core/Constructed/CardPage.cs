@@ -133,7 +133,7 @@ public static partial class CardPages
     /// </summary>
     public static IReadOnlyList<CardPageArchetype> Archetypes(Card card, ConstructedMeta meta)
     {
-        var byArchetype = meta.Archetypes.ToDictionary(a => a.Id);
+        var byArchetype = meta.Archetypes.GroupBy(a => a.Id).ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.Games).First());
         var result = new List<CardPageArchetype>();
         foreach (var group in meta.Decks.GroupBy(d => d.ArchetypeId))
         {
@@ -206,7 +206,7 @@ public static partial class CardPages
         }
 
         // "[x]" and "&" are the client's line-layout codes ("<b>Battlecry:</b>&\n ..."), "{0}" a slot filled in a game.
-        var t = Slot().Replace(text, string.Empty).Replace("&", string.Empty, StringComparison.Ordinal);
+        var t = Slot().Replace(text, m => m.Index == 0 || m.Index + m.Length == text.Length ? string.Empty : "?").Replace("&", string.Empty, StringComparison.Ordinal);
         t = t.Replace("[x]", string.Empty, StringComparison.Ordinal).Replace('\n', ' ').Replace('_', ' ').Replace(' ', ' ');
         t = Tag().Replace(t, string.Empty);
         t = Counter().Replace(t, string.Empty);
@@ -217,7 +217,7 @@ public static partial class CardPages
             var number = int.TryParse(m.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : 2;
             return m.Groups[1].Value + " " + forms[Math.Min(PluralForm(number, forms.Length, locale), forms.Length - 1)];
         });
-        return Spaces().Replace(t.Replace("@", string.Empty, StringComparison.Ordinal), " ").Trim();
+        return Spaces().Replace(t.Replace('@', '?'), " ").Trim();
     }
 
     /// <summary>Which of the listed forms a number takes: Russian has three (1 карта, 2 карты, 5 карт), the others one and many.</summary>

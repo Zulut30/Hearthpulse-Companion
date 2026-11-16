@@ -27,6 +27,17 @@ public sealed class CardPageTests
     private static Card Bolt => Cards.Get("T_BOLT")!;
 
     [Fact]
+    public void Duplicate_archetype_ids_do_not_close_the_card_page()
+    {
+        var meta = Meta();
+        var duplicate = new ConstructedMeta("standard", "legend", "past_week", DateTime.UtcNow, 1000,
+            [.. meta.Archetypes, meta.Archetypes[0]], meta.Decks);
+        var rows = CardPages.Archetypes(Bolt, duplicate);
+        Assert.Equal(CardPages.Archetypes(Bolt, meta).Count, rows.Count);
+        Assert.Equal(rows.Count, rows.Select(r => r.Id).Distinct().Count());
+    }
+
+    [Fact]
     public void Archetypes_are_the_ones_whose_lists_run_the_card_with_the_share_of_lists_and_copies()
     {
         var meta = Meta();
@@ -187,6 +198,8 @@ public sealed class CardPageTests
     [InlineData("{0} Deal 2 damage. {1}", "enUS", "Deal 2 damage.")]
     [InlineData("", "enUS", "")]
     [InlineData(null, "enUS", "")]
+    [InlineData("Deal {0} damage.", "enUS", "Deal ? damage.")]
+    [InlineData("Deal @ damage.", "enUS", "Deal ? damage.")]
     public void Card_text_is_plain(string? text, string locale, string expected) => Assert.Equal(expected, CardPages.PlainText(text, locale));
 
     /// <summary>

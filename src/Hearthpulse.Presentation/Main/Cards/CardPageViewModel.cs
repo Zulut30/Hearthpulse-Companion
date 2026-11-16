@@ -29,7 +29,7 @@ public sealed record CardArchetypeRow(string Name, string ClassName, string Hero
 /// and the sample. The difference is an observation, not the card's effect: kept cards sit in hands that were good.
 /// </summary>
 /// <param name="Impact">The difference in points, signed ("+8.0 pp").</param>
-/// <param name="Edge">The difference as a fraction for the number's colour; 0 (neutral) under <see cref="CardPages.MulliganVerdictHands"/> hands.</param>
+/// <param name="Edge">The colour indicator; currently 0 (neutral) for differences without an interval; sample threshold: <see cref="CardPages.MulliganVerdictHands"/> hands.</param>
 /// <param name="HandsLabel">"1,200 hands": the sample beside the difference where the Hands column is hidden (compact).</param>
 /// <param name="Few">Too few hands to tell better from worse: the difference is shown without a colour.</param>
 public sealed record CardMulliganRow(string Name, string ClassName, string HeroId, string KeepRate, string WinRate, string Impact, double Edge, string Hands,
@@ -177,8 +177,8 @@ public sealed partial class CardPageViewModel : Observable
             Percent(m.KeepRate, "P0"),
             Percent(m.InHandWinRate, "P1"),
             Loc.F("Card.Mulligan.Points", Signed(m.Impact * 100)),
-            // A few dozen hands cannot tell a better card from a worse one: no green or red until there are enough.
-            m.InHand >= CardPages.MulliganVerdictHands ? Math.Round(m.Impact * 100, 1) / 100 : 0,
+            // Neither a point estimate nor a large sample supplies an uncertainty interval for the difference.
+            0, // The source provides no interval for this difference; sample size alone is no verdict.
             m.InHand.ToString("N0", CultureInfo.CurrentCulture),
             Loc.P("Card.Mulligan.Hands", m.InHand),
             m.InHand < CardPages.MulliganVerdictHands)).ToList();
@@ -238,7 +238,7 @@ public sealed partial class CardPageViewModel : Observable
 
         if (s.DrawnWinRate is { } drawn)
         {
-            tiles.Add(new StatTile(Loc.T("Card.Stats.Drawn"), Percent(drawn, "P1"), Loc.T("Card.Stats.DrawnDetail"), MetaTiers.WinRateSign(drawn)));
+            tiles.Add(new StatTile(Loc.T("Card.Stats.Drawn"), Percent(drawn, "P1"), Loc.T("Card.Stats.DrawnDetail")));
         }
 
         if (s is { PlayedWinRate: { } played, TimesPlayed: { } times })
@@ -270,7 +270,7 @@ public sealed partial class CardPageViewModel : Observable
             mine.Offered > 0 ? new StatTile(Loc.T("Card.Mine.Kept"), Loc.F("Card.Mine.KeptOf", mine.Kept, mine.Offered), Loc.T("Card.Mine.KeptDetail")) : null,
         }.OfType<StatTile>().ToList();
         MineNote = seen ? Loc.P("Card.Mine.Note", mine.TrackedGames, mine.Games) : string.Empty;
-        MineEmpty = seen ? string.Empty : Loc.T(mine.Games == 0 ? "Card.Mine.NoGames" : "Card.Mine.None");
+        MineEmpty = seen ? string.Empty : Loc.T(mine.Games == 0 ? "Card.Mine.NoGames" : mine.TrackedGames == 0 ? "Card.Mine.NoCardData" : "Card.Mine.None");
     }
 
     private static StatTile? Record(string label, WinLoss record) => record.Games == 0

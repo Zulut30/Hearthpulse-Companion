@@ -39,6 +39,26 @@ public sealed class CardPageViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task History_without_card_columns_does_not_claim_the_card_was_never_drawn()
+    {
+        Assert.True(_history.Add(new GameRecord { Key = "old-game", Mode = "Ranked", Format = "FT_STANDARD", Result = "Win", StartedAt = DateTime.UtcNow }));
+        var vm = Model(out _);
+        await vm.OpenCardPageAsync("T_BOLT");
+        Assert.Equal(Loc.T("Card.Mine.NoCardData"), vm.CardPage.MineEmpty);
+        Assert.Empty(vm.CardPage.MineTiles);
+    }
+
+    [Fact]
+    public async Task A_late_wild_source_does_not_mark_standard_card_numbers_delayed()
+    {
+        var vm = Model(out _);
+        vm.SetDataHealth(new DataHealthReport(
+            [new DataSourceHealth(HearthpulseData.CardStatsSource("wild")!, DataFreshness.Stale, 90, 30, Collected, null)], DateTime.UtcNow));
+        await vm.OpenCardPageAsync("T_BOLT");
+        Assert.DoesNotContain('\n', vm.CardPage.StatsSource);
+    }
+
+    [Fact]
     public async Task A_card_row_opens_the_page_with_the_card_its_numbers_their_slice_and_date()
     {
         var vm = Model(out var asked);
@@ -59,7 +79,7 @@ public sealed class CardPageViewModelTests : IDisposable
             [
                 (Loc.T("Card.Stats.DeckShare"), P(0.2236, "P1"), Loc.F("Card.Stats.Copies", 1.99), 0),
                 (Loc.T("Card.Stats.DeckWinRate"), P(0.5513, "P1"), Loc.T("Card.Stats.DeckWinRateDetail"), 1),
-                (Loc.T("Card.Stats.Drawn"), P(0.5407, "P1"), Loc.T("Card.Stats.DrawnDetail"), 1),
+                (Loc.T("Card.Stats.Drawn"), P(0.5407, "P1"), Loc.T("Card.Stats.DrawnDetail"), 0),
                 (Loc.T("Card.Stats.Played"), P(0.5361, "P1"), Loc.P("Card.Stats.PlayedDetail", 143721), 1),
                 (Loc.T("Card.Stats.Kept"), P(0.5020, "P0"), Loc.F("Card.Stats.KeptDetail", P(0.5610, "P1")), 0),
                 (Loc.T("Card.Stats.Turn"), 6.41.ToString("0.0", CultureInfo.CurrentCulture), Loc.T("Card.Stats.TurnDetail"), 0),
@@ -107,9 +127,9 @@ public sealed class CardPageViewModelTests : IDisposable
     [Theory]
     [InlineData(33, 0.233, 0)]
     [InlineData(399, 0.08, 0)]
-    [InlineData(400, 0.08, 0.08)]
-    [InlineData(5000, -0.038, -0.038)]
-    public async Task A_mulligan_difference_takes_a_colour_only_from_enough_hands(int hands, double difference, double edge)
+    [InlineData(400, 0.08, 0)]
+    [InlineData(5000, -0.038, 0)]
+    public async Task A_mulligan_difference_without_an_interval_stays_neutral(int hands, double difference, double edge)
     {
         Assert.Equal(400, CardPages.MulliganVerdictHands);
         var vm = Model(out _);
@@ -138,7 +158,7 @@ public sealed class CardPageViewModelTests : IDisposable
         Assert.Equal(head, Loc.T("Card.Col.Impact"));
         var tip = Loc.T("Card.Col.ImpactTip");
         Assert.Contains(language == "ru" ? "наблюдаемая разность, а не эффект карты" : "observed difference, not the card's effect", tip, StringComparison.Ordinal);
-        Assert.Contains(CardPages.MulliganVerdictHands.ToString(CultureInfo.InvariantCulture), tip, StringComparison.Ordinal);
+        Assert.Contains(language == "ru" ? "нейтрально" : "neutral", tip, StringComparison.Ordinal);
         string[] causal = language == "ru" ? ["Влияние", "влияет", "благодаря", "улучшает"] : ["Impact", "improves", "because of", "thanks to"];
         Assert.All(causal, word => Assert.DoesNotContain(word, head + " " + tip, StringComparison.OrdinalIgnoreCase));
     }

@@ -142,7 +142,9 @@ public sealed partial class MainViewModel
             return false;
         }
 
-        CardPage.Show(page, meta, DataDelay(DataSection.CardStats), DataHealthText.Delay(_dataHealth, DataSection.ConstructedMeta));
+        var source = HearthpulseData.CardStatsSource(ConstructedMeta.FormatKeyOf(format));
+        var cardHealth = new DataHealthReport(_dataHealth.Sources.Values.Where(s => s.Id == source), _dataHealth.CheckedAt, _dataHealth.Offline);
+        CardPage.Show(page, meta, DataHealthText.Delay(cardHealth, DataSection.CardStats), DataHealthText.Delay(_dataHealth, DataSection.ConstructedMeta));
         return true;
     }
 

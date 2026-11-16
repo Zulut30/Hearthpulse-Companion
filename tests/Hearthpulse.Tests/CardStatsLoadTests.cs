@@ -16,6 +16,27 @@ public sealed class CardStatsLoadTests : IDisposable
 
     public void Dispose() => TestDataFolder.TryDelete(_cache);
 
+    [Theory]
+    [InlineData("NaN%")]
+    [InlineData("Infinity%")]
+    [InlineData("-Infinity%")]
+    public async Task Non_finite_percentages_are_missing_and_do_not_break_the_cache(string invalid)
+    {
+        var answer = Fixture("cards-standard.json").Replace("22.36%", invalid, StringComparison.Ordinal);
+        var server = new Server().Route("datasets/hsreplay_cards_legend_included_popularity", answer);
+        var slice = await Data(server).LoadCardStatsAsync("standard");
+        Assert.NotNull(slice);
+        Assert.Null(slice.Find("BE_014", 0)!.DeckShare);
+        Assert.True(File.Exists(Path.Combine(_cache, "card-stats-standard.json")));
+    }
+
+    [Fact]
+    public void Repeated_rows_do_not_make_a_complete_card_dataset()
+    {
+        using var doc = JsonDocument.Parse("""{"structured":{"cards":[{"id":"A"},{"id":"A"},{"id":"A"}]}}""");
+        Assert.False(HearthpulseData.UsableCardStats(doc.RootElement, 2));
+    }
+
     [Fact]
     public async Task Standard_numbers_come_as_fractions_with_the_slice_and_date_the_answer_names()
     {
