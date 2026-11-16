@@ -130,7 +130,7 @@ public sealed partial class CollectionMarkupTests
     private static int Count(string text, string part) => text.Split(part).Length - 1;
 
     /// <summary>A read of one finish of <c>OwnedCopies</c> (its Total is the only number a view may use).</summary>
-    [GeneratedRegex(@"\.(Normal|Golden|Other)", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\.(Normal|Golden|Other)\b", RegexOptions.CultureInvariant)]
     private static partial Regex Finish();
 
     [GeneratedRegex(@"\{i:Loc (Collection\.[A-Za-z.]+)\}", RegexOptions.CultureInvariant)]
