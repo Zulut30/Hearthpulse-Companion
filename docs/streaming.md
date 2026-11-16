@@ -92,7 +92,8 @@ No Twitch secret is in the app: it signs in with the account's own token (device
   with its deck known gives `mode: "constructed"` with the deck's name and hero (or `null`), `format` (`standard`,
   `wild`, `twist`, `classic` by the log's format in Ranked, Friendly and Practice; `casual` for Casual; `other` for
   Arena, Brawl and the rest), the cards left in the deck and the rows of the deck panel in its order (cost, name — not
-  the game's deck order) with `id`, `dbf`, `cost`, `name` (interface language), `left`, `total`, and `game.turn`.
+  the game's deck order) with `id`, `dbf`, `cost`, `name` (interface language, or the public card id if blank), `left`, `total`, and `game.turn`.
+  Card costs are not clamped to 99: a collectible card can cost 100 mana.
   Anything else (no game, Battlegrounds, the Arena draft, a Brawl whose deck is unknown) is `{"mode":"none"}`. Never
   the hand, the deck order or anything about the opponent.
 - **When** (`Core/Twitch/TwitchPublisher.cs`, built in `Core/Hosting/AppServices.cs` on every live snapshot): only with

@@ -90,6 +90,19 @@ public sealed class TwitchPublisherTests : IDisposable
 
     // ---- What a snapshot becomes (AC3, AC9)
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void A_missing_card_name_uses_its_public_id_and_a_hundred_mana_cost_is_preserved(string name)
+    {
+        var view = View([new DeckCardRow("GDB_142", name, 100, 1, 1, "EPIC", 0.1, false)]);
+        using var doc = JsonDocument.Parse(TwitchState.From(Game(view), CardDb.Empty).ToJson(1));
+        var card = doc.RootElement.GetProperty("deck").GetProperty("cards")[0];
+        Assert.Equal("GDB_142", card.GetProperty("name").GetString());
+        Assert.Equal(100, card.GetProperty("cost").GetInt32());
+        Assert.Equal(["id", "dbf", "cost", "name", "left", "total"], card.EnumerateObject().Select(p => p.Name));
+    }
+
     [Fact]
     public void State_carries_only_the_own_decks_remaining_cards_in_the_trackers_order()
     {

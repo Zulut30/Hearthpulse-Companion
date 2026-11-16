@@ -131,7 +131,7 @@ public sealed class TwitchState
                     json.WriteString("id", card.Id);
                     json.WriteNumber("dbf", card.Dbf);
                     json.WriteNumber("cost", card.Cost);
-                    json.WriteString("name", card.Name);
+                    json.WriteString("name", string.IsNullOrWhiteSpace(card.Name) ? card.Id : card.Name);
                     json.WriteNumber("left", card.Left);
                     json.WriteNumber("total", card.Total);
                     json.WriteEndObject();
