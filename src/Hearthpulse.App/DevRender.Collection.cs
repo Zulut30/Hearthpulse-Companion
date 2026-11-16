@@ -38,8 +38,17 @@ public partial class App
         async Task Shot(string name)
         {
             // The stats come in two steps (the tier list, then the mulligan numbers): a late one must not stand in the frame.
-            _mainViewModel.SetConstructedMeta(scene.Meta);
-            await Task.Delay(1200);
+            // So the made-up stats are set again until they are the ones shown after the wait.
+            for (var attempt = 0; attempt < 8; attempt++)
+            {
+                _mainViewModel.SetConstructedMeta(scene.Meta);
+                await Task.Delay(1200);
+                if (ReferenceEquals(_mainViewModel.ShownConstructedMeta, scene.Meta))
+                {
+                    break;
+                }
+            }
+
             _main.UpdateLayout();
             Save(_main, Path.Combine(folder, $"main-collection-{name}.png"));
         }

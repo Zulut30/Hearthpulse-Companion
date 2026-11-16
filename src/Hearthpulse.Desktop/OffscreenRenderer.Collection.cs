@@ -36,11 +36,21 @@ internal static partial class OffscreenRenderer
 
         var own = host.Main.ShownConstructedMeta;
         host.Main.SetConstructedMeta(scene.Meta);
-        Task Shot(string name)
+        async Task Shot(string name)
         {
-            // The stats come in two steps (the tier list, then the mulligan numbers): a late one must not stand in the frame.
-            host.Main.SetConstructedMeta(scene.Meta);
-            return Save(main, Path.Combine(folder, $"main-collection-{name}.png"));
+            // The stats come in two steps (the tier list, then the mulligan numbers): a late one must not stand in the
+            // frame. So the made-up stats are set again until they are the ones shown after the wait.
+            for (var attempt = 0; attempt < 8; attempt++)
+            {
+                host.Main.SetConstructedMeta(scene.Meta);
+                await Task.Delay(600);
+                if (ReferenceEquals(host.Main.ShownConstructedMeta, scene.Meta))
+                {
+                    break;
+                }
+            }
+
+            await Save(main, Path.Combine(folder, $"main-collection-{name}.png"));
         }
 
         host.Main.SetCollection(scene.Collection);
