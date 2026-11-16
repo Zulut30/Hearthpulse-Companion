@@ -220,7 +220,10 @@ public sealed class PickRowLayoutTests
                         }
 
                         Assert.All(labels, label => Assert.True(label.Width <= (WpfOverlay.BgBadgeLabelWidth * scale) + 1 && label.Height <= (WpfOverlay.BgBadgeLabelHeight * scale) + 1, $"{tested}: a label is {label.Width:0.#} x {label.Height:0.#}"));
-                        Assert.Equal(1920 / scale, surface.ActualWidth, 3);
+                        // UseLayoutRounding rounds the surface to device pixels (the CI runner is 96 DPI).
+                        // Keep the bound to half a device pixel; badge centres and intersections above remain exact geometry checks.
+                        var halfPixel = 0.5 / VisualTreeHelper.GetDpi(surface).DpiScaleX;
+                        Assert.InRange(Math.Abs(surface.ActualWidth - (1920 / scale)), 0, halfPixel + 0.001);
                     }
                 }
             }
