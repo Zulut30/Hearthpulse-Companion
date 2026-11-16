@@ -25,6 +25,9 @@ namespace Hearthpulse.Presentation.Tests;
 /// </summary>
 public sealed class PickRowLayoutTests
 {
+    // Inclusive geometry limits cross several floating-point transforms; ignore only sub-millionth-pixel noise.
+    private const double GeometryEpsilon = 0.000001;
+
     private static readonly DateTime Fetched = new(2026, 11, 15, 17, 1, 0, DateTimeKind.Utc);
 
     public static TheoryData<bool, double, int> Cases()
@@ -161,8 +164,8 @@ public sealed class PickRowLayoutTests
                         for (var i = 0; i < count; i++)
                         {
                             Assert.True(cards[i].Left >= 0 && cards[i].Right <= 1920, $"{tested}: badge {i} at {cards[i].Left:0.#}..{cards[i].Right:0.#}");
-                            Assert.True(Math.Abs(((cards[i].Left + cards[i].Right) / 2) - expected[i].Centre) <= 1.5, $"{tested}: badge {i} is centred at {(cards[i].Left + cards[i].Right) / 2:0.##}, its hero at {expected[i].Centre:0.##}");
-                            Assert.InRange(cards[i].Width - (expected[i].Right - expected[i].Left), -1.5, 1.5);
+                            Assert.True(Math.Abs(((cards[i].Left + cards[i].Right) / 2) - expected[i].Centre) <= 1.5 + GeometryEpsilon, $"{tested}: badge {i} is centred at {(cards[i].Left + cards[i].Right) / 2:R}, its hero at {expected[i].Centre:R}");
+                            Assert.InRange(cards[i].Width - (expected[i].Right - expected[i].Left), -1.5 - GeometryEpsilon, 1.5 + GeometryEpsilon);
                             // From the row's top (212 of 1080) down no further than the bound the labels' rule relies on.
                             Assert.InRange(cards[i].Top, 212, 212 + (10 * scale));
                             Assert.True(cards[i].Bottom <= 212 + (WpfRow.Heroes.Height * WpfRow.Heroes.Zoom(scale) * scale) + 1, $"{tested}: badge {i} ends at {cards[i].Bottom:0.#}");
@@ -199,14 +202,14 @@ public sealed class PickRowLayoutTests
                         var cards = Named<Border>(row, "Card").OrderBy(c => Bounds(c, root).Left).ToList();
                         var labels = Named<Border>(root, "Label").Select(l => Bounds(l, root)).ToList();
                         var expected = WpfRow.Trinkets.OnScreen(count, 1920, 1080, scale);
-                        var tested = $"{language}, scale {scale}, {count} trinkets";
+                        var tested = $"{language}, DPI scale {VisualTreeHelper.GetDpi(surface).DpiScaleX:R}, overlay scale {scale}, {count} trinkets";
                         Assert.Equal(count, cards.Count);
                         Assert.NotEmpty(labels);
                         for (var i = 0; i < count; i++)
                         {
                             var card = Bounds(cards[i], root);
                             Assert.True(card.Left >= 0 && card.Right <= 1920, $"{tested}: badge {i} at {card.Left:0.#}..{card.Right:0.#}");
-                            Assert.True(Math.Abs(((card.Left + card.Right) / 2) - expected[i].Centre) <= 1.5, $"{tested}: badge {i} is centred at {(card.Left + card.Right) / 2:0.##}, its trinket at {expected[i].Centre:0.##}");
+                            Assert.True(Math.Abs(((card.Left + card.Right) / 2) - expected[i].Centre) <= 1.5 + GeometryEpsilon, $"{tested}: badge {i} is centred at {(card.Left + card.Right) / 2:R}, its trinket at {expected[i].Centre:R}");
                             Assert.True(card.Bottom <= 226 + (WpfRow.Trinkets.Height * WpfRow.Trinkets.Zoom(scale) * scale) + 1, $"{tested}: badge {i} ends at {card.Bottom:0.#}");
                             Assert.All(labels, label => Assert.False(label.IntersectsWith(card), $"{tested}: a label {label} lies on badge {i} {card}"));
                             // Place, pick rate and date: each line whole inside the badge.
@@ -223,7 +226,7 @@ public sealed class PickRowLayoutTests
                         // UseLayoutRounding rounds the surface to device pixels (the CI runner is 96 DPI).
                         // Keep the bound to half a device pixel; badge centres and intersections above remain exact geometry checks.
                         var halfPixel = 0.5 / VisualTreeHelper.GetDpi(surface).DpiScaleX;
-                        Assert.InRange(Math.Abs(surface.ActualWidth - (1920 / scale)), 0, halfPixel + 0.001);
+                        Assert.InRange(Math.Abs(surface.ActualWidth - (1920 / scale)), 0, halfPixel + GeometryEpsilon);
                     }
                 }
             }
