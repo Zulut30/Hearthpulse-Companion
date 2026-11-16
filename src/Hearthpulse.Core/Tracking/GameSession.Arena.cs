@@ -19,14 +19,14 @@ public sealed partial class GameSession
     private string? _pickedWithoutOffer;
 
     /// <summary>
-    /// The offer read from memory that the current one replaced before any pick was logged from it. The memory read
-    /// can move on to the next offer before Arena.log names the pick, so the pick's own offer is kept until that pick
-    /// (or the next one) is handled: what the client showed with it, a package or none, is then still known. Never
+    /// Offers replaced before any pick was logged. Memory can move on, or temporarily return nothing, before
+    /// Arena.log names the pick. Keep up to 32 offers until the next logged pick; its most recent matching offer
+    /// says what the client showed with it, a package or none. Never
     /// carried into another run or across a redraft (<see cref="ForgetOffersOfAnotherRun"/>).
     /// </summary>
-    private ArenaDraftOffer? _replacedOffer;
+    private readonly List<ArenaDraftOffer> _replacedOffers = [];
 
-    /// <summary>The offer in memory when the run or its revision changed: it belongs to the draft before and is never kept as <see cref="_replacedOffer"/>.</summary>
+    /// <summary>The offer in memory when the run or its revision changed: it belongs to the draft before and cannot answer for a new pick.</summary>
     private ArenaDraftOffer? _offerOfAnotherRun;
 
     /// <summary>The game whose deck was checked against the draft (once per game).</summary>
@@ -70,7 +70,7 @@ public sealed partial class GameSession
             if (!enabled)
             {
                 SetDraftOffer(null);
-                _replacedOffer = null;
+                _replacedOffers.Clear();
             }
 
             _dirty = true;
@@ -91,13 +91,17 @@ public sealed partial class GameSession
             Diag.Info(offer is null ? "Arena draft: no offer read from memory" : "Arena draft: offer read from memory: " + Describe(offer));
         }
 
-        if (offer is null) CaptureUnpickedDraftOffer();
         if (_draftOffer is { } replaced && !ReferenceEquals(replaced, _offerOfAnotherRun) && !replaced.SameAs(_pickedOffer))
         {
             // No pick was logged from the offer that goes away: its pick may still be on its way through Arena.log.
-            _replacedOffer = replaced;
+            // Keep both A and B across A -> B -> null. A transient empty read is not a logged pick.
+            // Bound repeated memory changes while Arena.log is unavailable.
+            if (_replacedOffers.Count == 32) _replacedOffers.RemoveAt(0);
+            _replacedOffers.Add(replaced);
         }
 
+        // Capture marks the offer as recorded, not as chosen. Retain it before that bookkeeping changes _pickedOffer.
+        if (offer is null) CaptureUnpickedDraftOffer();
         _offerOfAnotherRun = null;
         _draftOffer = offer;
         if (offer is not null)
@@ -164,12 +168,14 @@ public sealed partial class GameSession
             return;
         }
 
-        var index = _draftOffer is null ? -1 : IndexOf(_draftOffer.CardIds, chosen);
+        var index = _draftOffer is null || ReferenceEquals(_draftOffer, _offerOfAnotherRun) ? -1 : IndexOf(_draftOffer.CardIds, chosen);
         // The offer this pick was made from when the memory read has already moved on: read, so it is the truth.
-        var replaced = index < 0 && !_catchingUp ? _replacedOffer : null;
+        var replaced = index < 0 && !_catchingUp
+            ? _replacedOffers.LastOrDefault(offer => IndexOf(offer.CardIds, chosen) >= 0)
+            : null;
         var replacedIndex = replaced is null ? -1 : IndexOf(replaced.CardIds, chosen);
         // Whatever the pick, the kept offer was for it or for an earlier one: it is used at most once.
-        _replacedOffer = null;
+        _replacedOffers.Clear();
         if (!_catchingUp && _sourceCapture.Enabled)
             _sourceCapture.CaptureDraftChoice(index >= 0 ? _draftOffer : null, _arenaDraft.PickCount, index >= 0 ? index : null, DateOnly.FromDateTime(Clock()));
         if (index >= 0)
@@ -213,7 +219,7 @@ public sealed partial class GameSession
                       || (before.DeckId != 0 && after.DeckId != 0 && before.DeckId != after.DeckId);
         if (another)
         {
-            _replacedOffer = null;
+            _replacedOffers.Clear();
             _offerOfAnotherRun = _draftOffer;
         }
     }

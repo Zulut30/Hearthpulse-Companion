@@ -179,6 +179,12 @@ badge may name only what the client itself put on screen. So:
   draft comes alone). The cards are added to the deck once, `hearthpulse.log` says where they came from
   (`... (the server's package list: the offer was not read from memory)`), and the client's deck list and the game's
   deck still correct the result.
+- Replaced offers remain available until the next logged pick, including across an empty memory read and with
+  source capture enabled. The most recent matching offer supplies the package; the list is bounded to 32 offers
+  if the log stops advancing. Any processed pick clears it. A new run, redraft or disabling the helper clears it
+  too, and an offer still in memory from the previous run cannot supply a package. Regression coverage:
+  `Empty_memory_reads_keep_the_picks_observed_offer_with_or_without_capture` and
+  `A_new_run_forgets_the_offer_kept_from_the_run_before` in `ArenaDataRouteTests`.
 - The dataset's own `score`, `winrate`, `pick_rate` of a group are not read or shown; no package average is
   computed from the server's list.
 

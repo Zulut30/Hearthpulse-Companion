@@ -384,12 +384,36 @@ public sealed class ArenaDataRouteTests : IDisposable
             "D 21:02:02.0000000 Client chooses: Gul'dan (HERO_07)",
             "D 21:02:02.0000000 DraftManager.OnChosen(): hero=HERO_07 premium=NORMAL",
         ], catchingUp: false);
-        draft.Session.SetDraftOffer((ArenaDraftOffer?)null);
         draft.Choose("BE_287");
 
         var view = draft.Session.Current.ArenaDraft!;
         Assert.Equal(1, view.Picks);
         Assert.Equal("BE_287", Assert.Single(view.Deck).CardId);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Empty_memory_reads_keep_the_picks_observed_offer_with_or_without_capture(bool capture, bool nextOffer)
+    {
+        using var draft = Session(Meta());
+        draft.HeroPowerOffer(underground: true);
+        draft.Session.SetSourceCaptureEnabled(capture);
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["BE_287", "RLK_066", "BE_283"], true));
+        draft.Tick();
+        if (nextOffer)
+        {
+            draft.Session.SetDraftOffer(new ArenaDraftOffer(["TLC_231", "RLK_051", "RLK_066"], true));
+            draft.Tick();
+        }
+
+        draft.Session.SetDraftOffer((ArenaDraftOffer?)null);
+        draft.Choose("BE_287");
+
+        Assert.Equal(1, draft.Session.Current.ArenaDraft!.Picks);
+        Assert.Equal("BE_287", Assert.Single(draft.Session.Current.ArenaDraft.Deck).CardId);
     }
 
     /// <summary>The same across a redraft: an offer read before it is not the offer of a pick made in it.</summary>
