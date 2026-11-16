@@ -17,6 +17,7 @@ internal abstract class BackgroundWork
     /// <summary>The calling thread, at once: the returned task is already complete (or failed).</summary>
     public static BackgroundWork Inline { get; } = new OnCaller();
 
+    /// <summary>Runs synchronous work; asynchronous delegates are not unwrapped by this seam.</summary>
     public abstract Task<T> RunAsync<T>(Func<T> work);
 
     private sealed class Pooled : BackgroundWork

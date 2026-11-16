@@ -157,11 +157,13 @@ are served ahead of queued work, so the timeout fires while the work waits for a
 cores beside CPU-bound work on the pool; inventory and numbers in `docs/mutation-testing.md`, "Tests that wait").
 
 - No pool hop between the act and the assertion where a seam exists: a view model built with
-  `Background = BackgroundWork.Inline` reads the history and builds its pages (My Stats, deck, match) inside the call,
-  so the test asserts right after it; `LiveFeed.Offload` and a fake that answers on the caller's thread do the same.
+  `Background = BackgroundWork.Inline` runs refresh history reads, My Stats builds, deck details and match loads on
+  the caller. It does not cover the Brawl page or deck-list builds. Tests of the covered paths can assert right after
+  the call; `LiveFeed.Offload` and a fake that answers on the caller's thread do the same.
   Product code a new test must wait for through `Task.Run` gets such a seam instead of a longer timeout.
-- CPU-bound work of a test runs on threads of its own (`new Thread`), never `Parallel.For` or `Task.Run`: a worker per
-  core kept busy starves every other class's `Task.Run`.
+- Sustained CPU-bound work occupying a worker per core runs on threads of its own (`new Thread`): keeping the shared
+  pool busy starves every other class's `Task.Run`. Short concurrency tests may use the pool when that is the behavior
+  they exercise, as in `SizedCacheTests`.
 - No polling (`SpinWait.SpinUntil`, a loop with `Task.Delay`/`Thread.Sleep`) and no real pause "until nothing
   happens" in a new test: hold the fake with a `TaskCompletionSource` and wait for the signal.
 - A view that must be collected: wait for what holds it first (`CardArt.LoadsInFlightAsync()` for card art asked for by

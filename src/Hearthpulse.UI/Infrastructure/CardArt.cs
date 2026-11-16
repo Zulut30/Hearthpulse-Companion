@@ -100,7 +100,18 @@ public static class CardArt
     /// The image loads in flight, as one task. Each holds the element it loads for until a pool thread has run it, so a
     /// closed view is collected only after this is done.
     /// </summary>
-    internal static Task LoadsInFlightAsync() => Task.WhenAll(Pending.Values.ToArray());
+    internal static async Task LoadsInFlightAsync()
+    {
+        try
+        {
+            await Task.WhenAll(Pending.Values.ToArray()).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // ApplyAsync/ApplyGlowAsync report failed loads through Forget. This is a completion barrier,
+            // not a second error observer: a lifetime check may include another view's failed image load.
+        }
+    }
 
     // Property callbacks cannot await; a failed load is logged instead of reaching the app's crash handler.
     private static void Apply(Control target, ArtKind kind, string? cardId) => ApplyAsync(target, kind, cardId).Forget("Card art");

@@ -20,6 +20,43 @@ namespace Hearthpulse.Presentation.Tests;
 /// <summary>Exercises both compiled versions of the shared source, including the deliberate host differences.</summary>
 public sealed class ViewModelContractTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Default_page_work_runs_on_the_pool_away_from_its_caller(bool wpf)
+    {
+        var submitted = new TaskCompletionSource<Task<(bool Pool, int Caller, int Worker)>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var caller = new Thread(() =>
+        {
+            try
+            {
+                var callerId = Environment.CurrentManagedThreadId;
+                (bool, int, int) Work() => (Thread.CurrentThread.IsThreadPoolThread, callerId, Environment.CurrentManagedThreadId);
+                if (wpf)
+                {
+                    var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+                    Assert.Same(Hearthpulse.App.Infrastructure.BackgroundWork.Pool, model.Background);
+                    submitted.SetResult(model.Background.RunAsync(Work));
+                }
+                else
+                {
+                    var model = new AvaMain(History(), new AppSettings(), TestApp.Data);
+                    Assert.Same(Hearthpulse.UI.Infrastructure.BackgroundWork.Pool, model.Background);
+                    submitted.SetResult(model.Background.RunAsync(Work));
+                }
+            }
+            catch (Exception ex)
+            {
+                submitted.SetException(ex);
+            }
+        }) { IsBackground = true, Name = "page-work-caller" };
+        caller.Start();
+        var work = await submitted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        var result = await work.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(result.Pool);
+        Assert.NotEqual(result.Caller, result.Worker);
+    }
+
     private static HistoryStore History() => new(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db"));
 
     private static GameRecord Game(int number, string deck = "First deck", string opponent = "WARRIOR") => new()
