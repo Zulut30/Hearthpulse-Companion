@@ -287,6 +287,8 @@ public sealed partial class MainViewModel
             RebuildConstructedStats();
             RebuildDecks();
             OnConstructedFormatChanged();
+            // An open card stays open and shows the other format's numbers.
+            RebuildCard(fresh: true);
         }
 
         OnConstructedFormatShown();

@@ -70,6 +70,11 @@ public partial class App
             await RenderDataHealthAsync(folder);
         }
 
+        if (RenderOnly("card"))
+        {
+            await RenderCardPageAsync(folder);
+        }
+
         if (RenderOnly("share"))
         {
             await RenderShareAsync(folder);

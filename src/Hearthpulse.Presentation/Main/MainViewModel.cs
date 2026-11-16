@@ -184,6 +184,7 @@ public sealed partial class MainViewModel : Observable
         RefreshAsync().Forget("History refresh");
         RebuildMeta();
         OnCollectionCardsChanged();
+        RebuildCard();
     }
 
     public void SetMeta(BattlegroundsMeta? meta)

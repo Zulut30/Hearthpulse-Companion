@@ -54,14 +54,14 @@ public sealed class DataHealthContractTests
 
         // Before the first summary: every row is there, nothing is known, the note says a check is running.
         var before = Rows((object)model);
-        Assert.Equal(12, before.Count);
+        Assert.Equal(13, before.Count);
         Assert.All(before, r => Assert.Equal(("—", Loc.T("Source.Health.State.Unknown"), false), (r.Date, r.State, r.Attention)));
         Assert.Equal(Loc.T("Source.Health.Checking"), (string)model.DataHealthNote);
 
         model.SetDataHealth(Report(false, ("hsguru_brawl", DataFreshness.Stale), ("hsguru_matchups", DataFreshness.Pending)));
 
         var rows = Rows((object)model);
-        Assert.Equal(12, rows.Count);
+        Assert.Equal(13, rows.Count);
         Assert.DoesNotContain(rows, r => r.Name.Contains("CardPool", StringComparison.Ordinal)); // no source in the summary: no row
         var brawl = Assert.Single(rows, r => r.Attention);
         Assert.Equal((Loc.T("Source.Health.Section.Brawl"), Loc.F("Source.Health.Date", Late.ToLocalTime()), "Update delayed"), (brawl.Name, brawl.Date, brawl.State));
@@ -327,7 +327,7 @@ public sealed class DataHealthContractTests
                 var file = Assert.IsAssignableFrom<FrameworkElement>(LogicalTreeHelper.FindLogicalNode(tab, "SettingsFileCard"));
                 Assert.True(card.TranslatePoint(default, tab).Y < file.TranslatePoint(default, tab).Y);
                 var list = Assert.IsType<System.Windows.Controls.ItemsControl>(LogicalTreeHelper.FindLogicalNode(tab, "DataHealthList"));
-                Assert.Equal(12, list.Items.Count);
+                Assert.Equal(13, list.Items.Count);
                 var button = Assert.IsType<System.Windows.Controls.Button>(LogicalTreeHelper.FindLogicalNode(tab, "DataHealthCheck"));
                 Assert.Equal("Check now", button.Content);
                 Assert.Same(model.CheckDataHealth, button.Command);

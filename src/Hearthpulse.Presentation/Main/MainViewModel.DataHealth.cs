@@ -96,6 +96,7 @@ public sealed partial class MainViewModel
         _dataHealthLoaded = true;
         DataHealthChecking = false;
         RaiseDataHealth();
+        RebuildCard();
         if (!bgBefore.SequenceEqual(BgDelays(), StringComparer.Ordinal))
         {
             // The Battlegrounds tabs carry the line inside their source text, built with the rows.

@@ -238,6 +238,7 @@ public sealed partial class MainViewModel
 
         // Your own decks show the archetype they belong to, and the deck page compares with it.
         RebuildDecks();
+        RebuildCard();
     }
 
     /// <summary>The host copied (or failed to copy) a deck code; the note under the lists says which.</summary>

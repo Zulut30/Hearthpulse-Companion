@@ -31,9 +31,15 @@ public sealed class ApiResult
     /// <summary>The <c>meta</c> element next to <c>data</c> (paging, periods, freshness), or <c>default</c> when there is none.</summary>
     public JsonElement Meta { get; private init; }
 
+    /// <summary>
+    /// The <c>fetched_at</c> written beside <c>data</c> (the stored answers of <c>datasets/{source}</c>): when the server
+    /// collected them. Null when the answer has none.
+    /// </summary>
+    public string? FetchedAt { get; private init; }
+
     internal static ApiResult Success(JsonElement data) => new(data, null);
 
-    internal static ApiResult Success(JsonElement data, JsonElement meta) => new(data, null) { Meta = meta };
+    internal static ApiResult Success(JsonElement data, JsonElement meta, string? fetchedAt = null) => new(data, null) { Meta = meta, FetchedAt = fetchedAt };
 
     internal static ApiResult Failure(ApiError error) => new(default, error);
 }
@@ -107,7 +113,8 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
         {
             if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var data))
             {
-                return ApiResult.Success(data, root.TryGetProperty("meta", out var meta) ? meta : default);
+                return ApiResult.Success(data, root.TryGetProperty("meta", out var meta) ? meta : default,
+                    root.TryGetProperty("fetched_at", out var fetched) && fetched.ValueKind == JsonValueKind.String ? fetched.GetString() : null);
             }
 
             return ApiResult.Success(root);

@@ -867,6 +867,74 @@
    "url": "https://hsreplay.net/api/v1/battlegrounds/trinkets/?format=json&hl=en&BattlegroundsMMRPercentile=TOP_1_PERCENT&BattlegroundsTimeRange=LAST_7_DAYS",
    "has_dataset": true,
    "dataset_fetched_at": "2026-11-15T17:01:24.746775+00:00"
+  },
+  {
+   "enabled": true,
+   "freshness_state": "fresh",
+   "stale": false,
+   "age_hours": 4.02,
+   "stale_after_hours": 30.0,
+   "last_success_at": "2026-11-15T06:04:20.831254+00:00",
+   "last_attempt_at": "2026-11-15T06:04:20.831254+00:00",
+   "next_run_at": "2026-11-16T06:00:00+00:00",
+   "next_run_basis": "nominal",
+   "completeness": {
+    "state": "unknown",
+    "population_state": "unknown",
+    "expected": null,
+    "received": 1324,
+    "verified_empty": null,
+    "unverified": null,
+    "patch": null,
+    "filters": {},
+    "observed_at": "2026-11-15T06:04:20.831254+00:00",
+    "upstream_timestamp": null,
+    "retrieval_state": "complete"
+   },
+   "diagnostics": {
+    "reason": "none",
+    "issue": null
+   },
+   "id": "hsreplay_cards_legend_included_popularity",
+   "site": "hsreplay",
+   "category": "ranked",
+   "url": "https://hsreplay.net/cards/#rankRange=GOLD&sortBy=includedPopularity&timeRange=LAST_14_DAYS",
+   "has_dataset": true,
+   "dataset_fetched_at": "2026-11-15T06:04:20.831254+00:00"
+  },
+  {
+   "enabled": true,
+   "freshness_state": "fresh",
+   "stale": false,
+   "age_hours": 1.49,
+   "stale_after_hours": 30.0,
+   "last_success_at": "2026-11-15T08:36:07.444721+00:00",
+   "last_attempt_at": "2026-11-15T08:36:07.444721+00:00",
+   "next_run_at": "2026-11-15T12:35:00+00:00",
+   "next_run_basis": "nominal",
+   "completeness": {
+    "state": "unknown",
+    "population_state": "unknown",
+    "expected": null,
+    "received": 4393,
+    "verified_empty": null,
+    "unverified": null,
+    "patch": null,
+    "filters": {},
+    "observed_at": "2026-11-15T08:36:07.444721+00:00",
+    "upstream_timestamp": null,
+    "retrieval_state": "complete"
+   },
+   "diagnostics": {
+    "reason": "none",
+    "issue": null
+   },
+   "id": "hsreplay_cards_wild_legend_14d",
+   "site": "hsreplay",
+   "category": "ranked",
+   "url": "https://hsreplay.net/cards/#rankRange=LEGEND&sortBy=includedPopularity&timeRange=LAST_14_DAYS&gameType=RANKED_WILD",
+   "has_dataset": true,
+   "dataset_fetched_at": "2026-11-15T08:36:07.444721+00:00"
   }
  ]
 }

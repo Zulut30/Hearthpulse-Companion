@@ -29,6 +29,7 @@
   "Source.Health.Section.Arena": "Арена",
   "Source.Health.Section.Brawl": "Потасовка",
   "Source.Health.Section.CardChoices": "Раскопка: выбор карт",
+  "Source.Health.Section.CardStats": "Статистика карт",
   "Source.Health.Delay": "Данные от {0:dd MMM HH:mm}: обновление задерживается.",
   "Source.Health.DelayNoDate": "Обновление задерживается.",
   "Source.Health.Updated": "Данные Hearthpulse · обновлено {0:dd MMM HH:mm}",

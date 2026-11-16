@@ -69,50 +69,54 @@
 
             <!-- A card that differs: "+2" / "−1" and its tile; the full card shows on hover -->
             <DataTemplate x:Key="DiffTile" DataType="{x:Type d:CardDiffRow}">
-                <Grid Height="28" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="30" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
-                               Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
-                    <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="4" c:RoundClip.Radius="4">
-                        <Grid>
-                            <!-- The art's own edge hides under the fade, as in the overlay's deck rows -->
-                            <Grid Width="180" HorizontalAlignment="Right">
-                                <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                                <Rectangle Fill="{StaticResource TileFade}" />
+                <Button Style="{StaticResource CardRowButton}" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
+                    <Grid Height="28" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
+                                   Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
+                        <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="4" c:RoundClip.Radius="4">
+                            <Grid>
+                                <!-- The art's own edge hides under the fade, as in the overlay's deck rows -->
+                                <Grid Width="180" HorizontalAlignment="Right">
+                                    <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                                    <Rectangle Fill="{StaticResource TileFade}" />
+                                </Grid>
+                                <TextBlock Text="{Binding Name}" Margin="8,0,4,0" FontSize="{StaticResource FontSizeLabel}" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             </Grid>
-                            <TextBlock Text="{Binding Name}" Margin="8,0,4,0" FontSize="{StaticResource FontSizeLabel}" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                        </Grid>
-                    </Border>
-                </Grid>
+                        </Border>
+                    </Grid>
+                </Button>
             </DataTemplate>
 
             <!-- A card of the main version as the tracker lists it (V3 "gold frame", as the overlay's deck rows): a capsule with
                  the cost gem at its left end, the name over the art, the copies (or the legendary star) on a dark pill and a
                  rarity-lit edge; legendary names in their rarity colour -->
             <DataTemplate x:Key="DeckListTile" DataType="{x:Type d:DeckListRow}">
-                <Grid Height="30" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
-                    <Border Background="{StaticResource Row}" CornerRadius="15" c:RoundClip.Radius="15">
-                        <Grid>
-                            <Grid Width="180" HorizontalAlignment="Right">
-                                <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                                <Rectangle Fill="{StaticResource TileFade}" />
+                <Button Style="{StaticResource CardRowButton}" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
+                    <Grid Height="30" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
+                        <Border Background="{StaticResource Row}" CornerRadius="15" c:RoundClip.Radius="15">
+                            <Grid>
+                                <Grid Width="180" HorizontalAlignment="Right">
+                                    <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                                    <Rectangle Fill="{StaticResource TileFade}" />
+                                </Grid>
+                                <DockPanel Margin="1,0,4,0">
+                                    <c:ManaCost Width="28" Height="28" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <Border DockPanel.Dock="Right" MinWidth="24" Height="22" CornerRadius="11" Padding="8,0" Margin="4,0,0,0" VerticalAlignment="Center"
+                                            Background="{StaticResource OverlayBadgeShade}" Visibility="{Binding Count, Converter={StaticResource Vis}}">
+                                        <TextBlock x:Name="CountText" Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}"
+                                                   Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                </DockPanel>
                             </Grid>
-                            <DockPanel Margin="1,0,4,0">
-                                <c:ManaCost Width="28" Height="28" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                <Border DockPanel.Dock="Right" MinWidth="24" Height="22" CornerRadius="11" Padding="8,0" Margin="4,0,0,0" VerticalAlignment="Center"
-                                        Background="{StaticResource OverlayBadgeShade}" Visibility="{Binding Count, Converter={StaticResource Vis}}">
-                                    <TextBlock x:Name="CountText" Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}"
-                                               Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                            </DockPanel>
-                        </Grid>
-                    </Border>
-                    <Border CornerRadius="15" BorderThickness="1" IsHitTestVisible="False" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
-                </Grid>
+                        </Border>
+                        <Border CornerRadius="15" BorderThickness="1" IsHitTestVisible="False" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
+                    </Grid>
+                </Button>
                 <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding Rarity}" Value="LEGENDARY">
                         <Setter TargetName="CountText" Property="Foreground" Value="{StaticResource RarityLegendary}" />
@@ -522,7 +526,7 @@
                                             <Button Style="{StaticResource DiffToggle}" Margin="0,4,0,0" Visibility="{Binding HasDiff, Converter={StaticResource Vis}}"
                                                     Command="{Binding DataContext.ToggleDiff, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}"
                                                     Content="{Binding Changes}" Tag="{Binding DiffOpen}" ToolTip="{i:Loc Deck.Versions.DiffTip}" />
-                                            <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,4,0,0"
+                                            <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Focusable="False" Margin="0,4,0,0"
                                                           Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" />
                                         </StackPanel>
                                     </Border>
@@ -579,7 +583,7 @@
                                                                 Command="{Binding DataContext.Dismiss, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                                                     </StackPanel>
                                                 </Grid>
-                                                <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,8,0,0"
+                                                <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Focusable="False" Margin="0,8,0,0"
                                                               Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" />
                                             </StackPanel>
                                         </Border>
@@ -755,47 +759,49 @@
                         </Grid>
                     </Grid>
                 </Border>
-                <ItemsControl ItemsSource="{Binding MulliganRows}" ItemsPanel="{StaticResource PageRows}">
+                <ItemsControl ItemsSource="{Binding MulliganRows}" ItemsPanel="{StaticResource PageRows}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type d:DeckCardStatRow}">
-                            <Border Style="{StaticResource StatsRow}" c:CardPreview.CardId="{Binding CardId}">
-                                <Grid x:Name="Row">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid>
+                            <Button Style="{StaticResource CardRowButton}" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
+                                <Border Style="{StaticResource StatsRow}" c:CardPreview.CardId="{Binding CardId}">
+                                    <Grid x:Name="Row">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="64" />
-                                            <ColumnDefinition Width="72" />
-                                            <ColumnDefinition Width="84" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CardCell}" Focusable="False" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Offered}" Style="{StaticResource Num}" />
-                                        <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding KeepRate}" Style="{StaticResource Num}" />
-                                            <ProgressBar Style="{StaticResource ShareUnder}" Value="{Binding KeepFraction, Mode=OneWay}" />
-                                        </StackPanel>
-                                        <Border Grid.Column="3" Style="{StaticResource MarkCell}" Tag="{Binding KeptMark}">
-                                            <TextBlock Text="{Binding KeptWinRate}" Style="{StaticResource Num}" FontWeight="Bold" Foreground="{Binding KeptSign, Converter={StaticResource SignBrush}}" />
-                                        </Border>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="64" />
+                                                <ColumnDefinition Width="72" />
+                                                <ColumnDefinition Width="84" />
+                                            </Grid.ColumnDefinitions>
+                                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CardCell}" Focusable="False" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Offered}" Style="{StaticResource Num}" />
+                                            <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding KeepRate}" Style="{StaticResource Num}" />
+                                                <ProgressBar Style="{StaticResource ShareUnder}" Value="{Binding KeepFraction, Mode=OneWay}" />
+                                            </StackPanel>
+                                            <Border Grid.Column="3" Style="{StaticResource MarkCell}" Tag="{Binding KeptMark}">
+                                                <TextBlock Text="{Binding KeptWinRate}" Style="{StaticResource Num}" FontWeight="Bold" Foreground="{Binding KeptSign, Converter={StaticResource SignBrush}}" />
+                                            </Border>
+                                        </Grid>
+                                        <Grid Grid.Column="1" Visibility="{Binding DataContext.MulliganAllColumns, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Vis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="84" />
+                                                <ColumnDefinition Width="16" />
+                                                <ColumnDefinition Width="76" />
+                                                <ColumnDefinition Width="72" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Style="{StaticResource MarkCell}" Tag="{Binding ReplacedMark}">
+                                                <TextBlock Text="{Binding ReplacedWinRate}" Style="{StaticResource Num}" FontWeight="Bold" Foreground="{Binding ReplacedSign, Converter={StaticResource SignBrush}}" />
+                                            </Border>
+                                            <TextBlock Grid.Column="2" Text="{Binding MetaKeep}" Style="{StaticResource Num}" Foreground="{StaticResource Muted}" />
+                                            <TextBlock Grid.Column="3" Text="{Binding MetaWinRate}" Style="{StaticResource Num}" Foreground="{StaticResource Muted}" />
+                                        </Grid>
                                     </Grid>
-                                    <Grid Grid.Column="1" Visibility="{Binding DataContext.MulliganAllColumns, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Vis}}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="84" />
-                                            <ColumnDefinition Width="16" />
-                                            <ColumnDefinition Width="76" />
-                                            <ColumnDefinition Width="72" />
-                                        </Grid.ColumnDefinitions>
-                                        <Border Style="{StaticResource MarkCell}" Tag="{Binding ReplacedMark}">
-                                            <TextBlock Text="{Binding ReplacedWinRate}" Style="{StaticResource Num}" FontWeight="Bold" Foreground="{Binding ReplacedSign, Converter={StaticResource SignBrush}}" />
-                                        </Border>
-                                        <TextBlock Grid.Column="2" Text="{Binding MetaKeep}" Style="{StaticResource Num}" Foreground="{StaticResource Muted}" />
-                                        <TextBlock Grid.Column="3" Text="{Binding MetaWinRate}" Style="{StaticResource Num}" Foreground="{StaticResource Muted}" />
-                                    </Grid>
-                                </Grid>
-                            </Border>
+                                </Border>
+                            </Button>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding FewMulligan}" Value="True">
                                     <Setter TargetName="Row" Property="Opacity" Value="0.5" />
@@ -846,41 +852,43 @@
                         </Grid>
                     </Grid>
                 </Border>
-                <ItemsControl ItemsSource="{Binding PerformanceRows}" ItemsPanel="{StaticResource PageRows}">
+                <ItemsControl ItemsSource="{Binding PerformanceRows}" ItemsPanel="{StaticResource PageRows}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type d:DeckCardStatRow}">
-                            <Border Style="{StaticResource StatsRow}" c:CardPreview.CardId="{Binding CardId}">
-                                <Grid x:Name="Row">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid>
+                            <Button Style="{StaticResource CardRowButton}" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
+                                <Border Style="{StaticResource StatsRow}" c:CardPreview.CardId="{Binding CardId}">
+                                    <Grid x:Name="Row">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="64" />
-                                            <ColumnDefinition Width="84" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CardCell}" Focusable="False" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Drawn}" Style="{StaticResource Num}" />
-                                        <Border Grid.Column="2" Style="{StaticResource MarkCell}" Tag="{Binding DrawnMark}">
-                                            <TextBlock Text="{Binding DrawnWinRate}" Style="{StaticResource Num}" FontWeight="Bold" Foreground="{Binding DrawnSign, Converter={StaticResource SignBrush}}" />
-                                        </Border>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="64" />
+                                                <ColumnDefinition Width="84" />
+                                            </Grid.ColumnDefinitions>
+                                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CardCell}" Focusable="False" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Drawn}" Style="{StaticResource Num}" />
+                                            <Border Grid.Column="2" Style="{StaticResource MarkCell}" Tag="{Binding DrawnMark}">
+                                                <TextBlock Text="{Binding DrawnWinRate}" Style="{StaticResource Num}" FontWeight="Bold" Foreground="{Binding DrawnSign, Converter={StaticResource SignBrush}}" />
+                                            </Border>
+                                        </Grid>
+                                        <Grid Grid.Column="1" Visibility="{Binding DataContext.CardsAllColumns, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Vis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="64" />
+                                                <ColumnDefinition Width="84" />
+                                                <ColumnDefinition Width="72" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Played}" Style="{StaticResource Num}" />
+                                            <Border Grid.Column="1" Style="{StaticResource MarkCell}" Tag="{Binding PlayedMark}">
+                                                <TextBlock Text="{Binding PlayedWinRate}" Style="{StaticResource Num}" FontWeight="Bold" Foreground="{Binding PlayedSign, Converter={StaticResource SignBrush}}" />
+                                            </Border>
+                                            <TextBlock Grid.Column="2" Text="{Binding AverageTurn}" Style="{StaticResource Num}" />
+                                        </Grid>
                                     </Grid>
-                                    <Grid Grid.Column="1" Visibility="{Binding DataContext.CardsAllColumns, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Vis}}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="64" />
-                                            <ColumnDefinition Width="84" />
-                                            <ColumnDefinition Width="72" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding Played}" Style="{StaticResource Num}" />
-                                        <Border Grid.Column="1" Style="{StaticResource MarkCell}" Tag="{Binding PlayedMark}">
-                                            <TextBlock Text="{Binding PlayedWinRate}" Style="{StaticResource Num}" FontWeight="Bold" Foreground="{Binding PlayedSign, Converter={StaticResource SignBrush}}" />
-                                        </Border>
-                                        <TextBlock Grid.Column="2" Text="{Binding AverageTurn}" Style="{StaticResource Num}" />
-                                    </Grid>
-                                </Grid>
-                            </Border>
+                                </Border>
+                            </Button>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding FewDrawn}" Value="True">
                                     <Setter TargetName="Row" Property="Opacity" Value="0.5" />
