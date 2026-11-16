@@ -89,3 +89,63 @@ Run 42067756832, the simulator's own tests only. Most of the 58 survivors change
   `LethalDealt` when the opponent's health is unknown, and the keyword flags `Poisonous`, `Venomous`, `Stealth`,
   `Windfury`/`MegaWindfury` built from a minion's properties (`CombatSimulator.cs` lines 70-72: no test reads
   `Keywords` back), and `CombatDamage`'s percentile and equality code (lines 81-95).
+
+## Tests that wait (2026-11-16)
+
+Not mutation testing, but the same question from the other side: which tests can fail with the code unchanged. Three
+CI and full local runs in two days failed on one pattern, a real wait plus a free thread of the pool, and a fourth
+(CI run 43902233433, `ArenaPageKindTests`) while this was written. The rule that came out of it is in the skill
+`hearthpulse-testing`, "Waits: signals and injected time, a timeout only as a backstop".
+
+### Inventory
+
+Both suites at `1f4b2df1`, by what the test waits on (sites, not tests: one helper serves several tests).
+
+| Kind | Sites | Verdict |
+|---|---|---|
+| A `TaskCompletionSource` or event, with a bound of 10 s to 1 min (`WaitAsync(TimeSpan)`, `Wait(TimeSpan)`) | 154 in 40 files | Fine when the signal is raised by the test or a fake. A candidate when the work behind the signal crosses the thread pool (a view model's `Task.Run`): five such tests failed below |
+| Polling with a pause (`UpdateTests.WaitUntil` and `Events.WaitAsync`, 20 ms steps for 15 s; `BrawlPageTests.Until`; `TwitchPublisherTests.SettleAsync`) | 23 uses in 4 files, 2 helpers more | Candidates, not reproduced |
+| `SpinWait.SpinUntil` on a background read (`OverlayLayoutLogicTests`, `CollectionLayoutTests`, `CollectionPrivacyTests`, `GameProcessTests`) | 9 in 4 files | Candidates, not reproduced; `GameProcessTests` waits for the OS process list |
+| A UI thread pumped until a flag or 30 s (`CardPageLayoutTests`, `BgSiteTabsTests.Settle`, `PumpUntil` in the presentation suite) | 17 in 5 files | Candidates, not reproduced |
+| A real pause (`Task.Delay`, `Thread.Sleep` of 5 ms to 2 s), six of them a wait for "nothing happens" (`ApiLoadTests`, `UpdateTests` twice, `DeltaUpdateTests`, `UpdateLoopTests`, `MetaSegmentLookTests`) | 11 in 9 files | Cannot fail by timing, but pass when the thing they rule out is merely late |
+| A fake that never answers through `Task.Delay(Timeout.Infinite, token)` | 7 in 7 files | Fine: ended by the test's own cancellation |
+| Work started on the pool by the test (`Task.Run`, `StartNew`, `ContinueWith` on the default scheduler) | 7 in 6 files | One fixed (`LocBindingTests.Navigation`); the rest not reproduced |
+| Wall-clock thresholds (`Stopwatch`) | 14 in 9 files | `EngineTimingTests` and `BattlegroundsReplayTimingTests` are `Category=Timing` and run alone; `LongReplayTests` has its own collection; `UpdateInstallScriptTests` asserts 1.5-50 s on a real script; the rest only print or bound a pump |
+
+### How the pool was kept busy
+
+Stopping every pool worker outright is not a test of this: timers stop with it, no timeout fires, and the test host
+itself crawls (a 10 s wait "passed" after 3 minutes). What failed in CI is a pool whose workers are busy while timers
+still fire, so the regime is that one: the test process on 4 cores (`start /affinity`), a CPU-bound `Parallel.For`
+with one worker more than cores running for the whole run. A probe item queued to the pool then waited up to 12.5 s,
+and one posted to the xunit context 84 ms. The same probe over CI's first half (classes A-H with `Sim.*`, coverage
+collector, 4 cores) measured 6951 ms while `MultithreadedFiveThousandSimulationsTests` ran its `Parallel.For`, and
+609 ms once that test used threads of its own. The hook that did this was temporary and is not in the repository.
+
+### Results
+
+Candidate classes under the busy pool, 5 runs each: 50 classes of the core suite (1239 test results a run) and 9 of
+the presentation suite (74). Then each failing test alone, before and after its fix.
+
+| Test | Busy pool, before | Busy pool, after | Normal, before | Normal, after |
+|---|---|---|---|---|
+| `ViewModelContractTests.Deck_matchup_filter_survives_a_refresh_but_resets_for_another_family` (Avalonia) | 41/52 | 0/50 | 0/200 | 0/200 |
+| the same (WPF) | 4/52 | 0/50 | 0/200 | 0/200 |
+| `ArenaRewardsPageTests.A_save_shows_the_rewards_and_gives_the_focus_back_to_the_chip` | 3/52 | 0/52 | 0/202 | 0/202 |
+| `ArenaRewardsPageTests.The_editor_survives_a_rebuild_keeps_a_failed_save_and_closes_with_its_run` | 2/52 | 0/52 | 0/202 | 0/202 |
+| `ArenaPageKindTests.Each_tab_shows_its_own_arena_and_underground_has_no_community_class_numbers` | 0/52; 1/10 beside the simulations test under coverage; CI | 0/52 | 0/202 | 0/202 |
+| `LocBindingTests.A_game_opened_off_the_history_page_stays_open` | 1/5 in its class's run, 0/52 alone | 0/52 | 0/202 | 0/202 |
+| `LocBindingTests.A_dashboard_let_go_with_its_data_context_is_collected_while_its_view_model_lives_on` | 20/50 (8/8 with the fix's wait left out, 0/8 with it) | 0/50 | 0/200 | 0/200 |
+
+Every other test of the candidate classes: 0 failures in 5 runs. That is "not reproduced in this regime", not "cannot
+fail": the polling helpers and the `SpinUntil` waits still depend on the pool, with bounds of 15 s to 1 min.
+
+### What was changed
+
+- The first six rows waited at most 10 s for a page a view model builds with `Task.Run`. `MainViewModel.Background`
+  (`BackgroundWork`: the pool in the app, the calling thread in a test) now carries the history reads of a refresh, the
+  My Stats builds, the deck page build and the match page load; these tests assert right after the call.
+- The last row collected a closed view while three card art loads its pages had asked for were still queued on the
+  pool, each holding its element. The test waits for the loads' own end (`CardArt.LoadsInFlightAsync`) first.
+- `MultithreadedFiveThousandSimulationsTests` runs on threads of its own instead of `Parallel.For` (a commit of its
+  own, the CI fix).
