@@ -7,51 +7,40 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// The hosts' live-game pipeline (<see cref="LiveFeed"/>, shared by both apps): snapshots from the log thread coalesce
 /// to the newest, are shown at most once a frame, the main window before the overlay, and the deck record follows the
-/// deck being played. The UI thread is a queue the test runs; the clock and the pacing wait are the test's too.
+/// deck being played. Nothing here runs on another thread or on real time: the UI thread and the worker that reads the
+/// deck record are queues the test runs, the clock and the pacing wait are the test's too, so a busy thread pool or a
+/// loaded machine cannot decide a result.
 /// </summary>
 public sealed class LiveFeedTests
 {
     private readonly Queue<Action> _ui = new();
+    private readonly Queue<Action> _worker = new();
     private readonly List<string> _shown = [];
     private readonly List<TaskCompletionSource> _waits = [];
     private readonly List<int> _waitLengths = [];
     private readonly List<ConstructedView> _deckReads = [];
-    private readonly TaskCompletionSource<(DeckAggregate?, MatchupAggregate?)> _deckAnswer = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private Func<(DeckAggregate?, MatchupAggregate?)> _deckAnswer = () => (null, null);
     private long _now = 1_000;
 
     private LiveFeed Feed() => new(
-        post: action =>
-        {
-            lock (_ui)
-            {
-                _ui.Enqueue(action);
-                Monitor.PulseAll(_ui);
-            }
-        },
+        post: _ui.Enqueue,
         readDeck: view =>
         {
-            lock (_deckReads)
-            {
-                _deckReads.Add(view);
-            }
-
-            return _deckAnswer.Task.GetAwaiter().GetResult();
+            _deckReads.Add(view);
+            return _deckAnswer();
         },
         showMain: s => _shown.Add("main " + s.Scene),
         showOverlay: () => _shown.Add("overlay"))
     {
-        Clock = () => Interlocked.Read(ref _now),
+        Clock = () => _now,
         Delay = ms =>
         {
             var wait = new TaskCompletionSource();
-            lock (_waits)
-            {
-                _waits.Add(wait);
-                _waitLengths.Add(ms);
-            }
-
+            _waits.Add(wait);
+            _waitLengths.Add(ms);
             return wait.Task;
         },
+        Offload = _worker.Enqueue,
     };
 
     private static LiveSnapshot Snap(string scene, ConstructedView? constructed = null) =>
@@ -61,37 +50,21 @@ public sealed class LiveFeedTests
         new(5, name, true, "HERO_08", "MAGE", "HERO_01", "WARRIOR", null, [], 20, 4, [], [], 18, 5, 0, null, null);
 
     /// <summary>Runs what is queued for the UI thread now.</summary>
-    private int RunUi()
+    private int RunUi() => Run(_ui);
+
+    /// <summary>Runs the deck record reads handed to the worker, as a pool thread would.</summary>
+    private int RunWorker() => Run(_worker);
+
+    private static int Run(Queue<Action> queue)
     {
         var ran = 0;
-        while (true)
+        while (queue.TryDequeue(out var next))
         {
-            Action next;
-            lock (_ui)
-            {
-                if (_ui.Count == 0)
-                {
-                    return ran;
-                }
-
-                next = _ui.Dequeue();
-            }
-
             next();
             ran++;
         }
-    }
 
-    /// <summary>Waits until something is queued for the UI thread by a worker (bounded: a hang fails, it never decides).</summary>
-    private void WaitForUi()
-    {
-        lock (_ui)
-        {
-            while (_ui.Count == 0)
-            {
-                Assert.True(Monitor.Wait(_ui, TimeSpan.FromSeconds(10)), "nothing reached the UI thread");
-            }
-        }
+        return ran;
     }
 
     [Fact]
@@ -128,9 +101,9 @@ public sealed class LiveFeedTests
         feed.Publish(Snap("three")); // joins the scheduled apply, no second wait
         Assert.Single(_waits);
 
+        // Whoever ends the wait puts the apply on the UI thread itself: nothing in between that a busy pool could hold.
         _waits[0].SetResult();
-        WaitForUi();
-        RunUi();
+        Assert.Equal(1, RunUi());
         Assert.Equal(["main one", "overlay", "main three", "overlay"], _shown);
         Assert.Equal(0, feed.Waiting);
         var stats = feed.TakeStats();
@@ -145,11 +118,13 @@ public sealed class LiveFeedTests
         feed.Publish(Snap("one", Deck("Big Mage")));
         RunUi();
         Assert.Null(feed.Deck);
+        Assert.Empty(_deckReads); // not read on the UI thread
 
         var record = new DeckAggregate("Big Mage", null, "MAGE", 10, 6, 4, DateTime.UnixEpoch);
-        _deckAnswer.SetResult((record, null));
-        WaitForUi();
-        RunUi();
+        _deckAnswer = () => (record, null);
+        Assert.Equal(1, RunWorker());
+        Assert.Null(feed.Deck); // read, and on its way to the UI thread
+        Assert.Equal(1, RunUi());
         Assert.Same(record, feed.Deck);
         Assert.Equal(["main one", "overlay", "overlay"], _shown);
 
@@ -157,6 +132,7 @@ public sealed class LiveFeedTests
         _now += 100;
         feed.Publish(Snap("two", Deck("Big Mage")));
         RunUi();
+        Assert.Equal(0, RunWorker());
         Assert.Single(_deckReads);
         Assert.Same(record, feed.Deck);
 
@@ -165,24 +141,22 @@ public sealed class LiveFeedTests
         feed.Publish(Snap("three", Deck("Big Mage")));
         RunUi();
         Assert.Null(feed.Deck);
-        WaitForUi();
-        RunUi();
-        lock (_deckReads)
-        {
-            Assert.Equal(2, _deckReads.Count);
-        }
+        Assert.Equal(1, RunWorker());
+        Assert.Equal(1, RunUi());
+        Assert.Equal(2, _deckReads.Count);
+        Assert.Same(record, feed.Deck);
     }
 
     [Fact]
-    public async Task A_deck_record_that_fails_is_logged_and_nothing_reaches_the_screen()
+    public void A_deck_record_that_fails_is_logged_and_nothing_reaches_the_screen()
     {
         var feed = Feed();
         feed.Publish(Snap("one", Deck("Big Mage")));
         RunUi();
 
         var marker = Guid.NewGuid().ToString("N");
-        _deckAnswer.SetException(new InvalidOperationException(marker));
-        await feed.DeckRead.WaitAsync(TimeSpan.FromSeconds(10));
+        _deckAnswer = () => throw new InvalidOperationException(marker);
+        Assert.Equal(1, RunWorker());
 
         Assert.Equal(0, RunUi());
         Assert.Null(feed.Deck);
@@ -201,9 +175,9 @@ public sealed class LiveFeedTests
         feed.Publish(Snap("two")); // left the game: no deck
         RunUi();
 
-        _deckAnswer.SetResult((new DeckAggregate("Big Mage", null, "MAGE", 10, 6, 4, DateTime.UnixEpoch), null));
-        WaitForUi();
-        RunUi();
+        _deckAnswer = () => (new DeckAggregate("Big Mage", null, "MAGE", 10, 6, 4, DateTime.UnixEpoch), null);
+        Assert.Equal(1, RunWorker()); // the read of the deck that is gone ends only now
+        Assert.Equal(1, RunUi());
         Assert.Null(feed.Deck);
         Assert.Equal(["main one", "overlay", "main two", "overlay"], _shown);
     }

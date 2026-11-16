@@ -40,8 +40,8 @@ public sealed class LiveFeed(
     /// <summary>Waits before a paced apply; tests complete it themselves.</summary>
     internal Func<int, Task> Delay { get; init; } = ms => Task.Delay(ms);
 
-    /// <summary>The deck record read last (done once it is posted to the UI thread or logged as failed), for tests.</summary>
-    internal Task DeckRead { get; private set; } = Task.CompletedTask;
+    /// <summary>Runs the deck record's read off the UI thread (a pool thread); tests run the work themselves.</summary>
+    internal Action<Action> Offload { get; init; } = work => _ = Task.Run(work);
 
     /// <summary>The snapshot shown last.</summary>
     public LiveSnapshot Last { get; private set; } = LiveSnapshot.Empty;
@@ -81,7 +81,13 @@ public sealed class LiveFeed(
         }
         else
         {
-            _ = Delay(delay).ContinueWith(_ => post(Apply), TaskScheduler.Default);
+            // Posted by the thread that ends the wait (the timer's): a second trip through the pool's queue would hold
+            // the snapshot back for as long as the pool is busy, on top of the frame it has already waited.
+            _ = Delay(delay).ContinueWith(
+                _ => post(Apply),
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
         }
     }
 
@@ -141,14 +147,15 @@ public sealed class LiveFeed(
             return;
         }
 
-        DeckRead = ReadDeckAsync(view, key);
+        Offload(() => ReadDeck(view, key));
     }
 
-    private async Task ReadDeckAsync(ConstructedView view, string? key)
+    /// <summary>On the worker: reads the record and hands it to the UI thread, which drops it if the deck has changed.</summary>
+    private void ReadDeck(ConstructedView view, string? key)
     {
         try
         {
-            var record = await Task.Run(() => readDeck(view)).ConfigureAwait(false);
+            var record = readDeck(view);
             post(() =>
             {
                 if (_deckKey == key)
