@@ -117,8 +117,8 @@ revoked; retry or maintenance finishes it. Late uploads/worker commits always ch
 same deletion policy: this service cannot erase disconnected backups, filesystem snapshots or journals owned by a
 different system. Do not promise backup erasure until P4 has verified the actual host's backup process.
 
-The cap conservatively reserves uncompressed input + compressed bytes + derived JSON + bounded running output.
-Filesystem free space is also checked before intake. `/healthz` tells "alive" from "producing": `intake` (rows
+What each budget counts, the `/healthz` fields for it and the capacity figures are in "Budgets and capacity" below.
+`/healthz` tells "alive" from "producing": `intake` (rows
 taken today: `shared` = `/v1/games` + `/v1/constructed`, `records` = `/v1/events`), `stored` (rows kept per table)
 and `analytics` (`built`, `stale`, `published` of the `bg-heroes-solo` snapshot). Intake counts quota-accounted writes,
 including repeated submissions, not unique games. Zero intake with a green `ok` means none were counted today;
@@ -127,6 +127,50 @@ disk/WAL growth, worker failures and
 503 rates without IDs or source snippets. Directory/SQL orphan cleanup runs before listening after a crash.
 Provision larger capacity only after measured synthetic/pilot mode-specific size, parser time and retention
 estimates; the 180-day TTL is an upper retention limit, not a capacity guarantee.
+
+## Budgets and capacity
+
+Intake is refused with 503 and `Retry-After: 30` by whichever budget is exceeded first. A 503 does not keep the
+data: the client's queue is bounded, and a capture that waits there too long expires before it is ever stored.
+
+| Error | Budget (default) | Counts |
+|---|---|---|
+| `archive_pressure` | `POOL_ARCHIVE_BYTES`, 256 MiB | per chunk with a receipt: uncompressed bytes + compressed bytes, also for unfinished and `failed` captures until forget or expiry removes them; per `parsed`/`partial` capture: its derived JSON, once; per running job: a fixed 64 MiB reservation in place of the result; the revocation ledger file |
+| `metadata_pressure` | 64 MiB, not configurable from the environment | live pages of `pool.sqlite` (rows, indexes, receipts, manifests, tombstones, analytics facts, the legacy `/v1/*` tables and SQLite's own overhead) without the derived JSON the archive budget already counts, plus the whole `-wal` and `-shm` files |
+| `daily_pressure` | `POOL_DAILY_BYTES` 128 MiB, `POOL_DAILY_CAPTURES` 1000 | uncompressed bytes and new captures accepted in the UTC day |
+| `disk_pressure` | `POOL_MIN_FREE_BYTES`, 64 MiB | free space of the filesystem after the request |
+
+The uncompressed half of the chunk count is deliberate: it pays for the work file a job writes next to the chunks
+(`worker-*-input.jsonl`, removed when the job ends). A job starts only when the archive budget has room for its
+64 MiB reservation and metadata is under its cap; otherwise the capture waits as `stored`. A job that was let in
+commits its result even if intake crossed the metadata cap meanwhile, so that cap can be exceeded by one admitted
+request or one job's facts and WAL frames, never by further intake. The WAL is truncated after every job, every
+forget and every minute by maintenance. Free pages inside `pool.sqlite` are not metadata: SQLite reuses them and
+never returns them to the filesystem, so the file keeps its largest size while both budgets fall after forget or
+expiry. Before 2026-11-16 the metadata measure was the size of the three files: every derived result was counted
+in both budgets, and after a deletion the unshrunk file kept `metadata_pressure` on.
+
+`/healthz` (numbers only, no ids or content): `archiveBytes` / `archiveCapBytes` are the archive budget;
+`metadataBytes` / `metadataCapBytes` are the metadata budget; `sqliteFileBytes` is `pool.sqlite` + WAL + SHM on
+disk and `sqliteFreeBytes` its reusable free pages. `sqliteFileBytes` far above `metadataBytes` is expected: the
+difference is derived results and free pages. `statuses` growing in `stored` with a configured worker means jobs
+are waiting for one of the budgets.
+
+Capacity is a calculation from the formulas above and local measurements, not a guarantee and not a tested load.
+Measured by the local suite's fixtures on Windows, Node 24.19.0 (the real worker and Linux were not measured):
+an empty service holds 143,360 metadata bytes; a parsed one-chunk capture adds about 3.5 KB of metadata and a
+64-chunk one about 16 KB; SQLite stores a 179,146-byte result in 180,224 bytes. With S = archive bytes per parsed
+capture (uncompressed + compressed + derived):
+
+- captures the archive budget holds: 256 MiB / S; captures that can still be parsed: (256 - 64) MiB / S, because a
+  job needs its reservation. With the pilot's S of about 275 KB that is about 976 and about 732. Past the second
+  figure uploads are accepted and stay `stored` until space is freed.
+- captures the metadata budget holds: (64 MiB - 143,360 - legacy tables and facts) / 3.5 KB, about 18,900 one-chunk
+  captures with empty legacy tables, about 4,100 if every capture had 64 chunks. It is no longer the first limit.
+- a day: 128 MiB of uncompressed source or 1000 new captures, whichever comes first.
+
+The archive figure is reached by retention, not by a day: at the 180-day TTL the default cap holds about five
+parsed captures a day. Remeasure S and the split between source and derived on the pilot before changing a cap.
 
 ## Local checks
 

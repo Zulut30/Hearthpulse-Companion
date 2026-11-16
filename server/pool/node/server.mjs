@@ -71,7 +71,9 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
       const url = new URL(req.url, 'http://pool.internal');
       const route = url.pathname;
       if (route === '/healthz' && req.method === 'GET') {
+        const metadata = archive.metadata();
         response = json({ ok: true, workerConfigured: !!archive.worker, archiveBytes: archive.usage(), archiveCapBytes: archive.maxArchiveBytes,
+          metadataBytes: metadata.bytes, metadataCapBytes: archive.maxMetadataBytes, sqliteFileBytes: metadata.fileBytes, sqliteFreeBytes: metadata.freeBytes,
           statuses: store.sqlite.prepare('SELECT status,COUNT(*) AS n FROM source_captures GROUP BY status').all(),
           ...flow(store.sqlite) });
       } else if (route === '/v2/analytics/bg/heroes') {

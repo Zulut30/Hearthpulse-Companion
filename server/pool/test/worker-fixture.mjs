@@ -1,9 +1,19 @@
 // A deterministic subprocess test double. Production never imports or configures this file.
 import * as fs from 'node:fs';
+import path from 'node:path';
 import { createHash } from 'node:crypto';
 const mode = process.argv[2];
 const input = process.argv[process.argv.indexOf('--input') + 1];
 const output = process.argv[process.argv.indexOf('--output') + 1];
+// "gated" reports that it started and parses only after the test creates "<output>.go": a commit the test places.
+if (mode === 'gated') {
+  fs.writeFileSync(`${output}.started`, 'ready');
+  await new Promise(resolve => {
+    const open = () => { if (fs.existsSync(`${output}.go`)) { watcher.close(); resolve(); } };
+    const watcher = fs.watch(path.dirname(output), open);
+    open();
+  });
+}
 if (mode === 'crash') process.exit(7);
 if (mode === 'noisy') { process.stdout.write('x'.repeat(32768)); setInterval(() => {}, 1000); }
 else if (mode === 'wait') { fs.writeFileSync(`${output}.started`, 'ready'); setInterval(() => {}, 1000); }

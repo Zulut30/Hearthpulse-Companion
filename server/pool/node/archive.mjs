@@ -72,11 +72,25 @@ export class CaptureArchive {
       + this.db.prepare("SELECT COUNT(*) AS n FROM source_captures WHERE status='processing'").get().n * this.maxWorkerOutputBytes
       + (fs.existsSync(this.ledger) ? fs.statSync(this.ledger).size : 0);
   }
-  pressure(extra) {
-    if (this.usage() + extra > this.maxArchiveBytes) fail(503, 'archive_pressure');
+  /**
+   * What the service keeps beside the archive: live SQLite pages without the derived results usage() already counts,
+   * plus the whole WAL and SHM. Free pages are reusable room, not growth, so forget and expiry give their share back.
+   * Only bytes that are both stored and counted by the archive are taken out, so the value is never understated.
+   */
+  metadata() {
+    const pragma = name => Number(Object.values(this.db.prepare(`PRAGMA ${name}`).get())[0]);
+    const size = file => { try { return fs.statSync(file).size; } catch { return 0; } };
     const file = this.db.prepare('PRAGMA database_list').get().file;
-    const metadata = ['', '-wal', '-shm'].reduce((n, suffix) => n + (fs.existsSync(file + suffix) ? fs.statSync(file + suffix).size : 0), 0);
-    if (metadata > this.maxMetadataBytes) fail(503, 'metadata_pressure');
+    const page = pragma('page_size');
+    const freeBytes = pragma('freelist_count') * page;
+    const derived = this.db.prepare('SELECT COALESCE(SUM(MIN(derived_bytes, octet_length(derived))),0) AS n FROM source_captures').get().n;
+    const journals = size(`${file}-wal`) + size(`${file}-shm`);
+    return { bytes: Math.max(0, pragma('page_count') * page - freeBytes - derived) + journals, freeBytes, fileBytes: size(file) + journals };
+  }
+  /** A job that was let in commits with admission=false: refusing its result frees nothing and loses the parse. */
+  pressure(extra, admission = true) {
+    if (this.usage() + extra > this.maxArchiveBytes) fail(503, 'archive_pressure');
+    if (admission && this.metadata().bytes > this.maxMetadataBytes) fail(503, 'metadata_pressure');
     const space = fs.statfsSync(this.root);
     if (space.bavail * space.bsize < this.minFreeBytes + extra) fail(503, 'disk_pressure');
   }
@@ -365,7 +379,7 @@ export class CaptureArchive {
         const result = JSON.parse(fs.readFileSync(task.output, 'utf8'));
         const facts = await this.validateResult(result, task);
         const data = JSON.stringify(result);
-        this.pressure(Math.max(0, Buffer.byteLength(data) - latest.derived_bytes) - this.maxWorkerOutputBytes);
+        this.pressure(Math.max(0, Buffer.byteLength(data) - latest.derived_bytes) - this.maxWorkerOutputBytes, false);
         transaction(this.db, () => {
           this.check(task.id);
           const updated = this.db.prepare(`UPDATE source_captures SET status=?,parser_version=?,records=?,unsupported=?,gaps=?,derived=?,derived_bytes=?
@@ -385,6 +399,8 @@ export class CaptureArchive {
         });
       } finally {
         this.active.delete(task.row.key);
+        // The result now lives once, in the main file. A WAL still holding its frames would count it as metadata too.
+        try { if (!this.closed) this.db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch {}
         // No mkdir here: a late completion cannot recreate a deleted generation.
         try {
           for (const name of fs.readdirSync(this.dir(task.id))) {
