@@ -78,7 +78,7 @@ public partial class App
         model.UpdateCheckFinished(() => Core.Localization.Loc.F("Core.Update.UpToDate", UpdateService.CurrentVersion));
         await SaveAboutAsync(folder, "latest");
         model.SetUpdateReady("0.15.0");
-        model.SetReleaseNotes("0.15.0", SampleReleaseNotes, new Uri("https://github.com/Zulut30/Hearthpulse_App/releases/tag/v0.15.0"));
+        model.SetReleaseNotes("0.15.0", SampleReleaseNotes, new Uri("https://github.com/Zulut30/Hearthpulse-Companion/releases/tag/v0.15.0"));
         await SaveAboutAsync(folder, "notes");
         model.ToggleReleaseNotes.Execute(null);
         await SaveAboutAsync(folder, "notes-open");

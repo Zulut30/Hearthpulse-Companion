@@ -596,7 +596,10 @@ public sealed class UpdateTests
     }
 
     [Theory]
+    [InlineData("https://github.com/Zulut30/Hearthpulse-Companion/releases/tag/v0.15.0", true)]
     [InlineData("https://github.com/Zulut30/Hearthpulse_App/releases/tag/v0.15.0", true)]
+    [InlineData("https://github.com/Zulut30/Hearthpulse-Companion-Fork/releases/tag/v0.15.0", false)]
+    [InlineData("https://github.com/Other/Hearthpulse-Companion/releases/tag/v0.15.0", false)]
     [InlineData("https://github.com/Zulut30/IceCrowV2/releases/tag/v99.0.0", false)]
     [InlineData("http://github.com/Zulut30/Hearthpulse_App/releases/tag/v0.15.0", false)]
     [InlineData("https://github.com/Zulut30/Hearthpulse_App/issues", false)]

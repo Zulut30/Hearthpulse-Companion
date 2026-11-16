@@ -19,7 +19,7 @@ so `origin/main` can lag behind; use it only when the brief says so. Name the ba
 | A branch name | `git diff main...<branch>` (three dots: from the merge base) |
 | `working` | `git diff HEAD` plus `git ls-files --others --exclude-standard` |
 | `<a>..<b>` / `<a>...<b>` | Exactly as written; two dots compare the endpoints, three the merge base |
-| `pr <n>` | `gh pr view <n> --repo Zulut30/Hearthpulse_App --json baseRefName,headRefName,title,body`, then `git fetch origin pull/<n>/head:refs/remotes/pr/<n>` and diff against the PR's own base |
+| `pr <n>` | `gh pr view <n> --repo Zulut30/Hearthpulse-Companion --json baseRefName,headRefName,title,body`, then `git fetch origin pull/<n>/head:refs/remotes/pr/<n>` and diff against the PR's own base |
 
 Diff a branch with three dots; two dots report every commit that landed on `main` meanwhile as part of the change. A
 target with uncommitted work must also list untracked files, or a new view is silently dropped.

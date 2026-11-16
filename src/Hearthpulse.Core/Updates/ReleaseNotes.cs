@@ -14,6 +14,9 @@ internal static partial class ReleaseNotes
 
     public const string PagePrefix = "https://github.com/" + UpdateService.RepoOwner + "/" + UpdateService.RepoName + "/releases/";
 
+    /// <summary>The same page under the repository's former name: an answer cached before the rename may still carry it.</summary>
+    public const string FormerPagePrefix = "https://github.com/" + UpdateService.RepoOwner + "/" + UpdateService.FormerRepoName + "/releases/";
+
     /// <summary>The body as plain text, or null when nothing is left.</summary>
     public static string? ToPlainText(string? markdown)
     {
@@ -63,7 +66,8 @@ internal static partial class ReleaseNotes
 
     /// <summary>The release page when it is this project's releases page on GitHub; null for anything else.</summary>
     public static Uri? Page(string? url) =>
-        url is not null && url.StartsWith(PagePrefix, StringComparison.Ordinal) && Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        url is not null && (url.StartsWith(PagePrefix, StringComparison.Ordinal) || url.StartsWith(FormerPagePrefix, StringComparison.Ordinal))
+            && Uri.TryCreate(url, UriKind.Absolute, out var uri)
             && uri.Scheme == Uri.UriSchemeHttps
             ? uri
             : null;

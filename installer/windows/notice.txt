@@ -36,7 +36,7 @@ HOW IT WORKS
   computer, which shows your current mode and matchup on your profile.
 
 UPDATES
-- Hearthpulse asks GitHub (github.com/Zulut30/Hearthpulse_App) for the newest
+- Hearthpulse asks GitHub (github.com/Zulut30/Hearthpulse-Companion) for the newest
   release every 6 hours, or when you press "Check now" in Settings > About.
   Only that ordinary request is sent; the last answer is kept on this
   computer so an unchanged release is not downloaded again.
