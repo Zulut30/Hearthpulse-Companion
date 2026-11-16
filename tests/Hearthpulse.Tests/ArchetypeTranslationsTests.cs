@@ -171,7 +171,8 @@ public sealed class ArchetypeTranslationsTests : IDisposable
         var server = new FakeServer(HttpStatusCode.OK, Answer) { Delay = Timeout.InfiniteTimeSpan };
         using var http = new HttpClient(server);
 
-        var load = ArchetypeTranslations.LoadAsync(http, _cache, time);
+        // Only the fetch deadline is under test: cache I/O has its own tests and uses the real worker pool.
+        var load = ArchetypeTranslations.LoadAsync(http, null, time);
         await server.Reached.Task.WaitAsync(TimeSpan.FromSeconds(10));
         time.Advance(ArchetypeTranslations.FetchTimeout - TimeSpan.FromMilliseconds(1));
         Assert.False(load.IsCompleted);
@@ -216,7 +217,14 @@ public sealed class ArchetypeTranslationsTests : IDisposable
         {
             Requests.Add(request.RequestUri!.ToString());
             Reached.TrySetResult();
-            if (Delay > TimeSpan.Zero || Delay == Timeout.InfiniteTimeSpan)
+            if (Delay == Timeout.InfiniteTimeSpan)
+            {
+                // Cancellation completes on the fake clock's thread; Task.Delay would queue another pool turn.
+                var cancelled = new TaskCompletionSource();
+                using var registration = cancellationToken.Register(() => cancelled.TrySetCanceled(cancellationToken));
+                await cancelled.Task;
+            }
+            else if (Delay > TimeSpan.Zero)
             {
                 await Task.Delay(Delay, cancellationToken);
             }
