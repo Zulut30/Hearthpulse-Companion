@@ -30,6 +30,7 @@ public sealed class LiveFeed(
     private int _scheduled;
     private long _scheduledAt;
     private string? _deckKey;
+    private long _deckGeneration;
     private int _applied;
     private long _slowestApply;
     private long _longestWait;
@@ -40,8 +41,8 @@ public sealed class LiveFeed(
     /// <summary>Waits before a paced apply; tests complete it themselves.</summary>
     internal Func<int, Task> Delay { get; init; } = ms => Task.Delay(ms);
 
-    /// <summary>The deck record read last (done once it is posted to the UI thread or logged as failed), for tests.</summary>
-    internal Task DeckRead { get; private set; } = Task.CompletedTask;
+    /// <summary>Runs the deck record's read off the UI thread (a pool thread); tests run the work themselves.</summary>
+    internal Action<Action> Offload { get; init; } = work => _ = Task.Run(work);
 
     /// <summary>The snapshot shown last.</summary>
     public LiveSnapshot Last { get; private set; } = LiveSnapshot.Empty;
@@ -77,11 +78,17 @@ public sealed class LiveFeed(
         var delay = _pacer.Delay(now);
         if (delay == 0)
         {
-            post(Apply);
+            PostApply();
         }
         else
         {
-            _ = Delay(delay).ContinueWith(_ => post(Apply), TaskScheduler.Default);
+            // Posted by the thread that ends the wait (the timer's): a second trip through the pool's queue would hold
+            // the snapshot back for as long as the pool is busy, on top of the frame it has already waited.
+            _ = Delay(delay).ContinueWith(
+                _ => PostApply(),
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
         }
     }
 
@@ -97,7 +104,21 @@ public sealed class LiveFeed(
     }
 
     /// <summary>The history changed: the deck record is read again with the next snapshot.</summary>
-    public void ForgetDeck() => _deckKey = null;
+    public void ForgetDeck()
+    {
+        _deckKey = null;
+        _deckGeneration++;
+    }
+
+    private void PostApply()
+    {
+        try { post(Apply); }
+        catch (Exception ex)
+        {
+            Interlocked.Exchange(ref _scheduled, 0);
+            Diag.Error("Snapshot dispatch failed", ex);
+        }
+    }
 
     private void Apply()
     {
@@ -134,6 +155,7 @@ public sealed class LiveFeed(
         }
 
         _deckKey = key;
+        var generation = ++_deckGeneration;
         Deck = null;
         Matchup = null;
         if (view is null)
@@ -141,17 +163,18 @@ public sealed class LiveFeed(
             return;
         }
 
-        DeckRead = ReadDeckAsync(view, key);
+        Offload(() => ReadDeck(view, key, generation));
     }
 
-    private async Task ReadDeckAsync(ConstructedView view, string? key)
+    /// <summary>On the worker: reads the record and hands it to the UI thread, which drops it if the deck has changed.</summary>
+    private void ReadDeck(ConstructedView view, string? key, long generation)
     {
         try
         {
-            var record = await Task.Run(() => readDeck(view)).ConfigureAwait(false);
+            var record = readDeck(view);
             post(() =>
             {
-                if (_deckKey == key)
+                if (_deckKey == key && _deckGeneration == generation)
                 {
                     (Deck, Matchup) = record;
                     showOverlay();
