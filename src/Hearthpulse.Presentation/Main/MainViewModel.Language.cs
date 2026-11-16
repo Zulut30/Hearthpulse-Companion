@@ -35,6 +35,7 @@ public sealed partial class MainViewModel
         // The deck list, merge suggestions and the open deck page (shown again from the rebuilt families).
         RebuildDecks();
         RebuildMatch();
+        RebuildCard();
         _migration?.Rebuild();
         RebuildConstructedMeta();
         RebuildLanguagePlatformData();

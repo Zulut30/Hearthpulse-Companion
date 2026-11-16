@@ -78,6 +78,11 @@ internal static partial class OffscreenRenderer
             await RenderDataHealthAsync(main, view, host, folder);
         }
 
+        if (RenderOnly("card"))
+        {
+            await RenderCardPageAsync(main, view, host, folder);
+        }
+
         if (RenderOnly("settings"))
         {
             await RenderSettingsToolsAsync(main, view, folder);

@@ -270,18 +270,21 @@
                     <ItemsControl ItemsSource="{Binding Mulligan}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:MulliganRow">
-                                <Border Classes="row" Padding="8,4">
-                                    <!-- Fixed "kept" column, so every row's "kept N%" and name trim line up -->
-                                    <Grid ColumnDefinitions="36,*,116,52">
-                                        <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
-                                                ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Classes="caption" TextAlignment="Right" VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" Margin="12,0,0,0" ToolTip.Tip="{i:Loc Main.Meta.KeepRateTip}" />
-                                        <TextBlock Grid.Column="3" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                   Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip.Tip="{Binding Seen}" />
-                                    </Grid>
-                                </Border>
+                                <!-- A click opens the card's page (docs/card-page.md) -->
+                                <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
+                                    <Border Classes="row" Padding="8,4">
+                                        <!-- Fixed "kept" column, so every row's "kept N%" and name trim line up -->
+                                        <Grid ColumnDefinitions="36,*,116,52">
+                                            <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                                    ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Classes="caption" TextAlignment="Right" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" Margin="12,0,0,0" ToolTip.Tip="{i:Loc Main.Meta.KeepRateTip}" />
+                                            <TextBlock Grid.Column="3" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip.Tip="{Binding Seen}" />
+                                        </Grid>
+                                    </Border>
+                                </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

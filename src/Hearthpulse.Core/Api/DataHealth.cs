@@ -38,6 +38,7 @@ public enum DataSection
     Brawl,
     CardChoices,
     CardPool,
+    CardStats,
 }
 
 /// <summary>One source of <c>v1/system/sources</c>, as the server described it when the summary was read.</summary>
@@ -102,6 +103,8 @@ public static class DataSections
         [DataSection.CardChoices] = ["hsreplay_card_choices"],
         // api/v1/constructed-cards is the site's catalog: the summary lists no collector for it.
         [DataSection.CardPool] = [],
+        // datasets/hsreplay_cards_legend_included_popularity (Standard) and datasets/hsreplay_cards_wild_legend_14d: the card page
+        [DataSection.CardStats] = ["hsreplay_cards_legend_included_popularity", "hsreplay_cards_wild_legend_14d"],
     };
 
     /// <summary>The source ids of a section; empty when the summary has no source for it.</summary>

@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        AddHandler(Controls.CardLink.OpenEvent, new EventHandler<Controls.CardLinkEventArgs>(OnCardLink));
         PageOverview.ImportRequested += () => ReimportRequested?.Invoke();
         PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
         Setup.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
@@ -196,6 +197,35 @@ public partial class MainWindow : Window
                 }
 
                 break;
+            case nameof(MainViewModel.CardOpen):
+                // Read before the page is hidden: a focus the player moved elsewhere (a sidebar button) is left alone.
+                var cardHadFocus = FocusIsOnCardPage();
+                if (ConstructedShown)
+                {
+                    // Back from a card leaves the page under it where the player was reading.
+                    _cardClosing = !_viewModel.CardOpen;
+                    OnNavigate(this, new RoutedEventArgs());
+                    _cardClosing = false;
+                }
+                else if (_viewModel.CardOpen)
+                {
+                    ShowPage(ConstructedPage.PageOf(_viewModel.ConstructedFormat));
+                }
+
+                if (_viewModel.CardOpen)
+                {
+                    FocusCardPage();
+                }
+                else if (ConstructedShown && cardHadFocus)
+                {
+                    RestoreCardFocus();
+                }
+                else
+                {
+                    _cardOrigin = null;
+                }
+
+                break;
             case nameof(MainViewModel.ConstructedFormat):
                 // A deck opened on the other format's page moves the nav to its own (a Wild deck to Wild).
                 if (ConstructedShown)
@@ -237,16 +267,30 @@ public partial class MainWindow : Window
         PageOverview.Visibility = NavOverview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         Show(_battlegrounds, () => PageBattlegrounds, NavBattlegrounds.IsChecked == true);
         // The deck page stands in for the Standard or Wild page while a deck is open (the nav stays on its format).
-        Show(_constructed, () => PageConstructed, ConstructedShown && !_viewModel.DeckOpen);
+        // The card page stands over both: Back returns to the page it was opened from.
+        var cardOpen = ConstructedShown && _viewModel.CardOpen;
+        Show(_constructed, () => PageConstructed, ConstructedShown && !_viewModel.DeckOpen && !cardOpen);
         if (ConstructedShown && _viewModel.DeckOpen)
         {
             _ = DeckDetailsPage;
         }
 
-        PageDeck.Visibility = ConstructedShown && _viewModel.DeckOpen ? Visibility.Visible : Visibility.Collapsed;
-        if (PageDeck.Visibility == Visibility.Visible)
+        PageDeck.Visibility = ConstructedShown && _viewModel.DeckOpen && !cardOpen ? Visibility.Visible : Visibility.Collapsed;
+        if (PageDeck.Visibility == Visibility.Visible && !_cardClosing)
         {
             PageDeck.ScrollToTop();
+        }
+
+        if (cardOpen)
+        {
+            _ = CardDetailsPage;
+        }
+
+        var cardWasShown = PageCard.Visibility == Visibility.Visible;
+        PageCard.Visibility = cardOpen ? Visibility.Visible : Visibility.Collapsed;
+        if (cardOpen && !cardWasShown)
+        {
+            PageCard.ScrollToTop();
         }
 
         PageArena.Visibility = NavArena.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
@@ -260,7 +304,7 @@ public partial class MainWindow : Window
         }
 
         PageSettings.Visibility = NavSettings.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        Reveal(new FrameworkElement?[] { PageOverview, _battlegrounds, _constructed, PageDeck, PageArena, PageBrawl, _history, PageMatch, PageSettings }.OfType<FrameworkElement>()
+        Reveal(new FrameworkElement?[] { PageOverview, _battlegrounds, _constructed, PageDeck, PageCard, PageArena, PageBrawl, _history, PageMatch, PageSettings }.OfType<FrameworkElement>()
             .First(p => p.Visibility == Visibility.Visible));
         PlacePill(animate: true);
     }

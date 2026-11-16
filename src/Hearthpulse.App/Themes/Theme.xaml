@@ -845,6 +845,25 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- A card row as a button (Controls/CardLink): the row draws itself, the button gives it focus, Enter / Space and a
+         name. No plate of its own, so the row looks as it did. -->
+    <Style x:Key="CardRowButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingRow}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <!-- A picture as a button (the Settings theme tiles): it lifts a little under the mouse and gives under a press.
          The page sets ContentTemplate. -->
     <Style x:Key="ThemeSwatch" TargetType="Button">

@@ -183,6 +183,7 @@ public sealed partial class MainViewModel : Observable
         Raise(nameof(LanguageRestartHint));
         RefreshAsync().Forget("History refresh");
         RebuildMeta();
+        RebuildCard();
     }
 
     public void SetMeta(BattlegroundsMeta? meta)

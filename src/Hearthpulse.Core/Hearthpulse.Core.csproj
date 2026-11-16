@@ -27,6 +27,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Hearthpulse.Tests" />
     <InternalsVisibleTo Include="Hearthpulse.Bench" />
+    <InternalsVisibleTo Include="Hearthpulse.Presentation.Tests" />
   </ItemGroup>
 
 </Project>
