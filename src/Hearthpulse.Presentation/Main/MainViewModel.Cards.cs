@@ -26,12 +26,24 @@ public sealed partial class MainViewModel
     private bool _cardOpen;
     private string? _openCardId;
     private int _cardLoad;
-    private CancellationTokenSource? _cardCancel;
+
+    /// <summary>
+    /// The card list the open page reads, kept while the page stays open: opening another card, or building the page
+    /// again (a meta, a language, a data summary), asks the host for nothing. A failed load is kept too; "Try again"
+    /// and opening the page anew ask again.
+    /// </summary>
+    private (string Format, Task<CardStatsSlice?> Load)? _cardStats;
+
+    /// <summary>The player's games of the page's format with their card columns, read once while the page stays open and the history does not change.</summary>
+    private (string Format, Task<IReadOnlyList<Core.Data.GameRecord>> Games)? _cardGames;
+    private volatile bool _cardGamesStale;
+    private bool _cardGamesWatching;
     private RelayCommand? _openCard;
 
     /// <summary>
     /// Loads every card's numbers of a format ("standard", "wild"): <see cref="HearthpulseData.LoadCardStatsAsync"/>, set
-    /// by the host. Without it the page shows the card, the meta rows and the player's own games.
+    /// by the host. Without it the page shows the card, the meta rows and the player's own games. The page never cancels
+    /// a load: leaving it, or opening another card, only stops waiting (the load fills the cache for the next page).
     /// </summary>
     public Func<string, CancellationToken, Task<CardStatsSlice?>>? LoadCardStats { get; set; }
 
@@ -73,8 +85,6 @@ public sealed partial class MainViewModel
         }
 
         var load = ++_cardLoad;
-        _cardCancel?.Cancel();
-        var cancel = _cardCancel = new CancellationTokenSource();
         _openCardId = cardId;
         var format = _ctFormat;
         if (fresh)
@@ -84,23 +94,25 @@ public sealed partial class MainViewModel
 
         CardOpen = true;
         RequestPageMeta();
-        var (cards, meta, history, loadStats) = (_cards, ConstructedMetaFor(format), _history, LoadCardStats);
+        var (cards, meta) = (_cards, ConstructedMetaFor(format));
         Core.Constructed.CardPage page;
         try
         {
-            var stats = loadStats is not null && ConstructedMeta.FormatKeyOf(format) is { } key
-                ? await loadStats(key, cancel.Token).ConfigureAwait(true)
-                : null;
-            // The player's own games of the format, read again with their card columns (lists keep them out of memory).
-            page = await Task.Run(() =>
+            var stats = await CardStatsFor(format).ConfigureAwait(true);
+            if (load != _cardLoad)
             {
-                var mine = history.Recent(int.MaxValue).Where(g => StatsFilter.IsConstructed(g, format)).ToList();
-                return CardPages.Build(card, format, stats, meta, history.WithCards(mine), cards);
-            }).ConfigureAwait(true);
-        }
-        catch (OperationCanceledException)
-        {
-            return false;
+                // Another card, format or rebuild took over while the list loaded: its own call shows the page, and the
+                // history is not read for a page nobody will see.
+                return false;
+            }
+
+            var games = await CardGamesFor(format).ConfigureAwait(true);
+            if (load != _cardLoad)
+            {
+                return false;
+            }
+
+            page = await Task.Run(() => CardPages.Build(card, format, stats, meta, games, cards)).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -115,6 +127,7 @@ public sealed partial class MainViewModel
 
         if (load != _cardLoad)
         {
+            // The fence: a result for a card or format the page has left is never shown.
             return false;
         }
 
@@ -122,13 +135,61 @@ public sealed partial class MainViewModel
         return true;
     }
 
+    /// <summary>The format's card list: the one the open page already asked for, else a new load (never cancelled from here).</summary>
+    private Task<CardStatsSlice?> CardStatsFor(string format)
+    {
+        if (ConstructedMeta.FormatKeyOf(format) is not { } key || LoadCardStats is not { } loadStats)
+        {
+            return Task.FromResult<CardStatsSlice?>(null);
+        }
+
+        if (_cardStats is { } held && held.Format == key)
+        {
+            return held.Load;
+        }
+
+        var load = loadStats(key, CancellationToken.None);
+        _cardStats = (key, load);
+        return load;
+    }
+
+    /// <summary>
+    /// The player's own games of the format, read with their card columns (lists keep them out of memory): once for the
+    /// open page, again after the history changed (a saved game, an import).
+    /// </summary>
+    private Task<IReadOnlyList<Core.Data.GameRecord>> CardGamesFor(string format)
+    {
+        if (!_cardGamesWatching)
+        {
+            _cardGamesWatching = true;
+            _history.Changed += () => _cardGamesStale = true;
+        }
+
+        if (_cardGames is { } held && held.Format == format && !_cardGamesStale)
+        {
+            return held.Games;
+        }
+
+        _cardGamesStale = false;
+        var history = _history;
+        var games = Task.Run<IReadOnlyList<Core.Data.GameRecord>>(() =>
+            history.WithCards(history.Recent(int.MaxValue).Where(g => StatsFilter.IsConstructed(g, format)).ToList()));
+        _cardGames = (format, games);
+        return games;
+    }
+
     /// <summary>The open card's numbers asked for again, with "loading" shown meanwhile (the page's "Try again").</summary>
-    internal void RetryCard() => RebuildCard(fresh: true);
+    internal void RetryCard()
+    {
+        _cardStats = null;
+        RebuildCard(fresh: true);
+    }
 
     internal void CloseCard()
     {
         _cardLoad++;
-        _cardCancel?.Cancel();
+        _cardStats = null;
+        _cardGames = null;
         _openCardId = null;
         CardOpen = false;
         _cardPage?.Clear();

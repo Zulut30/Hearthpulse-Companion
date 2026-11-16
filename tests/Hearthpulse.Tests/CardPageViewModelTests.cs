@@ -214,36 +214,215 @@ public sealed class CardPageViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task A_slow_load_does_not_replace_the_card_opened_after_it_and_is_cancelled()
+    public async Task Five_quick_clicks_on_cards_make_one_request_and_only_the_last_card_is_shown()
     {
-        var slow = new TaskCompletionSource<CardStatsSlice?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        CancellationToken firstToken = default;
-        var calls = 0;
+        // The real loader over a server that holds its answer: the list is 1.3 MB and the player does not wait for it.
+        var server = new HeldServer();
+        var cache = TestDataFolder.Scratch("hp-card-page-cache");
+        var data = new HearthpulseData(new HearthpulseApi(new HttpClient(server), "https://api.test/"), cache) { MinCardStatRows = 5 };
         var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         vm.SetCards(Cards());
-        vm.LoadCardStats = (format, cancel) =>
+        vm.LoadCardStats = data.LoadCardStatsAsync;
+        try
         {
-            if (Interlocked.Increment(ref calls) == 1)
-            {
-                firstToken = cancel;
-                return slow.Task;
-            }
+            string[] clicks = ["T_BOLT", "T_FILL", "T_BOLT_WILD", "T_BOLT", "BE_014"];
+            var opens = clicks.Select(vm.OpenCardPageAsync).ToList();
+            await server.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
 
-            return Task.FromResult<CardStatsSlice?>(Slice(format, Stat("T_FILL", 1002)));
+            // The card itself is on screen before its numbers; nothing has been cancelled or asked twice.
+            Assert.True(vm.CardOpen);
+            Assert.True(vm.CardPage.Loading);
+            Assert.Equal("BE_014", vm.CardPage.CardId);
+            Assert.All(opens, o => Assert.False(o.IsCompleted));
+            server.Release.TrySetResult();
+            var shown = await Task.WhenAll(opens).WaitAsync(TimeSpan.FromSeconds(30));
+
+            // One request for five clicks; the four cards the player left never reach the page.
+            Assert.Single(server.Requests);
+            Assert.Equal([false, false, false, false, true], shown);
+            Assert.Equal("BE_014", vm.CardPage.CardId);
+            Assert.False(vm.CardPage.Loading);
+            // "22.36%" in the fixture row of BE_014.
+            Assert.Equal(P(0.2236, "P1"), vm.CardPage.Tiles[0].Value);
+
+            // Back and another card: the page asks again and the cache answers, still one request.
+            vm.CardPage.Back.Execute(null);
+            Assert.True(await vm.OpenCardPageAsync("T_BOLT"));
+            Assert.Single(server.Requests);
+            Assert.Equal(Loc.T("Card.Stats.None"), vm.CardPage.StatsEmpty);
+        }
+        finally
+        {
+            TestDataFolder.TryDelete(cache);
+        }
+    }
+
+    [Fact]
+    public async Task Leaving_the_page_while_the_list_loads_does_not_end_the_request_the_next_card_shares()
+    {
+        var server = new HeldServer();
+        var cache = TestDataFolder.Scratch("hp-card-page-cache");
+        var data = new HearthpulseData(new HearthpulseApi(new HttpClient(server), "https://api.test/"), cache) { MinCardStatRows = 5 };
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        vm.SetCards(Cards());
+        vm.LoadCardStats = data.LoadCardStatsAsync;
+        try
+        {
+            var first = vm.OpenCardPageAsync("T_BOLT");
+            await server.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            vm.CardPage.Back.Execute(null);
+            Assert.False(vm.CardOpen);
+
+            var second = vm.OpenCardPageAsync("BE_014");
+            Assert.True(vm.CardPage.Loading);
+            server.Release.TrySetResult();
+
+            Assert.True(await second.WaitAsync(TimeSpan.FromSeconds(30)));
+            Assert.False(await first.WaitAsync(TimeSpan.FromSeconds(30)));
+            Assert.Single(server.Requests);
+            Assert.False(server.Cancelled);
+            Assert.Equal("BE_014", vm.CardPage.CardId);
+            Assert.NotEmpty(vm.CardPage.Tiles);
+        }
+        finally
+        {
+            TestDataFolder.TryDelete(cache);
+        }
+    }
+
+    [Fact]
+    public async Task A_meta_a_language_or_a_data_summary_that_arrives_while_the_list_loads_asks_for_nothing_more_and_loses_nothing()
+    {
+        var held = new TaskCompletionSource<CardStatsSlice?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        CancellationToken token = default;
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        vm.SetCards(Cards());
+        vm.LoadCardStats = (_, cancel) =>
+        {
+            Interlocked.Increment(ref calls);
+            token = cancel;
+            return held.Task;
         };
+        var built = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        vm.CardPage.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(vm.CardPage.Loading) && !vm.CardPage.Loading && vm.CardPage.Archetypes.Count > 0
+                && vm.CardPage.MineNote.Contains("игра", StringComparison.Ordinal))
+            {
+                built.TrySetResult();
+            }
+        };
+        Add("a", "FT_STANDARD", "Win", ["T_BOLT"], [], ["T_BOLT"], ["T_BOLT"]);
 
-        var first = vm.OpenCardPageAsync("T_BOLT");
-        // The card itself is on screen before its numbers.
-        Assert.True(vm.CardOpen);
+        var open = vm.OpenCardPageAsync("T_BOLT");
+        vm.SetConstructedMeta(Meta());
+        vm.SetDataHealth(new DataHealthReport([], DateTime.UtcNow));
+        Loc.Instance.SetLanguage(Loc.Russian);
+        vm.SetCards(Cards());
+
+        // Four rebuilds later the list has been asked for once, and the page's token was never cancelled.
+        Assert.Equal(1, calls);
+        Assert.False(token.CanBeCanceled);
         Assert.True(vm.CardPage.Loading);
-        Assert.Equal("Test Bolt", vm.CardPage.Name);
-        Assert.True(await vm.OpenCardPageAsync("T_FILL"));
-        Assert.True(firstToken.IsCancellationRequested);
-        slow.SetResult(Slice("standard", Stat("T_BOLT", 1001)));
+        held.SetResult(Slice("standard", Stat("T_BOLT", 1001)));
+        await built.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        await open.WaitAsync(TimeSpan.FromSeconds(30));
 
-        Assert.False(await first);
-        Assert.Equal("T_FILL", vm.CardPage.CardId);
-        Assert.NotEmpty(vm.CardPage.Tiles);
+        // The answer is on the page with everything that arrived meanwhile: the meta's rows and the new language.
+        Assert.Equal(1, calls);
+        Assert.Equal(6, vm.CardPage.Tiles.Count);
+        Assert.Equal("Tempo Mage", vm.CardPage.Archetypes[0].Name);
+        Assert.EndsWith("· Золото · за 14 дней", vm.CardPage.StatsSource, StringComparison.Ordinal);
+
+        // A later rebuild of the open page reuses the list it has.
+        vm.SetConstructedMeta(Meta());
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public async Task A_result_for_a_card_or_format_the_page_has_left_is_never_shown()
+    {
+        var answers = new Dictionary<string, TaskCompletionSource<CardStatsSlice?>>(StringComparer.Ordinal)
+        {
+            ["standard"] = new(TaskCreationOptions.RunContinuationsAsynchronously),
+            ["wild"] = new(TaskCreationOptions.RunContinuationsAsynchronously),
+        };
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        vm.SetCards(Cards());
+        vm.LoadCardStats = (format, _) => answers[format].Task;
+        vm.PageShown(ConstructedPage.Standard);
+
+        // Standard is asked first and answers last: by then the page shows the card in Wild.
+        var standard = vm.OpenCardPageAsync("T_BOLT");
+        var shown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        vm.CardPage.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(vm.CardPage.Loading) && !vm.CardPage.Loading)
+            {
+                shown.TrySetResult();
+            }
+        };
+        vm.PageShown(ConstructedPage.Wild);
+        answers["wild"].SetResult(Slice("wild", Stat("T_BOLT", 1001)));
+        await shown.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        var wildSource = vm.CardPage.StatsSource;
+        Assert.EndsWith("Legend · last 14 days", wildSource, StringComparison.Ordinal);
+
+        answers["standard"].SetResult(Slice("standard", Stat("T_BOLT", 1001) with { DeckShare = 0.99 }));
+        Assert.False(await standard.WaitAsync(TimeSpan.FromSeconds(30)));
+
+        Assert.Equal(wildSource, vm.CardPage.StatsSource);
+        Assert.Contains(Loc.T("Main.Nav.Wild"), vm.CardPage.Facts);
+        Assert.DoesNotContain(vm.CardPage.Tiles, t => t.Value == P(0.99, "P1"));
+
+        // A page that was closed takes no late result either.
+        var late = new TaskCompletionSource<CardStatsSlice?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        vm.LoadCardStats = (_, _) => late.Task;
+        vm.CardPage.Back.Execute(null);
+        var closed = vm.OpenCardPageAsync("T_FILL");
+        vm.CardPage.Back.Execute(null);
+        late.SetResult(Slice("wild", Stat("T_FILL", 1002)));
+        Assert.False(await closed.WaitAsync(TimeSpan.FromSeconds(30)));
+        Assert.False(vm.CardOpen);
+        Assert.Equal(string.Empty, vm.CardPage.CardId);
+        Assert.Empty(vm.CardPage.Tiles);
+    }
+
+    [Fact]
+    public async Task My_games_are_read_once_for_the_open_page_and_again_after_the_history_changes()
+    {
+        Add("a", "FT_STANDARD", "Win", ["T_BOLT"], [], ["T_BOLT"], ["T_BOLT"]);
+        var vm = Model(out _);
+        await vm.OpenCardPageAsync("T_BOLT");
+        Assert.Equal(Loc.P("Card.Mine.Note", 1, 1), vm.CardPage.MineNote);
+
+        // A rebuild with the same history shows the same games (the read is kept for the page).
+        var same = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        vm.CardPage.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(vm.CardPage.MetaSource) && vm.CardPage.MetaSource.Length > 0)
+            {
+                same.TrySetResult();
+            }
+        };
+        vm.SetConstructedMeta(Meta());
+        await same.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.Equal(Loc.P("Card.Mine.Note", 1, 1), vm.CardPage.MineNote);
+
+        // A game saved while the page is open is counted by the next build, and by another card of the page.
+        var counted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        vm.CardPage.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(vm.CardPage.MineNote) && vm.CardPage.MineNote == Loc.P("Card.Mine.Note", 2, 2))
+            {
+                counted.TrySetResult();
+            }
+        };
+        Add("b", "FT_STANDARD", "Loss", ["T_BOLT"], [], ["T_BOLT"], ["T_BOLT"]);
+        vm.SetConstructedMeta(Meta());
+        await counted.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.Equal(Loc.P("Card.Mine.Record", 2, 1, 1), vm.CardPage.MineTiles[0].Detail);
     }
 
     [Fact]
@@ -378,6 +557,7 @@ public sealed class CardPageViewModelTests : IDisposable
           {"id": "T_BOLT", "dbfId": 1001, "name": "Test Bolt", "cost": 2, "type": "SPELL", "cardClass": "MAGE", "set": "EMERALD_DREAM",
            "text": "[x]<b>Discover</b> a spell.\nDeal $3 damage.", "collectible": true},
           {"id": "T_FILL", "dbfId": 1002, "name": "Test Filler", "cost": 1, "type": "MINION", "cardClass": "NEUTRAL", "set": "CORE", "collectible": true},
+          {"id": "BE_014", "dbfId": 132347, "name": "Spawn of C'Thun", "cost": 4, "type": "MINION", "cardClass": "NEUTRAL", "set": "BLACK_EMPIRE", "collectible": true},
           {"id": "T_BOLT_WILD", "dbfId": 1004, "name": "Old Bolt", "cost": 3, "type": "SPELL", "cardClass": "MAGE", "set": "LEGACY", "collectible": true}
         ]
         """)));
@@ -395,6 +575,40 @@ public sealed class CardPageViewModelTests : IDisposable
                     [new MetaMulliganCard("T_BOLT", 100, 0.80, 200, 0.60), new MetaMulliganCard("T_FILL", 100, 0.5, 300, 0.5)]) { MulliganBaseline = 0.52 },
             ],
             [Deck(2), Deck(1)]);
+    }
+
+    /// <summary>Answers the Standard card list from the fixture once <see cref="Release"/> is set; counts requests and cancellations.</summary>
+    private sealed class HeldServer : HttpMessageHandler
+    {
+        public List<string> Requests { get; } = [];
+
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Waiting { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public bool Cancelled { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            lock (Requests)
+            {
+                Requests.Add(request.RequestUri!.PathAndQuery.TrimStart('/'));
+            }
+
+            Waiting.TrySetResult();
+            try
+            {
+                await Release.Task.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                Cancelled = true;
+                throw;
+            }
+
+            var body = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Cards", "cards-standard.json"), cancellationToken);
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+        }
     }
 
     private void Add(string key, string format, string result, string[] offered, string[] replaced, string[] drawn, string[] played)

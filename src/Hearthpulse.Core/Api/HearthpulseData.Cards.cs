@@ -19,10 +19,30 @@ public sealed partial class HearthpulseData
     };
 
     /// <summary>
+    /// The fewest cards a real list holds. A Standard list had 1 324 cards and a Wild one 4 393 (2026-11-16); the
+    /// smallest Standard pool of a rotation (the Core set and two years of expansions) is over 700 collectible cards and
+    /// nearly all of them are played by someone in two weeks. A list under 300 cards is therefore a collection that was
+    /// cut short, never a quiet fortnight: it is refused like a blocked one, so it cannot replace a whole list.
+    /// </summary>
+    internal const int MinCardRows = 300;
+
+    /// <summary>The floor <see cref="LoadCardStatsAsync"/> applies; tests with a handful of fixture rows lower it.</summary>
+    internal int MinCardStatRows { get; init; } = MinCardRows;
+
+    /// <summary>The load of each format that is on its way: everyone who asks meanwhile waits for the same one.</summary>
+    private readonly Dictionary<string, Task<CardStatsSlice?>> _cardStatsLoads = new(StringComparer.Ordinal);
+    private readonly Lock _cardStatsGate = new();
+
+    /// <summary>
     /// Every card's numbers in one format ("standard", "wild"): share of decks, deck win rate, win rate when drawn and
     /// played, mulligan keep rate. One request per format (1.3 MB Standard, 4 MB Wild), kept trimmed
     /// (<see cref="ShrinkCardStats"/>) for six hours; offline the old copy is served with its own date. Null when the
-    /// server and the cache have nothing, or the format has no list. Never throws: a cancelled load gives null too.
+    /// server and the cache have nothing usable, or the format has no list. Never throws.
+    /// <para>
+    /// Callers that ask while a load of the format runs share that load: one request, one answer for all.
+    /// <paramref name="cancellationToken"/> ends only this caller's wait (it gets null); the shared load goes on to its
+    /// answer or the API's own 20-second limit, and fills the cache for the next caller.
+    /// </para>
     /// </summary>
     public async Task<CardStatsSlice?> LoadCardStatsAsync(string format, CancellationToken cancellationToken = default)
     {
@@ -31,16 +51,87 @@ public sealed partial class HearthpulseData
             return null;
         }
 
+        Task<CardStatsSlice?>? load;
+        lock (_cardStatsGate)
+        {
+            if (!_cardStatsLoads.TryGetValue(format, out load))
+            {
+                // It yields before any work, so it is in the table before it can finish and take itself out.
+                load = LoadCardStatsOnceAsync(format, source);
+                _cardStatsLoads[format] = load;
+            }
+        }
+
         try
         {
-            using var doc = await FetchAsync("datasets/" + source, $"card-stats-{format}.json", cancellationToken, ShrinkCardStats).ConfigureAwait(false);
-            return doc is null ? null : Read(() => ParseCardStats(doc.RootElement, format), "card stats", (CardStatsSlice?)null);
+            return await load.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            // The page that asked is gone (or the server took too long): no numbers, and nothing for the caller to catch.
+            // The page that asked is gone: no numbers for it, and nothing for the caller to catch.
             return null;
         }
+    }
+
+    /// <summary>One load of a format's list, never cancelled by a caller; it leaves the table of running loads when done.</summary>
+    private async Task<CardStatsSlice?> LoadCardStatsOnceAsync(string format, string source)
+    {
+        // Off the caller's thread at once (see the caller's lock).
+        await Task.Yield();
+        try
+        {
+            using var doc = await FetchAsync("datasets/" + source, $"card-stats-{format}.json", CancellationToken.None, ShrinkCardStats,
+                accept: data => UsableCardStats(data, MinCardStatRows)).ConfigureAwait(false);
+            var slice = doc is null ? null : Read(() => ParseCardStats(doc.RootElement, format), "card stats", (CardStatsSlice?)null);
+            // A copy that is not a whole list (written before the check existed, or damaged) is no list either.
+            return slice is { Cards.Count: var count } && count >= MinCardStatRows ? slice : null;
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or IOException or UnauthorizedAccessException)
+        {
+            Diag.Error($"Card stats ({format}) not loaded", ex);
+            return null;
+        }
+        finally
+        {
+            lock (_cardStatsGate)
+            {
+                _cardStatsLoads.Remove(format);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether a 200 answer is a whole card list. The answer describes itself: <c>structured.type</c> is
+    /// <c>card_stats</c>, <c>structured.blocked</c> is false (true when the origin refused the collector),
+    /// <c>schema_validation.ok</c> is true, and <c>structured.cards</c> holds the rows. Refused: another type, a blocked
+    /// collection, a failed validation, or fewer than <paramref name="minRows"/> rows with a card id
+    /// (<see cref="MinCardRows"/>). An absent flag is not held against the answer; a list of rows is always required.
+    /// </summary>
+    internal static bool UsableCardStats(JsonElement data, int minRows)
+    {
+        var structured = Structured(data);
+        if (structured.ValueKind != JsonValueKind.Object || !structured.TryGetProperty("cards", out var list) || list.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        if (structured.TryGetProperty("blocked", out var blocked) && blocked.ValueKind == JsonValueKind.True)
+        {
+            return false;
+        }
+
+        if (Str(structured, "type") is { } type && type != "card_stats")
+        {
+            return false;
+        }
+
+        if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("schema_validation", out var validation)
+            && validation.ValueKind == JsonValueKind.Object && validation.TryGetProperty("ok", out var ok) && ok.ValueKind == JsonValueKind.False)
+        {
+            return false;
+        }
+
+        return Items(list).Count(c => Str(c, "id") is { Length: > 0 }) >= Math.Max(1, minRows);
     }
 
     /// <summary>The cached row's columns, in order; a missing number is null.</summary>

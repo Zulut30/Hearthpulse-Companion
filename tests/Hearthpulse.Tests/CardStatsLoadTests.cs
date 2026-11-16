@@ -181,7 +181,7 @@ public sealed class CardStatsLoadTests : IDisposable
         var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
         var slow = new Server { Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) }
             .Route("datasets/hsreplay_cards_wild_legend_14d", Fixture("cards-wild.json"));
-        var data = new HearthpulseData(new HearthpulseApi(new HttpClient(slow), "https://api.test/") { Time = time }, _cache);
+        var data = new HearthpulseData(new HearthpulseApi(new HttpClient(slow), "https://api.test/") { Time = time }, _cache) { MinCardStatRows = 5 };
 
         var load = data.LoadCardStatsAsync("wild");
         await slow.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
@@ -198,7 +198,7 @@ public sealed class CardStatsLoadTests : IDisposable
         File.SetLastWriteTimeUtc(file, DateTime.UtcNow - HearthpulseData.MaxAge - TimeSpan.FromHours(30));
         var slowAgain = new Server { Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) }
             .Route("datasets/hsreplay_cards_wild_legend_14d", Fixture("cards-wild.json"));
-        var again = new HearthpulseData(new HearthpulseApi(new HttpClient(slowAgain), "https://api.test/") { Time = time }, _cache).LoadCardStatsAsync("wild");
+        var again = new HearthpulseData(new HearthpulseApi(new HttpClient(slowAgain), "https://api.test/") { Time = time }, _cache) { MinCardStatRows = 5 }.LoadCardStatsAsync("wild");
         await slowAgain.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
         time.Advance(HearthpulseApi.Timeout);
         var stale = await again.WaitAsync(TimeSpan.FromSeconds(30));
@@ -211,44 +211,132 @@ public sealed class CardStatsLoadTests : IDisposable
         slowAgain.Hold!.TrySetResult();
     }
 
-    [Fact]
-    public async Task An_answer_of_another_shape_is_an_empty_list_not_an_exception()
+    public static TheoryData<string, string> UnusableAnswers() => new()
     {
-        var server = new Server().Route("datasets/hsreplay_cards_legend_included_popularity",
-            """{"source_id": "x", "fetched_at": "not a date", "data": {"structured": {"cards": [7, {"dbfId": 3}, {"id": "A", "deck_popularity": "abc", "times_played": -4}]}}}""");
+        { "no rows", """{"fetched_at": "2026-11-17T06:04:00+00:00", "data": {"structured": {"type": "card_stats", "blocked": false, "cards": []}}}""" },
+        { "blocked", Fixture("cards-standard.json").Replace("\"blocked\": false", "\"blocked\": true", StringComparison.Ordinal) },
+        { "another type", Fixture("cards-standard.json").Replace("\"type\": \"card_stats\"", "\"type\": \"deck_stats\"", StringComparison.Ordinal) },
+        { "failed validation", Fixture("cards-standard.json").Replace("\"ok\": true", "\"ok\": false", StringComparison.Ordinal) },
+        { "another shape", """{"source_id": "x", "fetched_at": "not a date", "data": {"structured": {"cards": [7, {"dbfId": 3}, {"id": "A", "deck_popularity": "abc"}]}}}""" },
+        { "no list at all", """{"fetched_at": "2026-11-17T06:04:00+00:00", "data": {"structured": {"type": "card_stats"}}}""" },
+        { "not an object", """{"fetched_at": "2026-11-17T06:04:00+00:00", "data": [1, 2, 3]}""" },
+    };
 
-        var slice = await Data(server).LoadCardStatsAsync("standard");
+    [Theory]
+    [MemberData(nameof(UnusableAnswers))]
+    public async Task A_200_answer_that_is_not_a_whole_list_is_a_failed_load_and_the_good_copy_stays(string what, string body)
+    {
+        var server = new Server().Route("datasets/hsreplay_cards_legend_included_popularity", Fixture("cards-standard.json"));
+        var data = Data(server);
+        var good = await data.LoadCardStatsAsync("standard");
+        var file = Path.Combine(_cache, "card-stats-standard.json");
+        var kept = await File.ReadAllBytesAsync(file);
+        var aged = DateTime.UtcNow - HearthpulseData.MaxAge - TimeSpan.FromHours(30);
+        File.SetLastWriteTimeUtc(file, aged);
 
-        Assert.NotNull(slice);
-        Assert.Null(slice.FetchedAt);
-        Assert.Null(slice.RankRange);
-        var only = Assert.Single(slice.Cards).Value;
-        Assert.Equal("A", only.CardId);
-        Assert.Null(only.DeckShare);
-        Assert.Null(only.TimesPlayed);
+        // The copy is past its six hours and the server answers 200 with something that is not a card list.
+        server.Route("datasets/hsreplay_cards_legend_included_popularity", body);
+        var after = await data.LoadCardStatsAsync("standard");
+
+        // The old copy is served under its own date: nothing reads as "this card is hardly played".
+        Assert.True(after is not null, what);
+        Assert.Equal(good!.FetchedAt, after.FetchedAt);
+        Assert.Equal(good.Cards.Count, after.Cards.Count);
+        Assert.Equal(good.Find("BE_014", 0), after.Find("BE_014", 0));
+        // The file is the same bytes and keeps its age, so the next open asks the server again.
+        Assert.Equal(kept, await File.ReadAllBytesAsync(file));
+        Assert.Equal(aged, File.GetLastWriteTimeUtc(file), TimeSpan.FromSeconds(2));
+        Assert.Empty(Directory.GetFiles(_cache, "*.tmp"));
+        await data.LoadCardStatsAsync("standard");
+        Assert.Equal(3, server.Requests.Count);
+    }
+
+    [Theory]
+    [MemberData(nameof(UnusableAnswers))]
+    public async Task Without_a_copy_such_an_answer_is_nothing_and_writes_no_file(string what, string body)
+    {
+        var server = new Server().Route("datasets/hsreplay_cards_legend_included_popularity", body);
+        var data = Data(server);
+
+        Assert.True(await data.LoadCardStatsAsync("standard") is null, what);
+        Assert.False(File.Exists(Path.Combine(_cache, "card-stats-standard.json")));
+
+        // Not remembered as "nothing" (a 404 is): the page's "Try again" reaches the server.
+        Assert.Null(await data.LoadCardStatsAsync("standard"));
+        Assert.Equal(2, server.Requests.Count);
     }
 
     [Fact]
-    public async Task A_cancelled_load_gives_nothing_without_throwing_and_writes_no_file()
+    public async Task A_list_of_a_few_cards_is_a_cut_short_collection_not_a_list()
+    {
+        // The fixture's nine rows against the real floor (300; a real list holds 1 300 and more).
+        var server = new Server().Route("datasets/hsreplay_cards_legend_included_popularity", Fixture("cards-standard.json"));
+        var strict = new HearthpulseData(new HearthpulseApi(new HttpClient(server), "https://api.test/"), _cache);
+
+        Assert.Equal(HearthpulseData.MinCardRows, strict.MinCardStatRows);
+        Assert.Null(await strict.LoadCardStatsAsync("standard"));
+        Assert.False(File.Exists(Path.Combine(_cache, "card-stats-standard.json")));
+
+        // The same rows pass a floor they reach, and one row fewer than the floor does not.
+        using var whole = JsonDocument.Parse(Fixture("cards-standard.json"));
+        Assert.True(HearthpulseData.UsableCardStats(whole.RootElement.GetProperty("data"), 9));
+        Assert.False(HearthpulseData.UsableCardStats(whole.RootElement.GetProperty("data"), 10));
+    }
+
+    [Fact]
+    public async Task Callers_that_ask_together_share_one_request_and_one_answer()
     {
         var server = new Server { Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) }
             .Route("datasets/hsreplay_cards_legend_included_popularity", Fixture("cards-standard.json"));
-        using var cancel = new CancellationTokenSource();
+        var data = Data(server);
 
-        var load = Data(server).LoadCardStatsAsync("standard", cancel.Token);
+        // Five opens in a row while the first request is still on its way.
+        var loads = Enumerable.Range(0, 5).Select(_ => data.LoadCardStatsAsync("standard")).ToList();
         await server.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
-        await cancel.CancelAsync();
-        var slice = await load.WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.All(loads, l => Assert.False(l.IsCompleted));
         server.Hold!.TrySetResult();
+        var slices = await Task.WhenAll(loads).WaitAsync(TimeSpan.FromSeconds(30));
 
-        Assert.Null(slice);
-        Assert.False(Directory.Exists(_cache) && Directory.GetFiles(_cache).Length > 0);
+        Assert.Single(server.Requests);
+        Assert.All(slices, s => Assert.Same(slices[0], s));
+        Assert.Equal(9, slices[0]!.Cards.Count);
 
-        // An already cancelled token: the same, and the server is not asked.
-        Assert.Null(await Data(server).LoadCardStatsAsync("standard", cancel.Token));
+        // The next caller reads the cache; another format is another request.
+        Assert.NotNull(await data.LoadCardStatsAsync("standard"));
+        Assert.Single(server.Requests);
     }
 
-    private HearthpulseData Data(Server server) => new(new HearthpulseApi(new HttpClient(server), "https://api.test/"), _cache);
+    [Fact]
+    public async Task A_caller_that_stops_waiting_gets_nothing_and_does_not_end_the_shared_load()
+    {
+        var server = new Server { Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) }
+            .Route("datasets/hsreplay_cards_legend_included_popularity", Fixture("cards-standard.json"));
+        var data = Data(server);
+        using var cancel = new CancellationTokenSource();
+
+        var left = data.LoadCardStatsAsync("standard", cancel.Token);
+        var stays = data.LoadCardStatsAsync("standard");
+        await server.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        await cancel.CancelAsync();
+
+        // The page that left gets nothing and no exception; the request it started is still the one in flight.
+        Assert.Null(await left.WaitAsync(TimeSpan.FromSeconds(30)));
+        Assert.False(stays.IsCompleted);
+        Assert.False(Directory.Exists(_cache) && Directory.GetFiles(_cache).Length > 0);
+
+        // An already cancelled token joins the same load and leaves at once: still one request.
+        Assert.Null(await data.LoadCardStatsAsync("standard", cancel.Token));
+        server.Hold!.TrySetResult();
+        var slice = await stays.WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.NotNull(slice);
+        Assert.Single(server.Requests);
+        Assert.True(File.Exists(Path.Combine(_cache, "card-stats-standard.json")));
+        Assert.Empty(Directory.GetFiles(_cache, "*.tmp"));
+    }
+
+    /// <summary>The fixtures hold a handful of rows: the floor of a whole list is lowered to five for them.</summary>
+    private HearthpulseData Data(Server server) => new(new HearthpulseApi(new HttpClient(server), "https://api.test/"), _cache) { MinCardStatRows = 5 };
 
     private static string Fixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Cards", name));
 

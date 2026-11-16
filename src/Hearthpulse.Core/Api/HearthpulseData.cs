@@ -239,15 +239,24 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
 
     /// <param name="shrink">Keeps only what the app reads of a large answer, so the cache file stays small.</param>
     /// <param name="retry">Set when asking again after the cached file could not be read.</param>
+    /// <param name="accept">
+    /// Says whether a 200 answer is a usable one. An answer it refuses (a blocked or cut-short collection) is a failed
+    /// load: nothing is written, and the older copy, when there is one, is served with its own date.
+    /// </param>
     private async Task<JsonDocument?> FetchAsync(string path, string cacheName, CancellationToken cancellationToken, Func<JsonElement, object>? shrink = null,
-        bool retry = false)
+        bool retry = false, Func<JsonElement, bool>? accept = null)
     {
         var file = Path.Combine(_cacheDirectory, cacheName);
         var info = new FileInfo(file);
         if (!info.Exists || DateTime.UtcNow - info.LastWriteTimeUtc > MaxAge)
         {
             var result = await api.GetAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (result.Ok)
+            if (result.Ok && accept is not null && !accept(result.Data))
+            {
+                // The file keeps its age, so the next load asks again.
+                Diag.Info($"Hearthpulse API {path}: the answer is not a usable one (blocked, empty or cut short); the older copy stays");
+            }
+            else if (result.Ok)
             {
                 // "meta" (periods, fetch time) is kept next to "data" when the endpoint sends it.
                 var data = shrink is null ? (object)result.Data : shrink(result.Data);
@@ -260,8 +269,12 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
                 return JsonDocument.Parse(text);
             }
 
-            Diag.Info($"Hearthpulse API {path}: {result.Error!.Code} {result.Error.Message}");
-            if (result.Error.Code is "NOT_AVAILABLE" or "HTTP_422")
+            if (result.Error is not null)
+            {
+                Diag.Info($"Hearthpulse API {path}: {result.Error.Code} {result.Error.Message}");
+            }
+
+            if (result.Error?.Code is "NOT_AVAILABLE" or "HTTP_422")
             {
                 // The server has nothing for this (404), or does not serve this filter combination (422): remember that for as long as an answer, instead of asking every
                 // load. A real answer from the last two days is used instead of being replaced by "nothing" (it keeps its
@@ -296,7 +309,7 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
             if (ex is JsonException && !retry && TryDelete(file))
             {
                 // A young file that cannot be read (zeros after a power cut) kept the API from being asked for six hours.
-                return await FetchAsync(path, cacheName, cancellationToken, shrink, retry: true).ConfigureAwait(false);
+                return await FetchAsync(path, cacheName, cancellationToken, shrink, retry: true, accept).ConfigureAwait(false);
             }
 
             return null;
