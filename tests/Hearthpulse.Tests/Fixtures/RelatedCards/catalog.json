@@ -127,6 +127,32 @@
    "IsNeutral": false
   },
   {
+   "Id": "OG_317",
+   "DbfId": 38943,
+   "Name": "Deathwing, Dragonlord",
+   "Text": "Deathrattle: Put all Dragons from your hand into the battlefield.",
+   "Type": "MINION",
+   "Rarity": "LEGENDARY",
+   "Cost": 10,
+   "Attack": 12,
+   "Health": 12,
+   "Classes": [
+    "NEUTRAL"
+   ],
+   "Races": [
+    "DRAGON"
+   ],
+   "Mechanics": [
+    "DEATHRATTLE"
+   ],
+   "ReferencedTags": [],
+   "Set": "OG",
+   "Standard": false,
+   "NameRu": "Владыка Смертокрыл",
+   "Runes": [],
+   "IsNeutral": true
+  },
+  {
    "Id": "FP1_025",
    "DbfId": 1809,
    "Name": "Reincarnate",
@@ -216,6 +242,78 @@
    "IsNeutral": true
   },
   {
+   "Id": "TRL_316",
+   "DbfId": 50088,
+   "Name": "Jan'alai, the Dragonhawk",
+   "Text": "Battlecry: If your Hero Power dealt 8 damage this game, summon Ragnaros the Firelord. ( left!) (Ready!)",
+   "Type": "MINION",
+   "Rarity": "LEGENDARY",
+   "Cost": 7,
+   "Attack": 4,
+   "Health": 4,
+   "Classes": [
+    "MAGE"
+   ],
+   "Races": [
+    "BEAST"
+   ],
+   "Mechanics": [
+    "BATTLECRY"
+   ],
+   "ReferencedTags": [],
+   "Set": "TROLL",
+   "Standard": false,
+   "NameRu": "Джан'алай, лоа-дракондор",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "CATA_186",
+   "DbfId": 123783,
+   "Name": "Stickybomb Saboteur",
+   "Text": "Battlecry: Give your opponent a 2-Cost Sabotage. Cards next to it cost (1) more.",
+   "Type": "MINION",
+   "Rarity": "EPIC",
+   "Cost": 4,
+   "Attack": 4,
+   "Health": 4,
+   "Classes": [
+    "NEUTRAL"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "BATTLECRY"
+   ],
+   "ReferencedTags": [],
+   "Set": "CATACLYSM",
+   "Standard": true,
+   "NameRu": "Диверсант-подрывник",
+   "Runes": [],
+   "IsNeutral": true
+  },
+  {
+   "Id": "GVG_047",
+   "DbfId": 2015,
+   "Name": "Sabotage",
+   "Text": "Destroy a random enemy minion. Combo: And your opponent's weapon.",
+   "Type": "SPELL",
+   "Rarity": "EPIC",
+   "Cost": 4,
+   "Classes": [
+    "ROGUE"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "COMBO"
+   ],
+   "ReferencedTags": [],
+   "Set": "GVG",
+   "Standard": false,
+   "NameRu": "Диверсия",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
    "Id": "CORE_DRG_256",
    "DbfId": 102191,
    "Name": "Dragonbane",
@@ -264,6 +362,49 @@
    "Set": "DRAGONS",
    "Standard": false,
    "NameRu": "Драконья Погибель",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "OG_045",
+   "DbfId": 38329,
+   "Name": "Infest",
+   "Text": "Give your minions \"Deathrattle: Add a random Beast to your hand.\"",
+   "Type": "SPELL",
+   "Rarity": "RARE",
+   "Cost": 3,
+   "Classes": [
+    "HUNTER"
+   ],
+   "Races": [],
+   "SpellSchool": "NATURE",
+   "Mechanics": [],
+   "ReferencedTags": [
+    "DEATHRATTLE"
+   ],
+   "Set": "OG",
+   "Standard": false,
+   "NameRu": "Заражение",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "JAIL_200",
+   "DbfId": 127815,
+   "Name": "Infest the Scullery",
+   "Text": "Summon two random 2-Cost minions. (Improved by your hero attacks this game.)",
+   "Type": "SPELL",
+   "Rarity": "RARE",
+   "Cost": 5,
+   "Classes": [
+    "DRUID"
+   ],
+   "Races": [],
+   "Mechanics": [],
+   "ReferencedTags": [],
+   "Set": "ESCAPEFROM_VIOLET_HOLD",
+   "Standard": true,
+   "NameRu": "Заражение кладовой",
    "Runes": [],
    "IsNeutral": false
   },
@@ -533,6 +674,80 @@
    "IsNeutral": false
   },
   {
+   "Id": "AT_019",
+   "DbfId": 2822,
+   "Name": "Dreadsteed",
+   "Text": "Deathrattle: At the end of the turn, summon a Dreadsteed.",
+   "Type": "MINION",
+   "Rarity": "EPIC",
+   "Cost": 4,
+   "Attack": 1,
+   "Health": 1,
+   "Classes": [
+    "WARLOCK"
+   ],
+   "Races": [
+    "DEMON"
+   ],
+   "Mechanics": [
+    "DEATHRATTLE"
+   ],
+   "ReferencedTags": [],
+   "Set": "TGT",
+   "Standard": false,
+   "NameRu": "Конь погибели",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "RLK_214",
+   "DbfId": 84245,
+   "Name": "Souleater's Scythe",
+   "Text": "Start of Game: Consume 3 different minions in your deck. Leave behind Souls that Discover them.",
+   "Type": "WEAPON",
+   "Rarity": "LEGENDARY",
+   "Cost": 4,
+   "Attack": 4,
+   "Health": 0,
+   "Classes": [
+    "DEMONHUNTER"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "START_OF_GAME_KEYWORD"
+   ],
+   "ReferencedTags": [
+    "DISCOVER"
+   ],
+   "Set": "RETURN_OF_THE_LICH_KING",
+   "Standard": false,
+   "NameRu": "Коса пожирателя душ",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "SW_087",
+   "DbfId": 64896,
+   "Name": "Dreaded Mount",
+   "Text": "Give a minion +1/+1. When it dies, summon an endless Dreadsteed.",
+   "Type": "SPELL",
+   "Rarity": "EPIC",
+   "Cost": 3,
+   "Classes": [
+    "WARLOCK"
+   ],
+   "Races": [],
+   "Mechanics": [],
+   "ReferencedTags": [
+    "DEATHRATTLE"
+   ],
+   "Set": "STORMWIND",
+   "Standard": false,
+   "NameRu": "Кошмарный скакун",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
    "Id": "SW_319",
    "DbfId": 64372,
    "Name": "Peasant",
@@ -624,6 +839,31 @@
    "Set": "LEGACY",
    "Standard": false,
    "NameRu": "Ледяная стрела",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "ICC_833",
+   "DbfId": 43419,
+   "Name": "Frost Lich Jaina",
+   "Text": "Battlecry: Summon a 3/6 Water Elemental. Your Elementals have Lifesteal this game.",
+   "Type": "HERO",
+   "Rarity": "LEGENDARY",
+   "Cost": 9,
+   "Health": 30,
+   "Classes": [
+    "MAGE"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "BATTLECRY"
+   ],
+   "ReferencedTags": [
+    "LIFESTEAL"
+   ],
+   "Set": "ICECROWN",
+   "Standard": false,
+   "NameRu": "Ледяной лич Джайна",
    "Runes": [],
    "IsNeutral": false
   },
@@ -818,6 +1058,32 @@
    "IsNeutral": false
   },
   {
+   "Id": "DRG_232",
+   "DbfId": 55068,
+   "Name": "Lightforged Zealot",
+   "Text": "Battlecry: If your deck has no Neutral cards, equip a 4/2 Truesilver Champion.",
+   "Type": "MINION",
+   "Rarity": "RARE",
+   "Cost": 4,
+   "Attack": 4,
+   "Health": 2,
+   "Classes": [
+    "PALADIN"
+   ],
+   "Races": [
+    "DRAENEI"
+   ],
+   "Mechanics": [
+    "BATTLECRY"
+   ],
+   "ReferencedTags": [],
+   "Set": "DRAGONS",
+   "Standard": false,
+   "NameRu": "Озаренный-ревнитель",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
    "Id": "EX1_562",
    "DbfId": 363,
    "Name": "Onyxia",
@@ -893,6 +1159,26 @@
    "IsNeutral": false
   },
   {
+   "Id": "SW_313",
+   "DbfId": 64308,
+   "Name": "Rise to the Occasion",
+   "Text": "Questline: Play 3 different 1-Cost cards. Reward: Equip a 1/4 Light's Justice.",
+   "Type": "SPELL",
+   "Rarity": "LEGENDARY",
+   "Cost": 1,
+   "Classes": [
+    "PALADIN"
+   ],
+   "Races": [],
+   "Mechanics": [],
+   "ReferencedTags": [],
+   "Set": "STORMWIND",
+   "Standard": false,
+   "NameRu": "Ответ на зов",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
    "Id": "TOY_102",
    "DbfId": 109166,
    "Name": "Footman",
@@ -960,6 +1246,28 @@
    "IsNeutral": false
   },
   {
+   "Id": "SC_020",
+   "DbfId": 113667,
+   "Name": "Consume",
+   "Text": "Remove 1 Durability from a friendly location to restore 8 Health to your hero.",
+   "Type": "SPELL",
+   "Rarity": "RARE",
+   "Cost": 1,
+   "Classes": [
+    "WARLOCK"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "ImmuneToSpellpower"
+   ],
+   "ReferencedTags": [],
+   "Set": "SPACE",
+   "Standard": false,
+   "NameRu": "Поглощение",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
    "Id": "GIFT_02",
    "DbfId": 103655,
    "Name": "Jaina's Gift",
@@ -1006,6 +1314,78 @@
    "IsNeutral": true
   },
   {
+   "Id": "CS2_091",
+   "DbfId": 383,
+   "Name": "Light's Justice",
+   "Text": "",
+   "Type": "WEAPON",
+   "Rarity": "FREE",
+   "Cost": 1,
+   "Attack": 1,
+   "Health": 0,
+   "Classes": [
+    "PALADIN"
+   ],
+   "Races": [],
+   "Mechanics": [],
+   "ReferencedTags": [],
+   "Set": "LEGACY",
+   "Standard": false,
+   "NameRu": "Правосудие Света",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "EX1_298",
+   "DbfId": 374,
+   "Name": "Ragnaros the Firelord",
+   "Text": "Can't attack. At the end of your turn, deal 8 damage to a random enemy.",
+   "Type": "MINION",
+   "Rarity": "LEGENDARY",
+   "Cost": 8,
+   "Attack": 8,
+   "Health": 8,
+   "Classes": [
+    "NEUTRAL"
+   ],
+   "Races": [
+    "ELEMENTAL"
+   ],
+   "Mechanics": [
+    "CANT_ATTACK",
+    "TRIGGER_VISUAL"
+   ],
+   "ReferencedTags": [],
+   "Set": "EXPERT1",
+   "Standard": false,
+   "NameRu": "Рагнарос Повелитель Огня",
+   "Runes": [],
+   "IsNeutral": true
+  },
+  {
+   "Id": "FP1_018",
+   "DbfId": 1801,
+   "Name": "Duplicate",
+   "Text": "Secret: When a friendly minion dies, put 2 copies of it into your hand.",
+   "Type": "SPELL",
+   "Rarity": "COMMON",
+   "Cost": 3,
+   "Classes": [
+    "MAGE"
+   ],
+   "Races": [],
+   "SpellSchool": "ARCANE",
+   "Mechanics": [
+    "SECRET"
+   ],
+   "ReferencedTags": [],
+   "Set": "NAXX",
+   "Standard": false,
+   "NameRu": "Раздвоение",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
    "Id": "OG_081",
    "DbfId": 38407,
    "Name": "Shatter",
@@ -1050,6 +1430,30 @@
    "IsNeutral": false
   },
   {
+   "Id": "CS2_097",
+   "DbfId": 847,
+   "Name": "Truesilver Champion",
+   "Text": "Whenever your hero attacks, restore 3 Health to it.",
+   "Type": "WEAPON",
+   "Rarity": "FREE",
+   "Cost": 4,
+   "Attack": 4,
+   "Health": 0,
+   "Classes": [
+    "PALADIN"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "TRIGGER_VISUAL"
+   ],
+   "ReferencedTags": [],
+   "Set": "LEGACY",
+   "Standard": false,
+   "NameRu": "Серебряный клинок",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
    "Id": "CATA_154",
    "DbfId": 125450,
    "Name": "Sinestra",
@@ -1073,6 +1477,137 @@
    "Set": "CATACLYSM",
    "Standard": true,
    "NameRu": "Синестра",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "NEW1_030",
+   "DbfId": 834,
+   "Name": "Deathwing",
+   "Text": "Battlecry: Destroy all other minions and discard your hand.",
+   "Type": "MINION",
+   "Rarity": "LEGENDARY",
+   "Cost": 10,
+   "Attack": 12,
+   "Health": 12,
+   "Classes": [
+    "NEUTRAL"
+   ],
+   "Races": [
+    "DRAGON"
+   ],
+   "Mechanics": [
+    "BATTLECRY"
+   ],
+   "ReferencedTags": [],
+   "Set": "EXPERT1",
+   "Standard": false,
+   "NameRu": "Смертокрыл",
+   "Runes": [],
+   "IsNeutral": true
+  },
+  {
+   "Id": "LEG_CS3_036",
+   "DbfId": 120579,
+   "Name": "Deathwing the Destroyer",
+   "Text": "Battlecry: Destroy all other minions. Discard a card for each destroyed.",
+   "Type": "MINION",
+   "Rarity": "LEGENDARY",
+   "Cost": 10,
+   "Attack": 12,
+   "Health": 12,
+   "Classes": [
+    "NEUTRAL"
+   ],
+   "Races": [
+    "DRAGON"
+   ],
+   "Mechanics": [
+    "BATTLECRY"
+   ],
+   "ReferencedTags": [],
+   "Set": "LEGACY",
+   "Standard": false,
+   "NameRu": "Смертокрыл Разрушитель",
+   "Runes": [],
+   "IsNeutral": true
+  },
+  {
+   "Id": "CATA_190h",
+   "DbfId": 125467,
+   "Name": "Deathwing, Worldbreaker",
+   "Text": "Battlecry: Choose 1 (Cataclysm,Cataclysms) to unleash! Herald twice to upgrade.",
+   "Type": "HERO",
+   "Rarity": "LEGENDARY",
+   "Cost": 10,
+   "Health": 30,
+   "Classes": [
+    "DEATHKNIGHT",
+    "ROGUE",
+    "SHAMAN",
+    "WARLOCK",
+    "WARRIOR",
+    "DEMONHUNTER"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "BATTLECRY"
+   ],
+   "ReferencedTags": [],
+   "Set": "CATACLYSM",
+   "Standard": true,
+   "NameRu": "Смертокрыл Разрушитель миров",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "DRG_026",
+   "DbfId": 55007,
+   "Name": "Deathwing, Mad Aspect",
+   "Text": "Battlecry: Attack ALL other minions.",
+   "Type": "MINION",
+   "Rarity": "LEGENDARY",
+   "Cost": 8,
+   "Attack": 12,
+   "Health": 12,
+   "Classes": [
+    "WARRIOR"
+   ],
+   "Races": [
+    "DRAGON"
+   ],
+   "Mechanics": [
+    "BATTLECRY"
+   ],
+   "ReferencedTags": [],
+   "Set": "DRAGONS",
+   "Standard": false,
+   "NameRu": "Смертокрыл, безумный аспект",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "JAIL_384",
+   "DbfId": 126002,
+   "Name": "Chainbreaker Hogger",
+   "Text": "Taunt Start of Game: Duplicate all other Legendary cards in your deck.",
+   "Type": "MINION",
+   "Rarity": "LEGENDARY",
+   "Cost": 8,
+   "Attack": 10,
+   "Health": 10,
+   "Classes": [
+    "WARRIOR"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "START_OF_GAME_KEYWORD",
+    "TAUNT"
+   ],
+   "ReferencedTags": [],
+   "Set": "ESCAPEFROM_VIOLET_HOLD",
+   "Standard": true,
+   "NameRu": "Сорвавшийся с цепи Дробитель",
    "Runes": [],
    "IsNeutral": false
   },
@@ -1204,6 +1739,30 @@
    "IsNeutral": true
   },
   {
+   "Id": "TTN_940",
+   "DbfId": 97629,
+   "Name": "Freya, Keeper of Nature",
+   "Text": "Choose One - Duplicate your hand; or Summon copies of all other friendly minions.",
+   "Type": "MINION",
+   "Rarity": "LEGENDARY",
+   "Cost": 8,
+   "Attack": 4,
+   "Health": 6,
+   "Classes": [
+    "DRUID"
+   ],
+   "Races": [],
+   "Mechanics": [
+    "CHOOSE_ONE"
+   ],
+   "ReferencedTags": [],
+   "Set": "TITANS",
+   "Standard": false,
+   "NameRu": "Фрейя, хранительница природы",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
    "Id": "CATA_489",
    "DbfId": 123692,
    "Name": "Arcane Flow",
@@ -1290,6 +1849,32 @@
    "Set": "CATACLYSM",
    "Standard": true,
    "NameRu": "Экспериментальное оживление",
+   "Runes": [],
+   "IsNeutral": false
+  },
+  {
+   "Id": "CS2_033",
+   "DbfId": 395,
+   "Name": "Water Elemental",
+   "Text": "Freeze any character damaged by this minion.",
+   "Type": "MINION",
+   "Rarity": "FREE",
+   "Cost": 4,
+   "Attack": 3,
+   "Health": 6,
+   "Classes": [
+    "MAGE"
+   ],
+   "Races": [
+    "ELEMENTAL"
+   ],
+   "Mechanics": [
+    "FREEZE"
+   ],
+   "ReferencedTags": [],
+   "Set": "LEGACY",
+   "Standard": false,
+   "NameRu": "Элементаль воды",
    "Runes": [],
    "IsNeutral": false
   }

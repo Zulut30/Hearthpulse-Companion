@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Hearthpulse.Core.Cards;
@@ -55,7 +56,11 @@ public static partial class RelatedCards
 
         if (catalog.Get(cardId) is { Text.Length: > 0 } english)
         {
-            ids.AddRange(Named(english, Names.GetValue(catalog, BuildNames)));
+            // A card that makes a card of its own has it as a token: Dreaded Mount's "endless Dreadsteed" is SW_087t,
+            // not the Dreadsteed of another set. A named card of another set gives way to a token of its type.
+            var made = ids.Select(cards.Get).OfType<Card>().Select(c => c.Type).Where(Types.Contains).ToHashSet(StringComparer.Ordinal);
+            ids.AddRange(Named(english, Names.GetValue(catalog, BuildNames))
+                .Where(id => catalog.Get(id) is { } named && (named.Set == english.Set || !made.Contains(named.Type))));
         }
 
         var rows = ids.Distinct(StringComparer.Ordinal)
@@ -105,13 +110,16 @@ public static partial class RelatedCards
             }
 
             var found = Occurrences(text, name);
-            var named = name != source.Name
-                        && found.Exists(o => !taken.Exists(t => o.Start < t.End && t.Start < o.End) && LeadsIn(text, o.Start, o.End, index.Keywords));
-            taken.AddRange(found);
-            if (named && Resolve(name, source, index) is { } id)
+            if (name != source.Name)
             {
-                ids.Add(id);
+                // Each place by itself: what the text says before the name ("a 2-Cost Sabotage") is about that place.
+                ids.AddRange(found
+                    .Where(o => !taken.Exists(t => o.Start < t.End && t.Start < o.End) && LeadsIn(text, o.Start, o.End, index.Keywords))
+                    .Select(o => Resolve(name, source, index, Qualifier.Before(text, o.Start)))
+                    .OfType<string>());
             }
+
+            taken.AddRange(found);
         }
 
         return ids;
@@ -120,12 +128,15 @@ public static partial class RelatedCards
     /// <summary>
     /// The one card <paramref name="name"/> means in <paramref name="source"/>'s text, or null when the data cannot tell.
     /// The candidates are the cards of that name and the cards it is the short name of ("C'Thun": "C'Thun, the
-    /// Shattered", "C'Thun, Eye of the Empire"). Reprints (the same type, cost, stats and text) are one card: the one
-    /// in the source's set, else the lowest id, whatever the catalog's order. Of several different cards only the one
-    /// in the source's own set, when it is the only one there (a 2026 card's "C'Thun" is that set's C'Thun, an Old
-    /// Gods card's the old one); otherwise none. The source's own short name is the source itself: none.
+    /// Shattered", "C'Thun, Eye of the Empire"). What the text says of the card comes first: a candidate whose cost or
+    /// stats differ from the "2-Cost" or "3/6" before the name is not that card, whatever its set (Stickybomb
+    /// Saboteur's "2-Cost Sabotage" is its own token, not the 4-Cost <c>GVG_047</c>). Reprints (the same type, cost,
+    /// stats and text) are one card: the one in the source's set, else the lowest id, whatever the catalog's order. Of
+    /// several different cards only the one in the source's own set, when it is the only one there: the sets write
+    /// their own cards this way (a 2026 card's "C'Thun", an Old Gods card's), but that is a reading of the data, not
+    /// a link in it. Otherwise none. The source's own short name is the source itself: none.
     /// </summary>
-    private static string? Resolve(string name, PoolCard source, NameIndex index)
+    private static string? Resolve(string name, PoolCard source, NameIndex index, Qualifier said)
     {
         IEnumerable<PoolCard> family = index.ByName[name];
         if (index.ByShortName.TryGetValue(name, out var longer))
@@ -138,7 +149,7 @@ public static partial class RelatedCards
             family = family.Concat(longer);
         }
 
-        var cards = family.GroupBy(c => (c.Name, c.Type, c.Cost, c.Attack, c.Health, c.Text)).ToList();
+        var cards = family.Where(said.Fits).GroupBy(c => (c.Name, c.Type, c.Cost, c.Attack, c.Health, c.Text)).ToList();
         if (cards.Count > 1)
         {
             cards = cards.Where(g => g.Any(c => c.Set == source.Set)).ToList();
@@ -164,9 +175,10 @@ public static partial class RelatedCards
         var byShortName = new Dictionary<string, List<PoolCard>>(StringComparer.Ordinal);
         foreach (var card in catalog.Cards)
         {
-            // "C'Thun, the Shattered", "Neptulon the Tidehunter": the name before the epithet.
+            // "C'Thun, the Shattered", "Neptulon the Tidehunter": the name before the epithet. " the " names a character
+            // only: a spell's "Infest the Scullery" is a phrase, not another Infest.
             var comma = card.Name.IndexOf(", ", StringComparison.Ordinal);
-            var article = card.Name.IndexOf(" the ", StringComparison.Ordinal);
+            var article = card.Type is "MINION" or "HERO" ? card.Name.IndexOf(" the ", StringComparison.Ordinal) : -1;
             var cut = comma > 0 && (article <= 0 || comma < article) ? comma : article;
             if (cut > 0)
             {
@@ -200,11 +212,12 @@ public static partial class RelatedCards
 
     /// <summary>
     /// True when the words around a name show it is a card, and the whole of its name. Before it: a lowercase word
-    /// ("summon a", "your"), a number or stats ("3", "1/3", "2-Cost"), a list comma, or a keyword whose object is a card
-    /// (<see cref="CardKeywords"/>); or the first word of a clause with the name as its subject ("If Feugen also died").
-    /// Not a name that opens the text or a clause, where the capital letter is grammar ("Convert all but 1",
-    /// "Tradeable Convert a minion"), nor one with a capitalised word on either side: a longer name the catalog does
-    /// not have ("a 1/3 Risen Footman", "Gorishi Colossus").
+    /// ("summon a", "your"), a count, stats or a cost ("3", "1/3", "2-Cost"), a list comma, or a keyword whose object is
+    /// a card (<see cref="CardKeywords"/>); or the first word of a clause with the name as its subject ("If Feugen also
+    /// died"). Not a name that opens the text or a clause, where the capital letter is grammar ("Convert all but 1",
+    /// "Tradeable Convert a minion", after a keyword's number "Spell Damage +1 Duplicate your hand", after "; or"), nor
+    /// one with a capitalised word on either side: a longer name the catalog does not have ("a 1/3 Risen Footman",
+    /// "Gorishi Colossus").
     /// </summary>
     private static bool LeadsIn(string text, int start, int end, HashSet<string> keywords)
     {
@@ -226,12 +239,13 @@ public static partial class RelatedCards
             return false;
         }
 
-        if (before[^1] == ',' || before.Any(char.IsDigit))
+        if (before[^1] == ',' || Count().IsMatch(before))
         {
             return true;
         }
 
-        if (!IsPlainWord(before))
+        // "Choose One - Summon two copies; or Duplicate your hand": the second clause opens with "or".
+        if (!IsPlainWord(before) || (before == "or" && beforeAt >= 2 && text[beforeAt - 2] == ';'))
         {
             return false;
         }
@@ -257,6 +271,32 @@ public static partial class RelatedCards
 
     private static bool IsWord(char c) => char.IsLetterOrDigit(c) || c is '\'' or '_';
 
+    /// <summary>
+    /// What the text says of a card right before its name: "a 2-Cost Sabotage", "a 3/6 Water Elemental". A weapon's
+    /// second number is its durability, which the catalog does not have: only its attack is compared.
+    /// </summary>
+    private readonly record struct Qualifier(int? Cost, int? Attack, int? Health)
+    {
+        public static Qualifier Before(string text, int start)
+        {
+            if (start < 2 || text[start - 1] != ' ')
+            {
+                return default;
+            }
+
+            var at = text.LastIndexOf(' ', start - 2) + 1;
+            var match = Count().Match(text[at..(start - 1)]);
+            return new Qualifier(Number(match.Groups["cost"]), Number(match.Groups["attack"]), Number(match.Groups["health"]));
+        }
+
+        public bool Fits(PoolCard card) =>
+            (Cost is null || card.Cost == Cost)
+            && (Attack is null || (card.Type is "MINION" or "WEAPON" && card.Attack == Attack && (card.Type != "MINION" || card.Health == Health)));
+
+        private static int? Number(Group group) =>
+            group.Success && int.TryParse(group.ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : null;
+    }
+
     /// <summary>The name lookups of one catalog.</summary>
     /// <param name="Names">The names a text can mention, longest first.</param>
     /// <param name="ByName">Cards by their English name.</param>
@@ -270,6 +310,10 @@ public static partial class RelatedCards
 
     [GeneratedRegex(@"^(?<root>[A-Za-z0-9_]+?)(?:t\d{0,2}[a-z]?|[abAB])$", RegexOptions.CultureInvariant)]
     private static partial Regex TokenId();
+
+    /// <summary>The word before a name that counts the card or gives its cost or stats: "3", "2-Cost", "1/3".</summary>
+    [GeneratedRegex(@"^(?:\d+|(?<cost>\d+)-Cost|(?<attack>\d+)/(?<health>\d+))$", RegexOptions.CultureInvariant)]
+    private static partial Regex Count();
 
     [GeneratedRegex(@"<b>.*?</b>", RegexOptions.CultureInvariant | RegexOptions.Singleline)]
     private static partial Regex Bold();
