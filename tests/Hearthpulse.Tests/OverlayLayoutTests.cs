@@ -127,6 +127,9 @@ public sealed class OverlayLayoutTests
                 {
                     null => 0,
                     var v when v.Contains("HandPanelWidth", StringComparison.Ordinal) => Hearthpulse.UI.Overlay.OverlayViewModel.HandPanelWidth,
+                    // The pick rows are as wide as four cards of the game: at overlay scale 1 (this test's surface) 1360 and 1108.
+                    var v when v.Contains("HeroRowWidth", StringComparison.Ordinal) => Hearthpulse.UI.Overlay.PickRowLayout.Heroes.RowWidth(1),
+                    var v when v.Contains("TrinketRowWidth", StringComparison.Ordinal) => Hearthpulse.UI.Overlay.PickRowLayout.Trinkets.RowWidth(1),
                     var v => double.Parse(v, CultureInfo.InvariantCulture),
                 },
                 e.Attribute("PlaceholderAlignment")?.Value ?? "Stretch"))

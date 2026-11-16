@@ -373,6 +373,7 @@ public sealed partial class OverlayViewModel : Observable
         UpdateArena(snapshot.ArenaDraft, settings);
         ShowBattlegrounds = bg is not null && settings.ShowBattlegroundsBar;
         ApplyPickSettings(settings);
+        UpdatePickRows(settings);
         ShowHeroPick = overlayBg is { IsHeroSelection: true } && ShowPickPanels && overlayBg.HeroOptions.Count > 0;
         var playing = overlayBg is { IsHeroSelection: false, HeroCardId: not null } && ShowPickPanels;
         ShowTrinkets = playing && overlayBg!.TrinketOptions.Count > 0;

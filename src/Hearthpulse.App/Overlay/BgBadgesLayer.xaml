@@ -27,7 +27,7 @@
             <DataTemplate DataType="{x:Type o:BgBadge}">
                 <!-- The label in words, two lines: "Tavern 5", then "Quilboar: 4 of 7" once a fight showed the board -->
                 <Grid x:Name="Badge" VerticalAlignment="Center" HorizontalAlignment="Left">
-                    <Border x:Name="Label" MinWidth="72" CornerRadius="4" Padding="6,2" Background="{DynamicResource OverlayBadgeShade}"
+                    <Border x:Name="Label" MinWidth="72" MaxWidth="{x:Static o:OverlayViewModel.BgBadgeLabelWidth}" CornerRadius="4" Padding="6,2" Background="{DynamicResource OverlayBadgeShade}"
                             BorderBrush="{StaticResource AccentDeep}" BorderThickness="1" VerticalAlignment="Center">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
@@ -37,7 +37,7 @@
                                            Foreground="{StaticResource Text}" VerticalAlignment="Center" />
                             </StackPanel>
                             <!-- Empty until a board was seen and a tribe has two minions on it -->
-                            <TextBlock Text="{Binding Tribe}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Text}"
+                            <TextBlock Text="{Binding Tribe}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Text}" TextWrapping="Wrap"
                                        Visibility="{Binding HasTribe, Converter={StaticResource Vis}}" />
                         </StackPanel>
                     </Border>

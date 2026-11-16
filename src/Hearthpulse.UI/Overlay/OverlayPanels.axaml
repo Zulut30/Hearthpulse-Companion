@@ -10,6 +10,7 @@
     <i:SignBrush x:Key="SignBrush" />
     <i:FractionWidth x:Key="Fraction" />
     <i:LeftMargin x:Key="LeftMargin" />
+    <i:ZoomTransform x:Key="ZoomTransform" />
 
     <!-- Opponent's played card: hover shows the whole card beside the panel, as in the deck tracker (the full name too) -->
     <DataTemplate x:Key="PlayedTemplate" x:DataType="o:PlayedTile">
@@ -220,9 +221,9 @@
         <Border Width="8" Height="8" CornerRadius="4" Margin="0,0,4,0" Background="{Binding Result, Converter={StaticResource KeyBrush}}" ToolTip.Tip="{Binding Tooltip}" />
     </DataTemplate>
 
-    <!-- Hero pick: compact badge centred above each hero portrait (slot = HDT hero pitch, 340 units) -->
+    <!-- Hero pick: compact badge centred above each hero portrait (its slot, one hero step of the game, comes from the row: PickRowLayout) -->
     <DataTemplate x:Key="HeroPickTemplate" x:DataType="o:HeroPickCard">
-        <Panel Width="340" Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
+        <Panel Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
             <Border Classes="overlayCard solid pickCard" HorizontalAlignment="Center"
                     Width="232" Padding="10,8" Margin="0,8,0,0">
               <StackPanel>
@@ -233,12 +234,13 @@
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Panel>
                     <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Place}" Classes="number" FontSize="18" />
-                            <TextBlock Text="{Binding Delta}" FontSize="10.5" FontWeight="SemiBold" Margin="5,0,0,3" VerticalAlignment="Bottom"
+                        <!-- The note takes what the number and the lobby shift leave and ends in an ellipsis: a stack cut it mid-letter -->
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="{Binding Place}" Classes="number" FontSize="18" />
+                            <TextBlock DockPanel.Dock="Left" Text="{Binding Delta}" FontSize="10.5" FontWeight="SemiBold" Margin="5,0,0,3" VerticalAlignment="Bottom"
                                        Foreground="{Binding DeltaValue, Converter={StaticResource SignBrush}}" />
-                            <TextBlock Text="{Binding PlaceNote}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,3" VerticalAlignment="Bottom" />
-                        </StackPanel>
+                            <TextBlock Text="{Binding PlaceNote}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,3" VerticalAlignment="Bottom" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding PickRate}" FontSize="11" Foreground="{StaticResource Muted}" />
                             <TextBlock Text="{Binding Personal}" FontSize="11" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"
@@ -261,9 +263,9 @@
         </Panel>
     </DataTemplate>
 
-    <!-- Trinket pick: compact badge above each offered trinket (slot = HDT trinket pitch, 277 units) -->
+    <!-- Trinket pick: compact badge above each offered trinket (its slot, one trinket step of the game, comes from the row: PickRowLayout) -->
     <DataTemplate x:Key="TrinketBadgeTemplate" x:DataType="o:TrinketBadge">
-        <Panel Width="277" Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
+        <Panel Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
             <Border Classes="overlayCard solid pickCard" HorizontalAlignment="Center"
                     Width="196" Padding="9,7" Margin="0,8,0,0">
                 <Grid ColumnDefinitions="Auto,*">

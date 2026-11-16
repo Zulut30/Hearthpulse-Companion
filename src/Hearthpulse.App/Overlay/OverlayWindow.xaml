@@ -158,10 +158,20 @@
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: hero pick badges, one above each hero (HDT: pitch 340, +7 x) ============ -->
-            <o:MovablePanel Id="hero-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.HeroPick}" MinWidth="1360" Shown="{Binding ShowHeroPick}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,212,0,0">
+            <o:MovablePanel Id="hero-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.HeroPick}" GameAnchored="True" MinWidth="{Binding HeroRowWidth}" Shown="{Binding ShowHeroPick}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,212,0,0">
                 <!-- Where the numbers come from and what the tier letters mean: the tier badge's tooltip -->
                 <StackPanel>
-                    <ItemsControl ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
+                    <!-- One slot per hero of the game: the step undoes the overlay scale, and the badges stop growing at their step (PickRowLayout) -->
+                    <ItemsControl x:Name="HeroPickRow" ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center">
+                        <ItemsControl.LayoutTransform>
+                            <ScaleTransform ScaleX="{Binding HeroPickZoom}" ScaleY="{Binding HeroPickZoom}" />
+                        </ItemsControl.LayoutTransform>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Width" Value="{Binding DataContext.HeroPickSlot, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                    </ItemsControl>
                     <!-- When these numbers were collected -->
                     <Border x:Name="BgHeroDataNote" HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
                             Visibility="{Binding BgHeroDataNote, Converter={StaticResource Vis}}">
@@ -179,9 +189,18 @@
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: trinket pick badges (HDT: pitch 277, +10 x) ============ -->
-            <o:MovablePanel Id="trinket-row" PlaceholderAlignment="Right" Title="{i:Loc Overlay.Panel.TrinketPick}" MinWidth="1108" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
+            <o:MovablePanel Id="trinket-row" PlaceholderAlignment="Right" Title="{i:Loc Overlay.Panel.TrinketPick}" GameAnchored="True" MinWidth="{Binding TrinketRowWidth}" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
                 <StackPanel>
-                    <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
+                    <ItemsControl x:Name="TrinketPickRow" ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center">
+                        <ItemsControl.LayoutTransform>
+                            <ScaleTransform ScaleX="{Binding TrinketPickZoom}" ScaleY="{Binding TrinketPickZoom}" />
+                        </ItemsControl.LayoutTransform>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Width" Value="{Binding DataContext.TrinketPickSlot, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                    </ItemsControl>
                     <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
                     <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
                             Visibility="{Binding UsageNote, Converter={StaticResource Vis}}">

@@ -354,9 +354,9 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!-- Hero pick: compact badge centred above each hero portrait (slot = HDT hero pitch, 340 units) -->
+    <!-- Hero pick: compact badge centred above each hero portrait (its slot, one hero step of the game, comes from the row: PickRowLayout) -->
     <DataTemplate x:Key="HeroPickTemplate" DataType="{x:Type o:HeroPickCard}">
-        <Grid Width="340">
+        <Grid>
             <Border x:Name="Halo" Width="268" HorizontalAlignment="Center" Margin="0,-6,0,-14" CornerRadius="18"
                     Background="{StaticResource BestHalo}" IsHitTestVisible="False" Visibility="Collapsed" />
             <Border x:Name="Card" Style="{StaticResource OverlayCardSolid}" HorizontalAlignment="Center"
@@ -373,12 +373,13 @@
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
                     <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Place}" Style="{StaticResource Number}" FontSize="18" />
-                            <TextBlock Text="{Binding Delta}" FontSize="10.5" FontWeight="SemiBold" Margin="5,0,0,3" VerticalAlignment="Bottom"
+                        <!-- The note takes what the number and the lobby shift leave and ends in an ellipsis: a stack cut it mid-letter -->
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="{Binding Place}" Style="{StaticResource Number}" FontSize="18" />
+                            <TextBlock DockPanel.Dock="Left" Text="{Binding Delta}" FontSize="10.5" FontWeight="SemiBold" Margin="5,0,0,3" VerticalAlignment="Bottom"
                                        Foreground="{Binding DeltaValue, Converter={StaticResource SignBrush}}" />
-                            <TextBlock Text="{Binding PlaceNote}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,3" VerticalAlignment="Bottom" />
-                        </StackPanel>
+                            <TextBlock Text="{Binding PlaceNote}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,3" VerticalAlignment="Bottom" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding PickRate}" FontSize="11" Foreground="{StaticResource Muted}" />
                             <TextBlock Text="{Binding Personal}" FontSize="11" Foreground="{StaticResource Text}" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"
@@ -418,9 +419,9 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!-- Trinket pick: compact badge above each offered trinket (slot = HDT trinket pitch, 277 units) -->
+    <!-- Trinket pick: compact badge above each offered trinket (its slot, one trinket step of the game, comes from the row: PickRowLayout) -->
     <DataTemplate x:Key="TrinketBadgeTemplate" DataType="{x:Type o:TrinketBadge}">
-        <Grid Width="277">
+        <Grid>
             <Border x:Name="Halo" Width="232" HorizontalAlignment="Center" Margin="0,-6,0,-14" CornerRadius="18"
                     Background="{StaticResource BestHalo}" IsHitTestVisible="False" Visibility="Collapsed" />
             <Border x:Name="Card" Style="{StaticResource OverlayCardSolid}" HorizontalAlignment="Center"

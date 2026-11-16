@@ -32,6 +32,7 @@ public sealed partial class OverlayViewModel
     private BadgeInputs _badgeInputs;
     private bool _leaderboardHovered;
     private bool _bgBadgesPlaced;
+    private int _trinketBadges;
 
     public bool ShowBgBadges { get => _showBgBadges; private set => Set(ref _showBgBadges, value); }
 
@@ -57,6 +58,7 @@ public sealed partial class OverlayViewModel
     private void UpdateBgBadges(BattlegroundsView? view, AppSettings settings)
     {
         _bgBadgesOn = view is { IsHeroSelection: false } && settings.ShowBgLeaderboardBadges;
+        _trinketBadges = ShowTrinkets ? TrinketPicks.Count : 0;
         RebuildBgBadges();
     }
 
@@ -70,7 +72,8 @@ public sealed partial class OverlayViewModel
 
         // Unchanged size, calibration, mode and lobby rows (their fingerprint): the badges stay as they are.
         var inputs = new BadgeInputs(_surfaceWidth, _surfaceHeight, _leaderboardSettings?.LeaderboardTop, _leaderboardSettings?.LeaderboardSlotHeight,
-            _leaderboardSettings?.LeaderboardWidth, IsDuos, _bgBadgesOn, _fingerprints.GetValueOrDefault(nameof(LobbyRows)), Loc.Instance.Language);
+            _leaderboardSettings?.LeaderboardWidth, IsDuos, _bgBadgesOn, _fingerprints.GetValueOrDefault(nameof(LobbyRows)), Loc.Instance.Language,
+            _trinketBadges, _trinketBadges > 0 && _leaderboardSettings is { } placed ? TrinketSpot(placed) : default);
         if (inputs == _badgeInputs)
         {
             return;
@@ -87,6 +90,10 @@ public sealed partial class OverlayViewModel
         if (_bgBadgesOn && _leaderboardSettings is { } settings && _surfaceHeight > 0)
         {
             var left = LeaderboardGeometry.Beside(_surfaceWidth, _surfaceHeight, settings);
+            // A trinket choice puts its badges over the offered trinkets, the leftmost of them where the labels are.
+            var trinkets = _trinketBadges > 0
+                ? PickRowLayout.Trinkets.OnSurface(_trinketBadges, _surfaceWidth, _surfaceHeight, SurfaceScale(settings), settings.Panels.GetValueOrDefault("trinket-row"))
+                : [];
             foreach (var row in LobbyRows)
             {
                 // No tier yet (not seen in a live game) would be an empty label: none until there is one.
@@ -96,6 +103,11 @@ public sealed partial class OverlayViewModel
                 }
 
                 var (top, height) = LeaderboardGeometry.Tile(row.Place - 1, _surfaceHeight, settings, IsDuos);
+                if (LabelMeetsBadges(left, top, height, trinkets))
+                {
+                    continue;
+                }
+
                 var tribe = row is { Tribe: { } t, TribeCount: >= 2 }
                     ? Loc.F("Overlay.LeaderboardBadge.TribeCount", t.Plural, row.TribeCount, row.BoardCount)
                     : string.Empty;
@@ -104,7 +116,7 @@ public sealed partial class OverlayViewModel
         }
 
         _bgBadgesPlaced = badges.Count > 0;
-        ShowBgBadges = _bgBadgesPlaced && !_leaderboardHovered;
+        ShowOrHideBgBadges();
         Replace(nameof(BgBadges), badges, Print, () => Sync(ref _bgBadges, nameof(BgBadges), badges));
 
         static string Print(BgBadge b) => string.Create(CultureInfo.InvariantCulture,
@@ -115,9 +127,58 @@ public sealed partial class OverlayViewModel
     private void HideBgBadgesWhileHovered(bool hovered)
     {
         _leaderboardHovered = hovered;
-        ShowBgBadges = _bgBadgesPlaced && !hovered;
+        ShowOrHideBgBadges();
+    }
+
+    private void ShowOrHideBgBadges() => ShowBgBadges = _bgBadgesPlaced && !_leaderboardHovered;
+
+    /// <summary>The most a label is wide, in overlay units: the view holds it to this, and a longer tribe line wraps.</summary>
+    public const double BgBadgeLabelWidth = 132;
+
+    /// <summary>The most a label is high, in overlay units (the tier line and a tribe line that wrapped once); never more than its tile's strip.</summary>
+    public const double BgBadgeLabelHeight = 60;
+
+    /// <summary>The room kept between a label and a trinket badge, in overlay units.</summary>
+    public const double BgBadgeClearance = 6;
+
+    /// <summary>
+    /// The room a label can take beside its tile, in overlay units: from the strip's left edge
+    /// <see cref="BgBadgeLabelWidth"/> wide, centred on the tile and at most <see cref="BgBadgeLabelHeight"/> high.
+    /// </summary>
+    public static (double Left, double Top, double Right, double Bottom) LabelRoom(double left, double top, double height)
+    {
+        var high = Math.Min(height, BgBadgeLabelHeight);
+        var y = top + ((height - high) / 2);
+        return (left, y, left + BgBadgeLabelWidth, y + high);
+    }
+
+    /// <summary>
+    /// True when a label beside the tile strip would run into one of the trinket badges (their rectangles on the
+    /// surface, <see cref="PickRowLayout.OnSurface"/>) or come closer than <see cref="BgBadgeClearance"/>: that label
+    /// gives way for the time of the choice, the others stay.
+    /// </summary>
+    public static bool LabelMeetsBadges(double left, double top, double height, IReadOnlyList<(double Left, double Top, double Right, double Bottom)> badges)
+    {
+        var room = LabelRoom(left, top, height);
+        foreach (var badge in badges)
+        {
+            if (room.Left < badge.Right + BgBadgeClearance && badge.Left - BgBadgeClearance < room.Right
+                && room.Top < badge.Bottom + BgBadgeClearance && badge.Top - BgBadgeClearance < room.Bottom)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Everything the badges are built from; <c>Rows</c> is the fingerprint of <see cref="LobbyRows"/>, <c>Language</c> the words'.</summary>
-    private readonly record struct BadgeInputs(double Width, double Height, double? Top, double? Slot, double? TileWidth, bool Duos, bool On, string? Rows, string Language);
+    private readonly record struct BadgeInputs(double Width, double Height, double? Top, double? Slot, double? TileWidth, bool Duos, bool On, string? Rows, string Language,
+        int Trinkets, (double Scale, double X, double Y, double Size) TrinketSpot);
+
+    /// <summary>What decides where the trinket badges are: the overlay scale and the panel's saved spot (NaN: its default one).</summary>
+    private static (double Scale, double X, double Y, double Size) TrinketSpot(AppSettings settings) =>
+        settings.Panels.GetValueOrDefault("trinket-row") is { } spot
+            ? (SurfaceScale(settings), spot.X, spot.Y, spot.Scale)
+            : (SurfaceScale(settings), double.NaN, double.NaN, 1);
 }

@@ -116,6 +116,14 @@ internal static partial class OffscreenRenderer
             overlay.Close();
         }
 
+        if (RenderOnly("picks"))
+        {
+            // The hero and trinket pick badges on made-up offers (OffscreenRenderer.Picks.cs).
+            var (overlay, overlayView) = OpenOverlay(host, host.Settings);
+            await RenderPicksAsync(folder, host, host.Settings, overlay, overlayView);
+            overlay.Close();
+        }
+
         if (RenderOnly("odds"))
         {
             // The combat odds and the Battlegrounds bar (OffscreenRenderer.CombatOdds.cs).

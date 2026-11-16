@@ -67,7 +67,7 @@
                         </Grid>
                         <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">
                             <TextBlock Text="{i:Loc Settings.Overlay.Size}" Classes="settingLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
-                            <Slider Name="SizeSlider" Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
+                            <Slider Name="SizeSlider" Grid.Column="1" Minimum="{x:Static core:AppSettings.MinScale}" Maximum="{x:Static core:AppSettings.MaxScale}" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
                             <TextBlock Grid.Column="2" Text="{Binding #SizeSlider.Value, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                         </Grid>
                         <Grid ColumnDefinitions="160,*,56">
