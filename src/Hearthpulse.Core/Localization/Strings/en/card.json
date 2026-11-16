@@ -1,7 +1,7 @@
 {
   "Card.Back": "Back",
   "Card.BackTip": "Back to the previous page (Esc)",
-  "Card.OpenTip": "Open the card page",
+  "Card.OpenName": "Open the card page of {0}",
   "Card.Loading": "Loading the card's numbers…",
   "Card.Cost": "Cost {0}",
   "Card.Updated": "updated {0:dd MMM HH:mm}",
@@ -25,7 +25,8 @@
   "Card.Stats.Turn": "Turn played",
   "Card.Stats.TurnDetail": "on average",
   "Card.Stats.None": "No data for this card: it was hardly played in ranked games over this period.",
-  "Card.Stats.Unavailable": "Couldn't load Hearthpulse data. Check your connection and open the card again.",
+  "Card.Stats.Unavailable": "Couldn't load Hearthpulse data. Check your connection and try again.",
+  "Card.Stats.Retry": "Try again",
   "Card.Archetypes.Title": "Archetypes that run it",
   "Card.Archetypes.Lists": "{1} of {0} list|{1} of {0} lists",
   "Card.Archetypes.None": "No list of the loaded meta runs this card.",

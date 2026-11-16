@@ -247,6 +247,55 @@ public sealed class CardPageViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task A_load_that_fails_leaves_loading_for_an_error_with_a_retry_that_asks_again()
+    {
+        // The first answer is held (a slow line), then comes back empty (the 20-second limit); the second has the list.
+        var held = new TaskCompletionSource<CardStatsSlice?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        vm.SetCards(Cards());
+        vm.LoadCardStats = (format, _) =>
+            Interlocked.Increment(ref calls) == 1 ? held.Task : Task.FromResult<CardStatsSlice?>(Slice(format, Stat("T_BOLT", 1001)));
+
+        var open = vm.OpenCardPageAsync("T_BOLT");
+        var page = vm.CardPage;
+        Assert.True(page.Loading);
+        Assert.False(page.StatsFailed);
+        Assert.Equal(string.Empty, page.StatsEmpty);
+
+        held.SetResult(null);
+        Assert.True(await open.WaitAsync(TimeSpan.FromSeconds(30)));
+
+        // Not "loading" for ever: the section says what failed and offers the way forward; the card itself stays.
+        Assert.False(page.Loading);
+        Assert.True(page.StatsFailed);
+        Assert.Equal(Loc.T("Card.Stats.Unavailable"), page.StatsEmpty);
+        Assert.Empty(page.Tiles);
+        Assert.True(vm.CardOpen);
+        Assert.Equal("Test Bolt", page.Name);
+
+        var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        page.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(page.Tiles) && page.Tiles.Count > 0)
+            {
+                loaded.TrySetResult();
+            }
+        };
+        page.Retry.Execute(null);
+        await loaded.Task.WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.Equal(2, calls);
+        Assert.False(page.StatsFailed);
+        Assert.Equal(string.Empty, page.StatsEmpty);
+
+        // A card the list simply does not have is not a failure: no retry is offered.
+        Assert.True(await vm.OpenCardPageAsync("T_FILL"));
+        Assert.False(page.StatsFailed);
+        Assert.Equal(Loc.T("Card.Stats.None"), page.StatsEmpty);
+    }
+
+    [Fact]
     public async Task A_late_source_adds_the_delay_line_under_the_numbers()
     {
         var vm = Model(out _);

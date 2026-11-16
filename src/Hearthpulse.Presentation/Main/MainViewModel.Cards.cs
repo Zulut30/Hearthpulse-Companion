@@ -122,6 +122,9 @@ public sealed partial class MainViewModel
         return true;
     }
 
+    /// <summary>The open card's numbers asked for again, with "loading" shown meanwhile (the page's "Try again").</summary>
+    internal void RetryCard() => RebuildCard(fresh: true);
+
     internal void CloseCard()
     {
         _cardLoad++;

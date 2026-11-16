@@ -14,8 +14,9 @@ public partial class App
     private async Task RenderCardPageAsync(string folder)
     {
         _main.ShowPage("Standard");
-        // The meta names the card to show and fills two of the page's sections: wait for it, but not for ever.
-        for (var i = 0; i < 100 && _mainViewModel.ShownConstructedMeta is null; i++)
+        // The meta names the card to show and fills two of the page's sections: wait for it and for its mulligan numbers
+        // (the tier list comes first), but not for ever.
+        for (var i = 0; i < 200 && _mainViewModel.ShownConstructedMeta?.Archetypes.Any(a => a.Mulligan.Count > 0) != true; i++)
         {
             await Task.Delay(200);
         }
@@ -23,8 +24,23 @@ public partial class App
         var cardId = Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_CARD") is { Length: > 0 } asked
             ? asked
             : _mainViewModel.ShownConstructedMeta?.Archetypes.SelectMany(a => a.Mulligan).FirstOrDefault()?.CardId;
-        if (cardId is null || !await _mainViewModel.OpenCardPageAsync(cardId))
+        if (cardId is null)
         {
+            Hearthpulse.Core.Diag.Info("Card page render skipped: no Standard meta with mulligan numbers, and HEARTHPULSE_RENDER_CARD is not set");
+            return;
+        }
+
+        // A meta, card data or data summary that arrives meanwhile builds the page again (this call then answers false):
+        // what counts is the page being open and built.
+        await _mainViewModel.OpenCardPageAsync(cardId);
+        for (var i = 0; i < 150 && _mainViewModel.CardOpen && _mainViewModel.CardPage.Loading; i++)
+        {
+            await Task.Delay(200);
+        }
+
+        if (!_mainViewModel.CardOpen)
+        {
+            Hearthpulse.Core.Diag.Info($"Card page render skipped: the card data has no card {cardId}");
             return;
         }
 

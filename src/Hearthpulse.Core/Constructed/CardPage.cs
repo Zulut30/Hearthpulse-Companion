@@ -187,7 +187,7 @@ public static partial class CardPages
     }
 
     /// <summary>
-    /// Card text for reading in a line of the page: no markup or layout codes, plural forms ("|4(card,cards)") resolved
+    /// Card text for reading in a line of the page: no markup, layout codes or in-game slots, plural forms ("|4(card,cards)") resolved
     /// by the number before them, one space between words.
     /// </summary>
     public static string PlainText(string? text, string? locale = null)
@@ -197,7 +197,9 @@ public static partial class CardPages
             return string.Empty;
         }
 
-        var t = text.Replace("[x]", string.Empty, StringComparison.Ordinal).Replace('\n', ' ').Replace('_', ' ').Replace(' ', ' ');
+        // "[x]" and "&" are the client's line-layout codes ("<b>Battlecry:</b>&\n ..."), "{0}" a slot filled in a game.
+        var t = Slot().Replace(text, string.Empty).Replace("&", string.Empty, StringComparison.Ordinal);
+        t = t.Replace("[x]", string.Empty, StringComparison.Ordinal).Replace('\n', ' ').Replace('_', ' ').Replace(' ', ' ');
         t = Tag().Replace(t, string.Empty);
         t = Counter().Replace(t, string.Empty);
         t = Amount().Replace(t, "$1");
@@ -224,6 +226,9 @@ public static partial class CardPages
 
     [GeneratedRegex("<[^<>]*>")]
     private static partial Regex Tag();
+
+    [GeneratedRegex(@"\{\d\}")]
+    private static partial Regex Slot();
 
     /// <summary>A live counter in brackets ("(@ left!)"): it has no value outside a game.</summary>
     [GeneratedRegex(@"\s*\([^()]*@[^()]*\)")]

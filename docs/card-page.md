@@ -6,19 +6,24 @@ with it. Until this page a card's numbers showed only in an archetype's mulligan
 
 ## Where it opens from
 
-A click on a card row opens the page; the row keeps its hover preview and takes a hand cursor:
+A card row opens the page by a click, or by Enter or Space while it has the focus; the row keeps its hover preview and
+takes a hand cursor:
 
 - the deck page: the deck list, the version differences, the "Your mulligan" and "Card results" tables;
 - the meta tier list: the rows of the chosen archetype's mulligan guide.
 
-The "Top decks" lists of the meta show decks, not cards, so they have no card row to click. A row sets
-`CardLink.CardId` (`Controls/CardLink.cs` in each UI); the click raises a bubbling `CardLink.Open` event and the main
-window calls `MainViewModel.OpenCard`. A new card row elsewhere needs only that attribute.
+The "Top decks" lists of the meta show decks, not cards, so they have no card row to click. A row is a button (WPF
+style `CardRowButton`, Avalonia classes `bare`) around what the row draws, with `CardLink.CardId` and
+`CardLink.CardName` (`Controls/CardLink.cs` in each UI): the button raises a bubbling `CardLink.Open` event and the main
+window calls `MainViewModel.OpenCard`. A new card row elsewhere needs only that button.
+
+Keyboard and screen reader: each list of card rows is one Tab stop, Up and Down move between its rows (stopping at
+the ends), the focused row shows the theme's row focus ring, and the button's name is "Open the card page of <card>"
+(`Card.OpenName`). `AccessibleNameTests` checks that every linked row in both UIs' markup is such a button.
 
 The page stands in for the Standard or Wild page (or the deck page open on it), in that page's format. Back, Esc,
 Alt+Left and the mouse's back button return to the page under it at the place the player was reading; the Standard
-and Wild sidebar items switch the open card to the other format; any other page closes it. Mouse only: the rows are
-not keyboard stops.
+and Wild sidebar items switch the open card to the other format; any other page closes it.
 
 ## What it shows
 
@@ -45,8 +50,12 @@ Rules the model keeps (`Core/Constructed/CardPage.cs`, `CardPages.Build`, pure a
   drawn count once). A win rate from fewer than five own games stays neutral (`DeckDetails.SmallSample`).
 - The set is the card data's code shown as words ("Emerald Dream" for `EMERALD_DREAM`): card data has no set names.
 
-Empty states: the list has no such card - "No data for this card..."; the list could not be loaded and there is no
-copy - "Couldn't load Hearthpulse data. Check your connection and open the card again."; no list of the meta runs the
+A load never leaves the page "loading": the data API's request ends after 20 seconds at the latest
+(`HearthpulseApi.Timeout`; the Wild list is 4 MB), and then the page shows the older copy with its date, or, without
+one, "Couldn't load Hearthpulse data. Check your connection and try again." with a "Try again" button that asks again
+(`CardPageViewModel.StatsFailed`, `Retry`). The card, the meta rows and the own games are shown either way.
+
+Empty states: the list has no such card - "No data for this card..." (no retry: nothing failed); no list of the meta runs the
 card; no mulligan numbers; the meta is not loaded; no own games of the format / none with the card. Offline the cached
 list is shown with its own date, and a late source adds the "update is delayed" line of the data summary
 (`DataSection.CardStats`, listed in Settings, Data, "Data status" as "Card statistics").

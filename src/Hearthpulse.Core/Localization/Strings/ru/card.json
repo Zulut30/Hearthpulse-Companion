@@ -1,7 +1,7 @@
 {
   "Card.Back": "Назад",
   "Card.BackTip": "Назад к предыдущей странице (Esc)",
-  "Card.OpenTip": "Открыть страницу карты",
+  "Card.OpenName": "Открыть страницу карты {0}",
   "Card.Loading": "Загружаем числа карты…",
   "Card.Cost": "Стоимость: {0}",
   "Card.Updated": "обновлено {0:dd MMM HH:mm}",
@@ -25,7 +25,8 @@
   "Card.Stats.Turn": "Ход розыгрыша",
   "Card.Stats.TurnDetail": "в среднем",
   "Card.Stats.None": "Для этой карты данных нет: за этот период её почти не играли в рейтинговых играх.",
-  "Card.Stats.Unavailable": "Не удалось загрузить данные Hearthpulse. Проверьте подключение и откройте карту снова.",
+  "Card.Stats.Unavailable": "Не удалось загрузить данные Hearthpulse. Проверьте подключение и попробуйте снова.",
+  "Card.Stats.Retry": "Повторить",
   "Card.Archetypes.Title": "В каких архетипах",
   "Card.Archetypes.Lists": "{1} из {0} списка|{1} из {0} списков|{1} из {0} списков",
   "Card.Archetypes.None": "В списках загруженной меты этой карты нет.",

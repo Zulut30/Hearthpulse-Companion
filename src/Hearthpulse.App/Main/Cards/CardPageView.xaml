@@ -99,6 +99,9 @@
                            Visibility="{Binding StatsSource, Converter={StaticResource Vis}}" />
                 <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF012A;" Content="{Binding StatsEmpty}"
                                 Visibility="{Binding StatsEmpty, Converter={StaticResource Vis}}" />
+                <!-- The list did not load (offline, a slow server): one way forward, here where it failed -->
+                <Button x:Name="RetryButton" Style="{StaticResource GhostButton}" Content="{i:Loc Card.Stats.Retry}" Command="{Binding Retry}" HorizontalAlignment="Center"
+                        Margin="0,4,0,8" Visibility="{Binding StatsFailed, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
 

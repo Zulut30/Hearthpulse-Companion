@@ -293,28 +293,30 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MulliganRow}">
                                 <!-- A click opens the card's page (docs/card-page.md) -->
-                                <Border Style="{StaticResource RowBorder}" Padding="8,4" c:CardLink.CardId="{Binding CardId}">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="36" />
-                                            <ColumnDefinition Width="*" />
-                                            <!-- Fixed, so every row's "kept N%" and name trim line up -->
-                                            <ColumnDefinition Width="116" />
-                                            <ColumnDefinition Width="52" />
-                                        </Grid.ColumnDefinitions>
-                                        <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
-                                                i:CardArt.Portrait="{Binding CardId}" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Style="{StaticResource Caption}" TextAlignment="Right" VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" Margin="12,0,0,0" ToolTip="{i:Loc Main.Meta.KeepRateTip}" />
-                                        <TextBlock Grid.Column="3" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                   Foreground="{Binding Edge, Converter={StaticResource SignBrush}}">
-                                            <TextBlock.ToolTip>
-                                                <TextBlock Text="{Binding Seen}" />
-                                            </TextBlock.ToolTip>
-                                        </TextBlock>
-                                    </Grid>
-                                </Border>
+                                <Button Style="{StaticResource CardRowButton}" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
+                                    <Border Style="{StaticResource RowBorder}" Padding="8,4">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="36" />
+                                                <ColumnDefinition Width="*" />
+                                                <!-- Fixed, so every row's "kept N%" and name trim line up -->
+                                                <ColumnDefinition Width="116" />
+                                                <ColumnDefinition Width="52" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                                    i:CardArt.Portrait="{Binding CardId}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Style="{StaticResource Caption}" TextAlignment="Right" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" Margin="12,0,0,0" ToolTip="{i:Loc Main.Meta.KeepRateTip}" />
+                                            <TextBlock Grid.Column="3" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}">
+                                                <TextBlock.ToolTip>
+                                                    <TextBlock Text="{Binding Seen}" />
+                                                </TextBlock.ToolTip>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Border>
+                                </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

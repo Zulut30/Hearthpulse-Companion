@@ -43,6 +43,7 @@ public sealed partial class CardPageViewModel : Observable
     private IReadOnlyList<StatTile> _tiles = [];
     private string _statsSource = string.Empty;
     private string _statsEmpty = string.Empty;
+    private bool _statsFailed;
     private IReadOnlyList<CardArchetypeRow> _archetypes = [];
     private string _archetypesEmpty = string.Empty;
     private IReadOnlyList<CardMulliganRow> _mulligan = [];
@@ -55,9 +56,13 @@ public sealed partial class CardPageViewModel : Observable
     public CardPageViewModel(MainViewModel owner)
     {
         Back = new RelayCommand(owner.CloseCard);
+        Retry = new RelayCommand(owner.RetryCard);
     }
 
     public RelayCommand Back { get; }
+
+    /// <summary>Asks for the card's numbers again after a load that failed (<see cref="StatsFailed"/>).</summary>
+    public RelayCommand Retry { get; }
 
     /// <summary>The card shown, for its art; empty while no card is open.</summary>
     public string CardId { get => _cardId; private set => Set(ref _cardId, value); }
@@ -81,6 +86,12 @@ public sealed partial class CardPageViewModel : Observable
 
     /// <summary>Why there are no tiles: the card is not in the list, or the list could not be loaded. Empty with tiles.</summary>
     public string StatsEmpty { get => _statsEmpty; private set => Set(ref _statsEmpty, value); }
+
+    /// <summary>
+    /// The card list could not be loaded and there is no older copy (offline, the server too slow): the section says so
+    /// and offers <see cref="Retry"/>. Never set while a load runs, so the page does not stay "loading".
+    /// </summary>
+    public bool StatsFailed { get => _statsFailed; private set => Set(ref _statsFailed, value); }
 
     public IReadOnlyList<CardArchetypeRow> Archetypes { get => _archetypes; private set => Set(ref _archetypes, value); }
 
@@ -108,6 +119,7 @@ public sealed partial class CardPageViewModel : Observable
         Tiles = [];
         StatsSource = string.Empty;
         StatsEmpty = string.Empty;
+        StatsFailed = false;
         Archetypes = [];
         ArchetypesEmpty = string.Empty;
         Mulligan = [];
@@ -135,6 +147,7 @@ public sealed partial class CardPageViewModel : Observable
         ]);
         StatsSource = Tiles.Count == 0 ? string.Empty : MainViewModel.WithDelay(slice, statsDelay);
         StatsEmpty = Tiles.Count > 0 ? string.Empty : Loc.T(page.StatsLoaded ? "Card.Stats.None" : "Card.Stats.Unavailable");
+        StatsFailed = !page.StatsLoaded;
 
         Archetypes = page.Archetypes.Select(a => new CardArchetypeRow(
             a.Name,
@@ -180,6 +193,7 @@ public sealed partial class CardPageViewModel : Observable
         Archetypes = [];
         Mulligan = [];
         MineTiles = [];
+        StatsFailed = false;
         Loading = false;
     }
 

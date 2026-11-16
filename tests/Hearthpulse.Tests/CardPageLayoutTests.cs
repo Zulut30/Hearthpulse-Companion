@@ -145,12 +145,16 @@ public sealed class CardPageLayoutTests
         }
     });
 
-    [Fact]
-    public void A_click_on_a_card_row_opens_its_page_and_a_row_without_a_card_does_nothing() => LocBindingTests.Headless.Run(() =>
+    [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    public void A_card_row_is_a_named_button_the_keyboard_reaches_and_opens(string language) => LocBindingTests.Headless.Run(() =>
     {
         var theme = PageRowsPanelAvaloniaTests.Theme();
+        Loc.Instance.SetLanguage(language == "ru" ? Loc.Russian : Loc.English);
         var model = new MainViewModel(new HistoryStore(TestDataFolder.Scratch("hp-card-link") + ".db"), new AppSettings(), TestDataFolder.App);
-        model.SetCards(Cards("en"));
+        var cards = Cards(language);
+        model.SetCards(cards);
         var view = new MainView { DataContext = model };
         var window = new Window { Width = 1280, Height = 900 };
         window.Resources["UiFont"] = FontFamily.Default;
@@ -160,19 +164,56 @@ public sealed class CardPageLayoutTests
         {
             view.ShowPage("Standard");
             PageRowsPanelAvaloniaTests.Settle(window);
-            // A row as the deck page and the mulligan guide build theirs, placed in the page.
-            var row = new Border();
-            var empty = new Border();
+            // Rows as the deck page and the mulligan guide build theirs: a bare button around the row, in a list.
+            string[] ids = ["T_LONG", "T_FILL", "T_LONG"];
+            var list = new ItemsControl
+            {
+                ItemsSource = ids,
+                ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>((id, _) =>
+                {
+                    var row = new Button { Content = new TextBlock { Text = id } };
+                    row.Classes.Add("bare");
+                    CardLink.SetCardId(row, id);
+                    CardLink.SetCardName(row, cards.NameOf(id));
+                    return row;
+                }),
+            };
+            var plain = new Button { Content = "no card" };
             var host = view.GetVisualDescendants().OfType<Panel>().First(p => p.IsEffectivelyVisible);
-            host.Children.Add(row);
-            host.Children.Add(empty);
-            CardLink.SetCardId(row, "T_LONG");
-            Assert.Equal(Avalonia.Input.StandardCursorType.Hand.ToString(), row.Cursor?.ToString());
-            Assert.Null(empty.Cursor);
+            host.Children.Add(list);
+            host.Children.Add(plain);
+            PageRowsPanelAvaloniaTests.Settle(window);
+            var rows = list.GetVisualDescendants().OfType<Button>().ToList();
+            Assert.Equal(3, rows.Count);
 
-            Assert.False(CardLink.Open(empty));
+            // A screen reader hears the action and the card; the list is one Tab stop and the rows can take focus.
+            Assert.Equal(Loc.F("Card.OpenName", cards.NameOf("T_LONG")), Avalonia.Automation.AutomationProperties.GetName(rows[0]));
+            Assert.Contains(cards.NameOf("T_LONG"), Avalonia.Automation.AutomationProperties.GetName(rows[0])!, StringComparison.Ordinal);
+            Assert.StartsWith(language == "ru" ? "Открыть страницу карты " : "Open the card page of ", Avalonia.Automation.AutomationProperties.GetName(rows[1])!, StringComparison.Ordinal);
+            Assert.Equal(Avalonia.Input.KeyboardNavigationMode.Once, Avalonia.Input.KeyboardNavigation.GetTabNavigation(list));
+            Assert.All(rows, r => Assert.True(r.Focusable && r.IsTabStop));
+            Assert.NotNull(rows[0].FocusAdorner);
+            Assert.Null(Avalonia.Automation.AutomationProperties.GetName(plain));
+
+            // Down and Up move between the rows and stop at the ends.
+            void Press(Button on, Avalonia.Input.Key key) =>
+                on.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = key, Source = on });
+            Assert.True(rows[0].Focus());
+            Press(rows[0], Avalonia.Input.Key.Down);
+            Assert.True(rows[1].IsFocused);
+            Press(rows[1], Avalonia.Input.Key.Down);
+            Press(rows[2], Avalonia.Input.Key.Down);
+            Assert.True(rows[2].IsFocused);
+            Press(rows[2], Avalonia.Input.Key.Up);
+            Press(rows[1], Avalonia.Input.Key.Up);
+            Press(rows[0], Avalonia.Input.Key.Up);
+            Assert.True(rows[0].IsFocused);
+
+            // Enter on the focused row opens its card's page; a button without a card opens nothing.
+            Assert.False(CardLink.Open(plain));
             Assert.False(model.CardOpen);
-            Assert.True(CardLink.Open(row));
+            Press(rows[1], Avalonia.Input.Key.Down);
+            Press(rows[1], Avalonia.Input.Key.Enter);
             var until = Stopwatch.StartNew();
             while (model.CardPage.Loading && until.Elapsed < TimeSpan.FromSeconds(30))
             {
@@ -181,14 +222,24 @@ public sealed class CardPageLayoutTests
 
             PageRowsPanelAvaloniaTests.Settle(window);
             Assert.True(model.CardOpen);
-            Assert.Equal("T_LONG", model.CardPage.CardId);
+            Assert.Equal("T_FILL", model.CardPage.CardId);
             Assert.True(view.GetVisualDescendants().OfType<ScrollViewer>().Single(c => c.Name == "PageCard").IsVisible);
 
-            // The link taken off the row: no cursor, no page.
+            // No list was loaded here (no loader): the section says so and its button asks again.
+            var retry = view.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "RetryButton");
+            Assert.True(retry.IsEffectivelyVisible);
+            Assert.Equal(Loc.T("Card.Stats.Retry"), retry.Content);
+            Assert.Same(model.CardPage.Retry, retry.Command);
+
+            // A click does the same as Enter; the link taken off a row leaves a plain button.
             model.CardPage.Back.Execute(null);
-            CardLink.SetCardId(row, null);
-            Assert.Null(row.Cursor);
-            Assert.False(CardLink.Open(row));
+            Assert.True(CardLink.Open(rows[0]));
+            Assert.True(model.CardOpen);
+            model.CardPage.Back.Execute(null);
+            CardLink.SetCardId(rows[0], null);
+            CardLink.SetCardName(rows[0], null);
+            Assert.Null(Avalonia.Automation.AutomationProperties.GetName(rows[0]));
+            Assert.False(CardLink.Open(rows[0]));
             Assert.False(model.CardOpen);
         }
         finally
@@ -196,6 +247,7 @@ public sealed class CardPageLayoutTests
             window.Close();
             Application.Current!.Styles.Remove(theme);
             Dispatcher.UIThread.RunJobs();
+            Loc.Instance.SetLanguage(Loc.English);
         }
     });
 

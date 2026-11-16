@@ -31,27 +31,29 @@
                  the cost gem at its left end, the name over the art, the copies (or the legendary star) on a dark pill and a
                  rarity-lit edge; legendary names in their rarity colour -->
             <DataTemplate x:Key="DeckListTile" x:DataType="d:DeckListRow">
-                <Grid Height="30" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}">
-                    <Border Background="{StaticResource Row}" CornerRadius="15" ClipToBounds="True">
-                        <Panel>
-                            <Panel Width="180" HorizontalAlignment="Right">
-                                <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                                <Rectangle Fill="{StaticResource TileFade}" />
+                <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
+                    <Grid Height="30" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
+                        <Border Background="{StaticResource Row}" CornerRadius="15" ClipToBounds="True">
+                            <Panel>
+                                <Panel Width="180" HorizontalAlignment="Right">
+                                    <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                                    <Rectangle Fill="{StaticResource TileFade}" />
+                                </Panel>
+                                <DockPanel Margin="1,0,4,0">
+                                    <c:ManaCost Width="28" Height="28" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <Border DockPanel.Dock="Right" MinWidth="24" Height="22" CornerRadius="11" Padding="8,0" Margin="4,0,0,0" VerticalAlignment="Center"
+                                            Background="{StaticResource OverlayBadgeShade}" IsVisible="{Binding Count, Converter={StaticResource Truthy}}">
+                                        <TextBlock Text="{Binding Count}" Classes="copies" Classes.legendary="{Binding Legendary}"
+                                                   FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Name}" Classes="deckCardName" Classes.legendary="{Binding Legendary}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                </DockPanel>
                             </Panel>
-                            <DockPanel Margin="1,0,4,0">
-                                <c:ManaCost Width="28" Height="28" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                <Border DockPanel.Dock="Right" MinWidth="24" Height="22" CornerRadius="11" Padding="8,0" Margin="4,0,0,0" VerticalAlignment="Center"
-                                        Background="{StaticResource OverlayBadgeShade}" IsVisible="{Binding Count, Converter={StaticResource Truthy}}">
-                                    <TextBlock Text="{Binding Count}" Classes="copies" Classes.legendary="{Binding Legendary}"
-                                               FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <TextBlock Text="{Binding Name}" Classes="deckCardName" Classes.legendary="{Binding Legendary}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                            </DockPanel>
-                        </Panel>
-                    </Border>
-                    <Border CornerRadius="15" BorderThickness="1" IsHitTestVisible="False" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
-                </Grid>
+                        </Border>
+                        <Border CornerRadius="15" BorderThickness="1" IsHitTestVisible="False" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
+                    </Grid>
+                </Button>
             </DataTemplate>
 
             <!-- One cost of the mana curve: count, bar (share of the tallest), the cost in a gem -->
@@ -69,20 +71,22 @@
 
             <!-- A card that differs: "+2" / "−1" and its tile; the full card shows on hover -->
             <DataTemplate x:Key="DiffTile" x:DataType="d:CardDiffRow">
-                <Grid Height="28" Margin="0,0,0,2" ColumnDefinitions="30,*" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
-                    <TextBlock Text="{Binding Count}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
-                               Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
-                    <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="4" ClipToBounds="True">
-                        <Panel>
-                            <!-- The art's own edge hides under the fade, as in the overlay's deck rows -->
-                            <Panel Width="180" HorizontalAlignment="Right">
-                                <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                                <Rectangle Fill="{StaticResource TileFade}" />
+                <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
+                    <Grid Height="28" Margin="0,0,0,2" ColumnDefinitions="30,*" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
+                        <TextBlock Text="{Binding Count}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
+                                   Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
+                        <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="4" ClipToBounds="True">
+                            <Panel>
+                                <!-- The art's own edge hides under the fade, as in the overlay's deck rows -->
+                                <Panel Width="180" HorizontalAlignment="Right">
+                                    <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                                    <Rectangle Fill="{StaticResource TileFade}" />
+                                </Panel>
+                                <TextBlock Text="{Binding Name}" Margin="8,0,4,0" FontSize="{StaticResource FontSizeLabel}" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             </Panel>
-                            <TextBlock Text="{Binding Name}" Margin="8,0,4,0" FontSize="{StaticResource FontSizeLabel}" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                        </Panel>
-                    </Border>
-                </Grid>
+                        </Border>
+                    </Grid>
+                </Button>
             </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
@@ -648,28 +652,30 @@
                 <ItemsControl ItemsSource="{Binding MulliganRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="d:DeckCardStatRow">
-                            <Border Classes="row" Padding="8,8" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}">
-                                <Grid ColumnDefinitions="*,64,64,80,Auto,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewMulligan}">
-                                    <ContentControl Classes="cardCell" Content="{Binding}" ContentTemplate="{StaticResource CardCell}" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Offered}" Classes="num cell" />
-                                    <StackPanel Grid.Column="2" Classes="cell" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding KeepRate}" Classes="num" />
-                                        <ProgressBar Classes="shareBar under" Value="{Binding KeepFraction, Mode=OneWay}" />
-                                    </StackPanel>
-                                    <Border Grid.Column="3" Classes="markCell cell" Classes.best="{Binding KeptBest}" Classes.worst="{Binding KeptWorst}">
-                                        <TextBlock Text="{Binding KeptWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding KeptSign, Converter={StaticResource SignBrush}}" />
-                                    </Border>
-                                    <Panel Grid.Column="4" Classes="cell" Width="80" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).MulliganAllColumns}">
-                                        <Border Classes="markCell" Classes.best="{Binding ReplacedBest}" Classes.worst="{Binding ReplacedWorst}">
-                                            <TextBlock Text="{Binding ReplacedWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding ReplacedSign, Converter={StaticResource SignBrush}}" />
+                            <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
+                                <Border Classes="row" Padding="8,8" c:CardPreview.CardId="{Binding CardId}">
+                                    <Grid ColumnDefinitions="*,64,64,80,Auto,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewMulligan}">
+                                        <ContentControl Classes="cardCell" Content="{Binding}" ContentTemplate="{StaticResource CardCell}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Offered}" Classes="num cell" />
+                                        <StackPanel Grid.Column="2" Classes="cell" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding KeepRate}" Classes="num" />
+                                            <ProgressBar Classes="shareBar under" Value="{Binding KeepFraction, Mode=OneWay}" />
+                                        </StackPanel>
+                                        <Border Grid.Column="3" Classes="markCell cell" Classes.best="{Binding KeptBest}" Classes.worst="{Binding KeptWorst}">
+                                            <TextBlock Text="{Binding KeptWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding KeptSign, Converter={StaticResource SignBrush}}" />
                                         </Border>
-                                    </Panel>
-                                    <StackPanel Grid.Column="5" Orientation="Horizontal" Classes="wide" VerticalAlignment="Center" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).MulliganAllColumns}">
-                                        <TextBlock Text="{Binding MetaKeep}" Classes="num" Width="80" TextAlignment="Right" Foreground="{StaticResource Muted}" />
-                                        <TextBlock Text="{Binding MetaWinRate}" Classes="num" Width="76" TextAlignment="Right" Foreground="{StaticResource Muted}" />
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
+                                        <Panel Grid.Column="4" Classes="cell" Width="80" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).MulliganAllColumns}">
+                                            <Border Classes="markCell" Classes.best="{Binding ReplacedBest}" Classes.worst="{Binding ReplacedWorst}">
+                                                <TextBlock Text="{Binding ReplacedWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding ReplacedSign, Converter={StaticResource SignBrush}}" />
+                                            </Border>
+                                        </Panel>
+                                        <StackPanel Grid.Column="5" Orientation="Horizontal" Classes="wide" VerticalAlignment="Center" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).MulliganAllColumns}">
+                                            <TextBlock Text="{Binding MetaKeep}" Classes="num" Width="80" TextAlignment="Right" Foreground="{StaticResource Muted}" />
+                                            <TextBlock Text="{Binding MetaWinRate}" Classes="num" Width="76" TextAlignment="Right" Foreground="{StaticResource Muted}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -701,22 +707,24 @@
                 <ItemsControl ItemsSource="{Binding PerformanceRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="d:DeckCardStatRow">
-                            <Border Classes="row" Padding="8,8" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}">
-                                <Grid ColumnDefinitions="*,60,80,Auto,Auto,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewDrawn}">
-                                    <ContentControl Classes="cardCell" Content="{Binding}" ContentTemplate="{StaticResource CardCell}" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Drawn}" Classes="num cell" />
-                                    <Border Grid.Column="2" Classes="markCell cell" Classes.best="{Binding DrawnBest}" Classes.worst="{Binding DrawnWorst}">
-                                        <TextBlock Text="{Binding DrawnWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding DrawnSign, Converter={StaticResource SignBrush}}" />
-                                    </Border>
-                                    <TextBlock Grid.Column="3" Text="{Binding Played}" Classes="num cell" Width="60" TextAlignment="Right" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).CardsAllColumns}" />
-                                    <Panel Grid.Column="4" Classes="cell" Width="80" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).CardsAllColumns}">
-                                        <Border Classes="markCell" Classes.best="{Binding PlayedBest}" Classes.worst="{Binding PlayedWorst}">
-                                            <TextBlock Text="{Binding PlayedWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding PlayedSign, Converter={StaticResource SignBrush}}" />
+                            <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
+                                <Border Classes="row" Padding="8,8" c:CardPreview.CardId="{Binding CardId}">
+                                    <Grid ColumnDefinitions="*,60,80,Auto,Auto,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewDrawn}">
+                                        <ContentControl Classes="cardCell" Content="{Binding}" ContentTemplate="{StaticResource CardCell}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Drawn}" Classes="num cell" />
+                                        <Border Grid.Column="2" Classes="markCell cell" Classes.best="{Binding DrawnBest}" Classes.worst="{Binding DrawnWorst}">
+                                            <TextBlock Text="{Binding DrawnWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding DrawnSign, Converter={StaticResource SignBrush}}" />
                                         </Border>
-                                    </Panel>
-                                    <TextBlock Grid.Column="5" Text="{Binding AverageTurn}" Classes="num wide" Width="72" TextAlignment="Right" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).CardsAllColumns}" />
-                                </Grid>
-                            </Border>
+                                        <TextBlock Grid.Column="3" Text="{Binding Played}" Classes="num cell" Width="60" TextAlignment="Right" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).CardsAllColumns}" />
+                                        <Panel Grid.Column="4" Classes="cell" Width="80" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).CardsAllColumns}">
+                                            <Border Classes="markCell" Classes.best="{Binding PlayedBest}" Classes.worst="{Binding PlayedWorst}">
+                                                <TextBlock Text="{Binding PlayedWinRate}" Classes="num" FontWeight="Bold" Foreground="{Binding PlayedSign, Converter={StaticResource SignBrush}}" />
+                                            </Border>
+                                        </Panel>
+                                        <TextBlock Grid.Column="5" Text="{Binding AverageTurn}" Classes="num wide" Width="72" TextAlignment="Right" IsVisible="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).CardsAllColumns}" />
+                                    </Grid>
+                                </Border>
+                            </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

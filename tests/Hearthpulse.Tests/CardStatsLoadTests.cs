@@ -175,6 +175,43 @@ public sealed class CardStatsLoadTests : IDisposable
     }
 
     [Fact]
+    public async Task A_server_that_does_not_answer_in_time_ends_the_load_with_nothing_or_with_the_old_copy()
+    {
+        // The Wild list is 4 MB: on a slow line the 20-second limit can pass before it is in.
+        var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        var slow = new Server { Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) }
+            .Route("datasets/hsreplay_cards_wild_legend_14d", Fixture("cards-wild.json"));
+        var data = new HearthpulseData(new HearthpulseApi(new HttpClient(slow), "https://api.test/") { Time = time }, _cache);
+
+        var load = data.LoadCardStatsAsync("wild");
+        await slow.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.False(load.IsCompleted);
+        time.Advance(HearthpulseApi.Timeout);
+
+        // The load ends by itself: nothing to show, nothing remembered, so the next try asks again.
+        Assert.Null(await load.WaitAsync(TimeSpan.FromSeconds(30)));
+        var file = Path.Combine(_cache, "card-stats-wild.json");
+        Assert.False(File.Exists(file));
+
+        // With a copy from an earlier day the same timeout serves that copy, under its own date.
+        var fresh = await Data(new Server().Route("datasets/hsreplay_cards_wild_legend_14d", Fixture("cards-wild.json"))).LoadCardStatsAsync("wild");
+        File.SetLastWriteTimeUtc(file, DateTime.UtcNow - HearthpulseData.MaxAge - TimeSpan.FromHours(30));
+        var slowAgain = new Server { Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) }
+            .Route("datasets/hsreplay_cards_wild_legend_14d", Fixture("cards-wild.json"));
+        var again = new HearthpulseData(new HearthpulseApi(new HttpClient(slowAgain), "https://api.test/") { Time = time }, _cache).LoadCardStatsAsync("wild");
+        await slowAgain.Waiting.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        time.Advance(HearthpulseApi.Timeout);
+        var stale = await again.WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.NotNull(stale);
+        Assert.Equal(fresh!.FetchedAt, stale.FetchedAt);
+        Assert.Equal(fresh.Find("CORE_EX1_145", 0), stale.Find("CORE_EX1_145", 0));
+        Assert.Empty(Directory.GetFiles(_cache, "*.tmp"));
+        slow.Hold!.TrySetResult();
+        slowAgain.Hold!.TrySetResult();
+    }
+
+    [Fact]
     public async Task An_answer_of_another_shape_is_an_empty_list_not_an_exception()
     {
         var server = new Server().Route("datasets/hsreplay_cards_legend_included_popularity",

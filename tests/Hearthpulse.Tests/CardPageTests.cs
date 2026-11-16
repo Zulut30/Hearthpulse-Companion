@@ -183,6 +183,8 @@ public sealed class CardPageTests
     [InlineData("Возьмите 1 |4(карту,карты,карт), 3 |4(карту,карты,карт), 5 |4(карту,карты,карт), 11 |4(карту,карты,карт), 21 |4(карту,карты,карт).", "ruRU",
         "Возьмите 1 карту, 3 карты, 5 карт, 11 карт, 21 карту.")]
     [InlineData("Play 3 cards. <i>(@ left!)</i>", "enUS", "Play 3 cards.")]
+    [InlineData("[x]<b>Боевой клич:</b>&\n заклинания противника\nна следующем ходу\nстоят на (1) больше.", "ruRU", "Боевой клич: заклинания противника на следующем ходу стоят на (1) больше.")]
+    [InlineData("{0} Deal 2 damage. {1}", "enUS", "Deal 2 damage.")]
     [InlineData("", "enUS", "")]
     [InlineData(null, "enUS", "")]
     public void Card_text_is_plain(string? text, string locale, string expected) => Assert.Equal(expected, CardPages.PlainText(text, locale));

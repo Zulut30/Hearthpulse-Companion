@@ -45,7 +45,8 @@ visibility (`<pg:OverviewPage x:Name="PageOverview" />`, `<st:TrackerSettings x:
   (`Grid.historyPage`); `MainWindowLookTests` checks this.
 - The Arena, Deck, Card, Match and Settings pages are still `ScrollViewer`s in the window. The card page (`PageCard`,
   `Main/Cards/CardPageView`, `docs/card-page.md`) stands over the Constructed and deck pages while `MainViewModel.CardOpen`;
-  a card row opens it by setting `c:CardLink.CardId="{Binding CardId}"`.
+  a card row opens it as a button (WPF `CardRowButton`, Avalonia `bare`) with `c:CardLink.CardId="{Binding CardId}"` and
+  `c:CardLink.CardName="{Binding Name}"`.
 The common view model lives once in `src/Hearthpulse.Presentation/Main/MainViewModel*.cs`; deck and match models
 are in its `Main/Decks` and `Main/Match` subdirectories. Its `.projitems` compiles those sources into each existing
 UI assembly with the original namespaces, so XAML type names stay unchanged. See

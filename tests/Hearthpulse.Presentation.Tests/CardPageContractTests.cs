@@ -137,18 +137,57 @@ public sealed class CardPageContractTests
             var pageCard = (ScrollViewer)window.FindName("PageCard");
             Assert.Equal(Visibility.Collapsed, pageCard.Visibility);
 
-            // A row as the deck page and the mulligan guide build theirs, somewhere in the window.
-            var row = new Border();
-            var empty = new Border();
+            // Rows as the deck page and the mulligan guide build theirs: a chromeless button around the row, in a list.
+            var style = (Style)window.FindResource("CardRowButton");
+            Button Row(string id, string name)
+            {
+                var button = new Button { Style = style, Content = new TextBlock { Text = name } };
+                WpfLink.SetCardId(button, id);
+                WpfLink.SetCardName(button, name);
+                return button;
+            }
+
+            var list = new ItemsControl { VerticalAlignment = VerticalAlignment.Top };
+            Button[] rows = [Row("T_FILL", "Наполнитель"), Row("T_LONG", "Ксавий"), Row("T_FILL", "Наполнитель")];
+            foreach (var button in rows)
+            {
+                list.Items.Add(button);
+            }
+
+            var empty = new Button { Style = style, Content = "no card" };
             var host = (Panel)pageCard.Parent;
-            host.Children.Add(row);
+            host.Children.Add(list);
             host.Children.Add(empty);
-            WpfLink.SetCardId(row, "T_LONG");
-            Assert.Same(System.Windows.Input.Cursors.Hand, row.Cursor);
+            Pump();
+            window.UpdateLayout();
+
+            // A screen reader hears the action and the card; the keyboard reaches the row and sees where it is.
+            Assert.Equal(Loc.F("Card.OpenName", "Наполнитель"), System.Windows.Automation.AutomationProperties.GetName(rows[0]));
+            Assert.Equal("Открыть страницу карты Наполнитель", System.Windows.Automation.AutomationProperties.GetName(rows[0]));
+            Assert.Equal(string.Empty, System.Windows.Automation.AutomationProperties.GetName(empty));
+            Assert.All(rows, r => Assert.True(r.Focusable && r.IsTabStop));
+            Assert.Same(window.FindResource("FocusRingRow"), rows[0].FocusVisualStyle);
+            Assert.Same(System.Windows.Input.Cursors.Hand, rows[0].Cursor);
+            // The list is one Tab stop; Down and Up move between its rows and stop at the ends.
+            Assert.Equal(System.Windows.Input.KeyboardNavigationMode.Once, System.Windows.Input.KeyboardNavigation.GetTabNavigation(list));
+            void Press(Button on, System.Windows.Input.Key key, RoutedEvent routed) => on.RaiseEvent(
+                new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(on)!, 0, key) { RoutedEvent = routed });
+            rows[0].Focus();
+            Press(rows[0], System.Windows.Input.Key.Up, UIElement.PreviewKeyDownEvent);
+            Assert.True(rows[0].IsFocused);
+            Press(rows[0], System.Windows.Input.Key.Down, UIElement.PreviewKeyDownEvent);
+            Assert.True(rows[1].IsFocused);
+            Press(rows[1], System.Windows.Input.Key.Down, UIElement.PreviewKeyDownEvent);
+            Press(rows[2], System.Windows.Input.Key.Down, UIElement.PreviewKeyDownEvent);
+            Assert.True(rows[2].IsFocused);
+            Press(rows[2], System.Windows.Input.Key.Up, UIElement.PreviewKeyDownEvent);
+            Assert.True(rows[1].IsFocused);
+
             Assert.False(WpfLink.Open(empty));
             Assert.False(model.CardOpen);
 
-            Assert.True(WpfLink.Open(row));
+            // Enter on the focused row opens its card's page.
+            Press(rows[1], System.Windows.Input.Key.Enter, UIElement.KeyDownEvent);
             var until = System.Diagnostics.Stopwatch.StartNew();
             while (model.CardPage.Loading && until.Elapsed < TimeSpan.FromSeconds(30))
             {
