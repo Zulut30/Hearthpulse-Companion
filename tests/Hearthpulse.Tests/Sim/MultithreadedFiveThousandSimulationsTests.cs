@@ -70,7 +70,24 @@ public sealed class MultithreadedFiveThousandSimulationsTests(ITestOutputHelper 
 
         var clock = Stopwatch.StartNew();
 
-        Parallel.For(0, totalSimulations, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, i =>
+        // Threads of the test's own, not Parallel.For: that one runs on the thread pool every other test class shares,
+        // and with a worker per core busy simulating (about 20 s under coverage on a 4-core runner) a view model's
+        // Task.Run in a test running beside it waited 3-7 s for a thread, and ArenaPageKindTests timed out in CI.
+        var next = -1;
+        var workers = Enumerable.Range(0, Environment.ProcessorCount)
+            .Select(_ => new Thread(() =>
+            {
+                for (var i = Interlocked.Increment(ref next); i < totalSimulations; i = Interlocked.Increment(ref next))
+                {
+                    Simulate(i);
+                }
+            })
+            { IsBackground = true, Name = "five-thousand-simulations" })
+            .ToList();
+        workers.ForEach(w => w.Start());
+        workers.ForEach(w => w.Join());
+
+        void Simulate(int i)
         {
             try
             {
@@ -125,7 +142,7 @@ public sealed class MultithreadedFiveThousandSimulationsTests(ITestOutputHelper 
             {
                 errors.Add($"[#{i}] Exception thrown during simulation: {ex.Message}\n{ex.StackTrace}");
             }
-        });
+        }
 
         clock.Stop();
 
