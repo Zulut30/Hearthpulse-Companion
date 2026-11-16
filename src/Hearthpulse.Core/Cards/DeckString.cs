@@ -5,6 +5,15 @@ namespace Hearthpulse.Core.Cards;
 public sealed record DeckDefinition(string Name, long DeckId, string Code, string Format, IReadOnlyList<int> HeroDbfIds, IReadOnlyDictionary<int, int> Cards)
 {
     public int CardCount => Cards.Values.Sum();
+
+    /// <summary>
+    /// The cards of the code's sideboards (E.T.C.'s band, Zilliax's modules), copies by DBF id over all owners; empty
+    /// for a code without one. Not part of <see cref="Cards"/> or <see cref="CardCount"/>.
+    /// </summary>
+    public IReadOnlyDictionary<int, int> Sideboard { get; init; } = new Dictionary<int, int>();
+
+    /// <summary>The code says it has sideboards, but they could not be read: <see cref="Sideboard"/> is not the whole of them.</summary>
+    public bool SideboardUnread { get; init; }
 }
 
 /// <summary>Decoder for Blizzard deck codes (base64 varint stream).</summary>
@@ -48,7 +57,8 @@ public static class DeckString
                 }
             }
 
-            return new DeckDefinition(name, deckId, code.Trim(), format, heroes, cards);
+            var sideboardUnread = !TryReadSideboard(bytes, position, out var sideboard);
+            return new DeckDefinition(name, deckId, code.Trim(), format, heroes, cards) { Sideboard = sideboard, SideboardUnread = sideboardUnread };
         }
         catch (Exception ex) when (ex is FormatException or IndexOutOfRangeException)
         {
@@ -130,6 +140,46 @@ public static class DeckString
 
         Write(0);
         return Convert.ToBase64String(bytes.ToArray());
+    }
+
+    /// <summary>
+    /// The optional tail of a code: a flag, then the sideboard cards in the same three groups as the deck's, each card
+    /// followed by the DBF id of the card that owns the sideboard. False when the flag is set and the tail is cut short.
+    /// </summary>
+    private static bool TryReadSideboard(byte[] bytes, int position, out Dictionary<int, int> sideboard)
+    {
+        sideboard = [];
+        try
+        {
+            if (position >= bytes.Length)
+            {
+                return true;
+            }
+
+            var flag = ReadVarint(bytes, ref position);
+            if (flag == 0) return true;
+            if (flag != 1) return false;
+
+            for (var copies = 1; copies <= 3; copies++)
+            {
+                var count = ReadVarint(bytes, ref position);
+                if (count < 0) return false;
+                for (var i = 0; i < count; i++)
+                {
+                    var dbf = ReadVarint(bytes, ref position);
+                    var n = copies == 3 ? ReadVarint(bytes, ref position) : copies;
+                    if (n <= 0) return false;
+                    _ = ReadVarint(bytes, ref position); // the owner
+                    sideboard[dbf] = sideboard.GetValueOrDefault(dbf) + n;
+                }
+            }
+
+            return true;
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return false;
+        }
     }
 
     private static int ReadVarint(byte[] data, ref int position)

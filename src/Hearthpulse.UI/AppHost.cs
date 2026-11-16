@@ -111,6 +111,7 @@ public sealed partial class AppHost : IDisposable
             _services.SourceCaptures.ApplySettingsAsync(explicitEnable: on).Forget("Source capture settings");
         };
         _services.SourceCaptures.StateChanged += state => Dispatcher.UIThread.Post(() => Main.UpdateSourceCaptureState(state));
+        _services.GameStats.StateChanged += state => Dispatcher.UIThread.Post(() => Main.UpdateGameStatsState(state));
         Main.PoolSharingChanged += () =>
         {
             _settingsDebounce.Kick();

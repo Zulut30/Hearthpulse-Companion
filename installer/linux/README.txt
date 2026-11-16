@@ -24,7 +24,9 @@ somewhere unusual, set "HearthstonePath" in ~/.local/share/Hearthpulse/settings.
 OVERLAY
 The in-game overlay works on X11 and on Wayland desktops through XWayland (the
 default for Wine games). Your rating and the lobby tribes are read from game
-memory on Windows only; on Linux those values stay empty.
+memory on Windows only; on Linux those values stay empty. Reading your own
+card collection and Arcane Dust balance from memory is also Windows-only;
+Linux does not read them.
 
 Community stats: Hearthpulse data (api.kolodahearthstone.com; the Battlegrounds tier tabs read the site's open
 statistics service, bg.hs-manacost.ru: that server sees your IP address and the time of the request, and gets no

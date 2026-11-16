@@ -51,6 +51,12 @@ Core folders:
 - `Memory/` - read-only access to the Hearthstone process: `ProcessMemory`, `MonoRuntime`, `MonoOffsets`,
   `HearthstoneMemory` (BG rating solo/duos, ranks, lobby tribes, BG button costs). Windows only
   (`HearthstoneMemory.IsSupported`). Never write to game memory.
+- `Collection/` - the player's collection (`docs/collection.md`): `CardCollection` (copies by card id, dust, read
+  time, `Confirmed` = read from the client running now), `CollectionStore` (`collection.json`), `DeckCost.For` (one
+  `DeckBuild` state, missing cards, dust; printings joined only by HearthstoneJSON `countAsCopyOfDbfId`,
+  `CardDb.Printings`), `CollectionWatch` (when `MemoryPoller` reads it: once per client session and around the
+  collection screen). Read by `Memory/HearthstoneMemory.Collection.cs`; `GameSession.Collection` /
+  `CollectionChanged`. Core only, no UI yet.
 - `Hearthstone/HearthstoneInstall.cs` - install/log folder discovery per OS; `LogConfig.EnsureAll` writes the needed
   `log.config` sections; `ClientConfig` sets `Log.FileSizeLimit.Int=-1` in `client.config`.
 - `Cards/` - `CardDb` (HearthstoneJSON `https://api.hearthstonejson.com/v1/latest/{locale}/cards.json`, cached in
@@ -153,7 +159,8 @@ the normal simulation options and cancellation). Read `BattlegroundsTracker.Comb
 - Contents: `settings.json`, `history.db`, `account.dat` (signed-in session; never copy it into scratch data),
   `updates/` (staged update), `hearthpulse.log` (`Diag.Info/Debug/Error`, rotated at 4 MB to
   `.old.log`), `cache/` (card JSON, meta), `cache/images/`, `replays/`, `combat-captures/` (each Battlegrounds game's
-  fights as the simulator got them, `Tracking/CombatCaptureStore`; local only, never sent; `docs/bg-combat-sim.md`).
+  fights as the simulator got them, `Tracking/CombatCaptureStore`; local only, never sent; `docs/bg-combat-sim.md`),
+  `collection.json` (the collection read from the client, `Collection/CollectionStore`; local only, never sent).
 
 ## Conventions
 

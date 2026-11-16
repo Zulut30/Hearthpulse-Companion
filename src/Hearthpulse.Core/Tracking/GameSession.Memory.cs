@@ -29,13 +29,15 @@ public sealed partial class GameSession
             WantRanks: inGame && game!.IsConstructedLike && !_ranksRead && game.Turn >= 1,
             _awaitingRatingKey,
             WantDraftChoices: WantDraftChoices,
-            WantLobbyNames: battlegrounds && WantLobbyNames);
+            WantLobbyNames: battlegrounds && WantLobbyNames,
+            CollectionTicket: CollectionTicket(inGame));
     }
 
     /// <summary>Applies a memory reading on the tracking thread. Values read for an earlier game are dropped.</summary>
     private void ApplyMemory(MemoryReading reading)
     {
         ApplyArenaMemory(reading);
+        ApplyCollectionMemory(reading);
         var request = reading.Request;
         if (_awaitingRatingKey is not null && request.AwaitingRatingKey == _awaitingRatingKey)
         {

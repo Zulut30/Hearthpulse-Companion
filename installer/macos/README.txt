@@ -21,7 +21,8 @@ Hearthpulse turns on the log sections it needs in
 ~/Library/Preferences/Blizzard/Hearthstone/log.config. Restart Hearthstone once
 afterwards. The overlay floats over the game, including in full screen.
 Your rating and the lobby tribes are read from game memory on Windows only; on Mac
-those values stay empty.
+those values stay empty. Reading your own card collection and Arcane Dust balance
+from memory is also Windows-only; macOS does not read them.
 
 Community stats: Hearthpulse data (api.kolodahearthstone.com; the Battlegrounds tier tabs read the site's open
 statistics service, bg.hs-manacost.ru: that server sees your IP address and the time of the request, and gets no

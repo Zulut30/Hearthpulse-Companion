@@ -37,7 +37,7 @@ public sealed class CardDbParseTests(ITestOutputHelper output)
                "runeCost": {"blood": "1", "frost": 2.5, "unholy": 1}, "extra": {"deep": [{"x": 1}]}, "techLevel": 3,
                "isBattlegroundsPoolMinion": true, "isBattlegroundsPoolSpell": false, "battlegroundsHero": 1,
                "isBattlegroundsDuosExclusive": true, "battlegroundsPremiumDbfId": 5, "battlegroundsNormalDbfId": 6,
-               "battlegroundsSkinParentId": 7},
+               "battlegroundsSkinParentId": 7, "countAsCopyOfDbfId": 8, "howToEarn": "Unlocked somewhere."},
               {"dbfId": 9, "name": "no id"},
               {"id": "", "name": "empty id"},
               {"id": 12},
@@ -242,6 +242,8 @@ public sealed class CardDbParseTests(ITestOutputHelper output)
                 BattlegroundsPremiumDbfId = Int(e, "battlegroundsPremiumDbfId"),
                 BattlegroundsNormalDbfId = Int(e, "battlegroundsNormalDbfId"),
                 BattlegroundsSkinParentId = Int(e, "battlegroundsSkinParentId"),
+                CountAsCopyOfDbfId = Int(e, "countAsCopyOfDbfId"),
+                HasHowToEarn = Str(e, "howToEarn").Length > 0,
             });
         }
 

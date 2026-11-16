@@ -225,10 +225,21 @@ public sealed partial class AppSettings
     /// </summary>
     public bool GameStatsNoticeShown { get; set; }
 
+    /// <summary>
+    /// Version of the one-time notice (<see cref="Pool.PoolClient.NoticeVersion"/>) the player saw for game records:
+    /// set when the notice is answered, or when the switch is turned on in Settings, where the same text is shown.
+    /// <see cref="GameStatsNoticeShown"/> alone says only that some earlier notice was shown, possibly one that named
+    /// another pool; what counts is <see cref="GameStats.GameStatsClient.NoticeSeen"/>.
+    /// </summary>
+    public int GameStatsNoticeVersion { get; set; }
+
     /// <summary>Version of the source capture notice actually shown; legacy GameStats notice never authorizes source.</summary>
     public int SourceCaptureNoticeVersion { get; set; }
 
-    /// <summary>Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own.</summary>
+    /// <summary>
+    /// Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own. A value that is not an
+    /// https address (for example "off") leaves the app without a pool: nothing is sent and nothing is read from it.
+    /// </summary>
     public string? PoolEndpoint { get; set; }
 
     // One bool per option of the two choices above, for the settings page's segmented radio buttons. Setting false is

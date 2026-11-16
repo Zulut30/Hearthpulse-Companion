@@ -38,6 +38,12 @@ public static class AppPaths
     public static string CombatCaptures => Path.Combine(Root, "combat-captures");
 
     /// <summary>
+    /// The player's card collection as last read from the game client (<c>Collection/CollectionStore</c>,
+    /// docs/collection.md); local only, never sent; created on the first read.
+    /// </summary>
+    public static string Collection => Path.Combine(Root, "collection.json");
+
+    /// <summary>
     /// Saved and imported replays (<c>Replay/ReplayLibrary</c>, <c>docs/replay-library.md</c>): Documents\Hearthpulse\Replays,
     /// outside the data folder so that its clean-up, updates and uninstalling never touch them. With HEARTHPULSE_DATA,
     /// in a portable copy or without a Documents folder: <c>&lt;data&gt;\library</c>. Created on the first save.

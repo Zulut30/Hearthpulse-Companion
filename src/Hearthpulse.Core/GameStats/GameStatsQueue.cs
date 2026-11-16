@@ -7,7 +7,8 @@ namespace Hearthpulse.Core.GameStats;
 /// Game records waiting to be sent: one small file per record in the data folder (<c>game-stats/</c>), so a record
 /// survives a restart or a day offline. Bounded: at most <see cref="MaxRecords"/> records, <see cref="MaxBytes"/> in
 /// all and <see cref="MaxAge"/> old; past a bound the oldest go first. A <c>forget</c> file marks a deletion request
-/// the pool has not confirmed yet.
+/// the pool has not confirmed yet. A queue belongs to one pool address (<see cref="Destination"/>, written beside the
+/// records in the <c>destination</c> file): <see cref="GameStatsQueues"/> keeps one folder per address.
 /// </summary>
 public sealed class GameStatsQueue
 {
@@ -17,11 +18,38 @@ public sealed class GameStatsQueue
 
     public static readonly TimeSpan MaxAge = TimeSpan.FromDays(14);
 
-    private const string ForgetFile = "forget";
-    private readonly string _folder;
-    private readonly Lock _lock = new();
+    internal const string ForgetFile = "forget";
 
-    public GameStatsQueue(string folder) => _folder = folder;
+    /// <summary>The file naming the pool this queue is for; without a <c>.json</c> ending, so it is never read as a record.</summary>
+    internal const string DestinationFile = "destination";
+
+    /// <summary>
+    /// The mark that a batch was handed to this queue's pool (written before the first request, kept until the pool
+    /// confirmed a deletion). Only a queue with it asks its pool to delete: a refusal before anything was sent makes no
+    /// request at all. Local metadata, like the destination.
+    /// </summary>
+    internal const string SentFile = "sent";
+
+    private readonly string _folder;
+    private readonly Lock _lock;
+
+    public GameStatsQueue(string folder)
+        : this(folder, null, new Lock())
+    {
+    }
+
+    internal GameStatsQueue(string folder, string? destination, Lock gate)
+    {
+        _folder = folder;
+        Destination = destination;
+        _lock = gate;
+    }
+
+    /// <summary>
+    /// The pool address (<see cref="Pool.PoolDestination"/>) these records and the deletion request were queued for,
+    /// and the only one they are sent to. Null for a bare folder that <see cref="GameStatsQueues"/> does not manage.
+    /// </summary>
+    public string? Destination { get; }
 
     /// <summary>UTC clock; tests move it.</summary>
     internal Func<DateTime> UtcNow { get; init; } = () => DateTime.UtcNow;
@@ -50,7 +78,7 @@ public sealed class GameStatsQueue
 
         lock (_lock)
         {
-            Directory.CreateDirectory(_folder);
+            EnsureFolder();
             var path = Path.Combine(_folder, id + ".json");
             var temp = path + ".tmp";
             File.WriteAllText(temp, record.ToJsonString());
@@ -121,17 +149,74 @@ public sealed class GameStatsQueue
 
             if (forget)
             {
-                Directory.CreateDirectory(_folder);
+                EnsureFolder();
                 File.WriteAllText(Path.Combine(_folder, ForgetFile), string.Empty);
             }
         }
     }
 
-    /// <summary>The pool confirmed the deletion.</summary>
-    public void Forgotten() => TryDelete(Path.Combine(_folder, ForgetFile));
+    /// <summary>The folder, with the destination written before the first record: a record never lies there unaddressed.</summary>
+    private void EnsureFolder()
+    {
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, DestinationFile);
+        if (Destination is null || File.Exists(path))
+        {
+            return;
+        }
 
-    private List<FileInfo> Files() =>
-        Directory.Exists(_folder) ? new DirectoryInfo(_folder).GetFiles("*.json").ToList() : [];
+        var temp = path + ".tmp";
+        File.WriteAllText(temp, new JsonObject { ["v"] = 1, ["endpoint"] = Destination }.ToJsonString());
+        File.Move(temp, path, overwrite: true);
+    }
+
+    /// <summary>The pool confirmed the deletion: nothing of this install is left there, so the queue counts as unused again.</summary>
+    public void Forgotten()
+    {
+        lock (_lock)
+        {
+            TryDelete(Path.Combine(_folder, ForgetFile));
+            TryDelete(Path.Combine(_folder, SentFile));
+        }
+    }
+
+    /// <summary>Whether something was handed to this queue's pool since its last confirmed deletion.</summary>
+    public bool Used => File.Exists(Path.Combine(_folder, SentFile));
+
+    /// <summary>Called before a batch leaves: from here on a refusal has something to delete at this pool.</summary>
+    public void MarkUsed()
+    {
+        lock (_lock)
+        {
+            if (!Used)
+            {
+                EnsureFolder();
+                File.WriteAllText(Path.Combine(_folder, SentFile), string.Empty);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The player turned sharing off: every waiting record goes, and a deletion request is marked only when this pool
+    /// may hold something (<see cref="Used"/>). Returns whether a request waits now.
+    /// </summary>
+    public bool Withdraw()
+    {
+        lock (_lock)
+        {
+            Clear(forget: Used);
+            return ForgetPending;
+        }
+    }
+
+    /// <summary>A deletion request that can no longer be made (the install id is gone) is dropped with its mark.</summary>
+    internal void DropForget() => Forgotten();
+
+    private List<FileInfo> Files() => RecordFiles(_folder);
+
+    /// <summary>The record files of a queue folder.</summary>
+    internal static List<FileInfo> RecordFiles(string folder) =>
+        Directory.Exists(folder) ? new DirectoryInfo(folder).GetFiles("*.json").ToList() : [];
 
     private void Trim()
     {

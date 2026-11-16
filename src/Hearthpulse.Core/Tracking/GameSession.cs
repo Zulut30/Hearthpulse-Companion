@@ -129,6 +129,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         // A history without a store of its own (tests) saves into the data folder's replays, as before.
         Replays = history.Replays ?? new ReplayStore(AppPaths.Replays);
         _memoryPoller = new MemoryPoller(memory);
+        CollectionWatch = new Hearthpulse.Core.Collection.CollectionWatch(new Hearthpulse.Core.Collection.CollectionStore(AppPaths.Collection));
         _turnClock = new TurnClock(() => _parser?.LastTimestamp);
         _history.Changed += () =>
         {

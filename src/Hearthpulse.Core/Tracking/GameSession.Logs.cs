@@ -63,6 +63,8 @@ public sealed partial class GameSession
         _parser.AddListener(_turnClock);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
+        // A new log folder is a new run of the client: what is known of the collection is of the run before.
+        _collectionWatch.ClientStarted();
         _arenaDraft.Reset();
         _dirty = true;
         Diag.Info($"Log session {Path.GetFileName(sessionDir)} (mid-session: {attachedMidSession})");
@@ -228,6 +230,15 @@ public sealed partial class GameSession
             if (running != _hearthstoneRunning)
             {
                 _hearthstoneRunning = running;
+                if (running)
+                {
+                    _collectionWatch.ClientStarted();
+                }
+                else
+                {
+                    _collectionWatch.ClientStopped();
+                }
+
                 _hearthstoneStoppedAt = running ? DateTime.MinValue : now;
                 _dirty = true;
             }
@@ -251,6 +262,8 @@ public sealed partial class GameSession
             }
         }
 
+        _collectionWatch.Start();
+        _collectionWatch.Tick(now);
         // The memory is read on its own thread; this thread only says what it needs and applies what came back.
         _memoryPoller.Post(_hearthstoneRunning && ReadsMemory ? BuildMemoryRequest() : null);
         if (_memoryPoller.Take() is { } reading)
@@ -303,6 +316,8 @@ public sealed partial class GameSession
         if (match.Success)
         {
             if (_scene == "DRAFT" && match.Groups["mode"].Value != "DRAFT") CaptureUnpickedDraftOffer();
+            // Old lines replayed at start-up are no visit to the collection now.
+            if (!_catchingUp) _collectionWatch.SceneChanged(_scene, match.Groups["mode"].Value);
             _scene = match.Groups["mode"].Value;
         }
     }

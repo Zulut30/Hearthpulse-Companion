@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Hearthpulse.Core.Collection;
 using Hearthpulse.Core.Memory;
 
 namespace Hearthpulse.Core.Tracking;
@@ -13,7 +14,8 @@ internal sealed record MemoryRequest(
     bool WantRanks,
     string? AwaitingRatingKey,
     bool WantDraftChoices = false,
-    bool WantLobbyNames = false);
+    bool WantLobbyNames = false,
+    int CollectionTicket = 0);
 
 /// <summary>What one memory scan found; null where nothing was read.</summary>
 internal sealed record MemoryReading(
@@ -24,7 +26,8 @@ internal sealed record MemoryReading(
     BattlegroundsButtonCosts? ButtonCosts,
     (MatchPlayerInfo? Local, MatchPlayerInfo? Opponent)? Players,
     Arena.ArenaDraftOffer? DraftChoices = null,
-    IReadOnlyDictionary<int, string>? LobbyNames = null);
+    IReadOnlyDictionary<int, string>? LobbyNames = null,
+    CardCollection? Collection = null);
 
 /// <summary>
 /// Reads the game's memory on its own thread. A scan can take seconds on a slow PC, or when a security tool inspects
@@ -38,6 +41,7 @@ internal sealed class MemoryPoller
     private MemoryRequest? _request;
     private MemoryReading? _reading;
     private Thread? _thread;
+    private TimeSpan _collectionTime;
 
     public MemoryPoller(HearthstoneMemory memory)
     {
@@ -82,7 +86,9 @@ internal sealed class MemoryPoller
                     Diag.Error("Memory scan failed", ex);
                 }
 
-                var elapsed = Stopwatch.GetElapsedTime(started);
+                // The collection's read is long by nature and rare: it is no sign of a slow PC.
+                var elapsed = Stopwatch.GetElapsedTime(started) - _collectionTime;
+                _collectionTime = TimeSpan.Zero;
                 if (elapsed > TimeSpan.FromSeconds(1))
                 {
                     Diag.Info($"Memory scan took {elapsed.TotalMilliseconds:N0} ms; the next one waits longer");
@@ -115,6 +121,33 @@ internal sealed class MemoryPoller
             battlegroundsGame ? _memory.GetBattlegroundsButtonCosts() : null,
             request.InGame && request.WantRanks ? _memory.GetMatchPlayers() : null,
             request.WantDraftChoices ? _memory.GetArenaDraftChoices() : null,
-            battlegroundsGame && request.WantLobbyNames ? _memory.GetBattlegroundsLobbyNames() : null);
+            battlegroundsGame && request.WantLobbyNames ? _memory.GetBattlegroundsLobbyNames() : null,
+            ReadCollection(request));
     }
+
+    /// <summary>
+    /// The collection, read last (after the other values of this scan) and only while it is still wanted: the newest
+    /// request is looked at before the read and during it, so a game that began meanwhile stops it. The next scan
+    /// still waits for it, at most the read's 3 s budget (docs/collection.md).
+    /// </summary>
+    private CardCollection? ReadCollection(MemoryRequest request)
+    {
+        if (CollectionReadStale(request, Volatile.Read(ref _request)))
+        {
+            return null;
+        }
+
+        var started = Stopwatch.GetTimestamp();
+        var collection = _memory.GetCollection(() => CollectionReadStale(request, Volatile.Read(ref _request)));
+        _collectionTime = Stopwatch.GetElapsedTime(started);
+        return collection;
+    }
+
+    /// <summary>
+    /// Whether a collection read asked for by <paramref name="asked"/> should not run (or go on): it was not asked for,
+    /// the client is gone, a game is on, or the Arena draft screen opened since and its offer is waited for.
+    /// </summary>
+    internal static bool CollectionReadStale(MemoryRequest asked, MemoryRequest? newest) =>
+        asked.CollectionTicket == 0 || asked.InGame || newest is null || newest.InGame
+        || (newest.WantDraftChoices && !asked.WantDraftChoices);
 }

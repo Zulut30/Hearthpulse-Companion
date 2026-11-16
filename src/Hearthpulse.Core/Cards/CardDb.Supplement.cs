@@ -109,6 +109,8 @@ public sealed partial class CardDb
             Mechanics = mechanics,
             Runes = card.Runes,
             Collectible = card.Collectible,
+            CountAsCopyOfDbfId = card.CountAsCopyOfDbfId,
+            HasHowToEarn = card.HasHowToEarn,
             TechLevel = techLevel,
             IsBattlegroundsPoolMinion = poolMinion,
             IsBattlegroundsPoolSpell = poolSpell,

@@ -340,7 +340,10 @@ public sealed partial class HearthstoneMemory : IDisposable
     }
 
     /// <param name="quiet">A failed read does not change <see cref="Status"/> (frequent reads from another thread would make it flicker).</param>
-    private T? Safe<T>(Func<MonoRuntime, T?> read, bool quiet = false)
+    private T? Safe<T>(Func<MonoRuntime, T?> read, bool quiet = false) => Safe(read, quiet, ScanReadBudget, ScanTimeBudget);
+
+    /// <param name="maxReads">The scan's read budget; a read of a long list (the collection) needs more than a usual scan.</param>
+    private T? Safe<T>(Func<MonoRuntime, T?> read, bool quiet, int maxReads, TimeSpan maxTime)
     {
         if (!EnsureAttached())
         {
@@ -360,7 +363,7 @@ public sealed partial class HearthstoneMemory : IDisposable
 
         try
         {
-            using (ProcessMemory.Budget(ScanReadBudget, ScanTimeBudget))
+            using (ProcessMemory.Budget(maxReads, maxTime))
             {
                 var result = read(runtime);
                 if (!ProcessMemory.BudgetExhausted)

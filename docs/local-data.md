@@ -8,6 +8,7 @@ do yet.
 | `settings.json` | Held by another program (an antivirus scan, a cloud sync): read again for up to a second. Broken JSON: every readable setting is kept, the rest is the default, the original is copied to `settings.json.invalid` first (saving is paused while that copy fails). | `AppSettings.Load`, `ReadWithRetry`, `Salvage`, `PreserveUnreadable` |
 | `history.db` | Not a database (SQLite 26, or 11 "corrupt" on open): put aside as `history.db.broken-<UTC time>` with its journals, and a new history starts. | `HistoryStore` constructor |
 | `combat-captures/*.hpc` | Damaged, cut short, too large (16 MB unpacked) or of another version: passed over, never deleted or repaired; the measurement says which file it did not read. A save that fails (folder not writable, disk full) is logged and the game is recorded as usual. | `CombatCaptureStore.Read`, `Save` |
+| `collection.json` | Missing, cut short, not JSON, of another format version, out of bounds, or with a key that is not a card id or a card that is not three counts: "no collection yet"; the file is left as it is and replaced by the next read of the game client. A save that fails is logged and tried again a minute later; its temp file `collection.json.tmp` is removed after every save and at start-up. | `CollectionStore.Load`, `Save`, `CollectionWatch` |
 | `cache/api/*.json` | Younger than 6 hours but not JSON: deleted and asked for again once; when offline, an older readable answer stands in. | `HearthpulseData.FetchAsync` |
 
 ## Known limits
@@ -38,3 +39,11 @@ Besides settings, history, replays, the log and the cache, the data folder holds
   folder; there is no switch for it because nothing is sent. Limits: 500 games and 32 MB, the oldest games go
   first. The most recently saved game is kept even when it alone exceeds the byte limit; a temporary file left after a failed cleanup is not counted. A file is written whole under a temporary name and renamed, on a pool thread after the game is recorded.
   Deleting the folder loses nothing the app shows.
+- `collection.json` - the player's card collection as last read from the game client on Windows (`CollectionStore`,
+  [collection.md](collection.md)): copies by card id (plain, golden, other finishes), the arcane dust balance and the
+  time of the read. Local, it does not leave the machine: no code sends it (no upload, share, profile sync, game
+  record, source capture or crash report reads it), and there is no switch for it. That rests on reading the sources
+  and on a static check of names (`CollectionStoreTests`: a source file with a sending call must not name the
+  collection); a check of what goes over the wire comes with the UI package. There is no name, BattleTag, account id
+  or region in it, so a loaded file is shown as unconfirmed until the running client was read
+  ([collection.md](collection.md)). Deleting the file loses nothing: the next start of the game client writes it again.
