@@ -68,7 +68,7 @@
 
             <!-- A card that differs: "+2" / "−1" and its tile; the full card shows on hover -->
             <DataTemplate x:Key="DiffTile" DataType="{x:Type d:CardDiffRow}">
-                <Grid Height="28" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
+                <Grid Height="28" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="30" />
                         <ColumnDefinition Width="*" />
@@ -92,7 +92,7 @@
                  the cost gem at its left end, the name over the art, the copies (or the legendary star) on a dark pill and a
                  rarity-lit edge; legendary names in their rarity colour -->
             <DataTemplate x:Key="DeckListTile" DataType="{x:Type d:DeckListRow}">
-                <Grid Height="30" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
+                <Grid Height="30" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}">
                     <Border Background="{StaticResource Row}" CornerRadius="15" c:RoundClip.Radius="15">
                         <Grid>
                             <Grid Width="180" HorizontalAlignment="Right">
@@ -745,7 +745,7 @@
                 <ItemsControl ItemsSource="{Binding MulliganRows}" ItemsPanel="{StaticResource PageRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type d:DeckCardStatRow}">
-                            <Border Style="{StaticResource StatsRow}" c:CardPreview.CardId="{Binding CardId}">
+                            <Border Style="{StaticResource StatsRow}" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}">
                                 <Grid x:Name="Row">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -836,7 +836,7 @@
                 <ItemsControl ItemsSource="{Binding PerformanceRows}" ItemsPanel="{StaticResource PageRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type d:DeckCardStatRow}">
-                            <Border Style="{StaticResource StatsRow}" c:CardPreview.CardId="{Binding CardId}">
+                            <Border Style="{StaticResource StatsRow}" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}">
                                 <Grid x:Name="Row">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />

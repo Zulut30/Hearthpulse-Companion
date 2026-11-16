@@ -40,6 +40,12 @@ public partial class MainView : UserControl
         SettingsAccount.CopyAccountCodeClicked += e => OnCopyAccountCode(SettingsAccount, e);
         SettingsData.ReimportClicked += e => OnReimport(SettingsData, e);
         SettingsData.OpenDataClicked += e => OnOpenData(SettingsData, e);
+        // A card row was clicked (Controls.CardLink): its card page opens.
+        AddHandler(global::Hearthpulse.UI.Controls.CardLink.OpenEvent, (_, e) =>
+        {
+            _viewModel?.OpenCard.Execute(e.CardId);
+            e.Handled = true;
+        });
         _page = CurrentPage;
         var pages = PageButtons;
         for (var i = 0; i < pages.Length; i++)
@@ -315,6 +321,20 @@ public partial class MainView : UserControl
                 UpdatePages(_page);
                 PageDeck.Offset = default;
                 break;
+            case nameof(MainViewModel.CardOpen):
+                if (_viewModel.CardOpen && !ConstructedShown)
+                {
+                    ShowPage(ConstructedPage.PageOf(_viewModel.ConstructedFormat));
+                }
+
+                // Back from a card leaves the page under it where the player was reading.
+                UpdatePages(null);
+                if (_viewModel.CardOpen)
+                {
+                    PageCard.Offset = default;
+                }
+
+                break;
             case nameof(MainViewModel.ConstructedFormat):
                 // A deck opened on the other format's page moves the nav to its own (a Wild deck to Wild).
                 if (ConstructedShown)
@@ -348,14 +368,17 @@ public partial class MainView : UserControl
         PageBattlegrounds.IsVisible = NavBattlegrounds.IsChecked == true;
         // The deck page stands in for the Standard or Wild page while a deck is open (the nav stays on its format).
         var deckOpen = _viewModel?.DeckOpen == true;
-        PageConstructed.IsVisible = ConstructedShown && !deckOpen;
+        // The card page stands over both: Back returns to the page it was opened from.
+        var cardOpen = ConstructedShown && _viewModel?.CardOpen == true;
+        PageConstructed.IsVisible = ConstructedShown && !deckOpen && !cardOpen;
         if (PageConstructed.IsVisible)
         {
             // The meta tabs' fixed part (filters, card frames) is built ahead of the first click on one of them.
             PageConstructed.CtMeta.Prebuild();
         }
 
-        PageDeck.IsVisible = ConstructedShown && deckOpen;
+        PageDeck.IsVisible = ConstructedShown && deckOpen && !cardOpen;
+        PageCard.IsVisible = cardOpen;
         PageArena.IsVisible = NavArena.IsChecked == true;
         PageBrawl.IsVisible = NavBrawl.IsChecked == true;
         // The match page stands in for the History list while a game is open.
@@ -366,7 +389,7 @@ public partial class MainView : UserControl
         if (shown is not null)
         {
             // The page that opens fades in with a short rise, as in the WPF app (Motion.Reveal; instant with motion off).
-            Control[] pages = [PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageArena, PageBrawl, PageHistory, PageMatch, PageSettings];
+            Control[] pages = [PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageCard, PageArena, PageBrawl, PageHistory, PageMatch, PageSettings];
             if (pages.FirstOrDefault(p => p.IsVisible) is { } page)
             {
                 Motion.Reveal(page);

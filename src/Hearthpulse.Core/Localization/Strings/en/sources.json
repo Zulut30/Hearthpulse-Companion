@@ -29,6 +29,7 @@
   "Source.Health.Section.Arena": "Arena",
   "Source.Health.Section.Brawl": "Tavern Brawl",
   "Source.Health.Section.CardChoices": "Discover picks",
+  "Source.Health.Section.CardStats": "Card statistics",
   "Source.Health.Delay": "Data from {0:dd MMM HH:mm}: the update is delayed.",
   "Source.Health.DelayNoDate": "The update is delayed.",
   "Source.Health.Updated": "Hearthpulse data · updated {0:dd MMM HH:mm}",

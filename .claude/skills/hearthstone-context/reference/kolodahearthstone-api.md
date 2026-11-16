@@ -86,7 +86,7 @@ Per-minion `stats` takes `minion` = dbf id or card id, `mmr` (TOP_50_PERCENT, TO
 | `GET /v1/hsguru/class-matchups` (app: `LoadHsguruClassMatchupsAsync`) | `archetype`+`format` or `deck_id`; `rank`, `period`, `coin` | `data` {games, winrate, `rows[]` {opponent_class (lower case), winrate, games, share_pct}} |
 | `GET /v1/constructed/hsguru-deck` | `archetype`*, `format_name`=standard, `rank`=legend | `data[]` HSGuru builds {deck_code, win_rate, games, url, sample_period, sample_rank} |
 | `GET /api/hsreplay/archetypes` | `hl`=en | bare {count (778), `archetypes[]` {id, name, class, url, standard, wild}} - the whole HSReplay archetype dictionary |
-| `GET /api/db/cards/trends` | `card_name`*, `source_id`, `class_name`, `limit` | stored trend rows of one card |
+| `GET /api/db/cards/trends` | `card_name`*, `source_id`, `class_name`, `limit` | stored trend rows of one card (`popularity` per source and day, no win rate; keyed by the stored name, English and Russian apart; newest row seen 2026-08-07, so the card page does not use it: `docs/card-page.md`) |
 | `GET /v1/meta-intelligence/*` | `format`, `rank`, `period`, `patch` | archetypes, cards, signals, snapshots, budget. **401 without a token** (header `x-api-key` or Bearer) |
 
 ## Mulligan

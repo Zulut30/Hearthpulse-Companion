@@ -49,7 +49,7 @@ public sealed partial class LocBindingTests
             // The rows: one per section that has a source, with the model's own texts.
             var list = Named<ItemsControl>(view, "DataHealthList");
             var rows = list.GetVisualDescendants().OfType<Grid>().Where(g => g.DataContext is DataHealthRow).ToList();
-            Assert.Equal(12, rows.Count);
+            Assert.Equal(13, rows.Count);
             Assert.Equal(model.DataHealthRows, rows.Select(g => (DataHealthRow)g.DataContext!));
             foreach (var grid in rows)
             {

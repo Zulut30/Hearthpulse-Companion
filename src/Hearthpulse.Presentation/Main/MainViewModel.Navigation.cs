@@ -81,6 +81,11 @@ public sealed partial class MainViewModel
         {
             ShowConstructedFormat(ConstructedPage.FormatOf(page));
         }
+        else if (CardOpen)
+        {
+            // The card page lives on the Standard and Wild pages: leaving them lets go of it, as History does of a match.
+            CloseCard();
+        }
     }
 
     /// <summary>
@@ -92,6 +97,13 @@ public sealed partial class MainViewModel
         if (page == "History" && MatchOpen)
         {
             CloseMatch();
+            return true;
+        }
+
+        if (page is ConstructedPage.Standard or ConstructedPage.Wild && CardOpen)
+        {
+            // The card page goes first: under it is the deck page or the list it was opened from.
+            CloseCard();
             return true;
         }
 

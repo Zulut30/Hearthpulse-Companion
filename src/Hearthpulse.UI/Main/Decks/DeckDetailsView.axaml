@@ -31,7 +31,7 @@
                  the cost gem at its left end, the name over the art, the copies (or the legendary star) on a dark pill and a
                  rarity-lit edge; legendary names in their rarity colour -->
             <DataTemplate x:Key="DeckListTile" x:DataType="d:DeckListRow">
-                <Grid Height="30" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
+                <Grid Height="30" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}">
                     <Border Background="{StaticResource Row}" CornerRadius="15" ClipToBounds="True">
                         <Panel>
                             <Panel Width="180" HorizontalAlignment="Right">
@@ -69,7 +69,7 @@
 
             <!-- A card that differs: "+2" / "−1" and its tile; the full card shows on hover -->
             <DataTemplate x:Key="DiffTile" x:DataType="d:CardDiffRow">
-                <Grid Height="28" Margin="0,0,0,2" ColumnDefinitions="30,*" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
+                <Grid Height="28" Margin="0,0,0,2" ColumnDefinitions="30,*" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
                     <TextBlock Text="{Binding Count}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
                     <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="4" ClipToBounds="True">
@@ -648,7 +648,7 @@
                 <ItemsControl ItemsSource="{Binding MulliganRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="d:DeckCardStatRow">
-                            <Border Classes="row" Padding="8,8" c:CardPreview.CardId="{Binding CardId}">
+                            <Border Classes="row" Padding="8,8" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}">
                                 <Grid ColumnDefinitions="*,64,64,80,Auto,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewMulligan}">
                                     <ContentControl Classes="cardCell" Content="{Binding}" ContentTemplate="{StaticResource CardCell}" />
                                     <TextBlock Grid.Column="1" Text="{Binding Offered}" Classes="num cell" />
@@ -701,7 +701,7 @@
                 <ItemsControl ItemsSource="{Binding PerformanceRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="d:DeckCardStatRow">
-                            <Border Classes="row" Padding="8,8" c:CardPreview.CardId="{Binding CardId}">
+                            <Border Classes="row" Padding="8,8" c:CardPreview.CardId="{Binding CardId}" c:CardLink.CardId="{Binding CardId}">
                                 <Grid ColumnDefinitions="*,60,80,Auto,Auto,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewDrawn}">
                                     <ContentControl Classes="cardCell" Content="{Binding}" ContentTemplate="{StaticResource CardCell}" />
                                     <TextBlock Grid.Column="1" Text="{Binding Drawn}" Classes="num cell" />

@@ -251,9 +251,10 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
             {
                 // "meta" (periods, fetch time) is kept next to "data" when the endpoint sends it.
                 var data = shrink is null ? (object)result.Data : shrink(result.Data);
-                var text = result.Meta.ValueKind == JsonValueKind.Undefined
-                    ? JsonSerializer.Serialize(new { data })
-                    : JsonSerializer.Serialize(new { data, meta = result.Meta });
+                // A stored dataset has no "meta": its fetch time, written beside "data", is kept in one.
+                var text = result.Meta.ValueKind != JsonValueKind.Undefined ? JsonSerializer.Serialize(new { data, meta = result.Meta })
+                    : result.FetchedAt is { Length: > 0 } fetchedAt ? JsonSerializer.Serialize(new { data, meta = new { fetched_at = fetchedAt } })
+                    : JsonSerializer.Serialize(new { data });
                 // The whole answer is kept (not only "data"): some endpoints put their list next to it.
                 await WriteCacheAsync(file, text, cancellationToken).ConfigureAwait(false);
                 return JsonDocument.Parse(text);

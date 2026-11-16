@@ -292,7 +292,8 @@
                     <ItemsControl ItemsSource="{Binding Mulligan}" Focusable="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MulliganRow}">
-                                <Border Style="{StaticResource RowBorder}" Padding="8,4">
+                                <!-- A click opens the card's page (docs/card-page.md) -->
+                                <Border Style="{StaticResource RowBorder}" Padding="8,4" c:CardLink.CardId="{Binding CardId}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="36" />

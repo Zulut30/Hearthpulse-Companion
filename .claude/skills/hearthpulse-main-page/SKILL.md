@@ -43,7 +43,9 @@ visibility (`<pg:OverviewPage x:Name="PageOverview" />`, `<st:TrackerSettings x:
   event carries only the args: forwarding a foreign `sender` trips MA0091.
 - An Avalonia window style `Type#Name` matches only the window's own names. A page styles itself by a class
   (`Grid.historyPage`); `MainWindowLookTests` checks this.
-- The Arena, Deck, Match and Settings pages are still `ScrollViewer`s in the window.
+- The Arena, Deck, Card, Match and Settings pages are still `ScrollViewer`s in the window. The card page (`PageCard`,
+  `Main/Cards/CardPageView`, `docs/card-page.md`) stands over the Constructed and deck pages while `MainViewModel.CardOpen`;
+  a card row opens it by setting `c:CardLink.CardId="{Binding CardId}"`.
 The common view model lives once in `src/Hearthpulse.Presentation/Main/MainViewModel*.cs`; deck and match models
 are in its `Main/Decks` and `Main/Match` subdirectories. Its `.projitems` compiles those sources into each existing
 UI assembly with the original namespaces, so XAML type names stay unchanged. See

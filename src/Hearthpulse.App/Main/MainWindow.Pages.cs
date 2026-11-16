@@ -121,6 +121,21 @@ public partial class MainWindow
 
     private Decks.DeckDetailsView? _deck;
 
+    /// <summary>The card page view (used by the UI render check).</summary>
+    public Cards.CardPageView CardDetailsPage => _card ??= Fill(PageCard, new Cards.CardPageView(), nameof(MainViewModel.CardPage));
+
+    private Cards.CardPageView? _card;
+
+    /// <summary>True while the card page closes: the page under it keeps its scroll position.</summary>
+    private bool _cardClosing;
+
+    /// <summary>A card row was clicked (<see cref="Controls.CardLink"/>): its card page opens.</summary>
+    private void OnCardLink(object? sender, Controls.CardLinkEventArgs e)
+    {
+        _viewModel.OpenCard.Execute(e.CardId);
+        e.Handled = true;
+    }
+
     /// <summary>A page view built late, bound to its view model and placed in its scrolling page.</summary>
     private static T Fill<T>(ScrollViewer page, T view, string path) where T : FrameworkElement
     {

@@ -380,6 +380,10 @@
                     <!-- Its DeckDetailsView is built on the first open (MainWindow.DeckDetailsPage). -->
                     <ScrollViewer x:Name="PageDeck" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
 
+                    <!-- ===== Card page (Main/Cards): replaces the Constructed or deck page while a card is open ===== -->
+                    <!-- Its CardPageView is built on the first open (MainWindow.CardDetailsPage). -->
+                    <ScrollViewer x:Name="PageCard" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
+
                     <!-- ===== Arena ===== -->
                     <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">

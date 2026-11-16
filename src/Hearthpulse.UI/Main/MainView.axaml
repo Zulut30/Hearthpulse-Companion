@@ -7,6 +7,7 @@
              xmlns:s="using:Hearthpulse.UI.Main.Stats"
              xmlns:mm="using:Hearthpulse.UI.Main.Meta"
              xmlns:dk="using:Hearthpulse.UI.Main.Decks"
+             xmlns:cd="using:Hearthpulse.UI.Main.Cards"
              xmlns:mt="using:Hearthpulse.UI.Main.Match"
              xmlns:mg="using:Hearthpulse.UI.Main.Migration"
              xmlns:cs="using:Hearthpulse.Core.Stats"
@@ -465,6 +466,11 @@
                 <!-- ===== Deck page (Main/Decks): replaces the Constructed page while a deck is open ===== -->
                 <ScrollViewer Name="PageDeck" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <dk:DeckDetailsView Name="DeckDetails" DataContext="{Binding DeckPage}" />
+                </ScrollViewer>
+
+                <!-- ===== Card page (Main/Cards): replaces the Constructed or deck page while a card is open ===== -->
+                <ScrollViewer Name="PageCard" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                    <cd:CardPageView Name="CardDetails" DataContext="{Binding CardPage}" />
                 </ScrollViewer>
 
                 <!-- ===== Arena ===== -->
