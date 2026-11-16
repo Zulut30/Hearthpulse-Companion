@@ -30,6 +30,7 @@ public sealed class LiveFeed(
     private int _scheduled;
     private long _scheduledAt;
     private string? _deckKey;
+    private long _deckGeneration;
     private int _applied;
     private long _slowestApply;
     private long _longestWait;
@@ -77,14 +78,14 @@ public sealed class LiveFeed(
         var delay = _pacer.Delay(now);
         if (delay == 0)
         {
-            post(Apply);
+            PostApply();
         }
         else
         {
             // Posted by the thread that ends the wait (the timer's): a second trip through the pool's queue would hold
             // the snapshot back for as long as the pool is busy, on top of the frame it has already waited.
             _ = Delay(delay).ContinueWith(
-                _ => post(Apply),
+                _ => PostApply(),
                 CancellationToken.None,
                 TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);
@@ -103,7 +104,21 @@ public sealed class LiveFeed(
     }
 
     /// <summary>The history changed: the deck record is read again with the next snapshot.</summary>
-    public void ForgetDeck() => _deckKey = null;
+    public void ForgetDeck()
+    {
+        _deckKey = null;
+        _deckGeneration++;
+    }
+
+    private void PostApply()
+    {
+        try { post(Apply); }
+        catch (Exception ex)
+        {
+            Interlocked.Exchange(ref _scheduled, 0);
+            Diag.Error("Snapshot dispatch failed", ex);
+        }
+    }
 
     private void Apply()
     {
@@ -140,6 +155,7 @@ public sealed class LiveFeed(
         }
 
         _deckKey = key;
+        var generation = ++_deckGeneration;
         Deck = null;
         Matchup = null;
         if (view is null)
@@ -147,18 +163,18 @@ public sealed class LiveFeed(
             return;
         }
 
-        Offload(() => ReadDeck(view, key));
+        Offload(() => ReadDeck(view, key, generation));
     }
 
     /// <summary>On the worker: reads the record and hands it to the UI thread, which drops it if the deck has changed.</summary>
-    private void ReadDeck(ConstructedView view, string? key)
+    private void ReadDeck(ConstructedView view, string? key, long generation)
     {
         try
         {
             var record = readDeck(view);
             post(() =>
             {
-                if (_deckKey == key)
+                if (_deckKey == key && _deckGeneration == generation)
                 {
                     (Deck, Matchup) = record;
                     showOverlay();

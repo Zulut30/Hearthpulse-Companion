@@ -13,6 +13,55 @@ namespace Hearthpulse.Tests;
 /// </summary>
 public sealed class LiveFeedTests
 {
+    [Fact]
+    public async Task The_default_worker_runs_the_read_on_another_thread()
+    {
+        var feed = new LiveFeed(_ => { }, _ => (null, null), _ => { }, () => { });
+        var finished = new TaskCompletionSource<(int Caller, int Worker)>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var thread = new Thread(() =>
+        {
+            var caller = Environment.CurrentManagedThreadId;
+            feed.Offload(() => finished.SetResult((caller, Environment.CurrentManagedThreadId)));
+        }) { IsBackground = true };
+        thread.Start();
+        var result = await finished.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.NotEqual(result.Caller, result.Worker);
+    }
+
+    [Fact]
+    public void A_failed_dispatch_does_not_stop_later_snapshots()
+    {
+        var fail = true;
+        var feed = new LiveFeed(action => { if (fail) throw new InvalidOperationException("dispatch test"); _ui.Enqueue(action); },
+            _ => (null, null), _ => { }, () => { });
+        feed.Publish(Snap("one"));
+        fail = false;
+        feed.Publish(Snap("two"));
+        Assert.Equal(1, RunUi());
+        Assert.Equal("two", feed.Last.Scene);
+    }
+
+    [Fact]
+    public void An_old_read_of_the_same_deck_cannot_replace_the_refreshed_record()
+    {
+        var feed = Feed();
+        feed.Publish(Snap("one", Deck("Big Mage")));
+        RunUi();
+        var oldWork = _worker.Dequeue();
+        feed.ForgetDeck();
+        _now += 100;
+        feed.Publish(Snap("two", Deck("Big Mage")));
+        RunUi();
+        var fresh = new DeckAggregate("Big Mage", null, "MAGE", 20, 12, 8, DateTime.UnixEpoch);
+        _deckAnswer = () => (fresh, null);
+        RunWorker();
+        RunUi();
+        _deckAnswer = () => (new DeckAggregate("Big Mage", null, "MAGE", 10, 6, 4, DateTime.UnixEpoch), null);
+        oldWork();
+        RunUi();
+        Assert.Same(fresh, feed.Deck);
+    }
+
     private readonly Queue<Action> _ui = new();
     private readonly Queue<Action> _worker = new();
     private readonly List<string> _shown = [];
