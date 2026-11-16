@@ -84,8 +84,9 @@ export class CaptureArchive {
     const page = pragma('page_size');
     const freeBytes = pragma('freelist_count') * page;
     const derived = this.db.prepare('SELECT COALESCE(SUM(MIN(derived_bytes, octet_length(derived))),0) AS n FROM source_captures').get().n;
-    const journals = size(`${file}-wal`) + size(`${file}-shm`);
-    return { bytes: Math.max(0, pragma('page_count') * page - freeBytes - derived) + journals, freeBytes, fileBytes: size(file) + journals };
+    const walBytes = size(`${file}-wal`), shmBytes = size(`${file}-shm`);
+    const journals = walBytes + shmBytes;
+    return { bytes: Math.max(0, pragma('page_count') * page - freeBytes - derived) + journals, freeBytes, fileBytes: size(file) + journals, walBytes, shmBytes };
   }
   /** A job that was let in commits with admission=false: refusing its result frees nothing and loses the parse. */
   pressure(extra, admission = true) {

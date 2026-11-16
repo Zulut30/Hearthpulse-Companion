@@ -144,7 +144,7 @@ The uncompressed half of the chunk count is deliberate: it pays for the work fil
 (`worker-*-input.jsonl`, removed when the job ends). A job starts only when the archive budget has room for its
 64 MiB reservation and metadata is under its cap; otherwise the capture waits as `stored`. A job that was let in
 commits its result even if intake crossed the metadata cap meanwhile, so that cap can be exceeded by one admitted
-request or one job's facts and WAL frames, never by further intake. The WAL is truncated after every job, every
+request or one job's facts and WAL frames. Completing already uploaded captures remains allowed under pressure; each completion can add metadata and WAL. This tail is bounded by the configured pending-capture limit, not by one request alone. The WAL is truncated after every job, every
 forget and every minute by maintenance. Free pages inside `pool.sqlite` are not metadata: SQLite reuses them and
 never returns them to the filesystem, so the file keeps its largest size while both budgets fall after forget or
 expiry. Before 2026-11-16 the metadata measure was the size of the three files: every derived result was counted
@@ -152,24 +152,24 @@ in both budgets, and after a deletion the unshrunk file kept `metadata_pressure`
 
 `/healthz` (numbers only, no ids or content): `archiveBytes` / `archiveCapBytes` are the archive budget;
 `metadataBytes` / `metadataCapBytes` are the metadata budget; `sqliteFileBytes` is `pool.sqlite` + WAL + SHM on
-disk and `sqliteFreeBytes` its reusable free pages. `sqliteFileBytes` far above `metadataBytes` is expected: the
+disk and `sqliteFreeBytes` its reusable free pages. `sqliteWalBytes` and `sqliteShmBytes` expose journals separately: a busy external reader can prevent checkpoint truncation and retain pressure. `sqliteFileBytes` far above `metadataBytes` is expected: the
 difference is derived results and free pages. `statuses` growing in `stored` with a configured worker means jobs
 are waiting for one of the budgets.
 
 Capacity is a calculation from the formulas above and local measurements, not a guarantee and not a tested load.
 Measured by the local suite's fixtures on Windows, Node 24.19.0 (the real worker and Linux were not measured):
 an empty service holds 143,360 metadata bytes; a parsed one-chunk capture adds about 3.5 KB of metadata and a
-64-chunk one about 16 KB; SQLite stores a 179,146-byte result in 180,224 bytes. With S = archive bytes per parsed
+64-chunk one about 16 to 20 KiB (fixture and page-layout dependent); SQLite stores a 179,146-byte result in 180,224 bytes. With S = archive bytes per parsed
 capture (uncompressed + compressed + derived):
 
 - captures the archive budget holds: 256 MiB / S; captures that can still be parsed: (256 - 64) MiB / S, because a
-  job needs its reservation. With the pilot's S of about 275 KB that is about 976 and about 732. Past the second
+  job needs its reservation. For a hypothetical S of 275 KB (not a verified pilot average) that is about 976 and about 732. Past the second
   figure uploads are accepted and stay `stored` until space is freed.
 - captures the metadata budget holds: (64 MiB - 143,360 - legacy tables and facts) / 3.5 KB, about 18,900 one-chunk
-  captures with empty legacy tables, about 4,100 if every capture had 64 chunks. It is no longer the first limit.
+  captures with empty legacy tables, roughly 3,270 to 4,100 if every capture had 64 chunks. Those metadata-only capacities are unreachable with the smaller archive cap. It is no longer the first limit.
 - a day: 128 MiB of uncompressed source or 1000 new captures, whichever comes first.
 
-The archive figure is reached by retention, not by a day: at the 180-day TTL the default cap holds about five
+At low pilot traffic retention dominates; a burst can exhaust the same cap in one day: at the 180-day TTL the default cap holds about five
 parsed captures a day. Remeasure S and the split between source and derived on the pilot before changing a cap.
 
 ## Local checks
@@ -183,3 +183,5 @@ node --test server/pool/test/*.test.mjs
 These tests use generated safe records, temp directories, real local HTTP/SQLite/files and test worker processes.
 P4 must separately validate the **real P3 .NET CLI**, Linux filesystem permissions, systemd, nginx/TLS and remote
 staging restart/deletion. Local Windows tests do not establish production or Linux runtime evidence.
+
+Accounting performance limit: both usage() and metadata() scan capture records. Accessing derived_bytes after a large derived field can walk SQLite overflow pages even though octet_length itself avoids reading the value. A warm Windows review measured about 70 ms over 69 MiB; cold-cache/Linux behavior is unmeasured. Do not extrapolate this as a latency guarantee. Reprocess can retain result-sized WAL until maintenance; external readers can delay checkpoint and admission.

@@ -88,6 +88,8 @@ test('healthz shows metadata pressure apart from the archive, as numbers only', 
   assert.equal(health.metadataCapBytes, 64 * MiB);
   assert.equal(health.sqliteFileBytes, m.main + m.wal + m.shm);
   assert.equal(health.sqliteFreeBytes, m.free);
+  assert.equal(health.sqliteWalBytes, m.wal);
+  assert.equal(health.sqliteShmBytes, m.shm);
   assert.ok(health.metadataBytes < derived && health.sqliteFileBytes > derived);
   for (const secret of [ID.iid, ID.generation, capture(16).captureId, identity(capture(16)).key, identity(ID).generation]) assert.equal(text.includes(secret), false);
 });
