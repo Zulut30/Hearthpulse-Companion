@@ -41,9 +41,9 @@ states. Missing parts, conflicting hashes, rejected data and revoked generations
 Source sending follows the existing game-statistics switch and additionally requires the current source notice
 and the one-time notice of the current version (the table in [game-stats.md](game-stats.md), "Notice contract").
 Seeing the old compact-record notice does not authorize the expanded sender to start before the updated notice.
-The in-app and installer texts describe the expanded fields, the Hearthpulse server and retention. Public source
-activation remains gated: the default endpoint is unset, and the published privacy policy must first match the
-new hosting, source/draft processing and verified backup/deletion procedures. The initial service is synthetic-only.
+The in-app and installer texts describe the expanded fields, the Hearthpulse server and retention. The production endpoint is configured by default since 2026-11-16, after publication of the policy and the owner pilot
+(see source-capture-verification.md). Uploads still wait for the current notices. Public release remains gated on
+server disk capacity and intake quotas; the pilot does not establish published analytics.
 
 Turning sending off stops capture, clears pending source and persists a forget request. The server revokes the
 installation generation, removes its archive/derived contributions and prevents late uploads or jobs from restoring

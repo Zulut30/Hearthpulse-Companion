@@ -12,12 +12,12 @@ disagrees with them, fix the row in the same change. Paths are from the reposito
 | **Replay by link** (`tracker/replays`) | never automatic: one game, by the button and its confirmation | account token; a delete token per upload in `replays/uploads.json` | 180 days, 200 per account | the card's delete button, the account page, or with the account | `docs/web-replays.md` |
 | **Crash reports** (`/api/v1/crash-reports`) | off; "Send report" for one report or `AppSettings.SendCrashReports` | random report id; no `Authorization` header | 90 days on the site without IP or account; locally at most 5 waiting, 30 days | switching off deletes what waits (`CrashReporter.ClearPending`) | `docs/crash-reports.md` |
 | **Twitch extension state** (`/api/v1/twitch/state`) | off; `AppSettings.TwitchExtension`, only while signed in; the card itself is hidden until the wide release | account token | the site's side, not verified here | switch off stops sending | `docs/streaming.md` (the player's own deck rows and turn, never the hand, deck order or the opponent) |
-| **Requests for data** (data API, HearthstoneJSON, hsbg.cards, GitHub releases, Brawl articles) | always; they send no player data, only `User-Agent: Hearthpulse/<version>` | none | - | - | [hearthpulse-data-sources](../../hearthpulse-data-sources/SKILL.md) |
+| **Requests for data** (data API, HearthstoneJSON, hsbg.cards, GitHub releases, Brawl articles, stats pool) | also before the upload notice and after opting out of uploads; no game records are sent by these GETs. Pool mulligan-pair queries include format and class; HTTP exposes the network address and `User-Agent: Hearthpulse/<version>` | none | - | - | [hearthpulse-data-sources](../../hearthpulse-data-sources/SKILL.md) |
 
 `PoolClient.DefaultEndpoint` is the production pool (`https://api.kolodahearthstone.com/stats`, since 2026-11-16): the
 three pool flows send once the one-time notice was shown and the player has not refused; an isolated run has no default
 pool, and a `PoolEndpoint` that is not https switches the pool off. Before that date the default was empty and the flows sent nothing unless
-`PoolEndpoint` is set in `settings.json`. Treat that as the present state, not as a reason to skip their rules.
+`PoolEndpoint` was set in `settings.json`; this describes the historical state only.
 
 **A queue belongs to the pool address it was filled for** (game records and source captures; "Queue destination" in
 both docs). The install id is the same for every address, so nothing queued for one pool, records, chunks, manifests

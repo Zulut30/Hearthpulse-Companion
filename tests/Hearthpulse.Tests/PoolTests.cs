@@ -337,6 +337,29 @@ public sealed class PoolTests
         }
     }
 
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("", true)]
+    [InlineData("off", false)]
+    public void The_default_pool_and_explicit_off_apply_to_every_acknowledged_upload_stream(string? endpoint, bool expected)
+    {
+        var settings = new Hearthpulse.Core.AppSettings
+        {
+            PoolEndpoint = endpoint,
+            PoolNoticeVersion = PoolClient.NoticeVersion,
+            GameStatsNoticeVersion = PoolClient.NoticeVersion,
+            SourceCaptureNoticeVersion = Hearthpulse.Core.SourceCapture.SourceCaptureClient.NoticeVersion,
+        };
+        Assert.Equal(expected, PoolClient.Sharing(settings));
+        Assert.Equal(expected, Hearthpulse.Core.GameStats.GameStatsClient.Sharing(settings));
+        Assert.Equal(expected, Hearthpulse.Core.SourceCapture.SourceCaptureClient.Sharing(settings));
+        settings.GameStatsOff = true;
+        settings.PoolConsent = false;
+        Assert.False(PoolClient.Sharing(settings));
+        Assert.False(Hearthpulse.Core.GameStats.GameStatsClient.Sharing(settings));
+        Assert.False(Hearthpulse.Core.SourceCapture.SourceCaptureClient.Sharing(settings));
+    }
+
     /// <summary>On by default with an opt-out (the owner's decision, 2026-11-15): a refusal always holds, the notice comes first.</summary>
     [Theory]
     [InlineData(null, PoolClient.NoticeVersion, true)]

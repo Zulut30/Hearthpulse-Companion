@@ -91,10 +91,10 @@ public sealed class GameStatsQueues
     }
 
     /// <summary>
-    /// True once per data folder, the first time this layout runs there (the answer is remembered in the
-    /// <c>layout</c> file). The sender uses it to mark the pool an earlier version may already have sent to.
+    /// Marks the pool an earlier version may already have sent to before committing the <c>layout</c> file.
+    /// False on a filesystem failure: the sender retries rather than losing deletion provenance.
     /// </summary>
-    public bool FirstRun()
+    public bool PrepareLayout(string? legacyDestination)
     {
         lock (_lock)
         {
@@ -103,10 +103,21 @@ public sealed class GameStatsQueues
             {
                 if (File.Exists(path))
                 {
-                    return false;
+                    return true;
                 }
 
                 Directory.CreateDirectory(_root);
+                // Persist deletion provenance first. If this fails, leave layout absent so the next pass retries.
+                if (legacyDestination is not null)
+                {
+                    if (For(legacyDestination) is not { } queue)
+                    {
+                        return false;
+                    }
+
+                    queue.MarkUsed();
+                }
+
                 File.WriteAllText(path, "2");
                 return true;
             }

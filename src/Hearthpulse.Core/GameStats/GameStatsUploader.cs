@@ -41,6 +41,8 @@ public sealed class GameStatsUploader : IDisposable
     private readonly Lock _prepareGate = new();
     private bool _migrated;
     private bool _layoutChecked;
+    private readonly string? _legacyDestination;
+    private string? _savedSecret;
     private GameStatsState _state = new(0, 0, 0);
 
     public GameStatsUploader(AppSettings settings, HttpClient http, HistoryStore history, Func<ReplayStore?> replays, Func<CardDb?> cards, string? version, GameStatsQueues queues)
@@ -52,6 +54,12 @@ public sealed class GameStatsUploader : IDisposable
         _cards = cards;
         _version = version;
         _queues = queues;
+        // Capture the old settings before the notice can change them, including before Start().
+        // An already saved refusal may have followed a failed provenance write in an earlier process.
+        // Without a committed layout, prefer a harmless repeat deletion over losing it across restart.
+        _legacyDestination = settings is { GameStatsNoticeShown: true, PoolSecret.Length: 64 }
+            ? PoolDestination.Of(settings) : null;
+        SaveSettings = settings.SaveRequired;
     }
 
     /// <summary>Records waiting to be sent to the current pool.</summary>
@@ -78,26 +86,12 @@ public sealed class GameStatsUploader : IDisposable
     /// <summary>Pause before a batch; tests make it zero.</summary>
     internal TimeSpan Delay { get; init; } = BatchDelay;
 
+    internal Action SaveSettings { get; init; }
+
     /// <summary>Starts the background sender (live hosts only; a render never starts it).</summary>
     public void Start()
     {
-        // Before the player can answer the notice: an install that never sent anything is told apart here.
         Prepare();
-
-        // The install id comes from the pool secret: make and save it before the first record, so a crash before exit
-        // cannot leave sent records that turning the switch off later no longer finds (LEGAL-game-stats L-m2).
-        if (GameStatsClient.Sharing(_settings) && _settings.PoolSecret is not { Length: 64 })
-        {
-            PoolClient.Secret(_settings);
-            try
-            {
-                _settings.Save();
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                Diag.Error("Game stats: saving the install secret failed", ex);
-            }
-        }
 
         _loop ??= Task.Run(() => LoopAsync(_stop.Token));
         Kick();
@@ -145,8 +139,7 @@ public sealed class GameStatsUploader : IDisposable
     /// </summary>
     internal void Enqueue(GameOutcome outcome, string destination, int generation)
     {
-        Prepare();
-        if (Build(outcome) is { } record && _queues.Add(destination, record, generation))
+        if (Prepare() && Build(outcome) is { } record && _queues.Add(destination, record, generation))
         {
             Kick();
         }
@@ -190,7 +183,10 @@ public sealed class GameStatsUploader : IDisposable
     /// </summary>
     internal async Task<bool> PassAsync(CancellationToken cancellationToken)
     {
-        Prepare();
+        if (!Prepare())
+        {
+            return false;
+        }
         var destination = PoolDestination.Of(_settings);
         if (_settings.GameStatsOff)
         {
@@ -213,7 +209,7 @@ public sealed class GameStatsUploader : IDisposable
                 Diag.Info("Game stats: deletion request without an install id dropped");
                 queue.DropForget();
             }
-            else if (!await GameStatsClient.ForgetAsync(_http, destination, GameStatsClient.InstallId(_settings), cancellationToken).ConfigureAwait(false))
+            else if (!SaveIdentity() || !await GameStatsClient.ForgetAsync(_http, destination, GameStatsClient.InstallId(_settings), cancellationToken).ConfigureAwait(false))
             {
                 return false;
             }
@@ -225,6 +221,11 @@ public sealed class GameStatsUploader : IDisposable
 
         while (GameStatsClient.Sharing(_settings) && Addressed(queue) && queue.Take(GameStatsClient.MaxBatch) is { Count: > 0 } batch)
         {
+            if (!SaveIdentity())
+            {
+                return false;
+            }
+
             // Marked before the request: an answer that never arrives may still have stored the batch.
             queue.MarkUsed();
             switch (await GameStatsClient.SubmitAsync(_http, destination, GameStatsClient.InstallId(_settings), batch, cancellationToken).ConfigureAwait(false))
@@ -260,25 +261,47 @@ public sealed class GameStatsUploader : IDisposable
 
     /// <summary>
     /// Brings the data folder to this layout before anything is queued, sent or withdrawn. Once per data folder: an
-    /// install whose settings show that an earlier version could already send (notice seen, sharing on, a secret) has
+    /// install whose settings show that an earlier version could already send (notice seen and a saved secret) has
     /// its current pool marked as used, so turning sharing off still asks that pool to delete. And until it works:
     /// the earlier version's queue is taken out of the root.
     /// </summary>
-    internal void Prepare()
+    internal bool Prepare()
     {
         lock (_prepareGate)
         {
             if (!_layoutChecked)
             {
-                _layoutChecked = true;
-                if (_queues.FirstRun() && _settings is { GameStatsNoticeShown: true, GameStatsOff: false, PoolSecret.Length: 64 }
-                    && PoolDestination.Of(_settings) is { } destination)
+                if (!_queues.PrepareLayout(_legacyDestination))
                 {
-                    _queues.For(destination)?.MarkUsed();
+                    return false;
                 }
+
+                _layoutChecked = true;
             }
 
             _migrated = _migrated || _queues.MigrateLegacy(_settings.GameStatsOff);
+            return _migrated;
+        }
+    }
+
+    private bool SaveIdentity()
+    {
+        var secret = PoolClient.Secret(_settings);
+        if (_savedSecret == secret)
+        {
+            return true;
+        }
+
+        try
+        {
+            SaveSettings();
+            _savedSecret = secret;
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error("Game stats: saving the install secret failed; nothing sent", ex);
+            return false;
         }
     }
 

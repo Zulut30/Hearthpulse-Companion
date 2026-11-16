@@ -60,6 +60,35 @@ public sealed class SourceCaptureDestinationTests
     private static string[] Sources(string root) => Directory.GetFiles(root, "*.jsonl", SearchOption.AllDirectories);
 
     [Fact]
+    public async Task A_failed_sent_state_write_blocks_every_retry_until_the_mark_is_durable()
+    {
+        using var scratch = new SourceScratch();
+        await using var queue = await SourceCaptureQueue.OpenAsync(scratch.Path, pendingRecords: 20000);
+        await queue.ConfigureAsync(SourceScratch.Iid, PoolA, sharing: true);
+        SourceScratch.Complete(queue);
+        await queue.FlushAsync();
+        using var pool = new CapturePool();
+        using var http = new HttpClient(pool);
+        var client = new SourceCaptureClient(http);
+        var obstruction = Path.Combine(scratch.Path, "state.json.tmp");
+        Directory.CreateDirectory(obstruction);
+        await queue.SendPendingAsync(client);
+        await queue.SendPendingAsync(client);
+        Assert.Empty(pool.Requests);
+        Assert.Equal("disk_error", queue.State.Status);
+        using (var state = JsonDocument.Parse(File.ReadAllText(Path.Combine(scratch.Path, "state.json"))))
+        {
+            Assert.False(state.RootElement.GetProperty("sent").GetBoolean());
+        }
+
+        Directory.Delete(obstruction);
+        await queue.SendPendingAsync(client);
+        Assert.Equal([(HostA, "chunks"), (HostA, "complete")], pool.Requests);
+        using var saved = JsonDocument.Parse(File.ReadAllText(Path.Combine(scratch.Path, "state.json")));
+        Assert.True(saved.RootElement.GetProperty("sent").GetBoolean());
+    }
+
+    [Fact]
     public async Task A_capture_spooled_for_one_pool_is_not_sent_to_another_and_goes_when_its_pool_returns()
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();

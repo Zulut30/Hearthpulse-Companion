@@ -49,6 +49,9 @@ public sealed class OwnBgHeroesTests : IDisposable
         Assert.Null(result.Snapshot);
         Assert.Empty(pool.Requests);
         Assert.False(File.Exists(Path.Combine(_cache, OwnBgHeroes.CacheName)));
+        var direct = await OwnBgHeroes.LoadAsync(http, string.Empty, _cache, _time);
+        Assert.Equal(OwnBgHeroesState.NotConfigured, direct.State);
+        Assert.Empty(pool.Requests);
     }
 
     [Theory]

@@ -145,8 +145,14 @@ to production when `PoolEndpoint` is removed. Each queue therefore belongs to on
   request and no install secret. A forget whose install secret is gone is dropped with a log line instead of being
   sent under a new id. The mark is local metadata, like the address; no payload changes.
   One-time step for the upgrade (`game-stats/layout`): when this layout first runs in a data folder whose settings
-  show that an earlier version could already send (`GameStatsNoticeShown`, sharing on, a secret), the pool named
-  then is marked, so its forget is not lost. `GameStatsUploader.Start` does this before the notice can be answered.
+  show that an earlier version could already send (`GameStatsNoticeShown` and a saved secret), the pool named
+  then is conservatively marked even if sharing is now off: a previous process may have failed to write its mark.
+  The uploader captures that evidence when constructed, before the notice can be answered, and persists the used
+  mark before committing the layout. Failed writes are retried, including after restart; refusal before Start does
+  not lose the deletion request. A fresh refusal with no secret still makes no request.
+- **Durable identity.** A batch is sent only after the install secret was saved successfully with `SaveRequired`.
+  A save failure keeps the batch local and retries later, so a restart cannot lose the id needed for deletion.
+  Likewise a source generation's `sent` state is published in memory only after its atomic disk write succeeds.
 - **Other addresses.** Their queues are kept, not sent, and sent again in the usual way when the settings name that
   address again (also after a restart). They keep the 300 records / 4 MB they were filled under, and the 14 days are
   applied to them on every pass; a folder left with no record, no forget and no `sent` mark is removed. A forget

@@ -368,7 +368,12 @@ public sealed partial class SourceCaptureQueue : IAsyncDisposable
                     {
                         if (!CanSend(capture)) return;
                         // Marked before the first request of a generation: from here on an opt-out has something to delete.
-                        if (_store.Sent == false) { _store = _store with { Sent = true }; SaveStore(); }
+                        if (_store.Sent == false)
+                        {
+                            var sent = _store with { Sent = true, Dropped = Interlocked.Read(ref _dropped) };
+                            Atomic(StorePath, sent);
+                            _store = sent;
+                        }
                         if (new FileInfo(ChunkPath(capture.CaptureId, chunk.Index)).Length != chunk.UncompressedBytes) { SetStatus("corrupt_local"); return; }
                         bytes = await File.ReadAllBytesAsync(ChunkPath(capture.CaptureId, chunk.Index), token).ConfigureAwait(false);
                         if (bytes.Length != chunk.UncompressedBytes || Hash(bytes) != chunk.Sha256) { SetStatus("corrupt_local"); return; }

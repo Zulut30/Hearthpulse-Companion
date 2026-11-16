@@ -18,7 +18,7 @@ public static partial class PoolClient
     /// <summary>
     /// Address of the deployed pool: the Hearthpulse stats service on the project's own server (server/pool/README.md,
     /// docs/source-capture-verification.md). Set on 2026-11-16, once the published privacy policy described the host, the
-    /// game journal and the opt-out, and the pilot had carried a game from the app to the totals. Nothing is sent before
+    /// game journal and the opt-out, and the pilot had carried games through intake and aggregation; public cells still require their sample thresholds. Nothing is sent before
     /// the one-time notice was shown, and a refusal (<see cref="AppSettings.PoolConsent"/>, <see cref="AppSettings.GameStatsOff"/>)
     /// is always kept. An isolated run (<see cref="Isolation"/>) has no default pool.
     /// </summary>

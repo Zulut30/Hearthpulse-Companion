@@ -23,7 +23,7 @@ public sealed partial class GameStatsTests
         new() { PoolEndpoint = endpoint, GameStatsNoticeShown = true, PoolNoticeVersion = PoolClient.NoticeVersion, PoolSecret = new string('5', 64) };
 
     private GameStatsUploader Uploader(AppSettings settings, HttpMessageHandler pool, GameStatsQueues queues) =>
-        new(settings, new HttpClient(pool), new HistoryStore(Path.Combine(_folder, "h.db")), () => null, () => null, null, queues) { Delay = TimeSpan.Zero };
+        new(settings, new HttpClient(pool), new HistoryStore(Path.Combine(_folder, "h.db")), () => null, () => null, null, queues) { Delay = TimeSpan.Zero, SaveSettings = () => { } };
 
     [Theory]
     [InlineData("https://Pool-A.test/stats/", PoolA)]
@@ -462,21 +462,89 @@ public sealed partial class GameStatsTests
         Assert.Equal(count, pool.Requests.Count);
     }
 
-    [Fact]
-    public async Task An_install_an_earlier_version_could_already_send_from_still_asks_its_pool_to_delete()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task An_install_an_earlier_version_could_already_send_from_still_asks_its_pool_to_delete(bool prepareBeforeRefusal)
     {
         // settings.json of an earlier version: notice seen, sharing on, a secret; the data folder has no queue layout yet.
         var settings = Sharing(PoolA);
         var queues = new GameStatsQueues(_folder);
         var pool = new HoldingPool();
         using var uploader = Uploader(settings, pool, queues);
-        uploader.Prepare();
+        if (prepareBeforeRefusal)
+        {
+            Assert.True(uploader.Prepare());
+        }
 
         settings.GameStatsOff = true;
         uploader.Withdraw();
         Assert.True(await uploader.PassAsync(CancellationToken.None));
 
         Assert.Equal(("pool-a.test", "/stats/v1/events/forget"), (Assert.Single(pool.Requests).Host, pool.Requests[0].Path));
+    }
+
+    [Fact]
+    public async Task An_unsaved_install_secret_sends_nothing_and_retries_saving_before_the_batch()
+    {
+        var settings = Sharing(PoolA);
+        var queues = new GameStatsQueues(_folder);
+        queues.For(PoolA)!.Add(Record('a'));
+        var pool = new HoldingPool();
+        var blocked = true;
+        var saves = 0;
+        using var uploader = new GameStatsUploader(settings, new HttpClient(pool), new HistoryStore(Path.Combine(_folder, "h.db")),
+            () => null, () => null, null, queues)
+        {
+            SaveSettings = () => { saves++; if (blocked) throw new IOException("test save failure"); },
+        };
+        Assert.False(await uploader.PassAsync(CancellationToken.None));
+        Assert.Empty(pool.Requests);
+        Assert.Equal(1, queues.For(PoolA)!.Count);
+        blocked = false;
+        Assert.True(await uploader.PassAsync(CancellationToken.None));
+        Assert.Equal(2, saves);
+        Assert.Single(pool.Requests);
+        Assert.Equal(0, queues.For(PoolA)!.Count);
+    }
+
+    [Fact]
+    public async Task A_failed_legacy_sent_mark_keeps_layout_uncommitted_and_withdrawal_retries()
+    {
+        var settings = Sharing(PoolA);
+        var queues = new GameStatsQueues(_folder);
+        queues.For(PoolA)!.Add(Record('a'));
+        var sent = Path.Combine(_folder, PoolDestination.Key(PoolA), "sent");
+        Directory.CreateDirectory(sent);
+        var pool = new HoldingPool();
+        using var uploader = Uploader(settings, pool, queues);
+        settings.GameStatsOff = true;
+        uploader.Withdraw(); // Before Start(), with an unwritable mark: no exception escapes to the UI.
+        Assert.False(await uploader.PassAsync(CancellationToken.None));
+        Assert.False(File.Exists(Path.Combine(_folder, "layout")));
+        Assert.Empty(pool.Requests);
+        Directory.Delete(sent);
+        using var restarted = Uploader(settings, pool, new GameStatsQueues(_folder));
+        Assert.True(await restarted.PassAsync(CancellationToken.None));
+        Assert.Equal("/stats/v1/events/forget", Assert.Single(pool.Requests).Path);
+        Assert.True(File.Exists(Path.Combine(_folder, "layout")));
+    }
+
+    [Fact]
+    public async Task A_batch_whose_sent_mark_cannot_be_written_is_never_submitted()
+    {
+        var settings = new AppSettings { PoolEndpoint = PoolA };
+        var queues = new GameStatsQueues(_folder);
+        var pool = new HoldingPool();
+        using var uploader = Uploader(settings, pool, queues);
+        Assert.True(uploader.Prepare());
+        settings.GameStatsNoticeVersion = PoolClient.NoticeVersion;
+        queues.For(PoolA)!.Add(Record('a'));
+        Directory.CreateDirectory(Path.Combine(_folder, PoolDestination.Key(PoolA), "sent"));
+        var error = await Xunit.Record.ExceptionAsync(() => uploader.PassAsync(CancellationToken.None));
+        Assert.True(error is IOException or UnauthorizedAccessException);
+        Assert.Empty(pool.Requests);
+        Assert.Equal(1, queues.For(PoolA)!.Count);
     }
 
     [Fact]
@@ -511,7 +579,7 @@ public sealed partial class GameStatsTests
         Assert.True(await later.PassAsync(CancellationToken.None));
         Assert.Equal(new GameStatsState(0, 0, 0), later.State);
 
-        Assert.Empty(pool.Requests);
+        Assert.Equal("/stats/v1/events/forget", Assert.Single(pool.Requests).Path);
     }
 
     [Fact]
@@ -570,11 +638,15 @@ public sealed partial class GameStatsTests
         Assert.Equal(new GameStatsState(0, 0, 0), uploader.State);
     }
 
-    [Fact]
-    public async Task An_old_notice_flag_does_not_send_to_the_default_pool_before_the_current_notice_was_seen()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public async Task An_old_notice_flag_does_not_send_to_the_default_pool_before_the_current_notice_was_seen(int version)
     {
         // A test install of an earlier version: its own pool, the old flag, the old question's version.
-        var settings = new AppSettings { PoolEndpoint = PoolA, GameStatsNoticeShown = true, PoolNoticeVersion = 4, PoolSecret = new string('5', 64) };
+        var settings = new AppSettings { PoolEndpoint = PoolA, GameStatsNoticeShown = true, PoolNoticeVersion = version, PoolSecret = new string('5', 64) };
         var queues = new GameStatsQueues(_folder);
         var pool = new HoldingPool();
         using var uploader = Uploader(settings, pool, queues);
