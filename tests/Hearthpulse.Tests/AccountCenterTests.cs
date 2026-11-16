@@ -51,6 +51,16 @@ public sealed class AccountCenterTests : IDisposable
 
     private AccountClient Client() => new(new HttpClient(_site), Base);
 
+    [Fact]
+    public void Account_section_fallbacks_keep_the_login_query_before_the_fragment()
+    {
+        var account = Service();
+        Assert.Equal("https://site.test/?login", account.ProfileUrl.AbsoluteUri);
+        Assert.Equal("https://site.test/?login#account-replays", account.ReplaysUrl.AbsoluteUri);
+        Assert.Equal("https://site.test/?login#account-tracker-data", account.TrackerDataUrl.AbsoluteUri);
+        Assert.Equal("https://site.test/?login#account-access", account.SubscriptionUrl.AbsoluteUri);
+    }
+
     private AccountService Service(AccountActivity? activity = null) =>
         new(Client(), new TokenStore(Path.Combine(_dir, "account.dat")), url => { _opened.Add(url); return true; }, activity ?? Journal()) { Time = _time };
 
@@ -257,7 +267,7 @@ public sealed class AccountCenterTests : IDisposable
 
         // "My replays on the site": the profile's replays section.
         vm.OpenAccountReplays.Execute(null);
-        Assert.Equal("https://site.test/profile/#account-replays", _opened[^1].AbsoluteUri);
+        Assert.Equal("https://site.test/?login#account-replays", _opened[^1].AbsoluteUri);
     }
 
     [Fact]
@@ -521,7 +531,7 @@ public sealed class AccountCenterTests : IDisposable
     {
         _site.ProfileUrl = "https://evil.example/profile/";
         var account = await RestoredAsync(activity: new AccountActivity(null));
-        Assert.Equal("https://site.test/profile/#account-replays", account.ReplaysUrl.AbsoluteUri);
+        Assert.Equal("https://site.test/?login#account-replays", account.ReplaysUrl.AbsoluteUri);
         _site.ProfileUrl = "https://site.test/u/anna/";
         Assert.Null(await account.CheckNowAsync());
         Assert.Equal("https://site.test/u/anna/#account-replays", account.ReplaysUrl.AbsoluteUri);
@@ -571,7 +581,7 @@ public sealed class AccountCenterTests : IDisposable
         /// <summary>The answer to a replay upload; null: no such route yet (404).</summary>
         public (int Status, object Body)? Replay { get; set; }
 
-        public string ProfileUrl { get; set; } = "https://site.test/profile/";
+        public string ProfileUrl { get; set; } = "https://site.test/?login";
 
         /// <summary>Requests that reached the site (or tried to, offline).</summary>
         public int Requests { get; private set; }

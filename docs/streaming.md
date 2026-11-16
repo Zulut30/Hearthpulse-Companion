@@ -83,7 +83,7 @@ No Twitch secret is in the app: it signs in with the account's own token (device
 - **Settings → Stream → Twitch extension** (both UIs): the switch `AppSettings.TwitchExtension` (off by default), the
   delay `TwitchDelaySeconds` (0–600 s, a slider, whole seconds), a status line with a dot (green while the site takes
   the deck) and *Link Twitch*, shown while the account has no Twitch linked; it opens the status's `linkUrl`
-  (else `<site>/account/twitch`) in the browser.
+  (else `<site>/?login#account-twitch`) in the browser.
 - **Status line:** off — none; *Checking the Twitch link…*; *Sign in to your Hearthpulse account*; *No Twitch account is
   linked*; *The extension is not set up on the site yet* (`503 twitch_not_configured`); *Connected as @login*; *The deck
   is not being sent: <reason>* (offline, the site has no extension yet, Twitch unavailable, the site refused the data).

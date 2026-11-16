@@ -71,7 +71,7 @@ public sealed partial class LocBindingTests
             Assert.True(status.IsEffectivelyVisible);
             Assert.Equal(Loc.T("Twitch.Status.NotLinked"), status.Text);
             Assert.True(link.IsEffectivelyVisible);
-            Assert.Equal(new Uri("https://site.test/account/twitch"), publisher.Link.LinkUrl);
+            Assert.Equal(new Uri("https://site.test/?login#account-twitch"), publisher.Link.LinkUrl);
 
             toggle.IsChecked = false;
             Dispatcher.UIThread.RunJobs();
@@ -103,7 +103,7 @@ public sealed partial class LocBindingTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent("""{"configured":true,"linked":false,"linkUrl":"https://site.test/account/twitch"}""", Encoding.UTF8, "application/json"),
+                Content = new StringContent("""{"configured":true,"linked":false,"linkUrl":"https://site.test/?login#account-twitch"}""", Encoding.UTF8, "application/json"),
             });
     }
 }

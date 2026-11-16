@@ -46,7 +46,7 @@ revoke 60.
 `/me`:
 
 ```json
-{"user": {"id": "…", "publicProfileId": "…", "profileUrl": "https://hearthpulse.net/profile/", "email": "…",
+{"user": {"id": "…", "publicProfileId": "…", "profileUrl": "https://hearthpulse.net/?login", "email": "…",
           "name": "…", "avatarInitials": "ZU"},
  "subscription": {"hasAccess": true, "source": "boosty,patreon", "checkedAt": "2026-10-23T10:00:00.000Z",
                   "stale": false,

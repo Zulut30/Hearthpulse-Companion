@@ -23,7 +23,7 @@ public sealed record TwitchStatusInfo(bool Configured, bool Linked, string? Logi
 public sealed class TwitchClient(HttpClient http, Uri baseUri)
 {
     /// <summary>The site's page that links a Twitch account, when the status gave none.</summary>
-    public Uri DefaultLinkUrl { get; } = new(baseUri.GetLeftPart(UriPartial.Authority) + "/account/twitch");
+    public Uri DefaultLinkUrl { get; } = new(baseUri.GetLeftPart(UriPartial.Authority) + "/?login#account-twitch");
 
     /// <summary>Sends one state body (<see cref="TwitchState.ToJson"/>).</summary>
     public async Task<TwitchAnswer> PostStateAsync(string accessToken, string json, CancellationToken cancellationToken = default)

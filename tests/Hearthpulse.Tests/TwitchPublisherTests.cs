@@ -186,7 +186,7 @@ public sealed class TwitchPublisherTests : IDisposable
         var link = _publisher!.Link;
         Assert.Equal(TwitchLinkState.Connected, link.State);
         Assert.Equal("streamer", link.Login);
-        Assert.Equal(new Uri("https://site.test/account/twitch"), link.LinkUrl);
+        Assert.Equal(new Uri("https://site.test/?login#account-twitch"), link.LinkUrl);
     }
 
     [Fact]
@@ -335,7 +335,7 @@ public sealed class TwitchPublisherTests : IDisposable
         var publisher = await StartedAsync();
         Assert.Equal(["GET twitch/status"], _site.Calls);
         Assert.Equal(TwitchLinkState.NotLinked, publisher.Link.State);
-        Assert.Equal(new Uri("https://site.test/account/twitch"), publisher.Link.LinkUrl);
+        Assert.Equal(new Uri("https://site.test/?login#account-twitch"), publisher.Link.LinkUrl);
 
         await AdvanceAsync(59);
         Assert.Single(_site.Calls);
@@ -467,8 +467,8 @@ public sealed class TwitchPublisherTests : IDisposable
     [Fact]
     public void Status_parses_the_contract_and_ignores_a_bad_link()
     {
-        var info = TwitchClient.ParseStatus("""{"configured":true,"linked":true,"login":"streamer","displayName":"Streamer","linkUrl":"https://hearthpulse.net/account/twitch"}""");
-        Assert.Equal(new TwitchStatusInfo(true, true, "streamer", "Streamer", new Uri("https://hearthpulse.net/account/twitch")), info);
+        var info = TwitchClient.ParseStatus("""{"configured":true,"linked":true,"login":"streamer","displayName":"Streamer","linkUrl":"https://hearthpulse.net/?login#account-twitch"}""");
+        Assert.Equal(new TwitchStatusInfo(true, true, "streamer", "Streamer", new Uri("https://hearthpulse.net/?login#account-twitch")), info);
         Assert.Null(TwitchClient.ParseStatus("""{"configured":true,"linked":false,"linkUrl":"javascript:alert(1)"}""")!.LinkUrl);
         Assert.Null(TwitchClient.ParseStatus("not json"));
         Assert.Null(TwitchClient.ParseStatus("[]"));
@@ -528,7 +528,7 @@ public sealed class TwitchPublisherTests : IDisposable
             if (path == "twitch/status")
             {
                 var linked = Linked ? ",\"login\":\"streamer\",\"displayName\":\"Streamer\"" : string.Empty;
-                return Json(200, $$"""{"configured":{{(Configured ? "true" : "false")}},"linked":{{(Linked ? "true" : "false")}}{{linked}},"linkUrl":"https://site.test/account/twitch"}""");
+                return Json(200, $$"""{"configured":{{(Configured ? "true" : "false")}},"linked":{{(Linked ? "true" : "false")}}{{linked}},"linkUrl":"https://site.test/?login#account-twitch"}""");
             }
 
             var (status, code, retry) = StateAnswer;

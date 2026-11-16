@@ -109,7 +109,7 @@ public sealed class AccountClient(HttpClient http, string? baseUrl = null)
     public string Site => BaseUri.GetLeftPart(UriPartial.Authority);
 
     /// <summary>The account page on the site, for when <c>/me</c> has not named one.</summary>
-    public Uri DefaultProfileUrl => new(BaseUri.GetLeftPart(UriPartial.Authority) + "/profile/");
+    public Uri DefaultProfileUrl => new(BaseUri.GetLeftPart(UriPartial.Authority) + "/?login");
 
     /// <summary><c>POST /oauth/device/code</c>: a new device code and the user code to show.</summary>
     public async Task<DeviceCode> BeginAsync(CancellationToken cancellationToken = default)
