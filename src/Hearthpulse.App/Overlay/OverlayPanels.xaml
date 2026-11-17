@@ -183,7 +183,7 @@
             <DockPanel>
                 <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" Style="{StaticResource Number}" FontSize="14" Foreground="{StaticResource Accent}"
                            Margin="8,0,0,0" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding Title}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Title}" FontSize="12.5" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
             </DockPanel>
             <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,2" />
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterCardsTemplate}" Focusable="False" />
@@ -204,7 +204,7 @@
          column that hides the counter (not over the art: a click there opens the cards); hover shows the cards, a click
          opens them under the row -->
     <DataTemplate x:Key="CounterTemplate" DataType="{x:Type o:CounterChip}">
-        <Border x:Name="Chip" Background="Transparent" CornerRadius="5" Padding="3,1,4,1" Cursor="Hand"
+        <Border x:Name="Chip" Background="Transparent" CornerRadius="5" Padding="3,1,4,1" Cursor="Hand" AutomationProperties.Name="{Binding Title}"
                 ToolTipService.InitialShowDelay="250" ToolTipService.Placement="Right" ToolTipService.HorizontalOffset="8">
             <Border.ToolTip>
                 <ToolTip Content="{Binding}" ContentTemplate="{StaticResource CounterTipTemplate}" />
@@ -214,7 +214,7 @@
                               Command="{Binding DataContext.ToggleCounter, RelativeSource={RelativeSource AncestorType=Window}}" />
             </Border.InputBindings>
             <StackPanel>
-                <Grid Height="24">
+                <Grid MinHeight="24">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="20" />
                         <ColumnDefinition Width="*" />
@@ -234,7 +234,10 @@
                             HorizontalAlignment="Right" Visibility="Hidden" ToolTip="{i:Loc Overlay.Counter.HideTip}" AutomationProperties.Name="{i:Loc Overlay.Counter.HideName}"
                             CommandParameter="{Binding Id}" Command="{Binding DataContext.HideCounter, RelativeSource={RelativeSource AncestorType=Window}}" />
                     <StackPanel Grid.Column="1" Margin="7,0,8,0" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Title}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                        <!-- A long name (Russian above all) takes a second line instead of an ellipsis; the tooltip repeats it. Two lines
+                             are 30: the cap has room for the rounding of whole pixels, never for a third line (45) -->
+                        <TextBlock Text="{Binding Title}" FontSize="12" TextWrapping="Wrap" LineStackingStrategy="BlockLineHeight" LineHeight="15" MaxHeight="34"
+                                   TextTrimming="CharacterEllipsis" Margin="0,2" />
                         <ItemsControl ItemsSource="{Binding Segments}" ItemTemplate="{StaticResource CounterSegmentTemplate}" Margin="0,3,-2,0"
                                       Visibility="{Binding Segments, Converter={StaticResource Vis}}">
                             <ItemsControl.ItemsPanel>
@@ -272,7 +275,7 @@
     <!-- Battlegrounds counter chip: art, title over value; a click opens its details under the row, the cross hides it -->
     <DataTemplate x:Key="BgCounterTemplate" DataType="{x:Type o:CounterChip}">
         <Border x:Name="Chip" Background="{StaticResource Surface2}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="8"
-                Padding="5,4,6,4" Margin="0,0,6,6" Cursor="Hand" ToolTipService.InitialShowDelay="250">
+                Padding="5,4,6,4" Margin="0,0,6,6" Cursor="Hand" ToolTipService.InitialShowDelay="250" AutomationProperties.Name="{Binding Title}">
             <Border.ToolTip>
                 <ToolTip Content="{Binding}" ContentTemplate="{StaticResource CounterTipTemplate}" />
             </Border.ToolTip>
@@ -288,7 +291,8 @@
                 </Grid.ColumnDefinitions>
                 <Border Width="26" Height="26" CornerRadius="13" Background="{StaticResource Surface3}" VerticalAlignment="Center" i:CardArt.Portrait="{Binding IconCardId}" />
                 <StackPanel Grid.Column="1" Margin="7,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Title}" FontSize="10.5" Foreground="{StaticResource Muted}" MaxWidth="112" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Title}" FontSize="10.5" Foreground="{StaticResource Muted}" MaxWidth="112" TextWrapping="Wrap"
+                               LineStackingStrategy="BlockLineHeight" LineHeight="13" MaxHeight="30" TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding Value}" Style="{StaticResource Number}" FontSize="15" />
                     <Border Height="2" CornerRadius="1" Background="{StaticResource Surface4}" Width="56" HorizontalAlignment="Left" Margin="0,2,0,0"
                             Visibility="{Binding HasProgress, Converter={StaticResource Vis}}">
@@ -444,6 +448,12 @@
                         <TextBlock Text="{Binding PickRate}" FontSize="11" Foreground="{StaticResource Muted}" />
                         <TextBlock Text="{Binding Updated}" FontSize="10.5" Foreground="{StaticResource Muted}"
                                    Visibility="{Binding Updated, Converter={StaticResource Vis}}" />
+                        <!-- A late source: a warning mark and words on a line of their own that wraps, never cut at the badge's width -->
+                        <DockPanel x:Name="Delay" Margin="0,1,0,0" Visibility="{Binding Delay, Converter={StaticResource Vis}}">
+                            <TextBlock DockPanel.Dock="Left" Text="&#xF0026;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource InfoCaution}"
+                                       Margin="0,1,4,0" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding Delay}" FontSize="10.5" Foreground="{StaticResource Text}" TextWrapping="Wrap" />
+                        </DockPanel>
                     </StackPanel>
                 </Grid>
             </Border>

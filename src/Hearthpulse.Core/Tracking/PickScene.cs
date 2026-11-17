@@ -1,3 +1,5 @@
+using Hearthpulse.Core.Api;
+
 namespace Hearthpulse.Core.Tracking;
 
 /// <summary>
@@ -24,6 +26,20 @@ public static class PickScene
                 new HeroMeta(4.23 + (i * 0.04), 4.11 + (i * 0.07), 0.19 + (i * 0.1), 0, i == 0 ? "A" : "B"), i == 0,
                 [new BgHeroComp("Свинобразы - APM-усиление таверны", "S", "easy", "Скупайте и продавайте существ, усиливая таверну."), new BgHeroComp("Элементали - Живой азерит", "S", "medium", null)]))],
             Lobby, true, [], [], [], [], null, 0, [], []);
+
+    /// <summary>
+    /// A data summary with the trinket numbers' collector late and every other section fresh: the trinket badges show
+    /// their "update delayed" line (frame <c>overlay-trinket-late</c>). Its sequence is 0, so it replaces the host's.
+    /// </summary>
+    public static DataHealthReport TrinketsLate()
+    {
+        var late = DataSections.Sources(DataSection.BgTrinkets);
+        return new DataHealthReport(
+            DataSections.All.SelectMany(DataSections.Sources).Distinct(StringComparer.Ordinal).Select(id => late.Contains(id)
+                ? new DataSourceHealth(id, DataFreshness.Stale, 90, 30, Fetched.AddHours(-70), Fetched.AddHours(5))
+                : new DataSourceHealth(id, DataFreshness.Fresh, 4.5, 30, Fetched, Fetched.AddHours(5))),
+            Fetched.AddHours(4));
+    }
 
     /// <summary>
     /// A game on turn 6 with <paramref name="count"/> trinkets offered (2 to 4), each with a place, a pick rate and a

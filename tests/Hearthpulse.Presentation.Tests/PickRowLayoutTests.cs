@@ -182,8 +182,9 @@ public sealed class PickRowLayoutTests
 
     /// <summary>
     /// The WPF overlay window with a trinket choice and the leaderboard labels: as drawn, no label touches a badge, the
-    /// badges are whole on the screen over the trinkets' steps, every line of a badge is whole inside it, and a label is
-    /// no wider or higher than the rule takes it to be.
+    /// badges are whole on the screen over the trinkets' steps, every line of a badge is whole inside it (also with the
+    /// trinket numbers' update delayed, a warning line of its own), and a label is no wider or higher than the rule
+    /// takes it to be.
     /// </summary>
     [Fact]
     public void Wpf_trinket_badges_and_leaderboard_labels_do_not_meet() => WpfThread.RunThemed(() =>
@@ -193,16 +194,16 @@ public sealed class PickRowLayoutTests
             foreach (var language in new[] { Loc.Russian, Loc.English })
             {
                 Loc.Instance.SetLanguage(language);
-                foreach (var scale in new[] { 1.0, 1.4, 1.6 })
+                foreach (var scale in new[] { 0.7, 1.0, 1.4, 1.6 })
                 {
-                    foreach (var count in new[] { 2, 3, 4 })
+                    foreach (var (count, late) in new[] { 2, 3, 4 }.SelectMany(c => new[] { (c, false), (c, true) }))
                     {
-                        var (root, surface) = Overlay(scale, Trinkets(count));
+                        var (root, surface) = Overlay(scale, Trinkets(count), late ? Hearthpulse.Core.Tracking.PickScene.TrinketsLate() : null);
                         var row = Panel(root, "trinket-row");
                         var cards = Named<Border>(row, "Card").OrderBy(c => Bounds(c, root).Left).ToList();
                         var labels = Named<Border>(root, "Label").Select(l => Bounds(l, root)).ToList();
                         var expected = WpfRow.Trinkets.OnScreen(count, 1920, 1080, scale);
-                        var tested = $"{language}, DPI scale {VisualTreeHelper.GetDpi(surface).DpiScaleX:R}, overlay scale {scale}, {count} trinkets";
+                        var tested = $"{language}, DPI scale {VisualTreeHelper.GetDpi(surface).DpiScaleX:R}, overlay scale {scale}, {count} trinkets{(late ? ", update delayed" : string.Empty)}";
                         Assert.Equal(count, cards.Count);
                         Assert.NotEmpty(labels);
                         for (var i = 0; i < count; i++)
@@ -215,6 +216,9 @@ public sealed class PickRowLayoutTests
                             // Place, pick rate and date: each line whole inside the badge.
                             var lines = Descendants<TextBlock>(cards[i]).Where(t => Shown(t) && t.Text.Length > 0).ToList();
                             Assert.Contains(lines, t => t.Text.StartsWith(language == Loc.Russian ? "данные от " : "data from ", StringComparison.Ordinal));
+                            // A late update: a line of its own with a warning mark, not the cut end of the date line.
+                            Assert.Equal(late, lines.Any(t => t.Text == Loc.T("Source.Health.OverlayDelay")));
+                            Assert.Equal(late, lines.Any(t => t.Text == "\U000F0026"));
                             Assert.All(lines, t =>
                             {
                                 var line = Bounds(t, root);
@@ -295,10 +299,15 @@ public sealed class PickRowLayoutTests
         LeaderboardGeometry.Tile(index, surfaceHeight, settings, duos: false);
 
     /// <summary>The WPF overlay window with this Battlegrounds view, laid out for a 1920 x 1080 game at the overlay scale.</summary>
-    private static (FrameworkElement Root, FrameworkElement Surface) Overlay(double scale, BattlegroundsView view)
+    private static (FrameworkElement Root, FrameworkElement Surface) Overlay(double scale, BattlegroundsView view, Hearthpulse.Core.Api.DataHealthReport? health = null)
     {
         var settings = new AppSettings { OverlayScale = scale };
         var model = new WpfOverlay();
+        if (health is not null)
+        {
+            model.SetDataHealth(health);
+        }
+
         var window = new OverlayWindow(model, settings);
         var root = (FrameworkElement)window.Content;
         // The window is never put on screen: it learns its panels when loaded, so it is told it was.

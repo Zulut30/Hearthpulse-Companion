@@ -44,4 +44,20 @@ public static class DataHealthText
         var late = sections.Any(s => report.Section(s).Delayed);
         return Loc.F(late ? "Source.Health.OverlayDelayed" : "Source.Health.Overlay", date.ToLocalTime());
     }
+
+    /// <summary>
+    /// The overlay's date alone, "data from 15 Nov", for a narrow badge that puts the delay on a line of its own
+    /// (<see cref="OverlayDelay"/>): the two in one line are cut at the badge's width. Empty without a date.
+    /// </summary>
+    public static string OverlayDate(DateTime? dataDate) =>
+        dataDate is { } date && date != default ? Loc.F("Source.Health.Overlay", date.ToLocalTime()) : string.Empty;
+
+    /// <summary>
+    /// "update delayed" for that line when the numbers have a date and one of <paramref name="sections"/> is late, else
+    /// empty: the same condition as the delayed form of <see cref="Overlay"/>.
+    /// </summary>
+    public static string OverlayDelay(DateTime? dataDate, DataHealthReport report, params DataSection[] sections) =>
+        dataDate is { } date && date != default && sections.Any(s => report.Section(s).Delayed)
+            ? Loc.T("Source.Health.OverlayDelay")
+            : string.Empty;
 }

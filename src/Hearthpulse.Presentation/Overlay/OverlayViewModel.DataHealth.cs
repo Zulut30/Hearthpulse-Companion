@@ -14,8 +14,8 @@ namespace Hearthpulse.UI.Overlay;
 /// The date under the overlay's numbers from outside the machine, one per element and in one wording
 /// (<see cref="DataHealthText.Overlay"/>, "data from 15 Nov"): a line under the Battlegrounds hero pick badges and at
 /// the bottom of the Arena draft panel, from the dates the hosts hand in; each trinket badge carries its own date
-/// (<c>TrinketMeta.Updated</c>, built with the badges). A late source adds "update delayed" to its line. The numbers
-/// themselves are never hidden.
+/// (<c>TrinketMeta.Updated</c>, built with the badges). A late source adds "update delayed" to its line; the narrow
+/// trinket badge puts it on a warning line of its own (<c>TrinketBadge.Delay</c>). The numbers themselves are never hidden.
 /// </summary>
 public sealed partial class OverlayViewModel
 {

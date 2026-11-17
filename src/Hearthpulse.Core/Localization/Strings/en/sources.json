@@ -34,5 +34,6 @@
   "Source.Health.DelayNoDate": "The update is delayed.",
   "Source.Health.Updated": "Hearthpulse data · updated {0:dd MMM HH:mm}",
   "Source.Health.Overlay": "data from {0:d MMM}",
-  "Source.Health.OverlayDelayed": "data from {0:d MMM} · update delayed"
+  "Source.Health.OverlayDelayed": "data from {0:d MMM} · update delayed",
+  "Source.Health.OverlayDelay": "update delayed"
 }

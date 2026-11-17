@@ -27,8 +27,11 @@ public sealed record PickRowLayout(double Pitch, double Card, int Slots, double 
     /// <summary>Hero pick: HDT's hero step, a 232-wide badge, four heroes at most, the row's centre 7 right of the screen's.</summary>
     public static PickRowLayout Heroes { get; } = new(340, 232, 4, 7, 212, 104);
 
-    /// <summary>Trinket pick: HDT's trinket step, a 196-wide badge, four trinkets at most, the row's centre 10 right of the screen's.</summary>
-    public static PickRowLayout Trinkets { get; } = new(277, 196, 4, 10, 226, 78);
+    /// <summary>
+    /// Trinket pick: HDT's trinket step, a 196-wide badge, four trinkets at most, the row's centre 10 right of the
+    /// screen's; its height counts the two-line "update delayed" warning under the date.
+    /// </summary>
+    public static PickRowLayout Trinkets { get; } = new(277, 196, 4, 10, 226, 108);
 
     /// <summary>
     /// What the row is scaled by on top of the overlay scale: 1 while a badge with its <see cref="Gap"/> fits the step,

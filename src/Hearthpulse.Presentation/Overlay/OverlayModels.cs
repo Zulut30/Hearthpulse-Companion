@@ -62,6 +62,12 @@ public sealed record TrinketBadge(string CardId, string Name, string Tier, strin
 
     /// <summary>The date of the numbers ("data from 15 Nov"); empty when the source gives none.</summary>
     public string Updated { get; init; } = string.Empty;
+
+    /// <summary>
+    /// "update delayed" while the data API's collector of these numbers is late, else empty: a warning line of its own
+    /// under <see cref="Updated"/>, so the narrow badge never cuts it off.
+    /// </summary>
+    public string Delay { get; init; } = string.Empty;
 }
 
 /// <summary>

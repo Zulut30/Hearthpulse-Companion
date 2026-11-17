@@ -76,7 +76,8 @@
 
             <!-- ============ Constructed: counters (bottom-left) ============ -->
             <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,110">
-                <Border x:Name="CountersCard" Style="{StaticResource OverlayCard}" Width="214" o:OverlayHit.Interactive="True">
+                <!-- 232, not the 214 of the other cards: a long counter name (Russian above all) fits in two lines -->
+                <Border x:Name="CountersCard" Style="{StaticResource OverlayCard}" Width="232" o:OverlayHit.Interactive="True">
                     <!-- One value column for every row, so the progress under each title ends at the same place -->
                     <StackPanel Margin="9,8,9,7" Grid.IsSharedSizeScope="True">
                         <StackPanel Visibility="{Binding OpponentCounters, Converter={StaticResource Vis}}">
