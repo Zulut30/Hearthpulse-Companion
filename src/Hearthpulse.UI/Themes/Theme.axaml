@@ -735,6 +735,11 @@
         <Setter Property="Foreground" Value="{StaticResource Text}" />
     </Style>
 
+    <Style Selector="Button.icon:disabled">
+        <Setter Property="Opacity" Value="0.45" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+
     <!-- A button with no chrome: the content draws everything (overlay chips, rows). -->
     <Style Selector="Button.bare">
         <Setter Property="Background" Value="Transparent" />
