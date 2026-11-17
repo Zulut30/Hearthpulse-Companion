@@ -360,7 +360,10 @@ public static class CardArt
         };
     }
 
-    /// <summary>Turns the white block some deck tiles carry left of the art into a transparent fade (and hides a white edge line).</summary>
+    /// <summary>
+    /// Turns the flat block (white, grey, black...) some deck tiles carry left of the art into a transparent fade (and
+    /// hides a white edge line).
+    /// </summary>
     private static BitmapSource FadeTileMargin(BitmapSource bitmap)
     {
         // A failure here keeps the art as it is: the caller would delete the cached file as unreadable.
