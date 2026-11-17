@@ -210,6 +210,11 @@ internal static partial class OffscreenRenderer
             host.Main.MatchPage.Back.Execute(null);
         }
 
+        if (RenderOnly("library"))
+        {
+            await RenderLibraryAsync(main, view, host, folder);
+        }
+
         if (RenderOnly("history") || RenderOnly("historylist"))
         {
             if (RenderWidth is { } width)

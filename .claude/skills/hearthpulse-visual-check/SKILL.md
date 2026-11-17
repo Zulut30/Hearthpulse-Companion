@@ -80,6 +80,11 @@ with a synthetic HTTPS PoolEndpoint. Render mode never starts the source deliver
 mulligan numbers (skipped without a meta).
 `HEARTHPULSE_RENDER_ONLY=datahealth` renders `main-datahealth-settings` (Settings, Data with the "Data status" card) and
 `main-datahealth-arena` (the Arena page with the delay line) on the made-up summary of `Core/Api/DataHealthScene.cs`.
+`HEARTHPULSE_RENDER_ONLY=library` (`DevRender.Library.cs` / `OffscreenRenderer.Library.cs`; writes to the history, so only
+with `HEARTHPULSE_DATA`) adds the made-up Arena runs and the baseline games and renders the replay library:
+`main-library`, `-onsite` (the first card with a file shown as uploaded, a made-up link), `-scrolled`, `-end`, `-1040`
+(Avalonia also `-compact`), then the match header of the newest Constructed game with a file, `main-match-browser` and
+`-browser-confirm` (the "View in browser" question; nothing is uploaded or opened), and `main-match-arena`.
 
 | PNG | WPF | Avalonia | Source |
 |---|---|---|---|

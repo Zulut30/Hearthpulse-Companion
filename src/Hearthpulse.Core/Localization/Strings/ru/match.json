@@ -83,6 +83,8 @@
   "Match.Header.Versus": "{0} — {1}",
   "Match.Header.Place": "{0} место",
   "Match.Header.Title": "{0} · {1}",
+  "Match.Browser.OpenTip": "Посмотреть в браузере: реплей уже на hearthpulse.net",
+  "Match.Browser.UploadTip": "Посмотреть в браузере: загрузим игру на hearthpulse.net по публичной ссылке (сначала спросим)",
   "Match.Format.FT_STANDARD": "Стандартный",
   "Match.Format.FT_WILD": "Вольный",
   "Match.Format.FT_CLASSIC": "Классический",

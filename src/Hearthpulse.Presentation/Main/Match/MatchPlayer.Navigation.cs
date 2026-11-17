@@ -248,6 +248,7 @@ public sealed partial class MatchViewModel
 
                 Raise(nameof(ShowHeaderActions));
                 Raise(nameof(HeaderConfirming));
+                RaiseHeaderBrowser();
             }
         }
     }
@@ -503,10 +504,15 @@ public sealed partial class MatchViewModel
         if (e.PropertyName == nameof(LibraryCard.HasReplay))
         {
             Raise(nameof(ShowHeaderActions));
+            RaiseHeaderBrowser();
         }
         else if (e.PropertyName == nameof(LibraryCard.Confirming))
         {
             Raise(nameof(HeaderConfirming));
+        }
+        else if (e.PropertyName is nameof(LibraryCard.SiteUrl) or nameof(LibraryCard.SiteWork))
+        {
+            RaiseHeaderBrowser();
         }
     }
 

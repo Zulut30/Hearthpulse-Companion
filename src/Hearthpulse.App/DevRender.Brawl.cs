@@ -202,6 +202,11 @@ public partial class App
             await RenderConstructedTableOnlyAsync(folder);
         }
 
+        if (RenderOnly("library"))
+        {
+            await RenderLibraryAsync(folder);
+        }
+
         if (RenderOnly("history") || RenderOnly("historylist"))
         {
             if (RenderWidth is { } width)

@@ -95,7 +95,7 @@ public sealed partial class ReplayLibraryViewModel : Observable
                 }
                 else
                 {
-                    Ask(card, Loc.T("Library.Site.ConfirmUpload"), Loc.T("Library.Site.ConfirmUploadYes"), () => _owner.UploadLibraryCard(card, name));
+                    _owner.AskSiteUpload(card, name);
                 }
             }
         });

@@ -83,6 +83,8 @@
   "Match.Header.Versus": "{0} vs {1}",
   "Match.Header.Place": "{0} place",
   "Match.Header.Title": "{0} · {1}",
+  "Match.Browser.OpenTip": "View in browser: the replay is on hearthpulse.net",
+  "Match.Browser.UploadTip": "View in browser: uploads the game to hearthpulse.net with a public link (asks first)",
   "Match.Format.FT_STANDARD": "Standard",
   "Match.Format.FT_WILD": "Wild",
   "Match.Format.FT_CLASSIC": "Classic",

@@ -882,6 +882,10 @@
                     </Button>
                     <Button Style="{StaticResource IconButton}" Content="&#xF0497;" Margin="4,0,0,0" Command="{Binding ShareHeader}" ToolTip="{i:Loc Library.Share}"
                             AutomationProperties.Name="{i:Loc Library.Share}" />
+                    <!-- View in browser: the game's page on hearthpulse.net, uploaded first after the question below (docs/web-replays.md) -->
+                    <Button Style="{StaticResource IconButton}" Content="{Binding HeaderBrowserGlyph}" Margin="4,0,0,0" Command="{Binding ViewHeaderInBrowser}"
+                            ToolTip="{Binding HeaderBrowserTip}" AutomationProperties.Name="{Binding HeaderBrowserTip}"
+                            Visibility="{Binding ShowHeaderBrowser, Converter={StaticResource Vis}}" />
                 </StackPanel>
                 <!-- The player's deck of the game as a picture (proposal C1): a list or a 16:9 cover -->
                 <Button x:Name="DeckImageButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF0638;" Margin="12,0,0,0" VerticalAlignment="Center"

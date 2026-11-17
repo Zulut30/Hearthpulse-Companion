@@ -236,9 +236,12 @@ MOVE_MINION and every game STEP but `MAIN_END` are printed at the top level, so 
 
 History row (or a recent game on the Overview) -> match page (replaces the History list, "History" goes back):
 
-1. Title with the game's star and Share on its right (the same actions as its History card, on the same card: the
-   star is one state on both; only when the replay file is there), a status line or the "only copy" question under the
-   subtitle; then the header card: both heroes, names, rank/rating, class, format/mode, duration, first/coin, result.
+1. Title with the game's star, Share and "View in browser" on its right (the same actions as its History card, on the
+   same card: the star and the site link are one state on both; only when the replay file is there, the browser one not
+   for an imported game; `docs/web-replays.md`), a status line or the card's question under the subtitle; then the
+   header card: both heroes (a game recorded with only the classes shows their default heroes), names, rank/rating,
+   class, mode (Underground Arena by its name) and the format where the player picked one (Ranked, Casual, Friendly),
+   duration, first/coin, result.
    Left of them, on the Replay tab of either mode, "Save the step as PNG" (plan R4, `MatchPlayer.Export.cs` and
    `MatchView.Export.cs` in each UI): the playback stops, a save dialog (Pictures, "Hearthpulse Step 34 · turn 7.png")
    takes the step's table card as the page shows it at twice its size (at most 4096 px a side), whole even when
