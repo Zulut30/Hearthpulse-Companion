@@ -15,7 +15,13 @@ namespace Hearthpulse.Tests;
 /// <summary>Web replays (plan 2.2): the upload copy, the site's answer, the remembered uploads and the sign-in check.</summary>
 public sealed class ReplayUploadTests : IDisposable
 {
+    /// <summary>A replay's link on the test site's own host: the only kind the app opens in a browser.</summary>
+    private const string SiteReplay = "https://site.test/replay/abcDEF1234";
+
     private readonly string _dir = Path.Combine(Path.GetTempPath(), $"hp-upload-{Guid.NewGuid():N}");
+
+    /// <summary>Pages the app asked the browser to open: the account's browser seam, so no test starts a browser.</summary>
+    private readonly List<Uri> _opened = [];
 
     public void Dispose()
     {
@@ -161,6 +167,9 @@ public sealed class ReplayUploadTests : IDisposable
         Assert.Equal("https://hearthpulse.net/replay/abcDEF1234", card.SiteUrl);
         Assert.Equal([card.SiteUrl], copied);
         Assert.Equal(SiteWork.None, card.SiteWork);
+        // A link off the site's own host is never opened: the line says it is uploaded and copied, nothing more.
+        Assert.Empty(_opened);
+        Assert.Equal(Loc.F("Library.Site.Uploaded", card.SiteUrl), vm.Library.Status);
         // The starred copy is the same game: it shows the same link.
         Assert.Equal(card.SiteUrl, uploads.Get(ReplayUploads.KeyOf(ReplayShelf.Saved, name))?.Url);
         Assert.DoesNotContain(Directory.GetFiles(_dir), f => f.EndsWith(".tmp", StringComparison.Ordinal));
@@ -315,6 +324,154 @@ public sealed class ReplayUploadTests : IDisposable
         Assert.False(card.CanUpload);
         Assert.False(card.Confirming);
         Assert.NotEqual(ReplayUploads.KeyOf(ReplayShelf.Imported, "game.hpr"), ReplayUploads.KeyOf(ReplayShelf.Recent, "game.hpr"));
+
+        // Nor on its match page: no "View in browser" there.
+        vm.MatchPage.SetReplay("game.hpr", card, null);
+        Assert.False(vm.MatchPage.ShowHeaderBrowser);
+        vm.MatchPage.ViewHeaderInBrowser.Execute(null);
+        Assert.False(card.Confirming);
+    }
+
+    [Fact]
+    public async Task A_library_upload_copies_the_link_and_opens_the_game_s_page()
+    {
+        var site = new FakeReplaySite { ReplayUrl = SiteReplay };
+        var (vm, _, name) = await LibraryAsync(site);
+        var copied = new List<string>();
+        vm.Library.CopyLinkRequested += copied.Add;
+        var card = new LibraryCard(ReplayShelf.Recent, name, null, battlegrounds: false) { HasReplay = true };
+
+        vm.UploadLibraryCard(card, name);
+        await vm.LibraryIdleAsync();
+
+        Assert.Equal([SiteReplay], copied);
+        Assert.Equal([new Uri(SiteReplay)], _opened);
+        Assert.Equal(Loc.F("Library.Site.UploadedOpened", SiteReplay), vm.Library.Status);
+    }
+
+    /// <summary>
+    /// The owner's request: the match page shows the game in the browser. A game already on the site opens at once, with
+    /// nothing sent - also when only <c>uploads.json</c> knows it (uploaded after the page opened).
+    /// </summary>
+    [Fact]
+    public async Task View_in_browser_opens_a_game_already_on_the_site_without_uploading_it()
+    {
+        var site = new FakeReplaySite { ReplayUrl = SiteReplay };
+        var (vm, uploads, name) = await MatchPageAsync(site);
+        var page = vm.MatchPage;
+        Assert.True(page.ShowHeaderBrowser);
+        Assert.Equal(Loc.T("Match.Browser.UploadTip"), page.HeaderBrowserTip);
+        uploads.Set(ReplayUploads.KeyOf(ReplayShelf.Saved, name), new ReplayUploadResult("abcDEF1234", SiteReplay, "token-1"));
+
+        page.ViewHeaderInBrowser.Execute(null);
+        await vm.LibraryIdleAsync();
+
+        Assert.Equal([new Uri(SiteReplay)], _opened);
+        Assert.Empty(site.Posts);
+        Assert.False(page.HeaderConfirming);
+        Assert.Equal(SiteReplay, page.HeaderCard!.SiteUrl);
+        Assert.Equal(Loc.T("Match.Browser.OpenTip"), page.HeaderBrowserTip);
+
+        // Known now: the next press opens it at once.
+        page.ViewHeaderInBrowser.Execute(null);
+        Assert.Equal(2, _opened.Count);
+        Assert.Empty(site.Posts);
+    }
+
+    [Fact]
+    public async Task View_in_browser_asks_first_then_uploads_records_copies_and_opens_the_game()
+    {
+        var site = new FakeReplaySite { ReplayUrl = SiteReplay };
+        var (vm, uploads, name) = await MatchPageAsync(site);
+        var copied = new List<string>();
+        vm.Library.CopyLinkRequested += copied.Add;
+        var page = vm.MatchPage;
+
+        page.ViewHeaderInBrowser.Execute(null);
+        await vm.LibraryIdleAsync();
+
+        Assert.True(page.HeaderConfirming);
+        Assert.Equal(Loc.T("Library.Site.ConfirmUpload"), page.HeaderCard!.ConfirmText);
+        Assert.Equal(Loc.T("Library.Site.ConfirmUploadYes"), page.HeaderCard.ConfirmLabel);
+        Assert.Empty(site.Posts);
+        Assert.Empty(_opened);
+
+        page.ConfirmHeader.Execute(null);
+        await vm.LibraryIdleAsync();
+
+        Assert.Single(site.Posts);
+        Assert.Equal(SiteReplay, uploads.Get(ReplayUploads.KeyOf(ReplayShelf.Recent, name))?.Url);
+        Assert.Equal([SiteReplay], copied);
+        Assert.Equal([new Uri(SiteReplay)], _opened);
+        Assert.Equal(Loc.F("Library.Site.UploadedOpened", SiteReplay), page.HeaderStatus);
+        Assert.True(page.HeaderCard.OnSite);
+        // The library's card of the game shows the same link.
+        Assert.All(vm.Library.AllCards.Where(c => c.FileName == name), c => Assert.Equal(SiteReplay, c.SiteUrl));
+    }
+
+    [Fact]
+    public async Task Signed_out_view_in_browser_says_to_sign_in_and_sends_nothing()
+    {
+        var site = new FakeReplaySite { ReplayUrl = SiteReplay };
+        var (vm, uploads, name) = await MatchPageAsync(site, signedIn: false);
+        var page = vm.MatchPage;
+
+        page.ViewHeaderInBrowser.Execute(null);
+        await vm.LibraryIdleAsync();
+
+        Assert.Equal(Loc.T("Library.Site.SignIn"), page.HeaderStatus);
+        Assert.False(page.HeaderConfirming);
+        Assert.Empty(site.Posts);
+        Assert.Empty(_opened);
+        Assert.Null(uploads.Get(ReplayUploads.KeyOf(ReplayShelf.Recent, name)));
+    }
+
+    [Fact]
+    public async Task A_site_error_in_the_header_says_so_and_records_and_opens_nothing()
+    {
+        var site = new FakeReplaySite { ReplayUrl = SiteReplay, UploadStatus = 429 };
+        var (vm, uploads, name) = await MatchPageAsync(site);
+        var page = vm.MatchPage;
+
+        page.ViewHeaderInBrowser.Execute(null);
+        await vm.LibraryIdleAsync();
+        page.ConfirmHeader.Execute(null);
+        await vm.LibraryIdleAsync();
+
+        Assert.Equal(Loc.T("Library.Site.Error.RATE_LIMITED"), page.HeaderStatus);
+        Assert.Null(uploads.Get(ReplayUploads.KeyOf(ReplayShelf.Recent, name)));
+        Assert.Empty(_opened);
+        Assert.False(page.HeaderCard!.OnSite);
+    }
+
+    [Fact]
+    public async Task While_it_uploads_the_header_button_cancels_and_no_second_upload_of_the_game_starts()
+    {
+        var site = new FakeReplaySite { ReplayUrl = SiteReplay, Hold = new TaskCompletionSource() };
+        var (vm, uploads, name) = await MatchPageAsync(site);
+        var page = vm.MatchPage;
+        page.ViewHeaderInBrowser.Execute(null);
+        await vm.LibraryIdleAsync();
+        page.ConfirmHeader.Execute(null);
+        await site.Reached.Task;
+
+        Assert.Equal("\U000F0156", page.HeaderBrowserGlyph);
+        Assert.Equal(Loc.T("Library.Site.Uploading"), page.HeaderBrowserTip);
+
+        // Another card of the same game (its starred copy, a card built again for another tab) cannot send it twice.
+        var other = new LibraryCard(ReplayShelf.Saved, name, null, battlegrounds: false) { HasReplay = true };
+        vm.UploadLibraryCard(other, name);
+        Assert.Equal(Loc.T("Library.Site.Busy"), vm.Library.Status);
+
+        page.ViewHeaderInBrowser.Execute(null);
+        await vm.LibraryIdleAsync();
+
+        Assert.Single(site.Posts);
+        Assert.Equal(Loc.T("Library.Site.Cancelled"), page.HeaderStatus);
+        Assert.Null(uploads.Get(ReplayUploads.KeyOf(ReplayShelf.Recent, name)));
+        Assert.Empty(_opened);
+        Assert.Equal(SiteWork.None, page.HeaderCard!.SiteWork);
+        Assert.Equal("\U000F03CC", page.HeaderBrowserGlyph);
     }
 
     private async Task<AccountService> SignedInAsync(FakeReplaySite site)
@@ -323,7 +480,11 @@ public sealed class ReplayUploadTests : IDisposable
         var store = new TokenStore(Path.Combine(_dir, "account.dat"));
         var client = new AccountClient(new HttpClient(site), FakeReplaySite.Base);
         Assert.True(store.Save("ref-1", new AccountUser("u-1", "Player", Entitlements.None), DateTime.UtcNow.AddDays(30), client.Site));
-        var account = new AccountService(client, store);
+        var account = new AccountService(client, store, openBrowser: page =>
+        {
+            _opened.Add(page);
+            return true;
+        });
         await account.RestoreAsync();
         Assert.True(account.SignedIn);
         return account;
@@ -340,6 +501,37 @@ public sealed class ReplayUploadTests : IDisposable
         return (vm, uploads, name);
     }
 
+    /// <summary>
+    /// A Ranked game with its replay in History, opened on the match page; signed in to the fake site unless
+    /// <paramref name="signedIn"/> is false (then no account at all).
+    /// </summary>
+    private async Task<(MainViewModel Vm, ReplayUploads Uploads, string Name)> MatchPageAsync(FakeReplaySite site, bool signedIn = true)
+    {
+        Directory.CreateDirectory(_dir);
+        const string key = "20261101120000|me#1|GT_RANKED";
+        var files = new ReplayLibrary(new ReplayStore(Path.Combine(_dir, "replays")), Path.Combine(_dir, "saved"), Path.Combine(_dir, "imported"));
+        var name = files.Recent.Save(key, ReplayImportTests.Constructed())!;
+        var history = new HistoryStore(Path.Combine(_dir, "h.db"));
+        var start = new DateTime(2026, 11, 1, 12, 0, 0, DateTimeKind.Local);
+        Assert.True(history.Add(new GameRecord
+        {
+            Key = key, StartedAt = start, EndedAt = start.AddMinutes(9), Mode = "Ranked", GameType = "GT_RANKED", Format = "FT_STANDARD",
+            Result = "Win", PlayerClass = "MAGE", OpponentClass = "ROGUE", HeroCardId = "HERO_08", Replay = name,
+        }));
+        var uploads = new ReplayUploads(Path.Combine(_dir, "uploads.json"));
+        var vm = new MainViewModel(history, new AppSettings(), TestDataFolder.App) { LibraryFiles = files, LibraryUploads = uploads };
+        if (signedIn)
+        {
+            vm.AttachAccount(await SignedInAsync(site));
+        }
+
+        await vm.RefreshAsync();
+        Assert.True(await vm.OpenMatchPageAsync(key));
+        await vm.LibraryIdleAsync();
+        Assert.Equal(name, vm.MatchPage.HeaderCard?.FileName);
+        return (vm, uploads, name);
+    }
+
     /// <summary>The site's token, profile and replay endpoints in miniature.</summary>
     private sealed class FakeReplaySite : HttpMessageHandler
     {
@@ -350,6 +542,9 @@ public sealed class ReplayUploadTests : IDisposable
         public int UploadStatus { get; set; } = 201;
 
         public int DeleteStatus { get; set; } = 204;
+
+        /// <summary>The link an upload answers with (by default on hearthpulse.net, not the test site's host).</summary>
+        public string ReplayUrl { get; init; } = "https://hearthpulse.net/replay/abcDEF1234";
 
         /// <summary>When set, an upload waits for it (after signalling <see cref="Reached"/>).</summary>
         public TaskCompletionSource? Hold { get; init; }
@@ -388,7 +583,7 @@ public sealed class ReplayUploadTests : IDisposable
                 }
 
                 return UploadStatus == 201
-                    ? Json(201, """{"id":"abcDEF1234","url":"https://hearthpulse.net/replay/abcDEF1234","deleteToken":"token-1","events":6}""")
+                    ? Json(201, $$"""{"id":"abcDEF1234","url":"{{ReplayUrl}}","deleteToken":"token-1","events":6}""")
                     : Json(UploadStatus, """{"error":{"code":"X","message":"x"}}""");
             }
 

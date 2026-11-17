@@ -66,6 +66,14 @@ public static class StatsFilter
 
     public static bool IsArena(GameRecord game) => game.Mode == "Arena";
 
+    /// <summary>
+    /// The game's format is worth naming: Ranked, Casual and Friendly games are played in one the player chose. Arena,
+    /// Underground Arena, Brawl and the rest have none of their own (the log calls an Arena game Wild), so a caption
+    /// leaves it out.
+    /// </summary>
+    public static bool HasFormat(GameRecord game) =>
+        game.Mode.StartsWith("Ranked", StringComparison.Ordinal) || game.Mode is "Casual" or "Friendly";
+
     /// <summary>Total time of the games (each game's start to end; negative spans from bad clocks count as zero).</summary>
     public static TimeSpan TimePlayed(IEnumerable<GameRecord> games) =>
         TimeSpan.FromTicks(games.Sum(g => Math.Max(0, g.Duration.Ticks)));

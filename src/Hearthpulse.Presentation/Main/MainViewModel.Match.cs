@@ -99,17 +99,20 @@ public sealed partial class MainViewModel
         return true;
     }
 
-    /// <summary>The file and the star of a card made for the match header, read off the UI thread.</summary>
+    /// <summary>The file, the star and the site link of a card made for the match header, read off the UI thread.</summary>
     private async Task FillHeaderCardAsync(LibraryCard card, string file)
     {
         var files = LibraryFiles;
-        var (hasReplay, starred) = await Background.RunAsync(() =>
+        var uploads = LibraryUploads;
+        var (hasReplay, starred, site) = await Background.RunAsync(() =>
         {
             var saved = files.SavedNames().Contains(file);
-            return (saved || files.Header(Core.Replay.ReplayShelf.Recent, file) is not null, saved);
+            return (saved || files.Header(Core.Replay.ReplayShelf.Recent, file) is not null, saved,
+                uploads.Get(Core.Replay.ReplayUploads.KeyOf(card.Shelf, file))?.Url);
         }).ConfigureAwait(true);
         card.HasReplay = hasReplay;
         card.Starred = starred;
+        card.SiteUrl = site ?? string.Empty;
     }
 
     /// <summary>

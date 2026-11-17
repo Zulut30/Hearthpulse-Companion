@@ -47,10 +47,11 @@ public sealed partial class ReplayLibraryViewModel
     /// <summary>The view should put this link on the clipboard (an uploaded replay).</summary>
     public event Action<string>? CopyLinkRequested;
 
-    internal void Uploaded(string url)
+    /// <summary>An upload is on the site: its link goes to the clipboard; the line says whether its page opened in the browser.</summary>
+    internal void Uploaded(string url, bool opened)
     {
         CopyLinkRequested?.Invoke(url);
-        ShowStatus(Loc.F("Library.Site.Uploaded", url), "Win", "\U000F05E1");
+        ShowStatus(Loc.F(opened ? "Library.Site.UploadedOpened" : "Library.Site.Uploaded", url), "Win", "\U000F05E1");
     }
 
     internal void ImportFinished() => Importing = false;

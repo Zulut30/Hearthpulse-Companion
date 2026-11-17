@@ -117,8 +117,9 @@
                     <Button Style="{StaticResource CardIcon}" Content="{Binding SiteGlyph}" ToolTip="{Binding SiteTip}" AutomationProperties.Name="{Binding SiteTip}"
                             Command="{Binding DataContext.SiteAction, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                             Visibility="{Binding CanUpload, Converter={StaticResource Vis}}" />
-                    <TextBlock Text="&#xF1036;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Faint}" Margin="8,0" VerticalAlignment="Center"
-                               ToolTip="{i:Loc Library.NoReplay}" Visibility="{Binding NoReplay, Converter={StaticResource Vis}}" />
+                    <!-- The "no replay" mark in a button's 30 px slot: it sits where the last button of a card with a file does -->
+                    <TextBlock Text="&#xF1036;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Faint}" Width="30"
+                               TextAlignment="Center" VerticalAlignment="Center" ToolTip="{i:Loc Library.NoReplay}" Visibility="{Binding NoReplay, Converter={StaticResource Vis}}" />
                     <Button x:Name="Delete" Style="{StaticResource CardIcon}" Content="&#xF09E7;" ToolTip="{i:Loc Library.Delete}" AutomationProperties.Name="{i:Loc Library.Delete}"
                             Command="{Binding DataContext.Delete, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                             Visibility="{Binding CanDelete, Converter={StaticResource Vis}}" />
@@ -153,23 +154,23 @@
                         CommandParameter="{Binding}" ToolTip="{i:Loc Library.CardTip}">
                     <Border x:Name="Plate" CornerRadius="8" Padding="12,8" Margin="0,0,0,4" Background="{StaticResource Row}">
                         <StackPanel>
-                            <!-- Both kinds share the outer columns (hero 56 · ... · result 150 · actions 98): the result, the date
+                            <!-- Both kinds share the outer columns (hero 56 · ... · result 150 · actions 128): the result, the date
                                  and the buttons line up down the list. The result column fits the longest date and duration
-                                 ("Сегодня 12:49 · 27 мин", "04 нояб. 12:49 · 27 мин": about 131-140 px), the actions column three
-                                 buttons. A card is about 666 px wide at the minimum window (1040) and 886 at the default (1260):
+                                 ("Сегодня 12:49 · 27 мин", "04 нояб. 12:49 · 27 мин": about 131-140 px), the actions column four
+                                 buttons (star, Share, open on the site, the cloud: an uploaded game shows all four). A card is about 666 px wide at the minimum window (1040) and 886 at the default (1260):
                                  window - nav 250 - page margins 80 - list card border 2 and padding 32 - list chrome 2 - scroll
                                  bar 6 - item border 2; its row is 24 less (the plate's padding). -->
                             <!-- Battlegrounds: hero · name and caption (190, one line each: long hero names stay whole) · hero power and trinket chips · result ·
                                  actions; under them, from the name's column to the result's, the whole final board. Seven minions
-                                 with their stat badges take 371 px; the room there is about 488 at the minimum window (1040) and
-                                 708 at the default (1260), so the board is always whole ("+N" only guards a narrower card). -->
+                                 with their stat badges take 371 px; the room there is about 458 at the minimum window (1040) and
+                                 678 at the default (1260), so the board is always whole ("+N" only guards a narrower card). -->
                             <Grid Visibility="{Binding IsBattlegrounds, Converter={StaticResource Vis}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="56" />
                                     <ColumnDefinition Width="190" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="150" />
-                                    <ColumnDefinition Width="98" />
+                                    <ColumnDefinition Width="128" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -206,7 +207,7 @@
                             <!-- Constructed, Arena and the rest: heroes · deck and caption · opponent · result · actions. The caption
                                  takes the room; the opponent ("vs Охотник на демонов" and the archetype) up to 120 with a tooltip.
                                  The longest caption ("Паладин · Рейтинговая · Стандартный · 12 ходов · Платина 4", about 366 px)
-                                 fits at 1260 (about 414 px); at 1040 (about 194) it trims from the end, the rank first, whole in
+                                 fits at 1260 (about 384 px); at 1040 (about 164) it trims from the end, the rank first, whole in
                                  the tooltip. -->
                             <Grid Visibility="{Binding IsConstructed, Converter={StaticResource Vis}}">
                                 <Grid.ColumnDefinitions>
@@ -214,7 +215,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="150" />
-                                    <ColumnDefinition Width="98" />
+                                    <ColumnDefinition Width="128" />
                                 </Grid.ColumnDefinitions>
                                 <Grid Width="48" Height="44" HorizontalAlignment="Left">
                                     <Border Width="40" Height="40" Style="{StaticResource StatsPortrait}" VerticalAlignment="Top" i:CardArt.Portrait="{Binding HeroCardId}" />

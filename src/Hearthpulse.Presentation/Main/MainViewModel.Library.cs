@@ -6,6 +6,7 @@ using Hearthpulse.UI.Main.Match;
 using Hearthpulse.UI.Overlay;
 #endif
 using Hearthpulse.Core;
+using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
@@ -211,10 +212,12 @@ public sealed partial class MainViewModel
 
         var deck = g.DeckName is { Length: > 0 } name ? DeckName.Display(name) : null;
         var playerClass = OverlayViewModel.ClassName(g.PlayerClass);
-        var format = g.Format is { Length: > 0 } f ? Loc.Or("Match.Format." + f, string.Empty) : string.Empty;
+        // Only where the player picked a format: the log calls an Arena game Wild, which says nothing there.
+        var format = StatsFilter.HasFormat(g) && g.Format is { Length: > 0 } f ? Loc.Or("Match.Format." + f, string.Empty) : string.Empty;
         return new LibraryCard(shelf, fileName, historyKey, battlegrounds: false)
         {
-            HeroCardId = g.HeroCardId,
+            // A record that kept only the classes (Arena, Underground Arena) shows the classes' default heroes, as Home does.
+            HeroCardId = g.HeroCardId is { Length: > 0 } ? g.HeroCardId : DeckString.ClassHero(g.PlayerClass) ?? string.Empty,
             Title = deck ?? (playerClass.Length > 0 ? playerClass : ModeOf(g)),
             // The rank goes last: a narrow row trims it first (it is in the tooltip and on the match page), not the turns.
             Caption = string.Join(" · ", new[]
@@ -226,7 +229,7 @@ public sealed partial class MainViewModel
                 RankInfo.Localize(g.Rank),
             }.Where(x => !string.IsNullOrEmpty(x))),
             ModeText = ModeOf(g),
-            OpponentHeroCardId = g.OpponentHeroCardId,
+            OpponentHeroCardId = g.OpponentHeroCardId is { Length: > 0 } ? g.OpponentHeroCardId : DeckString.ClassHero(g.OpponentClass) ?? string.Empty,
             Opponent = g.OpponentClass is { Length: > 0 } opponent ? Loc.F("Main.Game.Vs", OverlayViewModel.ClassName(opponent)) : string.Empty,
             OpponentArchetype = g.OpponentArchetype is { Length: > 0 } archetype ? ArchetypeNames.Display(archetype) ?? archetype : string.Empty,
             Result = ResultText(g.Result),

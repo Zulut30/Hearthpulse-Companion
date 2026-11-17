@@ -27,7 +27,26 @@ site then does not have. The site never publishes it.
 written through a temporary file, so a broken write never loses the delete tokens.
 
 While an upload runs the card's button shows a cross and cancels it ("Uploading… click to cancel"); a second upload
-cannot start. A cancelled upload the site had already taken stays on the site: it is in the account page's list.
+of the game cannot start, from any card or the match page (`MainViewModel._siteUploads`, by the same key). A cancelled
+upload the site had already taken stays on the site: it is in the account page's list.
+
+After an upload the page also opens in the default browser (the link is still copied); "Open on the site" on the card
+opens it again later. Both go through `AccountService.OpenSiteLink` (https on the site's own host only) and its
+`openBrowser` seam, which tests replace, so no test starts a browser.
+
+## View in browser (match page)
+
+The match page's header has "View in browser" next to the star and Share, for the same games (the player's own, with
+its file, not Imported), on the game's library card (`MatchViewModel.Browser.cs`, `MainViewModel.ViewLibraryCardInBrowser`):
+
+- on the site already (the card's link, else `uploads.json` read again: one record for the card and the page) - the page
+  opens, nothing is sent;
+- not uploaded - signed out, the header says to sign in (`Library.Site.SignIn`) and nothing is asked or sent; signed in,
+  the same question as the card's ("the link will be public", "Upload and open") in the header, then the library's
+  upload: recorded, link copied, page opened; the button is a cross that cancels while it runs;
+- a site error - the card's texts (`Library.Site.Error.*`), nothing recorded or opened.
+
+Nothing new leaves the PC: the same sanitized copy, after the same question.
 
 ## Deleting
 

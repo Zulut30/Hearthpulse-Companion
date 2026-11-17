@@ -13,16 +13,20 @@ public sealed partial class MatchPage
     private static MatchHeader BuildHeader(GameRecord game, CardDb cards, ReplayHeader? replay, ArchetypeTranslations names)
     {
         var bg = game.IsBattlegrounds;
+        // A record that kept only the classes (an Arena or Underground Arena game without its hero cards) shows each
+        // class's default hero, as the History rows do, instead of an empty portrait.
+        var hero = bg || game.HeroCardId.Length > 0 ? game.HeroCardId : DeckString.ClassHero(ClassOf(game, cards)) ?? string.Empty;
+        var opponentHero = bg || game.OpponentHeroCardId.Length > 0 ? game.OpponentHeroCardId : DeckString.ClassHero(game.OpponentClass) ?? string.Empty;
         var local = new MatchPlayerView(
             StripTag(game.PlayerName),
-            game.HeroCardId,
-            cards.NameOf(game.HeroCardId),
+            hero,
+            cards.NameOf(hero),
             bg ? ModeText(game.Mode) : ConstructedMeta.ClassName(ClassOf(game, cards)),
             bg ? Rating(game) : RankInfo.Localize(replay?.LocalRank ?? game.Rank) ?? string.Empty);
         var opponent = new MatchPlayerView(
             bg ? Loc.T("Match.Lobby") : StripTag(game.OpponentName) is { Length: > 0 } name && !name.StartsWith("UNKNOWN", StringComparison.Ordinal) ? name : Loc.T("Match.Opponent"),
-            game.OpponentHeroCardId,
-            cards.NameOf(game.OpponentHeroCardId),
+            opponentHero,
+            cards.NameOf(opponentHero),
             ConstructedMeta.ClassName(game.OpponentClass),
             RankInfo.Localize(replay?.OpponentRank) ?? string.Empty);
         var top = game.Mode == "Duos" ? 2 : 4;
@@ -35,8 +39,9 @@ public sealed partial class MatchPage
                 opponent.Class.Length > 0 ? opponent.Class : Loc.T("Match.Opponent"));
         var subtitle = string.Join(" · ", new[]
         {
-            ModeText(game.Mode),
-            bg ? null : format,
+            // Underground Arena is named as History names it; the format only where the player picked one (not Arena).
+            ArenaStats.Is(game, ArenaKind.Underground) ? Loc.T("Main.Mode.Underground") : ModeText(game.Mode),
+            StatsFilter.HasFormat(game) ? format : null,
             game.StartedAt.ToString("d MMM yyyy, HH:mm", Loc.DateCulture),
         }.Where(x => !string.IsNullOrEmpty(x)));
         var duration = game.Duration > TimeSpan.Zero ? $"{(int)game.Duration.TotalMinutes}:{game.Duration.Seconds:00}" : "—";
