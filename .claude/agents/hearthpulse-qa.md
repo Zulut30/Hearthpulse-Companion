@@ -28,10 +28,9 @@ You decide whether a package does what its card says, with evidence. You do not 
 ## Steps
 
 1. `git -C <wt> status --short` is clean; `git -C <wt> log --oneline main..HEAD` lists the commits under test.
-2. Build: `dotnet build Hearthpulse.slnx -c Release -m:2` - errors and warnings.
-3. Tests: full `tests/Hearthpulse.Tests`; also `tests/Hearthpulse.Presentation.Tests` when
-   `src/Hearthpulse.Presentation` or a view changed (`hearthpulse-testing`). Record passed / failed / skipped; for a
-   failure, its name and first assert line.
+2. Inspect build and test output for the reviewed revision. Fill gaps with the scoped local check in CLAUDE.md.
+3. Confirm each affected contract has a discovered test, including the Windows suite for shared presentation.
+   Record passed / failed / skipped and the first failing assertion.
 4. Each AC of the package: evidence - the test that asserts it, `file:line` of the code path, or a log replay. None:
    "не подтверждён" and which test would prove it. Work back from the AC, not from the handover: its claims are not
    evidence. The evidence sets up the AC's "дано", does its "когда" and observes its "тогда", and the code behind it

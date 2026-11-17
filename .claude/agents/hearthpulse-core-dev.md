@@ -32,9 +32,7 @@ the branch.
 - A contract you hand over is implemented exactly as written. Changing it: message the coordinator first.
 - Tests with the code (`hearthpulse-testing`): synthetic Power.log lines, JSON fixtures, temp folders. Each AC of yours
   has a test or a stated reason why not.
-- Build `dotnet build Hearthpulse.slnx -c Release -m:2`; restore with
-  `--source https://api.nuget.org/v3/index.json`. Tests with `--filter` while working, one full
-  `tests/Hearthpulse.Tests` run at the end.
+- Run the scoped local check in CLAUDE.md. Record the cases that exercise the changed Core behaviour.
 - The app only with `HEARTHPULSE_DATA` on a copy of the data folder. `--render-ui` only through
   `hearthpulse-visual-check` on a copy, never while `Hearthstone.exe` runs, and not if the brief forbids renders.
 - No game-memory writes, input to the game or hidden information (`hearthpulse-review`, checklist item 2).

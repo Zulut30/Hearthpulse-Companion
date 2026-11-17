@@ -92,6 +92,10 @@ feature goes into both UIs; the build stays at 0 warnings, including the Meziant
 suppress it in place with a `Justification`); coverage:
 `hearthpulse-testing`.
 
+Local checks on the shared PC go through `powershell -File tools/dev/check.ps1` (changed projects and matching
+tests, queued across worktrees). Check the selected cases against the task and reuse results for the same code
+and configuration. The coordinator runs the full .NET check once on the integrated app change.
+
 **Default workflow (owner's standing permission, 2026-10-27).** The coordinating session (the one the owner talks to
 in `D:\HeartLens-main`) carries every feature or fix task end to end with `hearthpulse-ship`: sessions in worktrees,
 verify, merge into `main`, push, rebuild and restart the app, delete the finished sessions, with no "commit? merge?

@@ -19,6 +19,11 @@ Which behaviour of a changed contract the existing tests would miss:
 
 ## Run
 
+For local development use `powershell -File tools/dev/check.ps1`. By default MSBuild and xUnit each use at most
+two workers, and worktrees take turns. Use `-Jobs 1` for a quieter run. `-All` (also `-Full`) builds the solution
+and runs the suites sequentially. Use `-Configuration Release` for integration. Selection by filename is a
+heuristic: confirm the intended cases ran. The individual project commands below are for focused diagnosis.
+
 ```
 dotnet restore tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --source https://api.nuget.org/v3/index.json
 dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-restore
@@ -60,9 +65,7 @@ properties) in contract tests rather than forcing the two UIs to have identical 
   line coverage per module (`src/` folder, every report merged, shared Presentation counted once) into the job
   summary, and a red job when a module falls more than 0.5 pp under its floor in `tools/coverage/baseline.json`.
   Mutation tests (Stryker, by hand in CI only): `docs/mutation-testing.md`.
-  Quick local check of a change before a commit (touched projects and test classes, Idle priority):
-  `powershell -File tools/dev/check.ps1`; `-Full` builds everything and runs both suites at once (each test process
-  has a data folder of its own). Same check locally:
+  To check the coverage ratchet locally:
   `python tools/coverage/coverage_ratchet.py <dir>/tests <dir>/presentation`. When a change raises a module (the
   table says "raise the floor"), raise its floor in `baseline.json` in the same commit; floors only go up.
   Instrumentation makes hot code ~15x slower: a test that asserts on wall-clock time gets

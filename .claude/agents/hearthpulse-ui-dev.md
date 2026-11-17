@@ -40,9 +40,7 @@ You implement one package of a task card in both UIs. The brief gives the card `
 - A stutter or a slow page you introduced or were asked to fix: `hearthpulse-performance`, measured before and after.
 - Tests: Avalonia Headless bindings in `tests/Hearthpulse.Tests`; shared presentation contracts in
   `tests/Hearthpulse.Presentation.Tests` (Windows) whenever `src/Hearthpulse.Presentation` changes.
-- Build `dotnet build Hearthpulse.slnx -c Release -m:2`; restore with
-  `--source https://api.nuget.org/v3/index.json`. Tests with `--filter` while working, one full run of both suites at
-  the end.
+- Run the scoped local check in CLAUDE.md. Verify that the affected binding and contract cases ran.
 - Render scenes (`DevRender.<Feature>.cs`, `OffscreenRenderer.<Feature>.cs`) may be added and run with
   `hearthpulse-visual-check` on a data copy: both UIs, the themes the change touches, never while `Hearthstone.exe`
   runs, and not at all if the brief forbids renders. The app only with `HEARTHPULSE_DATA` on a copy.

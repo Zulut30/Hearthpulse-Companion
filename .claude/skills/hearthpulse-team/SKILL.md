@@ -75,13 +75,13 @@ Per package, when its inputs exist (design.md, a contract from another package):
   Worktree <path>, ветка claude/<slug>-<pkg>. Коммить только в неё, без push и merge.
   Рендер — через hearthpulse-visual-check на копии данных, оба UI, нужные темы, никогда при запущенном
   Hearthstone.exe. <Или «Без рендера», если задача его запрещает.>
-  Сборка -m:2, тесты --filter в работе и один полный прогон в конце.
+  Локальная проверка пакета через tools/dev/check.ps1. Укажи, какие тесты проверили критерии приёмки.
   В конце: <$task>\handover-P<n>.md и отчёт — коммиты, счёт тестов, закрытые AC, что не проверено.
   ```
 
 - a "Журнал" row: package, session id, branch, "в работе".
 
-At most three developer sessions build at once: the owner plays on this PC.
+Developer sessions share the local check queue in CLAUDE.md.
 
 ## 4. Check each package
 

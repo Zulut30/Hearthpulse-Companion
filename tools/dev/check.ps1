@@ -14,22 +14,18 @@
 .EXAMPLE
   powershell -File tools/dev/check.ps1              # the change against main
   powershell -File tools/dev/check.ps1 -All         # whole solution, every suite
-  powershell -File tools/dev/check.ps1 -Full        # as -All, the two test suites at the same time
+  powershell -File tools/dev/check.ps1 -Full        # alias for -All; suites run one at a time
   powershell -File tools/dev/check.ps1 -Fast        # no analyzers, warnings stay warnings: an edit-compile loop, not a final check
   powershell -File tools/dev/check.ps1 -Base HEAD~1 # only the last commit
 #>
 [CmdletBinding()]
 param(
     [string]$Base = '',
-    [switch]$All,
-    # -All with Hearthpulse.Tests and Presentation.Tests in two processes at once. Safe: each test process has a data
-    # folder of its own (TestDataFolder: pid and guid, HEARTHPULSE_DATA), no test opens a port or a named mutex or
-    # writes into the repository, and only Presentation.Tests shows real windows. Each suite keeps its own collections.
-    [switch]$Full,
+    [Alias('Full')][switch]$All,
     [switch]$Fast,
     [switch]$NoTests,
-    # MSBuild nodes; a quarter of the cores leaves room for the game and other sessions.
-    [int]$Jobs = [Math]::Max(1, [int]([Environment]::ProcessorCount / 4))
+    [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug',
+    [ValidateRange(1, 1024)][int]$Jobs = [Math]::Min(2, [Environment]::ProcessorCount)
 )
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
@@ -39,13 +35,13 @@ Set-Location $root
 (Get-Process -Id $PID).PriorityClass = 'Idle'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = 'true'
 $env:DOTNET_NOLOGO = 'true'
+$env:DOTNET_PROCESSOR_COUNT = [string]$Jobs
 $env:MSBUILDDISABLENODEREUSE = '1'
 if ($Fast) { $env:HEARTHPULSE_FAST = 'true'; $env:HEARTHPULSE_STRICT = '' } else { $env:HEARTHPULSE_STRICT = 'true' }
 
 $coreTests = 'tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj'
 $presentationTests = 'tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj'
 
-if ($Full) { $All = $true }
 if (-not $Base) { $Base = (git merge-base HEAD main).Trim() }
 $files = @(git diff --name-only $Base) + @(git ls-files --others --exclude-standard) |
     Where-Object { $_ } | ForEach-Object { $_ -replace '\\', '/' } | Sort-Object -Unique
@@ -100,47 +96,46 @@ function Invoke-Step([string]$title, [scriptblock]$command) {
     return -not $code
 }
 
-$built = @{}
-foreach ($project in ($build | Sort-Object -Unique)) {
-    $built[$project] = Invoke-Step "build $project" {
-        dotnet build $project -c Debug -m:$Jobs --disable-build-servers -nologo -v:q -clp:NoSummary -p:UseSharedCompilation=false
+# Worktrees on the same desktop share the CPU. Queue their checks without polling.
+$gate = [Threading.Mutex]::new($false, 'Hearthpulse.LocalCheck')
+$ownsGate = $false
+try {
+    try {
+        $ownsGate = $gate.WaitOne(0)
+        if (-not $ownsGate) {
+            Write-Host 'Waiting for the current Hearthpulse check to finish...'
+            $ownsGate = $gate.WaitOne()
+        }
+    } catch [Threading.AbandonedMutexException] {
+        $ownsGate = $true
     }
-}
+    $built = @{}
+    foreach ($project in ($build | Sort-Object -Unique)) {
+        $built[$project] = Invoke-Step "build $project" {
+            dotnet build $project -c $Configuration -m:$Jobs --source https://api.nuget.org/v3/index.json -p:RestoreDisableParallel=true --disable-build-servers -nologo -v:q -clp:NoSummary -p:UseSharedCompilation=false
+        }
+    }
 
-if (-not $NoTests -and $Full -and $built['Hearthpulse.slnx']) {
-    # Both suites at once, each into a log of its own; the logs are shown when both have ended.
-    $runs = foreach ($project in @($coreTests, $presentationTests)) {
-        if ($project -eq $presentationTests -and $IsWindows -eq $false) { continue }
-        $log = Join-Path ([IO.Path]::GetTempPath()) ("hearthpulse-check-" + [IO.Path]::GetFileNameWithoutExtension($project) + ".log")
-        $process = Start-Process dotnet -ArgumentList "test $project --no-build -c Debug --filter Category!=Timing --nologo -v q" `
-            -NoNewWindow -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err"
-        $null = $process.Handle  # keeps the exit code readable after the process ends
-        [pscustomobject]@{ Project = $project; Process = $process; Log = $log }
+    if (-not $NoTests) {
+        foreach ($project in $suites.Keys) {
+            if ($built.ContainsKey('Hearthpulse.slnx')) { $ok = $built['Hearthpulse.slnx'] } else { $ok = $built[$project] }
+            if (-not $ok) { continue }
+            if ($project -eq $presentationTests -and $IsWindows -eq $false) { continue }  # net10.0-windows
+            $fragments = @($suites[$project])
+            $filter = if ($fragments -contains '*') { 'Category!=Timing' }
+                else { '(' + (($fragments | ForEach-Object { "FullyQualifiedName~$_" }) -join '|') + ')&Category!=Timing' }
+            [void](Invoke-Step "test $project [$filter]" {
+                dotnet test $project --no-build -c $Configuration -m:$Jobs --filter $filter --nologo -v q -- xUnit.MaxParallelThreads=$Jobs
+            })
+        }
     }
-    foreach ($run in $runs) {
-        $run.Process.WaitForExit()
-        Write-Host "== test $($run.Project) [Category!=Timing], in parallel" -ForegroundColor Cyan
-        Get-Content $run.Log, "$($run.Log).err" -ErrorAction SilentlyContinue | Out-Host
-        Write-Host ("   {0:n0} s" -f ($run.Process.ExitTime - $run.Process.StartTime).TotalSeconds)
-        if ($run.Process.ExitCode) { $failed.Add("test $($run.Project)") }
-    }
-}
-elseif (-not $NoTests) {
-    foreach ($project in $suites.Keys) {
-        if ($built.ContainsKey('Hearthpulse.slnx')) { $ok = $built['Hearthpulse.slnx'] } else { $ok = $built[$project] }
-        if (-not $ok) { continue }
-        if ($project -eq $presentationTests -and $IsWindows -eq $false) { continue }  # net10.0-windows
-        $fragments = @($suites[$project])
-        $filter = if ($fragments -contains '*') { 'Category!=Timing' }
-            else { '(' + (($fragments | ForEach-Object { "FullyQualifiedName~$_" }) -join '|') + ')&Category!=Timing' }
-        [void](Invoke-Step "test $project [$filter]" {
-            dotnet test $project --no-build -c Debug --filter $filter --nologo -v q
-        })
-    }
-}
 
-if ($pool) { [void](Invoke-Step 'pool API' { node --test server/pool/test/validation.test.mjs }) }
-if ($scripts) { [void](Invoke-Step 'skill scripts' { python -B -I -m unittest discover -s tools/skill_checks -q }) }
+    if ($pool) { [void](Invoke-Step 'pool API' { node --test server/pool/test/validation.test.mjs }) }
+    if ($scripts) { [void](Invoke-Step 'skill scripts' { python -B -I -m unittest discover -s tools/skill_checks -q }) }
+} finally {
+    if ($ownsGate) { $gate.ReleaseMutex() }
+    $gate.Dispose()
+}
 
 if ($failed.Count) { Write-Host "FAILED: $($failed -join ', ')" -ForegroundColor Red; exit 1 }
 Write-Host 'OK' -ForegroundColor Green

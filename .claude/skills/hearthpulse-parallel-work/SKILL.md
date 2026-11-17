@@ -110,8 +110,8 @@ location and record it in the handover. A blocker or open major stops the merge.
 2. Merge branches one by one, **fewest conflicts first, the most invasive last** (last round: counters-panel ->
    oidc-login -> mulligan-guide-v2 -> my-stats -> deck-panel-opponent-hand -> card-pool). Message:
    `Merge feat/<branch> (<short-sha>) into review-integration`.
-3. After every merge: restore, `dotnet build Hearthpulse.slnx --no-restore` (0 errors, 0 warnings), tests. For shared
-   presentation changes compile both flavors and run the additional Windows presentation contract suite.
+3. Follow hearthpulse-ship §3 for intermediate merges and the integrated check. For shared presentation changes
+   confirm both flavors compile and the Windows presentation contract suite ran.
 4. Record actual passed/failed/skipped counts and inspect discovery differences against the base and branch
    changes. Counts can change when cases are consolidated or data theories grow; inspect which assertions survived
    instead of treating historical arithmetic as an acceptance gate.

@@ -59,8 +59,8 @@ environment owns its isolation.
   actually returned by the tool, even if its naming prefix differs from `claude/`.
 - Brief: **the skills the session loads first, by name** (`hearthpulse-dev` and the 1-2 rows of the `CLAUDE.md`
   table for its area: a session that is not told skips them), goal in the user's words, owned files, both UIs
-  (WPF + Avalonia) when user-facing, build `-m:2`,
-  tests `--filter` while working and one full run at the end, renders through `hearthpulse-visual-check` on a data
+  (WPF + Avalonia) when user-facing, scoped checks through
+  `tools/dev/check.ps1` for the package, renders through `hearthpulse-visual-check` on a data
   copy and never while `Hearthstone.exe` runs (or "no render" when this task forbids it), **commit to
   `claude/<name>` only, no push, no merge**, final report = commits + test counts + what was not checked.
 
@@ -79,19 +79,17 @@ When a session reports, check it yourself before merging, by the
 
 In `$repo` on `main` (clean tree, `git pull --ff-only` first):
 
-For a Markdown/skills-only change, run the catalogue, stub and link checks instead of building, running .NET tests
-or restarting the app. The steps below apply when executable code or shipped resources change.
+For changes confined to docs, skills or development scripts, exercise the affected tooling and catalogue checks.
+The steps below apply to changes to the app or its shipped resources.
 
 ```powershell
 git merge --no-edit refs/heads/claude/<name>        # one branch at a time, fewest conflicts first
 Get-Process Hearthpulse -ErrorAction SilentlyContinue | Stop-Process -Force   # the exe locks bin\
-dotnet build Hearthpulse.slnx -c Release -m:2
-dotnet test tests\Hearthpulse.Tests -c Release --no-build
-dotnet test tests\Hearthpulse.Presentation.Tests -c Release --no-build
+powershell -File tools/dev/check.ps1 -All -Configuration Release  # once on the final integrated tree
 ```
 
-- Build after **every** merge (API drift compiles only after the merge). Conflicts: keep both sides' intent;
-  a combination fix is its own commit.
+- For intermediate merges, run the scoped check with `-Base <pre-merge-sha> -Configuration Release` to catch API drift.
+  Conflicts: keep both sides' intent; a combination fix is its own commit.
 - 0 errors and all tests green, else fix (or send back to the session) - never push red.
 - Commit messages: write to a file as UTF-8 **without BOM** (`[IO.File]::WriteAllText($f, $msg,
   (New-Object Text.UTF8Encoding($false)))`), then `git commit -F $f`; end with the Co-Authored-By line.
