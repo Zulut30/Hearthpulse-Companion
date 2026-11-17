@@ -68,7 +68,7 @@
                         <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xF05AF;" Click="OnMaximize" ToolTip="{i:Loc Main.Window.Maximize}" AutomationProperties.Name="{i:Loc Main.Window.Maximize}" />
                         <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" AutomationProperties.Name="{i:Loc Main.Window.Minimize}" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
+                    <StackPanel Orientation="Horizontal" Margin="24,12,0,18">
                         <!-- The logo with the BETA flag on its lower edge (owner's pick E, 2026-11-07): a small outlined tag over the
                              sidebar fill, accent capitals; the wordmark's line stays clean -->
                         <Grid Width="42" Height="42">

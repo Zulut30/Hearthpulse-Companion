@@ -95,6 +95,13 @@
 
         <!-- The sidebar's status and overlay cards: a groove like the search box. Margins and paddings are styles, not local
              values, so compact can override them. -->
+        <!-- Desktop aligns with the WPF caption strip and its gap above the wordmark. -->
+        <Style Selector="StackPanel.brand">
+            <Setter Property="Margin" Value="24,52,0,18" />
+        </Style>
+        <Style Selector="m|MainView.compact StackPanel.brand">
+            <Setter Property="Margin" Value="24,22,0,18" />
+        </Style>
         <Style Selector="Border.sideCard">
             <Setter Property="Background" Value="{StaticResource GrooveFill}" />
             <Setter Property="BorderBrush" Value="{StaticResource GrooveEdge}" />
@@ -290,7 +297,7 @@
         <!-- ================= Navigation ================= -->
         <DockPanel>
             <StackPanel DockPanel.Dock="Top">
-                <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
+                <StackPanel Classes="brand" Orientation="Horizontal">
                     <Panel Width="42" Height="42">
                         <Image Source="{StaticResource HearthpulseLogo}" />
                         <Border Name="BetaBadge" Classes="beta" ToolTip.Tip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}">
