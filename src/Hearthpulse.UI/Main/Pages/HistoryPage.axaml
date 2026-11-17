@@ -30,8 +30,7 @@
                 </StackPanel>
                 <c:Wave Classes="pageRule" Margin="2,0,0,0" />
             </StackPanel>
-            <Border Classes="headFilter">
-            <StackPanel Orientation="Horizontal">
+            <WrapPanel Grid.Row="1" Margin="0,8,0,8">
             <Button Name="TimestampsButton" Classes="ghost" Content="{i:Loc Growth.Timestamps.Button}" Padding="12,6" Margin="0,0,16,0"
                     FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" Click="OnTimestamps" ToolTip.Tip="{i:Loc Growth.Timestamps.ButtonTip}"
                     AutomationProperties.Name="{i:Loc Growth.Timestamps.Button}" />
@@ -47,8 +46,7 @@
                     <RadioButton Classes="segment" Content="{i:Loc Main.History.Other}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Other" />
                 </WrapPanel>
             </Border>
-            </StackPanel>
-            </Border>
+            </WrapPanel>
         </Grid>
         <!-- Tabs Recent / Saved / Imported, status, game cards (Main/Match/ReplayLibraryView) -->
         <mt:ReplayLibraryView Name="LibraryView" Grid.Row="1" DataContext="{Binding Library}" />

@@ -793,6 +793,10 @@
                             </Trigger.ExitActions>
                             <Setter TargetName="State" Property="Background" Value="{StaticResource Pressed}" />
                         </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
