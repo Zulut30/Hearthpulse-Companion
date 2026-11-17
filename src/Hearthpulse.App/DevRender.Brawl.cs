@@ -87,7 +87,12 @@ public partial class App
 
         if (RenderOnly("home"))
         {
-            // The whole home page: the recent games and the deck banners sit below the fold.
+            // The whole home page: the recent games and the deck banners sit below the fold; at HEARTHPULSE_RENDER_WIDTH if set.
+            if (RenderWidth is { } homeWidth)
+            {
+                _main.Width = homeWidth;
+            }
+
             _main.ShowPage("Overview");
             await Task.Delay(2500);
             _main.UpdateLayout();

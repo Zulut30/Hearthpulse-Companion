@@ -364,11 +364,14 @@ public sealed partial class MainViewModel : Observable
                 RankInfo.Localize(g.Rank),
                 Loc.P("Main.Game.Turns", g.Turns),
             }.Where(x => !string.IsNullOrEmpty(x)));
+        // A game recorded without its hero (an Arena or Underground Arena record that kept only the class) shows the
+        // class's default hero, as a deck does, instead of an empty portrait and no name.
+        var hero = g.HeroCardId is { Length: > 0 } ? g.HeroCardId : DeckString.ClassHero(g.PlayerClass) ?? string.Empty;
         return new GameRow(
             When(g.StartedAt),
             ModeOf(g),
-            g.HeroCardId,
-            _cards.NameOf(g.HeroCardId),
+            hero,
+            _cards.NameOf(hero),
             bg && !g.IsAbandoned ? Ordinal(g.Placement) : ResultText(g.Result),
             resultKey,
             detail,

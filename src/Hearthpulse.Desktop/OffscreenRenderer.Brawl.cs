@@ -101,7 +101,13 @@ internal static partial class OffscreenRenderer
 
         if (RenderOnly("home"))
         {
-            // The whole home page: the recent games and the deck banners sit below the fold, so a tall frame.
+            // The whole home page: the recent games and the deck banners sit below the fold, so a tall frame; at
+            // HEARTHPULSE_RENDER_WIDTH if set (420: compact).
+            if (RenderWidth is { } homeWidth)
+            {
+                main.Width = homeWidth;
+            }
+
             view.ShowPage("Overview");
             var height = main.Height;
             main.Height = 2400;

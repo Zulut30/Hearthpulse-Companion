@@ -219,7 +219,7 @@ public sealed class PageRowsPanelAvaloniaTests
     {
         var theme = Theme();
         var db = TestDataFolder.Scratch("hp-page-rows-keys") + ".db";
-        var model = new MainViewModel(new HistoryStore(db), new AppSettings(), TestDataFolder.App);
+        var model = new MainViewModel(new HistoryStore(db), NoNotice(), TestDataFolder.App);
         var view = new MainView { DataContext = model };
         var window = new Window { Width = 1280, Height = 800 };
         window.Resources["UiFont"] = Avalonia.Media.FontFamily.Default;
@@ -319,7 +319,7 @@ public sealed class PageRowsPanelAvaloniaTests
     {
         var theme = Theme();
         var db = TestDataFolder.Scratch("hp-page-rows") + ".db";
-        var model = new MainViewModel(new HistoryStore(db), new AppSettings(), TestDataFolder.App);
+        var model = new MainViewModel(new HistoryStore(db), NoNotice(), TestDataFolder.App);
         var view = new MainView { DataContext = model };
         var window = new Window { Width = 1280, Height = 800 };
         // The headless platform has no Inter: the app swaps UiFont at startup the same way (HearthpulseApp).
@@ -484,6 +484,12 @@ public sealed class PageRowsPanelAvaloniaTests
         window.Show();
         return page;
     }
+
+    /// <summary>
+    /// Settings without a stats pool: the one-time game records notice sits in the layout above the page and would take
+    /// part of the 800 px window these row counts are measured in.
+    /// </summary>
+    internal static AppSettings NoNotice() => new() { PoolEndpoint = "off" };
 
     internal static Styles Theme()
     {

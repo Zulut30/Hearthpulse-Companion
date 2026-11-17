@@ -111,16 +111,34 @@ public sealed partial class MainViewModel
         || Settings.PoolConsent != false && Settings.PoolNoticeVersion < PoolClient.NoticeVersion);
 
     private RelayCommand? _answerGameStats;
+    private bool _gameStatsNoticeDetails;
+
+    /// <summary>
+    /// The notice's full text (what is sent, what never, how long it is kept, what turning off deletes) is shown under
+    /// its short summary. Collapsed by default so the notice stays a few lines above the page; opening it is not an answer.
+    /// </summary>
+    public bool GameStatsNoticeDetails
+    {
+        get => _gameStatsNoticeDetails;
+        private set => Set(ref _gameStatsNoticeDetails, value);
+    }
 
     /// <summary>
     /// The notice's buttons: "ok" keeps sending, "off" turns off both game records and the stats pool's shared games,
-    /// "more" opens the privacy policy. Neither "ok" nor a newer notice turns back on what the player turned off.
+    /// "more" opens the privacy policy, "details" shows or hides the full text. Only "ok" and "off" answer the notice;
+    /// neither "ok" nor a newer notice turns back on what the player turned off.
     /// </summary>
     public RelayCommand AnswerGameStats => _answerGameStats ??= new RelayCommand(p =>
     {
         if (p as string == "more")
         {
             OpenPrivacy.Execute(null);
+            return;
+        }
+
+        if (p as string == "details")
+        {
+            GameStatsNoticeDetails = !GameStatsNoticeDetails;
             return;
         }
 

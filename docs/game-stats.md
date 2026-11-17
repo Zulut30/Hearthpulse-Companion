@@ -55,8 +55,11 @@ server rebuilds every record from known fields only, so anything else is dropped
   180 days, that the statistics may be used in paid features, how to turn it off and that this deletes the sent games.
   Shown only once the pool is set up (`PoolClient.Available`); nothing is sent before. Stored as
   `AppSettings.GameStatsOff` (false = sending).
-- **One-time notice** in the main window, both UIs («Hearthpulse отправляет ваши игры для своей статистики»: what is
-  sent, what never, 180 days, how to turn off; buttons «Понятно» / «Выключить» / «Подробнее» → the policy). Not a
+- **One-time notice** in the main window, both UIs («Hearthpulse отправляет ваши игры для своей статистики»), in the
+  layout above the page (the page moves down, nothing is hidden under it). It shows a short summary (what is sent,
+  what never, how to turn off); «Что отправляется» opens the full text in place (what is sent, what never, 180 days,
+  60 days in the pool, what turning off deletes) and with it «Политика конфиденциальности» → the policy; buttons
+  «Понятно» / «Выключить». Opening the full text or the policy is not an answer. Not a
   consent question: it tells players who updated silently and never saw the installer. Nothing is sent before the notice
   of the current version was seen (`GameStatsClient.NoticeSeen`, see "Notice contract"). The install secret is made
   when the notice is answered «Понятно» or the switch goes on, not before, and never by a refusal.

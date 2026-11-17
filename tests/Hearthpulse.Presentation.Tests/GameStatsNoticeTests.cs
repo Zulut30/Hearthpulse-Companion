@@ -140,6 +140,32 @@ public sealed class GameStatsNoticeTests
         Assert.Equal(0, settings.PoolNoticeVersion);
     }
 
+    /// <summary>The full text opens and closes under the summary; showing it is not an answer either.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Details_on_the_notice_toggle_the_full_text_and_leave_it_unanswered(bool wpf)
+    {
+        var settings = new AppSettings { PoolEndpoint = "https://pool.test" };
+        var model = Model(wpf, settings);
+        var raised = new List<string?>();
+        ((System.ComponentModel.INotifyPropertyChanged)model).PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        Assert.False((bool)model.GameStatsNoticeDetails);
+        model.AnswerGameStats.Execute("details");
+
+        Assert.True((bool)model.GameStatsNoticeDetails);
+        Assert.Contains("GameStatsNoticeDetails", raised);
+        Assert.True((bool)model.ShowGameStatsNotice);
+        Assert.False(GameStatsClient.Sharing(settings));
+        Assert.False(PoolClient.Sharing(settings));
+        Assert.Equal(0, settings.PoolNoticeVersion);
+        Assert.Null(settings.PoolSecret);
+
+        model.AnswerGameStats.Execute("details");
+        Assert.False((bool)model.GameStatsNoticeDetails);
+    }
+
     /// <summary>
     /// A player who saw the earlier notice (or answered the question older versions asked) sees the current one before
     /// anything goes to the pool. Game records wait for it as well: the earlier notice may have named another pool
