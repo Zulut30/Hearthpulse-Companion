@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Hearthpulse.App.Behaviors;
 using Hearthpulse.App.Controls;
 
 namespace Hearthpulse.App.Main;
@@ -16,12 +17,20 @@ namespace Hearthpulse.App.Main;
 public partial class MainWindow
 {
     /// <summary>The row the open card page was opened from, its card and its list (the row may be rebuilt meanwhile).</summary>
-    private (ButtonBase Row, string CardId, ItemsControl? List)? _cardOrigin;
+    private readonly FocusRecovery<ButtonBase> _cardOrigin = new(CardLink.FocusTree.Instance);
 
     /// <summary>A card row was activated (<see cref="CardLink"/>): its card page opens, and the row is remembered for the way back.</summary>
     private void OnCardLink(object? sender, CardLinkEventArgs e)
     {
-        _cardOrigin = e.OriginalSource is ButtonBase row ? (row, e.CardId, CardLink.ListOf(row)) : null;
+        if (e.OriginalSource is ButtonBase row)
+        {
+            _cardOrigin.Remember(row, CardLink.ListOf(row));
+        }
+        else
+        {
+            _cardOrigin.Take();
+        }
+
         _viewModel.OpenCard.Execute(e.CardId);
         e.Handled = true;
     }
@@ -70,22 +79,10 @@ public partial class MainWindow
     /// </summary>
     private void RestoreCardFocus()
     {
-        var origin = _cardOrigin;
-        _cardOrigin = null;
+        var origin = _cardOrigin.Take();
         UpdateLayout();
-        ButtonBase? target = null;
-        if (origin is { } from)
-        {
-            target = Usable(from.Row) ? from.Row
-                : from.List is { IsVisible: true } list
-                    ? CardLink.Rows(list).FirstOrDefault(r => CardLink.GetCardId(r) == from.CardId) ?? CardLink.Rows(list).FirstOrDefault()
-                    : null;
-        }
-
-        Take(target ?? PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, CurrentPage)]);
+        Take(_cardOrigin.Resolve(origin) ?? PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, CurrentPage)]);
     }
-
-    private static bool Usable(ButtonBase row) => row is { IsVisible: true, IsEnabled: true } && PresentationSource.FromVisual(row) is not null;
 
     /// <summary>Gives an element the window's focus: the logical one always, the keyboard's when the window has it.</summary>
     private bool Take(UIElement element)

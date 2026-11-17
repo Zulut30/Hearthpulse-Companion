@@ -119,6 +119,9 @@ DATA AND CREDITS
   creativecommons.org/licenses/by/3.0), drawn in gold: "house" by Delapouite;
   "beer-stein", "poker-hand", "vine-leaf", "crossed-swords",
   "fist", "hourglass" and "cog" by Lorc.
+- Keyboard, focus and popup behaviors (list navigation, type-to-find,
+  focus return): ported from UI SDK, Copyright 2026 Vercel, Inc., Apache
+  License 2.0; the full text is in THIRD-PARTY-NOTICES.txt.
 - Update signature check: ported from the reference code in RFC 8032
   (c) IETF Trust and the document authors, Revised BSD License; the full
   text is in THIRD-PARTY-NOTICES.txt.

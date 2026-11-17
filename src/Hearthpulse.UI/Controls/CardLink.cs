@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.UI.Behaviors;
 
 namespace Hearthpulse.UI.Controls;
 
@@ -17,8 +18,9 @@ public sealed class CardLinkEventArgs(RoutedEvent routedEvent, object source, st
 /// <summary>
 /// Makes a card row open the card's page (docs/card-page.md). The row is a <c>Button</c> (classes <c>bare</c>) with
 /// <c>CardLink.CardId</c> and <c>CardLink.CardName</c>: a click, Enter or Space raises <see cref="OpenEvent"/>, which
-/// bubbles to the main view. The button is named "Open the card page of ..." for a screen reader; its list is one Tab
-/// stop, and Up / Down move between its rows. The row keeps its hover preview (<see cref="CardPreview"/>).
+/// bubbles to the main view. The button is named "Open the card page of ..." for a screen reader, with its place in the
+/// list ("3 of 30"); its list is one Tab stop, Up / Down move between its rows and typing a card's first letters jumps
+/// to it (the shared list behaviors, docs/ui-behaviors.md). The row keeps its hover preview (<see cref="CardPreview"/>).
 /// </summary>
 public static class CardLink
 {
@@ -29,6 +31,12 @@ public static class CardLink
 
     public static readonly RoutedEvent<CardLinkEventArgs> OpenEvent =
         RoutedEvent.Register<CardLinkEventArgs>("Open", RoutingStrategies.Bubble, typeof(CardLink));
+
+    /// <summary>Up / Down between the rows; at either end the focus stays, and Home / End stay the page's.</summary>
+    private static readonly ListNavigationOptions Navigation = ListNavigationOptions.Vertical with { HomeEnd = false };
+
+    /// <summary>A list's type-to-find query, kept on the list.</summary>
+    private static readonly AttachedProperty<Typeahead?> TypeaheadProperty = AvaloniaProperty.RegisterAttached<ItemsControl, Typeahead?>("Typeahead", typeof(CardLink));
 
     static CardLink()
     {
@@ -51,6 +59,8 @@ public static class CardLink
         {
             button.Click += OnClick;
             button.AddHandler(InputElement.KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+            button.AddHandler(InputElement.TextInputEvent, OnTextInput);
+            button.GotFocus += OnFocused;
             button.AttachedToVisualTree += OnAttached;
             if (button.IsAttachedToVisualTree())
             {
@@ -61,6 +71,8 @@ public static class CardLink
         {
             button.Click -= OnClick;
             button.RemoveHandler(InputElement.KeyDownEvent, OnKeyDown);
+            button.RemoveHandler(InputElement.TextInputEvent, OnTextInput);
+            button.GotFocus -= OnFocused;
             button.AttachedToVisualTree -= OnAttached;
         }
     }
@@ -104,22 +116,64 @@ public static class CardLink
 
     private static void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key is not (Key.Up or Key.Down) || e.KeyModifiers != KeyModifiers.None || sender is not Button button
-            || button.FindAncestorOfType<ItemsControl>() is not { } list)
+        if (e.KeyModifiers != KeyModifiers.None || sender is not Button button || button.FindAncestorOfType<ItemsControl>() is not { } list)
         {
             return;
         }
 
-        var rows = list.GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible && GetCardId(b) is { Length: > 0 }).ToList();
-        var next = rows.IndexOf(button) + (e.Key == Key.Down ? 1 : -1);
-        if (next >= 0 && next < rows.Count)
+        // At either end the focus stays and the key is still the list's: the page does not scroll away under it.
+        if (RovingFocus.Move(button, Rows(list), e.Key, Navigation))
         {
-            rows[next].Focus(NavigationMethod.Directional);
-            rows[next].BringIntoView();
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>Type-to-find: the next row whose card name starts with the typed letters takes the focus.</summary>
+    private static void OnTextInput(object? sender, TextInputEventArgs e)
+    {
+        if (sender is not Button button || button.FindAncestorOfType<ItemsControl>() is not { } list)
+        {
+            return;
         }
 
-        // At either end the focus stays: the page does not scroll away under the list.
-        e.Handled = true;
+        if (list.GetValue(TypeaheadProperty) is not { } typeahead)
+        {
+            typeahead = RovingFocus.NewTypeahead();
+            list.SetValue(TypeaheadProperty, typeahead);
+        }
+
+        if (RovingFocus.Search(typeahead, e.Text, button, Rows(list), GetCardName))
+        {
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>A screen reader hears the row's place in its list.</summary>
+    private static void OnFocused(object? sender, FocusChangedEventArgs e)
+    {
+        if (sender is Button button && button.FindAncestorOfType<ItemsControl>() is { } list)
+        {
+            RovingFocus.Announce(button, Rows(list));
+        }
+    }
+
+    /// <summary>The card rows shown in a list, top to bottom.</summary>
+    internal static List<Button> Rows(ItemsControl list) =>
+        list.GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible && GetCardId(b) is { Length: > 0 }).ToList();
+
+    /// <summary>
+    /// The card rows as <see cref="FocusRecovery{TElement}"/> reads them: a row is usable while shown and in the visual
+    /// tree; a list's items are its shown rows; a row's key is its card id (the row is rebuilt, the card stays).
+    /// </summary>
+    internal sealed class FocusTree : IFocusTree<Button>
+    {
+        public static FocusTree Instance { get; } = new();
+
+        public bool IsUsable(Button element) => element.IsEffectivelyVisible && element.IsAttachedToVisualTree();
+
+        public IReadOnlyList<Button> ItemsOf(object collection) => collection is ItemsControl { IsEffectivelyVisible: true } list ? Rows(list) : [];
+
+        public string? KeyOf(Button element) => GetCardId(element);
     }
 
     /// <summary>Raises <see cref="OpenEvent"/> for the row's card (a click does; tests call it). False without a card.</summary>

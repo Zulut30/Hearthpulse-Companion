@@ -21,6 +21,7 @@ public member types and assembly identities therefore remain in place.
 | Property notification | `Infrastructure/Observable.cs` | `RelayCommand` stays local (CLAUDE.md): every command is always executable, so it carries no notification to share (Etalon Q6, X5) |
 | Value converter rules (shown or not, brush key, share width) | `Infrastructure/DisplayRules.cs` | The `IValueConverter` classes in `Infrastructure/Converters.cs`: brush lookup, `Visibility` / `bool` |
 | Tracking and statistics algorithms | `src/Hearthpulse.Core` (outside this directory) | Hosts dispatch completed snapshots/results to the UI |
+| Keyboard, focus, selection and popup rules (list navigation, typeahead, selection, dismissal, popup focus, focus recovery; docs/ui-behaviors.md) | `Behaviors/*.cs` | App/UI `Behaviors/`: `RovingFocus`, `PopupFocus` adapters; the controls that call them |
 | Geometry of the custom controls (chart points, ticks, tags; card preview placement; match timeline) | `Controls/ChartGeometry.cs` (with `IChartValue`), `Controls/CardPreviewLayout.cs`, `Main/Match/MatchTimelineLayout.cs` | The controls themselves: properties, input, text measuring and drawing |
 | XAML, controls, resources and rendering | None | Each App/UI/desktop host retains its framework implementation |
 

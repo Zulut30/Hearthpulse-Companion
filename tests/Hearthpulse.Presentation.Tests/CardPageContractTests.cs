@@ -184,6 +184,30 @@ public sealed class CardPageContractTests
             Press(rows[2], System.Windows.Input.Key.Up, UIElement.PreviewKeyDownEvent);
             Assert.True(rows[1].IsFocused);
 
+            // The focused row tells a screen reader its place ("2 of 3"); typing a card's first letter jumps to the next
+            // row of a card that starts with it, and again to the one after (the shared list behaviors, docs/ui-behaviors.md).
+            Assert.Equal((2, 3), (System.Windows.Automation.AutomationProperties.GetPositionInSet(rows[1]), System.Windows.Automation.AutomationProperties.GetSizeOfSet(rows[1])));
+            bool Type(Button on, string text)
+            {
+                var typed = new System.Windows.Input.TextCompositionEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, new System.Windows.Input.TextComposition(System.Windows.Input.InputManager.Current, on, text))
+                {
+                    RoutedEvent = UIElement.TextInputEvent,
+                };
+                on.RaiseEvent(typed);
+                return typed.Handled;
+            }
+
+            Assert.True(Type(rows[1], "н"));
+            Assert.True(rows[2].IsFocused);
+            Assert.True(Type(rows[2], "Н"));
+            Assert.True(rows[0].IsFocused);
+            Assert.Equal(1, System.Windows.Automation.AutomationProperties.GetPositionInSet(rows[0]));
+            // No card starts with "z", and a space stays the button's own: neither is taken.
+            Assert.False(Type(rows[0], "z"));
+            Assert.False(Type(rows[0], " "));
+            Assert.True(rows[0].IsFocused);
+            rows[1].Focus();
+
             Assert.False(WpfLink.Open(empty));
             Assert.False(model.CardOpen);
 

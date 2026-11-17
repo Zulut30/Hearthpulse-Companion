@@ -5,6 +5,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using Hearthpulse.App.Behaviors;
 
 namespace Hearthpulse.App.Main.Meta;
 
@@ -21,7 +22,9 @@ public partial class ConstructedMetaView
     private Popup? _deckBuild;
     private Button? _deckBuildOpener;
     private Window? _deckBuildWindow;
-    private bool _deckBuildClosedByKey;
+
+    /// <summary>Where the focus goes as the popup opens and closes (the shared popup behavior, docs/ui-behaviors.md).</summary>
+    private readonly PopupFocus _deckBuildFocus = new();
 
     /// <summary>Whether the missing cards of a label are open.</summary>
     internal bool DeckBuildOpen => _deckBuild is { IsOpen: true };
@@ -46,11 +49,18 @@ public partial class ConstructedMetaView
         return _deckBuild?.Child as FrameworkElement;
     }
 
-    /// <summary>Closes the missing cards, as a click away does.</summary>
-    public void CloseDeckBuild()
+    /// <summary>Closes the missing cards from code (the row or the view went away, another label opened).</summary>
+    public void CloseDeckBuild() => CloseDeckBuild(DismissReason.Imperative);
+
+    private void CloseDeckBuild(DismissReason reason)
     {
         if (_deckBuild is { } popup)
         {
+            if (!_deckBuildFocus.RequestClose(reason, focusInside: popup.Child?.IsKeyboardFocusWithin == true))
+            {
+                return;
+            }
+
             popup.IsOpen = false;
             // Closed can be dispatched later: release handlers before a programmatic reopen replaces the popup.
             if (ReferenceEquals(_deckBuild, popup))
@@ -120,7 +130,6 @@ public partial class ConstructedMetaView
         popup.Closed += OnDeckBuildClosed;
         _deckBuild = popup;
         _deckBuildOpener = button;
-        _deckBuildClosedByKey = false;
 
         // The row's numbers are the popup's: a new collection or a new list replaces the row (or gives its container
         // another one), and the popup closes rather than show the old numbers. A view that leaves its window closes it too.
@@ -138,15 +147,15 @@ public partial class ConstructedMetaView
         popup.IsOpen = true;
 
         // Focus goes into the popup, so a screen reader reads it and Escape closes it.
-        details.Focus();
+        _deckBuildFocus.Opened(button, details);
     }
 
+    /// <summary>Escape, Enter and Space close the list (it has nothing to activate) and give the focus back to the label.</summary>
     private void OnDeckBuildKey(object sender, KeyEventArgs e)
     {
-        if (e.Key is Key.Escape or Key.Enter or Key.Space)
+        if (PopupFocus.ReasonFor(e.Key, activateCloses: true) is { } reason)
         {
-            _deckBuildClosedByKey = true;
-            CloseDeckBuild();
+            CloseDeckBuild(reason);
             e.Handled = true;
         }
     }
@@ -192,19 +201,15 @@ public partial class ConstructedMetaView
             _deckBuildWindow = null;
         }
 
-        if (opener is null)
+        if (opener is not null)
         {
-            return;
+            opener.Unloaded -= OnDeckBuildGone;
+            opener.DataContextChanged -= OnDeckBuildRowChanged;
         }
 
-        opener.Unloaded -= OnDeckBuildGone;
-        opener.DataContextChanged -= OnDeckBuildRowChanged;
-
-        // Closed from the keyboard: focus returns to the label it was opened from. A click away keeps the click's focus.
-        if (_deckBuildClosedByKey && opener.IsVisible)
-        {
-            opener.Focus();
-        }
+        // Closed from the keyboard (or by code with the focus inside): focus returns to the label it was opened from. A
+        // click on another control keeps the click's focus.
+        _deckBuildFocus.Closed();
     }
 
     private static IEnumerable<DependencyObject> Descendants(DependencyObject root)

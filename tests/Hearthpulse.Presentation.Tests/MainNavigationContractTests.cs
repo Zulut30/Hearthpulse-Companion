@@ -208,6 +208,8 @@ public sealed class MainNavigationContractTests
             Assert.Equal([star, share, delete, delete], new[] { Key(System.Windows.Input.Key.Right), Key(System.Windows.Input.Key.Right), Key(System.Windows.Input.Key.Right), Key(System.Windows.Input.Key.Right) });
             Assert.Equal(share, Key(System.Windows.Input.Key.Left));
             Assert.Equal("0:game", Key(System.Windows.Input.Key.Escape));
+            // Left on the game itself is not the list's (the shared list rule stops at the game): the key goes on.
+            Assert.False(library.ListKey(games[0], System.Windows.Input.Key.Left, System.Windows.Input.ModifierKeys.None));
             Assert.Equal(["1:game", "2:game", "2:game", "1:game"],
                 new[] { Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Down), Key(System.Windows.Input.Key.Up) });
 
