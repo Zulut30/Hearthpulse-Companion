@@ -82,9 +82,8 @@ Checklist (the owner deploys; nothing here is deployed from a development sessio
 4. Before a release, try the app against it without rebuilding: `"PoolEndpoint": "https://…"` in `settings.json` of a
    copy of the data folder (`HEARTHPULSE_DATA`). The app uses `PoolEndpoint` when set, else `DefaultEndpoint`; only
    `https://` addresses are used.
-5. Set `DefaultEndpoint`, release. Sharing is on by default with an opt-out (the owner's decision, 2026-11-15): nothing
-   is sent before the app's one-time notice was shown (`PoolClient.NoticeVersion`), and the Settings → Data switch or
-   the notice's "Turn off" stops it. The routes have no deletion on request: shared games expire after 60 days.
+5. Set `DefaultEndpoint`, release. Sharing is on by default with an opt-out (the owner's decision, 2026-11-15; no
+   in-app notice since 2026-11-17): the Settings → Data switch stops it. The routes have no deletion on request: shared games expire after 60 days.
 
 To move an existing pool to a new version, run the new file in `migrations/` with
 `npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/<file>.sql`, then `npx wrangler deploy`.

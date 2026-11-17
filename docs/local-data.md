@@ -48,8 +48,8 @@ Besides settings, history, replays, the log and the cache, the data folder holds
   services on a recording HTTP handler, a collection with a marker card id and a marker dust balance shown by the
   main view model; the meta downloads, a finished game's record, shared games, a source capture, a profile upload
   with a made-up sign-in and a crash report are sent, and no request carries a marker in its address, headers or
-  body). That is proof for those six flows only: the Twitch publisher, the replay upload and share, and Discord
-  presence are not run by it and rest on the sources and the static check, not on a network check; the full list is
+  body). That is proof for those six flows only: the Twitch publisher and the replay upload and share
+  are not run by it and rest on the sources and the static check, not on a network check; the full list is
   in [collection.md](collection.md). The log names a read by its number of cards and nothing else; a crash report
   reads no log, so that line does not travel with one. There is no name, BattleTag, account id
   or region in it, so a loaded file is shown as unconfirmed until the running client was read

@@ -20,7 +20,6 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [secrets-helper.md](secrets-helper.md) | Opponent Secrets panel |
 | [streaming.md](streaming.md) | OBS capture windows (deck, lobby, combat odds, session) and streamer mode: what each hides and shows |
 | [sharing.md](sharing.md) | Share pictures (session recap, deck list and 16:9 cover, year in review), YouTube timestamps, the year page |
-| [discord.md](discord.md) | Discord status: what it shows and never shows, sending limits, registering the Discord app |
 | [mulligan-v2.md](mulligan-v2.md) | Mulligan guide: research, what the app computes, proposed endpoints |
 | [match-replay.md](match-replay.md) | Match page: turn-by-turn replay and what it may reveal |
 | [replay-library.md](replay-library.md) | History as the replay library: Saved, Imported, the import filter, Share |

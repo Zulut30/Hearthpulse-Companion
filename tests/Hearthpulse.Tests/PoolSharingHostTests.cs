@@ -11,7 +11,7 @@ using Hearthpulse.Core.Tracking;
 namespace Hearthpulse.Tests;
 
 /// <summary>
-/// <see cref="PoolSharingHost"/>, what both apps send to the stats pool: on by default once the notice was shown,
+/// <see cref="PoolSharingHost"/>, what both apps send to the stats pool: on by default,
 /// nothing after the player turned it off, never before a live host started it, and the earlier games once. No
 /// network: a handler that records the requests.
 /// </summary>
@@ -36,9 +36,9 @@ public sealed class PoolSharingHostTests : IDisposable
         TestDataFolder.TryDelete(_dir);
     }
 
-    /// <summary>The notice was shown; <paramref name="consent"/> null is a player who never touched the switch.</summary>
+    /// <summary>A pool is set up; <paramref name="consent"/> null is a player who never touched the switch.</summary>
     private static AppSettings Noticed(bool? consent = null, string endpoint = Endpoint) =>
-        new() { PoolEndpoint = endpoint, PoolConsent = consent, PoolNoticeVersion = PoolClient.NoticeVersion };
+        new() { PoolEndpoint = endpoint, PoolConsent = consent };
 
     private PoolSharingHost Host(AppSettings settings, CardDb? cards = null, bool start = true)
     {
@@ -76,7 +76,7 @@ public sealed class PoolSharingHostTests : IDisposable
     [Theory]
     [InlineData(null)]
     [InlineData(true)]
-    public async Task After_the_notice_a_battlegrounds_game_is_one_post_of_the_game_with_its_picks_and_plays(bool? consent)
+    public async Task A_battlegrounds_game_is_one_post_of_the_game_with_its_picks_and_plays(bool? consent)
     {
         var settings = Noticed(consent);
         var saves = 0;
@@ -103,7 +103,7 @@ public sealed class PoolSharingHostTests : IDisposable
     }
 
     [Fact]
-    public async Task After_the_notice_a_constructed_game_with_picks_is_one_post_of_its_picks()
+    public async Task A_constructed_game_with_picks_is_one_post_of_its_picks()
     {
         var host = Host(Noticed());
 
@@ -136,32 +136,29 @@ public sealed class PoolSharingHostTests : IDisposable
         Assert.Equal(0, saves);
     }
 
-    /// <summary>Not shown at all (0) or an answer to the question older versions asked (4): the notice comes first.</summary>
+    /// <summary>
+    /// Settings an earlier version left (its notice never seen, or the version of the question older versions asked):
+    /// no notice is waited for now, so the first game shares and makes the install's secret then; a "no" stays a refusal.
+    /// </summary>
     [Theory]
-    [InlineData(null, 0)]
-    [InlineData(true, 0)]
-    [InlineData(true, 4)]
-    public async Task Before_the_current_notice_was_shown_nothing_is_sent(bool? consent, int seen)
+    [InlineData(null, 0, true)]
+    [InlineData(true, 4, true)]
+    [InlineData(false, 5, false)]
+    public async Task Settings_left_by_the_old_notice_share_unless_refused(bool? consent, int seen, bool shares)
     {
-        var settings = new AppSettings { PoolEndpoint = Endpoint, PoolConsent = consent, PoolNoticeVersion = seen };
+        var settings = AppSettings.FromJson(
+            "{\"PoolEndpoint\":\"" + Endpoint + "\",\"PoolConsentVersion\":" + seen
+            + (consent is { } c ? ",\"PoolConsent\":" + (c ? "true" : "false") : string.Empty) + "}");
         var host = Host(settings, Cards());
         Assert.True(_history.Add(Earlier(0)));
-
-        await host.ShareAsync(Battlegrounds());
-        await host.ShareAsync(Constructed());
-        await host.ShareHistoryAsync();
-
-        Assert.Empty(_pool.Requests);
         Assert.Null(settings.PoolSecret);
-        Assert.False(settings.PoolHistoryShared);
 
-        // The notice answered with "Got it": the same host shares from then on.
-        settings.PoolNoticeVersion = PoolClient.NoticeVersion;
         await host.ShareAsync(Battlegrounds());
         await host.ShareHistoryAsync();
 
-        Assert.Equal(2, _pool.Requests.Count);
-        Assert.True(settings.PoolHistoryShared);
+        Assert.Equal(shares ? 2 : 0, _pool.Requests.Count);
+        Assert.Equal(shares, settings.PoolSecret is { Length: 64 });
+        Assert.Equal(shares, settings.PoolHistoryShared);
     }
 
     [Theory]

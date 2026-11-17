@@ -75,11 +75,10 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
         if (_disposed) return Task.CompletedTask;
         _session.SetSourceCaptureEnabled(false);
         var destination = PoolDestination.Of(_settings);
-        var endpoint = SourceCaptureClient.NoticeSeen(_settings) ? destination : null;
         var sharing = !_settings.GameStatsOff;
-        // The install key is a hash of the pool secret. It is made only for a player who shares after the notice; before
-        // the notice and for a refusal the existing one is used, or none: a refusal never makes a secret.
-        var iid = _settings.PoolSecret is { Length: 64 } || sharing && endpoint is not null ? GameStatsClient.InstallId(_settings) : null;
+        // The install key is a hash of the pool secret. It is made only for a player who shares with a pool set up; for
+        // a refusal the existing one is used, or none: a refusal never makes a secret.
+        var iid = _settings.PoolSecret is { Length: 64 } || sharing && destination is not null ? GameStatsClient.InstallId(_settings) : null;
         lock (_gate)
         {
             if (_disposed) return Task.CompletedTask;
@@ -101,14 +100,14 @@ public sealed class SourceCaptureHost : IDisposable, IAsyncDisposable
                     {
                         // The refusal reaches everything, whatever could not be opened or moved: the current pool's
                         // spool, the spools of other pools, and what an earlier version left in the root.
-                        if (queue is not null) await queue.ConfigureAsync(iid, endpoint, sharing: false, destination: destination).ConfigureAwait(false);
+                        if (queue is not null) await queue.ConfigureAsync(iid, destination, sharing: false, destination: destination).ConfigureAwait(false);
                         else if (unreadable && destination is not null) DeleteUnreadable(SourceCaptureQueue.Folder(_directory, destination));
                         await WithdrawOthersAsync(destination, iid).ConfigureAwait(false);
                         if (!_migrated) DeleteUnreadable(_directory);
                         if (unreadable) throw new InvalidDataException("Source spool is unavailable.");
                     }
                     _persistSettings();
-                    if (sharing && queue is not null) await queue.ConfigureAsync(iid, endpoint, sharing: true, explicitEnable, destination).ConfigureAwait(false);
+                    if (sharing && queue is not null) await queue.ConfigureAsync(iid, destination, sharing: true, explicitEnable, destination).ConfigureAwait(false);
                     _failure = null;
                     ReportHeld(destination);
                     if (!_disposed && revision == Interlocked.Read(ref _revision)) _session.SetSourceCaptureEnabled(queue?.Capturing == true);

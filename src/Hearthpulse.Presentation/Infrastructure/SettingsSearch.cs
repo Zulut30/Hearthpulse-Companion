@@ -44,7 +44,6 @@ public static class SettingsSearch
         ["Settings.File.Title"] = "файл экспорт импорт перенос резервная копия file export import backup transfer",
         ["Settings.Reset.All"] = "сброс по умолчанию reset default defaults",
         ["Stream.Mode.Switch"] = "стрим obs twitch скрыть ники stream hide names",
-        ["Discord.Switch"] = "discord дискорд статус status",
         ["Twitch.Switch"] = "twitch твич расширение стрим extension stream",
         ["Stream.Window.Session"] = "сессия рейтинг ранг стрим obs session rank rating stream",
     };

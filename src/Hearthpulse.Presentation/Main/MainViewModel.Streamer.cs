@@ -119,8 +119,6 @@ public sealed partial class MainViewModel
         Raise(nameof(StreamBackgroundGreen));
         Raise(nameof(StreamBackgroundMagenta));
         Raise(nameof(StreamKeyNote));
-        ShowDiscord(_lastSnapshot);
-        RaiseDiscord();
         RaiseTwitch();
     }
 

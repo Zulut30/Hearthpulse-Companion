@@ -7,19 +7,11 @@ namespace Hearthpulse.Core.SourceCapture;
 /// <summary>Strict receipt validation. No status code alone acknowledges local source or completed deletion.</summary>
 public sealed class SourceCaptureClient(HttpClient http)
 {
-    public const int NoticeVersion = 1;
-
     /// <summary>
-    /// The player has seen the notice that names source journals: the source notice of this version, and the one-time
-    /// notice of the current version that game records need too, since journals follow their switch
-    /// (docs/game-stats.md, "Notice contract").
+    /// Source journals follow the game records switch: on by default, off once the player turned game records off
+    /// (<see cref="AppSettings.GameStatsOff"/>), and only with a configured endpoint.
     /// </summary>
-    public static bool NoticeSeen(AppSettings settings) =>
-        settings.SourceCaptureNoticeVersion >= NoticeVersion && Hearthpulse.Core.GameStats.GameStatsClient.NoticeSeen(settings);
-
-    /// <summary>The existing opt-out plus the notices of <see cref="NoticeSeen"/> and a configured endpoint authorize source.</summary>
-    public static bool Sharing(AppSettings settings) => !settings.GameStatsOff && NoticeSeen(settings)
-        && Hearthpulse.Core.Pool.PoolClient.Available(settings);
+    public static bool Sharing(AppSettings settings) => !settings.GameStatsOff && Hearthpulse.Core.Pool.PoolClient.Available(settings);
 
     /// <summary>Reads technical processing status only; source contents and arbitrary server fields never escape.</summary>
     public async Task<SourceCaptureRemoteStatus?> GetStatusAsync(string endpoint, string iid, string generation, string captureId, CancellationToken cancellationToken = default)

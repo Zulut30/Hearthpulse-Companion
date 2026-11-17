@@ -61,7 +61,7 @@ public static class SettingsGroups
         ],
         [Stream] =
         [
-            nameof(AppSettings.StreamerMode), nameof(AppSettings.DiscordStatus), nameof(AppSettings.StreamDeckWindow),
+            nameof(AppSettings.StreamerMode), nameof(AppSettings.StreamDeckWindow),
             nameof(AppSettings.StreamLobbyWindow), nameof(AppSettings.StreamOddsWindow), nameof(AppSettings.StreamWindowBackground),
             nameof(AppSettings.StreamWindowsOnTop), nameof(AppSettings.StreamSessionWindow), nameof(AppSettings.TwitchDelaySeconds),
             nameof(AppSettings.TimestampLeadInSeconds), nameof(AppSettings.ShareShowBattleTag),

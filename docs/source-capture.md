@@ -38,11 +38,10 @@ uncompressed bytes. Receipts must match the submitted index and hash before a ch
 The manifest is committed after all chunks; `stored`, `processing`, `parsed`, `partial` and `failed` are distinct
 states. Missing parts, conflicting hashes, rejected data and revoked generations are not successful delivery.
 
-Source sending follows the existing game-statistics switch and additionally requires the current source notice
-and the one-time notice of the current version (the table in [game-stats.md](game-stats.md), "Notice contract").
-Seeing the old compact-record notice does not authorize the expanded sender to start before the updated notice.
-The in-app and installer texts describe the expanded fields, the Hearthpulse server and retention. The production endpoint is configured by default since 2026-11-16, after publication of the policy and the owner pilot
-(see source-capture-verification.md). Uploads still wait for the current notices. Public release remains gated on
+Source sending follows the existing game-statistics switch (the table in [game-stats.md](game-stats.md), "Sending
+rule"); since 2026-11-17 no in-app notice gates it. The Settings → Data and installer texts describe the expanded
+fields, the Hearthpulse server and retention. The production endpoint is configured by default since 2026-11-16, after publication of the policy and the owner pilot
+(see source-capture-verification.md). Public release remains gated on
 server disk capacity and intake quotas; the pilot does not establish published analytics.
 
 Turning sending off stops capture, clears pending source and persists a forget request. The server revokes the
@@ -76,7 +75,7 @@ part of a payload or a log line.
 - **Switching off** revokes the current spool's generation as before, and opens every other address's spool to delete
   its sources and revoke its generation. A deletion request is persisted only for a generation that may have reached
   its pool (`sent` not `false`), and waits for that address; a refusal before the first chunk left makes no request.
-  The host makes no install secret for a refusal or before the notice (`SourceCaptureHost.ApplySettingsAsync`). A
+  The host makes no install secret for a refusal (`SourceCaptureHost.ApplySettingsAsync`). A
   spool set aside without an address is deleted, and so are the sources of a spool whose state cannot be read and
   whatever an earlier version left in the root that could not be moved; no deletion request can be made for those.
 - **Returning** to an address that was left by an opt-out does not resume capture by itself (a revoked generation is

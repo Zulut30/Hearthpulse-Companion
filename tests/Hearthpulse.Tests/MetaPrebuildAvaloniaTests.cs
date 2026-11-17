@@ -253,7 +253,7 @@ public sealed class MetaPrebuildAvaloniaTests
     {
         var theme = PageRowsPanelAvaloniaTests.Theme();
         var db = TestDataFolder.Scratch("hp-meta-prebuild") + ".db";
-        var model = new MainViewModel(new HistoryStore(db), PageRowsPanelAvaloniaTests.NoNotice(), TestDataFolder.App);
+        var model = new MainViewModel(new HistoryStore(db), PageRowsPanelAvaloniaTests.NoPool(), TestDataFolder.App);
         var view = new MainView { DataContext = model };
         var window = new Window { Width = 1280, Height = 800 };
         // The headless platform has no Inter: the app swaps UiFont at startup the same way (HearthpulseApp).

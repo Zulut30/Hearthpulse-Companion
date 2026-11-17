@@ -234,23 +234,16 @@ public sealed partial class GameStatsTests : IDisposable
     }
 
     [Fact]
-    public void Sharing_is_on_by_default_after_the_notice_until_turned_off_and_needs_an_https_pool()
+    public void Sharing_is_on_by_default_until_turned_off_and_needs_an_https_pool()
     {
-        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint }), "not before the one-time notice was shown");
-        Assert.True(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeShown = true, PoolNoticeVersion = PoolClient.NoticeVersion }), "on by default");
-        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeShown = true, PoolNoticeVersion = PoolClient.NoticeVersion, GameStatsOff = true }));
-        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = "http://pool.test", GameStatsNoticeShown = true, PoolNoticeVersion = PoolClient.NoticeVersion }));
-        // The notice contract (docs/game-stats.md): the flag of an earlier notice alone, or with the version of the old
-        // question, is not the current notice; the version without the flag is not either.
-        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeShown = true }));
-        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeShown = true, PoolNoticeVersion = PoolClient.NoticeVersion - 1 }));
-        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, PoolNoticeVersion = PoolClient.NoticeVersion }));
-        // Turned on in Settings, where the same text is shown: the record notice version alone is enough.
-        Assert.True(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeVersion = PoolClient.NoticeVersion }));
-        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeVersion = PoolClient.NoticeVersion - 1 }));
-        // Refusing the shared games does not turn game records off: they are separate switches under one notice.
-        Assert.True(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeShown = true, PoolNoticeVersion = PoolClient.NoticeVersion, PoolConsent = false }));
-        Assert.False(GameStatsClient.Sharing(new AppSettings()), "nothing goes while the pool is not set up");
+        // No notice comes first (docs/game-stats.md): the Settings → Data switch is the only control.
+        Assert.True(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint }), "on by default");
+        Assert.True(GameStatsClient.Sharing(new AppSettings()), "a fresh install sends to the default pool");
+        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, GameStatsOff = true }));
+        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = "http://pool.test" }));
+        // Refusing the shared games does not turn game records off: they are separate switches.
+        Assert.True(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = Endpoint, PoolConsent = false }));
+        Assert.False(GameStatsClient.Sharing(new AppSettings { PoolEndpoint = "off" }), "nothing goes while the pool is not set up");
     }
 
     [Theory]
@@ -311,7 +304,7 @@ public sealed partial class GameStatsTests : IDisposable
     [Fact]
     public async Task The_uploader_sends_in_batches_and_keeps_what_the_pool_did_not_take()
     {
-        var settings = new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeShown = true, PoolNoticeVersion = PoolClient.NoticeVersion, PoolSecret = new string('5', 64) };
+        var settings = new AppSettings { PoolEndpoint = Endpoint, PoolSecret = new string('5', 64) };
         var queues = new GameStatsQueues(_folder);
         var queue = queues.For(Endpoint)!;
         for (var i = 0; i < 25; i++)
@@ -336,7 +329,7 @@ public sealed partial class GameStatsTests : IDisposable
     [Fact]
     public async Task Withdrawing_drops_the_queue_and_asks_the_pool_to_delete_until_it_answers()
     {
-        var settings = new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeShown = true, PoolNoticeVersion = PoolClient.NoticeVersion, PoolSecret = new string('5', 64) };
+        var settings = new AppSettings { PoolEndpoint = Endpoint, PoolSecret = new string('5', 64) };
         var queues = new GameStatsQueues(_folder);
         var queue = queues.For(Endpoint)!;
         queue.Add(Record('a'));
@@ -376,7 +369,7 @@ public sealed partial class GameStatsTests : IDisposable
     [Fact]
     public void The_uploader_builds_a_record_from_the_history_row_and_its_replay()
     {
-        var settings = new AppSettings { PoolEndpoint = Endpoint, GameStatsNoticeShown = true, PoolNoticeVersion = PoolClient.NoticeVersion, PoolSecret = new string('5', 64) };
+        var settings = new AppSettings { PoolEndpoint = Endpoint, PoolSecret = new string('5', 64) };
         var replays = new ReplayStore(Path.Combine(_folder, "replays"));
         var game = Ranked(null);
         var name = replays.Save(game.Key, Replay())!;

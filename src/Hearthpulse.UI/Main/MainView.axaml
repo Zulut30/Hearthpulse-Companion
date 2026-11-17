@@ -186,13 +186,6 @@
         <Style Selector="m|MainView.compact ScrollViewer.page">
             <Setter Property="Padding" Value="16,0,16,120" />
         </Style>
-        <!-- The one-time game records notice lines up with the page's edges (40 wide, 16 compact). -->
-        <Style Selector="Border.gameStatsNotice">
-            <Setter Property="Margin" Value="40,4,40,16" />
-        </Style>
-        <Style Selector="m|MainView.compact Border.gameStatsNotice">
-            <Setter Property="Margin" Value="16,4,16,16" />
-        </Style>
         <!-- Narrow: the segments drop under the explanation instead of squeezing the label. -->
         <Style Selector="m|MainView.compact Grid.choiceRow Border.choice">
             <Setter Property="Grid.Column" Value="0" />
@@ -411,12 +404,12 @@
         <!-- The content plate: lamplight, a wash of the second accent and the theme's motif (same as the WPF window) -->
         <Border Grid.Column="1" Background="{StaticResource ContentFill}" BorderBrush="{StaticResource ContentEdge}" BorderThickness="1" CornerRadius="16"
                 Margin="0,10,10,10" ClipToBounds="True">
-            <Grid RowDefinitions="52,Auto,*">
+            <Grid RowDefinitions="52,*">
 
                 <!-- The page's material and hero (V3 direction A): stone, the page's hero dissolving towards the text, a vignette
                      and a floor in the plate's colour, then a thin gold frame. Nothing moves; the hero follows the page
                      (MainViewModel.PageHero) and is gone while "Background characters" is off. Same as the WPF MainWindow. -->
-                <Panel Grid.RowSpan="3" IsHitTestVisible="False">
+                <Panel Grid.RowSpan="2" IsHitTestVisible="False">
                     <Border Classes="pageLayer" Background="{StaticResource PageStone}" />
                     <Panel IsVisible="{Binding PageHero, Converter={StaticResource Truthy}}">
                         <!-- The hero's colours light the whole page; the art itself is square, top right, half the plate wide and
@@ -474,26 +467,26 @@
                 </StackPanel>
 
                 <!-- ===== Home ===== -->
-                <pg:OverviewPage Name="PageOverview" Grid.Row="2" />
+                <pg:OverviewPage Name="PageOverview" Grid.Row="1" />
 
                 <!-- ===== Battlegrounds ===== -->
-                <pg:BattlegroundsPage Name="PageBattlegrounds" Grid.Row="2" IsVisible="False" />
+                <pg:BattlegroundsPage Name="PageBattlegrounds" Grid.Row="1" IsVisible="False" />
 
                 <!-- ===== Constructed ===== -->
-                <pg:ConstructedPageView Name="PageConstructed" Grid.Row="2" IsVisible="False" />
+                <pg:ConstructedPageView Name="PageConstructed" Grid.Row="1" IsVisible="False" />
 
                 <!-- ===== Deck page (Main/Decks): replaces the Constructed page while a deck is open ===== -->
-                <ScrollViewer Name="PageDeck" Grid.Row="2" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                <ScrollViewer Name="PageDeck" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <dk:DeckDetailsView Name="DeckDetails" DataContext="{Binding DeckPage}" />
                 </ScrollViewer>
 
                 <!-- ===== Card page (Main/Cards): replaces the Constructed or deck page while a card is open ===== -->
-                <ScrollViewer Name="PageCard" Grid.Row="2" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                <ScrollViewer Name="PageCard" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <cd:CardPageView Name="CardDetails" DataContext="{Binding CardPage}" />
                 </ScrollViewer>
 
                 <!-- ===== Arena ===== -->
-                <ScrollViewer Name="PageArena" Grid.Row="2" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                <ScrollViewer Name="PageArena" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Arena}" />
@@ -505,7 +498,7 @@
                 </ScrollViewer>
 
                 <!-- ===== Tavern Brawl ===== -->
-                <ScrollViewer Name="PageBrawl" Grid.Row="2" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                <ScrollViewer Name="PageBrawl" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Brawl}" />
@@ -517,15 +510,15 @@
                 </ScrollViewer>
 
                 <!-- ===== History ===== -->
-                <pg:HistoryPage Name="PageHistory" Grid.Row="2" IsVisible="False" />
+                <pg:HistoryPage Name="PageHistory" Grid.Row="1" IsVisible="False" />
 
                 <!-- ===== Match page (Main/Match): replaces the History list while a game is open ===== -->
-                <ScrollViewer Name="PageMatch" Grid.Row="2" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                <ScrollViewer Name="PageMatch" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <mt:MatchView Name="MatchDetails" DataContext="{Binding MatchPage}" />
                 </ScrollViewer>
 
                 <!-- ===== Settings: tabs General / Appearance / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
-                <ScrollViewer Name="PageSettings" Grid.Row="2" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                <ScrollViewer Name="PageSettings" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel MaxWidth="780" HorizontalAlignment="Left">
                         <StackPanel Orientation="Horizontal">
                             <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Settings}" />
@@ -578,40 +571,8 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- ===== Once: game records are on by default (docs/game-stats.md); a notice, not a consent question.
-                     In the flow above the page (row 1): the page moves down and nothing is hidden under it. The summary
-                     says what is sent and how to turn it off; "What is sent" opens the full text in place. The buttons
-                     sit under the text and wrap, so compact never clips them. Same as the WPF MainWindow. ===== -->
-                <Border Name="GameStatsNotice" Grid.Row="1" Classes="gameStatsNotice" CornerRadius="16" Background="{StaticResource Surface3}"
-                        BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="12,12,16,12" IsVisible="{Binding ShowGameStatsNotice}">
-                    <Grid ColumnDefinitions="Auto,*">
-                        <Grid Width="46" Height="46" VerticalAlignment="Top">
-                            <c:Scallop Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
-                            <TextBlock Text="&#xF0128;" Classes="icon" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Grid>
-                        <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{i:Loc Main.GameStats.Title}" FontWeight="Bold" FontSize="14.5" TextWrapping="Wrap" />
-                            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource Text}" Text="{i:Loc Main.GameStats.Short}" />
-                            <StackPanel IsVisible="{Binding GameStatsNoticeDetails}">
-                                <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{StaticResource Text}" Text="{i:Loc Main.GameStats.What}" />
-                                <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" Text="{i:Loc Main.GameStats.Never}" />
-                            </StackPanel>
-                            <WrapPanel Margin="0,4,0,0">
-                                <Button Classes="ghost primary" Content="{i:Loc Main.GameStats.Ok}" Command="{Binding AnswerGameStats}" CommandParameter="ok" Margin="0,8,8,0" />
-                                <Button Classes="ghost" Content="{i:Loc Main.GameStats.Off}" Command="{Binding AnswerGameStats}" CommandParameter="off" Margin="0,8,8,0" />
-                                <Button Classes="ghost" Content="{i:Loc Main.GameStats.Details}" Command="{Binding AnswerGameStats}" CommandParameter="details" Margin="0,8,8,0"
-                                        IsVisible="{Binding !GameStatsNoticeDetails}" />
-                                <Button Classes="ghost" Content="{i:Loc Main.GameStats.Less}" Command="{Binding AnswerGameStats}" CommandParameter="details" Margin="0,8,8,0"
-                                        IsVisible="{Binding GameStatsNoticeDetails}" />
-                                <Button Classes="ghost" Content="{i:Loc Main.GameStats.More}" Command="{Binding AnswerGameStats}" CommandParameter="more" Margin="0,8,0,0"
-                                        IsVisible="{Binding GameStatsNoticeDetails}" />
-                            </WrapPanel>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
                 <!-- ===== Setup wizard (D4): over the whole page while open; it opens by itself once for a new player ===== -->
-                <su:SetupWizard Name="Setup" Grid.RowSpan="3" ZIndex="10" IsVisible="{Binding SetupOpen}" />
+                <su:SetupWizard Name="Setup" Grid.RowSpan="2" ZIndex="10" IsVisible="{Binding SetupOpen}" />
 
             </Grid>
         </Border>

@@ -261,9 +261,9 @@ statement:
   | Sender | How it is run | Requests seen |
   |---|---|---|
   | Constructed and Battlegrounds stats, archetype names, card pool, update check, usage limits | the loaders on the services' client | `GET` to the data API, GitHub, the site |
-  | Game record | a finished game through the session's `GameFinished` handlers, then `GameStatsUploader.PassAsync` (notice shown, a test pool address) | `POST <pool>/v1/events` |
+  | Game record | a finished game through the session's `GameFinished` handlers, then `GameStatsUploader.PassAsync` (a test pool address) | `POST <pool>/v1/events` |
   | Shared games | `PoolSharingHost` started, a Battlegrounds and a Constructed outcome | `POST <pool>/v1/games`, `/v1/constructed` |
-  | Source capture | the services' `SourceCaptureHost` with the notice shown, a game's Power.log lines through the session, `SendPendingAsync` | `POST <pool>/v1/captures/chunks` |
+  | Source capture | the services' `SourceCaptureHost`, a game's Power.log lines through the session, `SendPendingAsync` | `POST <pool>/v1/captures/chunks` |
   | Profile upload | `ProfileUploader` with a **made-up signed-in session** on the same client and history (the services' own uploader is signed out: a real sign-in is a device flow against the site) | `POST <site>/tracker/events/batch` |
   | Crash report | `CrashReporter.SendAsync` with an exception | `POST <site>/crash-reports` |
 
@@ -277,7 +277,6 @@ statement:
   is **not** network proof:
 
   - the Twitch publisher, the replay upload and the replay share are not run (they need a signed-in account);
-  - Discord presence is a named pipe: an `HttpMessageHandler` cannot see it at all;
   - the account's own calls (`/me`, the sign-in), the mulligan guide's and the leaderboard's downloads, the card
     art downloads;
   - the profile upload and the crash report are run as the same classes on the same client, not as the instances

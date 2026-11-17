@@ -20,7 +20,7 @@ public sealed partial class GameStatsTests
     private static readonly string DefaultHost = new Uri(PoolClient.DefaultEndpoint).Host;
 
     private static AppSettings Sharing(string? endpoint) =>
-        new() { PoolEndpoint = endpoint, GameStatsNoticeShown = true, PoolNoticeVersion = PoolClient.NoticeVersion, PoolSecret = new string('5', 64) };
+        new() { PoolEndpoint = endpoint, PoolSecret = new string('5', 64) };
 
     private GameStatsUploader Uploader(AppSettings settings, HttpMessageHandler pool, GameStatsQueues queues) =>
         new(settings, new HttpClient(pool), new HistoryStore(Path.Combine(_folder, "h.db")), () => null, () => null, null, queues) { Delay = TimeSpan.Zero, SaveSettings = () => { } };
@@ -391,7 +391,7 @@ public sealed partial class GameStatsTests
     [Fact]
     public async Task A_first_refusal_before_anything_was_sent_makes_no_request_and_no_install_secret()
     {
-        // A fresh install: the default pool, no notice answered yet, no secret.
+        // A fresh install: sharing on by default, nothing recorded yet, no secret.
         var settings = new AppSettings { PoolEndpoint = PoolA };
         var queues = new GameStatsQueues(_folder);
         var pool = new HoldingPool();
@@ -399,9 +399,7 @@ public sealed partial class GameStatsTests
         uploader.Prepare();
         Assert.True(await uploader.PassAsync(CancellationToken.None));
 
-        // "Turn off" on the notice (MainViewModel.AnswerGameStats), then what the hosts call.
-        settings.GameStatsNoticeShown = true;
-        settings.PoolNoticeVersion = PoolClient.NoticeVersion;
+        // Both Settings → Data switches turned off, then what the hosts call.
         settings.GameStatsOff = true;
         settings.PoolConsent = false;
         uploader.Withdraw();
@@ -416,14 +414,12 @@ public sealed partial class GameStatsTests
     [Fact]
     public async Task Turning_the_switch_off_before_the_first_batch_left_makes_no_request_but_after_one_the_forget_survives_a_restart()
     {
-        // The notice was answered "ok" (the secret is made then), a game waits, nothing has left yet.
+        // Sharing is on (the first record made the secret), a game waits, nothing has left yet.
         var settings = new AppSettings { PoolEndpoint = PoolA };
         var queues = new GameStatsQueues(_folder);
         var pool = new HoldingPool();
         using var uploader = Uploader(settings, pool, queues);
         uploader.Prepare();
-        settings.GameStatsNoticeShown = true;
-        settings.PoolNoticeVersion = PoolClient.NoticeVersion;
         var install = GameStatsClient.InstallId(settings);
         var secret = settings.PoolSecret;
         queues.For(PoolA)!.Add(Record('a'));
@@ -467,7 +463,7 @@ public sealed partial class GameStatsTests
     [InlineData(false)]
     public async Task An_install_an_earlier_version_could_already_send_from_still_asks_its_pool_to_delete(bool prepareBeforeRefusal)
     {
-        // settings.json of an earlier version: notice seen, sharing on, a secret; the data folder has no queue layout yet.
+        // settings.json of an earlier version: sharing on, a secret; the data folder has no queue layout yet.
         var settings = Sharing(PoolA);
         var queues = new GameStatsQueues(_folder);
         var pool = new HoldingPool();
@@ -538,7 +534,6 @@ public sealed partial class GameStatsTests
         var pool = new HoldingPool();
         using var uploader = Uploader(settings, pool, queues);
         Assert.True(uploader.Prepare());
-        settings.GameStatsNoticeVersion = PoolClient.NoticeVersion;
         queues.For(PoolA)!.Add(Record('a'));
         Directory.CreateDirectory(Path.Combine(_folder, PoolDestination.Key(PoolA), "sent"));
         var error = await Xunit.Record.ExceptionAsync(() => uploader.PassAsync(CancellationToken.None));
@@ -638,31 +633,34 @@ public sealed partial class GameStatsTests
         Assert.Equal(new GameStatsState(0, 0, 0), uploader.State);
     }
 
+    /// <summary>
+    /// An install of an earlier version: what its one-time notice wrote is ignored now (no "seen" gate), only the
+    /// switch counts. "Turn off" on that notice saved <see cref="AppSettings.GameStatsOff"/>, which stays a refusal.
+    /// </summary>
     [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    [InlineData(4)]
-    public async Task An_old_notice_flag_does_not_send_to_the_default_pool_before_the_current_notice_was_seen(int version)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Settings_left_by_the_old_notice_send_to_the_default_pool_unless_turned_off(bool turnedOff)
     {
-        // A test install of an earlier version: its own pool, the old flag, the old question's version.
-        var settings = new AppSettings { PoolEndpoint = PoolA, GameStatsNoticeShown = true, PoolNoticeVersion = version, PoolSecret = new string('5', 64) };
+        var secret = new string('5', 64);
+        var settings = AppSettings.FromJson(
+            "{\"GameStatsNoticeShown\":true,\"GameStatsNoticeVersion\":5,\"PoolConsentVersion\":5,\"SourceCaptureNoticeVersion\":1,"
+            + "\"GameStatsOff\":" + (turnedOff ? "true" : "false") + ",\"PoolSecret\":\"" + secret + "\"}");
         var queues = new GameStatsQueues(_folder);
         var pool = new HoldingPool();
         using var uploader = Uploader(settings, pool, queues);
 
-        // The override is removed: the default pool is production, which the notice the player saw never named.
-        settings.PoolEndpoint = null;
-        Assert.False(GameStatsClient.Sharing(settings));
-        uploader.OnGameFinished(new GameOutcome("Ranked", "Win", 0, null, null, "HERO_08") { Key = "k" });
+        Assert.Equal(!turnedOff, GameStatsClient.Sharing(settings));
         queues.For(PoolClient.DefaultEndpoint)!.Add(Record('d'));
         Assert.True(await uploader.PassAsync(CancellationToken.None));
-        Assert.Empty(pool.Requests);
-        Assert.Equal(1, queues.For(PoolClient.DefaultEndpoint)!.Count);
-
-        settings.PoolNoticeVersion = PoolClient.NoticeVersion;
-        Assert.True(await uploader.PassAsync(CancellationToken.None));
-        Assert.Equal(DefaultHost, Assert.Single(pool.Requests).Host);
+        if (turnedOff)
+        {
+            Assert.DoesNotContain(pool.Requests, r => r.Path.EndsWith("/v1/events", StringComparison.Ordinal));
+        }
+        else
+        {
+            Assert.Equal(DefaultHost, Assert.Single(pool.Requests).Host);
+        }
     }
 
     /// <summary>The queue as the version before destinations left it: record files and the forget mark directly in the folder.</summary>

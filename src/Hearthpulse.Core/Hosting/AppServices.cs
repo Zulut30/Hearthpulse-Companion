@@ -72,7 +72,7 @@ public sealed class AppServices
         GameStats = new GameStatsUploader(settings, http, History, () => Data.Replays, TryCards, version,
             new GameStatsQueues(Path.Combine(data.Root, "game-stats")));
         Session.GameFinished += GameStats.OnGameFinished;
-        // Shared games are on after the informational notice, unless the player turned them off.
+        // Shared games are on by default, unless the player turned them off in Settings → Data.
         PoolSharing = new PoolSharingHost(settings, http, History, cards);
         Session.GameFinished += PoolSharing.OnGameFinished;
         SourceCaptures = new SourceCaptureHost(settings, http, Session, Path.Combine(data.Root, "source-capture"), settings.SaveRequired);
@@ -103,7 +103,7 @@ public sealed class AppServices
     public GameStatsUploader GameStats { get; }
 
     /// <summary>
-    /// Games shared with the stats pool after the notice, until turned off; the live host starts it with the log watcher and saves the
+    /// Games shared with the stats pool (on by default), until turned off; the live host starts it with the log watcher and saves the
     /// settings on its <see cref="PoolSharingHost.SettingsChanged"/>.
     /// </summary>
     public PoolSharingHost PoolSharing { get; }

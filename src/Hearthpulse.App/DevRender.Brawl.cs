@@ -39,10 +39,6 @@ public partial class App
         if (RenderOnly("collection")) await RenderCollectionAsync(folder);
         if (RenderOnly("sourcecapture"))
         {
-            _main.ShowPage("Overview");
-            await Task.Delay(300);
-            _main.UpdateLayout();
-            Save(_main, Path.Combine(folder, "main-source-notice.png"));
             _main.ShowPage("Settings");
             _main.ShowSettingsTab("Data");
             await Task.Delay(300);

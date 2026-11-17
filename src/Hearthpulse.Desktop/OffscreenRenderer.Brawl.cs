@@ -48,8 +48,6 @@ internal static partial class OffscreenRenderer
         if (RenderOnly("collection")) await RenderCollectionAsync(main, view, host, folder);
         if (RenderOnly("sourcecapture"))
         {
-            view.ShowPage("Overview");
-            await Save(main, Path.Combine(folder, "main-source-notice.png"));
             view.ShowPage("Settings");
             view.ShowSettingsTab("Data");
             if (view.FindControl<Avalonia.Controls.ScrollViewer>("PageSettings") is { } dataScroll)

@@ -1,10 +1,10 @@
 # Game records for Hearthpulse's own statistics
 
 The compact-record contract below remains supported by the isolated Linux service on server 151. The expanded
-ordered journal, updated notice, durable generation deletion and synthetic-pilot activation limits are documented
+ordered journal, durable generation deletion and synthetic-pilot activation limits are documented
 in [source-capture.md](source-capture.md). The default endpoint is the production pool since 2026-11-16
 (`PoolClient.DefaultEndpoint`): the public policy matches the host and the journal, the pool's data is outside the host
-backups, and nothing is sent before the one-time notice. Older Cloudflare deployment instructions are historical.
+backups, and sending is on by default with the Settings → Data opt-out. Older Cloudflare deployment instructions are historical.
 
 Every finished game goes to the stats pool as one compact, versioned **game record**: all
 modes we track (Ranked, Casual, Arena, Brawl, Battlegrounds solo and duos), not only Battlegrounds. The records are
@@ -55,25 +55,15 @@ server rebuilds every record from known fields only, so anything else is dropped
   180 days, that the statistics may be used in paid features, how to turn it off and that this deletes the sent games.
   Shown only once the pool is set up (`PoolClient.Available`); nothing is sent before. Stored as
   `AppSettings.GameStatsOff` (false = sending).
-- **One-time notice** in the main window, both UIs («Hearthpulse отправляет ваши игры для своей статистики»), in the
-  layout above the page (the page moves down, nothing is hidden under it). It shows a short summary (what is sent,
-  what never, how to turn off); «Что отправляется» opens the full text in place (what is sent, what never, 180 days,
-  60 days in the pool, what turning off deletes) and with it «Политика конфиденциальности» → the policy; buttons
-  «Понятно» / «Выключить». Opening the full text or the policy is not an answer. Not a
-  consent question: it tells players who updated silently and never saw the installer. Nothing is sent before the notice
-  of the current version was seen (`GameStatsClient.NoticeSeen`, see "Notice contract"). The install secret is made
-  when the notice is answered «Понятно» or the switch goes on, not before, and never by a refusal.
+- **No in-app notice** (the owner's decision, 2026-11-17). Earlier versions showed a one-time notice above the page
+  in the main window («Hearthpulse отправляет ваши игры для своей статистики», «Понятно» / «Выключить») and sent
+  nothing before it was answered. It is gone from both UIs, and no flow waits for it: the Settings → Data switches are
+  the only control. The installer notice and the privacy policy still describe the flows.
 - **Shared games of the stats pool** (`/v1/games`, `/v1/constructed`: public Battlegrounds totals and Discover-style
   picks) are a separate purpose with a switch of their own, and since the owner's decision of 2026-11-15 they are
-  **on by default with an opt-out too, with no consent question** ("we do not ask whether to share"). The question
-  banner is gone from both apps; the same one-time notice tells of them.
+  **on by default with an opt-out too, with no consent question** ("we do not ask whether to share").
   - `AppSettings.PoolConsent`: `false` is the player's refusal and is always kept (the switch, «Выключить» on the
-    notice, or a "no" to the old question); `true` and `null` share.
-  - Nothing goes to the pool before the notice of `PoolClient.NoticeVersion` (5) was shown; the version seen is
-    stored in settings.json as `PoolConsentVersion` (1-4 were answers to the old question, so everyone who answered
-    it sees the notice once). The notice shows for whichever of its texts the player has not seen and has not turned
-    off; «Понятно» never turns back on what was turned off, «Выключить» turns off game records and shared games.
-  - After the notice the whole list it names is sent; there are no partial lists by version any more.
+    notice earlier versions showed, or a "no" to the old question); `true` and `null` share.
   - The switch, Settings → Data: «Делиться моими играми с пулом статистики» / "Share my games with the stats pool".
     Off stops every later send, including the remaining batches of the one-time 30 days of earlier games
     (`Core/Hosting/PoolSharingHost.cs` asks before each batch). These routes have **no deletion on request**: what
@@ -81,35 +71,30 @@ server rebuilds every record from known fields only, so anything else is dropped
 - Records are pseudonymous personal data (ADR 0011): only totals over 10 games and 5 installs are ever shown.
 - Switching off: the queue is emptied, and when a batch was ever handed to that pool `POST /v1/events/forget`
   deletes every record of this install there; the request waits in the queue (`game-stats/<address>/forget`) until
-  the pool it is for answers. A refusal before anything was sent makes no request and no install secret. Queues kept
-  for other pool addresses are emptied too (see "Queue destination").
+  the pool it is for answers. A refusal before anything was sent makes no request. Queues kept for other pool
+  addresses are emptied too (see "Queue destination").
 
-## Notice contract
+## Sending rule
 
-The owner's decision stands: on by default, no consent question, one one-time notice, and an explicit refusal is
-kept for ever. What "the notice was seen" means is fixed per flow, because flags and versions left by an earlier
-version may date from a notice that named another pool (a test pool in `PoolEndpoint`); they do not stand in for
-the current notice. The current notice is version `PoolClient.NoticeVersion` (5).
+On by default, no consent question, no notice, and an explicit refusal is kept for ever. Each flow needs a pool
+address (`PoolClient.Available`) and the absence of its refusal:
 
-| Flow | Sent while all of these hold | Refusal that is always kept | "Seen" is recorded by |
-|---|---|---|---|
-| Shared games (`/v1/games`, `/v1/constructed`) `PoolClient.Sharing` | `PoolConsent != false`; `PoolNoticeVersion >= 5`; a pool address | `PoolConsent == false` | the notice's «Понятно» / «Выключить» (`PoolNoticeVersion = 5`) |
-| Game records (`/v1/events`) `GameStatsClient.Sharing` | `GameStatsOff == false`; `GameStatsClient.NoticeSeen`: `GameStatsNoticeVersion >= 5`, or `GameStatsNoticeShown` together with `PoolNoticeVersion >= 5`; a pool address | `GameStatsOff == true` | the notice's buttons (all three values), or turning the switch on in Settings, where the same text is shown (`GameStatsNoticeVersion = 5`, not `PoolNoticeVersion`) |
-| Source journals (`/v1/captures/*`) `SourceCaptureClient.Sharing` | `GameStatsOff == false`; `SourceCaptureClient.NoticeSeen`: `SourceCaptureNoticeVersion >= SourceCaptureClient.NoticeVersion` (1) **and** `GameStatsClient.NoticeSeen`; a pool address | `GameStatsOff == true` | the notice's buttons, or the same switch in Settings |
+| Flow | Sent while | Refusal that is always kept |
+|---|---|---|
+| Shared games (`/v1/games`, `/v1/constructed`) `PoolClient.Sharing` | `PoolConsent != false`; a pool address | `PoolConsent == false` |
+| Game records (`/v1/events`) `GameStatsClient.Sharing` | `GameStatsOff == false`; a pool address | `GameStatsOff == true` |
+| Source journals (`/v1/captures/*`) `SourceCaptureClient.Sharing` | `GameStatsOff == false`; a pool address | `GameStatsOff == true` |
 
-- `GameStatsNoticeShown == true` alone authorizes nothing: an install that used a pool of its own with an earlier
-  version (flag set, `PoolNoticeVersion` 1-4 from the old question, possibly `SourceCaptureNoticeVersion` 1) sends
-  no game record and no journal to the default pool after its override is removed, until the current notice was
-  answered. The second form of `GameStatsClient.NoticeSeen` only spares a player who already answered notice 5 a
-  second one.
-- The notice shows (`MainViewModel.ShowGameStatsNotice`) while any flow the player has not turned off lacks what the
-  table asks for; so a player who refused the shared games still sees it once for game records and journals, and
-  «Понятно» never turns back on what was turned off.
-- The Settings switch for game records speaks for game records and journals only: it does not count as the shared
-  games' notice and does not touch `PoolConsent`.
-- Tests: `GameStatsTests.Sharing_is_on_by_default…`, `…An_old_notice_flag_does_not_send_to_the_default_pool…`,
-  `SourceCaptureRecorderTests.Excluded_modes_and_disabled_capture_emit_nothing`, `SourceCaptureHostTests.An_old_notice…`,
-  `GameStatsNoticeTests` (both apps).
+- The fields the notice of earlier versions wrote to settings.json (`GameStatsNoticeShown`, `GameStatsNoticeVersion`,
+  `SourceCaptureNoticeVersion`, `PoolConsentVersion`) are ignored when it is read and dropped on the next save. A
+  player who answered «Понятно», or never saw the notice, shares; one who pressed «Выключить» keeps both refusals.
+- The install secret (`AppSettings.PoolSecret`) is made on first use while sharing is on: the first game record or
+  shared game, or the start of source capture; never by a refusal (a refusal reuses a saved one or goes without).
+- The game records switch speaks for game records and journals only; it does not touch `PoolConsent`.
+- Tests: `GameStatsTests.Sharing_is_on_by_default…`, `…Settings_left_by_the_old_notice_send_to_the_default_pool…`,
+  `PoolTests.OldSettingsWithTheNoticeFieldsStillLoadAndKeepTheirRefusals`, `PoolSharingHostTests.Settings_left_by_the_old_notice…`,
+  `SourceCaptureRecorderTests.Excluded_modes_and_disabled_capture_emit_nothing`,
+  `SourceCaptureHostTests.Capture_starts_by_default…`, `GameStatsSharingTests` (both apps).
 
 ## Queue and sending
 
@@ -119,7 +104,7 @@ the current notice. The current notice is version `PoolClient.NoticeVersion` (5)
   `400`/`413`/`422` drop it for good; anything else (offline, `429`, `503` daily budget, `404` before the deploy) waits
   and retries after 30 s, doubling up to 30 min. Never on the UI or log thread; nothing waits for it.
 - The install id is a keyed hash of the pool secret (`GameStatsClient.InstallId`), never shown and never linked to an
-  account. Turning the switch on makes the secret at once, so the settings saved with the change keep it.
+  account. The secret is made by the first record queued while sharing is on and saved before the first batch.
 
 ## Queue destination
 
@@ -145,12 +130,12 @@ to production when `PoolEndpoint` is removed. Each queue therefore belongs to on
 - **"Something was sent" mark.** The file `sent` in a queue folder is written before the first batch is handed to
   that pool (before, because an answer that never arrives may still have stored it) and removed when the pool
   confirmed a forget. Only a queue with the mark gets a forget: a first refusal before anything was sent makes no
-  request and no install secret. A forget whose install secret is gone is dropped with a log line instead of being
+  request. A forget whose install secret is gone is dropped with a log line instead of being
   sent under a new id. The mark is local metadata, like the address; no payload changes.
   One-time step for the upgrade (`game-stats/layout`): when this layout first runs in a data folder whose settings
-  show that an earlier version could already send (`GameStatsNoticeShown` and a saved secret), the pool named
+  show that an earlier version could already send (a saved secret), the pool named
   then is conservatively marked even if sharing is now off: a previous process may have failed to write its mark.
-  The uploader captures that evidence when constructed, before the notice can be answered, and persists the used
+  The uploader captures that evidence when constructed, before this run changes the settings, and persists the used
   mark before committing the layout. Failed writes are retried, including after restart; refusal before Start does
   not lose the deletion request. A fresh refusal with no secret still makes no request.
 - **Durable identity.** A batch is sent only after the install secret was saved successfully with `SaveRequired`.

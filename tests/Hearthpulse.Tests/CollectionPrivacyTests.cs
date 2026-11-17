@@ -54,11 +54,6 @@ public sealed partial class CollectionPrivacyTests
         var settings = new AppSettings
         {
             PoolEndpoint = Pool,
-            PoolNoticeVersion = PoolClient.NoticeVersion,
-            // The notice contract of docs/game-stats.md: the current notice was answered for each flow.
-            GameStatsNoticeShown = true,
-            GameStatsNoticeVersion = PoolClient.NoticeVersion,
-            SourceCaptureNoticeVersion = Hearthpulse.Core.SourceCapture.SourceCaptureClient.NoticeVersion,
             PoolSecret = new string('5', 64),
             UploadGamesToProfile = true,
             SendCrashReports = true,

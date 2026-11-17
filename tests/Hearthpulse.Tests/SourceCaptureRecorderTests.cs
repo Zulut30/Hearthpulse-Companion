@@ -236,14 +236,12 @@ public sealed class SourceCaptureRecorderTests
             var game = Game(mode); recorder.SetEnabled(true); recorder.OnGameStarted(game); recorder.OnEntityCreated(game, Entity(game, 99, "CARD", "HAND", 1, "MINION"));
             Assert.Empty(frames);
         }
-        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", GameStatsNoticeShown = true }));
-        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "off", SourceCaptureNoticeVersion = 1 }));
-        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1, GameStatsOff = true }));
-        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1 }), "the source notice of an earlier pool is not the current one-time notice");
-        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1, GameStatsNoticeShown = true, PoolNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion - 1 }));
-        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", GameStatsNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion }));
-        Assert.True(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1, GameStatsNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion }));
-        Assert.True(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", SourceCaptureNoticeVersion = 1, GameStatsNoticeShown = true, PoolNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion }));
+        // On by default with the game records switch, no notice first; off with that switch or without a pool.
+        Assert.True(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test" }));
+        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "off" }));
+        Assert.False(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", GameStatsOff = true }));
+        // The shared games' refusal is another switch: journals follow game records.
+        Assert.True(SourceCaptureClient.Sharing(new AppSettings { PoolEndpoint = "https://capture.test", PoolConsent = false }));
     }
 
     [Fact]

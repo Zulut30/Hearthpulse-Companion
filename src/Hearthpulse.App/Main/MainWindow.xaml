@@ -270,7 +270,6 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="52" />
-                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -278,7 +277,7 @@
                     <!-- The page's material and hero (V3 direction A): stone, the page's hero dissolving towards the text, a vignette
                          and a floor in the plate's colour, then a thin gold frame. Nothing moves; the hero follows the page
                          (MainViewModel.PageHero) and is gone while "Background characters" is off. Same as the Avalonia MainView. -->
-                    <Grid Grid.RowSpan="3" IsHitTestVisible="False">
+                    <Grid Grid.RowSpan="2" IsHitTestVisible="False">
                         <!-- Static while a page scrolls over it: cached as a bitmap instead of re-blending its masks on every frame -->
                         <Grid.CacheMode>
                             <BitmapCache SnapsToDevicePixels="True" />
@@ -368,25 +367,25 @@
                     </StackPanel>
 
                     <!-- ===== Home ===== -->
-                    <pg:OverviewPage x:Name="PageOverview" Grid.Row="2" />
+                    <pg:OverviewPage x:Name="PageOverview" Grid.Row="1" />
 
                     <!-- ===== Battlegrounds ===== -->
                     <!-- Built on the first visit (MainWindow.PageBattlegrounds), so the start-up window builds only the page it shows. -->
-                    <ContentControl x:Name="SlotBattlegrounds" Grid.Row="2" Focusable="False" IsTabStop="False" />
+                    <ContentControl x:Name="SlotBattlegrounds" Grid.Row="1" Focusable="False" IsTabStop="False" />
 
                     <!-- ===== Constructed ===== -->
-                    <ContentControl x:Name="SlotConstructed" Grid.Row="2" Focusable="False" IsTabStop="False" />
+                    <ContentControl x:Name="SlotConstructed" Grid.Row="1" Focusable="False" IsTabStop="False" />
 
                     <!-- ===== Deck page (Main/Decks): replaces the Constructed page while a deck is open ===== -->
                     <!-- Its DeckDetailsView is built on the first open (MainWindow.DeckDetailsPage). -->
-                    <ScrollViewer x:Name="PageDeck" Grid.Row="2" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
+                    <ScrollViewer x:Name="PageDeck" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
 
                     <!-- ===== Card page (Main/Cards): replaces the Constructed or deck page while a card is open ===== -->
                     <!-- Its CardPageView is built on the first open (MainWindow.CardDetailsPage). -->
-                    <ScrollViewer x:Name="PageCard" Grid.Row="2" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
+                    <ScrollViewer x:Name="PageCard" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
 
                     <!-- ===== Arena ===== -->
-                    <ScrollViewer x:Name="PageArena" Grid.Row="2" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
                             <StackPanel Orientation="Horizontal">
                                 <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Arena}" />
@@ -398,7 +397,7 @@
                     </ScrollViewer>
 
                     <!-- ===== Tavern Brawl ===== -->
-                    <ScrollViewer x:Name="PageBrawl" Grid.Row="2" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <ScrollViewer x:Name="PageBrawl" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
                             <StackPanel Orientation="Horizontal">
                                 <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Brawl}" />
@@ -410,16 +409,16 @@
                     </ScrollViewer>
 
                     <!-- ===== History ===== -->
-                    <ContentControl x:Name="SlotHistory" Grid.Row="2" Focusable="False" IsTabStop="False" />
+                    <ContentControl x:Name="SlotHistory" Grid.Row="1" Focusable="False" IsTabStop="False" />
 
                     <!-- ===== Match page (Main/Match): replaces the History list while a game is open ===== -->
                     <!-- Built with the window, unlike the other pages: built late it opened 3-5x slower (TASK-2026-11-06-perf). -->
-                    <ScrollViewer x:Name="PageMatch" Grid.Row="2" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <ScrollViewer x:Name="PageMatch" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <mt:MatchView x:Name="MatchDetails" DataContext="{Binding MatchPage}" Margin="40,0,40,120" />
                     </ScrollViewer>
 
                     <!-- ===== Settings: tabs General / Appearance / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
-                    <ScrollViewer x:Name="PageSettings" Grid.Row="2" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left" ToggleButton.Checked="OnSettingChanged" ToggleButton.Unchecked="OnSettingChanged">
                             <StackPanel Orientation="Horizontal">
                                 <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Settings}" />
@@ -473,47 +472,7 @@
                     </ScrollViewer>
 
                     <!-- ===== Setup wizard (D4): over the whole page and the live bar while open; it opens by itself once for a new player ===== -->
-                    <su:SetupWizard x:Name="Setup" Grid.RowSpan="3" Panel.ZIndex="10" Visibility="{Binding SetupOpen, Converter={StaticResource Vis}}" />
-
-                    <!-- ===== Once: game records are on by default (docs/game-stats.md); a notice, not a consent question.
-                         In the flow above the page (row 1): the page moves down and nothing is hidden under it. The summary
-                         says what is sent and how to turn it off; "What is sent" opens the full text in place. The buttons
-                         sit under the text and wrap, so a narrow window never clips them. ===== -->
-                    <Border x:Name="GameStatsNotice" Grid.Row="1" Margin="40,4,40,16" CornerRadius="16" Background="{StaticResource Surface3}"
-                            BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="12,12,16,12"
-                            Visibility="{Binding ShowGameStatsNotice, Converter={StaticResource Vis}}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid Width="46" Height="46" VerticalAlignment="Top">
-                                <c:Scallop Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
-                                <TextBlock Text="&#xF0128;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
-                            </Grid>
-                            <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="{i:Loc Main.GameStats.Title}" FontWeight="Bold" FontSize="14.5" TextWrapping="Wrap" />
-                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource Text}"
-                                           Text="{i:Loc Main.GameStats.Short}" />
-                                <StackPanel Visibility="{Binding GameStatsNoticeDetails, Converter={StaticResource Vis}}">
-                                    <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{StaticResource Text}"
-                                               Text="{i:Loc Main.GameStats.What}" />
-                                    <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                               Text="{i:Loc Main.GameStats.Never}" />
-                                </StackPanel>
-                                <WrapPanel Margin="0,4,0,0">
-                                    <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Main.GameStats.Ok}" Command="{Binding AnswerGameStats}" CommandParameter="ok" Margin="0,8,8,0" />
-                                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.GameStats.Off}" Command="{Binding AnswerGameStats}" CommandParameter="off" Margin="0,8,8,0" />
-                                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.GameStats.Details}" Command="{Binding AnswerGameStats}" CommandParameter="details" Margin="0,8,8,0"
-                                            Visibility="{Binding GameStatsNoticeDetails, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.GameStats.Less}" Command="{Binding AnswerGameStats}" CommandParameter="details" Margin="0,8,8,0"
-                                            Visibility="{Binding GameStatsNoticeDetails, Converter={StaticResource Vis}}" />
-                                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.GameStats.More}" Command="{Binding AnswerGameStats}" CommandParameter="more" Margin="0,8,0,0"
-                                            Visibility="{Binding GameStatsNoticeDetails, Converter={StaticResource Vis}}" />
-                                </WrapPanel>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                    <su:SetupWizard x:Name="Setup" Grid.RowSpan="2" Panel.ZIndex="10" Visibility="{Binding SetupOpen, Converter={StaticResource Vis}}" />
 
                 </Grid>
             </Border>
