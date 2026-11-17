@@ -125,9 +125,9 @@
         <GradientStop Color="#E623180F" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="CardEdge" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#C9963F" Offset="0" />
-        <GradientStop Color="#7A5A2E" Offset="0.35" />
-        <GradientStop Color="#4A331D" Offset="1" />
+        <GradientStop Color="#A88146" Offset="0" />
+        <GradientStop Color="#765834" Offset="0.35" />
+        <GradientStop Color="#58412C" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="GhostFill" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#47321C" Offset="0" />
