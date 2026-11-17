@@ -80,8 +80,9 @@
                     <Button Classes="icon cardIcon" Content="{Binding SiteGlyph}" ToolTip.Tip="{Binding SiteTip}" AutomationProperties.Name="{Binding SiteTip}"
                             IsVisible="{Binding CanUpload}"
                             Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).SiteAction}" CommandParameter="{Binding}" />
-                    <TextBlock Text="&#xF1036;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Faint}" Margin="8,0" VerticalAlignment="Center"
-                               ToolTip.Tip="{i:Loc Library.NoReplay}" IsVisible="{Binding NoReplay}" />
+                    <!-- The "no replay" mark in a button's 30 px slot: it sits where the last button of a card with a file does -->
+                    <TextBlock Text="&#xF1036;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Faint}" Width="30"
+                               TextAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Library.NoReplay}" IsVisible="{Binding NoReplay}" />
                     <Button Classes="icon cardIcon delete" Content="&#xF09E7;" ToolTip.Tip="{i:Loc Library.Delete}" AutomationProperties.Name="{i:Loc Library.Delete}"
                             IsVisible="{Binding CanDelete}"
                             Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Delete}" CommandParameter="{Binding}" />
@@ -107,24 +108,24 @@
                         Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Open}" CommandParameter="{Binding}">
                     <Border Classes="plate" CornerRadius="8" Padding="12,8" Margin="0,0,0,4">
                         <StackPanel>
-                            <!-- Both kinds share the outer columns (hero 56 · ... · result 150 · actions 98): the result, the date
+                            <!-- Both kinds share the outer columns (hero 56 · ... · result 150 · actions 128): the result, the date
                                  and the buttons line up down the list. The result column fits the longest date and duration
-                                 ("Сегодня 12:49 · 27 мин", "04 нояб. 12:49 · 27 мин": about 131-140 px), the actions column three
-                                 buttons. A card is about 676 px wide at a 1040 window and 896 at the default (1260): window -
+                                 ("Сегодня 12:49 · 27 мин", "04 нояб. 12:49 · 27 мин": about 131-140 px), the actions column four
+                                 buttons (star, Share, open on the site, the cloud: an uploaded game shows all four). A card is about 676 px wide at a 1040 window and 896 at the default (1260): window -
                                  nav 250 - page margins 80 - list card border 2 and padding 32 (the scroll bar overlays); its row
                                  is 24 less (the plate's padding). -->
                             <!-- Battlegrounds: hero · name and caption (190, one line each: long hero names stay whole) · hero power and trinket chips · result ·
                                  actions; under them, from the name's column to the result's, the whole final board. Seven minions
-                                 with their stat badges take 371 px; the room there is about 488 at the minimum window (1040) and
-                                 708 at the default (1260), so the board is always whole ("+N" only guards a narrower card). -->
-                            <Grid ColumnDefinitions="56,190,*,150,98" RowDefinitions="Auto,Auto" IsVisible="{Binding IsBattlegrounds}">
+                                 with their stat badges take 371 px; the room there is about 458 at the minimum window (1040) and
+                                 678 at the default (1260), so the board is always whole ("+N" only guards a narrower card). -->
+                            <Grid Classes="bgCard" ColumnDefinitions="56,Auto,*,Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto" IsVisible="{Binding IsBattlegrounds}">
                                 <Border Width="44" Height="44" CornerRadius="22" ClipToBounds="True" Background="{StaticResource Surface4}" HorizontalAlignment="Left" VerticalAlignment="Top"
                                         i:CardArt.Portrait="{Binding HeroCardId}" c:CardPreview.CardId="{Binding HeroCardId}" />
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                                <StackPanel Grid.Column="1" Classes="bgName" VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
                                     <TextBlock Name="BgCaption" Text="{Binding Caption}" Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Caption}" />
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="2" Classes="wide" Orientation="Horizontal" VerticalAlignment="Center">
                                     <ItemsControl ItemsSource="{Binding Summary.Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" />
                                     <Border Classes="pill" ToolTip.Tip="{Binding Summary.ChipsMoreTip}" AutomationProperties.Name="{Binding Summary.ChipsMoreTip}"
                                             VerticalAlignment="Center"
@@ -132,8 +133,8 @@
                                         <TextBlock Text="{Binding Summary.ChipsMore}" FontSize="{StaticResource FontSizeSmall}" />
                                     </Border>
                                 </StackPanel>
-                                <ContentControl Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
-                                <ContentControl Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" HorizontalAlignment="Right" />
+                                <ContentControl Classes="cardResult" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
+                                <ContentControl Classes="cardActions" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" />
                                 <!-- An empty border measures the board's room; the board itself never widens it -->
                                 <Border x:Name="BoardRoom" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" />
                                 <ContentControl Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,4,0,0" ContentTemplate="{StaticResource BoardRow}" Focusable="False"
@@ -150,9 +151,9 @@
                             <!-- Constructed, Arena and the rest: heroes · deck and caption · opponent · result · actions. The caption
                                  takes the room; the opponent ("vs Охотник на демонов" and the archetype) up to 120 with a tooltip.
                                  The longest caption ("Паладин · Рейтинговая · Стандартный · 12 ходов · Платина 4", about 366 px)
-                                 fits at 1260 (about 424 px); at 1040 (about 204) it trims from the end, the rank first, whole in
+                                 fits at 1260 (about 394 px); at 1040 (about 174) it trims from the end, the rank first, whole in
                                  the tooltip. -->
-                            <Grid ColumnDefinitions="56,*,Auto,150,98" IsVisible="{Binding IsConstructed}">
+                            <Grid Classes="ctCard" ColumnDefinitions="56,*,Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto" IsVisible="{Binding IsConstructed}">
                                 <Panel Width="48" Height="44" HorizontalAlignment="Left">
                                     <Border Width="40" Height="40" CornerRadius="20" ClipToBounds="True" Background="{StaticResource Surface4}" HorizontalAlignment="Left"
                                             VerticalAlignment="Top" i:CardArt.Portrait="{Binding HeroCardId}" />
@@ -168,8 +169,8 @@
                                     <TextBlock Text="{Binding Opponent}" FontSize="{StaticResource FontSizeBody}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Opponent}" />
                                     <TextBlock Text="{Binding OpponentArchetype}" Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding OpponentArchetype}" />
                                 </StackPanel>
-                                <ContentControl Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
-                                <ContentControl Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" HorizontalAlignment="Right" />
+                                <ContentControl Classes="cardResult" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
+                                <ContentControl Classes="cardActions" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" />
                             </Grid>
 
                             <!-- The question before a delete, inside the card -->
@@ -242,9 +243,51 @@
         <Style Selector="Button.cardIcon.delete:pointerover">
             <Setter Property="Foreground" Value="{StaticResource Negative}" />
         </Style>
-        <!-- Compact (< 900): the opponent column goes (the opponent stays as the small portrait with its tooltip) -->
+        <!-- The outer columns of both kinds (hero 56 · ... · result 150 · actions 128; the Battlegrounds name 190 with its
+             12 px gap): set here, not on the columns, so compact can move the result and the buttons under the name -->
+        <Style Selector="StackPanel.bgName">
+            <Setter Property="Width" Value="178" />
+        </Style>
+        <Style Selector="ContentControl.cardResult">
+            <Setter Property="Grid.Column" Value="3" />
+            <Setter Property="Width" Value="150" />
+        </Style>
+        <Style Selector="ContentControl.cardActions">
+            <Setter Property="Grid.Column" Value="4" />
+            <Setter Property="Width" Value="128" />
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+        </Style>
+        <!-- Compact (< 900): the opponent column and the Battlegrounds chips go (the opponent stays as the small portrait
+             with its tooltip, the hero powers on the match page) -->
         <Style Selector="m|MainView.compact StackPanel.wide">
             <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- Compact: the name takes the row; the result, then the buttons, each on a line of its own under it (and under
+             a Battlegrounds board), instead of columns the name had no room left beside -->
+        <Style Selector="m|MainView.compact StackPanel.bgName">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+        </Style>
+        <Style Selector="m|MainView.compact ContentControl.cardResult">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact ContentControl.cardActions">
+            <Setter Property="Grid.Row" Value="2" />
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Margin" Value="-8,2,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.bgCard ContentControl.cardResult">
+            <Setter Property="Grid.Row" Value="2" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.bgCard ContentControl.cardActions">
+            <Setter Property="Grid.Row" Value="3" />
         </Style>
         <!-- Compact: the search box takes the whole width, the result filter goes under it -->
         <Style Selector="m|MainView.compact Grid.searchRow TextBox.search">

@@ -100,10 +100,13 @@ that would hide it. The search and the result are not kept between runs. Avaloni
 width, the result filter goes under it. Battlegrounds card: hero, name and
 mode · turns · tier, hero powers and trinkets (up to 3, "+N"), the final board as small ovals with stats (golden,
 taunt, divine shield; the minions that fit whole, "+N" naming the rest), place and rating change, when · how long, star, Share, delete
-(Imported). Constructed card: our hero with the opponent's portrait over its corner, deck (else class) and class ·
-mode · format · rank · turns, "vs class" and the archetype, result, rating change, when · how long. Delete and the
-last copy's unstar ask inside the card. Avalonia compact hides the opponent column. Hover on a portrait shows the
-full card.
+(Imported). Constructed card: our hero with the opponent's portrait over its corner (a game recorded with only the
+classes, as Arena and Underground Arena games are, shows each class's default hero), deck (else class) and class ·
+mode · format (Ranked, Casual and Friendly only: the log calls an Arena game Wild) · rank · turns, "vs class" and the
+archetype, result, rating change, when · how long. The buttons: star, Share, "Open on the site" and the cloud
+(`docs/web-replays.md`), four for an uploaded game, so the column is 128 wide; the "no replay" mark takes a button's
+slot. Delete and the last copy's unstar ask inside the card. Avalonia compact hides the opponent column and the
+Battlegrounds chips and puts the result, then the buttons, under the name. Hover on a portrait shows the full card.
 
 ## Known limits
 
