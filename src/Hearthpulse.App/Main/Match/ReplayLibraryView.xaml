@@ -182,7 +182,7 @@
                                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
                                     <TextBlock x:Name="BgCaption" Text="{Binding Caption}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Caption}" />
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <StackPanel ClipToBounds="True" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                     <ItemsControl ItemsSource="{Binding Summary.Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" Focusable="False" />
                                     <Border Style="{StaticResource Pill}" ToolTip="{Binding Summary.ChipsMoreTip}" AutomationProperties.Name="{Binding Summary.ChipsMoreTip}"
                                             VerticalAlignment="Center" Visibility="{Binding Summary.ChipsMore, Converter={StaticResource Vis}}">
