@@ -11,3 +11,6 @@ __pycache__/
 
 # WPF markup compilation leaves these beside the project when a build is interrupted
 *_wpftmp.csproj
+
+# Client memory captures (tools/Hearthpulse.Bench): private game data
+*.hpmem

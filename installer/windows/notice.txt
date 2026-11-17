@@ -13,7 +13,7 @@ HOW IT WORKS
   - your Battlegrounds rating (solo and duos, also right after a game);
   - your own card collection (card ids, finishes and copy counts) and Arcane
     Dust balance, at startup and when collection or pack screens change;
-    these are stored on this computer and are not sent to the stats pool;
+    these are stored on this computer only and are never sent anywhere;
   - in a game, both players' names and ranked medals;
   - in Battlegrounds, the lobby's tribes and the costs on the tavern
     buttons (refresh, freeze, upgrade, Dark Gift);

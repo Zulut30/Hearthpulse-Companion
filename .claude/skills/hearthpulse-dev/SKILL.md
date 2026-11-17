@@ -56,7 +56,9 @@ Core folders:
   `DeckBuild` state, missing cards, dust; printings joined only by HearthstoneJSON `countAsCopyOfDbfId`,
   `CardDb.Printings`), `CollectionWatch` (when `MemoryPoller` reads it: once per client session and around the
   collection screen). Read by `Memory/HearthstoneMemory.Collection.cs`; `GameSession.Collection` /
-  `CollectionChanged`. Core only, no UI yet.
+  `CollectionChanged`. Shown in both UIs: meta deck lists ("Can build", order by missing dust) and the own deck
+  page (`MainViewModel.Collection.cs`, `CollectionRows.cs`, `CollectionResources.xaml|.axaml`; docs/collection.md
+  "In the interface").
 - `Hearthstone/HearthstoneInstall.cs` - install/log folder discovery per OS; `LogConfig.EnsureAll` writes the needed
   `log.config` sections; `ClientConfig` sets `Log.FileSizeLimit.Int=-1` in `client.config`.
 - `Cards/` - `CardDb` (HearthstoneJSON `https://api.hearthstonejson.com/v1/latest/{locale}/cards.json`, cached in

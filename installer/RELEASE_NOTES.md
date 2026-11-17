@@ -2,6 +2,7 @@
 
 ### What's new
 - **Safer updates.** A download installs only when it matches the checksum published with the release, and builds that carry the project's update key also check the release's signature. If an install fails, the app puts the old version back and tells you on the next start. Settings → About has **Check now** and **What's new**.
+- **Your collection and dust.** The app reads your collection and dust from the running game (it stays on your PC). Top decks show whether you can build each deck and how much dust is missing, with a "Can build" filter; your deck page lists the cards you lack.
 - **Replay library.** History keeps your games as replays in Recent, Saved and Imported tabs: star a game, share it, import one, or upload it to hearthpulse.net to share a link. Export any replay step as a picture.
 - **Move over from HDT or Firestone.** Bring your past games and decks from Hearthstone Deck Tracker or Firestone into History, My Stats and your deck library.
 - **New overlay panels.** The opponent's likely deck, a graveyard for both sides, how much damage each board can deal to the enemy hero, and related cards next to the card you hover. Unlock the panels to move them with the mouse during a game.
@@ -9,7 +10,9 @@
 - **Arena and Brawl.** An Arena draft helper (beta, off by default) and rewards for each run; Arena and Underground Arena counted apart. A new Tavern Brawl page with the best classes of the week.
 
 ### More
-- Meta and mulligan advice for your rank, not only Legend.
+- Meta and mulligan advice for your rank, not only Legend; the mulligan guide matches your exact decklist.
+- A card page in the main window: open any card from a list.
+- Your own Battlegrounds hero statistics on the Heroes tab, and History export to CSV.
 - A new look: a gold frame, a new logo, a theme gallery with live preview, more themes, accent, font and density settings, and settings search.
 - Session recap and deck pictures to post, YouTube timestamps, an OBS session window, streamer mode, and a Discord status (off by default).
 - Your account in one place: sign-in, your profile and what your plan includes.
