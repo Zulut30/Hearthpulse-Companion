@@ -47,7 +47,7 @@ public sealed partial class LocBindingTests
         // calibration has its cross-platform wording here.
         string[] cards =
         [
-            "Settings.Gallery.Hint", "Overlay.Move.SettingsWindows", "Settings.Leaderboard.CaptionCrossPlatform", "Stream.Mode.Note", "Discord.Note",
+            "Settings.Gallery.Hint", "Overlay.Move.SettingsWindows", "Settings.Leaderboard.CaptionCrossPlatform", "Stream.Mode.Note",
             "Twitch.Note", "Stream.Windows.Note", "Migration.Settings.Note", "Source.Health.Caption", "Settings.File.Caption",
         ];
         var notes = view.FindControl<ScrollViewer>("PageSettings")!.GetLogicalDescendants().OfType<TextBlock>()

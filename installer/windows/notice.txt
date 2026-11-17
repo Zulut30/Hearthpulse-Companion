@@ -35,8 +35,6 @@ HOW IT WORKS
 - Moving from Hearthstone Deck Tracker or Firestone (Settings > Data): when
   you ask, it reads the games and decks those apps saved on this computer.
   It never changes their files and uses none of their code.
-- Discord status (off by default): it talks only to the Discord app on this
-  computer, which shows your current mode and matchup on your profile.
 
 UPDATES
 - Hearthpulse asks GitHub (github.com/Zulut30/Hearthpulse-Companion) for the newest

@@ -618,7 +618,7 @@ public sealed partial class CollectionStoreTests : IDisposable
             .ToList();
 
         Assert.True(senders.Count >= 5, $"{senders.Count} sending files found");
-        Assert.Contains(senders, f => Path.GetFileName(f) == "DiscordIpc.cs");
+        Assert.Contains(senders, f => Path.GetFileName(f) == "GameStatsClient.cs");
         Assert.Empty(senders.Where(f => CollectionWords().IsMatch(File.ReadAllText(f))).Select(Path.GetFileName));
 
         // And the collection's own code names no network type.

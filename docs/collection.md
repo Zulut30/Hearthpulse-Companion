@@ -277,7 +277,6 @@ statement:
   is **not** network proof:
 
   - the Twitch publisher, the replay upload and the replay share are not run (they need a signed-in account);
-  - Discord presence is a named pipe: an `HttpMessageHandler` cannot see it at all;
   - the account's own calls (`/me`, the sign-in), the mulligan guide's and the leaderboard's downloads, the card
     art downloads;
   - the profile upload and the crash report are run as the same classes on the same client, not as the instances

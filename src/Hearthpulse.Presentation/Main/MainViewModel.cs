@@ -199,7 +199,6 @@ public sealed partial class MainViewModel : Observable
     {
         _lastSnapshot = s;
         ApplyLadder(s);
-        ShowDiscord(s);
         HearthstoneRunning = s.HearthstoneRunning;
         MemoryAttached = s.MemoryAttached;
         // The pill says where the connection is in the interface's language; the memory reader's own words go to the log.

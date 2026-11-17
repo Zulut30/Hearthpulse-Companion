@@ -39,7 +39,7 @@ no code sends it, which rests on the sources, on a static check of names in `Col
 `CollectionPrivacyTests`, a check of what goes over the wire: marker card id and dust in the session's collection, the
 usual senders run on a recording handler, no marker in any address, header or body. That is network proof for six
 flows (downloads, game record, shared games, source capture, profile upload, crash report); the Twitch publisher,
-the replay upload and share and Discord presence are not run by it and rest on the static check alone. A new sender
+the replay upload and share are not run by it and rest on the static check alone. A new sender
 is added to that test; what it does not cover is listed in `docs/collection.md`. The file carries no account, so it is unconfirmed
 until the running client was read, and by an unconfirmed collection the views mark every label and keep the "can
 build" filter off). The local match page may show everything the log revealed by the end of the game; nothing

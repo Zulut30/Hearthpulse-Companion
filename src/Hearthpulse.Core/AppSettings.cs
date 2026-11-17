@@ -318,9 +318,6 @@ public sealed partial class AppSettings
     /// </summary>
     public bool StreamerMode { get; set; }
 
-    /// <summary>The Discord status (<c>docs/discord.md</c>): off until turned on.</summary>
-    public bool DiscordStatus { get; set; }
-
     /// <summary>
     /// The Twitch extension (docs/streaming.md): while on and signed in, the deck's remaining cards go to hearthpulse.net,
     /// which hands them to the Hearthpulse extension on the player's channel. Off until turned on.
