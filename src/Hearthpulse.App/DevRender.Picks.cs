@@ -8,8 +8,8 @@ namespace Hearthpulse.App;
 
 /// <summary>
 /// Render group <c>picks</c>: the hero and trinket pick badges on made-up offers (<see cref="PickScene"/>) at the data
-/// copy's overlay scale: <c>overlay-pick-2</c>, <c>-pick-4</c>, <c>overlay-trinket-2</c>, <c>-3</c>, <c>-4</c>, and
-/// <c>overlay-picks-scale.txt</c> with the scale the frames were drawn at.
+/// copy's overlay scale: <c>overlay-pick-2</c>, <c>-pick-4</c>, <c>overlay-trinket-2</c>, <c>-3</c>, <c>-4</c>,
+/// <c>-late</c> (the trinket numbers' update delayed), and <c>overlay-picks-scale.txt</c> with the scale the frames were drawn at.
 /// </summary>
 public partial class App
 {
@@ -27,6 +27,12 @@ public partial class App
                 _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
                 await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, 0);
             }
+
+            // Last: the trinket numbers' collector late, so each badge shows its "update delayed" line whole.
+            _overlayViewModel.SetDataHealth(PickScene.TrinketsLate());
+            _overlayViewModel.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_BATTLEGROUNDS", Battlegrounds = PickScene.Trinkets(3) },
+                _cards, _settings, null, null);
+            await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-trinket-late.png"), 1920, 1080, 0);
 
             // What the frames were drawn at: the saved scale as the settings hold it now, and the surface's own.
             var drawn = _overlay.LayOutFor(1920, 1080);

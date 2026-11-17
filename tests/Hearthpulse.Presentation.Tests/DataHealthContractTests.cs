@@ -262,7 +262,8 @@ public sealed class DataHealthContractTests
             var dates = new List<string>();
             foreach (var badge in overlay.TrinketPicks)
             {
-                dates.Add((string)badge.Updated);
+                // The date and the delay are two lines of the badge: in one they were cut at its width.
+                dates.Add(((string)badge.Delay).Length == 0 ? (string)badge.Updated : $"{badge.Updated} · {badge.Delay}");
             }
 
             return [.. dates];

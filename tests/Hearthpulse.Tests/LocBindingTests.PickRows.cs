@@ -18,8 +18,8 @@ public sealed partial class LocBindingTests
     /// <summary>
     /// The Avalonia overlay laid out for a 1920 x 1080 game at overlay scales 100%, 140% and 160%, in both languages:
     /// the hero badges (two and four heroes) are whole on the screen and centred on the heroes' steps of the game; the
-    /// trinket badges (two to four) likewise, every line of a badge whole inside it, and no leaderboard label touches
-    /// a badge.
+    /// trinket badges (two to four) likewise, every line of a badge whole inside it (with the trinket numbers' update
+    /// delayed too: that is a warning line of its own), and no leaderboard label touches a badge.
     /// </summary>
     [Fact]
     public void Avalonia_pick_badges_stay_on_the_screen_over_their_cards_and_clear_of_the_labels() => Headless.Run(PickRows);
@@ -79,7 +79,8 @@ public sealed partial class LocBindingTests
 
                     foreach (var count in new[] { 2, 3, 4 })
                     {
-                        TrinketRow(language, scale, count);
+                        TrinketRow(language, scale, count, late: false);
+                        TrinketRow(language, scale, count, late: true);
                     }
                 }
             }
@@ -121,7 +122,7 @@ public sealed partial class LocBindingTests
         }
     }
 
-    private static void TrinketRow(string language, double scale, int count)
+    private static void TrinketRow(string language, double scale, int count, bool late)
     {
         const int me = 5;
         BgMinion Elemental() => new("BG_ELEMENTAL", "Elemental", 2, 2, Golden: false, TechLevel: 1, Keywords: []);
@@ -134,10 +135,10 @@ public sealed partial class LocBindingTests
             TrinketOptions = [.. Enumerable.Range(0, count).Select(i => new BgTrinketOption($"TRK_{i}", $"Trinket {i}",
                 new TrinketMeta(4.52 - (i * 0.1), 0.14, 2528, "C", External: true, GamesAreMinimum: true, Updated: fetched), i == 0))],
         };
-        var (window, overlay) = PickOverlay(scale, view);
+        var (window, overlay) = PickOverlay(scale, view, late ? PickScene.TrinketsLate() : null);
         try
         {
-            var tested = $"{language}, scale {scale}, {count} trinkets";
+            var tested = $"{language}, scale {scale}, {count} trinkets{(late ? ", update delayed" : string.Empty)}";
             var cards = PickCards(overlay, "trinket-row");
             var labels = overlay.GetVisualDescendants().OfType<Border>().Where(b => b.Name == "Label" && b.IsEffectivelyVisible).Select(l => OnScreen(l, overlay)).ToList();
             var expected = PickRowLayout.Trinkets.OnScreen(count, 1920, 1080, scale);
@@ -153,6 +154,9 @@ public sealed partial class LocBindingTests
                 // Place, pick rate and date: each line whole inside the badge.
                 var lines = cards[i].GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && t.Text is { Length: > 0 }).ToList();
                 Assert.Contains(lines, t => t.Text!.StartsWith(language == Loc.Russian ? "данные от " : "data from ", StringComparison.Ordinal));
+                // A late update is a line of its own with a warning mark, not the end of the date line the badge cut off.
+                Assert.Equal(late, lines.Any(t => t.Text == Loc.T("Source.Health.OverlayDelay")));
+                Assert.Equal(late, lines.Any(t => t.Text == "\U000F0026"));
                 Assert.All(lines, t =>
                 {
                     var line = OnScreen(t, overlay);
@@ -169,7 +173,7 @@ public sealed partial class LocBindingTests
     }
 
     /// <summary>The overlay view with this Battlegrounds view, fitted to a 1920 x 1080 game at the overlay scale.</summary>
-    private static (Window Window, OverlayView Overlay) PickOverlay(double scale, BattlegroundsView view)
+    private static (Window Window, OverlayView Overlay) PickOverlay(double scale, BattlegroundsView view, Core.Api.DataHealthReport? health = null)
     {
         var settings = new AppSettings { OverlayScale = scale };
         var cards = CardDb.Parse("enUS", new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
@@ -182,6 +186,11 @@ public sealed partial class LocBindingTests
         window.Content = overlay;
         window.Show();
         overlay.Fit(1920, 1080);
+        if (health is not null)
+        {
+            model.SetDataHealth(health);
+        }
+
         model.Update(LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true, Battlegrounds = view }, cards, settings, null, null);
         for (var pass = 0; pass < 2; pass++)
         {

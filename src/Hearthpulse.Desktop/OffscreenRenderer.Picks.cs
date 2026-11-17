@@ -9,8 +9,8 @@ namespace Hearthpulse.Desktop;
 
 /// <summary>
 /// Render group <c>picks</c>: the hero and trinket pick badges on made-up offers (<see cref="PickScene"/>) at the data
-/// copy's overlay scale: <c>overlay-pick-2</c>, <c>-pick-4</c>, <c>overlay-trinket-2</c>, <c>-3</c>, <c>-4</c>, and
-/// <c>overlay-picks-scale.txt</c> with the scale the frames were drawn at.
+/// copy's overlay scale: <c>overlay-pick-2</c>, <c>-pick-4</c>, <c>overlay-trinket-2</c>, <c>-3</c>, <c>-4</c>,
+/// <c>-late</c> (the trinket numbers' update delayed), and <c>overlay-picks-scale.txt</c> with the scale the frames were drawn at.
 /// </summary>
 internal static partial class OffscreenRenderer
 {
@@ -29,6 +29,13 @@ internal static partial class OffscreenRenderer
                 overlayView.Fit(1920, 1080);
                 await Save(overlay, Path.Combine(folder, name + ".png"));
             }
+
+            // Last: the trinket numbers' collector late, so each badge shows its "update delayed" line whole.
+            host.Overlay.SetDataHealth(PickScene.TrinketsLate());
+            host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_BATTLEGROUNDS", Battlegrounds = PickScene.Trinkets(3) },
+                host.Cards, settings, null, null);
+            overlayView.Fit(1920, 1080);
+            await Save(overlay, Path.Combine(folder, "overlay-trinket-late.png"));
 
             // What the frames were drawn at: the saved scale as the settings hold it now, and the surface's own.
             var line = string.Create(CultureInfo.InvariantCulture, $"ava settings.OverlayScale={settings.OverlayScale} surface={overlayView.SurfaceScaleNow} language={settings.InterfaceLanguage()}");

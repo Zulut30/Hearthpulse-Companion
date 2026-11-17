@@ -34,5 +34,6 @@
   "Source.Health.DelayNoDate": "Обновление задерживается.",
   "Source.Health.Updated": "Данные Hearthpulse · обновлено {0:dd MMM HH:mm}",
   "Source.Health.Overlay": "данные от {0:d MMM}",
-  "Source.Health.OverlayDelayed": "данные от {0:d MMM} · обновление задерживается"
+  "Source.Health.OverlayDelayed": "данные от {0:d MMM} · обновление задерживается",
+  "Source.Health.OverlayDelay": "обновление задерживается"
 }

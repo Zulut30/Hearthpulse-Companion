@@ -108,8 +108,9 @@ public sealed partial class OverlayViewModel
                 t.Meta is not null)
             {
                 TierTip = t.Meta is null ? trinketTierTip : trinketTierTip + "\n" + TrinketSource(t.Meta),
-                // One date line per badge; the data API's numbers add "update delayed" while their collector is late.
-                Updated = DataHealthText.Overlay(t.Meta?.Updated, _dataHealth, t.Meta is { External: true } ? [DataSection.BgTrinkets] : []),
+                // One date line per badge; the data API's numbers add an "update delayed" line while their collector is late.
+                Updated = DataHealthText.OverlayDate(t.Meta?.Updated),
+                Delay = DataHealthText.OverlayDelay(t.Meta?.Updated, _dataHealth, t.Meta is { External: true } ? [DataSection.BgTrinkets] : []),
             })
             .ToList());
 
