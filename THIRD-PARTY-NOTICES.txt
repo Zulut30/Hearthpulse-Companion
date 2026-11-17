@@ -96,8 +96,8 @@ section 6 (S. Josefsson, I. Liusvaara)
   Licence: Revised BSD License (IETF Trust Legal Provisions, section 4)
   https://www.rfc-editor.org/rfc/rfc8032
 
-UI SDK (keyboard, focus, selection and popup behaviors, ported in src/Hearthpulse.Presentation/Behaviors and the
-Behaviors adapters of both UIs; docs/ui-behaviors.md)
+UI SDK (keyboard, focus, selection and popup behaviors, ported in src/Hearthpulse.Presentation/Behaviors; the
+Behaviors adapters of both UIs are Hearthpulse's own code; docs/ui-behaviors.md)
   Copyright 2026 Vercel, Inc.
   Licence: Apache-2.0
   https://github.com/vercel-labs/ui (packages/core, revision af0321f)

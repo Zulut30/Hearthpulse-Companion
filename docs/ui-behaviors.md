@@ -8,6 +8,10 @@ does the same for WPF and Avalonia: the rules are plain C# with no framework typ
 reads its own keys, finds its own controls and moves its own focus. It is a port of the design and of the rule code,
 not a dependency: no npm package, no WebView.
 
+The code was taken from the public repository at revision `af0321f` under its Apache-2.0 licence only; no other
+Vercel terms (such as the UI SDK beta agreement) apply to this port, and none of UI SDK's docs, assets or marks are
+used.
+
 ## Where it lives
 
 | Part | Path | What it holds |
