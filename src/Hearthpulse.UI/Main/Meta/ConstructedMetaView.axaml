@@ -4,6 +4,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:m="using:Hearthpulse.UI.Main"
              xmlns:mm="using:Hearthpulse.UI.Main.Meta"
+             xmlns:b="using:Hearthpulse.UI.Behaviors"
              xmlns:c="using:Hearthpulse.UI.Controls"
              xmlns:i="using:Hearthpulse.UI.Infrastructure">
     <!-- The Standard/Wild community tabs, as hearthpulse.net lays them out: filters, the tier list (tiers or one sortable
@@ -59,7 +60,7 @@
                                 AutomationProperties.Name="{Binding Build.Name}" AutomationProperties.HelpText="{Binding Build.Details}"
                                 ToolTip.Tip="{Binding Build.Details}" IsVisible="{Binding HasBuild}">
                             <Button.Flyout>
-                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterClasses="deckBuild" Opened="OnDeckBuildOpened" Closed="OnDeckBuildClosed">
+                                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterClasses="deckBuild" b:PopupFocus.ReturnFocus="True">
                                     <ContentControl Classes="deckBuildDetails" Content="{Binding Build}" ContentTemplate="{StaticResource DeckMissingList}" Focusable="True" MaxWidth="386"
                                                     AutomationProperties.Name="{Binding Build.Details}" />
                                 </Flyout>

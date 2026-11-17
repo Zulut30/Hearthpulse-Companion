@@ -338,7 +338,7 @@ public partial class MainView : UserControl
                 }
                 else
                 {
-                    _cardOrigin = null;
+                    _cardOrigin.Take();
                 }
 
                 break;

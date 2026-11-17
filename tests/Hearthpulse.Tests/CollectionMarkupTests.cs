@@ -92,14 +92,14 @@ public sealed partial class CollectionMarkupTests
 
         // WPF opens a popup from the click, made in code for that opening and never part of the view's markup (a
         // popup in the tree kept the closed window alive, docs/collection.md); Avalonia has the flyout on the button,
-        // with focus handled on opening and closing. Both show the same template.
+        // with focus handled on opening and closing by the shared popup behavior. Both show the same template.
         Assert.Contains("Click=\"OnDeckBuild\"", wpfLabel, StringComparison.Ordinal);
         Assert.DoesNotContain("<Popup", wpf, StringComparison.Ordinal);
         var wpfCode = Read("src/Hearthpulse.App/Main/Meta/ConstructedMetaView.Collection.cs");
         Assert.Contains("FindResource(\"DeckMissingList\")", wpfCode, StringComparison.Ordinal);
         Assert.DoesNotContain("PlacementTarget =", wpfCode, StringComparison.Ordinal);
         Assert.Contains("<Flyout ", avalonia, StringComparison.Ordinal);
-        Assert.Contains("Opened=\"OnDeckBuildOpened\" Closed=\"OnDeckBuildClosed\"", avalonia, StringComparison.Ordinal);
+        Assert.Contains("b:PopupFocus.ReturnFocus=\"True\"", avalonia, StringComparison.Ordinal);
         Assert.Equal(1, Count(avalonia, "ContentTemplate=\"{StaticResource DeckMissingList}\""));
 
         // The filter says why it is off limits where a disabled control would otherwise say nothing.

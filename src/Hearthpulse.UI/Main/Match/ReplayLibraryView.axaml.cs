@@ -4,6 +4,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
+using Hearthpulse.UI.Behaviors;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
 
@@ -57,16 +58,19 @@ public partial class ReplayLibraryView : UserControl
             ? item.GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible && b.IsEffectivelyEnabled).ToList()
             : [];
         var at = buttons.IndexOf(current);
+        // Up / Down between the games and Right / Left along a game's buttons: the shared list rule (docs/ui-behaviors.md).
+        var nav = RovingFocus.ToNavKey(e.Key);
+        var toButton = at >= 0 ? ListNavigation.Target(at, nav, buttons.Count, Along) : -1;
         switch (e.Key)
         {
             case Key.Up or Key.Down when plain:
-                MoveToGame(card, e.Key == Key.Down ? 1 : -1);
+                MoveToGame(card, nav);
                 break;
-            case Key.Right when plain && at >= 0:
-                buttons[Math.Min(at + 1, buttons.Count - 1)].Focus(NavigationMethod.Directional);
+            case Key.Right when plain && toButton >= 0:
+                buttons[toButton].Focus(NavigationMethod.Directional);
                 break;
-            case Key.Left when plain && at > 0:
-                buttons[at - 1].Focus(NavigationMethod.Directional);
+            case Key.Left when plain && toButton >= 0 && toButton != at:
+                buttons[toButton].Focus(NavigationMethod.Directional);
                 break;
             case Key.Escape when plain && card.Confirming:
                 model.Cancel.Execute(card);
@@ -102,10 +106,17 @@ public partial class ReplayLibraryView : UserControl
         e.Handled = true;
     }
 
-    private void MoveToGame(LibraryCard card, int step)
+    /// <summary>Up / Down move between the games; at either end the focus stays. Home / End stay the list's own.</summary>
+    private static readonly ListNavigationOptions Between = ListNavigationOptions.Vertical with { HomeEnd = false };
+
+    /// <summary>Right / Left move along a game's buttons and stop at the last and at the game itself.</summary>
+    private static readonly ListNavigationOptions Along = ListNavigationOptions.Horizontal with { HomeEnd = false };
+
+    private void MoveToGame(LibraryCard card, NavKey key)
     {
-        var next = List.Items.IndexOf(card) + step;
-        if (next >= 0 && next < List.ItemCount)
+        var at = List.Items.IndexOf(card);
+        var next = ListNavigation.Target(at, key, List.ItemCount, Between);
+        if (next >= 0 && next != at)
         {
             FocusGameAt(next);
         }

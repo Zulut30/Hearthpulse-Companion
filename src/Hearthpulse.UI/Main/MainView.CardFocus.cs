@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
+using Hearthpulse.UI.Behaviors;
 using Hearthpulse.UI.Controls;
 
 namespace Hearthpulse.UI.Main;
@@ -14,12 +15,20 @@ namespace Hearthpulse.UI.Main;
 public partial class MainView
 {
     /// <summary>The row the open card page was opened from, its card and its list (the row may be rebuilt meanwhile).</summary>
-    private (Button Row, string CardId, ItemsControl? List)? _cardOrigin;
+    private readonly FocusRecovery<Button> _cardOrigin = new(CardLink.FocusTree.Instance);
 
     /// <summary>A card row was activated (<see cref="CardLink"/>): its card page opens, and the row is remembered for the way back.</summary>
     private void OnCardLink(object? sender, CardLinkEventArgs e)
     {
-        _cardOrigin = e.Source is Button row ? (row, e.CardId, row.FindAncestorOfType<ItemsControl>()) : null;
+        if (e.Source is Button row)
+        {
+            _cardOrigin.Remember(row, row.FindAncestorOfType<ItemsControl>());
+        }
+        else
+        {
+            _cardOrigin.Take();
+        }
+
         _viewModel?.OpenCard.Execute(e.CardId);
         e.Handled = true;
     }
@@ -59,16 +68,8 @@ public partial class MainView
     /// </summary>
     private void RestoreCardFocus()
     {
-        var origin = _cardOrigin;
-        _cardOrigin = null;
-
-        static IEnumerable<Button> Rows(ItemsControl list) =>
-            list.GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible && CardLink.GetCardId(b) is { Length: > 0 });
-
-        InputElement? Row() => origin is not { } from ? null
-            : from.Row.IsEffectivelyVisible && from.Row.IsAttachedToVisualTree() ? from.Row
-            : from.List is { IsEffectivelyVisible: true } list ? Rows(list).FirstOrDefault(r => CardLink.GetCardId(r) == from.CardId) ?? Rows(list).FirstOrDefault()
-            : null;
+        var origin = _cardOrigin.Take();
+        InputElement? Row() => _cardOrigin.Resolve(origin);
 
         var first = Row();
         first?.Focus(NavigationMethod.Tab);

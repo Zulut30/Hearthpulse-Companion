@@ -123,6 +123,8 @@ counters, decks, history and My Stats), `Main/Decks/DeckDetailsViewModel.cs`, `M
 `Hearthpulse.App.*` / `Hearthpulse.UI.*` CLR types in their original assemblies. This shares source, not runtime
 instances or a new DLL. See `src/Hearthpulse.Presentation/README.md` for the boundary.
 
+Shared keyboard, focus, selection and popup rules (a port of UI SDK) are in `Presentation/Behaviors/`, with the
+framework adapters (`RovingFocus`, `PopupFocus`) in App/UI `Behaviors/`: [docs/ui-behaviors.md](../../../docs/ui-behaviors.md).
 App/UI keep views/code-behind in `Main/` (including `Stats/`), overlay controls/windows and platform partials.
 The local `MainViewModel*.cs` files contain only platform behavior (dispatch, clipboard, wording, the WPF-only
 Constructed feature); `OverlayViewModel.Platform.cs` and `OverlayModels.Platform.cs` adapt framework

@@ -222,7 +222,7 @@ public partial class MainWindow : Window
                 }
                 else
                 {
-                    _cardOrigin = null;
+                    _cardOrigin.Take();
                 }
 
                 break;

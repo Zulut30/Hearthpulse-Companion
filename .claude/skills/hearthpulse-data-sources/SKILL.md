@@ -104,6 +104,7 @@ schema (`server/modules/playerGames/schema/gameSchema.ts`), update `ProfileEvent
 | tavern-ledger (`reference/repos/ideas/tavern-ledger`) | AGPL-3.0-only | **Ideas only.** Copying code would put Hearthpulse under AGPL. |
 | HeartLens upstream (`Dev-NotAqua/HeartLens`, git remote `upstream`) | the original project | Port commits **only with the author's permission** (the `upstream-heartlens-sync` session does this); keep authorship in commit messages. |
 | game-icons.net (Lorc, Delapouite, others) | CC BY 3.0 | Icons may be used and changed **with attribution**: the author and icon name of each glyph in `THIRD-PARTY-NOTICES.txt`, `installer/windows/notice.txt` and `installer/*/README.txt`, and in the code (`Presentation/Infrastructure/GameIconData.cs`). Used for the navigation and page-title glyphs (V3 icons I1). |
+| UI SDK (`vercel-labs/ui`) | Apache-2.0, Copyright 2026 Vercel, Inc. | Behavior logic ported to C# **with attribution**: a NOTICE header ("Ported from UI SDK ... changed by Hearthpulse") in each ported file under `src/Hearthpulse.Presentation/Behaviors`, the entry in `THIRD-PARTY-NOTICES.txt` and `installer/windows/notice.txt`. No docs or assets copied. Map: `docs/ui-behaviors.md`. |
 | python-hearthstone (HearthSim) | MIT | Tag/enum names; cite it (`BattlegroundsCounters.cs`, `docs/counters-battlegrounds.md` do). |
 | unity-spy | MIT | Mono memory offsets idea, cited in `Core/Memory/MonoOffsets.cs`. |
 | HearthstoneJSON, hsbg.cards, our API | game data / owner's services | Data with attribution. |
