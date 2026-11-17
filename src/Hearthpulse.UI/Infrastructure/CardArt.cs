@@ -310,7 +310,10 @@ public static class CardArt
         }
     }
 
-    /// <summary>Turns the white block some deck tiles carry left of the art into a transparent fade (and hides a white edge line).</summary>
+    /// <summary>
+    /// Turns the flat block (white, grey, black...) some deck tiles carry left of the art into a transparent fade (and
+    /// hides a white edge line).
+    /// </summary>
     private static Bitmap FadeTileMargin(Bitmap bitmap)
     {
         if (bitmap.Format is not { BitsPerPixel: 32 } format || bitmap.AlphaFormat is not { } alpha)

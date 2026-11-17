@@ -77,9 +77,10 @@ public static class ArtTrim
     }
 
     /// <summary>
-    /// Deck-list tiles are cut from the same art, so many carry a full-height white block on their left part, which
-    /// shows as a light stripe between the card name and the art. Returns the column where the art starts after the
-    /// last such block (only blocks in the left part count: the art itself sits on the right), or null.
+    /// Deck-list tiles are cut from the same art, so many carry a full-height block of one flat colour on their left
+    /// part: white on the newer sets, mid grey, black, teal or dark brown on older ones (Glacial Shard). It shows as a
+    /// band between the card name and the art. Returns the column where the art starts after the last such block (only
+    /// blocks in the left part count: the art itself sits on the right), or null.
     /// </summary>
     public static int? FindTileArtStart(ReadOnlySpan<byte> pixels, int width, int height, int stride)
     {
@@ -90,11 +91,22 @@ public static class ArtTrim
 
         int? start = null;
         var run = 0;
+        var previous = default(ColumnTone);
         for (var x = 0; x < width * TileMarginShare; x++)
         {
-            if (ColumnLight(pixels, stride, x, 0, height))
+            var tone = Tone(pixels, stride, x, height);
+            if (tone.Plain)
             {
+                // Another flat colour right after a block is a block of its own (white paper, then the flat sky the
+                // art begins with): the first one ends there. Light columns are one block whatever their JPEG noise.
+                if (run > 0 && !(tone.Light && previous.Light) && !tone.Near(previous))
+                {
+                    start = run >= MinTileBlock ? x + Seam : start;
+                    run = 0;
+                }
+
                 run++;
+                previous = tone;
                 continue;
             }
 
@@ -106,13 +118,13 @@ public static class ArtTrim
             run = 0;
         }
 
-        // A block still running at the limit is a light tile, not a margin: it is left alone.
-        return run >= MinTileBlock ? null : start;
+        // A block still running at the limit is a light or flat tile, not a margin: only the blocks closed before it count.
+        return start;
     }
 
     /// <summary>
     /// Makes everything left of <paramref name="artStart"/> transparent and fades the art in over a few pixels, so the
-    /// row's own background shows instead of the white block.
+    /// row's own background shows instead of the flat block.
     /// </summary>
     /// <param name="premultiplied">True when the colour channels are premultiplied by alpha (they are scaled too).</param>
     public static void FadeTileStart(Span<byte> pixels, int width, int height, int stride, int artStart, bool premultiplied)
@@ -132,8 +144,8 @@ public static class ArtTrim
     }
 
     /// <summary>
-    /// Cleans a deck tile in place: fades out a white block on its left part and covers a thin white line on its right
-    /// edge with the art next to it. Returns false when the tile had neither and is unchanged.
+    /// Cleans a deck tile in place: fades out a flat block (white, grey, black...) on its left part and covers a thin
+    /// white line on its right edge with the art next to it. Returns false when the tile had neither and is unchanged.
     /// </summary>
     public static bool CleanTile(Span<byte> pixels, int width, int height, int stride, bool premultiplied)
     {
@@ -177,10 +189,10 @@ public static class ArtTrim
     /// <summary>A light line on a tile's right edge up to this wide is a seam of the art's white margin.</summary>
     private const int MaxTileEdge = 4;
 
-    /// <summary>White blocks in tiles end before this share of the width (about a third on real tiles).</summary>
+    /// <summary>Flat blocks in tiles end before this share of the width (about a third on real tiles).</summary>
     private const double TileMarginShare = 0.45;
 
-    /// <summary>Narrower light runs are bright art (a sword's edge, a spell flash), not margin.</summary>
+    /// <summary>Narrower flat or light runs are lines in the art (a sword's edge, a spell flash), not margin.</summary>
     private const int MinTileBlock = 3;
 
     /// <summary>Pixels over which the art fades in after the cut.</summary>
@@ -206,6 +218,45 @@ public static class ArtTrim
         }
 
         return toY > fromY && light >= (toY - fromY) * LightShare;
+    }
+
+    /// <summary>
+    /// A channel this far from its column's mean is still the same flat colour: JPEG-era tiles keep a block's pixels
+    /// within a few levels of each other, while art changes by far more over 59 rows.
+    /// </summary>
+    private const int FlatSpread = 12;
+
+    /// <summary>A tile column's mean colour, and whether it is one flat colour (or margin white) from top to bottom.</summary>
+    private readonly record struct ColumnTone(int C0, int C1, int C2, bool Flat, bool Light)
+    {
+        public bool Plain => Flat || Light;
+
+        public bool Near(ColumnTone other) =>
+            Math.Abs(C0 - other.C0) <= FlatSpread && Math.Abs(C1 - other.C1) <= FlatSpread && Math.Abs(C2 - other.C2) <= FlatSpread;
+    }
+
+    private static ColumnTone Tone(ReadOnlySpan<byte> pixels, int stride, int x, int height)
+    {
+        int c0 = 0, c1 = 0, c2 = 0;
+        for (var y = 0; y < height; y++)
+        {
+            var at = (y * stride) + (x * 4);
+            c0 += pixels[at];
+            c1 += pixels[at + 1];
+            c2 += pixels[at + 2];
+        }
+
+        c0 /= height;
+        c1 /= height;
+        c2 /= height;
+        var near = 0;
+        for (var y = 0; y < height; y++)
+        {
+            var at = (y * stride) + (x * 4);
+            near += Math.Abs(pixels[at] - c0) <= FlatSpread && Math.Abs(pixels[at + 1] - c1) <= FlatSpread && Math.Abs(pixels[at + 2] - c2) <= FlatSpread ? 1 : 0;
+        }
+
+        return new ColumnTone(c0, c1, c2, near >= height * LightShare, ColumnLight(pixels, stride, x, 0, height));
     }
 
     private static bool IsLight(ReadOnlySpan<byte> pixels, int at) =>
