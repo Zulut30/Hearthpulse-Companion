@@ -30,24 +30,15 @@ public static class GameStatsClient
     public const int MaxBatch = 20;
 
     /// <summary>
-    /// The player has seen the one-time notice of the current version (<see cref="PoolClient.NoticeVersion"/>) for game
-    /// records: <see cref="AppSettings.GameStatsNoticeVersion"/> says so, or the notice itself was answered (it sets the
-    /// flag and the pool's version together). The flag of an earlier notice alone is not enough: it may date from a
-    /// notice that named another pool (docs/game-stats.md, "Notice contract").
+    /// Game records go out: on by default, unless the player turned them off in Settings → Data
+    /// (<see cref="AppSettings.GameStatsOff"/>, always kept), once the pool is set up (docs/game-stats.md).
     /// </summary>
-    public static bool NoticeSeen(AppSettings settings) =>
-        settings.GameStatsNoticeVersion >= PoolClient.NoticeVersion
-        || settings.GameStatsNoticeShown && settings.PoolNoticeVersion >= PoolClient.NoticeVersion;
-
-    /// <summary>
-    /// Game records go out: on by default, unless the player turned them off, once the pool is set up and the player
-    /// has seen the one-time notice of the current version (<see cref="NoticeSeen"/>).
-    /// </summary>
-    public static bool Sharing(AppSettings settings) => !settings.GameStatsOff && NoticeSeen(settings) && PoolClient.Available(settings);
+    public static bool Sharing(AppSettings settings) => !settings.GameStatsOff && PoolClient.Available(settings);
 
     /// <summary>
     /// The install's id for its records: a keyed hash of the pool secret, never shown and never linked to an account.
-    /// It lets the player have every record they sent deleted (<see cref="ForgetAsync"/>).
+    /// It lets the player have every record they sent deleted (<see cref="ForgetAsync"/>). Asking for it makes the
+    /// secret when there is none yet, so callers ask only while sharing is on: a refusal never makes one.
     /// </summary>
     public static string InstallId(AppSettings settings) => Hash("game-stats-install", PoolClient.Secret(settings));
 

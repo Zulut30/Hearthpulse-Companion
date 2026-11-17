@@ -6,8 +6,8 @@ using Hearthpulse.Core.Tracking;
 namespace Hearthpulse.Core.Hosting;
 
 /// <summary>
-/// What both apps send to the stats pool while <see cref="PoolClient.Sharing"/> holds (on by default, after the
-/// notice, until the player turns it off): a finished game, and once the earlier games. Nothing is sent before
+/// What both apps send to the stats pool while <see cref="PoolClient.Sharing"/> holds (on by default, until the player
+/// turns it off in Settings → Data): a finished game, and once the earlier games. Nothing is sent before
 /// <see cref="Start"/>, which only a live host calls, so an off-screen render shares nothing.
 /// </summary>
 public sealed class PoolSharingHost

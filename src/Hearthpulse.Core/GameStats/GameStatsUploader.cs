@@ -54,10 +54,11 @@ public sealed class GameStatsUploader : IDisposable
         _cards = cards;
         _version = version;
         _queues = queues;
-        // Capture the old settings before the notice can change them, including before Start().
-        // An already saved refusal may have followed a failed provenance write in an earlier process.
-        // Without a committed layout, prefer a harmless repeat deletion over losing it across restart.
-        _legacyDestination = settings is { GameStatsNoticeShown: true, PoolSecret.Length: 64 }
+        // Capture the old settings before this run can change them, including before Start(). A saved secret is made
+        // only while sharing is on, so an earlier version may have sent with it. An already saved refusal may have
+        // followed a failed provenance write in an earlier process. Without a committed layout, prefer a harmless
+        // repeat deletion over losing it across restart.
+        _legacyDestination = settings is { PoolSecret.Length: 64 }
             ? PoolDestination.Of(settings) : null;
         SaveSettings = settings.SaveRequired;
     }
@@ -261,7 +262,7 @@ public sealed class GameStatsUploader : IDisposable
 
     /// <summary>
     /// Brings the data folder to this layout before anything is queued, sent or withdrawn. Once per data folder: an
-    /// install whose settings show that an earlier version could already send (notice seen and a saved secret) has
+    /// install whose settings show that an earlier version could already send (a saved secret) has
     /// its current pool marked as used, so turning sharing off still asks that pool to delete. And until it works:
     /// the earlier version's queue is taken out of the root.
     /// </summary>

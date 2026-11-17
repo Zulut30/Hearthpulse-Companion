@@ -71,22 +71,23 @@ public sealed partial class SourceCaptureQueue : IAsyncDisposable
     /// <summary>Settings were applied and this queue currently admits new source; use to gate GameSession.</summary>
     public bool Capturing { get { lock (_gate) return _acceptGeneration is not null; } }
 
-    /// <summary>Both hosts use this overload: opt-out revokes; a missing notice or endpoint only pauses admission/delivery.</summary>
+    /// <summary>From the settings: opt-out revokes; a missing endpoint only pauses admission/delivery. A refusal without
+    /// a saved secret makes none.</summary>
     public Task ConfigureAsync(AppSettings settings, bool explicitEnable = false) => ConfigureAsync(
-        Hearthpulse.Core.GameStats.GameStatsClient.InstallId(settings),
-        SourceCaptureClient.NoticeSeen(settings) ? PoolClient.Endpoint(settings) : null,
+        settings.GameStatsOff && settings.PoolSecret is not { Length: 64 } ? null : Hearthpulse.Core.GameStats.GameStatsClient.InstallId(settings),
+        PoolClient.Endpoint(settings),
         sharing: !settings.GameStatsOff, explicitEnable, PoolDestination.Of(settings));
 
     /// <summary>
     /// Persist lifecycle settings before attaching a recorder. A revoked generation is never resumed; only explicitEnable creates its successor.
-    /// Call with sharing=false for opt-out; missing notice/endpoint pauses capture without granting consent.
+    /// Call with sharing=false for opt-out; a missing endpoint pauses capture.
     /// </summary>
     /// <param name="destination">
-    /// The pool the settings name now, when <paramref name="endpoint"/> is withheld for a missing notice: a deletion
+    /// The pool the settings name now, when <paramref name="endpoint"/> is withheld: a deletion
     /// request still goes to its own pool then. Defaults to <paramref name="endpoint"/>.
     /// </param>
     /// <param name="iid">
-    /// The install key. Null is allowed where none is needed (opt-out, a missing notice or endpoint), so that a refusal
+    /// The install key. Null is allowed where none is needed (opt-out, a missing endpoint), so that a refusal
     /// never makes one.
     /// </param>
     public async Task ConfigureAsync(string? iid, string? endpoint, bool sharing, bool explicitEnable = false, string? destination = null)
@@ -237,7 +238,7 @@ public sealed partial class SourceCaptureQueue : IAsyncDisposable
         // A state without its list of deletion requests is damaged: fail closed instead of reading it as "none".
         if (_store.Revocations is null) throw new InvalidDataException("Invalid spool metadata.");
         _dropped = _store.Dropped;
-        // Startup never accepts new captures until settings/new notice have been checked by the host.
+        // Startup never accepts new captures until the settings have been checked by the host.
         foreach (var directory in Directory.GetDirectories(_root))
         {
             var id = Path.GetFileName(directory);

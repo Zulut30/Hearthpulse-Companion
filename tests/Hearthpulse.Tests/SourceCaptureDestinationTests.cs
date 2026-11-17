@@ -25,7 +25,7 @@ public sealed class SourceCaptureDestinationTests
 
     private static AppSettings Settings(string? endpoint) => new()
     {
-        PoolEndpoint = endpoint, GameStatsNoticeShown = true, SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion, PoolNoticeVersion = PoolClient.NoticeVersion,
+        PoolEndpoint = endpoint,
         PoolSecret = new string('7', 64),
     };
 
@@ -400,28 +400,39 @@ public sealed class SourceCaptureDestinationTests
     }
 
     [Fact]
-    public async Task A_first_refusal_before_anything_was_sent_makes_no_request_and_no_install_secret()
+    public async Task A_first_refusal_before_anything_was_sent_makes_no_request()
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
-        // A fresh install: no notice answered, no secret.
+        // A fresh install: sharing is on by default, so capture starts with an install key; nothing is sent yet.
         var settings = new AppSettings { PoolEndpoint = PoolA };
         using var pool = new CapturePool(); using var http = new HttpClient(pool);
         await using var host = Host(settings, http, memory, scratch.Path);
         await host.ApplySettingsAsync();
-        Assert.Null(settings.PoolSecret);
+        Assert.True(host.Capturing);
 
-        // "Turn off" on the notice (MainViewModel.AnswerGameStats), then what the hosts call.
-        settings.GameStatsNoticeShown = true;
-        settings.SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion;
-        settings.PoolNoticeVersion = PoolClient.NoticeVersion;
+        // Both Settings → Data switches turned off, then what the hosts call.
         settings.GameStatsOff = true;
         settings.PoolConsent = false;
         await host.ApplySettingsAsync();
         await host.SendPendingAsync();
 
         Assert.Empty(pool.Requests);
-        Assert.Null(settings.PoolSecret);
         Assert.Equal((0, 0), (host.State.PendingDeletions, host.State.HeldDeletions));
+    }
+
+    [Fact]
+    public async Task A_refusal_saved_before_the_first_start_makes_no_install_secret()
+    {
+        using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
+        var settings = new AppSettings { PoolEndpoint = PoolA, GameStatsOff = true, PoolConsent = false };
+        using var pool = new CapturePool(); using var http = new HttpClient(pool);
+        await using var host = Host(settings, http, memory, scratch.Path);
+        await host.ApplySettingsAsync();
+        await host.SendPendingAsync();
+
+        Assert.False(host.Capturing);
+        Assert.Empty(pool.Requests);
+        Assert.Null(settings.PoolSecret);
     }
 
     [Fact]
@@ -429,7 +440,7 @@ public sealed class SourceCaptureDestinationTests
     {
         using var scratch = new SourceScratch(); using var memory = new HearthstoneMemory();
         var settings = Settings(PoolA);
-        // The notice was answered "ok" and a game was captured; nothing has been handed to the pool yet.
+        // Sharing is on and a game was captured; nothing has been handed to the pool yet.
         await SpoolAsync(SourceCaptureQueue.Folder(scratch.Path, PoolA), settings, PoolA);
         using var pool = new CapturePool(); using var http = new HttpClient(pool);
         await using var host = Host(settings, http, memory, scratch.Path);

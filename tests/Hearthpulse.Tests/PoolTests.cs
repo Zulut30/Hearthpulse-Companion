@@ -299,33 +299,33 @@ public sealed class PoolTests
     }
 
     [Fact]
-    public void The_shipped_pool_is_the_production_one_and_still_waits_for_the_notice()
+    public void The_shipped_pool_is_the_production_one_and_a_fresh_install_shares_with_it()
     {
         // The default address is the project's own stats service, over https.
         Assert.Equal("https://api.kolodahearthstone.com/stats", PoolClient.DefaultEndpoint);
         var fresh = new Hearthpulse.Core.AppSettings();
         Assert.Equal(PoolClient.DefaultEndpoint, PoolClient.Endpoint(fresh));
         Assert.True(PoolClient.Available(fresh));
-        // A fresh install has seen no notice: nothing is shared, whatever the address.
-        Assert.False(PoolClient.Sharing(fresh));
-        Assert.False(Hearthpulse.Core.GameStats.GameStatsClient.Sharing(fresh));
-        Assert.False(Hearthpulse.Core.SourceCapture.SourceCaptureClient.Sharing(fresh));
-        // After the notice the default pool is used; a refusal still holds.
-        Assert.True(PoolClient.Sharing(new Hearthpulse.Core.AppSettings { PoolNoticeVersion = PoolClient.NoticeVersion }));
-        Assert.False(PoolClient.Sharing(new Hearthpulse.Core.AppSettings { PoolNoticeVersion = PoolClient.NoticeVersion, PoolConsent = false }));
+        // On by default with no notice first (docs/game-stats.md): a fresh install shares; a refusal still holds.
+        Assert.True(PoolClient.Sharing(fresh));
+        Assert.True(Hearthpulse.Core.GameStats.GameStatsClient.Sharing(fresh));
+        Assert.True(Hearthpulse.Core.SourceCapture.SourceCaptureClient.Sharing(fresh));
+        Assert.False(PoolClient.Sharing(new Hearthpulse.Core.AppSettings { PoolConsent = false }));
+        Assert.False(Hearthpulse.Core.GameStats.GameStatsClient.Sharing(new Hearthpulse.Core.AppSettings { GameStatsOff = true }));
+        Assert.False(Hearthpulse.Core.SourceCapture.SourceCaptureClient.Sharing(new Hearthpulse.Core.AppSettings { GameStatsOff = true }));
     }
 
     [Fact]
     public void A_setting_that_is_not_an_https_address_and_an_isolated_run_leave_the_app_without_a_pool()
     {
-        var off = new Hearthpulse.Core.AppSettings { PoolEndpoint = "off", PoolNoticeVersion = PoolClient.NoticeVersion };
+        var off = new Hearthpulse.Core.AppSettings { PoolEndpoint = "off" };
         Assert.False(PoolClient.Available(off));
         Assert.False(PoolClient.Sharing(off));
 
         Hearthpulse.Core.Isolation.Forced.Value = true;
         try
         {
-            var isolated = new Hearthpulse.Core.AppSettings { PoolNoticeVersion = PoolClient.NoticeVersion };
+            var isolated = new Hearthpulse.Core.AppSettings();
             Assert.Equal(string.Empty, PoolClient.Endpoint(isolated));
             Assert.False(PoolClient.Available(isolated));
             // An address set by hand is still used: the offline client of an isolated run refuses the request itself.
@@ -343,13 +343,7 @@ public sealed class PoolTests
     [InlineData("off", false)]
     public void The_default_pool_and_explicit_off_apply_to_every_acknowledged_upload_stream(string? endpoint, bool expected)
     {
-        var settings = new Hearthpulse.Core.AppSettings
-        {
-            PoolEndpoint = endpoint,
-            PoolNoticeVersion = PoolClient.NoticeVersion,
-            GameStatsNoticeVersion = PoolClient.NoticeVersion,
-            SourceCaptureNoticeVersion = Hearthpulse.Core.SourceCapture.SourceCaptureClient.NoticeVersion,
-        };
+        var settings = new Hearthpulse.Core.AppSettings { PoolEndpoint = endpoint };
         Assert.Equal(expected, PoolClient.Sharing(settings));
         Assert.Equal(expected, Hearthpulse.Core.GameStats.GameStatsClient.Sharing(settings));
         Assert.Equal(expected, Hearthpulse.Core.SourceCapture.SourceCaptureClient.Sharing(settings));
@@ -360,41 +354,46 @@ public sealed class PoolTests
         Assert.False(Hearthpulse.Core.SourceCapture.SourceCaptureClient.Sharing(settings));
     }
 
-    /// <summary>On by default with an opt-out (the owner's decision, 2026-11-15): a refusal always holds, the notice comes first.</summary>
+    /// <summary>On by default with an opt-out (the owner's decision, 2026-11-15): a refusal always holds, no notice comes first.</summary>
     [Theory]
-    [InlineData(null, PoolClient.NoticeVersion, true)]
-    [InlineData(true, PoolClient.NoticeVersion, true)]
-    [InlineData(false, PoolClient.NoticeVersion, false)]
-    [InlineData(null, 0, false)]
-    [InlineData(true, 0, false)]
-    // A "yes" to the question older versions asked (lists 1-4) is not the notice.
-    [InlineData(true, 4, false)]
-    [InlineData(false, 4, false)]
-    public void SharesByDefaultOnceTheNoticeWasShownUnlessTurnedOff(bool? consent, int seen, bool shares)
+    [InlineData(null, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void SharesByDefaultUnlessTurnedOff(bool? consent, bool shares)
     {
-        var settings = new Hearthpulse.Core.AppSettings { PoolConsent = consent, PoolNoticeVersion = seen, PoolEndpoint = "https://pool.example" };
+        var settings = new Hearthpulse.Core.AppSettings { PoolConsent = consent, PoolEndpoint = "https://pool.example" };
         Assert.Equal(shares, PoolClient.Sharing(settings));
     }
 
     /// <summary>Old settings files keep working: the version is read from and written to the name it always had.</summary>
     [Fact]
-    public void TheNoticeVersionKeepsItsOldNameInTheSettingsFile()
+    public void OldSettingsWithTheNoticeFieldsStillLoadAndKeepTheirRefusals()
     {
         var path = TestDataFolder.Scratch("hp-pool-settings") + ".json";
         try
         {
-            File.WriteAllText(path, """{"PoolConsent":false,"PoolConsentVersion":4,"PoolEndpoint":"https://pool.example"}""");
+            // What the one-time notice of earlier versions wrote: its fields are ignored now, the answers are kept.
+            File.WriteAllText(path, """
+                {"PoolConsent":false,"PoolConsentVersion":5,"GameStatsNoticeShown":true,"GameStatsNoticeVersion":5,
+                 "SourceCaptureNoticeVersion":1,"GameStatsOff":true,"DiscordStatus":true,"PoolEndpoint":"https://pool.example"}
+                """);
             var settings = Hearthpulse.Core.AppSettings.Load(path);
 
             Assert.False(settings.PoolConsent);
-            Assert.Equal(4, settings.PoolNoticeVersion);
+            Assert.True(settings.GameStatsOff);
+            Assert.False(PoolClient.Sharing(settings));
+            Assert.False(Hearthpulse.Core.GameStats.GameStatsClient.Sharing(settings));
+            Assert.Equal("https://pool.example", settings.PoolEndpoint);
 
-            settings.PoolNoticeVersion = PoolClient.NoticeVersion;
             settings.SaveRequired(path);
             var saved = File.ReadAllText(path);
-            Assert.Contains($"\"PoolConsentVersion\": {PoolClient.NoticeVersion}", saved, StringComparison.Ordinal);
-            Assert.DoesNotContain("PoolNoticeVersion", saved, StringComparison.Ordinal);
+            foreach (var gone in new[] { "PoolConsentVersion", "GameStatsNoticeShown", "GameStatsNoticeVersion", "SourceCaptureNoticeVersion", "DiscordStatus" })
+            {
+                Assert.DoesNotContain(gone, saved, StringComparison.Ordinal);
+            }
+
             Assert.False(Hearthpulse.Core.AppSettings.Load(path).PoolConsent);
+            Assert.True(Hearthpulse.Core.AppSettings.Load(path).GameStatsOff);
         }
         finally
         {

@@ -60,12 +60,13 @@ as one compact versioned record to the stats pool Worker, `POST /v1/events`, and
 | Necessary? | Yes: the statistics are built from many players' games; there is no less intrusive source of our own data |
 | Data | Gameplay only: no name, BattleTag, account, deck name, legend number or time of day; rating capped at 10,000; opponent cards only once shown |
 | Linkability | Pseudonymous: a random install id, never shown and never joined to a site account; one install's records are never published, sold or shown in a paid feature |
-| Expectation | Players of a tracker expect it to read their games; told in the installer, in a one-time notice in the main window (nothing is sent before it), in Settings and in section 9 of the site's policy |
+| Expectation | Players of a tracker expect it to read their games; told in the installer, in Settings and in section 9 of the site's policy (a one-time notice in the main window was removed on 2026-11-17, see below) |
 | Safeguards | Opt-out at any time, which deletes the install's records on the server; 180 days; totals only from 10 games and 5 installs; Workers logs off |
 | Children | Hearthstone's own age rules apply; no data that identifies a player is kept |
 
 **Accepted risk (owner, 2026-11-06).** EDPB Guidelines 2/2023 read ePrivacy Art. 5(3) as needing consent for information sent
 from a device for a purpose the user did not ask for. The owner chose default-on with an opt-out; the risk is
-accepted and narrowed: nothing is sent before the one-time notice is shown, the install secret is made only once
-sending is on, and turning off deletes. Russian 152-FZ (data of Russian citizens in a foreign database, RKN
+accepted and narrowed: the install secret is made only once sending is on, and turning off deletes. (Until
+2026-11-17 nothing was sent before a one-time notice in the main window was shown; the owner removed that notice:
+the Settings → Data switch is the only control, `docs/game-stats.md`.) Russian 152-FZ (data of Russian citizens in a foreign database, RKN
 notifications) is an open item for the owner (`reference/reviews/LEGAL-game-stats-default-on.md`, L-M5).

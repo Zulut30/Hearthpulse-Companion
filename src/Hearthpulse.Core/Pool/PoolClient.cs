@@ -18,18 +18,11 @@ public static partial class PoolClient
     /// <summary>
     /// Address of the deployed pool: the Hearthpulse stats service on the project's own server (server/pool/README.md,
     /// docs/source-capture-verification.md). Set on 2026-11-16, once the published privacy policy described the host, the
-    /// game journal and the opt-out, and the pilot had carried games through intake and aggregation; public cells still require their sample thresholds. Nothing is sent before
-    /// the one-time notice was shown, and a refusal (<see cref="AppSettings.PoolConsent"/>, <see cref="AppSettings.GameStatsOff"/>)
+    /// game journal and the opt-out, and the pilot had carried games through intake and aggregation; public cells still require their sample thresholds. Sharing is on
+    /// by default; a refusal in Settings → Data (<see cref="AppSettings.PoolConsent"/>, <see cref="AppSettings.GameStatsOff"/>)
     /// is always kept. An isolated run (<see cref="Isolation"/>) has no default pool.
     /// </summary>
     public const string DefaultEndpoint = "https://api.kolodahearthstone.com/stats";
-
-    /// <summary>
-    /// Version of the notice that describes what is shared (the main window's one-time notice, docs/game-stats.md).
-    /// Raised whenever the list of shared fields grows: nothing is sent until the player has seen the notice of this
-    /// version. Versions 1-4 were the lists of the question older versions asked; 5 is the first notice.
-    /// </summary>
-    public const int NoticeVersion = 5;
 
     /// <summary>Heroes and tribes need this many shared games before their numbers are shown.</summary>
     public const int MinGames = 20;
@@ -64,16 +57,17 @@ public static partial class PoolClient
     public static bool Available(AppSettings settings) => Endpoint(settings).StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Games are shared (on by default): the player has not refused (<see cref="AppSettings.PoolConsent"/>), has seen
-    /// the current notice, and a pool is set up. Then everything the notice names goes: the Battlegrounds game with its
-    /// details, picks and plays, the earlier games once, and the Discover-style picks of Ranked and Casual games. Game
-    /// records of every mode (docs/game-stats.md) are another purpose with their own switch
-    /// (<see cref="AppSettings.GameStatsOff"/>).
+    /// Games are shared (on by default): the player has not refused in Settings → Data
+    /// (<see cref="AppSettings.PoolConsent"/>) and a pool is set up. Then the Battlegrounds game goes with its details,
+    /// picks and plays, the earlier games once, and the Discover-style picks of Ranked and Casual games. Game records
+    /// of every mode (docs/game-stats.md) are another purpose with their own switch (<see cref="AppSettings.GameStatsOff"/>).
     /// </summary>
-    public static bool Sharing(AppSettings settings) =>
-        settings.PoolConsent != false && settings.PoolNoticeVersion >= NoticeVersion && Available(settings);
+    public static bool Sharing(AppSettings settings) => settings.PoolConsent != false && Available(settings);
 
-    /// <summary>The install's secret for game ids, made on first use. Callers save the settings afterwards.</summary>
+    /// <summary>
+    /// The install's secret for game ids, made on first use: the first game shared or recorded while sharing is on,
+    /// never by a refusal. Callers save the settings afterwards.
+    /// </summary>
     public static string Secret(AppSettings settings)
     {
         if (settings.PoolSecret is not { Length: 64 })

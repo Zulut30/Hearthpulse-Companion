@@ -7,13 +7,12 @@ namespace Hearthpulse.Tests;
 public sealed class SourceCaptureQueueTests
 {
     [Fact]
-    public async Task Settings_gate_requires_new_notice_and_endpoint_and_opt_out_cannot_auto_resume()
+    public async Task Settings_gate_requires_an_endpoint_and_opt_out_cannot_auto_resume()
     {
         using var scratch = new SourceScratch(); await using var queue = await SourceCaptureQueue.OpenAsync(scratch.Path);
-        var settings = new Hearthpulse.Core.AppSettings { GameStatsNoticeShown = true, PoolEndpoint = SourceScratch.Endpoint };
+        var settings = new Hearthpulse.Core.AppSettings { PoolEndpoint = "off" };
         await queue.ConfigureAsync(settings); Assert.False(queue.Capturing); Assert.Null(queue.Generation);
-        settings.SourceCaptureNoticeVersion = SourceCaptureClient.NoticeVersion; await queue.ConfigureAsync(settings); Assert.False(queue.Capturing); // Not without the one-time notice of the current version.
-        settings.PoolNoticeVersion = Hearthpulse.Core.Pool.PoolClient.NoticeVersion; await queue.ConfigureAsync(settings); Assert.True(queue.Capturing);
+        settings.PoolEndpoint = SourceScratch.Endpoint; await queue.ConfigureAsync(settings); Assert.True(queue.Capturing); // On by default: no notice first.
         var generation = queue.Generation; settings.PoolEndpoint = null; await queue.ConfigureAsync(settings); Assert.False(queue.Capturing); Assert.Equal(generation, queue.Generation);
         settings.PoolEndpoint = SourceScratch.Endpoint; await queue.ConfigureAsync(settings); Assert.True(queue.Capturing); Assert.Equal(generation, queue.Generation);
         // Nothing of this generation was ever handed to the pool: the opt-out revokes it locally and asks the pool nothing.

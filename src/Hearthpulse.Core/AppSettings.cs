@@ -194,23 +194,17 @@ public sealed partial class AppSettings
 
     /// <summary>
     /// Sharing games with the stats pool is on by default, with an opt-out (the owner's decision, 2026-11-15):
-    /// <c>false</c> is the player's refusal (the Settings → Data switch, "Turn off" on the notice, or a "no" to the
-    /// question older versions asked) and is always kept; <c>true</c> and <c>null</c> both share. Nothing is sent
-    /// before the notice was shown (<see cref="PoolNoticeVersion"/>).
+    /// <c>false</c> is the player's refusal (the Settings → Data switch, "Turn off" on the notice earlier versions
+    /// showed, or a "no" to the question older versions asked) and is always kept; <c>true</c> and <c>null</c> both
+    /// share. The notice fields earlier versions wrote (<c>PoolConsentVersion</c>, <c>GameStatsNoticeShown</c>,
+    /// <c>GameStatsNoticeVersion</c>, <c>SourceCaptureNoticeVersion</c>) are ignored when settings.json is read.
     /// </summary>
     public bool? PoolConsent { get; set; }
-
-    /// <summary>
-    /// Version of the text about shared games the player has seen (see <see cref="Pool.PoolClient.NoticeVersion"/>).
-    /// Kept under its old name in settings.json: versions 1-4 were answers to the question older versions asked.
-    /// </summary>
-    [JsonPropertyName("PoolConsentVersion")]
-    public int PoolNoticeVersion { get; set; }
 
     /// <summary>Key for shared game ids (see <see cref="Pool.PoolGame"/>). Never sent anywhere.</summary>
     public string? PoolSecret { get; set; }
 
-    /// <summary>Earlier games were shared once, after the notice was shown.</summary>
+    /// <summary>Earlier games were shared once, while sharing was on.</summary>
     public bool PoolHistoryShared { get; set; }
 
     /// <summary>
@@ -218,23 +212,6 @@ public sealed partial class AppSettings
     /// 2026-11-06), with this opt-out switch in Settings → Data. Turning it on deletes what this install sent.
     /// </summary>
     public bool GameStatsOff { get; set; }
-
-    /// <summary>
-    /// The one-time notice about game records was shown in the main window (LEGAL-game-stats-default-on L-M1): nothing
-    /// is sent before, so a player who updated silently learns of it first.
-    /// </summary>
-    public bool GameStatsNoticeShown { get; set; }
-
-    /// <summary>
-    /// Version of the one-time notice (<see cref="Pool.PoolClient.NoticeVersion"/>) the player saw for game records:
-    /// set when the notice is answered, or when the switch is turned on in Settings, where the same text is shown.
-    /// <see cref="GameStatsNoticeShown"/> alone says only that some earlier notice was shown, possibly one that named
-    /// another pool; what counts is <see cref="GameStats.GameStatsClient.NoticeSeen"/>.
-    /// </summary>
-    public int GameStatsNoticeVersion { get; set; }
-
-    /// <summary>Version of the source capture notice actually shown; legacy GameStats notice never authorizes source.</summary>
-    public int SourceCaptureNoticeVersion { get; set; }
 
     /// <summary>
     /// Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own. A value that is not an
