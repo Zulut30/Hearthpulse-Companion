@@ -59,17 +59,6 @@ public partial class MainWindow
         return page;
     }
 
-    /// <summary>Shows or hides a lazily built page; a hidden page that was never built stays unbuilt.</summary>
-    private static void Show(FrameworkElement? built, Func<FrameworkElement> build, bool visible)
-    {
-        if (built is null && !visible)
-        {
-            return;
-        }
-
-        (built ?? build()).Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-    }
-
     /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
     private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabMine, PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards];
 

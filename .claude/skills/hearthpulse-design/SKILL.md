@@ -186,7 +186,9 @@ rise), ease-out only (cubic for state, quintic for travel), opacity and render t
 as `MotionFast` / `MotionSettle` / `MotionEnter`, and `ThemeFileTests` refuses a literal timing. Animate only when
 `Motion.On` (Windows' animation setting and the app's "reduce motion", `AppSettings.ReduceMotion`): WPF `ThemeEngine`
 zeroes the tokens, Avalonia `Motion.Apply` switches the theme's transitions off. Code-started motion goes through
-`Motion.Reveal` / `Motion.Glide`.
+`Motion.Reveal` / `Motion.Glide`; main-window pages switch through `PageSwitch` in both UIs (a cross-fade: the old page
+fades out over `Fast` without taking clicks, the new one fades in with its rise over `Enter`, both started after the new
+page's first layout so a slow first opening eats none of it).
 
 ## Adding a page, panel or setting
 
@@ -200,7 +202,7 @@ no hex literals outside the theme files, new tokens in both theme files, animati
 
 ## Known UI gaps (checked on main 2e8d9be, Oct 2026)
 
-- WPF only: page reveal and nav pill animation, the faded hero banner, and the overlay tribe focus (`CompFocus`,
+- WPF only: nav pill animation and the inner tabs' reveal, the faded hero banner, and the overlay tribe focus (`CompFocus`,
   handed to the session only by the WPF host, `App.xaml.cs`).
 - Avalonia only: compact layout below 900 px, an extra overlay switch in Settings.
 - Compact hero/comp tier tables (Avalonia): fixed column widths leave no room for the name column at phone width.

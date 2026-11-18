@@ -23,6 +23,9 @@ public partial class MainView : UserControl
     /// <summary>The page the sidebar went to last (<see cref="MainViewModel.NavPages"/>).</summary>
     private string _page;
 
+    /// <summary>The page shown and the one leaving: a cross-fade, instant with motion off.</summary>
+    private readonly PageSwitch _pages = new();
+
     public MainView()
     {
         InitializeComponent();
@@ -371,40 +374,42 @@ public partial class MainView : UserControl
     {
         _viewModel?.PageShown(shown);
 
-        PageOverview.IsVisible = NavOverview.IsChecked == true;
-        PageBattlegrounds.IsVisible = NavBattlegrounds.IsChecked == true;
-        // The deck page stands in for the Standard or Wild page while a deck is open (the nav stays on its format).
-        var deckOpen = _viewModel?.DeckOpen == true;
-        // The card page stands over both: Back returns to the page it was opened from.
-        var cardOpen = ConstructedShown && _viewModel?.CardOpen == true;
-        PageConstructed.IsVisible = ConstructedShown && !deckOpen && !cardOpen;
-        if (PageConstructed.IsVisible)
+        // The old page fades out under the new one, which comes in once it has been laid out, as in the WPF app
+        // (PageSwitch; instant with motion off).
+        var page = PageToShow();
+        _pages.Show(page, [PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageCard, PageArena, PageBrawl, PageHistory, PageMatch, PageSettings]);
+        if (page == PageConstructed)
         {
             // The meta tabs' fixed part (filters, card frames) is built ahead of the first click on one of them.
             PageConstructed.CtMeta.Prebuild();
         }
 
-        PageDeck.IsVisible = ConstructedShown && deckOpen && !cardOpen;
-        PageCard.IsVisible = cardOpen;
-        PageArena.IsVisible = NavArena.IsChecked == true;
-        PageBrawl.IsVisible = NavBrawl.IsChecked == true;
-        // The match page stands in for the History list while a game is open.
-        var matchOpen = _viewModel?.MatchOpen == true;
-        PageHistory.IsVisible = NavHistory.IsChecked == true && !matchOpen;
-        PageMatch.IsVisible = NavHistory.IsChecked == true && matchOpen;
-        PageSettings.IsVisible = NavSettings.IsChecked == true;
-        if (shown is not null)
-        {
-            // The page that opens fades in with a short rise, as in the WPF app (Motion.Reveal; instant with motion off).
-            Control[] pages = [PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageCard, PageArena, PageBrawl, PageHistory, PageMatch, PageSettings];
-            if (pages.FirstOrDefault(p => p.IsVisible) is { } page)
-            {
-                Motion.Reveal(page);
-            }
-        }
-
         // Panels of a page that was hidden are created on its first layout.
         Dispatcher.UIThread.Post(UpdateTilePanels, DispatcherPriority.Loaded);
+    }
+
+    /// <summary>
+    /// The page the sidebar item checked last and the open deck, card or match call for. By <see cref="_page"/>, not the
+    /// buttons: Avalonia checks the new button while the old one is still checked.
+    /// </summary>
+    private Control PageToShow()
+    {
+        var constructed = _page is ConstructedPage.Standard or ConstructedPage.Wild;
+        return _page switch
+        {
+            "Battlegrounds" => PageBattlegrounds,
+            // The card page stands over the Standard or Wild page and the deck page: Back returns to the page it was
+            // opened from. The deck page stands in for the Standard or Wild page while a deck is open (the nav stays).
+            _ when constructed && _viewModel?.CardOpen == true => PageCard,
+            _ when constructed && _viewModel?.DeckOpen == true => PageDeck,
+            _ when constructed => PageConstructed,
+            "Arena" => PageArena,
+            "Brawl" => PageBrawl,
+            // The match page stands in for the History list while a game is open.
+            "History" => _viewModel?.MatchOpen == true ? PageMatch : PageHistory,
+            "Settings" => PageSettings,
+            _ => PageOverview,
+        };
     }
 
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>

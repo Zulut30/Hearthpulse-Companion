@@ -64,6 +64,8 @@ public sealed partial class CollectionContractTests
             var built = model.DeckListBuilds;
             model.SetConstructedMeta(CollectionFixture.Meta());
             PumpUntil(() => model.DeckListBuilds > built && model.DeckPage.DeckList.Count > 0);
+            // With motion on the Standard page fades out under the deck page first (PageSwitch).
+            PageSwitchTests.Settle();
 
             // The deck page is on screen, not the tier list with its side card.
             Assert.True(model.DeckOpen);
