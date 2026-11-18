@@ -117,10 +117,15 @@ public partial class MainView
         }
     }
 
-    /// <summary>A theme was picked in Settings: repaint the app in place (brushes are shared and recoloured) and save it.</summary>
+    /// <summary>
+    /// A theme was picked in Settings: repaint the app in place (brushes are shared and recoloured) under a picture of the
+    /// old look that then fades out (MainView.ThemeSwap.cs), and save it.
+    /// </summary>
     private void OnThemeChanged()
     {
+        CoverForTheme();
         ApplyTheme();
+        FadeThemeCover();
         SettingsChanged?.Invoke();
     }
 

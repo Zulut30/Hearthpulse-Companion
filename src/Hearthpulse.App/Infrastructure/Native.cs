@@ -84,6 +84,114 @@ internal static partial class Native
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
+    /// <summary>Waits for the next frame Windows composes: what was changed before it is on screen after it.</summary>
+    [LibraryImport("dwmapi.dll")]
+    public static partial int DwmFlush();
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool PrintWindow(IntPtr hWnd, IntPtr hdc, uint flags);
+
+    [LibraryImport("user32.dll")]
+    private static partial IntPtr GetDC(IntPtr hWnd);
+
+    [LibraryImport("user32.dll")]
+    private static partial int ReleaseDC(IntPtr hWnd, IntPtr hdc);
+
+    [LibraryImport("gdi32.dll")]
+    private static partial IntPtr CreateCompatibleDC(IntPtr hdc);
+
+    [LibraryImport("gdi32.dll")]
+    private static partial IntPtr CreateCompatibleBitmap(IntPtr hdc, int width, int height);
+
+    [LibraryImport("gdi32.dll")]
+    private static partial IntPtr SelectObject(IntPtr hdc, IntPtr gdiObject);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool DeleteObject(IntPtr gdiObject);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool DeleteDC(IntPtr hdc);
+
+    [LibraryImport("gdi32.dll")]
+    private static partial int GetDIBits(IntPtr hdc, IntPtr bitmap, uint start, uint lines, [Out] byte[] bits, ref BITMAPINFOHEADER info, uint usage);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BITMAPINFOHEADER
+    {
+        public int Size, Width, Height;
+        public short Planes, BitCount;
+        public int Compression, SizeImage, XPelsPerMeter, YPelsPerMeter, ClrUsed, ClrImportant;
+    }
+
+    /// <summary>
+    /// The window's own last frame as Windows composed it (PrintWindow with PW_RENDERFULLCONTENT reads its surface, not
+    /// the screen, so nothing over it is taken): top-down 32-bit BGR rows of its whole rectangle; null when it could not
+    /// be read (an all-black result counts as unread).
+    /// </summary>
+    public static (byte[] Pixels, int Width, int Height)? WindowPixels(IntPtr hwnd)
+    {
+        if (!GetWindowRect(hwnd, out var rect) || rect.Width <= 0 || rect.Height <= 0)
+        {
+            return null;
+        }
+
+        var screen = GetDC(IntPtr.Zero);
+        var dc = CreateCompatibleDC(screen);
+        var bitmap = CreateCompatibleBitmap(screen, rect.Width, rect.Height);
+        try
+        {
+            var previous = SelectObject(dc, bitmap);
+            var printed = PrintWindow(hwnd, dc, 2);
+            SelectObject(dc, previous);
+            var header = new BITMAPINFOHEADER { Size = Marshal.SizeOf<BITMAPINFOHEADER>(), Width = rect.Width, Height = -rect.Height, Planes = 1, BitCount = 32 };
+            var pixels = new byte[rect.Width * rect.Height * 4];
+            if (!printed || GetDIBits(dc, bitmap, 0, (uint)rect.Height, pixels, ref header, 0) != rect.Height)
+            {
+                return null;
+            }
+
+            for (var i = 0; i < pixels.Length; i += 4 * 997)
+            {
+                if ((pixels[i] | pixels[i + 1] | pixels[i + 2]) != 0)
+                {
+                    return (pixels, rect.Width, rect.Height);
+                }
+            }
+
+            return null;
+        }
+        finally
+        {
+            DeleteObject(bitmap);
+            DeleteDC(dc);
+            ReleaseDC(IntPtr.Zero, screen);
+        }
+    }
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetWindowRect(IntPtr hWnd, out RECT rect);
+
+    /// <summary>No zoom or fade from Windows when the window is shown, hidden or closed (DWMWA_TRANSITIONS_FORCEDISABLED).</summary>
+    public static void NoTransitions(IntPtr hwnd)
+    {
+        var on = 1;
+        DwmSetWindowAttribute(hwnd, 3, ref on, sizeof(int));
+    }
+
+    /// <summary>
+    /// Takes the window off the screen, or puts it back (DWMWA_CLOAK): a cloaked window is still drawn and composed, so it
+    /// can be shown, laid out and painted before anyone sees it.
+    /// </summary>
+    public static void Cloak(IntPtr hwnd, bool cloaked)
+    {
+        var on = cloaked ? 1 : 0;
+        DwmSetWindowAttribute(hwnd, 13, ref on, sizeof(int));
+    }
+
     public static void SetExStyle(IntPtr hwnd, int add, int remove)
     {
         var style = (int)GetWindowLongPtr(hwnd, GWL_EXSTYLE);
