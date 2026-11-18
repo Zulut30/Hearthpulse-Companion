@@ -264,21 +264,12 @@ public partial class MainWindow : Window
 
         _viewModel.PageShown(MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)));
 
-        PageOverview.Visibility = NavOverview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        Show(_battlegrounds, () => PageBattlegrounds, NavBattlegrounds.IsChecked == true);
         // The deck page stands in for the Standard or Wild page while a deck is open (the nav stays on its format).
         // The card page stands over both: Back returns to the page it was opened from.
         var cardOpen = ConstructedShown && _viewModel.CardOpen;
-        Show(_constructed, () => PageConstructed, ConstructedShown && !_viewModel.DeckOpen && !cardOpen);
         if (ConstructedShown && _viewModel.DeckOpen)
         {
             _ = DeckDetailsPage;
-        }
-
-        PageDeck.Visibility = ConstructedShown && _viewModel.DeckOpen && !cardOpen ? Visibility.Visible : Visibility.Collapsed;
-        if (PageDeck.Visibility == Visibility.Visible && !_cardClosing)
-        {
-            PageDeck.ScrollToTop();
         }
 
         if (cardOpen)
@@ -286,28 +277,37 @@ public partial class MainWindow : Window
             _ = CardDetailsPage;
         }
 
-        var cardWasShown = PageCard.Visibility == Visibility.Visible;
-        PageCard.Visibility = cardOpen ? Visibility.Visible : Visibility.Collapsed;
-        if (cardOpen && !cardWasShown)
+        var page = PageToShow(cardOpen);
+        var wasShown = ReferenceEquals(page, _pages.Current);
+        // The old page fades out under the new one, which comes in once it has been laid out (PageSwitch); the pill
+        // glides with it, so a page that lays out long the first time eats neither motion.
+        _pages.Show(page, new FrameworkElement?[] { PageOverview, _battlegrounds, _constructed, PageDeck, PageCard, PageArena, PageBrawl, _history, PageMatch, PageSettings }
+            .OfType<FrameworkElement>(), () => PlacePill(animate: true));
+        if (page == PageDeck && !_cardClosing)
+        {
+            PageDeck.ScrollToTop();
+        }
+        else if (page == PageCard && !wasShown)
         {
             PageCard.ScrollToTop();
         }
-
-        PageArena.Visibility = NavArena.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        PageBrawl.Visibility = NavBrawl.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        // The match page stands in for the History list while a game is open.
-        Show(_history, () => PageHistory, NavHistory.IsChecked == true && !_viewModel.MatchOpen);
-        PageMatch.Visibility = NavHistory.IsChecked == true && _viewModel.MatchOpen ? Visibility.Visible : Visibility.Collapsed;
-        if (PageMatch.Visibility == Visibility.Visible)
+        else if (page == PageMatch)
         {
             PageMatch.ScrollToTop();
         }
-
-        PageSettings.Visibility = NavSettings.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        Reveal(new FrameworkElement?[] { PageOverview, _battlegrounds, _constructed, PageDeck, PageCard, PageArena, PageBrawl, _history, PageMatch, PageSettings }.OfType<FrameworkElement>()
-            .First(p => p.Visibility == Visibility.Visible));
-        PlacePill(animate: true);
     }
+
+    /// <summary>The page the checked sidebar item and the open deck, card or match call for (built on first use).</summary>
+    private FrameworkElement PageToShow(bool cardOpen) =>
+        NavBattlegrounds.IsChecked == true ? PageBattlegrounds
+        : cardOpen ? PageCard
+        : ConstructedShown ? _viewModel.DeckOpen ? PageDeck : PageConstructed
+        : NavArena.IsChecked == true ? PageArena
+        : NavBrawl.IsChecked == true ? PageBrawl
+        // The match page stands in for the History list while a game is open.
+        : NavHistory.IsChecked == true ? _viewModel.MatchOpen ? PageMatch : PageHistory
+        : NavSettings.IsChecked == true ? PageSettings
+        : PageOverview;
 
     private void OnSidebarSize(object sender, SizeChangedEventArgs e) => PlacePill(animate: false);
 
@@ -327,7 +327,10 @@ public partial class MainWindow : Window
         NavPill.Opacity = 1;
     }
 
-    /// <summary>The page that opens fades in with a short rise (Motion.Reveal); instant with motion off.</summary>
+    /// <summary>The page shown and the one leaving: a cross-fade, instant with motion off.</summary>
+    private readonly PageSwitch _pages = new();
+
+    /// <summary>A tab's view that opens fades in with a short rise once laid out (Motion.Reveal); instant with motion off.</summary>
     private static void Reveal(FrameworkElement page, double rise = Motion.Rise) => Motion.Reveal(page, rise);
 
     /// <summary>Where this window is: page, tabs and bounds.</summary>

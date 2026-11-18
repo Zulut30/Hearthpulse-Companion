@@ -276,6 +276,8 @@ public sealed class CardPageContractTests
             // Back (the button, as Esc does through GoBack): the page under the card returns.
             ((Button)view.FindName("BackButton")).Command.Execute(null);
             Pump();
+            // With motion on the card page fades out over the page under it first (PageSwitch).
+            PageSwitchTests.Settle();
             Assert.False(model.CardOpen);
             Assert.Equal(Visibility.Collapsed, pageCard.Visibility);
             Assert.Equal(ConstructedPage.Standard, window.CurrentPage);

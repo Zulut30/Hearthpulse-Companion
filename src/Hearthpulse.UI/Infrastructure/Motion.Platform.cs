@@ -5,12 +5,12 @@ using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Media;
 using Avalonia.Styling;
-using Hearthpulse.Core;
+using Avalonia.Threading;
 using Hearthpulse.UI.Overlay;
 
 namespace Hearthpulse.UI.Infrastructure;
 
-/// <summary>Avalonia side of <see cref="Motion"/>: the Windows setting, the theme's transitions and the page reveal.</summary>
+/// <summary>Avalonia side of <see cref="Motion"/>: the Windows setting, the theme's transitions and the motion of page switches.</summary>
 public static partial class Motion
 {
     private static Styles? _still;
@@ -51,28 +51,38 @@ public static partial class Motion
     }
 
     /// <summary>
-    /// The page coming in fades in and rises <see cref="Rise"/> DIP over <see cref="Enter"/> (opacity and a render
-    /// transform, nothing laid out again); with motion off it is simply shown.
+    /// Runs <paramref name="action"/> once the layout and render pass queued now are done: at Loaded priority, below
+    /// Render. Avalonia pulses its animation clock before it lays out, so motion started in the same pass as a long
+    /// layout would begin before the stall and be over by its first frame.
     /// </summary>
-    public static void Reveal(Visual page, double rise = Rise)
-    {
-        if (!On)
-        {
-            return;
-        }
+    internal static void AfterLayout(Action action) => Dispatcher.UIThread.Post(action, DispatcherPriority.Loaded);
 
-        var enter = new Animation
+    /// <summary>
+    /// Fades <paramref name="target"/> from <paramref name="from"/> to <paramref name="to"/> over <paramref name="duration"/>
+    /// (cubic ease-out); ends when done or cancelled. The caller sets the end value itself: the motion is drawn over it.
+    /// </summary>
+    internal static Task FadeAsync(Visual target, double from, double to, TimeSpan duration, CancellationToken cancel) =>
+        Run(target, Visual.OpacityProperty, from, to, duration, new CubicEaseOut(), cancel);
+
+    /// <summary>
+    /// Lifts <paramref name="target"/> from <paramref name="from"/> DIP low to its place over <see cref="Enter"/> (quintic
+    /// ease-out). The motion runs on the element's own <see cref="TranslateTransform"/> render transform: Avalonia animates
+    /// a transform through the visual that holds it.
+    /// </summary>
+    internal static Task LiftAsync(Visual target, double from, CancellationToken cancel) =>
+        Run(target, TranslateTransform.YProperty, from, 0d, Enter, new QuinticEaseOut(), cancel);
+
+    private static Task Run(Animatable target, AvaloniaProperty property, double from, double to, TimeSpan duration, Easing easing, CancellationToken cancel) =>
+        new Animation
         {
-            Duration = Enter,
-            Easing = new QuinticEaseOut(),
+            Duration = duration,
+            Easing = easing,
             Children =
             {
-                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(Visual.OpacityProperty, 0d), new Setter(TranslateTransform.YProperty, rise) } },
-                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(Visual.OpacityProperty, 1d), new Setter(TranslateTransform.YProperty, 0d) } },
+                new KeyFrame { Cue = new Cue(0), Setters = { new Setter(property, from) } },
+                new KeyFrame { Cue = new Cue(1), Setters = { new Setter(property, to) } },
             },
-        };
-        enter.RunAsync(page).Forget("Page reveal");
-    }
+        }.RunAsync(target, cancel);
 
     private static Style Still<T>() where T : Visual =>
         new(x => x.OfType<T>().Not(y => y.Class("motion-keep")))

@@ -22,7 +22,7 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). PNG proof
 | Sidebar + pages | `MainWindow.xaml` (Window 1260x840, min 1040x660) | `MainView.axaml` (UserControl; window in `src/Hearthpulse.Desktop/MainWindow.axaml`) |
 | Page and tab controls | `Pages/{Overview,Battlegrounds,History}Page`, `Pages/ConstructedPageView`, `SettingsTabs/<Tab>Settings` | same names, `.axaml` |
 | Shared keys of pages | `MainPages.xaml` (merges `MainLook.xaml`) | `MainPages.axaml` |
-| Navigation code | `MainWindow.xaml.cs`: `ShowPage`, `CurrentPage`, `OnNavigate`, `PlacePill`, `Reveal`; `MainWindow.Pages.cs`: pages built on first use, `ShowConstructedTab`, tab handlers `OnBgTab`/`OnCtTab`; `MainWindow.Settings.cs`: Settings tabs and switches | `MainView.axaml.cs`: `ShowPage`, `UpdatePages`, `ApplyWidth` (compact); `MainView.Tabs.cs`: `UpdateTabs`; `MainView.Settings.cs`: Settings tabs, `ApplyChoice`; `MainView.PanelsMenu.cs` |
+| Navigation code | `MainWindow.xaml.cs`: `ShowPage`, `CurrentPage`, `OnNavigate`, `PageToShow`, `PlacePill`, `Reveal`; `MainWindow.Pages.cs`: pages built on first use, `ShowConstructedTab`, tab handlers `OnBgTab`/`OnCtTab`; `MainWindow.Settings.cs`: Settings tabs and switches | `MainView.axaml.cs`: `ShowPage`, `UpdatePages`, `PageToShow`, `ApplyWidth` (compact); `MainView.Tabs.cs`: `UpdateTabs`; `MainView.Settings.cs`: Settings tabs, `ApplyChoice`; `MainView.PanelsMenu.cs` |
 | Platform VM partials | Small `MainViewModel*.cs` adapters; `.Constructed` is the WPF clipboard copy of a deck code, `.Theme` is WPF-only | Small `MainViewModel*.cs` adapters for framework/established platform differences |
 | My Stats views | `Stats/BattlegroundsStatsView`, `ConstructedStatsView`, `ArenaStatsView`, `StatsResources.xaml` | same names, `.axaml` |
 | Composition | `src/Hearthpulse.App/App.xaml.cs` (+ a partial per concern: `App.CardPool.cs`, `App.MainWindow.cs`, `App.Shell.cs`...) | `src/Hearthpulse.UI/AppHost.cs` (+ `AppHost.Arena.cs`, `AppHost.Brawl.cs`) |
@@ -71,10 +71,13 @@ Navigation is hand-written lists, not data binding - a new page must be added to
    list.) A long list of equal-height rows inside such a page takes `ItemsPanel="{StaticResource PageRows}"`
    (`Controls/PageRowsPanel`: builds only the rows near the page's viewport; a plain or virtualizing StackPanel there
    builds every row). Rows of different heights (wrapping text, hidden lines) stay on a StackPanel.
-3. Code-behind: add `"Foo"` to the `ShowPage` switch and to `CurrentPage`; add `PageFoo.Visibility = ...` and
-   `PageFoo` to the `Reveal` array in `OnNavigate`; add `NavFoo` to the `PlacePill` array. Unknown names fall back to
-   Home silently - test `ShowPage("Foo")`.
-4. Animations exist only behind `SystemParameters.ClientAreaAnimation` (already handled by `Reveal`/`PlacePill`).
+3. Code-behind: add `"Foo"` to the `ShowPage` switch and to `CurrentPage`; add `NavFoo` -> `PageFoo` to `PageToShow`
+   and `PageFoo` to the pages array `OnNavigate` hands to `_pages.Show`; add `NavFoo` to the `PlacePill` array. Unknown
+   names fall back to Home silently - test `ShowPage("Foo")`. Never set a page's `Visibility` or `Opacity` yourself:
+   `PageSwitch` (`Infrastructure/PageSwitch.cs`) cross-fades the pages of the cell and owns both.
+4. Animations exist only behind `Motion.On` (Windows' setting and the app's reduce motion; already handled by
+   `PageSwitch`, `Reveal` and `PlacePill`). They start after the new page's first layout (`Motion.AfterLayout`): a
+   first opening can lay out for hundreds of ms, which would otherwise eat the motion.
 
 **Avalonia** (`MainView.axaml` / `.axaml.cs`):
 
@@ -82,7 +85,8 @@ Navigation is hand-written lists, not data binding - a new page must be added to
 2. `<ScrollViewer Name="PageFoo" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">`
    (the `page` class gives the 40/120 padding, 16 in compact).
 3. Code-behind: add `NavFoo` to the nav array in the `MainView()` constructor (it subscribes `IsCheckedChanged`), add
-   `PageFoo.IsVisible = NavFoo.IsChecked == true;` to `UpdatePages`, add `"Foo"` to `ShowPage`.
+   `"Foo"` -> `PageFoo` to `PageToShow` and `PageFoo` to the pages array of `UpdatePages`, add `"Foo"` to `ShowPage`.
+   `PageSwitch` (`Infrastructure/PageSwitch.cs`, the WPF one's twin) sets `IsVisible` and `Opacity` of the pages.
 4. Compact (< 900 px, class `compact` on `MainView`): nav shows icons only, `.wide` hides, `.narrow` shows,
    `UniformGrid` tiles drop to 2 columns unless `fixed`. Check that the page stacks instead of clipping
    (render `main-compact` style scenes).
@@ -148,7 +152,7 @@ whose tag in the window is named `Settings<Tag>`; a new card goes into the tab t
 Every user-facing page goes into both UIs. Known accepted gaps (check before "fixing" them, and do not add new
 ones silently - list them in [hearthpulse-design](../hearthpulse-design/SKILL.md)):
 
-- WPF only: page reveal/nav pill animation, hero banner, overlay tribe focus.
+- WPF only: nav pill animation, the inner tabs' reveal, hero banner, overlay tribe focus. (The page cross-fade is in both.)
 - Avalonia only: compact layout, separate Hearthstone/memory status dots, an extra overlay switch in Settings.
 
 ## Render scene
