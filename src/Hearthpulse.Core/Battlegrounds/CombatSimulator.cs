@@ -108,6 +108,9 @@ public sealed partial record SimMinion(
             MaxHealth = Math.Max(1, BaseHealth),
             BaseHealth = BaseHealth,
             TechLevel = TechLevel,
+            // A fresh copy shows the card's base script data: the captured one where it never changes (FixedScriptDataCards).
+            ScriptData1 = FixedScriptDataCards.Contains(CardId) ? ScriptData1 : 0,
+            ScriptData2 = FixedScriptDataCards.Contains(CardId) ? ScriptData2 : 0,
         };
 }
 

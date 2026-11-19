@@ -201,6 +201,19 @@ public sealed class CombatRulesEvidenceTests
         Assert.Equal(firesAfterOurDeaths, ourDeaths);
     }
 
+    [Fact]
+    public void A_fresh_copy_keeps_a_fixed_script_data_value_and_drops_a_grown_one()
+    {
+        // Power.log 15.11: a card's script data took one value all game for Underrot Spawn (1, golden 2) and Sha of Fear (3/3);
+        // Y'Shaarj's copy of Sha of Fear carries 3/3 (line 751229), its copy of a The Last One Standing improved to 20/30
+        // carries the base 10/10 (751156), which the effect takes from the card text.
+        var underrot = SimMinion.Create("BG36_116", 3, 4, keywords: Keyword.Reborn) with { ScriptData1 = 2 };
+        var lastOneStanding = SimMinion.Create("BG34_320", 5, 5, keywords: Keyword.Reborn) with { ScriptData1 = 30, ScriptData2 = 30 };
+
+        Assert.Equal((2, 0), (underrot.RebornCopy().ScriptData1, underrot.RebornCopy().ScriptData2));
+        Assert.Equal((0, 0), (lastOneStanding.RebornCopy().ScriptData1, lastOneStanding.RebornCopy().ScriptData2));
+    }
+
     // ---------------------------------------------------------------------------------- A E2: Titus repeats in place
 
     [Fact]
