@@ -37,7 +37,8 @@ Hearthstone mechanic or a guarantee of complete data from every installation.
 ## Battlegrounds fights (`bg_combat`, source v3)
 
 Purpose: measure the combat simulator on at least 500 fights it was not tuned on (owner, 2026-11-19; the task card
-TASK-2026-11-19-sim-all-mechanics, package U). Same switch as the rest of the journal: on by default, off with
+TASK-2026-11-19-sim-all-mechanics, packages U and U2): score its odds (Bench `simcover --pool`) and replay each fight
+step by step after the game (`simreplay --pool`). Same switch as the rest of the journal: on by default, off with
 "Send my games to Hearthpulse statistics"; no consent question and no notice.
 
 - **When.** At the end of a Battlegrounds or Duos game the recorder asks the tracker for the game's finished fights
@@ -55,30 +56,52 @@ TASK-2026-11-19-sim-all-mechanics, package U). Same switch as the rest of the jo
   `health` (hero health with armor), `turn`, `tags` (only the player counters effects read: `BACON_BLOODGEMBUFFATKVALUE`,
   `BACON_BLOODGEMBUFFHEALTHVALUE`, `TAVERN_SPELL_ATTACK_INCREASE`, `TAVERN_SPELL_HEALTH_INCREASE`,
   `BACON_OLD_GOD_ATTACK`, `BACON_OLD_GOD_HEALTH`, `4914`, `4915`), `cardTags` (the local player's player-level card
-  values `TAG_SCRIPT_DATA_NUM_1/2`; always `{}` for the opponent), `minions`. A minion: `entity`, `card`, `golden`,
-  `attack`, `health`, `maxHealth`, `baseHealth`, `rebornAttack`, `keywords` (Taunt, Divine Shield, Poisonous, Venomous,
-  Reborn, Stealth bits), `attacks` (Windfury), `baseKeywords`, `tribes`, `mechanics`, `tier`, `script1`, `script2`,
-  `creator` (card id), `enchantments` (card ids), `remembered` (minions a start-of-combat trigger removed, one level),
-  `unsimulated`. A fact: `entity`, `card` (as logged), `markers` (`DEATHRATTLE TRIGGER_VISUAL AURA AVENGE OVERKILL
-  BACON_RALLY`).
-- **Never.** Either hand (the player's own included), the opponent's card values, other player tags (ratings, ids),
-  names, BattleTags, account ids, paths or text. Entity ids are fight-scoped references 1.. in Power.log order (the
-  simulator only compares them), not the game's ids.
+  values `TAG_SCRIPT_DATA_NUM_1/2` and Avenge (X) and its progress `SCORE_VALUE_1/2`; always `{}` for the opponent),
+  `playerEnchantments` (enchantments on the local player with their numbers, e.g. Diremuck Forager's pending summons;
+  always `[]` for the opponent), `lobbyTribes` (the lobby's tribes as tribe bits, 0 when not read), `deaths` (the side's
+  minions that died at Start of Combat, before the capture: the player saw them die; minions without `remembered`),
+  `minions`. A minion: `entity`, `card`, `golden`, `attack`, `health`, `maxHealth`, `baseHealth`, `rebornAttack`,
+  `keywords` (Taunt, Divine Shield, Poisonous, Venomous, Reborn, Stealth bits), `attacks` (Windfury), `baseKeywords`,
+  `tribes`, `mechanics`, `tier`, `script1`, `script2`, `creator` (card id), `enchantments` (card ids),
+  `enchantmentValues` (each enchantment with its numbers: `card`, `script1`, `script2`, `attack`, `health`,
+  `creatorEntity` = the reference of what made it when the record holds that entity, else 0), `friendlyDeaths` (friendly
+  minions that died at Start of Combat while it stood on the board), `bloodGemAttack`/`bloodGemHealth` (what its Blood
+  Gems gave it, tags 4235/4236), `remembered` (minions a start-of-combat trigger removed, one level), `unsimulated`. A
+  fact: `entity`, `card` (as logged), `markers` (`DEATHRATTLE TRIGGER_VISUAL AURA AVENGE OVERKILL BACON_RALLY`).
+- **Transcript** (`SourceCaptureCombat.Transcript.cs`, version 1; `null` when the fight has none or it is outside the
+  limits). The tracker's record of the fight from the first attack to its end (`BattlegroundsTracker.Transcript.cs`), cut
+  down to the steps of the boards: `{"version":1,"complete","ending","events","boards"}`, `ending` one of `hero restore
+  cleanup end cut`. A step is a compact array: `["attack",attacker,defender,nested]`, `["damage",minion,amount]`
+  (negative: healed), `["death",minion]`, `["summon",minion,card,position,opponent,golden]`, `["tag",minion,tag,value]`
+  with `tag` one of `ATK HEALTH TAUNT DIVINE_SHIELD POISONOUS VENOMOUS REBORN WINDFURY MEGA_WINDFURY STEALTH`,
+  `["trigger",source,host,card,opponent]` (a triggered effect of a board minion, of an enchantment on one (`host`) or of
+  a hero power, trinket or other player-level card its side names) and `["end"]` (closes the innermost trigger). A
+  board: `[steps before it,[[minion,card,attack,health,keyword bits],..ours],[..theirs]]`, before each regular attack and
+  at the end. Every step names a board minion: one of the capture or one an earlier step summoned. Entity ids are the
+  record's references (one numbering with the boards).
+- **Never.** Either hand (the player's own included; in the transcript no card into the hand, no hand card's stats or
+  triggered effect), the opponent's card values or player enchantments, other player tags (ratings, ids), the player's
+  secrets, names, BattleTags, account ids, paths or text. Entity ids are fight-scoped references 1.. in Power.log order
+  (the simulator only compares them), not the game's ids.
 - **Caveat to "only what the player saw" (owner's decision, 2026-11-19).** The fights are uploaded to measure the
   simulator. Simulator inputs the client may not show (the opponent's player counters such as Blood Gem values, the
-  `script1/2` values of his minions and the card that created them, `creator`) are sent after the game, only for this
-  measurement, and never published. Both boards themselves are visible during the combat. `creator` stays on the
-  opponent's side because the simulator needs it there: his hero powers that copy or summon (Vanndar, Drek'Thar, the
-  Tentacle power) check which minion they already made, and it is part of the simulation seed.
+  `script1/2` values of his minions, the numbers on their enchantments (`enchantmentValues`) and the card that created
+  them, `creator`) are sent after the game, only for this measurement, and never published. Both boards and the course
+  of the combat (the transcript) are on the player's screen during the combat. `creator` stays on the opponent's side
+  because the simulator needs it there: his hero powers that copy or summon (Vanndar, Drek'Thar, the Tentacle power)
+  check which minion they already made, and it is part of the simulation seed.
 - **Limits** (client, decoder and pool alike): 64 fights a game, 7 minions a side, 7 remembered per minion (none
-  nested), 32 enchantments a minion, 16 player-level cards and values a side, 14 facts, references up to 1000, stats
-  0–1 000 000, data at most 56 KiB (inside the 64 KiB line limit). A fight outside them is left out whole and counted
-  in the log (`Source capture: N fight(s) left out of the journal`), never cut, so the journal is never refused for it.
-- **Transcript.** Reserved for the fight step by step: `null` in this version; anything else is refused until its
-  allowlist is written. Bounds fixed now: format version 1, at most 512 steps and 16 KiB.
-- **Rules in code.** `SourceCaptureCombat` (app and decoder) and `validCombat` in `server/pool/node/validation.mjs`;
-  `server/pool/test/bg-combat.fixture.json` is checked by both test suites (`SourceCaptureCombatTests`,
-  `combats.test.mjs`). A new tribe, keyword or mechanic bit, marker, card value or player counter changes all three
+  nested), 32 enchantments (and 32 enchantment values) a minion and 32 player enchantments a side, 32 deaths before the
+  capture a side, 16 player-level cards and values a side, 14 facts, references up to 1000, stats 0–1 000 000 (a
+  remembered or dead minion's from −1 000 000: damage past its health), hero health −10 000–10 000 (below 0 when the
+  capture saw a hero already beaten), data at most 56 KiB (inside the 64 KiB line limit). A fight outside them is left out whole and counted in the log
+  (`Source capture: N fight(s) left out of the journal`), never cut, so the journal is never refused for it. The
+  transcript: at most 512 steps, 513 boards and 16 KiB of compact JSON; a transcript outside them, or one whose fight
+  would then be over the data limit, is left out alone and the fight goes without it.
+- **Rules in code.** `SourceCaptureCombat` (app and decoder; the transcript in `SourceCaptureCombat.Transcript.cs`) and
+  `validCombat`/`validTranscript` in `server/pool/node/validation.mjs`; `server/pool/test/bg-combat.fixture.json` is
+  checked by both test suites (`SourceCaptureCombatTests`, `SourceCaptureCombatTranscriptTests`, `combats.test.mjs`). A
+  new tribe, keyword or mechanic bit, marker, card value, player counter or transcript step changes all three
   (`The_wire_lists_are_the_ones_the_simulator_reads` fails first).
 - **Decoder.** Reads v3; a `bg_combat` adds no fact and no gap, its event keeps no data. Parser version unchanged
   (`source-v2.0`): v1/v2 sources decode as before.
@@ -96,26 +119,33 @@ TASK-2026-11-19-sim-all-mechanics, package U). Same switch as the rest of the jo
 
   The loopback route `POST /v1/captures/combats/export` takes the operator token like reprocess; nginx refuses it. One
   line per fight: `{"v":1,"game":"<16 hex of a hash of the capture key>","day","build","mode","fight"}`, no
-  installation, generation or capture key. Read with `Hearthpulse.Bench simcover --pool fights.jsonl`.
+  installation, generation or capture key. Read with `Hearthpulse.Bench simcover --pool fights.jsonl` (odds) and
+  `Hearthpulse.Bench simreplay --pool fights.jsonl` (step by step: the record has no hand, so an effect that uses the
+  hand plays without it and such a fight can leave the log, e.g. a summon from the hand the sim cannot make).
 - **Rule for an export file** (legal review L-M2). Pool retention, forget and deletion do not reach a copy, so:
   - it is a working copy only on the pool host or the owner's PC, moved between them over SSH (`scp`/`sftp`);
   - never committed, never put on a cloud drive, never given to anyone else or to an outside service;
   - deleted after the measurement and no later than 180 days from the `day` of its rows; a new measurement takes a
     fresh export;
-  - `simcover --pool` leaves out any row older than 180 days (`PoolFights.MaxAgeDays`), so a stale copy gives nothing.
+  - `simcover --pool` and `simreplay --pool` leave out any row older than 180 days (`PoolFights.MaxAgeDays`), so a stale
+    copy gives nothing.
 - **Order of deployment.** Deploy `server/pool` before releasing an app that writes v3. A pool without v3 refuses a v3
   journal as an unknown record (`400 invalid_record`); the app then sends that journal and the following ones as v2
   without their fights until it restarts (`SourceCaptureQueue.Downgrade.cs`, log line `Source capture: the pool does
   not take source v3 yet...`), so the queue never waits on it, but those fights are lost.
 - **Before releasing v3: update the site's privacy policy, section 9** (legal review L-M1; the site is another
-  repository). The ready paragraph from the review, with the card that created a minion added, for the owner to paste:
+  repository). The ready paragraph from the review, with the card that created a minion, the numbers on enchantments,
+  the deaths before the first attack, the lobby's tribes and the course of the fight added (U2), for the owner to paste:
 
   > «После игры в Полях сражений журнал содержит и каждый бой так, как его получил симулятор боёв приложения: оба
-  > стола на момент первой атаки (карты, статы, ключевые слова, усиления, карта, создавшая существо), героев, силы
-  > героя, аксессуары и награды, уровень таверны, здоровье, счётчики игроков обеих сторон (например, усиление Кровавых
-  > самоцветов — в том числе соперника, даже если игра их не показывает), показанные шансы, исход и урон. Никогда —
-  > руки, имена, BattleTag, аккаунты. Цель — проверять точность симулятора. Бои не публикуются, хранятся и удаляются
-  > вместе с журналом (до 180 дней, при выключении отправки).»
+  > стола на момент первой атаки (карты, статы, ключевые слова, усиления и их значения, усиления от Кровавых самоцветов,
+  > карта, создавшая существо), существа, погибшие до первой атаки, героев, силы героя, аксессуары и награды и их
+  > значения, ваши усиления игрока, племена лобби, уровень таверны, здоровье, счётчики игроков обеих сторон (например,
+  > усиление Кровавых самоцветов — в том числе соперника, даже если игра их не показывает), ход боя по шагам (атаки,
+  > урон, гибель и призыв существ, изменения их характеристик и сработавшие эффекты на столах), показанные шансы, исход
+  > и урон. Никогда — руки (ни карт, полученных в бою, ни их характеристик), имена, BattleTag, аккаунты. Цель —
+  > проверять точность симулятора. Бои не публикуются, хранятся и удаляются вместе с журналом (до 180 дней, при
+  > выключении отправки).»
 
 ## Delivery and lifecycle
 
