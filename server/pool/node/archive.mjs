@@ -208,7 +208,7 @@ export class CaptureArchive {
       if (sink !== null) fs.writeFileSync(sink, bytes);
     }
     finishStream(state, manifest);
-    return { hash: hash.digest('hex'), records: state.seq, gaps: state.gaps };
+    return { hash: hash.digest('hex'), records: state.seq, gaps: state.gaps, start: state.first.data, combats: state.combats };
   }
   async complete(body) {
     return this.queue.run(async () => {
@@ -220,8 +220,17 @@ export class CaptureArchive {
       const row = this.row(id.key);
       if (row?.manifest && row.manifest !== normalized) fail(409, 'manifest_conflict');
       const verified = await this.verify(id, body);
-      if (!row?.manifest) this.db.prepare(`UPDATE source_captures SET manifest=?,source_sha=?,records=?,gaps=?,status='stored',touched=? WHERE key=?`)
-        .run(normalized, verified.hash, verified.records, verified.gaps, Date.now(), id.key);
+      if (!row?.manifest) {
+        // The fights of a v3 Battlegrounds game are kept with the commit, or not at all: pressure answers 503 to retry.
+        const combats = verified.combats.map(c => JSON.stringify(c));
+        if (combats.length) this.pressure(combats.reduce((n, c) => n + Buffer.byteLength(c) + 256, 0));
+        transaction(this.db, () => {
+          this.check(id);
+          this.db.prepare(`UPDATE source_captures SET manifest=?,source_sha=?,records=?,gaps=?,status='stored',touched=? WHERE key=?`)
+            .run(normalized, verified.hash, verified.records, verified.gaps, Date.now(), id.key);
+          storeCombats(this.db, id, verified.start, verified.combats, combats);
+        });
+      }
       return { statusCode: 202, body: { ok: true, status: 'stored', captureId: body.captureId } };
     });
   }
@@ -247,6 +256,21 @@ export class CaptureArchive {
       return { statusCode: 202, body: { ok: true, status: 'stored', captureId: body.captureId } };
     });
   }
+  /**
+   * Operator only (the HTTP gate): the stored fights after row `after`, oldest first, as export lines for
+   * `Hearthpulse.Bench simcover --pool`. A line names its game by a short hash of the capture key, never the key,
+   * generation or installation.
+   */
+  exportCombats(body) {
+    return this.queue.run(() => {
+      if (!exact(body, ['v', 'after', 'limit']) || body.v !== 1 || !int(body.after, 0, Number.MAX_SAFE_INTEGER) || !int(body.limit, 1, 200)) fail(400, 'invalid_export');
+      const rows = this.db.prepare(`SELECT b.id,b.capture,b.generation,b.day,b.build,b.mode,b.body FROM bg_combats b
+        JOIN source_captures c ON c.key=b.capture AND c.status<>'deleted' AND c.manifest IS NOT NULL
+        WHERE b.id>? AND NOT EXISTS (SELECT 1 FROM source_revoked r WHERE r.generation=b.generation)
+        ORDER BY b.id LIMIT ?`).all(body.after, body.limit).filter(r => !this.revocations.has(r.generation));
+      return { statusCode: 200, body: { ok: true, fights: rows.map(exportLine), next: rows.length === body.limit ? rows.at(-1).id : null } };
+    });
+  }
   revoke(generation) {
     if (this.revoked(generation)) return;
     const at = Date.now();
@@ -261,6 +285,7 @@ export class CaptureArchive {
     // Remove SQL-derived data as soon as revoked; pending filesystem cleanup still reports deleting.
     transaction(this.db, () => {
       this.db.prepare('DELETE FROM source_captures WHERE generation=?').run(generation);
+      this.db.prepare('DELETE FROM bg_combats WHERE generation=?').run(generation);
       this.db.prepare("DELETE FROM snap WHERE mode='source'").run();
       // AC11: facts and the snapshot that may contain them go in the same transaction as the receipts.
       if (removeGenerationFacts(this.db, generation)) withdrawSnapshot(this.db);
@@ -300,6 +325,7 @@ export class CaptureArchive {
         transaction(this.db, () => {
           this.db.prepare("UPDATE source_captures SET status='deleted',manifest=NULL,source_sha=NULL,parser_version=NULL,derived=NULL,derived_bytes=0,records=0,gaps=0,unsupported=0,revision=revision+1 WHERE key=?").run(row.key);
           this.db.prepare('DELETE FROM source_chunks WHERE capture=?').run(row.key);
+          this.db.prepare('DELETE FROM bg_combats WHERE capture=?').run(row.key);
           if (removeFacts(this.db, [row.key])) withdrawSnapshot(this.db);
         });
         const job = this.active.get(row.key);
@@ -310,6 +336,9 @@ export class CaptureArchive {
         try { fs.rmSync(this.dir(row), { force: true, recursive: true }); } catch {}
       }
       for (const row of this.db.prepare('SELECT generation FROM source_revoked WHERE cleaned=0').all()) await this.cleanGeneration(row.generation);
+      // A fight outlives no capture, whatever path deleted the capture.
+      this.db.prepare(`DELETE FROM bg_combats WHERE NOT EXISTS (SELECT 1 FROM source_captures c WHERE c.key=bg_combats.capture AND c.status<>'deleted')
+        OR EXISTS (SELECT 1 FROM source_revoked r WHERE r.generation=bg_combats.generation)`).run();
       this.db.prepare('DELETE FROM source_quota WHERE day<?').run(nowDay() - 7);
       // SQLite secure_delete scrubs rows; truncate WAL so a successful forget does not leave old facts in it.
       this.db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
@@ -504,6 +533,19 @@ export function launchWorker(config, input, output, timeoutMs) {
 }
 
 export { atomicWrite };
+
+/** The fights of a committed v3 capture (migration 0010), inside the manifest's transaction. */
+function storeCombats(db, id, start, combats, bodies) {
+  if (!combats.length) return;
+  const insert = db.prepare('INSERT OR IGNORE INTO bg_combats(capture,generation,fight,day,build,mode,created,body) VALUES(?,?,?,?,?,?,?,?)');
+  const now = Date.now();
+  combats.forEach((c, i) => insert.run(id.key, id.generation, c.fight, start.day, start.build ?? null, start.mode, now, bodies[i]));
+}
+
+/** One export line (v1): the game as a short hash of its capture key, the day, client build, mode and the fight. */
+export function exportLine(row) {
+  return { v: 1, game: sha(row.capture).slice(0, 16), day: row.day, build: row.build, mode: row.mode, fight: JSON.parse(row.body) };
+}
 
 function subset(value, source) {
   if (value === null || typeof value !== 'object') return value === source;

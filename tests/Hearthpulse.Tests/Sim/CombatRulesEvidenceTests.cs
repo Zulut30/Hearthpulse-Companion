@@ -12,7 +12,7 @@ namespace Hearthpulse.Tests.Sim;
 public sealed class CombatRulesEvidenceTests
 {
     private static readonly EffectRegistry Rules = Effects(
-        typeof(TraceA), typeof(TraceB), typeof(SummonFive), typeof(SummonPlain), typeof(DestroyEnemies), typeof(AvengeBuffOthers),
+        typeof(TraceA), typeof(TraceB), typeof(SummonFive), typeof(SummonPlain), typeof(DestroyEnemies), typeof(AvengeBuffOthers), typeof(AvengeThree),
         typeof(EngineTests.ExtraTrigger), typeof(BuffFriendlyAttacker), typeof(TraceRally), typeof(EndlessDeathrattle), typeof(HugeAura));
 
     private static List<string> Deaths(FightResult result) =>
@@ -181,6 +181,24 @@ public sealed class CombatRulesEvidenceTests
         var result = Fight(Side(gunner), Side(Minion(143, 136, cardId: "E")), oursFirst: true, Rules);
         var survivor = Assert.Single(result.Ours);
         Assert.Equal((2, 1, 3), (survivor.Attack, survivor.Health, survivor.MaxHealth));
+    }
+
+    [Theory]
+    [InlineData(0, -1)]
+    [InlineData(2, 1)]
+    [InlineData(4, 2)]
+    public void Avenge_counts_on_from_the_friendly_deaths_of_start_of_combat(int deathsBefore, int firesAfterOurDeaths)
+    {
+        // R 4f, g4c9: Avenge (3) counts every friendly death and fires on the third (Relentless Deflector: AVENGE blocks
+        // 997634, 997912, Divine Shield at 998047), then starts again. Deaths during Start of Combat already count
+        // (package I: SimMinion.FriendlyDeathsBeforeCapture); full threes of them fired before the capture.
+        var v = Minion(0, 30, cardId: "R_AVENGE3") with { FriendlyDeathsBeforeCapture = deathsBefore };
+        var result = Fight(Side(Minion(1, 1, cardId: "D"), Minion(1, 1, cardId: "D"), v), Side(Minion(5, 100, cardId: "E")), oursFirst: true, Rules);
+
+        var fired = result.IndexOf("avenge 3");
+        var ourDeaths = fired < 0 ? -1
+            : result.Log.Take(fired).Count(l => l.StartsWith("our D ", StringComparison.Ordinal) && l.EndsWith(" dies", StringComparison.Ordinal));
+        Assert.Equal(firesAfterOurDeaths, ourDeaths);
     }
 
     // ---------------------------------------------------------------------------------- A E2: Titus repeats in place
@@ -360,6 +378,14 @@ public sealed class CombatRulesEvidenceTests
                 fight.Buff(friend, 1, 1);
             }
         }
+    }
+
+    [CardEffect("R_AVENGE3")]
+    private sealed class AvengeThree : AvengeEffect
+    {
+        protected override int Threshold(Unit self) => 3;
+
+        protected override void Avenge(Fight fight, Unit self) => fight.Trace("avenge 3");
     }
 
     [CardEffect("R_WATCH")]

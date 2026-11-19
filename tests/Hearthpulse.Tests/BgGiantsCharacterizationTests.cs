@@ -121,10 +121,14 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // Balinda, Timewarped Greenskeeper, Kalecgos, Dark Paradox and its t6 form, Rot Hide Gnoll, Mishmash, Joyous,
         // Hackerfin, Nerubian Deathswarmer, Electric Synthesizer); without them (checked) the fingerprint is still
         // FECFFCB0BDD005AE.
+        // 2026-11-19 (sim-all-mechanics P0): Ghastcoiler and Undead pools regenerated from patch 37.0.2 card data (new
+        // stats, Rot Hide Gnoll); with the old pool files (checked) the fingerprint is still A488D069E48228A5.
+        // 2026-11-19 (E1 sim-spells): the spell, card-to-hand and spell-trinket effects add ids and two new trace lines
+        // ("... gets a Blood Gem", "we/they get ..."); without those types and lines (checked) it is still 60958721CA247FFC.
         // 2026-11-19 (sim-rules): engine rules from real Power.log fights change these fights on purpose (rules-evidence
         // 2b, 4a, 4d, 4e; effects-audit E1, E2: a dead attacker's summons attack next, deaths in order of play, Reborn
         // after Avenge, reborn max Health, friendly-attack hooks before Rally, deathrattles A,A,B,B); the boards are the
-        // same, and before those rules (main at 44e706f4) the fingerprint is A488D069E48228A5.
-        Assert.Equal("fights C8DF6913ECA637EF", actual);
+        // same, and before those rules (main at f17e31d6) the fingerprint is 30FC3B58C163F3F4.
+        Assert.Equal("fights 80F57963C89A69F9", actual);
     }
 }

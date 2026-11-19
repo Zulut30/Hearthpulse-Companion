@@ -26,7 +26,7 @@ internal sealed class DiremuckForager : CombatEffect
 
         var holder = PlayerEffects.Attach(self.Side, self.CardId, PendingMurlocs.Instance);
         var state = UnitState<PendingMurlocs.State>.Of(holder);
-        state.Remaining = self.Pick(1, 2);
+        state.Remaining = SimInputs.PendingForagerSummons(self.Side.Info, self.Spec.EntityId) ?? self.Pick(1, 2);
         state.Source = self;
     }
 }

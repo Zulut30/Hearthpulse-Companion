@@ -6,6 +6,7 @@ namespace Hearthpulse.Core.SourceCapture.Processing;
 
 internal sealed class SourceCaptureState(SourceCaptureLimits limits)
 {
+    private static readonly JsonElement EmptyData = JsonSerializer.SerializeToElement(new { });
     private readonly List<SourceCaptureEvent> _events = [];
     private readonly Stack<string> _blocks = [];
     private readonly Dictionary<int, (string Options, string? Picked)> _choices = [];
@@ -15,7 +16,7 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
     private string _captureKind = "", _mode = "", _lastKind = "";
     private SourceCaptureContext? _context;
     private SourceCaptureEvent? _end;
-    private int _version, _combatView;
+    private int _version, _combatView, _combats, _lastFight = -1;
     private bool _header = true, _lifecycleGap;
     private long _derivedBytes;
     private int _unsupported, _gaps, _plays, _buys, _sells, _turns, _shop, _resources;
@@ -24,7 +25,7 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
     {
         if (_events.Count >= limits.MaxRecords) throw new SourceCaptureException("limit_exceeded");
         // One source, one wire version (= manifest.sourceVersion).
-        SourceCaptureSchema.Require(_events.Count == 0 ? version is 1 or 2 : version == _version);
+        SourceCaptureSchema.Require(_events.Count == 0 ? version is 1 or 2 or 3 : version == _version);
         _version = version;
         // combat_view is a structural v2 marker written with the capture header, never after observations.
         if (e.Kind is not ("start" or "gap")) _header = false;
@@ -51,7 +52,7 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
                 _mode = d.GetProperty("mode").GetString()!;
                 SourceCaptureSchema.Require(_captureKind != "draft" || _mode == "arena");
                 _context = new(_mode, d.GetProperty("day").GetInt32(), SourceCaptureSchema.NullableNumber(d.GetProperty("build"), 1, int.MaxValue),
-                    version == 2 ? d.GetProperty("format").GetString() : null, version == 2 ? d.GetProperty("arena").GetString() : null);
+                    version >= 2 ? d.GetProperty("format").GetString() : null, version >= 2 ? d.GetProperty("arena").GetString() : null);
                 break;
             case "end":
                 _end = e;
@@ -98,7 +99,7 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
                 int id = d.GetProperty("choiceId").GetInt32();
                 // The choice type is part of the offer's identity: it may not change between records of one choice.
                 string options = d.GetProperty("options").GetRawText() + d.GetProperty("sourceCard").GetRawText() +
-                    (version == 2 ? d.GetProperty("choiceType").GetRawText() : "");
+                    (version >= 2 ? d.GetProperty("choiceType").GetRawText() : "");
                 string? picked = d.GetProperty("resolved").GetBoolean() ? d.GetProperty("picked").GetRawText() : null;
                 if (_choices.TryGetValue(id, out var previous) && previous.Picked is not null)
                 {
@@ -110,7 +111,7 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
                     SourceCaptureSchema.Require(newPicks.Length >= oldPicks.Length && newPicks.Take(oldPicks.Length).SequenceEqual(oldPicks));
                 }
                 _choices[id] = (options, picked);
-                _lastChoice[id] = new(e.Seq, version == 2 ? d.GetProperty("choiceType").GetString()! : null,
+                _lastChoice[id] = new(e.Seq, version >= 2 ? d.GetProperty("choiceType").GetString()! : null,
                     d.GetProperty("options").EnumerateArray().Select(x => x.GetString()!).ToArray(),
                     d.GetProperty("picked").EnumerateArray().Select(x => x.GetString()!).ToArray(), d.GetProperty("resolved").GetBoolean());
                 break;
@@ -146,6 +147,16 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
                     SourceCaptureSchema.Require(_header && _captureKind == "game" && _mode is "bg" or "duos" && ++_combatView == 1 &&
                         d.GetProperty("count").GetInt32() == 1);
                 break;
+            case "bg_combat":
+                // Fights of a Battlegrounds game, in order, at most one per combat. They add no fact and no gap; the
+                // event keeps no data (the pool stores the records themselves).
+                SourceCaptureSchema.Require(_captureKind == "game" && _mode is "bg" or "duos" && ++_combats <= SourceCaptureCombat.MaxFights);
+                int fight = d.GetProperty("fight").GetInt32();
+                SourceCaptureSchema.Require(fight > _lastFight);
+                _lastFight = fight;
+                d = EmptyData;
+                e = e with { Data = d };
+                break;
             default: _unsupported++; AddGaps(1); derivedKind = "unsupported"; break;
         }
         _derivedBytes += Encoding.UTF8.GetByteCount(d.GetRawText()) + 256;
@@ -171,8 +182,8 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
     internal SourceCaptureResult Finish(string hash)
     {
         SourceCaptureSchema.Require(_events.Count > 0 && (_end is not null || _lastKind == "gap"));
-        // Every v2 BG/Duos game names its displayed-combat gap exactly once (contract C1).
-        SourceCaptureSchema.Require(_version != 2 || _captureKind != "game" || _mode is not ("bg" or "duos") || _combatView == 1);
+        // Every v2/v3 BG/Duos game names its displayed-combat gap exactly once (contract C1).
+        SourceCaptureSchema.Require(_version < 2 || _captureKind != "game" || _mode is not ("bg" or "duos") || _combatView == 1);
         if (_blocks.Count > 0) AddGaps(1);
         bool unresolved = _choices.Values.Any(x => x.Picked is null) || _draft.Values.Any(x => x.Picked is null);
         bool complete = _end is not null && _end.Data.GetProperty("status").GetString() == "complete" &&

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 using Hearthpulse.Core.Battlegrounds.Effects;
 
 namespace Hearthpulse.Core.Battlegrounds;
@@ -6,7 +7,7 @@ namespace Hearthpulse.Core.Battlegrounds;
 /// <summary>One minion as it stands when the first attack of a combat starts.</summary>
 /// <param name="RebornAttack">The card's printed Attack (golden-aware), which a reborn copy comes back with.</param>
 /// <param name="HasUnsimulatedEffect">The card (or an enchantment on it) changes the fight in a way no registered effect models.</param>
-public sealed record SimMinion(
+public sealed partial record SimMinion(
     int Attack,
     int Health,
     bool Taunt,
@@ -69,6 +70,7 @@ public sealed record SimMinion(
     /// Summoned during this combat before capture (Start of Combat), not brought to the fight: in a death phase it dies
     /// after every starting minion of both sides, in the order summoned (Power.log, rules-evidence 4a: 17 of 17 phases).
     /// </summary>
+    [JsonIgnore]
     public bool SummonedInCombat { get; init; }
 
     /// <summary>Current keywords as flags.</summary>
@@ -121,7 +123,7 @@ public sealed record SimMinion(
 /// One side of a combat: the minions plus what the player can see about that player. Only public information:
 /// the opponent's hand and secrets are never filled in.
 /// </summary>
-public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
+public sealed partial record SimSide(IReadOnlyList<SimMinion> Minions)
 {
     public string HeroCardId { get; init; } = string.Empty;
 
@@ -162,12 +164,14 @@ public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
     /// The hero's lobby PLAYER_ID; 0 when unknown. The side with the lower one entered play first, so its starting
     /// minions die first in a death phase (Power.log, rules-evidence 4a: 83 of 83 phases).
     /// </summary>
+    [JsonIgnore]
     public int PlayerId { get; init; }
 
     /// <summary>
     /// The local player's own secrets in play (card ids), which are on their screen; always empty for the opponent,
     /// whose secrets are hidden. Read for hero damage: Ice Block (<see cref="DamageRules.IceBlock"/>).
     /// </summary>
+    [JsonIgnore]
     public IReadOnlyList<string> Secrets { get; init; } = Array.Empty<string>();
 
     internal static readonly IReadOnlyDictionary<string, int> EmptyTags = new Dictionary<string, int>();
@@ -203,6 +207,13 @@ public sealed record SimOptions
     /// Estimate hero damage and lethal. Off for Duos, where the loser of one board is not the one who takes the damage.
     /// </summary>
     public bool CountDamage { get; init; } = true;
+
+    /// <summary>
+    /// Simulate with the opponent's values the player could not see during the game (<see cref="SimSide.HiddenTags"/>, see
+    /// <see cref="SimInputs.PostGame"/>). Only for consumers after the game (saved captures, Bench); the live tracker never
+    /// sets it.
+    /// </summary>
+    public bool PostGame { get; init; }
 }
 
 /// <summary>
@@ -236,6 +247,12 @@ public sealed record CombatOdds(double Win, double Tie, double Loss, int Unsimul
     /// effects were dropped there, so <see cref="Unsimulated"/> counts one more "not simulated" item when this is above 0.
     /// </summary>
     public int Truncated { get; init; }
+
+    /// <summary>
+    /// Inputs the fight was simulated with an estimate for (<see cref="SimSide.Estimates"/> of both sides): values of the
+    /// opponent the player cannot see. Separate from <see cref="Unsimulated"/>: those effects did run.
+    /// </summary>
+    public int Estimated { get; init; }
 }
 
 /// <summary>Why something in a captured fight is "not simulated" (the coverage matrix uses the same words).</summary>
@@ -279,6 +296,20 @@ public static class CombatSimulator
         Run(new SimSide(ours), new SimSide(theirs), firstAttackerIsOurs, new SimOptions { Runs = runs });
 
     public static CombatOdds Run(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs, SimOptions? options = null)
+    {
+        if (options?.PostGame == true)
+        {
+            (ours, theirs) = (SimInputs.PostGame(ours), SimInputs.PostGame(theirs));
+        }
+
+        return RunFights(ours, theirs, firstAttackerIsOurs, options) with { Estimated = ours.Estimates.Count + theirs.Estimates.Count };
+    }
+
+    /// <summary>The inputs of a side the fight was simulated with an estimate for, and what each estimate rests on.</summary>
+    public static IReadOnlyList<EstimatedItem> ExplainEstimates(SimSide side, bool isOpponent) =>
+        side.Estimates.Select(e => new EstimatedItem(e.Input, e.Value1, e.Value2, e.Basis, isOpponent)).ToList();
+
+    private static CombatOdds RunFights(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs, SimOptions? options)
     {
         options ??= SimOptions.Default;
         var effects = options.Effects ?? EffectRegistry.Default;

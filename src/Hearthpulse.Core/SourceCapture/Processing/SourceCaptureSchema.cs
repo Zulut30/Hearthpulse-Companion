@@ -100,11 +100,14 @@ internal static class SourceCaptureSchema
         foreach (var c in list.EnumerateArray()) Require(Card(c) is not null);
     }
 
-    /// <summary>Validates one record against its wire version; v2 adds start context, choice type and combat_view.</summary>
+    /// <summary>
+    /// Validates one record against its wire version; v2 adds start context, choice type and combat_view, v3 adds the
+    /// <c>bg_combat</c> record (everything else as v2).
+    /// </summary>
     internal static void Validate(SourceCaptureEvent e, int version)
     {
         var d = e.Data;
-        bool v2 = version == 2;
+        bool v2 = version >= 2;
         switch (e.Kind)
         {
             case "start":
@@ -227,6 +230,12 @@ internal static class SourceCaptureSchema
                 else OneOf(d.GetProperty("reason"), "late_attach", "rotation", "source_missing", "unsupported", "limit", "invalid", "shutdown");
                 Number(d.GetProperty("count"), 1);
                 Neutral(e);
+                break;
+            case "bg_combat":
+                // A v1/v2 source never carries one: fail closed rather than count it as unsupported.
+                Require(version >= 3);
+                Neutral(e);
+                SourceCaptureCombat.Validate(d);
                 break;
             default:
                 // A future safe discriminator can be counted, but arbitrary data must never be echoed.

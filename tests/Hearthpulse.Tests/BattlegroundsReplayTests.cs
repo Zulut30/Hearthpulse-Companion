@@ -762,9 +762,9 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         var actual = $"events {Print(events)} text {Print(text)} view {Print(System.Text.Json.JsonSerializer.Serialize(view))} captures {Print(captures.ToString())}";
         output.WriteLine(actual);
         // 2026-11-09 (S1): captures carry SimSide.ExtraTags (our cards, whitelisted tags); without that property the capture hash is still A999F5C9B68FBBC3.
-        // 2026-11-19 (R): captures carry SimSide.PlayerId, SimSide.Secrets and SimMinion.SummonedInCombat (death order, Ice
-        // Block; rules-evidence 4a/8b); without them the capture hash is still C0B789C0BE0531F8.
-        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 30DDE1DCF7070D18 captures 0C2EEA8A3A3C14FE", actual);
+        // 2026-11-19 (sim-inputs): the live capture keeps none of the opponent's player tags (hidden from the player) and
+        // carries SimSide.HiddenTags, empty during the game; before that the capture hash was C0B789C0BE0531F8.
+        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 30DDE1DCF7070D18 captures 11D9EA271D4A9EF7", actual);
     }
 
     [Fact]

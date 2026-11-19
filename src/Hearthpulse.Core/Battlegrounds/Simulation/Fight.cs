@@ -188,6 +188,8 @@ public sealed partial class Fight
             side.AddInitial(new Unit(spec, side, effects[i])
             {
                 Entry = spec.SummonedInCombat ? CapturedSummonEntry + Math.Clamp(spec.EntityId, 0, 1 << 29) : i,
+                // Avenge progress brought from Start of Combat; a copy summoned later starts from 0.
+                AvengeCount = Math.Max(0, spec.FriendlyDeathsBeforeCapture),
             });
         }
 

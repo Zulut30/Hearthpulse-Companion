@@ -227,6 +227,20 @@ public abstract class CombatEffect
     /// </summary>
     public virtual void AfterFriendlyGainedStats(Fight fight, Unit self, Unit unit, int attack, int health) { }
 
+    // ---- Spells, cards to hand, Blood Gems (Fight.Spells.cs) ------------------------------------------------------
+
+    /// <summary>
+    /// "Whenever you cast a (Tavern) spell (on X)": the owner is casting <paramref name="spell"/>, before it resolves
+    /// (a real log shows such triggers ahead of the spell's own effect). <see cref="AfterFriendlySpellCast"/> runs after it.
+    /// </summary>
+    public virtual void OnFriendlySpellCast(Fight fight, Unit self, in SpellCast spell) { }
+
+    /// <summary>"Whenever a card is added to your hand" (see <see cref="Fight.AddToHand"/>); empty id = a random card the sim does not pick.</summary>
+    public virtual void AfterCardAddedToHand(Fight fight, Unit self, string cardId) { }
+
+    /// <summary>A Blood Gem was played on a friendly minion (possibly self) by <paramref name="source"/> (see <see cref="Fight.PlayBloodGem"/>).</summary>
+    public virtual void AfterFriendlyBloodGem(Fight fight, Unit self, Unit target, Unit? source) { }
+
     private static Hook ScanHooks(Type type)
     {
         var hooks = Hook.None;
@@ -272,6 +286,9 @@ public abstract class CombatEffect
         (nameof(AfterFriendlyBattlecry), Hook.FriendlyBattlecry),
         (nameof(ExtraSpellCasts), Hook.ExtraSpellCasts),
         (nameof(AfterFriendlyGainedStats), Hook.FriendlyGainedStats),
+        (nameof(OnFriendlySpellCast), Hook.SpellCasting),
+        (nameof(AfterCardAddedToHand), Hook.CardToHand),
+        (nameof(AfterFriendlyBloodGem), Hook.BloodGem),
     ];
 }
 
@@ -285,7 +302,11 @@ public abstract class AvengeEffect : CombatEffect
 
     public override void AfterFriendlyDeath(Fight fight, Unit self, Unit dead)
     {
-        if (++self.AvengeCount >= Math.Max(1, Threshold(self)))
+        // The count starts at the friendly deaths of Start of Combat (SimMinion.FriendlyDeathsBeforeCapture); any full X of
+        // them already fired before the capture, so only the remainder carries over.
+        var threshold = Math.Max(1, Threshold(self));
+        self.AvengeCount = self.AvengeCount % threshold + 1;
+        if (self.AvengeCount >= threshold)
         {
             self.AvengeCount = 0;
             Avenge(fight, self);
@@ -326,4 +347,7 @@ internal enum Hook : long
     FriendlyBattlecry = 1L << 25,
     ExtraSpellCasts = 1L << 26,
     FriendlyGainedStats = 1L << 27,
+    SpellCasting = 1L << 28,
+    CardToHand = 1L << 29,
+    BloodGem = 1L << 30,
 }
