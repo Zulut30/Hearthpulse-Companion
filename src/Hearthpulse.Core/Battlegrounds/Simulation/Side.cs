@@ -8,8 +8,8 @@ public sealed class Side
     public const int MaxMinions = 7;
 
     private readonly List<Unit> _board = new(MaxMinions);
-    private readonly List<Unit> _extras = new();
-    private readonly List<Unit> _dead = new();
+    private readonly List<Unit> _extras;
+    private readonly List<Unit> _dead = new(MaxMinions);
     private Dictionary<string, int>? _counters;
     private List<(Func<Unit, bool> Applies, int Attack, int Health)>? _summonBuffs;
     private List<SimMinion>? _hand;
@@ -21,6 +21,7 @@ public sealed class Side
         Fight = fight;
         Index = index;
         Info = info;
+        _extras = new List<Unit>(info.Extras.Count);
     }
 
     public Fight Fight { get; }
@@ -93,7 +94,20 @@ public sealed class Side
     /// <summary>Minions entered or left since auras were last recomputed.</summary>
     internal bool AuraDirty { get; set; } = true;
 
-    public int IndexOf(Unit unit) => _board.IndexOf(unit);
+    public int IndexOf(Unit unit)
+    {
+        // By reference: List.IndexOf goes through EqualityComparer and a virtual Equals per minion.
+        var board = _board;
+        for (var i = 0; i < board.Count; i++)
+        {
+            if (ReferenceEquals(board[i], unit))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     /// <summary>
     /// A per-fight player counter (e.g. "EternalKnightsDead", "BeetleAttack"). Before it is set it reads the captured
@@ -184,7 +198,7 @@ public sealed class Side
 
     internal void Remove(Unit unit)
     {
-        var index = _board.IndexOf(unit);
+        var index = IndexOf(unit);
         if (index < 0)
         {
             return;
