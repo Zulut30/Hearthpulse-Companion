@@ -12,6 +12,7 @@ public sealed partial class Fight
         target.Health = (int)Math.Clamp((long)target.Health + health, -1_000_000_000, int.MaxValue);
         target.MaxHealth = (int)Math.Clamp((long)target.MaxHealth + health, 0, int.MaxValue);
         RefreshUnit(target);
+        if ((attack > 0 || health > 0) && (target.Side.Hooks & Hook.FriendlyGainedStats) != 0) StatsGained(target, Math.Max(0, attack), Math.Max(0, health));
     }
 
     /// <summary>Sets Attack and Health (and maximum Health).</summary>
@@ -159,12 +160,15 @@ public sealed partial class Fight
 
     /// <summary>
     /// A spell cast in combat by <paramref name="caster"/> (e.g. a Rally that casts a Tavern spell): runs
-    /// <paramref name="resolve"/>, then "after you cast a spell" hooks.
+    /// <paramref name="resolve"/>, then "after you cast a spell" hooks; all of it again per extra cast (<see cref="SpellCasts"/>).
     /// </summary>
     public void CastSpell(Side caster, string spellCardId, Unit? target, Action<Fight>? resolve = null)
     {
-        if (Tracing) Trace($"{(caster.IsOpponent ? "they" : "we")} cast {spellCardId}");
-        resolve?.Invoke(this);
-        Raise(caster, Hook.SpellCast, target, text: spellCardId);
+        for (var cast = SpellCasts(caster, spellCardId, target); cast > 0; cast--)
+        {
+            if (Tracing) Trace($"{(caster.IsOpponent ? "they" : "we")} cast {spellCardId}");
+            resolve?.Invoke(this);
+            Raise(caster, Hook.SpellCast, target, text: spellCardId);
+        }
     }
 }
