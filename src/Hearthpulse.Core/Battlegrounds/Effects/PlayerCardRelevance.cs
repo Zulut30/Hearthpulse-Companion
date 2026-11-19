@@ -8,8 +8,9 @@ namespace Hearthpulse.Core.Battlegrounds.Effects;
 /// only acts in the Tavern are <see cref="Relevance.None"/>: they explain the granted marker on the minion, so it is not
 /// flagged. Start of Combat cards resolved before capture and Tavern-only cards are left out (unknown extras are not
 /// counted). Hero powers: those of heroes in the API's hero list; trinkets: those with a combat trigger found by hand.
-/// Every other player-level card has a row generated from its text (<see cref="PlayerCardGenerated"/>,
-/// tools/effects/gen_player_relevance.py); these rows win over it. See docs/bg-combat-sim.md.
+/// Every other player-level card, quest and Tavern spell has a row generated from its text (<see cref="PlayerCardGenerated"/>,
+/// tools/effects/gen_player_relevance.py; a spell another card casts in combat is Relevant); these rows win over it.
+/// See docs/bg-combat-sim.md.
 /// </summary>
 internal static class PlayerCardTable
 {

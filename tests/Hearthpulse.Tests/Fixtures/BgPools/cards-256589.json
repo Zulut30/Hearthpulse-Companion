@@ -1,0 +1,157 @@
+[
+ {
+  "id": "BG36_362",
+  "dbfId": 134405,
+  "name": "Sacrificial Wrathguard",
+  "type": "MINION",
+  "set": "BATTLEGROUNDS",
+  "attack": 6,
+  "health": 3,
+  "techLevel": 4,
+  "races": [
+   "DEMON"
+  ],
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "text": "[x]<b>Deathrattle:</b> Give minions in\nthe Tavern +2/+1 this\ngame. <b>Activate (1):</b>\nImprove this.",
+  "isBattlegroundsPoolMinion": true,
+  "battlegroundsPremiumDbfId": 134406
+ },
+ {
+  "id": "BG33_828",
+  "dbfId": 123595,
+  "name": "Ship Master Eudora",
+  "type": "MINION",
+  "set": "BATTLEGROUNDS",
+  "attack": 10,
+  "health": 3,
+  "techLevel": 5,
+  "races": [
+   "PIRATE"
+  ],
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "text": "<b>Deathrattle:</b> Give your\nminions +8/+8.\nGolden ones keep it permanently.",
+  "isBattlegroundsPoolMinion": true,
+  "battlegroundsPremiumDbfId": 123596
+ },
+ {
+  "id": "BG27_016",
+  "dbfId": 103698,
+  "name": "Champion of Sargeras",
+  "type": "MINION",
+  "set": "BATTLEGROUNDS",
+  "attack": 12,
+  "health": 12,
+  "techLevel": 7,
+  "races": [
+   "DEMON"
+  ],
+  "mechanics": [
+   "BATTLECRY",
+   "DEATHRATTLE"
+  ],
+  "text": "[x]<b>Battlecry and Deathrattle:</b>\nGive minions in the Tavern\n+12/+12 this game.",
+  "isBattlegroundsPoolMinion": true,
+  "battlegroundsPremiumDbfId": 103699
+ },
+ {
+  "id": "BG34_320",
+  "dbfId": 127109,
+  "name": "The Last One Standing",
+  "type": "MINION",
+  "set": "BATTLEGROUNDS",
+  "attack": 10,
+  "health": 10,
+  "techLevel": 7,
+  "races": [
+   "ALL"
+  ],
+  "mechanics": [
+   "BACON_RALLY"
+  ],
+  "text": "[x]<b>Rally:</b> Give a friendly\nminion of each type\n+10/+10 permanently\nand improve this.",
+  "isBattlegroundsPoolMinion": true,
+  "battlegroundsPremiumDbfId": 127110
+ },
+ {
+  "id": "BG25_013",
+  "dbfId": 95271,
+  "name": "Rot Hide Gnoll",
+  "type": "MINION",
+  "set": "BATTLEGROUNDS",
+  "attack": 1,
+  "health": 4,
+  "techLevel": 1,
+  "races": [
+   "UNDEAD"
+  ],
+  "mechanics": [
+   "AURA"
+  ],
+  "text": "Has +1 Attack for each friendly minion that died this combat.",
+  "isBattlegroundsPoolMinion": true,
+  "battlegroundsPremiumDbfId": 95272
+ },
+ {
+  "id": "BG28_300",
+  "dbfId": 104551,
+  "name": "Harmless Bonehead",
+  "type": "MINION",
+  "set": "BATTLEGROUNDS",
+  "attack": 1,
+  "health": 1,
+  "techLevel": 1,
+  "races": [
+   "UNDEAD"
+  ],
+  "mechanics": [
+   "DEATHRATTLE"
+  ],
+  "text": "<b>Deathrattle:</b> Summon\ntwo 1/1 Skeletons.",
+  "isBattlegroundsPoolMinion": true,
+  "battlegroundsPremiumDbfId": 104554
+ },
+ {
+  "id": "BG25_022",
+  "dbfId": 95280,
+  "name": "Scarlet Skull",
+  "type": "MINION",
+  "set": "BATTLEGROUNDS",
+  "attack": 2,
+  "health": 1,
+  "techLevel": 2,
+  "races": [
+   "UNDEAD"
+  ],
+  "mechanics": [
+   "DEATHRATTLE",
+   "REBORN"
+  ],
+  "text": "<b>Reborn</b>\n<b>Deathrattle:</b> Give a friendly Undead +1/+2.",
+  "isBattlegroundsPoolMinion": true,
+  "battlegroundsPremiumDbfId": 95281
+ },
+ {
+  "id": "BG31_810",
+  "dbfId": 115581,
+  "name": "Ultraviolet Ascendant",
+  "type": "MINION",
+  "set": "BATTLEGROUNDS",
+  "attack": 8,
+  "health": 8,
+  "techLevel": 6,
+  "races": [
+   "ELEMENTAL"
+  ],
+  "mechanics": [
+   "START_OF_COMBAT",
+   "TRIGGER_VISUAL"
+  ],
+  "text": "<b>Start of Combat:</b> Give your other Elementals +4/+4. <i>(Improves after you play an Elemental!)</i>",
+  "isBattlegroundsPoolMinion": true,
+  "battlegroundsPremiumDbfId": 115582
+ }
+]

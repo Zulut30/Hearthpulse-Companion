@@ -11,14 +11,17 @@ public sealed class RelevanceTests
     public void Table_holds_the_hand_labelled_pool()
     {
         var pool = CombatRelevance.Table.Where(r => r.Origin == Origin.Pool).ToList();
-        // 302 of the patch's research files and the additions of tools/effects/relevance_additions.json (Murcules, Bassgill,
-        // Fishbait, Tide Oracle Morgl, Water Droplet).
-        Assert.Equal(307, pool.Count);
-        Assert.Equal(69, pool.Count(r => r.Relevance == Relevance.Relevant));
+        // 302 of the research files of patch 37.0.0.255130 and the pool additions of tools/effects/relevance_additions.json
+        // (Murcules, Bassgill, Rot Hide Gnoll: back in the pool of 37.0.2). Fishbait, Tide Oracle Morgl and Water Droplet
+        // are additions too, but Origin.Token: the data API has them out of the Tavern pool (seen on boards).
+        Assert.Equal(305, pool.Count);
+        Assert.Equal(68, pool.Count(r => r.Relevance == Relevance.Relevant));
+        Assert.Equal(Origin.Token, CombatRelevance.Find("BG36_205")?.Origin);
         Assert.Equal(Relevance.Relevant, CombatRelevance.Find("BG27_023_G")?.Relevance);
         Assert.Equal(Relevance.Relevant, CombatRelevance.Find("BG26_350")?.Relevance);
+        Assert.Equal(Relevance.Relevant, CombatRelevance.Find("BG25_013_G")?.Relevance);
         Assert.All(pool, r => Assert.NotEqual(string.Empty, r.GoldenCardId));
-        Assert.Equal("37.0.0.255130", CombatRelevance.Patch);
+        Assert.Equal("37.0.2.256589", CombatRelevance.Patch);
     }
 
     [Theory]
@@ -48,6 +51,8 @@ public sealed class RelevanceTests
     [InlineData("After a friendly Beast attacks, gain +2/+2.", true)]
     [InlineData("<b>Avenge (3):</b> Summon a 3/3 Golem.", true)]
     [InlineData("Whenever this takes damage, give your Undead +1 Attack.", true)]
+    [InlineData("Has +1 Attack for each friendly minion that died this combat.", true)]
+    [InlineData("<b>Rally:</b> Trigger your right-most <b>Battlecry</b>.", true)]
     [InlineData("<b>Battlecry:</b> Gain +2/+2.", false)]
     [InlineData("<b>Deathrattle:</b> Get a Blood Gem.", false)]
     [InlineData("At the end of your turn, give adjacent minions +1 Attack.", false)]
