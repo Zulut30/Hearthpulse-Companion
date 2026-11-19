@@ -67,6 +67,7 @@ $ExcludedTests = [ordered]@{
     'tests/Hearthpulse.Tests/Sim/SimMeasurementTests.cs'            = 'Hearthpulse.Bench measurement sources'
     'tests/Hearthpulse.Tests/Sim/SimReplayKit.cs'                   = 'Hearthpulse.Bench simreplay'
     'tests/Hearthpulse.Tests/Sim/SimReplayTests.cs'                 = 'Hearthpulse.Bench simreplay'
+    'tests/Hearthpulse.Tests/Sim/ParallelRunsTests.cs'              = 'Hearthpulse.Bench SimStats.Wilson and BattlegroundsTracker in two of its cases'
 }
 
 # Hearthpulse folder -> BGSim folder; the first matching prefix wins.
