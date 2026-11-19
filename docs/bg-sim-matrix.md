@@ -13,9 +13,9 @@
 | Существа | 229 | 10 | 68 | 18 | 0 | 3 | 328 |
 | Силы героя | 102 | 7 | 5 | 1 | 1 | 0 | 116 |
 | Тринкеты | 331 | 36 | 27 | 25 | 1 | 0 | 420 |
-| Тёмные дары | 34 | 5 | 6 | 0 | 0 | 2 | 47 |
+| Тёмные дары | 34 | 5 | 8 | 0 | 0 | 0 | 47 |
 | Боевые зачарования | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Без «вне пула»** | 573 | 37 | 89 | 28 | 2 | 5 | 734 |
+| **Без «вне пула»** | 573 | 37 | 91 | 28 | 2 | 3 | 734 |
 
 ## Существа
 
@@ -939,14 +939,14 @@
 | BG36_MidGameEffect_000t16 | Jaws of Death | resolved | да | BG36_MidGameEffect_000t16e; нет в таблице; по тексту Start of Combat |
 | BG36_MidGameEffect_000t81 | Transcendence | resolved | да | BG36_MidGameEffect_000t81e; нет в таблице; по тексту Start of Combat |
 | BG36_MidGameEffect_000t89 | Worship | resolved | да | BG36_MidGameEffect_000t89e; нет в таблице; по тексту Start of Combat |
+| BG36_MidGameEffect_000t29 | Death's Embrace | implemented | да | BG36_MidGameEffect_000t29e; нет в таблице релевантности |
+| BG36_MidGameEffect_000t29t | Death's Embrace | implemented | да | BG36_MidGameEffect_000t29te; нет в таблице релевантности |
 | BG36_MidGameEffect_000t2 | Defensive Sacrifice | implemented | да | BG36_MidGameEffect_000t2e2; GIFT_DR_BUFF |
 | BG36_MidGameEffect_000t61 | Golemancy | implemented | да | BG36_MidGameEffect_000t61e; GIFT_DR_SUMMON |
 | BG36_MidGameEffect_000t60 | Invulnerability | implemented | да | BG36_MidGameEffect_000t60e; GIFT_IMMUNE_ATTACKING |
 | BG36_MidGameEffect_000t | Offensive Sacrifice | implemented | да | BG36_MidGameEffect_000te2; GIFT_DR_BUFF |
 | BG36_MidGameEffect_000t12 | Persisting Horror | implemented | да | BG36_MidGameEffect_000t12e; GIFT_REBORN |
 | BG36_MidGameEffect_000t15 | Toreth's Blessing | implemented | да | BG36_MidGameEffect_000t15e; GIFT_SHIELD |
-| BG36_MidGameEffect_000t29 | Death's Embrace | unknown | да | BG36_MidGameEffect_000t29e; нет в таблице; текст похож на боевой |
-| BG36_MidGameEffect_000t29t | Death's Embrace | unknown | да | BG36_MidGameEffect_000t29te; нет в таблице; текст похож на боевой |
 
 ## Боевые зачарования
 
