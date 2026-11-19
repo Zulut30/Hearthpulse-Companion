@@ -6,8 +6,8 @@ fallback when the minion carries no script data) can go stale. EffectCardTextGua
 with the card text kept in this fixture. Regenerate the fixture after a balance patch, then run the tests: a failing
 row names the effect whose numbers no longer match the card.
 
-The fixture holds, for every card id an effect in Effects/attack, deaths, ongoing, spells, timewarped, rewards or
-anomalies registers
+The fixture holds, for every card id an effect in Effects/attack, deaths, ongoing, spells, timewarped, rewards,
+anomalies or player registers
 ([CardEffect("...")], [CardEffect(Tokens.XId)] or [CardEffect(Id)] with a local const), every token id in Tokens.cs
 and the few extra ids below, the enUS name, text, Attack and Health from HearthstoneJSON, plus the golden version
 (battlegroundsPremiumDbfId). Text is normalised: markup, [x] and line breaks removed, whitespace collapsed.
@@ -21,7 +21,7 @@ import os
 import re
 import sys
 
-EFFECT_DIRS = ["attack", "deaths", "ongoing", "spells", "timewarped", "rewards", "anomalies"]
+EFFECT_DIRS = ["attack", "deaths", "ongoing", "spells", "timewarped", "rewards", "anomalies", "player"]
 # Cards an effect uses without registering them: the Blood Gem and the Tavern spells cast in combat (Mighty Dragonbreath,
 # Misplaced Tea Set, Chef's Choice).
 EXTRA_IDS = ["BG20_GEM", "BG36_246", "BG28_888", "BG28_518"]

@@ -17,9 +17,9 @@ namespace Hearthpulse.Tests.Sim;
 public sealed class EffectCardTextGuardTests
 {
     /// <summary>
-    /// The card text each effect in Effects/attack, deaths, ongoing, spells, timewarped, rewards and anomalies implements,
-    /// with the numbers its code uses: the normal card and the golden card. Every registered card id of those folders has
-    /// a row (a new effect adds one). Effects/player joins with package E3.
+    /// The card text each effect in Effects/attack, deaths, ongoing, spells, timewarped, rewards, anomalies and player
+    /// implements, with the numbers its code uses: the normal card and the golden card (hero powers and trinkets have
+    /// none). Every registered card id of those folders has a row (a new effect adds one).
     /// </summary>
     private static readonly (string Id, string Normal, string? Golden)[] Rows =
     [
@@ -205,6 +205,53 @@ public sealed class EffectCardTextGuardTests
         ("BG27_Reward_803", "Your Deathrattles trigger an extra time.", null),
         ("BG28_Reward_501", "Your Tavern spells cast an extra time.", null),
         ("BG27_Anomaly_802", "Your Battlecries and Deathrattles trigger an extra time.", null),
+
+        // player/: hero powers and trinkets (no golden version). Text with a number the code uses, or the rule it follows.
+        ("TB_BaconShop_HP_107", "Give +1/+2 and Taunt to minions you summon during combat.", null),
+        ("BG20_HERO_100p", "After a friendly minion kills an enemy, give it +1 Attack permanently.", null),
+        ("BG22_HERO_002p", "summon a copy of your highest-Attack minion. (Unlocks on Turn 7.)", null),
+        ("BG22_HERO_003p", "summon a copy of your highest-Health minion. (Unlocks on Turn 7.)", null),
+        ("BG22_HERO_305p", "Avenge (4): Summon a 1/1 Whelp that attacks immediately. Improve this by +1/+1.", null),
+        ("BG23_HERO_201p", "When you have space in combat, summon a 2/2 Tentacle with Taunt.", null),
+        ("BG25_HERO_103p", "Start of Combat: Destroy it. When you have space, resummon an exact copy.", null),
+        ("BG30_MagicItem_433", "The first time a friendly minion dies each combat, give its maximum stats to a random friendly minion.", null),
+        ("BG30_MagicItem_433t", "give its maximum stats to 2 random friendly minions.", null),
+        ("BG30_MagicItem_437", "Avenge (5): Give a random friendly Undead Reborn.", null),
+        ("BG30_MagicItem_442", "Whenever a friendly Quilboar dies, summon a Golem with stats equal to its Blood Gems.", null),
+        ("BG30_MagicItem_540", "After you summon a Beast in combat, double its Attack.", null),
+        ("BG30_MagicItem_546", "After a friendly Quilboar attacks each combat, this plays a Blood Gems on all your Quilboar.", null),
+        ("BG30_MagicItem_700", "Your first Deathrattle each combat triggers an extra time.", null),
+        ("BG30_MagicItem_864", "Avenge (3): Give your minions +4/+5 permanently and deal 1 damage to them.", null),
+        ("BG30_MagicItem_880", "Your minions have +2/+1.", null),
+        ("BG30_MagicItem_880t", "Your minions have +8/+5.", null),
+        ("BG30_MagicItem_886", "Whenever you summon a minion, give it Divine Shield. (5 times per combat.)", null),
+        ("BG30_MagicItem_910", "After a friendly Mech loses Divine Shield, give it Divine Shield. (3 times per combat.)", null),
+        ("BG30_MagicItem_925", "Whenever a friendly minion attacks, give it +4 Attack.", null),
+        ("BG30_MagicItem_978", "After you summon a Mech in combat, give a friendly Mech Divine Shield.", null),
+        ("BG32_MagicItem_200", "Whenever a friendly Beast attacks, give it +4 Attack and permanently improve this.", null),
+        ("BG32_MagicItem_301", "After you summon a Murloc in combat, give it Divine Shield.", null),
+        ("BG32_MagicItem_363", "Whenever a friendly Dragon attacks, give it Divine Shield. (3 times per combat.)", null),
+        ("BG32_MagicItem_860", "Avenge (5): Summon a 2/2 Beetle. Give it Taunt.", null),
+        ("BG32_MagicItem_860t", "Avenge (8): Summon two 2/2 Beetles. Give them Taunt.", null),
+        ("BG32_MagicItem_862", "After you trigger a Deathrattle, give your right-most minion +2/+2 permanently.", null),
+        ("BG32_MagicItem_862t", "After you trigger a Deathrattle, give your right-most minion +6/+4 permanently.", null),
+        ("BG32_MagicItem_864", "Avenge (2): Give your minions +1/+1.", null),
+        ("BG32_MagicItem_864t", "Avenge (2): Give your minions +4/+4.", null),
+        ("BG32_MagicItem_907", "After your last minion dies each combat, summon your first Demon that died with its maximum stats.", null),
+        ("BG35_MagicItem_701", "Start of Combat: Your Beasts have +1/+1 this combat.", null),
+        ("BG35_MagicItem_731", "After a friendly Undead is Reborn, give it Reborn. (3 times per turn.)", null),
+        ("BG35_MagicItem_732", "Start of Combat: Destroy your 3 left-most minions. After your last minion dies, resummon them.", null),
+        ("BG35_MagicItem_849", "Avenge (3): Give the Attack of your right-most minion to another friendly Dragon.", null),
+        ("BG35_MagicItem_871", "Whenever you summon a Beast, give it +7/+7.", null),
+        ("BG35_MagicItem_923", "Whenever you cast a spell, give your minions +1/+1 permanently. (+2/+2 while in combat!)", null),
+        ("BG36_MagicItem_201", "Whenever a friendly Beast attacks, give it +4/+2.", null),
+        ("BG36_MagicItem_205", "After a friendly minion is Reborn, give your minions +2/+2.", null),
+        ("BG36_MagicItem_216", "Get a Golden Eternal Knight. After a friendly Undead dies, your Eternal Knights have +4/+2 this game.", null),
+        ("BG36_MagicItem_362", "Your Showy Cyclists' Deathrattles give permanent stats.", null),
+        ("BG36_MagicItem_403", "Your minions have +1 Attack.", null),
+        ("BG36_MagicItem_403t", "Your minions have +2/+1.", null),
+        ("BG36_MagicItem_416", "After your Deity awakens, give it Reborn.", null),
+        ("BG36_MagicItem_450", "Whenever a Fishbait dies, give your Beasts +4/+4 and improve this.", null),
     ];
 
     /// <summary>Tokens the effects summon with printed stats from <see cref="Tokens"/>: card id and factory.</summary>
@@ -232,6 +279,7 @@ public sealed class EffectCardTextGuardTests
         "Hearthpulse.Core.Battlegrounds.Effects.Timewarped",
         "Hearthpulse.Core.Battlegrounds.Effects.Rewards",
         "Hearthpulse.Core.Battlegrounds.Effects.Anomalies",
+        "Hearthpulse.Core.Battlegrounds.Effects.Player",
     ];
 
     private static readonly Lazy<Dictionary<string, CardText>> Cards = new(Load);
@@ -289,7 +337,7 @@ public sealed class EffectCardTextGuardTests
     }
 
     [Fact]
-    public void Every_effect_of_the_minion_folders_has_a_row()
+    public void Every_effect_of_the_effect_folders_has_a_row()
     {
         var registered = typeof(CombatEffect).Assembly.GetTypes()
             .Where(type => type.Namespace is { } ns && EffectNamespaces.Contains(ns, StringComparer.Ordinal))

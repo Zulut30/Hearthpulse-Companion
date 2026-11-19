@@ -1,0 +1,13 @@
+{
+  "stryker-config": {
+    "solution": "Hearthpulse.slnx",
+    "project": "Hearthpulse.Core.csproj",
+    "test-projects": [ "tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj" ],
+    "configuration": "Release",
+    "mutate": [ "**/Battlegrounds/Simulation/*.cs" ],
+    "test-case-filter": "FullyQualifiedName~Hearthpulse.Tests.Sim.&FullyQualifiedName!~FiftyCombat&FullyQualifiedName!~Multithreaded&FullyQualifiedName!~SimReplay&FullyQualifiedName!~SimMeasurement&FullyQualifiedName!~DamageCalibrationReplay&Category!=Timing",
+    "coverage-analysis": "perTest",
+    "reporters": [ "html", "json", "markdown", "progress" ],
+    "thresholds": { "high": 80, "low": 60, "break": 0 }
+  }
+}

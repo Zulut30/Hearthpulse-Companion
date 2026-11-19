@@ -63,12 +63,10 @@ $ExcludedTests = [ordered]@{
     'tests/Hearthpulse.Tests/Sim/CaptureTests.cs'                   = 'Power.log replay through BattlegroundsTracker'
     'tests/Hearthpulse.Tests/Sim/SimInputsTests.cs'                 = 'Power.log replay through BattlegroundsTracker'
     'tests/Hearthpulse.Tests/Sim/DamageCalibrationReplayTests.cs'   = 'real Power.log games'
-    'tests/Hearthpulse.Tests/Sim/DamageAndLethalTests.cs'           = 'GameRecord, BattlegroundsStats, CombatOddsText (history, My Stats, UI text)'
     'tests/Hearthpulse.Tests/Sim/GeneratedPoolsTests.cs'            = 'Fixtures/BgPools card data and CardDb.Parse'
     'tests/Hearthpulse.Tests/Sim/SimMeasurementTests.cs'            = 'Hearthpulse.Bench measurement sources'
     'tests/Hearthpulse.Tests/Sim/SimReplayKit.cs'                   = 'Hearthpulse.Bench simreplay'
     'tests/Hearthpulse.Tests/Sim/SimReplayTests.cs'                 = 'Hearthpulse.Bench simreplay'
-    'tests/Hearthpulse.Tests/Effects/anomalies/EchoesOfArgusTests.cs' = 'PowerParser and BattlegroundsTracker'
 }
 
 # Hearthpulse folder -> BGSim folder; the first matching prefix wins.

@@ -56,6 +56,30 @@
    "attack": null,
    "health": null
   },
+  "BG20_HERO_100p": {
+   "name": "Glory of Combat",
+   "text": "After a friendly minion kills an enemy, give it +1 Attack permanently.",
+   "attack": null,
+   "health": null
+  },
+  "BG22_HERO_002p": {
+   "name": "Frostwolf Fervor",
+   "text": "When you have space in combat, summon a copy of your highest-Attack minion. (Unlocks on Turn 7.)",
+   "attack": null,
+   "health": null
+  },
+  "BG22_HERO_003p": {
+   "name": "Stormpike Strength",
+   "text": "When you have space in combat, summon a copy of your highest-Health minion. (Unlocks on Turn 7.)",
+   "attack": null,
+   "health": null
+  },
+  "BG22_HERO_305p": {
+   "name": "Broodmother",
+   "text": "Avenge (4): Summon a 1/1 Whelp that attacks immediately. Improve this by +1/+1.",
+   "attack": null,
+   "health": null
+  },
   "BG23_017": {
    "name": "Sanguine Champion",
    "text": "Battlecry and Deathrattle: Your Blood Gems give an extra +2/+1 this game.",
@@ -79,6 +103,12 @@
     "attack": 12,
     "health": 4
    }
+  },
+  "BG23_HERO_201p": {
+   "name": "Tentacular",
+   "text": "When you have space in combat, summon a 2/2 Tentacle with Taunt. (Gains +1/+1 after you sell a minion!)",
+   "attack": null,
+   "health": null
   },
   "BG25_008": {
    "name": "Eternal Knight",
@@ -187,6 +217,12 @@
     "attack": 2,
     "health": 14
    }
+  },
+  "BG25_HERO_103p": {
+   "name": "Rapid Reanimation",
+   "text": "Choose a friendly minion. Start of Combat: Destroy it. When you have space, resummon an exact copy.",
+   "attack": null,
+   "health": null
   },
   "BG26_350": {
    "name": "Bassgill",
@@ -464,6 +500,42 @@
     "health": 6
    }
   },
+  "BG30_MagicItem_433": {
+   "name": "Alliance Keychain",
+   "text": "The first time a friendly minion dies each combat, give its maximum stats to a random friendly minion.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_433t": {
+   "name": "Alliance Keychain",
+   "text": "The first time a friendly minion dies each combat, give its maximum stats to 2 random friendly minions.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_437": {
+   "name": "Staff of the Scourge",
+   "text": "Avenge (5): Give a random friendly Undead Reborn.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_442": {
+   "name": "Blood Golem Sticker",
+   "text": "Whenever a friendly Quilboar dies, summon a Golem with stats equal to its Blood Gems.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_540": {
+   "name": "Slamma Sticker",
+   "text": "After you summon a Beast in combat, double its Attack.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_546": {
+   "name": "Jar o' Gems",
+   "text": "After a friendly Quilboar attacks each combat, this plays a Blood Gems on all your Quilboar.",
+   "attack": null,
+   "health": null
+  },
   "BG30_MagicItem_547": {
    "name": "Comfy Coffin",
    "text": "Whenever you cast a Tavern spell, your Undead have +1 Attack this game (wherever they are).",
@@ -473,6 +545,54 @@
   "BG30_MagicItem_547t": {
    "name": "Comfy Coffin",
    "text": "Whenever you cast a Tavern spell, your Undead have +2 Attack this game (wherever they are).",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_700": {
+   "name": "Deathly Phylactery",
+   "text": "Discover a Deathrattle minion. Your first Deathrattle each combat triggers an extra time.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_864": {
+   "name": "Gilnean Thorned Rose",
+   "text": "Avenge (3): Give your minions +4/+5 permanently and deal 1 damage to them.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_880": {
+   "name": "Feral Talisman",
+   "text": "Your minions have +2/+1.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_880t": {
+   "name": "Feral Talisman",
+   "text": "Your minions have +8/+5.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_886": {
+   "name": "Reinforced Shield",
+   "text": "Whenever you summon a minion, give it Divine Shield. (5 times per combat.)",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_910": {
+   "name": "Mechagon Adapter",
+   "text": "After a friendly Mech loses Divine Shield, give it Divine Shield. (3 times per combat.)",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_925": {
+   "name": "Ceremonial Sword",
+   "text": "Whenever a friendly minion attacks, give it +4 Attack.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_978": {
+   "name": "Blingtron's Sunglasses",
+   "text": "After you summon a Mech in combat, give a friendly Mech Divine Shield.",
    "attack": null,
    "health": null
   },
@@ -608,9 +728,69 @@
     "health": 10
    }
   },
+  "BG32_MagicItem_200": {
+   "name": "All-Purpose Kibble",
+   "text": "Whenever a friendly Beast attacks, give it +4 Attack and permanently improve this.",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_301": {
+   "name": "Bassgill Portrait",
+   "text": "Get a Bassgill. After you summon a Murloc in combat, give it Divine Shield.",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_363": {
+   "name": "Faerie Dragon Scale",
+   "text": "Whenever a friendly Dragon attacks, give it Divine Shield. (3 times per combat.)",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_860": {
+   "name": "Beetle Band",
+   "text": "Avenge (5): Summon a 2/2 Beetle. Give it Taunt.",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_860t": {
+   "name": "Beetle Band",
+   "text": "Avenge (8): Summon two 2/2 Beetles. Give them Taunt.",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_862": {
+   "name": "Unholy Sanctum",
+   "text": "After you trigger a Deathrattle, give your right-most minion +2/+2 permanently.",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_862t": {
+   "name": "Unholy Sanctum",
+   "text": "After you trigger a Deathrattle, give your right-most minion +6/+4 permanently.",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_864": {
+   "name": "Bird Feeder",
+   "text": "Avenge (2): Give your minions +1/+1.",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_864t": {
+   "name": "Bird Feeder",
+   "text": "Avenge (2): Give your minions +4/+4.",
+   "attack": null,
+   "health": null
+  },
   "BG32_MagicItem_893": {
    "name": "Bluegill Flippers",
    "text": "Whenever you cast a Tavern spell, give the left-most minion in your hand and warband +3/+3.",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_907": {
+   "name": "S'Thara Sticker",
+   "text": "After your last minion dies each combat, summon your first Demon that died with its maximum stats.",
    "attack": null,
    "health": null
   },
@@ -1250,9 +1430,45 @@
     "health": 2
    }
   },
+  "BG35_MagicItem_701": {
+   "name": "Fang Anklet",
+   "text": "Start of Combat: Your Beasts have +1/+1 this combat. After you summon a Beast, improve this permanently.",
+   "attack": null,
+   "health": null
+  },
   "BG35_MagicItem_710": {
    "name": "Miniature Ship",
    "text": "After you cast a Tavern spell, give your Pirates +4/+4.",
+   "attack": null,
+   "health": null
+  },
+  "BG35_MagicItem_731": {
+   "name": "Deathtouch Apple",
+   "text": "After a friendly Undead is Reborn, give it Reborn. (3 times per turn.)",
+   "attack": null,
+   "health": null
+  },
+  "BG35_MagicItem_732": {
+   "name": "Soul Fermenter",
+   "text": "Start of Combat: Destroy your 3 left-most minions. After your last minion dies, resummon them.",
+   "attack": null,
+   "health": null
+  },
+  "BG35_MagicItem_849": {
+   "name": "Cloud Serpent Horn",
+   "text": "Avenge (3): Give the Attack of your right-most minion to another friendly Dragon.",
+   "attack": null,
+   "health": null
+  },
+  "BG35_MagicItem_871": {
+   "name": "Mama Bear Sticker",
+   "text": "Whenever you summon a Beast, give it +7/+7.",
+   "attack": null,
+   "health": null
+  },
+  "BG35_MagicItem_923": {
+   "name": "Bewitched Ribbon",
+   "text": "Whenever you cast a spell, give your minions +1/+1 permanently. (+2/+2 while in combat!)",
    "attack": null,
    "health": null
   },
@@ -1760,9 +1976,45 @@
     "health": 4
    }
   },
+  "BG36_MagicItem_201": {
+   "name": "Lionfish Portrait",
+   "text": "Get a Lurking Lionfish. Whenever a friendly Beast attacks, give it +4/+2.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_205": {
+   "name": "Deathwhisper Sticker",
+   "text": "After a friendly minion is Reborn, give your minions +2/+2.",
+   "attack": null,
+   "health": null
+  },
   "BG36_MagicItem_211": {
    "name": "Lovely Locket",
    "text": "After you cast a spell on a friendly minion, this casts it on another friendly minion.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_216": {
+   "name": "Eternal Portrait",
+   "text": "Get a Golden Eternal Knight. After a friendly Undead dies, your Eternal Knights have +4/+2 this game.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_362": {
+   "name": "Cyclist Portrait",
+   "text": "Get a Showy Cyclist. Your Showy Cyclists' Deathrattles give permanent stats.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_403": {
+   "name": "Hammer of Twilight",
+   "text": "Your minions have +1 Attack. (Improved by each card you've discarded this game!)",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_403t": {
+   "name": "Hammer of Twilight",
+   "text": "Your minions have +2/+1. (Improved by each card you've discarded this game!)",
    "attack": null,
    "health": null
   },
@@ -1775,6 +2027,18 @@
   "BG36_MagicItem_404t": {
    "name": "Corrupted Baton",
    "text": "After you cast a Tavern spell, give your Deity +10/+10.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_416": {
+   "name": "Evil Experiment",
+   "text": "After your Deity awakens, give it Reborn.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_450": {
+   "name": "Snarky Portrait",
+   "text": "Get 2 Snarky Sharks. Whenever a Fishbait dies, give your Beasts +4/+4 and improve this.",
    "attack": null,
    "health": null
   },
@@ -2023,6 +2287,12 @@
     "attack": 4,
     "health": 4
    }
+  },
+  "TB_BaconShop_HP_107": {
+   "name": "Sprout It Out!",
+   "text": "Give +1/+2 and Taunt to minions you summon during combat.",
+   "attack": null,
+   "health": null
   }
  }
 }
