@@ -2,6 +2,7 @@ using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Battlegrounds.Effects.Attack;
 using Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
+using Hearthpulse.Core.Battlegrounds.Effects.Spells;
 
 namespace Hearthpulse.Core.Tracking;
 
@@ -16,7 +17,15 @@ namespace Hearthpulse.Core.Tracking;
 internal static class SimEstimates
 {
     private const string Ghastcoiler = "BGS_008";
-    private const string CrimsonVindicatorId = "BG36_241";
+
+    // Minions that cast a Tavern spell in combat (Crimson Vindicator, Gatekeeper Amalgam, Seafloor Recruiter): the spell
+    // adds the player's Tavern spell bonus.
+    private static readonly string[] TavernSpellCasters = ["BG36_241", "BG36_640", "BG34_925"];
+
+    // Trinkets whose number an effect reads from the card (SpellTriggers.TrinketShown): Corrupted Baton, Miniature Ship,
+    // Comfy Coffin, Bluegill Flippers, Flighty Portrait. The opponent's is not captured: the printed number is used.
+    private static readonly string[] ShownTrinkets =
+        ["BG36_MagicItem_404", "BG36_MagicItem_404t", "BG35_MagicItem_710", "BG30_MagicItem_547", "BG30_MagicItem_547t", "BG32_MagicItem_893", "BG36_MagicItem_820"];
 
     // Cards whose text shows the player's Beetle ("{0}/{1} Beetle") and Beetle Band, which summons the player's Beetle.
     private static readonly string[] BeetleSummoners = ["BG31_803", "BG31_801", "BG31_809", "BG36_209"];
@@ -47,10 +56,15 @@ internal static class SimEstimates
             estimates.Add(OurValueAsPrior(SimInputs.BloodGemBonus, BloodGems.AttackTag, BloodGems.HealthTag, tags, local, "the printed +1/+1"));
         }
 
-        if (side.Minions.Any(m => m.CardId == CrimsonVindicatorId))
+        if (side.Minions.Any(m => TavernSpellCasters.Contains(m.CardId)))
         {
-            estimates.Add(OurValueAsPrior(SimInputs.TavernSpellBonus, CrimsonVindicator.SpellAttackTag, CrimsonVindicator.SpellHealthTag, tags, local,
+            estimates.Add(OurValueAsPrior(SimInputs.TavernSpellBonus, TavernSpells.SpellAttackTag, TavernSpells.SpellHealthTag, tags, local,
                                           "the printed numbers"));
+        }
+
+        foreach (var trinket in side.Extras.Where(ShownTrinkets.Contains))
+        {
+            estimates.Add(new SimEstimate(SimInputs.TrinketValue, 0, 0, trinket + ": its number is hidden from the player: the printed card"));
         }
 
         BeetleStats(side, local, estimates);

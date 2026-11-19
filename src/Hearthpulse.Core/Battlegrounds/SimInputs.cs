@@ -23,6 +23,9 @@ public static class SimInputs
     /// <summary>What a tavern spell adds on top of its printed numbers (player tags TAVERN_SPELL_*_INCREASE).</summary>
     public const string TavernSpellBonus = "tavern_spell_bonus";
 
+    /// <summary>A number on the opponent's trinket (its TAG_SCRIPT_DATA_NUM_1/2), which is not captured for them.</summary>
+    public const string TrinketValue = "trinket_value";
+
     /// <summary>The lobby's tribes (random summons draw from them).</summary>
     public const string LobbyTribes = "lobby_tribes";
 

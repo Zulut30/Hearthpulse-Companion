@@ -8,6 +8,7 @@ using Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 using Hearthpulse.Core.Battlegrounds.Effects.Player;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Power;
+using Hearthpulse.Core.SourceCapture;
 using Hearthpulse.Core.Tracking;
 using static Hearthpulse.Tests.Sim.SimTestKit;
 
@@ -260,6 +261,51 @@ public sealed class SimInputsTests
         Assert.Equal(3, CombatSimulator.Run(fight.Capture.Ours, fight.Capture.Theirs, fight.Capture.OursFirst, options with { PostGame = false }).Estimated);
         // What the live simulation was given stays as it was.
         Assert.Empty(tracker.LastCapture!.Theirs.HiddenTags);
+    }
+
+    [Fact]
+    public void The_upload_record_carries_the_opponents_exact_values_only_after_the_game_and_only_allowlisted()
+    {
+        var record = new CombatRecord(1, 7, "TB_BaconShop_HERO_01", "Win", 0, 3);
+        var (_, live) = HiddenValuesGame().Replay(Cards, EffectRegistry.Empty);
+        var (_, ended) = HiddenValuesGame().Tag("2", "PLAYSTATE", "LOST").Replay(Cards, EffectRegistry.Empty);
+        SourceCombat Upload(BattlegroundsTracker tracker)
+        {
+            var fight = Assert.Single(tracker.Captures);
+            return SourceCaptureCombat.Project(0, fight.Capture, fight.Options, fight.Facts, record)!;
+        }
+
+        // During the game: the estimates (our own values) are not the opponent's, so none of those tags is sent.
+        Assert.Empty(Upload(live).Theirs.Tags);
+        // After it: the values the log had, exactly the allowlisted tags; nothing else of the opponent's player entity.
+        Assert.Equal(
+            new Dictionary<string, int>
+            {
+                ["BACON_BLOODGEMBUFFATKVALUE"] = 11, ["BACON_BLOODGEMBUFFHEALTHVALUE"] = 5, ["BACON_OLD_GOD_ATTACK"] = 726,
+                ["BACON_OLD_GOD_HEALTH"] = 793, ["TAVERN_SPELL_ATTACK_INCREASE"] = 7, ["TAVERN_SPELL_HEALTH_INCREASE"] = 6,
+            },
+            Upload(ended).Theirs.Tags);
+        Assert.Equal(2, Upload(ended).Ours.Tags["BACON_BLOODGEMBUFFATKVALUE"]);
+    }
+
+    [Fact]
+    public void Tavern_spell_casters_and_trinket_numbers_of_the_opponent_are_estimated()
+    {
+        // Gatekeeper Amalgam casts Misplaced Tea Set (Tavern spell bonus); Miniature Ship's number is on the card.
+        var log = new PowerLog()
+            .BattlegroundsGame()
+            .Minion(30, "BG36_640", Me, 1, 5, 5)
+            .Minion(40, "BG36_640", Them, 1, 5, 5)
+            .Entity(70, "BG35_MagicItem_710", Me, "PLAY", "BATTLEGROUND_TRINKET", ("TAG_SCRIPT_DATA_NUM_1", "6"))
+            .Entity(71, "BG35_MagicItem_710", Them, "PLAY", "BATTLEGROUND_TRINKET", ("TAG_SCRIPT_DATA_NUM_1", "9"))
+            .CombatStarts()
+            .Block("ATTACK", Ref(30, "Gatekeeper Amalgam", "BG36_640", Me));
+
+        var (_, tracker) = log.Replay(Cards, EffectRegistry.Empty);
+        var capture = tracker.LastCapture!;
+
+        Assert.Empty(capture.Ours.Estimates);
+        Assert.Equal([SimInputs.TavernSpellBonus, SimInputs.TrinketValue], capture.Theirs.Estimates.Select(e => e.Input));
     }
 
     [Fact]
