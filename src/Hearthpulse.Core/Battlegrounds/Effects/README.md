@@ -65,6 +65,7 @@ internal sealed class HarmlessBonehead : CombatEffect
 | `ExtraBattlecries(f, self)` | "Your Battlecries trigger twice" while self is alive (Brann: 1, golden 2); copies do not add up, the largest wins |
 | `AfterFriendlyBattlecry(f, self, source)` | after each friendly Battlecry trigger in combat, multipliers included ("after you trigger a Battlecry") |
 | `ExtraSpellCasts(f, self, spellId, target)` | extra casts of a spell the owner casts in combat while self is alive (Balinda: 1 for a friendly target, golden 2); the largest wins |
+| `AfterFriendlyGainedStats(f, self, unit, atk, hp)` | a friendly minion gained stats from `Fight.Buff` (the positive part; auras and summon buffs are not reported): Mishmash |
 
 Properties: `NeedsHand` (the effect reads its owner's hand; stays "not simulated" for the opponent),
 `ImmuneWhileAttacking` (the engine prevents all damage to the unit while its own attack resolves: Invulnerability),
