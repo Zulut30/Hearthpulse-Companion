@@ -10,7 +10,7 @@
 
 | Вид | no_effect | resolved | implemented | missing_effect | missing_input | unknown | всего |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Существа | 286 | 9 | 144 | 13 | 0 | 0 | 452 |
+| Существа | 284 | 9 | 146 | 13 | 0 | 0 | 452 |
 | Силы героя | 123 | 12 | 7 | 0 | 0 | 0 | 142 |
 | Тринкеты | 319 | 36 | 50 | 15 | 0 | 0 | 420 |
 | Тёмные дары | 34 | 5 | 8 | 0 | 0 | 0 | 47 |
@@ -20,7 +20,7 @@
 | Аномалии | 109 | 2 | 1 | 0 | 0 | 0 | 112 |
 | Заклинания таверны | 66 | 3 | 5 | 0 | 0 | 0 | 74 |
 | Только Duos | 29 | 1 | 3 | 0 | 0 | 0 | 33 |
-| **Без «вне пула»** | 789 | 51 | 212 | 1 | 0 | 0 | 1053 |
+| **Без «вне пула»** | 787 | 51 | 214 | 1 | 0 | 0 | 1053 |
 
 ## Существа
 
@@ -166,7 +166,6 @@
 | BG32_235 | Surfing Sylvar | no_effect | да | END_OF_TURN |
 | BG36_345 | Suspicious Prisonguard | no_effect | да | ACTIVATE |
 | BG22_202 | Tad | no_effect | да | SELL |
-| BG21_015 | Tarecgosa | no_effect | да | KEEP_STATS |
 | BGS_123 | Tavern Tempest | no_effect | да | BATTLECRY |
 | BG31_924 | Thaumaturgist | no_effect | да | SPELLCRAFT |
 | BG31_327 | Thorned Trailblazer | no_effect | да | CHOOSE_ONE |
@@ -301,7 +300,6 @@
 | BG36_356 | Tyrael | no_effect | да | ACTIVATE |
 | BG36_352 | Unbound Tempest | no_effect | да | PLAY_BUY_TRIGGER |
 | BG26_152 | Utility Drone | no_effect | да | END_OF_TURN |
-| BG29_300 | Very Hungry Winterfinner | no_effect | да | ON_DAMAGE_TAKEN |
 | BG36_341 | Veteran Brigand | no_effect | да | CHOOSE_ONE |
 | BG36_370 | Victorious Geomant | no_effect | да | ACTIVATE |
 | BG36_100 | Wandering Willbreaker | no_effect | да | SELL |
@@ -425,6 +423,7 @@
 | BG36_515 | Snazzy Phantom | implemented | да | ON_REBORN |
 | BG34_322 | Stalwart Kodo | implemented | да | ON_SUMMON |
 | BG31_999 | Stitched Salvager | implemented | да | DR_SUMMON |
+| BG21_015 | Tarecgosa | implemented | да | KEEP_STATS |
 | BG36_202 | Tasty Lobster | implemented | да | DR_BUFF |
 | BG34_320 | The Last One Standing | implemented | да | RALLY_BUFF |
 | BG36_109 | The Shadow of Doubt | implemented | да | CARD_TO_HAND_TRIGGER |
@@ -462,6 +461,7 @@
 | BG36_703 | Twilight Tidehunter | implemented | да | SPELL_CAST_TAVERN |
 | BG36_116 | Underrot Spawn | implemented | да | DR_SUMMON |
 | BG36_101 | Unwilling Slacker | implemented | да | DR_TAVERN |
+| BG29_300 | Very Hungry Winterfinner | implemented | да | ON_DAMAGE_TAKEN; у соперника missing_input (рука скрыта) |
 | BG36_108 | Vicious Mindslasher | implemented | да | SPELL_TRIGGER |
 | BGS_126 | Wildfire Elemental | implemented | да | AFTER_ATTACK |
 | BG36_207 | Wolf Pup | implemented | да | RALLY_BUFF |
