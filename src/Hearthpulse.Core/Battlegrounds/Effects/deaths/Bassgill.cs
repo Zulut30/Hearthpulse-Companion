@@ -23,7 +23,7 @@ internal sealed class Bassgill : CombatEffect
         var place = self;
         for (var n = 0; n < self.Pick(1, 2); n++)
         {
-            var index = HighestHealthMurloc(fight, hand);
+            var index = fight.BestCard(hand, IsMurloc, m => m.Health, self);
             if (index < 0 || fight.SummonAt(place, hand[index]) is not { } summoned)
             {
                 return;
@@ -34,27 +34,5 @@ internal sealed class Bassgill : CombatEffect
         }
     }
 
-    private static int HighestHealthMurloc(Fight fight, List<SimMinion> hand)
-    {
-        int best = -1, ties = 0;
-        for (var i = 0; i < hand.Count; i++)
-        {
-            if ((hand[i].Tribes & Tribe.Murloc) == 0)
-            {
-                continue;
-            }
-
-            if (best < 0 || hand[i].Health > hand[best].Health)
-            {
-                best = i;
-                ties = 1;
-            }
-            else if (hand[i].Health == hand[best].Health && fight.Random.Next(++ties) == 0)
-            {
-                best = i;
-            }
-        }
-
-        return best;
-    }
+    private static bool IsMurloc(SimMinion minion) => (minion.Tribes & Tribe.Murloc) != 0;
 }

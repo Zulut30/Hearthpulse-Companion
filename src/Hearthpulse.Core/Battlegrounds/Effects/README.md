@@ -85,9 +85,13 @@ from the log yet).
 
 - Board: `Alive(side, tribe, except)`, `Neighbours(unit)`, `unit.Position`, `side.Minions` (left to right, dying
   minions included until the death phase), `side.IsFull`, `side.DeadThisFight`, `side.DeathrattlesTriggered`.
-- Random (seeded per board; only `Random.Next(n)` is used so tests can script it): `RandomFriendly(self, tribe,
-  includeSelf)`, `RandomEnemy(self, tribe)`, `RandomOf(list)`, `RandomDistinct(list, n)`, `Best(list, key)`
-  (random tie-break).
+- Decisions: every random pick goes through the fight's `ICombatChooser` (`Simulation/CombatChooser.cs`) with a
+  `ChoiceKind`, the deciding unit and the candidates: seeded `RandomChooser` for the odds, the log's answers for a replay
+  (Bench `simreplay`). Never touch `System.Random` in an effect (`SimReplayTests` fails on it); use
+  `RandomFriendly(self, tribe, includeSelf)`, `RandomEnemy(self, tribe)`, `RandomOf(list, self)`,
+  `RandomDistinct(list, n, self)`, `Best(list, key, self)` (tie-break), `BestCard(cards, eligible, key, self)` (hand
+  tie-break), or `Choose(kind, self, units|cards)` for a pool (`RandomSummon`, `RandomCard`, `RandomHandCard`). Pass
+  `self` as the source: a replay finds the answer in that source's triggered effect.
 - Summons: `SummonAt(place, minion)` – in a dead minion's old slot (deathrattles), or right of a living one;
   `SummonAt(place, minion, count)`; `Summon(side, minion, index)`; `Summon(side, cardId, atk, hp, keywords, slot)`.
   All return null once the side has 7 minions (extra summons are lost). Token stats: `Tokens.*`
@@ -150,7 +154,7 @@ public void Bonehead_summons_two_skeletons()
         Side(Minion(1, 1, cardId: "BG28_300", tribes: Tribe.Undead)),
         Side(Minion(5, 50)),
         oursFirst: false,
-        picks: [0]);                      // scripted Random.Next results, in call order (then 0)
+        picks: [0]);                      // scripted picks, one per decision in call order (then 0)
     Assert.Equal(2, result.Log.Count(l => l.StartsWith("summoned our BG_ICC_026t", StringComparison.Ordinal)));
 }
 ```

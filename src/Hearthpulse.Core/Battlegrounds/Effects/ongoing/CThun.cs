@@ -24,12 +24,12 @@ internal sealed class CThun : DeityEffect
         var health = new int[others.Count];
         for (var i = self.Attack * factor; i > 0; i--)
         {
-            attack[fight.Random.Next(others.Count)]++;
+            attack[fight.Choose(ChoiceKind.StatSplit, self, others)]++;
         }
 
         for (var i = self.Health * factor; i > 0; i--)
         {
-            health[fight.Random.Next(others.Count)]++;
+            health[fight.Choose(ChoiceKind.StatSplit, self, others)]++;
         }
 
         for (var i = 0; i < others.Count; i++)

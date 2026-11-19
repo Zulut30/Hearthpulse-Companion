@@ -125,10 +125,17 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // stats, Rot Hide Gnoll); with the old pool files (checked) the fingerprint is still A488D069E48228A5.
         // 2026-11-19 (E1 sim-spells): the spell, card-to-hand and spell-trinket effects add ids and two new trace lines
         // ("... gets a Blood Gem", "we/they get ..."); without those types and lines (checked) it is still 60958721CA247FFC.
+        // 2026-11-19 (sim-all-mechanics E4): 29 new effect ids (Death's Embrace, Turbulent Tombs, Gilnean War Horn,
+        // Temporal Tampering, Echoes of Argus, 23 Timewarped minions); without them (checked) the fingerprint is still
+        // 30FC3B58C163F3F4.
+        // 2026-11-19 (P1, decisions through ICombatChooser): Best's tie-break no longer draws for a tie a higher value later
+        // beats. Such ties occur on these boards: with those draws put back (checked) the fingerprint is still E4's
+        // D257E5976B8595DA. The picks of E1 (Lichling Hoarder, Lovely Locket, Misplaced Tea Set) and E4 (Timewarped Tide
+        // Razor, Warghoul, Chimera, Scourfin) moved to the chooser draw as before.
         // 2026-11-19 (sim-rules): engine rules from real Power.log fights change these fights on purpose (rules-evidence
         // 2b, 4a, 4d, 4e; effects-audit E1, E2: a dead attacker's summons attack next, deaths in order of play, Reborn
         // after Avenge, reborn max Health, friendly-attack hooks before Rally, deathrattles A,A,B,B); the boards are the
-        // same, and before those rules (main at f17e31d6) the fingerprint is 30FC3B58C163F3F4.
-        Assert.Equal("fights 80F57963C89A69F9", actual);
+        // same, and before those rules (main at 477cea1e) the fingerprint is 95522083F5E8B9A8.
+        Assert.Equal("fights 55E83240E09D2A76", actual);
     }
 }

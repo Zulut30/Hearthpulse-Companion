@@ -12,7 +12,7 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Spells;
 internal static class CardToHand
 {
     /// <summary>A card nobody can name before it is drawn (a random one).</summary>
-    public const string Random = "";
+    public const string AnyCard = "";
 
     /// <summary>The card a "Get" minion gets (normal version: one; golden: two), or null for other minions.</summary>
     public static string? CardOf(string minionId) => minionId switch
@@ -20,22 +20,22 @@ internal static class CardToHand
         "BG32_111" => TavernSpells.MisplacedTeaSet, // Nightmare Par-tea Guest: Battlecry and Deathrattle
         "BG32_336" => "BG32_337",                    // Gormling Gourmet: Seafood Stew
         "BG32_820" => "BG28_168",                    // Firescale Hoarder: Shiny Ring
-        "BG33_821" => Random,                        // Shipwrecked Rascal: a random Bounty
-        "BG34_171" => Random,                        // Conveyor Construct: a random Magnetic Volumizer
-        "BG34_319" => Random,                        // Highkeeper Ra: a random Tier 6 minion (Deathrattle and Rally)
-        "BG34_633" => Random,                        // Draconic Warden: a random Chromadrake
+        "BG33_821" => AnyCard,                        // Shipwrecked Rascal: a random Bounty
+        "BG34_171" => AnyCard,                        // Conveyor Construct: a random Magnetic Volumizer
+        "BG34_319" => AnyCard,                        // Highkeeper Ra: a random Tier 6 minion (Deathrattle and Rally)
+        "BG34_633" => AnyCard,                        // Draconic Warden: a random Chromadrake
         "BG34_682" => "BG34_689",                    // Razorfen Flapper: Blood Gem Barrage
         "BG35_881" => "BG35_911",                    // Leyline Surfacer: Arcane Absorption
-        "BG36_101" => Random,                        // Unwilling Slacker: a random 1-Cost Tavern spell
+        "BG36_101" => AnyCard,                        // Unwilling Slacker: a random 1-Cost Tavern spell
         "BG36_103" => "BG36_371",                    // N'raqi Sapper: Energizing Chamber
         "BG36_731" => "BG36_880",                    // Imp-lusionist: Methodical Madness
         "BG36_854" => "BG36_624",                    // Rescue Bot: Repair Job
         "BGDUO_111" => "BG20_GEM",                   // Generous Geomancer (Duos): you (and your teammate) get a Blood Gem
         "BG20_101" => "BG20_GEM",                    // Roadboar: Rally
-        "BG33_822" => Random,                        // Bigwig Bandit: Rally, a random Bounty
-        "BG36_204" => Random,                        // Headhunter Gryphon: Rally, a random Beast
-        "BG36_242" => Random,                        // Bronze Timewalker: Rally, a random Chromadrake
-        "BG36_331" => Random,                        // Bramble Tunneler: Rally, a random Choose One card
+        "BG33_822" => AnyCard,                        // Bigwig Bandit: Rally, a random Bounty
+        "BG36_204" => AnyCard,                        // Headhunter Gryphon: Rally, a random Beast
+        "BG36_242" => AnyCard,                        // Bronze Timewalker: Rally, a random Chromadrake
+        "BG36_331" => AnyCard,                        // Bramble Tunneler: Rally, a random Choose One card
         "BG32_324" => "BG28_604",                    // Drustfallen Butcher: Avenge (4), Butchering
         _ => null,
     };
@@ -130,13 +130,13 @@ internal sealed class LichlingHoarder : AvengeEffect
         var start = self.Side.Info.Minions;
         for (var i = 0; i < self.Pick(1, 2) && start.Count > 0; i++)
         {
-            var source = start[PickStarter(fight, start.Count)];
+            var source = start[PickStarter(fight, self, start)];
             var copy = SimMinion.Create(source.CardId, source.RebornAttack, source.BaseHealth > 0 ? source.BaseHealth : source.Health,
                 source.Tribes, source.BaseKeywords, source.Golden, source.Mechanics) with { TechLevel = source.TechLevel };
             fight.AddToHand(self.Side, source.CardId, copy);
         }
     }
 
-    /// <summary>The random minion of the starting warband.</summary>
-    private static int PickStarter(Fight fight, int count) => fight.Random.Next(count);
+    /// <summary>The random minion of the starting warband (one decision of this Hoarder per copy).</summary>
+    private static int PickStarter(Fight fight, Unit self, IReadOnlyList<SimMinion> start) => fight.Choose(ChoiceKind.RandomCard, self, start);
 }

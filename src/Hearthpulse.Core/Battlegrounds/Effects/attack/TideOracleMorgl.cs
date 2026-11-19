@@ -32,7 +32,8 @@ internal sealed class TideOracleMorgl : CombatEffect
         var factor = self.Pick(1, 2);
         var attack = target.Attack * factor;
         var health = Math.Max(target.MaxHealth, 0) * factor;
-        var index = PickHandMinion(fight, hand.Count);
+        // "A minion in your hand": one at random, a decision of this Morgl.
+        var index = fight.Choose(ChoiceKind.RandomHandCard, self, hand);
         var minion = hand[index];
         hand[index] = minion with
         {
@@ -42,7 +43,4 @@ internal sealed class TideOracleMorgl : CombatEffect
         };
         if (fight.Tracing) fight.Trace($"{minion.CardId} in hand gets +{attack}/+{health}");
     }
-
-    /// <summary>"A minion in your hand": one at random.</summary>
-    private static int PickHandMinion(Fight fight, int count) => fight.Random.Next(count);
 }

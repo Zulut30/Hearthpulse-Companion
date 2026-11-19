@@ -3,8 +3,9 @@ using Hearthpulse.Core.Battlegrounds.Effects;
 namespace Hearthpulse.Core.Battlegrounds;
 
 /// <summary>
-/// One simulated Battlegrounds fight and the API card effects use: board queries, random picks (seeded), summons,
-/// buffs, damage, destroy, extra attacks and deathrattle triggers.
+/// One simulated Battlegrounds fight and the API card effects use: board queries, decisions (<see cref="ICombatChooser"/>:
+/// seeded random picks for the odds, the log's answers for a replay), summons, buffs, damage, destroy, extra attacks and
+/// deathrattle triggers.
 /// </summary>
 /// <remarks>
 /// Rules and the assumptions behind them (unverified against real logs where noted):
@@ -50,6 +51,7 @@ public sealed partial class Fight
     private readonly List<Unit> _dead = new();
     // One observer buffer per nesting depth, so hooks can be dispatched without allocating.
     private readonly Unit[]?[] _buffers = new Unit[MaxDepth + 8][];
+    private readonly ICombatChooser _chooser;
     private Queue<Unit>? _queuedAttacks;
     private List<DamageEvent>? _batch;
     private int _batchDepth;
@@ -57,11 +59,12 @@ public sealed partial class Fight
     private int _depth;
     private int _attacks;
     private int _nextEntry = SimSummonEntry;
+    private int _attacksInProgress;
 
-    internal Fight(SimSide ours, SimSide theirs, EffectRegistry registry, Random random, bool trace, PreparedEffects? prepared = null)
+    internal Fight(SimSide ours, SimSide theirs, EffectRegistry registry, ICombatChooser chooser, bool trace, PreparedEffects? prepared = null)
     {
         _registry = registry;
-        Random = random;
+        _chooser = chooser;
         _log = trace ? new List<string>() : null;
         Ours = new Side(this, 0, ours);
         Theirs = new Side(this, 1, theirs);
@@ -104,10 +107,10 @@ public sealed partial class Fight
     public Side Theirs { get; }
 
     /// <summary>
-    /// The fight's random source. Use only <see cref="System.Random.Next(int)"/> so tests can script picks; prefer the
-    /// helpers (<see cref="RandomOf"/>, <see cref="RandomFriendly"/>...).
+    /// Attacks being resolved right now: 0 between attacks, 1 during an attack, more for an attack started inside another
+    /// (a replay tells a regular attack from a nested one by it).
     /// </summary>
-    public Random Random { get; }
+    internal int AttacksInProgress => _attacksInProgress;
 
     /// <summary>The side whose attack is being resolved (its deaths resolve first when <see cref="EnteredFirst"/> is unknown).</summary>
     public Side Attacking { get; private set; }
@@ -129,7 +132,8 @@ public sealed partial class Fight
             true => Ours,
             false => Theirs,
             // The side with more minions attacks first; a coin flip on equal counts.
-            null => Ours.Count > Theirs.Count ? Ours : Theirs.Count > Ours.Count ? Theirs : Random.Next(2) == 0 ? Ours : Theirs,
+            null => Ours.Count > Theirs.Count ? Ours : Theirs.Count > Ours.Count ? Theirs
+                : Pick(new CombatChoice(ChoiceKind.FirstAttacker, null, 2, null, null)) == 0 ? Ours : Theirs,
         };
 
         if (firstAttackerEntityId != 0)

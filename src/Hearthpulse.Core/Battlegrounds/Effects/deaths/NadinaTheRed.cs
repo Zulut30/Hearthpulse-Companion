@@ -15,7 +15,7 @@ internal sealed class NadinaTheRed : CombatEffect
     {
         var candidates = fight.Alive(self.Side, Tribe.Dragon, except: self);
         candidates.RemoveAll(static unit => unit.DivineShield);
-        foreach (var unit in DeathKit.Choose(fight, candidates, self.Pick(3, 6)))
+        foreach (var unit in DeathKit.Choose(fight, candidates, self.Pick(3, 6), self))
         {
             fight.GiveKeywords(unit, Keyword.DivineShield);
         }

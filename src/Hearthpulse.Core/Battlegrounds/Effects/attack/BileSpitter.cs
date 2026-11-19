@@ -15,7 +15,7 @@ internal sealed class BileSpitter : CombatEffect
     public override void OnAttack(Fight fight, Unit self, Unit target)
     {
         var candidates = fight.Alive(self.Side, Tribe.Murloc, except: self).Where(u => !u.Venomous).ToList();
-        foreach (var murloc in fight.RandomDistinct(candidates, self.Pick(1, 2)))
+        foreach (var murloc in fight.RandomDistinct(candidates, self.Pick(1, 2), self))
         {
             fight.GiveKeywords(murloc, Keyword.Venomous);
         }

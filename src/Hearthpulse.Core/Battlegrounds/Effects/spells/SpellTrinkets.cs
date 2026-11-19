@@ -20,7 +20,7 @@ internal sealed class LovelyLocket : CombatEffect
         }
 
         var spell = fight.CurrentSpell;
-        if (spell.Source == self || PickOther(fight, target) is not { } other)
+        if (spell.Source == self || PickOther(fight, self, target) is not { } other)
         {
             return;
         }
@@ -29,7 +29,7 @@ internal sealed class LovelyLocket : CombatEffect
     }
 
     /// <summary>The random "another friendly minion".</summary>
-    private static Unit? PickOther(Fight fight, Unit target) => fight.RandomOf(fight.Alive(target.Side, except: target));
+    private static Unit? PickOther(Fight fight, Unit self, Unit target) => fight.RandomOf(fight.Alive(target.Side, except: target), self);
 }
 
 /// <summary>

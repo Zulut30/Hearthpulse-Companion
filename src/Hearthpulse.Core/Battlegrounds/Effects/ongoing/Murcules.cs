@@ -26,7 +26,7 @@ internal sealed class Murcules : CombatEffect
             return;
         }
 
-        var index = fight.Random.Next(hand.Count);
+        var index = fight.Choose(ChoiceKind.RandomHandCard, self, hand);
         var bonus = self.Pick(3, 6);
         var minion = hand[index];
         hand[index] = minion with

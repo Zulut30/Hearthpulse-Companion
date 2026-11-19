@@ -15,7 +15,7 @@ internal sealed class DeVolitionist : CombatEffect
     public override void AfterAttack(Fight fight, Unit self, Unit target, AttackOutcome outcome)
     {
         var damage = self.Attack * self.Pick(1, 2);
-        if (damage > 0 && fight.Best(fight.Alive(self.Enemy), u => u.Health) is { } victim)
+        if (damage > 0 && fight.Best(fight.Alive(self.Enemy), u => u.Health, self) is { } victim)
         {
             fight.DealDamage(self, victim, damage);
         }
