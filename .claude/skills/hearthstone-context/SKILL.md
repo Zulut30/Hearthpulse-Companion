@@ -94,7 +94,9 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
 - Target: random enemy, Taunt minions first; Stealth minions only when nothing else can be attacked
   (`CombatSimulator`).
 - Attacker and defender deal their Attack as damage to each other simultaneously; minions at 0 health die in a death
-  phase; Deathrattles then Reborn resolve; "after a friendly minion dies" effects and Avenge counters follow.
+  phase, in order of play (the lower lobby PLAYER_ID side's starting minions, the other side's, then minions summoned
+  in combat); Deathrattles resolve, then "after a friendly minion dies" effects and Avenge counters, then Reborn.
+  A dead attacker's deathrattle tokens and reborn copy take its slot and attack next.
 - Keywords (`Traits.Keyword`): **Taunt**; **Divine Shield** (absorbs the first damage); **Poisonous** (destroys any
   minion it damages); **Venomous** (like Poisonous, used up once it triggers); **Reborn** (returns once with 1 health
   and its printed Attack); **Windfury** (attacks twice), **Mega-Windfury** (four times); **Stealth**.
