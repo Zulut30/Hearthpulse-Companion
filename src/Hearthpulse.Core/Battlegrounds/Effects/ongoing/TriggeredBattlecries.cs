@@ -6,9 +6,9 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 // triggers their Battlecry there (Timewarped Greenskeeper: "Rally: Trigger your right-most Battlecry",
 // Fight.TriggerBattlecry). The numbers are the captured TAG_SCRIPT_DATA_NUM_1/2 where real logs (2026-11-15) show the
 // card carrying them, else the HearthstoneJSON latest text (2026-11-19). Battlecries that get cards, Gold or Discover
-// only count as triggered. Not modelled (a wrong guess would be worse than none): Battlecries with a chosen target that
-// destroy or make Golden (Disguised Graverobber, Maw Caster, Elite Navigator, Captain Sanders), "a random Bonus Keyword"
-// (Bubble Gunner) and gold-scaled ones (Lovesick Balladist).
+// only count as triggered. Battlecries with a chosen target that destroy or make Golden (Disguised Graverobber, Maw Caster,
+// Elite Navigator, Captain Sanders) and "a random Bonus Keyword" (Bubble Gunner): CombatBattlecries.cs. Not modelled:
+// gold-scaled ones (Lovesick Balladist).
 
 /// <summary>Joyous (BG36_110): "Battlecry: Give your Deity +2/+1." Golden: "+4/+2". Script data 2/1 in a real log.</summary>
 [CardEffect("BG36_110")]

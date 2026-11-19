@@ -126,6 +126,11 @@ public sealed class EffectCardTextGuardTests
         ("BG36_360", "This has a different Dark Gift, stats, and Tier each game!", "This has a different Dark Gift, stats, and Tier each game!"),
         ("BG36_360t6", "Has +4/+4 for each Battlecry you've triggered this game", "Has +8/+8 for each Battlecry you've triggered this game"),
         ("BG36_360_Gt6", "Has +8/+8 for each Battlecry you've triggered this game", null),
+        ("BG31_149", "Battlecry: Gain a random Bonus Keyword.", "Battlecry: Gain 2 random Bonus Keywords."),
+        ("BG25_034", "Battlecry: Make a friendly minion from Tier 6 or below Golden.", "Battlecry: Make two friendly minions from Tier 6 or below Golden."),
+        ("BG32_231", "Battlecry: Make a friendly Pirate from Tier 4 or below Golden.", "Battlecry: Make 2 friendly Pirates from Tier 4 or below Golden."),
+        ("BG28_303", "Battlecry: Destroy a friendly Undead to get a plain copy of it.", "Battlecry: Destroy a friendly Undead to get 2 plain copies of it."),
+        ("BG32_340", "Battlecry: Destroy a friendly Undead to Discover an Undead.", "Battlecry: Destroy a friendly Undead to Discover 2 Undead."),
 
         // spells/ (and the Tavern spells cast in combat)
         ("BG35_921", "Has +2/+1 for each Tavern spell you've cast this game.", "Has +4/+2 for each Tavern spell you've cast this game."),
@@ -174,8 +179,17 @@ public sealed class EffectCardTextGuardTests
         ("BG36_108", "Whenever you cast a Tavern spell, give this and your Deity +1/+2.", "Whenever you cast a Tavern spell, give this and your Deity +2/+4."),
         ("BG28_888", "Give a friendly minion of each type +3/+3.", null),
         ("BG28_518", "Get a different minion of the same type.", null),
+        ("BG30_MagicItem_434", "Your first spell each turn casts an extra time.", null),
+        ("BG36_MagicItem_371", "Your Tavern spells give an extra +1/+1. After you cast a spell on a minion, improve for this turn only.", null),
+        ("BG32_MagicItem_808", "After you cast 4 spells, this plays a Blood Gem on all your minions.", null),
+        ("BG32_MagicItem_808t", "After you cast 5 spells, this plays two Blood Gems on all your minions.", null),
+        ("BG28_603", "When you have space in combat, summon two 2/2 Beetles and give them Taunt.", null),
+        ("BG36_360t5", "Rally: Get a random minion of your most common type.", "Rally: Get 2 random minions of your most common type."),
+        ("BG36_521", "Deathrattle: Get a Lockbox. If you already have one, it opens 1 turn sooner instead.", "it opens 2 turns sooner instead."),
 
         // timewarped/, rewards/, anomalies/ (and Death's Embrace in deaths/)
+        ("BG34_Giant_074t", "Discover a Pirate to crew the ship.", "Discover 2 Pirates to crew the ship."),
+        ("BG33_Reward_021", "Your Rallies trigger an extra time.", null),
         ("BG36_MidGameEffect_000t29e", "Has +2/+2 for each Deathrattle you've triggered this game.", null),
         ("BG36_MidGameEffect_000t29te", "Has +1/+1 for each Deathrattle you've triggered this game.", null),
         ("BG34_Giant_001", "Battlecry and Deathrattle: Gain 1 Gold next turn.", "Battlecry and Deathrattle: Gain 2 Gold next turn."),

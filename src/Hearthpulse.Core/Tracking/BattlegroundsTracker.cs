@@ -34,6 +34,11 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     // (e.g. Stitched Salvager's start-of-combat destroy), as they were when removed, by the trigger's source.
     private readonly Dictionary<int, List<SimMinion>> _removedBy = new();
 
+    // Timewarped Nellie's Ship: the Pirates the local player Discovered for each ship's crew, by the ship's entity id,
+    // with the turn of the pick; and the ship whose Discover is open (0 = none).
+    private readonly Dictionary<int, (int Turn, List<string> Pirates)> _crew = new();
+    private int _crewShip;
+
     // Minions that died after combat started and before the boards were captured (Start of Combat), in order, with
     // their controller; and for minions that entered the board in that time, how many of those deaths came before.
     private readonly List<(int Controller, SimMinion Dead)> _deathsBeforeCapture = new();
@@ -196,6 +201,8 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _deathsBeforeCapture.Clear();
         _enteredAfterDeaths.Clear();
         _hiddenOpponentTags.Clear();
+        _crew.Clear();
+        _crewShip = 0;
         _gameEnded = false;
         _transcript = null;
         ResetRounds();
@@ -206,6 +213,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     public void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options)
     {
         RememberChoice(game, choiceType, source, options);
+        NoteCrewOffer(source);
 
         // Lesser/Greater Trinket offers arrive as a GENERAL choice of trinket cards.
         if (options.Count > 0 && options.All(IsTrinket))
@@ -234,6 +242,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
 
     public void OnChosen(GameState game, Entity chosen)
     {
+        NoteCrewPick(game, chosen);
         if (_openChoice < 0 || _openChoice >= _choices.Count || !_openOptions.Any(o => o.Id == chosen.Id) || chosen.CardId.Length == 0)
         {
             return;

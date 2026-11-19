@@ -188,10 +188,12 @@ public sealed partial class BattlegroundsTracker
             return tags;
         }
 
-        foreach (var entity in game.Controlled(controller, "PLAY").Where(e => e.CardId.Length > 0 && extras.Contains(e.CardId)).OrderBy(e => e.Id))
+        // Quests and lasting Tavern spells wait in the SECRET zone (BattlegroundsTracker.Objectives), with their own values.
+        var cards = game.Controlled(controller, "PLAY").Concat(game.Controlled(controller, "SECRET"));
+        foreach (var entity in cards.Where(e => e.CardId.Length > 0 && extras.Contains(e.CardId)).OrderBy(e => e.Id))
         {
             var wanted = new Dictionary<string, int>(StringComparer.Ordinal);
-            foreach (var tag in CombatEffect.CapturedTags)
+            foreach (var tag in entity.Zone == "SECRET" ? SimInputs.ObjectiveTags : CombatEffect.CapturedTags)
             {
                 if (entity.Tags.ContainsKey(tag))
                 {

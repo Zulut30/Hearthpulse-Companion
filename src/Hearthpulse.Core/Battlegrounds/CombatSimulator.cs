@@ -563,6 +563,11 @@ public static partial class CombatSimulator
                     AddText(m.CreatorCardId);
                 }
 
+                if (m.ScriptData3 != 0 || m.ScriptData4 != 0 || m.Crew.Count > 0)
+                {
+                    AddText($"{m.ScriptData3}/{m.ScriptData4}/{string.Join(',', m.Crew.Select(c => c.CardId))}");
+                }
+
                 foreach (var remembered in m.Remembered)
                 {
                     AddText(remembered.CardId);

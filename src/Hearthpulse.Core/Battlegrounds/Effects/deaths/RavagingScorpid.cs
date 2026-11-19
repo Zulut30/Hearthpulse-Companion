@@ -14,8 +14,8 @@ internal sealed class RavagingScorpid : CombatEffect
 {
     public override void AfterFriendlyAttack(Fight fight, Unit self, Unit attacker, Unit target, AttackOutcome outcome)
     {
-        var bonus = self.Pick(4, 8);
-        Beetles.Improve(fight, self.Side, bonus, bonus);
+        var (attack, health) = Beetles.Bonus(self, 4, 8);
+        Beetles.Improve(fight, self.Side, attack, health);
     }
 
     public override void Deathrattle(Fight fight, Unit self) => Beetles.Summon(fight, self, self.Pick(1, 2));

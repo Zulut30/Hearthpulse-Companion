@@ -35,6 +35,29 @@ public static class SimInputs
     /// <summary>Duos: our teammate's board, when it was not on the log at capture: as last seen (or none).</summary>
     public const string DuosPartnerBoard = "duos_partner_board";
 
+    /// <summary>The crew of the opponent's Timewarped Nellie's Ship: a Discover pick the player does not see.</summary>
+    public const string ShipCrew = "ship_crew";
+
+    /// <summary>Timewarped Nellie's Ship, whose crew the tracker records for the local player (<see cref="SimMinion.Crew"/>).</summary>
+    public const string NelliesShip = "BG34_Giant_074t";
+
+    /// <summary>A quest's progress so far (its QUEST_PROGRESS tag).</summary>
+    public const string QuestProgress = "QUEST_PROGRESS";
+
+    /// <summary>A quest's target (QUEST_PROGRESS_TOTAL).</summary>
+    public const string QuestTotal = "QUEST_PROGRESS_TOTAL";
+
+    /// <summary>The dbfId of a quest's reward card (QUEST_REWARD_DATABASE_ID; Power.log 2026-11-15 L500730).</summary>
+    public const string QuestReward = "QUEST_REWARD_DATABASE_ID";
+
+    /// <summary>
+    /// The tags kept of the local player's quests and lasting Tavern spells in the SECRET zone (<see cref="SimSide.ExtraTags"/>):
+    /// their script numbers (Boon of Beetles: the Beetle's stats and how many are left) and a quest's task and reward. Kept in
+    /// the local capture file; not part of the pool's card values (<see cref="CombatEffect.CapturedTags"/>).
+    /// </summary>
+    public static IReadOnlyList<string> ObjectiveTags { get; } =
+        ["TAG_SCRIPT_DATA_NUM_1", "TAG_SCRIPT_DATA_NUM_2", "TAG_SCRIPT_DATA_NUM_3", QuestProgress, QuestTotal, QuestReward];
+
     /// <summary>"Unplayable" (BG26_350e2): a hand card summoned "for this combat only" by Start of Combat.</summary>
     public const string UnplayableEnchantment = "BG26_350e2";
 

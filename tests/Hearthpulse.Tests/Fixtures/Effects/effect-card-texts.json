@@ -176,6 +176,18 @@
     "health": 2
    }
   },
+  "BG25_034": {
+   "name": "Captain Sanders",
+   "text": "Battlecry: Make a friendly minion from Tier 6 or below Golden.",
+   "attack": 9,
+   "health": 9,
+   "golden": {
+    "id": "BG25_034_G",
+    "text": "Battlecry: Make two friendly minions from Tier 6 or below Golden.",
+    "attack": 18,
+    "health": 18
+   }
+  },
   "BG25_354": {
    "name": "Titus Rivendare",
    "text": "Your Deathrattles trigger an extra time.",
@@ -338,6 +350,18 @@
     "health": 2
    }
   },
+  "BG28_303": {
+   "name": "Disguised Graverobber",
+   "text": "Battlecry: Destroy a friendly Undead to get a plain copy of it.",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "BG28_303_G",
+    "text": "Battlecry: Destroy a friendly Undead to get 2 plain copies of it.",
+    "attack": 8,
+    "health": 8
+   }
+  },
   "BG28_309": {
    "name": "Mummifier",
    "text": "Deathrattle: Give a different friendly Undead Reborn.",
@@ -367,6 +391,12 @@
     "attack": 8,
     "health": 12
    }
+  },
+  "BG28_603": {
+   "name": "Boon of Beetles",
+   "text": "When you have space in combat, summon two 2/2 Beetles and give them Taunt. (2 left!)",
+   "attack": null,
+   "health": null
   },
   "BG28_603t": {
    "name": "Beetle",
@@ -464,6 +494,12 @@
     "health": 6
    }
   },
+  "BG30_MagicItem_434": {
+   "name": "Replica Cathedral",
+   "text": "Your first spell each turn casts an extra time.",
+   "attack": null,
+   "health": null
+  },
   "BG30_MagicItem_547": {
    "name": "Comfy Coffin",
    "text": "Whenever you cast a Tavern spell, your Undead have +1 Attack this game (wherever they are).",
@@ -485,6 +521,18 @@
     "id": "BG31_148_G",
     "text": "Battlecry: Give your other minions +6/+4. (Improved by each different Bonus Keyword in your warband!)",
     "attack": 10,
+    "health": 6
+   }
+  },
+  "BG31_149": {
+   "name": "Bubble Gunner",
+   "text": "Battlecry: Gain a random Bonus Keyword.",
+   "attack": 2,
+   "health": 3,
+   "golden": {
+    "id": "BG31_149_G",
+    "text": "Battlecry: Gain 2 random Bonus Keywords.",
+    "attack": 4,
     "health": 6
    }
   },
@@ -572,6 +620,18 @@
     "health": 6
    }
   },
+  "BG32_231": {
+   "name": "Elite Navigator",
+   "text": "Battlecry: Make a friendly Pirate from Tier 4 or below Golden.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG32_231_G",
+    "text": "Battlecry: Make 2 friendly Pirates from Tier 4 or below Golden.",
+    "attack": 10,
+    "health": 10
+   }
+  },
   "BG32_324": {
    "name": "Drustfallen Butcher",
    "text": "Avenge (4): Get a Butchering.",
@@ -596,6 +656,18 @@
     "health": 6
    }
   },
+  "BG32_340": {
+   "name": "Maw Caster",
+   "text": "Battlecry: Destroy a friendly Undead to Discover an Undead.",
+   "attack": 4,
+   "health": 5,
+   "golden": {
+    "id": "BG32_340_G",
+    "text": "Battlecry: Destroy a friendly Undead to Discover 2 Undead.",
+    "attack": 8,
+    "health": 10
+   }
+  },
   "BG32_820": {
    "name": "Firescale Hoarder",
    "text": "Battlecry and Deathrattle: Get a Shiny Ring.",
@@ -607,6 +679,18 @@
     "attack": 10,
     "health": 10
    }
+  },
+  "BG32_MagicItem_808": {
+   "name": "Bloodbound Earrings",
+   "text": "After you cast 4 spells, this plays a Blood Gem on all your minions. (4 left!)",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_808t": {
+   "name": "Bloodbound Earrings",
+   "text": "After you cast 5 spells, this plays two Blood Gems on all your minions. (5 left!)",
+   "attack": null,
+   "health": null
   },
   "BG32_MagicItem_893": {
    "name": "Bluegill Flippers",
@@ -721,6 +805,12 @@
     "attack": 4,
     "health": 6
    }
+  },
+  "BG33_Reward_021": {
+   "name": "Rallying Cry",
+   "text": "Get a copy of '0'. Your Rallies trigger an extra time.",
+   "attack": null,
+   "health": null
   },
   "BG34_140": {
    "name": "Expert Aviator",
@@ -936,6 +1026,18 @@
     "text": "Deathrattle: Summon the 2 highest-Health minions from your hand and give them Divine Shield for this combat only.",
     "attack": 14,
     "health": 8
+   }
+  },
+  "BG34_Giant_074t": {
+   "name": "Timewarped Nellie's Ship",
+   "text": "At the start of each turn, Discover a Pirate to crew the ship. Deathrattle: Summon and get that Pirate.",
+   "attack": 2,
+   "health": 6,
+   "golden": {
+    "id": "BG34_Giant_074t_G",
+    "text": "At the start of each turn, Discover 2 Pirates to crew the ship. Deathrattle: Summon and get those Pirates.",
+    "attack": 4,
+    "health": 12
    }
   },
   "BG34_Giant_081": {
@@ -1592,6 +1694,18 @@
     "health": 8
    }
   },
+  "BG36_360t5": {
+   "name": "Dark Paradox",
+   "text": "Rally: Get a random minion of your most common type.",
+   "attack": 2,
+   "health": 6,
+   "golden": {
+    "id": "BG36_360_Gt5",
+    "text": "Rally: Get 2 random minions of your most common type.",
+    "attack": 4,
+    "health": 12
+   }
+  },
   "BG36_360t6": {
    "name": "Dark Paradox",
    "text": "Has +4/+4 for each Battlecry you've triggered this game (wherever this is).",
@@ -1638,6 +1752,18 @@
     "text": "After a friendly minion is Reborn, give stats equal to double its Attack to your right-most Undead.",
     "attack": 12,
     "health": 16
+   }
+  },
+  "BG36_521": {
+   "name": "Locked-up Mutineer",
+   "text": "Deathrattle: Get a Lockbox. If you already have one, it opens 1 turn sooner instead.",
+   "attack": 6,
+   "health": 3,
+   "golden": {
+    "id": "BG36_521_G",
+    "text": "Deathrattle: Get a Lockbox. If you already have one, it opens 2 turns sooner instead.",
+    "attack": 12,
+    "health": 6
    }
   },
   "BG36_622": {
@@ -1763,6 +1889,12 @@
   "BG36_MagicItem_211": {
    "name": "Lovely Locket",
    "text": "After you cast a spell on a friendly minion, this casts it on another friendly minion.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_371": {
+   "name": "Honeycomb Ring",
+   "text": "Your Tavern spells give an extra +1/+1. After you cast a spell on a minion, improve for this turn only.",
    "attack": null,
    "health": null
   },
