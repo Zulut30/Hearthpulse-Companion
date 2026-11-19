@@ -1,0 +1,11 @@
+{
+  "name": "hearthpulse-pool",
+  "private": true,
+  "description": "Hearthpulse stats pool: Cloudflare Worker routes and the Node 24 source-capture service. No dependencies.",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "cd ../.. && node --test server/pool/test/*.test.mjs"
+  }
+}

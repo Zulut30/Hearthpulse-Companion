@@ -41,6 +41,11 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
 
     /// <summary>Called on the parser thread. Subscribers must only enqueue immutable observations.</summary>
     public event Action<SourceCaptureFrame>? Recorded;
+    /// <summary>
+    /// The finished fights of a Battlegrounds game, asked once when the game ends (on the parser thread) and written as
+    /// <c>bg_combat</c> records just before its <c>end</c>: the journal is sent only after that, never during the game.
+    /// </summary>
+    internal Func<IReadOnlyList<SourceCombat>>? Combats { get; set; }
     /// <summary>Source IDs are random and scoped to one capture.</summary>
     public string? CaptureId => _capture;
     public bool Enabled => _enabled;
@@ -389,6 +394,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         if (result is null) NoteGap("source_missing");
         if (_blocks.Count > 0) NoteGap("invalid");
         var place = game.IsBattlegrounds && game.LocalHero?.GetInt(GameTag.PlayerLeaderboardPlace) is > 0 and <= 8 and var p ? (int?)p : null;
+        if (_mode is "bg" or "duos" && Combats is { } combats)
+            foreach (var combat in combats().Take(SourceCaptureCombat.MaxFights)) Emit("bg_combat", combat);
         Finish(result, place, result is null ? "abandoned" : "normal");
     }
     private void Finish(string? result, int? placement, string reason)
