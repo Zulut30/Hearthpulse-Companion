@@ -167,6 +167,12 @@ public abstract class CombatEffect
     /// <summary>After an enemy minion died.</summary>
     public virtual void AfterEnemyDeath(Fight fight, Unit self, Unit dead) { }
 
+    /// <summary>
+    /// Once per side after each round of a death phase, when its deathrattles, Avenge and Reborn have all resolved: a
+    /// "when you have space" wait (Diremuck Forager) looks for room here, after the reborn copies took theirs.
+    /// </summary>
+    public virtual void AfterDeathPhase(Fight fight, Unit self) { }
+
     // ---- Summons -----------------------------------------------------------------------------------------------
 
     /// <summary>This minion was just summoned in combat (token, reborn copy, ...), before other minions react.</summary>
@@ -274,6 +280,7 @@ public abstract class CombatEffect
         (nameof(OnFriendlyDeathrattle), Hook.FriendlyDeathrattle),
         (nameof(AfterFriendlyDeath), Hook.FriendlyDeath),
         (nameof(AfterEnemyDeath), Hook.EnemyDeath),
+        (nameof(AfterDeathPhase), Hook.DeathPhaseEnd),
         (nameof(OnSummoned), Hook.Summoned),
         (nameof(WheneverFriendlySummoned), Hook.WheneverSummon),
         (nameof(AfterFriendlySummoned), Hook.AfterSummon),
@@ -335,6 +342,8 @@ internal enum Hook : long
     FriendlyDeathrattle = 1L << 13,
     FriendlyDeath = 1L << 14,
     EnemyDeath = 1L << 15,
+    // Package R's bits are 50-53.
+    DeathPhaseEnd = 1L << 50,
     Summoned = 1L << 16,
     WheneverSummon = 1L << 17,
     AfterSummon = 1L << 18,

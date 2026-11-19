@@ -6,9 +6,10 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 /// <para>
 /// The Start of Combat part has resolved when the boards are captured: with space the Murloc is already on the board (and no
 /// longer in the hand). What is left is the "when you have space" wait: if the board was full at the start of the fight
-/// (7 minions), the summon is still pending, and it happens as soon as a friendly minion has died and there is room
-/// (<see cref="PendingMurlocs"/>), even after the Forager itself died. The Murloc is summoned right of the Forager while it
-/// is on the board, else at the right end. Needs the hand, which only the local player's is known: the opponent's Forager
+/// (7 minions), the summon is still pending, and it happens at the end of the first death phase that leaves room, after
+/// that phase's Reborn copies took theirs (<see cref="PendingMurlocs"/>), even after the Forager itself died. The Murloc is summoned at the right end of the
+/// board, also while the Forager is on it (Power.log 15.11, simreplay #2/11-#2/14: Flighty Scouts made at lines 349140,
+/// 387154, 426591 stand right of every friendly minion, the living Forager further left). Needs the hand, which only the local player's is known: the opponent's Forager
 /// stays "not simulated". With a golden Forager and a full board the sim assumes none of the two was summoned yet.
 /// </para>
 /// </summary>
@@ -42,7 +43,7 @@ internal sealed class PendingMurlocs : CombatEffect
         public Unit? Source;
     }
 
-    public override void AfterFriendlyDeath(Fight fight, Unit self, Unit dead)
+    public override void AfterDeathPhase(Fight fight, Unit self)
     {
         var state = UnitState<State>.Of(self);
         var side = self.Side;
@@ -56,9 +57,7 @@ internal sealed class PendingMurlocs : CombatEffect
             }
 
             var murloc = hand[best];
-            var unit = state.Source is { IsOnBoard: true } source
-                ? fight.SummonAt(source, murloc)
-                : fight.Summon(side, murloc, side.Count);
+            var unit = fight.Summon(side, murloc, side.Count);
             if (unit is null)
             {
                 return;

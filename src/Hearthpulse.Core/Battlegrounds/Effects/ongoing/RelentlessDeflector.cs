@@ -2,9 +2,11 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 
 /// <summary>
 /// Relentless Deflector (BG34_405): "Has Taunt while this has Divine Shield. Avenge (3): Gain Divine Shield." Golden: same
-/// text. Taunt follows Divine Shield: it goes when the shield breaks and comes back with the Avenge shield. A Deflector
-/// captured with Taunt but no Divine Shield got its Taunt from something else and keeps it. Avenge counts friendly
-/// deaths from the start of the fight (engine rule).
+/// text. The Taunt of a shield gained in combat follows it: it goes when that shield breaks and comes back with the next
+/// Avenge shield (Power.log 15.11 g4c9, Deflector #10059: DIVINE_SHIELD 1/0/1/0 with TAUNT 1/0/1/0 from line 998047). A
+/// Deflector that came to the fight with Taunt keeps it when its shield breaks (g3c9, #9636: DIVINE_SHIELD 0 at its first
+/// hit, TAUNT stays 1, and our next three attacks all had to hit it). Avenge counts friendly deaths from the start of the
+/// fight (engine rule).
 /// </summary>
 [CardEffect("BG34_405")]
 internal sealed class RelentlessDeflector : AvengeEffect
@@ -27,6 +29,6 @@ internal sealed class RelentlessDeflector : AvengeEffect
         }
     }
 
-    /// <summary>Taunt from another source: captured with Taunt while it had no Divine Shield.</summary>
-    private static bool HasOwnTaunt(Unit self) => self.Spec.Taunt && !self.Spec.DivineShield;
+    /// <summary>The Taunt it came to the fight with (with or without Divine Shield): the shield breaking does not take it.</summary>
+    private static bool HasOwnTaunt(Unit self) => self.Spec.Taunt;
 }

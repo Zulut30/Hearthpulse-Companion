@@ -361,7 +361,8 @@ public sealed class SimInputsTests
     public void A_diremuck_forager_with_nothing_pending_summons_nothing_on_a_full_board()
     {
         // Full board, a 5/2 Murloc in hand. The player enchantment says no summon is pending (NUM_1 = 0): when a
-        // bystander dies, nothing comes. Without the enchantment (older capture) the Forager still waits for space.
+        // bystander dies, nothing comes. Without the enchantment (older capture) the Forager still waits for space; the
+        // Murloc comes at the right end (Power.log 15.11, simreplay #2/11-#2/14: lines 349140, 387154, 426591).
         var forager = Minion(4, 5, cardId: "BG27_556", tribes: Tribe.Murloc) with { EntityId = 30 };
         var full = Side(forager, Minion(0, 1), Minion(0, 1), Minion(0, 1), Minion(0, 1), Minion(0, 1), Minion(0, 1))
             with { Hand = [Minion(5, 2, cardId: "MUR", tribes: Tribe.Murloc)] };
@@ -372,8 +373,8 @@ public sealed class SimInputsTests
         var older = Fight(full, Side(Minion(1, 3)), oursFirst: false, Effects(typeof(DiremuckForager)), 1);
 
         Assert.Empty(none.Lines("summoned"));
-        Assert.Equal(["summoned our MUR 5/2 at 1"], one.Lines("summoned"));
-        Assert.Equal(["summoned our MUR 5/2 at 1"], older.Lines("summoned"));
+        Assert.Equal(["summoned our MUR 5/2 at 6"], one.Lines("summoned"));
+        Assert.Equal(["summoned our MUR 5/2 at 6"], older.Lines("summoned"));
     }
 
     [Fact]

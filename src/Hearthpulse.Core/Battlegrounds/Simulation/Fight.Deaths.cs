@@ -82,6 +82,12 @@ public sealed partial class Fight
                     }
                 }
 
+                // "When you have space" waits look for room once the reborn copies took theirs (simreplay #4/11, 15.11:
+                // Bubble Gunner's copy at line 1086990, Diremuck Forager's Murloc only after it died, 1087143).
+                var first = EnteredFirst ?? Attacking;
+                Raise(first, Hook.DeathPhaseEnd, null);
+                Raise(first.Enemy, Hook.DeathPhaseEnd, null);
+
                 RefreshAuras();
             }
 

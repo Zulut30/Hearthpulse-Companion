@@ -1,5 +1,6 @@
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
+using Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 using static Hearthpulse.Tests.Sim.SimTestKit;
 
 namespace Hearthpulse.Tests.Sim;
@@ -167,6 +168,23 @@ public sealed class CombatRulesEvidenceTests
         var reborn = result.IndexOf("reborn our R 2/1");
         Assert.True(avenge >= 0 && reborn > avenge, string.Join('\n', result.Log));
         Assert.StartsWith("our R 2/1 attacks", Attacks(result, "our")[1]);
+    }
+
+    [Fact]
+    public void A_reborn_copy_takes_the_free_slot_before_a_when_you_have_space_summon()
+    {
+        // simreplay #4/11 (15.11): on a full board our Bubble Gunner dies and its copy comes back (line 1086990); Diremuck
+        // Forager's pending Murloc waits, and comes only after the copy died (1087143), at the right end.
+        var forager = Minion(0, 5, cardId: "BG27_556", tribes: Tribe.Murloc);
+        var reborn = Minion(1, 1, Keyword.Reborn, "R");
+        var ours = Side(forager, reborn, Minion(0, 5), Minion(0, 5), Minion(0, 5), Minion(0, 5), Minion(0, 5))
+            with { Hand = [Minion(5, 2, cardId: "MUR", tribes: Tribe.Murloc)] };
+        // Picks: their E → R (index 1); the copy's target; their E's next target.
+        var result = Fight(ours, Side(Minion(1, 100, cardId: "E")), oursFirst: false, Effects(typeof(DiremuckForager)), picks: [1, 0, 2]);
+
+        var reborned = result.IndexOf("reborn our R 1/1 at 1");
+        var summoned = result.IndexOf("summoned our MUR 5/2 at 6");
+        Assert.True(reborned >= 0 && summoned > reborned, string.Join(Environment.NewLine, result.Log));
     }
 
     [Fact]

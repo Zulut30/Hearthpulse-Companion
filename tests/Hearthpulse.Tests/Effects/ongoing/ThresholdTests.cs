@@ -20,17 +20,20 @@ public sealed class ThresholdTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Relentless_deflector_has_taunt_only_while_it_has_divine_shield(bool golden)
+    public void Relentless_deflector_keeps_the_taunt_it_came_with_when_the_shield_breaks(bool golden)
     {
         // Ours: a 1/10 and the Deflector (Taunt + Divine Shield). Their 1/50 attacks first, with picks 0, 0, 0.
-        // 1) Taunt: the Deflector is the only legal target. Its shield absorbs the hit, so it loses Divine Shield and Taunt.
-        // 2) Our 1/10 attacks. 3) Their next attack is free: pick 0 takes our first minion, the 1/10 (now 1/9), not the Deflector.
+        // 1) Taunt: the Deflector is the only legal target. Its shield absorbs the hit. 2) Our 1/10 attacks. 3) The Deflector
+        // keeps the Taunt it came with, so it is still the only legal target. This test used to expect the Taunt gone and the
+        // 1/10 hit; Power.log 15.11 g3c9 says otherwise: Deflector #9636 loses its shield, TAUNT stays 1, and our next three
+        // attacks all hit it (simreplay #3/9). A shield gained in combat takes its Taunt along (the test below; g4c9 #10059).
         var deflector = Minion(5, 4, Keyword.Taunt | Keyword.DivineShield, Deflector, Tribe.Mech, golden);
         var result = Fight(Side(Minion(1, 10), deflector), Side(Minion(1, 50)), oursFirst: false, Effects(typeof(RelentlessDeflector)), 0, 0, 0);
 
         var attacks = TheirAttacks(result);
-        Assert.EndsWith($"attacks our BG34_405{(golden ? "(G)" : string.Empty)} 5/4 Taunt, DivineShield", attacks[0], StringComparison.Ordinal);
-        Assert.EndsWith("attacks our minion 1/9", attacks[1], StringComparison.Ordinal);
+        var name = $"BG34_405{(golden ? "(G)" : string.Empty)}";
+        Assert.EndsWith($"attacks our {name} 5/4 Taunt, DivineShield", attacks[0], StringComparison.Ordinal);
+        Assert.EndsWith($"attacks our {name} 5/4 Taunt", attacks[1], StringComparison.Ordinal);
     }
 
     [Fact]

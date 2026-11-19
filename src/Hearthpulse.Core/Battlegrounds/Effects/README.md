@@ -54,6 +54,7 @@ internal sealed class HarmlessBonehead : CombatEffect
 | `ExtraDeathrattles(f, self)` | extra triggers for friendly deathrattles while self is alive (Titus: 1, golden 2) |
 | `OnFriendlyDeathrattle(f, self, source)` | after each friendly deathrattle trigger |
 | `AfterFriendlyDeath(f, self, dead)` / `AfterEnemyDeath` | after a death, once its deathrattles resolved; its Reborn comes after (Avenge: derive from `AvengeEffect`) |
+| `AfterDeathPhase(f, self)` | once per side after each death-phase round, after its Reborn copies: "when you have space" waits (Diremuck Forager) |
 | `OnSummoned(f, self)` | self was just summoned (token, reborn copy) |
 | `WheneverFriendlySummoned` → `AfterFriendlySummoned(f, self, summoned)` | another friendly minion was summoned ("whenever" first) |
 | `AfterFriendlyReborn(f, self, reborn)` | a friendly minion came back with Reborn (`reborn.RebornFrom` is the old one) |
@@ -128,7 +129,7 @@ attacker or target died) → simultaneous combat damage + `OnAttackDamage` → d
 Death phase: remove every dead minion at once, in order of play (the starting minions of the side with the lower
 lobby PLAYER_ID, then the other side's, each left to right, then minions summoned in combat in summon order) → per
 dead minion: each deathrattle × (1 + extra triggers) before the next one (A, A, B, B) → "after a friendly/enemy minion
-dies" hooks per death → each Reborn → auras → repeat while minions keep dying. Without both PLAYER_IDs the runs mix
+dies" hooks per death → each Reborn → `AfterDeathPhase` → auras → repeat while minions keep dying. Without both PLAYER_IDs the runs mix
 both side orders evenly; a single traced fight takes the attacking side first.
 
 Attack order: each side's next attacker is the first minion with Attack at or right of the slot just right of its

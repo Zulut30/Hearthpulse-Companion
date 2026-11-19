@@ -192,6 +192,7 @@ public sealed partial class Fight
                         case Hook.FriendlyDeathrattle: effect.OnFriendlyDeathrattle(this, observer, a!); break;
                         case Hook.FriendlyDeath: effect.AfterFriendlyDeath(this, observer, a!); break;
                         case Hook.EnemyDeath: effect.AfterEnemyDeath(this, observer, a!); break;
+                        case Hook.DeathPhaseEnd: effect.AfterDeathPhase(this, observer); break;
                         case Hook.WheneverSummon: effect.WheneverFriendlySummoned(this, observer, a!); break;
                         case Hook.AfterSummon: effect.AfterFriendlySummoned(this, observer, a!); break;
                         case Hook.Reborn: effect.AfterFriendlyReborn(this, observer, a!); break;
