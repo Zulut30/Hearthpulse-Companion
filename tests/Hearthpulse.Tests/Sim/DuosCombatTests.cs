@@ -121,10 +121,10 @@ public sealed class DuosCombatTests
         var ours = Side(Minion(2, 3));
         var theirs = Side(Minion(3, 2));
 
-        var solo = CombatSimulator.Seed(ours, theirs, true);
+        var solo = CombatSimulator.TeamSeed(ours, theirs, true);
 
-        Assert.Equal(solo, CombatSimulator.Seed(ours with { Teammate = null }, theirs, true));
-        Assert.NotEqual(solo, CombatSimulator.Seed(ours, theirs with { Teammate = Side(Minion(1, 1)) }, true));
+        Assert.Equal(CombatSimulator.Seed(ours, theirs, true), solo);
+        Assert.NotEqual(solo, CombatSimulator.TeamSeed(ours, theirs with { Teammate = Side(Minion(1, 1)) }, true));
     }
 
     [Fact]

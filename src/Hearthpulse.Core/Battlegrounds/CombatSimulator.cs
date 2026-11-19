@@ -371,7 +371,7 @@ public static partial class CombatSimulator
         }
 
         // Stable seed: the same boards always show the same numbers, in every session and on any number of threads.
-        var total = new Batch(ours, theirs, firstAttackerIsOurs, options, effects, rules, Seed(ours, theirs, firstAttackerIsOurs)).Run();
+        var total = new Batch(ours, theirs, firstAttackerIsOurs, options, effects, rules, TeamSeed(ours, theirs, firstAttackerIsOurs)).Run();
         int done = total.Done, wins = total.Wins, losses = total.Losses;
         // A fight cut short by an engine limit dropped effects: one more "not simulated" item, not silence.
         unsimulated += total.Truncated > 0 ? 1 : 0;
@@ -584,18 +584,6 @@ public static partial class CombatSimulator
         AddSide(ours);
         Add(-1);
         AddSide(theirs);
-        // Duos only, so solo boards keep the seeds they had.
-        if (ours.Teammate is { } ourTeammate)
-        {
-            Add(-2);
-            AddSide(ourTeammate);
-        }
-
-        if (theirs.Teammate is { } theirTeammate)
-        {
-            Add(-3);
-            AddSide(theirTeammate);
-        }
         Add(firstAttackerIsOurs switch { true => 1, false => 2, null => 3 });
         return (int)(hash ^ (hash >> 32));
     }

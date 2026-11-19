@@ -24,6 +24,24 @@ public static partial class CombatSimulator
             ? teammate with { Estimates = [.. side.Estimates, .. teammate.Estimates] }
             : side;
 
+    /// <summary>
+    /// <see cref="Seed"/> for two teams: the boards' seed alone without teammates (solo boards keep their seeds), else
+    /// mixed with the seed of the second boards.
+    /// </summary>
+    internal static int TeamSeed(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs)
+    {
+        var seed = Seed(ours, theirs, firstAttackerIsOurs);
+        if (ours.Teammate is null && theirs.Teammate is null)
+        {
+            return seed;
+        }
+
+        var teams = Seed(ours.Teammate ?? NoBoard, theirs.Teammate ?? NoBoard, firstAttackerIsOurs);
+        return ChunkSeed(seed, teams);
+    }
+
+    private static readonly SimSide NoBoard = new([]);
+
     /// <summary>Estimated inputs of a side and of its Duos teammate.</summary>
     private static int EstimateCount(SimSide side) => side.Estimates.Count + (side.Teammate?.Estimates.Count ?? 0);
 
