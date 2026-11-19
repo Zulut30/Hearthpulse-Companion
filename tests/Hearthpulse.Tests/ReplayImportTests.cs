@@ -309,6 +309,42 @@ public sealed class ReplayImportTests : IDisposable
         Assert.Equal(4, ReplayFile.ReadBattlegrounds(body)!.Lobby[0].Place);
     }
 
+    /// <summary>
+    /// The recorder takes Bob's offer away right after F in its own order (not by id): the filter keeps those X lines as
+    /// they are, and takes away at once the offer cards the file left shown, before anything of the fight.
+    /// </summary>
+    [Fact]
+    public void Bobs_offer_leaves_view_in_the_files_order_and_what_it_left_goes_too()
+    {
+        string[] Game(params string[] afterFight) =>
+        [
+            "T 1 30",
+            "E 1 L PLAY 0 TB_BaconShop_HERO_50 HERO HEALTH=30",
+            "E 2 B PLAY 1 BG_CS2_065 MINION ATK=2 HEALTH=3",
+            "E 3 B PLAY 2 BGS_004 MINION ATK=2 HEALTH=2",
+            "E 4 B PLAY 3 BGS_039 MINION ATK=1 HEALTH=1",
+            "X 3",
+            "E 5 B PLAY 2 BGS_061 MINION ATK=9 HEALTH=9",
+            "F 1 75",
+            .. afterFight,
+            "E 6 O PLAY 0 TB_BaconShop_HERO_08 HERO HEALTH=30",
+            "f WIN 0 3",
+        ];
+        string[] Events(string[] events)
+        {
+            var text = ReplayFile.WriteBattlegrounds(new ReplayHeader { Summary = new ReplaySummary { Mode = "Battlegrounds" } }, new BattlegroundsReplayData(), events);
+            var (header, body) = ReplayFile.Read(Clean(text))!.Value;
+            return [.. body.Take(header.Events)];
+        }
+
+        var recorded = Game("X 5", "X 2", "X 4");
+        Assert.Equal(recorded, Events(recorded));
+
+        // Only part of the offer taken away, or none and a tag of an offer card in the fight: the rest goes at once.
+        Assert.Equal(Game("X 4", "X 2", "X 5"), Events(Game("X 4")));
+        Assert.Equal(Game("X 2", "X 4", "X 5"), Events(Game("V 5 ATK 10")));
+    }
+
     [Theory]
     [InlineData("E 9 T PLAY 1 BGS_004 MINION")]
     [InlineData("E 9 O HAND 1 BGS_004 MINION")]
