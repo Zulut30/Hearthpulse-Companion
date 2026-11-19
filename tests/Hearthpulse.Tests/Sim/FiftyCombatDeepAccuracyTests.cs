@@ -6,8 +6,10 @@ using static Hearthpulse.Tests.Sim.SimTestKit;
 namespace Hearthpulse.Tests.Sim;
 
 /// <summary>
-/// Executes 50 diverse, deep combat simulations covering every key Battlegrounds combat interaction,
-/// asserting that predictions, boundary rates (100% win / loss / tie), mechanics, and odds are 100% accurate.
+/// Executes 50 diverse, deep combat simulations covering every key Battlegrounds combat interaction: the odds are
+/// well-formed for every scenario, and each scenario's odds meet the outcome its rules give (exact 100 % win / loss / tie,
+/// a probability worked out by hand, or a bound). Expectations corrected on 2026-11-19 (sim-all-mechanics P0) carry the
+/// reasoning in a comment; none of the 50 needed an engine change.
 /// </summary>
 public sealed class FiftyCombatDeepAccuracyTests(ITestOutputHelper output)
 {
@@ -35,11 +37,63 @@ public sealed class FiftyCombatDeepAccuracyTests(ITestOutputHelper output)
         bool ExactTie = false,
         bool Symmetric = false);
 
+    /// <summary>|win - loss| allowed for a mirror with a coin-flip start: about 3 standard errors of 2000 fights.</summary>
+    private const double SymmetryTolerance = 0.06;
+
+    public static TheoryData<int> ScenarioIds
+    {
+        get
+        {
+            var ids = new TheoryData<int>();
+            for (var id = 1; id <= 50; id++)
+            {
+                ids.Add(id);
+            }
+
+            return ids;
+        }
+    }
+
+    private static EffectRegistry TestEffects() =>
+        Effects(typeof(SummonTwoTokens), typeof(TitusMultiplier), typeof(CleaveEffect), typeof(AvengeBuff), typeof(AuraTwoTwo));
+
+    [Theory]
+    [MemberData(nameof(ScenarioIds))]
+    public void Each_scenario_meets_its_expected_outcome(int id)
+    {
+        var s = BuildFiftyScenarios(TestEffects()).Single(x => x.Id == id);
+        var odds = CombatSimulator.Run(s.Ours, s.Theirs, s.OursFirst, new SimOptions { Runs = 2000, Effects = s.Effects });
+        var e = s.Expected;
+        var why = $"#{id} {s.Name}: win {odds.Win:P1}, tie {odds.Tie:P1}, loss {odds.Loss:P1}; expected {e}";
+
+        if (e.ExactWin)
+        {
+            Assert.True(odds.Win == 1.0, why);
+        }
+
+        if (e.ExactLoss)
+        {
+            Assert.True(odds.Loss == 1.0, why);
+        }
+
+        if (e.ExactTie)
+        {
+            Assert.True(odds.Tie == 1.0, why);
+        }
+
+        Assert.True(odds.Win >= (e.MinWin ?? 0) && odds.Win <= (e.MaxWin ?? 1), why);
+        Assert.True(odds.Loss >= (e.MinLoss ?? 0) && odds.Loss <= (e.MaxLoss ?? 1), why);
+        Assert.True(odds.Tie >= (e.MinTie ?? 0) && odds.Tie <= (e.MaxTie ?? 1), why);
+        if (e.Symmetric)
+        {
+            Assert.True(Math.Abs(odds.Win - odds.Loss) <= SymmetryTolerance, why);
+        }
+    }
+
     [Fact]
     public void Run_fifty_deep_combat_simulations_and_verify_accuracy()
     {
-        var drEffects = Effects(typeof(SummonTwoTokens), typeof(TitusMultiplier), typeof(CleaveEffect), typeof(AvengeBuff), typeof(AuraTwoTwo));
-        var scenarios = BuildFiftyScenarios(drEffects);
+        var scenarios = BuildFiftyScenarios(TestEffects());
 
         Assert.Equal(50, scenarios.Count);
 
@@ -100,7 +154,10 @@ public sealed class FiftyCombatDeepAccuracyTests(ITestOutputHelper output)
         list.Add(new Scenario(id++, "Divine Shield absorbs lethal attack", Side(M(2, 1, Keyword.DivineShield)), Side(M(10, 2)), true, null, new ExpectedOutcome(ExactWin: true)));
         list.Add(new Scenario(id++, "Dual Divine Shield vs raw stats", Side(M(4, 4, Keyword.DivineShield), M(4, 4, Keyword.DivineShield)), Side(M(8, 8)), true, null, new ExpectedOutcome(ExactWin: true)));
         list.Add(new Scenario(id++, "Divine Shield + Windfury two-turn trade", Side(M(4, 7, Keyword.DivineShield | Keyword.Windfury)), Side(M(3, 5), M(3, 3)), true, null, new ExpectedOutcome(ExactWin: true)));
-        list.Add(new Scenario(id++, "Taunt Divine Shield wall", Side(M(2, 10, Keyword.Taunt | Keyword.DivineShield), M(10, 2)), Side(M(5, 5), M(5, 5)), false, null, new ExpectedOutcome(MinWin: 0.85)));
+        // Was MinWin 0.85. They attack first and must hit the Taunt: shield off, their first 5/5 at 5/3. The Taunt (2 Attack)
+        // hits either 5/5 and drops to 2/5; their second 5/5 kills it. Our 10/2 kills one of the two damaged 5/5s and dies to
+        // the 5 Attack: one of theirs is always left.
+        list.Add(new Scenario(id++, "Taunt Divine Shield wall", Side(M(2, 10, Keyword.Taunt | Keyword.DivineShield), M(10, 2)), Side(M(5, 5), M(5, 5)), false, null, new ExpectedOutcome(ExactLoss: true)));
         list.Add(new Scenario(id++, "Divine shield popping sequence", Side(M(1, 1, Keyword.DivineShield), M(1, 1, Keyword.DivineShield)), Side(M(1, 1, Keyword.DivineShield), M(1, 1)), true, null, new ExpectedOutcome(MinWin: 0.90)));
 
         // Group 4: Poisonous and Venomous Interactions (16 - 20)
@@ -113,8 +170,13 @@ public sealed class FiftyCombatDeepAccuracyTests(ITestOutputHelper output)
         // Group 5: Reborn Positioning and Mechanics (21 - 25)
         list.Add(new Scenario(id++, "Reborn minion trades and revives", Side(M(3, 1, Keyword.Reborn)), Side(M(2, 3)), true, null, new ExpectedOutcome(ExactWin: true)));
         list.Add(new Scenario(id++, "Reborn copy trades into mutual death", Side(M(5, 1, Keyword.Reborn)), Side(M(4, 9)), true, null, new ExpectedOutcome(ExactTie: true)));
-        list.Add(new Scenario(id++, "Reborn taunt protects backline twice", Side(M(2, 1, Keyword.Reborn | Keyword.Taunt), M(8, 2)), Side(M(3, 6), M(3, 6)), false, null, new ExpectedOutcome(MinWin: 0.85)));
-        list.Add(new Scenario(id++, "Golden reborn brings back golden attack", Side(M(6, 2, Keyword.Reborn, golden: true)), Side(M(5, 11)), true, null, new ExpectedOutcome(ExactWin: true)));
+        // Was MinWin 0.85. Their first 3/6 kills the Taunt (now 3/4); it comes back 2/1 in its slot and, as our left-most
+        // minion, attacks first: it dies to either 3/6 for 2 damage. Their second 3/6 then trades with our 8/2, and the other
+        // one is left.
+        list.Add(new Scenario(id++, "Reborn taunt protects backline twice", Side(M(2, 1, Keyword.Reborn | Keyword.Taunt), M(8, 2)), Side(M(3, 6), M(3, 6)), false, null, new ExpectedOutcome(ExactLoss: true)));
+        // Was ExactWin. 6 damage leaves their 5/11 at 5/5 and ours dies; Reborn brings back 6/1, which their 5/5 attacks:
+        // 6 damage kills it while 5 kills ours - both boards are empty.
+        list.Add(new Scenario(id++, "Golden reborn brings back golden attack", Side(M(6, 2, Keyword.Reborn, golden: true)), Side(M(5, 11)), true, null, new ExpectedOutcome(ExactTie: true)));
         list.Add(new Scenario(id++, "Multiple reborns wave", Side(M(2, 1, Keyword.Reborn), M(2, 1, Keyword.Reborn)), Side(M(2, 6)), true, null, new ExpectedOutcome(MinWin: 0.70)));
 
         // Group 6: Windfury and Mega-Windfury Swings (26 - 30)
@@ -136,7 +198,9 @@ public sealed class FiftyCombatDeepAccuracyTests(ITestOutputHelper output)
         list.Add(new Scenario(id++, "Cleave on edge hits 2 minions", Side(M(5, 10, cardId: "CLEAVE")), Side(M(2, 4), M(2, 4)), true, drEffects, new ExpectedOutcome(ExactWin: true)));
         list.Add(new Scenario(id++, "Cleave pops adjacent Divine Shields", Side(M(5, 10, cardId: "CLEAVE")), Side(M(1, 1, Keyword.DivineShield), M(1, 1, Keyword.DivineShield), M(1, 1, Keyword.DivineShield)), true, drEffects, new ExpectedOutcome(ExactWin: true)));
         list.Add(new Scenario(id++, "Cleave vs Taunt positioning", Side(M(6, 12, cardId: "CLEAVE")), Side(M(2, 2), M(3, 5, Keyword.Taunt), M(2, 2)), true, drEffects, new ExpectedOutcome(ExactWin: true)));
-        list.Add(new Scenario(id++, "Cleave dies while killing 3 enemies", Side(M(5, 2, cardId: "CLEAVE")), Side(M(3, 4), M(3, 4), M(3, 4)), true, drEffects, new ExpectedOutcome(ExactTie: true)));
+        // Was ExactTie. The target is random: the middle one (1/3) lets the cleave kill all three while ours dies to 3 damage
+        // (a tie); an edge one (2/3) kills only two and leaves the third (a loss).
+        list.Add(new Scenario(id++, "Cleave dies while killing 3 enemies", Side(M(5, 2, cardId: "CLEAVE")), Side(M(3, 4), M(3, 4), M(3, 4)), true, drEffects, new ExpectedOutcome(MaxWin: 0, MinTie: 0.29, MaxTie: 0.38, MinLoss: 0.62, MaxLoss: 0.71)));
 
         // Group 9: Deathrattles, Titus Multiplier and 7-Cap (41 - 45)
         list.Add(new Scenario(id++, "Deathrattle spawns 2 tokens", Side(M(2, 2, cardId: "DR")), Side(M(3, 3)), true, drEffects, new ExpectedOutcome(ExactWin: true)));
@@ -146,11 +210,22 @@ public sealed class FiftyCombatDeepAccuracyTests(ITestOutputHelper output)
         list.Add(new Scenario(id++, "Chain deathrattles clear board", Side(M(3, 3, cardId: "DR"), M(3, 3, cardId: "DR")), Side(M(4, 7)), true, drEffects, new ExpectedOutcome(ExactWin: true)));
 
         // Group 10: Avenge, Auras, and Full 7v7 Endgame Boards (46 - 50)
-        list.Add(new Scenario(id++, "Aura +2/+2 buffs allies in combat", Side(M(2, 5, cardId: "AURA"), M(2, 3), M(2, 3)), Side(M(5, 8)), true, drEffects, new ExpectedOutcome(ExactWin: true)));
-        list.Add(new Scenario(id++, "Avenge triggers after friendly deaths", Side(M(1, 10, cardId: "AV"), M(1, 1), M(1, 1)), Side(M(3, 11)), true, drEffects, new ExpectedOutcome(ExactWin: true)));
-        list.Add(new Scenario(id++, "Mixed keywords 5v5 endgame", Side(M(4, 5, Keyword.DivineShield), M(3, 7, Keyword.Taunt), M(2, 4, Keyword.Reborn), M(6, 6), M(4, 4, Keyword.Windfury)), Side(M(5, 5), M(4, 6, Keyword.Taunt), M(3, 5), M(2, 8), M(5, 3)), null, null, new ExpectedOutcome(MinWin: 0.3, MaxWin: 0.8)));
-        list.Add(new Scenario(id++, "High-stat scaling 7v7 combat", Side(M(20, 25), M(15, 30, Keyword.Taunt), M(18, 18, Keyword.DivineShield), M(12, 16, Keyword.Reborn), M(22, 22), M(14, 14), M(25, 25)), Side(M(19, 24), M(16, 28, Keyword.Taunt), M(17, 19, Keyword.DivineShield), M(13, 15, Keyword.Reborn), M(21, 23), M(15, 13), M(24, 24)), null, null, new ExpectedOutcome(Symmetric: true)));
-        list.Add(new Scenario(id++, "Complete 7v7 with all mechanisms", Side(M(10, 15, cardId: "CLEAVE"), M(5, 20, Keyword.Taunt | Keyword.DivineShield), M(8, 8, Keyword.Reborn, cardId: "DR"), M(0, 12, cardId: "TITUS"), M(7, 7, cardId: "AURA"), M(12, 12, Keyword.Windfury), M(6, 14, cardId: "AV")), Side(M(9, 14, cardId: "CLEAVE"), M(6, 18, Keyword.Taunt | Keyword.DivineShield), M(7, 9, Keyword.Reborn, cardId: "DR"), M(0, 14, cardId: "TITUS"), M(8, 6, cardId: "AURA"), M(11, 13, Keyword.Windfury), M(7, 12, cardId: "AV")), null, drEffects, new ExpectedOutcome(Symmetric: true)));
+        // Was ExactWin. The aura minion is our left-most and attacks first: 5 damage kills it. Captured stats already hold the
+        // aura, so the other two lose +2/+2 and are left 0/1 (if it came on top they would be back to 2/3); either way the
+        // 5/8 (at 5/6) kills them one by one while they deal it at most 4.
+        list.Add(new Scenario(id++, "Aura +2/+2 buffs allies in combat", Side(M(2, 5, cardId: "AURA"), M(2, 3), M(2, 3)), Side(M(5, 8)), true, drEffects, new ExpectedOutcome(ExactLoss: true)));
+        // Was ExactWin. Enumerating their random targets by hand gives win 5/6, tie 1/6, no loss: when they hit the Avenge
+        // minion twice before the two 1/1s die, it is 5/2 after the buff and trades with their 3/3 at the same time.
+        list.Add(new Scenario(id++, "Avenge triggers after friendly deaths", Side(M(1, 10, cardId: "AV"), M(1, 1), M(1, 1)), Side(M(3, 11)), true, drEffects, new ExpectedOutcome(MinWin: 0.80, MaxWin: 0.87, MinTie: 0.13, MaxTie: 0.20, MaxLoss: 0)));
+        // Was 0.3-0.8 (a guess). Equal Attack (19 each) and nearly equal Health (26 v 27), but ours adds a Divine Shield, a
+        // Reborn body and a Windfury swing: ours is the favourite, so at least an even chance to win.
+        list.Add(new Scenario(id++, "Mixed keywords 5v5 endgame", Side(M(4, 5, Keyword.DivineShield), M(3, 7, Keyword.Taunt), M(2, 4, Keyword.Reborn), M(6, 6), M(4, 4, Keyword.Windfury)), Side(M(5, 5), M(4, 6, Keyword.Taunt), M(3, 5), M(2, 8), M(5, 3)), null, null, new ExpectedOutcome(MinWin: 0.5)));
+        // Was Symmetric, but the boards are not mirrors (each slot differs by 1 Attack and up to 2 Health, ours +1 Attack and
+        // +4 Health in total): a close fight, so each side wins a fair share.
+        list.Add(new Scenario(id++, "High-stat scaling 7v7 combat", Side(M(20, 25), M(15, 30, Keyword.Taunt), M(18, 18, Keyword.DivineShield), M(12, 16, Keyword.Reborn), M(22, 22), M(14, 14), M(25, 25)), Side(M(19, 24), M(16, 28, Keyword.Taunt), M(17, 19, Keyword.DivineShield), M(13, 15, Keyword.Reborn), M(21, 23), M(15, 13), M(24, 24)), null, null, new ExpectedOutcome(MinWin: 0.15, MinLoss: 0.15)));
+        // Was Symmetric, but the boards are not mirrors (same effects in the same slots, stats differ by 1-2 per slot): a
+        // close fight, so each side wins a fair share.
+        list.Add(new Scenario(id++, "Complete 7v7 with all mechanisms", Side(M(10, 15, cardId: "CLEAVE"), M(5, 20, Keyword.Taunt | Keyword.DivineShield), M(8, 8, Keyword.Reborn, cardId: "DR"), M(0, 12, cardId: "TITUS"), M(7, 7, cardId: "AURA"), M(12, 12, Keyword.Windfury), M(6, 14, cardId: "AV")), Side(M(9, 14, cardId: "CLEAVE"), M(6, 18, Keyword.Taunt | Keyword.DivineShield), M(7, 9, Keyword.Reborn, cardId: "DR"), M(0, 14, cardId: "TITUS"), M(8, 6, cardId: "AURA"), M(11, 13, Keyword.Windfury), M(7, 12, cardId: "AV")), null, drEffects, new ExpectedOutcome(MinWin: 0.15, MinLoss: 0.15)));
 
         return list;
     }
