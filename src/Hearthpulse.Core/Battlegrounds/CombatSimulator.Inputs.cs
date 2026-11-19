@@ -74,7 +74,22 @@ public sealed partial record SimSide
     /// </summary>
     [JsonIgnore]
     public IReadOnlyList<SimEstimate> Estimates { get; init; } = Array.Empty<SimEstimate>();
+
+    /// <summary>
+    /// The side's sleeping Deity at capture as its "Secret Deity" objective (<see cref="SimInputs.DeityObjective"/> in the
+    /// SECRET zone) shows it: Aberration deaths counted so far and the count that awakens it. Both sides': the client
+    /// reveals the opponent's objective when the combat starts (I2, docs/bg-combat-sim.md). Null when the capture has no
+    /// objective (older captures, lobbies without a Deity): the effect falls back to its printed four.
+    /// </summary>
+    [JsonIgnore]
+    public DeityAwakening? DeityAwakening { get; init; }
 }
+
+/// <summary>
+/// A Deity's awakening progress: <paramref name="Progress"/> is the objective's QUEST_PROGRESS (friendly Aberration
+/// deaths counted, Start of Combat included; it can start above 0), <paramref name="Total"/> its QUEST_PROGRESS_TOTAL.
+/// </summary>
+public sealed record DeityAwakening(int Progress, int Total);
 
 /// <summary>An enchantment as the log shows it at capture: its card id and the numbers it carries (0 when a tag is absent).</summary>
 public sealed record SimEnchantment(string CardId)

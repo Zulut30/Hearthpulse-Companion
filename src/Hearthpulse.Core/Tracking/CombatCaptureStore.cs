@@ -94,7 +94,7 @@ internal sealed record SavedFight
 /// <summary>
 /// A side's inputs its records leave out of their JSON (<c>[JsonIgnore]</c> in <c>CombatSimulator.Inputs.cs</c> and
 /// <c>CombatSimulator.Rules.cs</c>): the player's enchantments, the deaths before the capture, the lobby's tribes, the
-/// estimates, the hero's lobby PLAYER_ID and the local player's own secrets, and per minion of the board and hand (by
+/// estimates, the hero's lobby PLAYER_ID, the local player's own secrets and the Deity's awakening progress, and per minion of the board and hand (by
 /// entity id) its enchantment values, the friendly deaths it saw before the capture and whether Start of Combat summoned it. Minions inside
 /// these lists (<see cref="DeathsBeforeCapture"/>) keep only what their own JSON holds.
 /// </summary>
@@ -115,6 +115,9 @@ internal sealed record SavedInputs
 
     /// <summary>The local player's own secrets (Ice Block); never the opponent's (<see cref="CombatCaptureStore.Save"/>).</summary>
     public IReadOnlyList<string>? Secrets { get; init; }
+
+    /// <summary>The Deity's awakening progress at capture (<see cref="SimSide.DeityAwakening"/>); null when not read.</summary>
+    public DeityAwakening? DeityAwakening { get; init; }
 
     /// <summary>The inputs of <paramref name="side"/>, or null when it has none.</summary>
     public static SavedInputs? Of(SimSide side)
@@ -138,8 +141,10 @@ internal sealed record SavedInputs
             Minions = minions.Count > 0 ? minions : null,
             PlayerId = side.PlayerId,
             Secrets = side.Secrets.Count > 0 ? side.Secrets : null,
+            DeityAwakening = side.DeityAwakening,
         };
-        return inputs is { PlayerEnchantments: null, DeathsBeforeCapture: null, LobbyTribes: Tribe.None, Estimates: null, Minions: null, PlayerId: 0, Secrets: null }
+        return inputs is { PlayerEnchantments: null, DeathsBeforeCapture: null, LobbyTribes: Tribe.None, Estimates: null, Minions: null, PlayerId: 0, Secrets: null,
+                           DeityAwakening: null }
             ? null
             : inputs;
     }
@@ -167,6 +172,7 @@ internal sealed record SavedInputs
             Estimates = Estimates ?? [],
             PlayerId = PlayerId,
             Secrets = Secrets ?? [],
+            DeityAwakening = DeityAwakening,
         };
     }
 }

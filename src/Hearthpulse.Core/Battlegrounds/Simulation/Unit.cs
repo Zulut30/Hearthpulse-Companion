@@ -121,7 +121,7 @@ public sealed class Unit
         | (AttacksPerTurn >= 4 ? Keyword.MegaWindfury : AttacksPerTurn >= 2 ? Keyword.Windfury : 0);
 
     /// <summary>Its card effect first, then enchantment effects and effects gained in combat.</summary>
-    public IReadOnlyList<CombatEffect> Effects => _effects;
+    public EffectList Effects => new(_effects);
 
     /// <summary>Has a deathrattle: printed on the card, or from a registered effect.</summary>
     public bool HasDeathrattle => (Spec.Mechanics & CardMechanic.Deathrattle) != 0 || (Hooks & Hook.Deathrattle) != 0;
@@ -130,6 +130,9 @@ public sealed class Unit
 
     /// <summary>An effect on it makes it Immune while it attacks (Invulnerability).</summary>
     public bool ImmuneWhileAttacking { get; private set; }
+
+    /// <summary>Per-unit state objects of effects (Effects/ongoing/UnitState), one per state type; null until one is made.</summary>
+    internal object[]? EffectStates { get; set; }
 
     /// <summary>Attacks of this unit being resolved right now (more than one only for nested attacks); 0 = not attacking.</summary>
     internal int AttackDepth { get; set; }

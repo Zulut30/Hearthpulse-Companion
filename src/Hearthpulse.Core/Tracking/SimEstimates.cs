@@ -103,13 +103,15 @@ internal static class SimEstimates
     }
 
     /// <summary>
-    /// The opponent's sleeping Deity, whose stats the player cannot see, when it can awaken (an Aberration on the board):
-    /// our own Deity's stats as the prior, else the printed 1/1. Which Deity it is (lobby-wide) and how many Aberrations
-    /// died in Start of Combat (on screen) are exact.
+    /// The opponent's sleeping Deity when its stats are not on screen (no revealed objective drawn with them; the tracker
+    /// puts shown stats into <paramref name="tags"/>) and it can awaken (an Aberration on the board): our own Deity's stats
+    /// as the prior, else the printed 1/1. Which Deity it is (lobby-wide) and its awakening progress (the revealed
+    /// objective, <see cref="SimSide.DeityAwakening"/>) are exact.
     /// </summary>
     private static void DeityStats(SimSide side, Dictionary<string, int> tags, SimSide? local, List<SimEstimate> estimates)
     {
-        if (!side.Extras.Any(id => id == Tokens.CThunId || id == Tokens.YShaarjId) || !side.Minions.Any(m => (m.Tribes & Tribe.Aberration) != 0))
+        if (tags.GetValueOrDefault(Deity.AttackTag) > 0
+            || !side.Extras.Any(id => id == Tokens.CThunId || id == Tokens.YShaarjId) || !side.Minions.Any(m => (m.Tribes & Tribe.Aberration) != 0))
         {
             return;
         }

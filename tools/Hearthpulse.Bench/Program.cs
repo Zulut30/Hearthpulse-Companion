@@ -32,7 +32,8 @@ internal static class Program
                     HP_BENCH_DROPART=1: image caches emptied before each count; HP_BENCH_SOFTWARE=1: overlay SoftwareOnly)
           simcover  combat simulator coverage: Battlegrounds fights of the logs (Power*.log at any depth) without "not
                     simulated", result accuracy, damage and Brier under three budgets (first pass, the app's background
-                    pass, full), what was not simulated; popular minions without an effect
+                    pass, full), what was not simulated; popular minions without an effect; every fight the app pass
+                    missed ([miss]: result or damage, odds again on the exact post-game inputs, real damage vs range)
                     (--out <file>: per-fight scores; --before <file> --after <file>: two such files of the same fights
                     compared pair by pair; --captures <dir>: the fights of the app's capture files (<data>/combat-captures)
                     join those of the logs; --pool <file>: players' fights from the stats pool's owner export, JSONL of

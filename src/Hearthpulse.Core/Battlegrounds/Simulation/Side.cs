@@ -8,8 +8,8 @@ public sealed partial class Side
     public const int MaxMinions = 7;
 
     private readonly List<Unit> _board = new(MaxMinions);
-    private readonly List<Unit> _extras = new();
-    private readonly List<Unit> _dead = new();
+    private readonly List<Unit> _extras;
+    private readonly List<Unit> _dead = new(MaxMinions);
     private Dictionary<string, int>? _counters;
     private List<(Func<Unit, bool> Applies, int Attack, int Health)>? _summonBuffs;
     private List<SimMinion>? _hand;
@@ -21,6 +21,7 @@ public sealed partial class Side
         Fight = fight;
         Index = index;
         Info = info;
+        _extras = new List<Unit>(info.Extras.Count);
     }
 
     public Fight Fight { get; }
@@ -36,17 +37,17 @@ public sealed partial class Side
     public Side Enemy { get; internal set; } = null!;
 
     /// <summary>Minions on the board, left to right (dying ones included until the death phase).</summary>
-    public IReadOnlyList<Unit> Minions => _board;
+    public UnitList Minions => new(_board);
 
     public int Count => _board.Count;
 
     public bool IsFull => _board.Count >= MaxMinions;
 
     /// <summary>Player-level effect holders (hero power, trinkets, Deity...), never on the board.</summary>
-    public IReadOnlyList<Unit> Extras => _extras;
+    public UnitList Extras => new(_extras);
 
     /// <summary>Minions that died this fight, in the order they died.</summary>
-    public IReadOnlyList<Unit> DeadThisFight => _dead;
+    public UnitList DeadThisFight => new(_dead);
 
     /// <summary>Deathrattle triggers resolved this fight (multipliers included).</summary>
     public int DeathrattlesTriggered { get; internal set; }
@@ -93,7 +94,20 @@ public sealed partial class Side
     /// <summary>Minions entered or left since auras were last recomputed.</summary>
     internal bool AuraDirty { get; set; } = true;
 
-    public int IndexOf(Unit unit) => _board.IndexOf(unit);
+    public int IndexOf(Unit unit)
+    {
+        // By reference: List.IndexOf goes through EqualityComparer and a virtual Equals per minion.
+        var board = _board;
+        for (var i = 0; i < board.Count; i++)
+        {
+            if (ReferenceEquals(board[i], unit))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     /// <summary>
     /// A per-fight player counter (e.g. "EternalKnightsDead", "BeetleAttack"). Before it is set it reads the captured
@@ -184,7 +198,7 @@ public sealed partial class Side
 
     internal void Remove(Unit unit)
     {
-        var index = _board.IndexOf(unit);
+        var index = IndexOf(unit);
         if (index < 0)
         {
             return;
