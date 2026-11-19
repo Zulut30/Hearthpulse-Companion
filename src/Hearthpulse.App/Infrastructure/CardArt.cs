@@ -304,6 +304,13 @@ public static class CardArt
             return Task.FromResult<ImageSource?>(null);
         }
 
+        // Art already in memory is that image: a load that finished a moment ago is not decoded again (a second, different
+        // image would replace the one the screen already shows).
+        if (Memory.TryGetValue(key, out var cached))
+        {
+            return Task.FromResult<ImageSource?>(cached);
+        }
+
         TrimPending();
         var load = Pending.GetOrAdd(key, static (_, art) => LoadAsync(art.kind, art.cardId), (kind, cardId));
         // A load that finished before it was added (no await on the way) removed its entry too early: drop it now, or

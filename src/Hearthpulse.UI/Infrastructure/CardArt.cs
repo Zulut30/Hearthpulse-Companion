@@ -324,6 +324,13 @@ public static class CardArt
     public static Task<Bitmap?> GetAsync(ArtKind kind, string cardId)
     {
         var key = Key(kind, cardId);
+        // Art already in memory is that image: a load that finished a moment ago is not decoded again (a second, different
+        // image would replace the one the screen already shows).
+        if (Memory.TryGetValue(key, out var cached))
+        {
+            return Task.FromResult<Bitmap?>(cached);
+        }
+
         var load = Pending.GetOrAdd(key, static (_, art) => Task.Run(() => LoadAsync(art.kind, art.cardId)), (kind, cardId));
         // A load that finished before it was added removed its entry too early: drop it now, or it stays for good.
         if (load.IsCompleted)
