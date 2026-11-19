@@ -52,6 +52,7 @@ public sealed partial class Fight
     // One observer buffer per nesting depth, so hooks can be dispatched without allocating.
     private Unit[]?[] _buffers;
     private ICombatChooser _chooser;
+    private PreparedEffects _prepared;
     // The thread's reusable objects when this fight is one of many on it (Batch.Work), else null.
     private Scratch? _scratch;
     private Queue<Unit>? _queuedAttacks;
@@ -88,7 +89,7 @@ public sealed partial class Fight
     /// field, defaults included: <c>SimPoolResetTests</c> checks that no field of the fight, its sides or its units is
     /// left out.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_registry), nameof(_dead), nameof(_buffers), nameof(_chooser), nameof(Ours),
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_registry), nameof(_dead), nameof(_buffers), nameof(_chooser), nameof(_prepared), nameof(Ours),
         nameof(Theirs), nameof(Attacking))]
     private void Init(SimSide ours, SimSide theirs, EffectRegistry registry, ICombatChooser chooser, bool trace, PreparedEffects? prepared,
                       Scratch? scratch)
@@ -136,6 +137,7 @@ public sealed partial class Fight
         Theirs.Enemy = Ours;
         Attacking = Ours;
         prepared ??= PreparedEffects.For(ours, theirs, registry);
+        _prepared = prepared;
         Populate(Ours, ours, prepared.Ours, prepared.OurExtras);
         Populate(Theirs, theirs, prepared.Theirs, prepared.TheirExtras);
         if (ours.PlayerId > 0 && theirs.PlayerId > 0 && ours.PlayerId != theirs.PlayerId)
@@ -157,15 +159,33 @@ public sealed partial class Fight
     /// <summary>
     /// Effects of the captured minions and player-level cards, looked up once for many fights. A player-level card with an
     /// effect gets its holder's spec and effect array here too (both immutable: <see cref="Unit.AddEffect"/> replaces the
-    /// array), so a fight does not build them again; null for a card without an effect.
+    /// array), so a fight does not build them again; null for a card without an effect. For many fights
+    /// (<paramref name="RebornCopies"/>) also the <see cref="SimMinion.RebornCopy"/> of every captured minion, teammates
+    /// included, by spec reference: specs are immutable, so the fights share them.
     /// </summary>
-    internal sealed record PreparedEffects(CombatEffect[][] Ours, CombatEffect[][] Theirs, ExtraHolder?[] OurExtras, ExtraHolder?[] TheirExtras)
+    internal sealed record PreparedEffects(CombatEffect[][] Ours, CombatEffect[][] Theirs, ExtraHolder?[] OurExtras, ExtraHolder?[] TheirExtras,
+                                           IReadOnlyDictionary<SimMinion, SimMinion>? RebornCopies = null)
     {
-        public static PreparedEffects For(SimSide ours, SimSide theirs, EffectRegistry registry) => new(
+        public static PreparedEffects For(SimSide ours, SimSide theirs, EffectRegistry registry, bool manyFights = false) => new(
             ours.Minions.Select(registry.EffectsFor).ToArray(),
             theirs.Minions.Select(registry.EffectsFor).ToArray(),
             ours.Extras.Select(id => ExtraHolder.For(id, registry)).ToArray(),
-            theirs.Extras.Select(id => ExtraHolder.For(id, registry)).ToArray());
+            theirs.Extras.Select(id => ExtraHolder.For(id, registry)).ToArray(),
+            manyFights ? RebornCopiesOf(ours, theirs) : null);
+
+        private static Dictionary<SimMinion, SimMinion> RebornCopiesOf(SimSide ours, SimSide theirs)
+        {
+            var copies = new Dictionary<SimMinion, SimMinion>(ReferenceEqualityComparer.Instance);
+            foreach (var side in new[] { ours, ours.Teammate, theirs, theirs.Teammate })
+            {
+                foreach (var spec in side?.Minions ?? [])
+                {
+                    copies.TryAdd(spec, spec.RebornCopy());
+                }
+            }
+
+            return copies;
+        }
     }
 
     /// <summary>What a player-level effect holder is made from: a 0/0 spec of the card and its one effect.</summary>

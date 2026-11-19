@@ -236,7 +236,8 @@ public sealed partial class Fight
 
     private void SummonReborn(Unit dead)
     {
-        var spec = dead.Spec.RebornCopy();
+        // A captured minion's copy is made once for all the fights of a simulation (PreparedEffects.RebornCopies).
+        var spec = _prepared.RebornCopies is { } copies && copies.TryGetValue(dead.Spec, out var prepared) ? prepared : dead.Spec.RebornCopy();
         foreach (var effect in dead.Effects)
         {
             spec = effect.RebornAs(this, dead, spec);

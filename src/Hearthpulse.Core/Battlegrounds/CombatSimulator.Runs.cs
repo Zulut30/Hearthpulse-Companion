@@ -180,7 +180,7 @@ public static partial class CombatSimulator
                                DamageRule rules, int seed)
     {
         private readonly object _gate = new();
-        private readonly Fight.PreparedEffects _prepared = Fight.PreparedEffects.For(ours, theirs, effects);
+        private readonly Fight.PreparedEffects _prepared = Fight.PreparedEffects.For(ours, theirs, effects, manyFights: true);
         private readonly Stopwatch? _clock = options.TimeBudget is { } ? Stopwatch.StartNew() : null;
         private readonly Dictionary<int, Tally> _finished = new();
         private readonly Stack<Tally> _free = new();

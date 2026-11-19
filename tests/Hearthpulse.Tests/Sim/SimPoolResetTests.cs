@@ -140,7 +140,7 @@ public sealed class SimPoolResetTests
             var pooledOutcome = pooled.Run(null, 0);
             var pooledState = State(pooled);
 
-            var fresh = new Fight(Boards[board].Ours, Boards[board].Theirs, EffectRegistry.Default, Chooser(i), trace: false, Prepared(board));
+            var fresh = new Fight(Boards[board].Ours, Boards[board].Theirs, EffectRegistry.Default, Chooser(i), trace: false);
             var freshOutcome = fresh.Run(null, 0);
 
             Assert.Equal(freshOutcome, pooledOutcome);
@@ -153,8 +153,11 @@ public sealed class SimPoolResetTests
 
     private static RandomChooser Chooser(int seed) => new(new Random(seed));
 
-    private static Fight.PreparedEffects Prepared(int board) =>
-        Fight.PreparedEffects.For(Boards[board].Ours, Boards[board].Theirs, EffectRegistry.Default);
+    // One per board, as a simulation shares it between its fights (both fights of a comparison get the same one).
+    private static readonly Fight.PreparedEffects[] PreparedBoards =
+        [.. Boards.Select(b => Fight.PreparedEffects.For(b.Ours, b.Theirs, EffectRegistry.Default, manyFights: true))];
+
+    private static Fight.PreparedEffects Prepared(int board) => PreparedBoards[board];
 
     private static IEnumerable<FieldInfo> Fields(Type type) =>
         type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
