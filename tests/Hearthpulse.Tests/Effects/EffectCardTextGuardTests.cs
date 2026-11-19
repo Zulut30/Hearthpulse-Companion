@@ -17,8 +17,9 @@ namespace Hearthpulse.Tests.Sim;
 public sealed class EffectCardTextGuardTests
 {
     /// <summary>
-    /// The card text each effect in Effects/attack, deaths and ongoing implements, with the numbers its code uses: the
-    /// normal card and the golden card. Every registered card id of those folders has a row (a new effect adds one).
+    /// The card text each effect in Effects/attack, deaths, ongoing and spells implements, with the numbers its code uses:
+    /// the normal card and the golden card. Every registered card id of those folders has a row (a new effect adds one).
+    /// Effects/player joins with package E3.
     /// </summary>
     private static readonly (string Id, string Normal, string? Golden)[] Rows =
     [
@@ -125,6 +126,54 @@ public sealed class EffectCardTextGuardTests
         ("BG36_360", "This has a different Dark Gift, stats, and Tier each game!", "This has a different Dark Gift, stats, and Tier each game!"),
         ("BG36_360t6", "Has +4/+4 for each Battlecry you've triggered this game", "Has +8/+8 for each Battlecry you've triggered this game"),
         ("BG36_360_Gt6", "Has +8/+8 for each Battlecry you've triggered this game", null),
+
+        // spells/ (and the Tavern spells cast in combat)
+        ("BG35_921", "Has +2/+1 for each Tavern spell you've cast this game.", "Has +4/+2 for each Tavern spell you've cast this game."),
+        ("BG32_111", "Battlecry and Deathrattle: Get a Misplaced Tea Set.", "Battlecry and Deathrattle: Get 2 Misplaced Tea Sets."),
+        ("BG32_336", "Battlecry and Deathrattle: Get a Seafood Stew.", "Battlecry and Deathrattle: Get 2 Seafood Stews."),
+        ("BG32_820", "Battlecry and Deathrattle: Get a Shiny Ring.", "Battlecry and Deathrattle: Get 2 Shiny Rings."),
+        ("BG33_821", "Battlecry and Deathrattle: Get a random Bounty.", "Battlecry and Deathrattle: Get 2 random Bounties."),
+        ("BG34_171", "Deathrattle: Get a random Magnetic Volumizer.", "Deathrattle: Get 2 random Magnetic Volumizers."),
+        ("BG34_633", "Battlecry and Deathrattle: Get a random Chromadrake.", "Battlecry and Deathrattle: Get 2 random Chromadrakes."),
+        ("BG34_682", "Battlecry and Deathrattle: Get a Blood Gem Barrage.", "Battlecry and Deathrattle: Get 2 Blood Gem Barrages."),
+        ("BG35_881", "Battlecry and Deathrattle: Get an Arcane Absorption.", "Battlecry and Deathrattle: Get 2 Arcane Absorptions."),
+        ("BG36_101", "Deathrattle: Get a random 1-Cost Tavern spell.", "Deathrattle: Get two random 1-Cost Tavern spells."),
+        ("BG36_103", "Battlecry and Deathrattle: Get an Energizing Chamber.", "Battlecry and Deathrattle: Get 2 Energizing Chambers."),
+        ("BG36_731", "Deathrattle: Get a Methodical Madness.", "Deathrattle: Get 2 copies of Methodical Madness."),
+        ("BG36_854", "Deathrattle: Get a Repair Job.", "Deathrattle: Get 2 Repair Jobs."),
+        ("BGDUO_111", "Deathrattle: You and your teammate each get a Blood Gem.", "Deathrattle: You and your teammate each get 2 Blood Gems."),
+        ("BG20_101", "Rally: Get a Blood Gem.", "Rally: Get 2 Blood Gems."),
+        ("BG33_822", "Rally: Get a random Bounty.", "Rally: Get 2 random Bounties."),
+        ("BG36_204", "Rally: Get a random Beast.", "Rally: Get 2 random Beasts."),
+        ("BG36_242", "Rally: Get a random Chromadrake.", "Rally: Get 2 random Chromadrakes."),
+        ("BG36_331", "Rally: Get a random Choose One card.", "Rally: Get 2 random Choose One cards."),
+        ("BG34_319", "Battlecry, Deathrattle, and Rally: Get a random Tier 6 minion.", "Battlecry, Deathrattle, and Rally: Get two random Tier 6 minions."),
+        ("BG32_324", "Avenge (4): Get a Butchering.", "Avenge (4): Get 2 Butcherings."),
+        ("BG36_848", "Avenge (3): Get a plain copy of a minion that started in your warband this combat.", "Avenge (3): Get 2 plain copies of a minion that started in your warband this combat."),
+        ("BG28_741", "Whenever you cast a Tavern spell, give your minions with Divine Shield +4 Attack.", "Whenever you cast a Tavern spell, give your minions with Divine Shield +8 Attack."),
+        ("BG36_921", "Whenever you cast a spell on this, gain +1 Health.", "Whenever you cast a spell on this, gain +2 Health."),
+        ("BG34_692", "After you cast a Tavern spell, your Undead have +3 Attack this game", "After you cast a Tavern spell, your Undead have +6 Attack this game"),
+        ("BG36_640", "Whenever you cast a spell on this, it casts Misplaced Tea Set.", "Whenever you cast a spell on this, it casts Misplaced Tea Set twice."),
+        ("BG28_583", "Whenever a Blood Gem is played on this, this plays a Blood Gem on a different friendly minion.", "Whenever a Blood Gem is played on this, this plays 2 Blood Gems on a different friendly minion."),
+        ("BG36_853", "Whenever you cast a spell on a Mech, Magnetize a 5/5 Satellite to it.", "Whenever you cast a spell on a Mech, Magnetize a 5/5 Satellite to it twice."),
+        ("BG34_925", "Rally: Cast Chef's Choice on the minion to the right.", "Rally: Cast Chef's Choice on the minion to the right twice."),
+        ("BG36_111", "Whenever you cast a Tavern spell, give your minions and Deity +3/+3.", "Whenever you cast a Tavern spell, give your minions and Deity +6/+6."),
+        ("BG36_704", "Whenever you cast a spell on a Murloc, give Murlocs in your hand and board +3/+4.", "Whenever you cast a spell on a Murloc, give Murlocs in your hand and board +6/+8."),
+        ("BG36_MagicItem_211", "After you cast a spell on a friendly minion, this casts it on another friendly minion.", null),
+        ("BG36_MagicItem_404", "After you cast a Tavern spell, give your Deity +4/+4.", null),
+        ("BG36_MagicItem_404t", "After you cast a Tavern spell, give your Deity +10/+10.", null),
+        ("BG35_MagicItem_710", "After you cast a Tavern spell, give your Pirates +4/+4.", null),
+        ("BG30_MagicItem_547", "Whenever you cast a Tavern spell, your Undead have +1 Attack this game", null),
+        ("BG30_MagicItem_547t", "Whenever you cast a Tavern spell, your Undead have +2 Attack this game", null),
+        ("BG32_MagicItem_893", "Whenever you cast a Tavern spell, give the left-most minion in your hand and warband +3/+3.", null),
+        ("BG36_MagicItem_820", "After you cast a Tavern spell, give Flighty Scouts in your hand and warband +3/+3.", null),
+        ("BG36_109", "Whenever a card is added to your hand, give your Deity +4/+5.", "Whenever a card is added to your hand, give your Deity +8/+10."),
+        ("BG27_005", "Whenever you cast a Tavern spell, give your minions +1 Attack.", "Whenever you cast a Tavern spell, give your minions +1 Attack twice."),
+        ("BG36_622", "Whenever you cast a spell on a Naga, give your minions +2/+3.", "Whenever you cast a spell on a Naga, give your minions +4/+6."),
+        ("BG36_703", "Whenever you cast a spell on this, give the left-most minion in your hand +9/+9.", "Whenever you cast a spell on this, give the left-most minion in your hand +18/+18."),
+        ("BG36_108", "Whenever you cast a Tavern spell, give this and your Deity +1/+2.", "Whenever you cast a Tavern spell, give this and your Deity +2/+4."),
+        ("BG28_888", "Give a friendly minion of each type +3/+3.", null),
+        ("BG28_518", "Get a different minion of the same type.", null),
     ];
 
     /// <summary>Tokens the effects summon with printed stats from <see cref="Tokens"/>: card id and factory.</summary>
@@ -148,6 +197,7 @@ public sealed class EffectCardTextGuardTests
         "Hearthpulse.Core.Battlegrounds.Effects.Attack",
         "Hearthpulse.Core.Battlegrounds.Effects.Deaths",
         "Hearthpulse.Core.Battlegrounds.Effects.Ongoing",
+        "Hearthpulse.Core.Battlegrounds.Effects.Spells",
     ];
 
     private static readonly Lazy<Dictionary<string, CardText>> Cards = new(Load);

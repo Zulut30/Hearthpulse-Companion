@@ -59,7 +59,7 @@ internal sealed class SpaceCopyHeroPower : CombatEffect
         var turn = self.Side.Info.Turn;
         var copied = self.Side.Minions.Any(m => m.Spec.CreatorCardId == self.CardId);
         // Counter: 1 = a copy is still owed.
-        self.Counter = self.Side.IsFull && !copied && (turn == 0 || turn >= UnlockTurn) ? 1 : 0;
+        self.Counter = (SimInputs.SpaceCopyOwed(self.Side.Info, self.CardId) ?? (self.Side.IsFull && !copied && (turn == 0 || turn >= UnlockTurn))) ? 1 : 0;
     }
 
     public override void AfterFriendlyDeath(Fight fight, Unit self, Unit dead)

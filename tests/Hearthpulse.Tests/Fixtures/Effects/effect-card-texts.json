@@ -26,6 +26,18 @@
     "health": 6
    }
   },
+  "BG20_101": {
+   "name": "Roadboar",
+   "text": "Rally: Get a Blood Gem.",
+   "attack": 2,
+   "health": 4,
+   "golden": {
+    "id": "BG20_101_G",
+    "text": "Rally: Get 2 Blood Gems.",
+    "attack": 4,
+    "health": 8
+   }
+  },
   "BG20_104": {
    "name": "Bonker",
    "text": "Windfury Rally: This plays a Blood Gem on all your other minions.",
@@ -236,6 +248,18 @@
     "health": 8
    }
   },
+  "BG27_005": {
+   "name": "Timecap'n Hooktail",
+   "text": "Whenever you cast a Tavern spell, give your minions +1 Attack.",
+   "attack": 1,
+   "health": 4,
+   "golden": {
+    "id": "BG27_005_G",
+    "text": "Whenever you cast a Tavern spell, give your minions +1 Attack twice.",
+    "attack": 2,
+    "health": 8
+   }
+  },
   "BG27_017": {
    "name": "Obsidian Ravager",
    "text": "Rally: Deal damage equal to this minion's Attack to the target and an adjacent minion.",
@@ -308,6 +332,24 @@
     "health": 4
    }
   },
+  "BG28_518": {
+   "name": "Chef's Choice",
+   "text": "Choose a minion. Get a different minion of the same type.",
+   "attack": null,
+   "health": null
+  },
+  "BG28_583": {
+   "name": "Geomagus Roogug",
+   "text": "Divine Shield. Whenever a Blood Gem is played on this, this plays a Blood Gem on a different friendly minion.",
+   "attack": 4,
+   "health": 6,
+   "golden": {
+    "id": "BG28_583_G",
+    "text": "Divine Shield. Whenever a Blood Gem is played on this, this plays 2 Blood Gems on a different friendly minion.",
+    "attack": 8,
+    "health": 12
+   }
+  },
   "BG28_603t": {
    "name": "Beetle",
    "text": "",
@@ -319,6 +361,24 @@
     "attack": 4,
     "health": 4
    }
+  },
+  "BG28_741": {
+   "name": "Charging Czarina",
+   "text": "Divine Shield Whenever you cast a Tavern spell, give your minions with Divine Shield +4 Attack.",
+   "attack": 4,
+   "health": 1,
+   "golden": {
+    "id": "BG28_741_G",
+    "text": "Divine Shield Whenever you cast a Tavern spell, give your minions with Divine Shield +8 Attack.",
+    "attack": 8,
+    "health": 2
+   }
+  },
+  "BG28_888": {
+   "name": "Misplaced Tea Set",
+   "text": "Give a friendly minion of each type +3/+3.",
+   "attack": null,
+   "health": null
   },
   "BG29_611": {
    "name": "Cord Puller",
@@ -379,6 +439,18 @@
     "attack": 6,
     "health": 6
    }
+  },
+  "BG30_MagicItem_547": {
+   "name": "Comfy Coffin",
+   "text": "Whenever you cast a Tavern spell, your Undead have +1 Attack this game (wherever they are).",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_547t": {
+   "name": "Comfy Coffin",
+   "text": "Whenever you cast a Tavern spell, your Undead have +2 Attack this game (wherever they are).",
+   "attack": null,
+   "health": null
   },
   "BG31_148": {
    "name": "Hackerfin",
@@ -464,6 +536,60 @@
     "health": 8
    }
   },
+  "BG32_111": {
+   "name": "Nightmare Par-tea Guest",
+   "text": "Battlecry and Deathrattle: Get a Misplaced Tea Set.",
+   "attack": 3,
+   "health": 3,
+   "golden": {
+    "id": "BG32_111_G",
+    "text": "Battlecry and Deathrattle: Get 2 Misplaced Tea Sets.",
+    "attack": 6,
+    "health": 6
+   }
+  },
+  "BG32_324": {
+   "name": "Drustfallen Butcher",
+   "text": "Avenge (4): Get a Butchering.",
+   "attack": 2,
+   "health": 7,
+   "golden": {
+    "id": "BG32_324_G",
+    "text": "Avenge (4): Get 2 Butcherings.",
+    "attack": 4,
+    "health": 14
+   }
+  },
+  "BG32_336": {
+   "name": "Gormling Gourmet",
+   "text": "Taunt Battlecry and Deathrattle: Get a Seafood Stew.",
+   "attack": 4,
+   "health": 3,
+   "golden": {
+    "id": "BG32_336_G",
+    "text": "Taunt Battlecry and Deathrattle: Get 2 Seafood Stews.",
+    "attack": 8,
+    "health": 6
+   }
+  },
+  "BG32_820": {
+   "name": "Firescale Hoarder",
+   "text": "Battlecry and Deathrattle: Get a Shiny Ring.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG32_820_G",
+    "text": "Battlecry and Deathrattle: Get 2 Shiny Rings.",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG32_MagicItem_893": {
+   "name": "Bluegill Flippers",
+   "text": "Whenever you cast a Tavern spell, give the left-most minion in your hand and warband +3/+3.",
+   "attack": null,
+   "health": null
+  },
   "BG33_155": {
    "name": "Devout Hellcaller",
    "text": "After another friendly Demon deals damage, gain +2/+2 permanently.",
@@ -498,6 +624,30 @@
     "text": "Whenever another friendly minion attacks, this plays 2 Blood Gems on it.",
     "attack": 4,
     "health": 10
+   }
+  },
+  "BG33_821": {
+   "name": "Shipwrecked Rascal",
+   "text": "Battlecry and Deathrattle: Get a random Bounty.",
+   "attack": 5,
+   "health": 4,
+   "golden": {
+    "id": "BG33_821_G",
+    "text": "Battlecry and Deathrattle: Get 2 random Bounties.",
+    "attack": 10,
+    "health": 8
+   }
+  },
+  "BG33_822": {
+   "name": "Bigwig Bandit",
+   "text": "Rally: Get a random Bounty.",
+   "attack": 4,
+   "health": 6,
+   "golden": {
+    "id": "BG33_822_G",
+    "text": "Rally: Get 2 random Bounties.",
+    "attack": 8,
+    "health": 12
    }
   },
   "BG33_828": {
@@ -560,6 +710,30 @@
     "health": 10
    }
   },
+  "BG34_171": {
+   "name": "Conveyor Construct",
+   "text": "Deathrattle: Get a random Magnetic Volumizer.",
+   "attack": 5,
+   "health": 2,
+   "golden": {
+    "id": "BG34_171_G",
+    "text": "Deathrattle: Get 2 random Magnetic Volumizers.",
+    "attack": 10,
+    "health": 4
+   }
+  },
+  "BG34_319": {
+   "name": "Highkeeper Ra",
+   "text": "Battlecry, Deathrattle, and Rally: Get a random Tier 6 minion.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "BG34_319_G",
+    "text": "Battlecry, Deathrattle, and Rally: Get two random Tier 6 minions.",
+    "attack": 12,
+    "health": 12
+   }
+  },
   "BG34_320": {
    "name": "The Last One Standing",
    "text": "Rally: Give a friendly minion of each type +10/+10 permanently and improve this.",
@@ -620,6 +794,30 @@
     "health": 20
    }
   },
+  "BG34_633": {
+   "name": "Draconic Warden",
+   "text": "Battlecry and Deathrattle: Get a random Chromadrake.",
+   "attack": 7,
+   "health": 4,
+   "golden": {
+    "id": "BG34_633_G",
+    "text": "Battlecry and Deathrattle: Get 2 random Chromadrakes.",
+    "attack": 14,
+    "health": 8
+   }
+  },
+  "BG34_682": {
+   "name": "Razorfen Flapper",
+   "text": "Battlecry and Deathrattle: Get a Blood Gem Barrage.",
+   "attack": 5,
+   "health": 3,
+   "golden": {
+    "id": "BG34_682_G",
+    "text": "Battlecry and Deathrattle: Get 2 Blood Gem Barrages.",
+    "attack": 10,
+    "health": 6
+   }
+  },
   "BG34_690": {
    "name": "Plaguerunner",
    "text": "Deathrattle: Your Undead have +2 Attack this game, wherever they are. (+4 if triggered outside combat!)",
@@ -630,6 +828,30 @@
     "text": "Deathrattle: Your Undead have +4 Attack this game, wherever they are. (+8 if triggered outside combat!)",
     "attack": 8,
     "health": 4
+   }
+  },
+  "BG34_692": {
+   "name": "Forsaken Weaver",
+   "text": "After you cast a Tavern spell, your Undead have +3 Attack this game (wherever they are).",
+   "attack": 3,
+   "health": 8,
+   "golden": {
+    "id": "BG34_692_G",
+    "text": "After you cast a Tavern spell, your Undead have +6 Attack this game (wherever they are).",
+    "attack": 6,
+    "health": 16
+   }
+  },
+  "BG34_925": {
+   "name": "Seafloor Recruiter",
+   "text": "Rally: Cast Chef's Choice on the minion to the right.",
+   "attack": 3,
+   "health": 5,
+   "golden": {
+    "id": "BG34_925_G",
+    "text": "Rally: Cast Chef's Choice on the minion to the right twice.",
+    "attack": 6,
+    "health": 10
    }
   },
   "BG34_Giant_041": {
@@ -692,6 +914,18 @@
     "health": 6
    }
   },
+  "BG35_881": {
+   "name": "Leyline Surfacer",
+   "text": "Battlecry and Deathrattle: Get an Arcane Absorption.",
+   "attack": 4,
+   "health": 6,
+   "golden": {
+    "id": "BG35_881_G",
+    "text": "Battlecry and Deathrattle: Get 2 Arcane Absorptions.",
+    "attack": 8,
+    "health": 12
+   }
+  },
   "BG35_883": {
    "name": "Balinda Stonehearth",
    "text": "Your spells that target friendly minions cast twice.",
@@ -702,6 +936,36 @@
     "text": "Your spells that target friendly minions cast three times.",
     "attack": 12,
     "health": 12
+   }
+  },
+  "BG35_921": {
+   "name": "Abyssal Bruiser",
+   "text": "Divine Shield Has +2/+1 for each Tavern spell you've cast this game.",
+   "attack": 2,
+   "health": 1,
+   "golden": {
+    "id": "BG35_921_G",
+    "text": "Divine Shield Has +4/+2 for each Tavern spell you've cast this game.",
+    "attack": 4,
+    "health": 2
+   }
+  },
+  "BG35_MagicItem_710": {
+   "name": "Miniature Ship",
+   "text": "After you cast a Tavern spell, give your Pirates +4/+4.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_101": {
+   "name": "Unwilling Slacker",
+   "text": "Deathrattle: Get a random 1-Cost Tavern spell.",
+   "attack": 3,
+   "health": 2,
+   "golden": {
+    "id": "BG36_101_G",
+    "text": "Deathrattle: Get two random 1-Cost Tavern spells.",
+    "attack": 6,
+    "health": 4
    }
   },
   "BG36_102": {
@@ -716,6 +980,42 @@
     "health": 16
    }
   },
+  "BG36_103": {
+   "name": "N'raqi Sapper",
+   "text": "Battlecry and Deathrattle: Get an Energizing Chamber.",
+   "attack": 6,
+   "health": 3,
+   "golden": {
+    "id": "BG36_103_G",
+    "text": "Battlecry and Deathrattle: Get 2 Energizing Chambers.",
+    "attack": 12,
+    "health": 6
+   }
+  },
+  "BG36_108": {
+   "name": "Vicious Mindslasher",
+   "text": "Whenever you cast a Tavern spell, give this and your Deity +1/+2.",
+   "attack": 1,
+   "health": 2,
+   "golden": {
+    "id": "BG36_108_G",
+    "text": "Whenever you cast a Tavern spell, give this and your Deity +2/+4.",
+    "attack": 2,
+    "health": 4
+   }
+  },
+  "BG36_109": {
+   "name": "The Shadow of Doubt",
+   "text": "Whenever a card is added to your hand, give your Deity +4/+5.",
+   "attack": 6,
+   "health": 8,
+   "golden": {
+    "id": "BG36_109_G",
+    "text": "Whenever a card is added to your hand, give your Deity +8/+10.",
+    "attack": 12,
+    "health": 16
+   }
+  },
   "BG36_110": {
    "name": "Joyous",
    "text": "Battlecry: Give your Deity +2/+1.",
@@ -726,6 +1026,18 @@
     "text": "Battlecry: Give your Deity +4/+2.",
     "attack": 4,
     "health": 6
+   }
+  },
+  "BG36_111": {
+   "name": "Sha of Fear",
+   "text": "Whenever you cast a Tavern spell, give your minions and Deity +3/+3.",
+   "attack": 10,
+   "health": 13,
+   "golden": {
+    "id": "BG36_111_G",
+    "text": "Whenever you cast a Tavern spell, give your minions and Deity +6/+6.",
+    "attack": 20,
+    "health": 26
    }
   },
   "BG36_113": {
@@ -786,6 +1098,18 @@
     "text": "Deathrattle: Give a random friendly Beast +4/+2. Improve your future Tasty Lobsters.",
     "attack": 4,
     "health": 2
+   }
+  },
+  "BG36_204": {
+   "name": "Headhunter Gryphon",
+   "text": "Rally: Get a random Beast.",
+   "attack": 3,
+   "health": 5,
+   "golden": {
+    "id": "BG36_204_G",
+    "text": "Rally: Get 2 random Beasts.",
+    "attack": 6,
+    "health": 10
    }
   },
   "BG36_205": {
@@ -872,6 +1196,18 @@
     "health": 14
    }
   },
+  "BG36_242": {
+   "name": "Bronze Timewalker",
+   "text": "Rally: Get a random Chromadrake.",
+   "attack": 4,
+   "health": 5,
+   "golden": {
+    "id": "BG36_242_G",
+    "text": "Rally: Get 2 random Chromadrakes.",
+    "attack": 8,
+    "health": 10
+   }
+  },
   "BG36_246": {
    "name": "Mighty Dragonbreath",
    "text": "Give your minions +3/+2. Repeat for your Dragons. Repeat for your minions with Divine Shield.",
@@ -888,6 +1224,18 @@
     "text": "Deathrattle: Give your Deity +4/+2. (Improved by each Tavern spell you've cast this game!)",
     "attack": 10,
     "health": 10
+   }
+  },
+  "BG36_331": {
+   "name": "Bramble Tunneler",
+   "text": "Rally: Get a random Choose One card.",
+   "attack": 3,
+   "health": 6,
+   "golden": {
+    "id": "BG36_331_G",
+    "text": "Rally: Get 2 random Choose One cards.",
+    "attack": 6,
+    "health": 12
    }
   },
   "BG36_333": {
@@ -992,6 +1340,78 @@
     "health": 16
    }
   },
+  "BG36_622": {
+   "name": "Torrential Ruiner",
+   "text": "Whenever you cast a spell on a Naga, give your minions +2/+3.",
+   "attack": 6,
+   "health": 3,
+   "golden": {
+    "id": "BG36_622_G",
+    "text": "Whenever you cast a spell on a Naga, give your minions +4/+6.",
+    "attack": 12,
+    "health": 6
+   }
+  },
+  "BG36_640": {
+   "name": "Gatekeeper Amalgam",
+   "text": "Whenever you cast a spell on this, it casts Misplaced Tea Set.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "BG36_640_G",
+    "text": "Whenever you cast a spell on this, it casts Misplaced Tea Set twice.",
+    "attack": 12,
+    "health": 12
+   }
+  },
+  "BG36_703": {
+   "name": "Twilight Tidehunter",
+   "text": "Whenever you cast a spell on this, give the left-most minion in your hand +9/+9.",
+   "attack": 3,
+   "health": 7,
+   "golden": {
+    "id": "BG36_703_G",
+    "text": "Whenever you cast a spell on this, give the left-most minion in your hand +18/+18.",
+    "attack": 6,
+    "health": 14
+   }
+  },
+  "BG36_704": {
+   "name": "Shamanic Tidecaller",
+   "text": "Whenever you cast a spell on a Murloc, give Murlocs in your hand and board +3/+4.",
+   "attack": 6,
+   "health": 9,
+   "golden": {
+    "id": "BG36_704_G",
+    "text": "Whenever you cast a spell on a Murloc, give Murlocs in your hand and board +6/+8.",
+    "attack": 12,
+    "health": 18
+   }
+  },
+  "BG36_731": {
+   "name": "Imp-lusionist",
+   "text": "Deathrattle: Get a Methodical Madness.",
+   "attack": 4,
+   "health": 2,
+   "golden": {
+    "id": "BG36_731_G",
+    "text": "Deathrattle: Get 2 copies of Methodical Madness.",
+    "attack": 8,
+    "health": 4
+   }
+  },
+  "BG36_848": {
+   "name": "Lichling Hoarder",
+   "text": "Avenge (3): Get a plain copy of a minion that started in your warband this combat.",
+   "attack": 6,
+   "health": 9,
+   "golden": {
+    "id": "BG36_848_G",
+    "text": "Avenge (3): Get 2 plain copies of a minion that started in your warband this combat.",
+    "attack": 12,
+    "health": 18
+   }
+  },
   "BG36_849": {
    "name": "Heroic Broodmother",
    "text": "Rally: Gain Divine Shield. Start of Combat: Attack immediately.",
@@ -1003,6 +1423,66 @@
     "attack": 14,
     "health": 14
    }
+  },
+  "BG36_853": {
+   "name": "Glambot",
+   "text": "Whenever you cast a spell on a Mech, Magnetize a 5/5 Satellite to it.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG36_853_G",
+    "text": "Whenever you cast a spell on a Mech, Magnetize a 5/5 Satellite to it twice.",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG36_854": {
+   "name": "Rescue Bot",
+   "text": "Taunt Deathrattle: Get a Repair Job.",
+   "attack": 2,
+   "health": 1,
+   "golden": {
+    "id": "BG36_854_G",
+    "text": "Taunt Deathrattle: Get 2 Repair Jobs.",
+    "attack": 4,
+    "health": 2
+   }
+  },
+  "BG36_921": {
+   "name": "Fleeing Fugitive",
+   "text": "Whenever you cast a spell on this, gain +1 Health.",
+   "attack": 5,
+   "health": 2,
+   "golden": {
+    "id": "BG36_921_G",
+    "text": "Whenever you cast a spell on this, gain +2 Health.",
+    "attack": 10,
+    "health": 4
+   }
+  },
+  "BG36_MagicItem_211": {
+   "name": "Lovely Locket",
+   "text": "After you cast a spell on a friendly minion, this casts it on another friendly minion.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_404": {
+   "name": "Corrupted Baton",
+   "text": "After you cast a Tavern spell, give your Deity +4/+4.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_404t": {
+   "name": "Corrupted Baton",
+   "text": "After you cast a Tavern spell, give your Deity +10/+10.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_820": {
+   "name": "Flighty Portrait",
+   "text": "Get a Flighty Scout. After you cast a Tavern spell, give Flighty Scouts in your hand and warband +3/+3.",
+   "attack": null,
+   "health": null
   },
   "BG36_MidGameEffect_000t12e": {
    "name": "Persisting Horror",
@@ -1050,6 +1530,18 @@
     "text": "Has +8/+8 for each of your team's San'layn Scribes that died this game (wherever this is).",
     "attack": 8,
     "health": 8
+   }
+  },
+  "BGDUO_111": {
+   "name": "Generous Geomancer",
+   "text": "Deathrattle: You and your teammate each get a Blood Gem.",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BGDUO_111_G",
+    "text": "Deathrattle: You and your teammate each get 2 Blood Gems.",
+    "attack": 2,
+    "health": 2
    }
   },
   "BGDUO_701": {

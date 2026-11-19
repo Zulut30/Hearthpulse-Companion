@@ -19,7 +19,7 @@ internal abstract class DeityEffect : CombatEffect
             return;
         }
 
-        if (++self.Counter < Deity.AberrationDeathsToAwaken)
+        if (++self.Counter < SimInputs.DeityDeathsStillNeeded(self.Side.Info, self.CardId, Deity.AberrationDeathsToAwaken))
         {
             return;
         }

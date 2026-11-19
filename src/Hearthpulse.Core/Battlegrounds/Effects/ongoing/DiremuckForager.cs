@@ -10,8 +10,8 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 /// (<see cref="PendingMurlocs"/>), even after the Forager itself died. The Murloc is summoned at the right end of the board,
 /// wherever the Forager stands (real log 15.11.2026, build 255790: the delayed summon went to position 7 with the Forager
 /// alive at position 4, and with a golden one at position 3). Needs the hand, which only the local player's is known: the
-/// opponent's Forager stays "not simulated". With a golden Forager and a full board the sim assumes none of the two was
-/// summoned yet (the log keeps the count on a player enchantment the capture does not read yet).
+/// opponent's Forager stays "not simulated". The Murlocs still to summon are the player enchantment's count
+/// (<see cref="SimInputs.PendingForagerSummons"/>); without it, with a full board, the sim assumes none was summoned yet.
 /// </para>
 /// </summary>
 [CardEffect("BG27_556")]
@@ -28,7 +28,7 @@ internal sealed class DiremuckForager : CombatEffect
 
         var holder = PlayerEffects.Attach(self.Side, self.CardId, PendingMurlocs.Instance);
         var state = UnitState<PendingMurlocs.State>.Of(holder);
-        state.Remaining = self.Pick(1, 2);
+        state.Remaining = SimInputs.PendingForagerSummons(self.Side.Info, self.Spec.EntityId) ?? self.Pick(1, 2);
     }
 }
 

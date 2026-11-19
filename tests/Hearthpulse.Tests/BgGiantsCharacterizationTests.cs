@@ -123,8 +123,10 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // FECFFCB0BDD005AE.
         // 2026-11-19 (sim-all-mechanics P0): Ghastcoiler and Undead pools regenerated from patch 37.0.2 card data (new
         // stats, Rot Hide Gnoll); with the old pool files (checked) the fingerprint is still A488D069E48228A5.
+        // 2026-11-19 (E1 sim-spells): the spell, card-to-hand and spell-trinket effects add ids and two new trace lines
+        // ("... gets a Blood Gem", "we/they get ..."); without those types and lines (checked) it is still 60958721CA247FFC.
         // 2026-11-19 (FIX sim-effects-audit): effects corrected to the live card text (The Last One Standing, Eudora, Kodo,
-        // C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose; the ids are the same (fingerprint taken after E2 and P0).
-        Assert.Equal("fights 2EB631B831B092CE", actual);
+        // C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose; the ids are the same (fingerprint taken after E2, P0, E1 and I).
+        Assert.Equal("fights 08200623452E65C4", actual);
     }
 }
