@@ -24,6 +24,7 @@ public sealed partial class BattlegroundsTracker
         if (_inCombat && game.BattlegroundsTurn != _combatTurn)
         {
             game.CombatOnScreen = false;
+            FinishTranscript(game, complete: false, "cut");
             EndCombat(game);
         }
 

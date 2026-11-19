@@ -33,7 +33,7 @@ internal sealed class DeathlyStriker : AvengeEffect
         var state = UnitState<State>.Of(self);
         for (var i = 0; i < self.Pick(1, 2); i++)
         {
-            if (side.Hand.Count >= MaxHandSize || UndeadPool.Random(fight, side.Info.TavernTier) is not { } undead)
+            if (side.Hand.Count >= MaxHandSize || UndeadPool.Draw(fight, self, side.Info.TavernTier) is not { } undead)
             {
                 break;
             }

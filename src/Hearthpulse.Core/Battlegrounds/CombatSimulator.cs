@@ -265,7 +265,7 @@ public static class CombatSimulator
 
         var prepared = Fight.PreparedEffects.For(ours, theirs, effects);
         // Stable seed: the same boards always show the same numbers, in every session.
-        var random = new Random(Seed(ours, theirs, firstAttackerIsOurs));
+        var chooser = new RandomChooser(new Random(Seed(ours, theirs, firstAttackerIsOurs)));
         var clock = options.TimeBudget is { } ? Stopwatch.StartNew() : null;
         int done = 0, wins = 0, losses = 0;
         for (; done < options.Runs; done++)
@@ -280,7 +280,7 @@ public static class CombatSimulator
                 break;
             }
 
-            var fight = new Fight(ours, theirs, effects, random, trace: false, prepared);
+            var fight = new Fight(ours, theirs, effects, chooser, trace: false, prepared);
             var outcome = fight.Run(firstAttackerIsOurs, options.FirstAttackerEntityId);
             switch (outcome)
             {
@@ -451,9 +451,14 @@ public static class CombatSimulator
     /// <summary>Runs one fight with the given random source and returns the survivors (and a log when <paramref name="trace"/>).</summary>
     /// <remarks>Tests can pass a <see cref="Random"/> subclass overriding <see cref="Random.Next(int)"/> to script every random pick.</remarks>
     public static FightResult RunSingle(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs, Random random,
+                                        EffectRegistry? effects = null, bool trace = true, int firstAttackerEntityId = 0) =>
+        RunSingle(ours, theirs, firstAttackerIsOurs, new RandomChooser(random), effects, trace, firstAttackerEntityId);
+
+    /// <summary>Runs one fight whose every decision <paramref name="chooser"/> makes (a replay of a real fight answers from its log).</summary>
+    public static FightResult RunSingle(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs, ICombatChooser chooser,
                                         EffectRegistry? effects = null, bool trace = true, int firstAttackerEntityId = 0)
     {
-        var fight = new Fight(ours, theirs, effects ?? EffectRegistry.Default, random, trace);
+        var fight = new Fight(ours, theirs, effects ?? EffectRegistry.Default, chooser, trace);
         var outcome = fight.Run(firstAttackerIsOurs, firstAttackerEntityId);
         return new FightResult(
             outcome,

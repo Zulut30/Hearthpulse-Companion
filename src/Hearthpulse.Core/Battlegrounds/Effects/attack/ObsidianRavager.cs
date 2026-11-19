@@ -26,7 +26,7 @@ internal sealed class ObsidianRavager : CombatEffect
         if (right is { IsAlive: true }) adjacent.Add(right);
         if (!self.Golden && adjacent.Count > 1)
         {
-            adjacent = [fight.RandomOf(adjacent)!];
+            adjacent = [fight.RandomOf(adjacent, self)!];
         }
 
         fight.DealDamage(self, target, damage);

@@ -42,6 +42,12 @@ internal sealed record SavedFight
     /// <summary>The odds the app had for the fight when the game was saved.</summary>
     public CombatOdds? Odds { get; init; }
 
+    /// <summary>
+    /// The fight's course as the log showed it (format 2 on; null in older files, for fights recorded without one, and for
+    /// a transcript of a version this build does not know).
+    /// </summary>
+    public BattlegroundsTracker.CombatTranscript? Transcript { get; init; }
+
     /// <summary>The fight as it was simulated: the saved "not simulated" flags and the app's own options.</summary>
     public (BattlegroundsTracker.CombatCapture Capture, SimOptions Options) AsSaved() =>
         (new BattlegroundsTracker.CombatCapture(Ours, Theirs, OursFirst, FirstAttackerEntityId), Options(null));
@@ -115,6 +121,7 @@ internal sealed record SavedCaptures
                 DamageTaken = combat.DamageTaken,
                 DamageDealt = combat.DamageDealt,
                 Odds = combat.Odds,
+                Transcript = f.Transcript,
             };
         }).ToList(),
     };
@@ -139,8 +146,11 @@ internal sealed class CombatCaptureStore(string directory)
         "BACON_OLD_GOD_ATTACK", "BACON_OLD_GOD_HEALTH", "4914", "4915",
     };
 
-    /// <summary>The version of the file's content; a file of another version is not read.</summary>
-    public const int FormatVersion = 1;
+    /// <summary>
+    /// The version of the file's content: 2 adds each fight's <see cref="SavedFight.Transcript"/>. Files of versions 1 to
+    /// this one are read; a newer one is not.
+    /// </summary>
+    public const int FormatVersion = 2;
 
     public const string Extension = ".hpc";
 
@@ -250,11 +260,18 @@ internal sealed class CombatCaptureStore(string directory)
             }
 
             var captures = JsonSerializer.Deserialize<SavedCaptures>(unpacked.GetBuffer().AsSpan(0, (int)unpacked.Length), Json);
-            return captures is { Version: FormatVersion, Fights: not null } && captures.Fights.All(f =>
+            return captures is { Version: >= 1 and <= FormatVersion, Fights: not null } && captures.Fights.All(f =>
                 f is { Facts: not null } && ValidSide(f.Ours) && ValidSide(f.Theirs)
                 && f.Facts.All(fact => fact is { CardId: not null, Markers: not null } && fact.Markers.All(m => m is not null))
-                && f.Facts.Select(fact => fact.EntityId).Distinct().Count() == f.Facts.Count)
-                ? captures
+                && f.Facts.Select(fact => fact.EntityId).Distinct().Count() == f.Facts.Count
+                && (f.Transcript is null || f.Transcript.Version != BattlegroundsTracker.CombatTranscript.CurrentVersion || ValidTranscript(f.Transcript)))
+                ? captures with
+                {
+                    // A transcript of another version is not understood: the fight stays, without it.
+                    Fights = captures.Fights
+                        .Select(f => f.Transcript is { Version: not BattlegroundsTracker.CombatTranscript.CurrentVersion } ? f with { Transcript = null } : f)
+                        .ToList(),
+                }
                 : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or JsonException or NotSupportedException
@@ -263,6 +280,12 @@ internal sealed class CombatCaptureStore(string directory)
             return null;
         }
     }
+
+    private static bool ValidTranscript(BattlegroundsTracker.CombatTranscript transcript) =>
+        transcript is { Events: not null, Boards: not null, Ending: not null }
+        && transcript.Events.All(e => e is not null && Enum.IsDefined(e.Kind))
+        && transcript.Boards.All(b => b is { Ours: not null, Theirs: not null } && b.Event >= 0 && b.Event <= transcript.Events.Count
+                                      && b.Ours.Concat(b.Theirs).All(m => m is { Card: not null }));
 
     private static bool ValidSide(SimSide? side) =>
         side is { Minions: not null, Hand: not null, Tags: not null, ExtraTags: not null, Extras: not null, HeroCardId: not null, HeroPowerCardId: not null }

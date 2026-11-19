@@ -212,6 +212,63 @@ public sealed class CombatCaptureStoreTests : IDisposable
     }
 
     [Fact]
+    public void A_fights_transcript_survives_the_capture_file()
+    {
+        var saved = Captured(out var tracker);
+        var store = new CombatCaptureStore(_dir);
+
+        var fight = Assert.Single(store.Load(store.Save("20261023123000|transcript", saved)!)!.Fights);
+
+        var original = Assert.Single(tracker.Captures).Transcript;
+        Assert.NotNull(original);
+        Assert.NotNull(fight.Transcript);
+        Assert.Equal(JsonSerializer.Serialize(original), JsonSerializer.Serialize(fight.Transcript));
+        Assert.True(fight.Transcript.Complete);
+        Assert.Equal(original.RegularAttacks + 1, fight.Transcript.Boards.Count);
+    }
+
+    [Fact]
+    public void A_file_of_the_first_format_still_loads_without_transcripts()
+    {
+        var saved = Captured(out _);
+        var old = saved with { Version = 1, Fights = saved.Fights.Select(f => f with { Transcript = null }).ToList() };
+        var store = new CombatCaptureStore(_dir);
+        var name = store.Save("20261023123000|old", old)!;
+        // What a build of format 1 wrote: no transcript property at all.
+        var json = ReadJson(Path.Combine(_dir, name));
+        Assert.DoesNotContain("transcript", json, StringComparison.Ordinal);
+        Assert.Contains("\"version\":1", json, StringComparison.Ordinal);
+
+        var read = store.Load(name);
+
+        Assert.NotNull(read);
+        Assert.Equal(1, read.Version);
+        Assert.Null(Assert.Single(read.Fights).Transcript);
+    }
+
+    [Fact]
+    public void A_transcript_of_an_unknown_version_is_dropped_and_its_fight_kept()
+    {
+        var saved = Captured(out _);
+        saved = saved with { Fights = saved.Fights.Select(f => f with { Transcript = f.Transcript! with { Version = 99 } }).ToList() };
+        var store = new CombatCaptureStore(_dir);
+
+        var read = store.Load(store.Save("20261023123000|future", saved)!);
+
+        Assert.NotNull(read);
+        var fight = Assert.Single(read.Fights);
+        Assert.Null(fight.Transcript);
+        Assert.Single(fight.Ours.Minions);
+    }
+
+    private static string ReadJson(string path)
+    {
+        using var gzip = new GZipStream(File.OpenRead(path), CompressionMode.Decompress);
+        using var reader = new StreamReader(gzip);
+        return reader.ReadToEnd();
+    }
+
+    [Fact]
     public void A_damaged_file_reads_as_nothing()
     {
         var saved = Captured(out _);
@@ -342,6 +399,7 @@ public sealed class CombatCaptureStoreTests : IDisposable
     [
         "AppPaths.cs", "CombatCaptureStore.cs", "GameSession.Captures.cs", "GameSession.Recording.cs",
         "BattlegroundsTracker.cs", "BattlegroundsTracker.Combat.cs", "BattlegroundsTracker.Entities.cs", "BattlegroundsTracker.Types.cs",
+        "BattlegroundsTracker.Transcript.cs",
     ];
 
     [Fact]

@@ -20,8 +20,14 @@ public sealed partial class BattlegroundsTracker
     /// </summary>
     internal sealed record MinionFacts(int EntityId, string CardId, IReadOnlyList<string> Markers);
 
-    /// <summary>A fight as the simulator got it: the combat it belongs to, the boards, the options and the minions' facts.</summary>
-    internal sealed record CapturedFight(int CombatIndex, CombatCapture Capture, SimOptions Options, IReadOnlyList<MinionFacts> Facts);
+    /// <summary>
+    /// A fight as the simulator got it: the combat it belongs to, the boards, the options and the minions' facts; once the
+    /// fight is over, its course as the log showed it (<see cref="Transcript"/>, null while it runs or when nothing was recorded).
+    /// </summary>
+    internal sealed record CapturedFight(int CombatIndex, CombatCapture Capture, SimOptions Options, IReadOnlyList<MinionFacts> Facts)
+    {
+        public CombatTranscript? Transcript { get; init; }
+    }
 
     private sealed record SeenBoard(int Turn, IReadOnlyList<BgMinion> Minions);
 
