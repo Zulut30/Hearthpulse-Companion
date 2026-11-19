@@ -36,7 +36,9 @@ Besides settings, history, replays, the log and the cache, the data folder holds
   did not see (the opponent's hand never reaches the simulator). It exists so the simulator can be measured on the
   player's own games after the game client deleted its logs (`Hearthpulse.Bench simcover --captures`,
   [bg-combat-sim.md](bg-combat-sim.md)). No upload, share, profile sync, source capture or crash report reads the
-  folder; there is no switch for it because nothing is sent. Limits: 500 games and 32 MB, the oldest games go
+  folder; there is no switch for it because nothing is sent. Since source v3 the game's journal carries its own
+  allowlisted copy of the same fights, made in memory without the hand, under the game-records switch
+  ([source-capture.md](source-capture.md), "Battlegrounds fights"); the file is still not read. Limits: 500 games and 32 MB, the oldest games go
   first. The most recently saved game is kept even when it alone exceeds the byte limit; a temporary file left after a failed cleanup is not counted. A file is written whole under a temporary name and renamed, on a pool thread after the game is recorded.
   Deleting the folder loses nothing the app shows.
 - `collection.json` - the player's card collection as last read from the game client on Windows (`CollectionStore`,
