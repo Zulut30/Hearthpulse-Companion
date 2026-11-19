@@ -94,16 +94,14 @@ public partial class MainView
         }
 
         // My decks and the meta views are stacked: the view that comes reveals itself, the others hidden at once (as the
-        // WPF window does: the meta tab's panel, or My decks' columns and stats).
-        var meta = PageConstructed.CtMeta;
-        Control[] shown = tab switch
+        // WPF window does). A meta tab's panel is revealed by the meta view itself (ConstructedMetaView.ShowTab), so only
+        // My decks' columns and stats are revealed here: one reveal per change, never two.
+        if (tab != MainViewModel.ConstructedTabs[0])
         {
-            "Tiers" => [meta.MetaTiersPanel],
-            "Top" => [meta.MetaDecksPanel],
-            "Matchups" => [meta.MetaMatchupsPanel],
-            _ => [PageConstructed.DeckColumns, PageConstructed.CtStats],
-        };
-        foreach (var view in shown)
+            return;
+        }
+
+        foreach (var view in new Control[] { PageConstructed.DeckColumns, PageConstructed.CtStats })
         {
             Motion.Reveal(view);
         }
