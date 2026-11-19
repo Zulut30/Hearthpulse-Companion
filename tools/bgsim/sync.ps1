@@ -64,6 +64,7 @@ $ExcludedTests = [ordered]@{
     'tests/Hearthpulse.Tests/Sim/SimInputsTests.cs'                 = 'Power.log replay through BattlegroundsTracker'
     'tests/Hearthpulse.Tests/Sim/DamageCalibrationReplayTests.cs'   = 'real Power.log games'
     'tests/Hearthpulse.Tests/Sim/GeneratedPoolsTests.cs'            = 'Fixtures/BgPools card data and CardDb.Parse'
+    'tests/Hearthpulse.Tests/Effects/EffectCardTextGuardTests.cs'   = 'Fixtures/Effects/effect-card-texts.json (BGSim.Tests copies no fixtures)'
     'tests/Hearthpulse.Tests/Sim/SimMeasurementTests.cs'            = 'Hearthpulse.Bench measurement sources'
     'tests/Hearthpulse.Tests/Sim/SimReplayKit.cs'                   = 'Hearthpulse.Bench simreplay'
     'tests/Hearthpulse.Tests/Sim/SimReplayTests.cs'                 = 'Hearthpulse.Bench simreplay'
