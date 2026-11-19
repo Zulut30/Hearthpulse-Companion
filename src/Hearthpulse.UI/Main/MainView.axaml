@@ -536,7 +536,7 @@
                         <!-- Search over every tab; while a query is typed its matches replace the tabs -->
                         <st:SettingsSearchBox Name="SettingsSearchBar" />
 
-                        <StackPanel Name="SettingsTabsArea" IsVisible="{Binding !SettingsSearching}">
+                        <StackPanel Name="SettingsTabsArea" IsVisible="{Binding !SettingsSearching}" i:Motion.RevealOnShow="True">
                         <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,20">
                             <WrapPanel>
                                 <RadioButton Name="SettingsTabGeneral" Classes="segment" Content="{i:Loc Settings.Tab.General}" GroupName="SettingsTab" Tag="General" IsChecked="True" />
@@ -551,28 +551,28 @@
                         </Border>
 
                         <!-- ===== General: language, theme, app ===== -->
-                        <st:GeneralSettings Name="SettingsGeneral" />
+                        <st:GeneralSettings Name="SettingsGeneral" i:Motion.RevealOnShow="True" />
 
                         <!-- ===== Appearance: theme gallery, accent, page background, corners, density, size ===== -->
-                        <st:AppearanceSettings Name="SettingsAppearance" IsVisible="False" />
+                        <st:AppearanceSettings Name="SettingsAppearance" IsVisible="False" i:Motion.RevealOnShow="True" />
 
                         <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->
-                        <st:OverlaySettings Name="SettingsOverlay" IsVisible="False" />
+                        <st:OverlaySettings Name="SettingsOverlay" IsVisible="False" i:Motion.RevealOnShow="True" />
 
                         <!-- ===== Tracker: the Constructed deck tracker, counters and mulligan ===== -->
-                        <st:TrackerSettings Name="SettingsTracker" IsVisible="False" />
+                        <st:TrackerSettings Name="SettingsTracker" IsVisible="False" i:Motion.RevealOnShow="True" />
 
                         <!-- ===== Stream: streamer mode and the OBS windows ===== -->
-                        <st:StreamSettings Name="SettingsStream" IsVisible="False" />
+                        <st:StreamSettings Name="SettingsStream" IsVisible="False" i:Motion.RevealOnShow="True" />
 
                         <!-- ===== Account: the hearthpulse.net sign-in ===== -->
-                        <st:AccountSettings Name="SettingsAccount" IsVisible="False" />
+                        <st:AccountSettings Name="SettingsAccount" IsVisible="False" i:Motion.RevealOnShow="True" />
 
                         <!-- ===== Data: history, the data folder, where the numbers come from ===== -->
-                        <st:DataSettings Name="SettingsData" IsVisible="False" />
+                        <st:DataSettings Name="SettingsData" IsVisible="False" i:Motion.RevealOnShow="True" />
 
                         <!-- ===== About: version, updates, licences ===== -->
-                        <st:AboutSettings Name="SettingsAbout" IsVisible="False" />
+                        <st:AboutSettings Name="SettingsAbout" IsVisible="False" i:Motion.RevealOnShow="True" />
                         </StackPanel>
 
                     </StackPanel>

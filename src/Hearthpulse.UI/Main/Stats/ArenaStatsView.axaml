@@ -230,7 +230,7 @@
                 </Border>
                 <!-- The rest, closed until asked for: time played, rewards, your classes and the opponents' -->
                 <ToggleButton Name="ArenaMore" Classes="more" />
-                <StackPanel IsVisible="{Binding #ArenaMore.IsChecked}">
+                <StackPanel IsVisible="{Binding #ArenaMore.IsChecked}" i:Motion.RevealOnShow="True">
                     <ItemsControl ItemsSource="{Binding ArenaMoreTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
                     <Border Classes="card" Margin="0,0,0,16">
                         <StackPanel>

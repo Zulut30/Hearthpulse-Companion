@@ -67,7 +67,7 @@
                 <!-- Rare: the custom theme's three hues -->
                 <ToggleButton Name="CustomToggle" Classes="advanced" Content="{i:Loc Settings.Theme.MakeOwn}" AutomationProperties.Name="{i:Loc Settings.Theme.MakeOwn}" />
                 <Grid Classes="themeCustom" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,12,0,0"
-                      IsVisible="{Binding #CustomToggle.IsChecked}" Tag="{Binding #CustomToggle}">
+                      IsVisible="{Binding #CustomToggle.IsChecked}" Tag="{Binding #CustomToggle}" i:Motion.RevealOnShow="True">
                     <ContentControl Content="{Binding CustomPreview}" ContentTemplate="{StaticResource ThemeTile}" VerticalAlignment="Top" Focusable="False" />
                     <StackPanel Classes="themeSliders">
                         <Grid ColumnDefinitions="150,*" Margin="0,0,0,12">

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using Hearthpulse.App.Infrastructure;
 
 namespace Hearthpulse.App.Main;
 
@@ -28,7 +29,7 @@ public partial class MainWindow
     private Pages.BattlegroundsPage BuildBattlegrounds()
     {
         _battlegrounds = Build(SlotBattlegrounds, new Pages.BattlegroundsPage { Name = nameof(PageBattlegrounds) });
-        _battlegrounds.TabChanged += OnBgTab;
+        _battlegrounds.TabChanged += _ => OnBgTab();
         if (_pendingBattlegroundsTab is { } tab)
         {
             _pendingBattlegroundsTab = null;
@@ -65,8 +66,12 @@ public partial class MainWindow
     /// <summary>The Constructed tabs in <see cref="MainViewModel.ConstructedTabs"/> order.</summary>
     private ToggleButton[] ConstructedTabButtons => [PageConstructed.TabMyDecks, PageConstructed.TabMetaTiers, PageConstructed.TabMetaDecks, PageConstructed.TabMetaMatchups];
 
-    /// <param name="chosen">A tab button was just checked (not unchecked): the shown view is scrolled into sight.</param>
-    private void OnBgTab(bool chosen)
+    /// <summary>
+    /// A Battlegrounds tab was checked. The tier tabs' cards cross-fade in their cell (<c>BattlegroundsTiersView</c>);
+    /// My stats and the tier lists are stacked, and the one that comes reveals itself (<c>Motion.RevealOnShow</c> on
+    /// both in the page) while the other collapses.
+    /// </summary>
+    private void OnBgTab()
     {
         if (PageBattlegrounds.BgTiers is null)
         {
@@ -77,16 +82,11 @@ public partial class MainWindow
         // The view model follows the tab: the MMR slices and "Solo / Duos" belong to some tabs only. A tier tab's card
         // is built here, on its first opening; My stats builds none.
         _viewModel.BgTabShown(BattlegroundsTab);
-        var card = PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
-        FrameworkElement shown = mine ? PageBattlegrounds.BgStats : card;
+        PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
         PageBattlegrounds.BracketPicker.Visibility = mine ? Visibility.Collapsed : Visibility.Visible;
-        if (chosen)
-        {
-            Reveal(shown, 8);
-        }
     }
 
-    /// <param name="chosen">A tab button was just checked (not unchecked): the shown view is scrolled into sight.</param>
+    /// <param name="chosen">A tab button was just checked (not unchecked): the view it shows comes in with a reveal.</param>
     private void OnCtTab(bool chosen)
     {
         if (PageConstructed.MyDecksPanel is null || PageConstructed.CtMeta is null)
@@ -95,13 +95,25 @@ public partial class MainWindow
         }
 
         var meta = PageConstructed.TabMyDecks.IsChecked != true;
+        var mineWasShown = PageConstructed.MyDecksPanel.Visibility == Visibility.Visible;
         PageConstructed.MyDecksPanel.Visibility = meta ? Visibility.Collapsed : Visibility.Visible;
         PageConstructed.CtStats.Visibility = PageConstructed.MyDecksPanel.Visibility;
         var tab = ConstructedTab;
         var shown = PageConstructed.CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
-        if (chosen)
+        if (!chosen)
         {
-            Reveal(shown ?? PageConstructed.CtStats, 8);
+            return;
+        }
+
+        // My decks and the meta views are stacked: the side that comes reveals itself, the other collapsed at once.
+        if (shown is not null)
+        {
+            Reveal(shown, Motion.TabRise);
+        }
+        else if (!mineWasShown)
+        {
+            Reveal(PageConstructed.MyDecksPanel, Motion.TabRise);
+            Reveal(PageConstructed.CtStats, Motion.TabRise);
         }
     }
 

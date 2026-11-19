@@ -188,7 +188,13 @@ as `MotionFast` / `MotionSettle` / `MotionEnter`, and `ThemeFileTests` refuses a
 zeroes the tokens, Avalonia `Motion.Apply` switches the theme's transitions off. Code-started motion goes through
 `Motion.Reveal` / `Motion.Glide`; main-window pages switch through `PageSwitch` in both UIs (a cross-fade: the old page
 fades out over `Fast` without taking clicks, the new one fades in with its rise over `Enter`, both started after the new
-page's first layout so a slow first opening eats none of it).
+page's first layout so a slow first opening eats none of it). Inside a page the same rules hold: views of a tab bar that
+share one cell cross-fade through their own `PageSwitch` (the Battlegrounds tier cards, `Motion.TabRise` 8 DIP); a view
+stacked with others (a Settings tab, My stats / the tier lists, the match and deck tabs, "More" and "Advanced", the
+content that replaces "Loading", the settings search results) takes `Motion.RevealOnShow`: it reveals itself when its
+own visibility turns on (held unseen until laid out, then `Enter` with the `TabRise` rise), the one it replaces goes at
+once, and nothing plays on the window's first show, under a parent shown or held unseen, or with motion off
+(`Infrastructure/Motion.Reveal.cs` of each UI).
 
 ## Adding a page, panel or setting
 
@@ -202,7 +208,7 @@ no hex literals outside the theme files, new tokens in both theme files, animati
 
 ## Known UI gaps (checked on main 2e8d9be, Oct 2026)
 
-- WPF only: nav pill animation and the inner tabs' reveal, the faded hero banner, and the overlay tribe focus (`CompFocus`,
+- WPF only: nav pill animation, the faded hero banner, and the overlay tribe focus (`CompFocus`,
   handed to the session only by the WPF host, `App.xaml.cs`).
 - Avalonia only: compact layout below 900 px, an extra overlay switch in Settings.
 - Compact hero/comp tier tables (Avalonia): fixed column widths leave no room for the name column at phone width.

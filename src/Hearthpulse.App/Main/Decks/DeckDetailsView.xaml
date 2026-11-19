@@ -284,7 +284,7 @@
 
         <!-- The rest of the summary, closed until asked for: going first / on the coin, win rate over time, results by length -->
         <ToggleButton x:Name="DeckMore" Style="{StaticResource MoreToggle}" />
-        <StackPanel Visibility="{Binding IsChecked, ElementName=DeckMore, Converter={StaticResource Vis}}">
+        <StackPanel i:Motion.RevealOnShow="True" Visibility="{Binding IsChecked, ElementName=DeckMore, Converter={StaticResource Vis}}">
             <ItemsControl ItemsSource="{Binding MoreTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
             <!-- Win rate over time + results by game length -->
             <Grid Margin="0,0,0,16">
@@ -527,7 +527,7 @@
                                                     Command="{Binding DataContext.ToggleDiff, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}"
                                                     Content="{Binding Changes}" Tag="{Binding DiffOpen}" ToolTip="{i:Loc Deck.Versions.DiffTip}" />
                                             <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Focusable="False" Margin="0,4,0,0"
-                                                          Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" />
+                                                          Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" Loaded="OnDiffLoaded" />
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -584,7 +584,7 @@
                                                     </StackPanel>
                                                 </Grid>
                                                 <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Focusable="False" Margin="0,8,0,0"
-                                                              Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" />
+                                                              Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" Loaded="OnDiffLoaded" />
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
@@ -720,7 +720,7 @@
             </StackPanel>
         </Border>
         <!-- Personal mulligan -->
-        <Border Style="{StaticResource Card}" Margin="0,0,0,16" Visibility="{Binding IsChecked, ElementName=TabDeckMulligan, Converter={StaticResource Vis}}">
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16" i:Motion.RevealOnShow="True" Visibility="{Binding IsChecked, ElementName=TabDeckMulligan, Converter={StaticResource Vis}}">
             <StackPanel>
                 <!-- The essential columns; the switch shows the rest -->
                 <Grid Margin="0,0,0,8">
@@ -816,7 +816,7 @@
         </Border>
 
         <!-- Card performance -->
-        <Border Style="{StaticResource Card}" Margin="0,0,0,16" Visibility="{Binding IsChecked, ElementName=TabDeckCards, Converter={StaticResource Vis}}">
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16" i:Motion.RevealOnShow="True" Visibility="{Binding IsChecked, ElementName=TabDeckCards, Converter={StaticResource Vis}}">
             <StackPanel>
                 <!-- The essential columns; the switch shows the rest -->
                 <Grid Margin="0,0,0,8">

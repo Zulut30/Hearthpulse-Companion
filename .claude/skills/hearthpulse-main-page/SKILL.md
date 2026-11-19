@@ -116,6 +116,10 @@ never writes `Settings.MetaFormat` (it only names the format loaded at start).
 
 - Tabs are `RadioButton`s with a shared `GroupName`: WPF `Style="{StaticResource Tab}"` + a handler
   (`OnBgTab`, `OnCtTab`) that toggles the cards; Avalonia `Classes="segment"` + `UpdateTabs()`.
+- Motion: never set a tab view's `Opacity` or render transform yourself. Views in one cell cross-fade through a
+  `PageSwitch` (`BattlegroundsTiersView`); views stacked in a panel, and any section a toggle shows in place, take
+  `i:Motion.RevealOnShow="True"` (or `Motion.Reveal` from code), in both UIs. Its turn per view keeps fast clicks from
+  leaving a view hidden or half-faded; tests: `RevealTests` in both suites.
 - Existing: Battlegrounds `TabHeroes`/`TabComps`/`TabTrinkets`/`TabCards`/`TabMine` (both UIs);
   Constructed `TabMyDecks` "My stats" / `TabMetaTiers` "Meta tier list" / `TabMetaDecks` "Top decks" /
   `TabMetaMatchups` "Matchups" (both UIs, `ShowConstructedTab("Decks"|"Tiers"|"Top"|"Matchups")`).
@@ -152,7 +156,7 @@ whose tag in the window is named `Settings<Tag>`; a new card goes into the tab t
 Every user-facing page goes into both UIs. Known accepted gaps (check before "fixing" them, and do not add new
 ones silently - list them in [hearthpulse-design](../hearthpulse-design/SKILL.md)):
 
-- WPF only: nav pill animation, the inner tabs' reveal, hero banner, overlay tribe focus. (The page cross-fade is in both.)
+- WPF only: nav pill animation, hero banner, overlay tribe focus. (The page cross-fade and the tabs' motion are in both.)
 - Avalonia only: compact layout, separate Hearthstone/memory status dots, an extra overlay switch in Settings.
 
 ## Render scene

@@ -2,15 +2,47 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using Hearthpulse.App.Infrastructure;
 
 namespace Hearthpulse.App.Main.Decks;
 
 public partial class DeckDetailsView : UserControl
 {
+    /// <summary>The card diffs (of a version, of a merge suggestion) open when their rows were last built.</summary>
+    private readonly HashSet<string> _openDiffs = new(StringComparer.Ordinal);
+
     public DeckDetailsView()
     {
         InitializeComponent();
     }
+
+    /// <summary>
+    /// A row's card diff was built: a diff toggled builds every row of its list anew. The one just opened comes in with a
+    /// reveal (before its first frame: Loaded runs ahead of the render); the ones open before stay as they were.
+    /// </summary>
+    private void OnDiffLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement diff || DiffKey(diff.DataContext) is not { } key)
+        {
+            return;
+        }
+
+        if (diff.Visibility != Visibility.Visible)
+        {
+            _openDiffs.Remove(key);
+        }
+        else if (_openDiffs.Add(key))
+        {
+            Motion.Reveal(diff, Motion.TabRise);
+        }
+    }
+
+    private static string? DiffKey(object? row) => row switch
+    {
+        DeckVersionRow version => "version:" + version.Key,
+        DeckSuggestionRow suggestion => "suggestion:" + suggestion.SecondKey,
+        _ => null,
+    };
 
     /// <summary>The win-rate chart, so the UI render check can show a hover card.</summary>
     public Controls.StatsLineChart Chart => WinRateChart;

@@ -919,9 +919,9 @@
         </Button>
 
         <!-- While the game's replay is read -->
-        <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Match.View.Loading}" Margin="0,48,0,0" IsVisible="{Binding Loading}" />
+        <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Match.View.Loading}" Margin="0,48,0,0" IsVisible="{Binding Loading}" i:Motion.RevealOnShow="True" />
 
-        <StackPanel IsVisible="{Binding !Loading}">
+        <StackPanel IsVisible="{Binding !Loading}" i:Motion.RevealOnShow="True">
             <!-- Header: you, the result, the opponent; then the game's facts -->
             <DockPanel>
                 <!-- The same star and Share as the game's library card; only with a replay file -->
@@ -1068,7 +1068,7 @@
             </DockPanel>
 
             <!-- ===== Replay: the player (timeline over the bar), then the table of the mode ===== -->
-            <StackPanel IsVisible="{Binding ShowReplay}">
+            <StackPanel IsVisible="{Binding ShowReplay}" i:Motion.RevealOnShow="True">
                 <Border Classes="card" Padding="16,12" Margin="0,0,0,16">
                     <StackPanel>
                         <!-- "Turn" (G) on the left; the bookmark, ‹ "Bookmarks" › on the right (two lines at phone width) -->
@@ -1308,7 +1308,7 @@
             </StackPanel>
 
             <!-- ===== Decks ===== -->
-            <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto" IsVisible="{Binding ShowDecks}">
+            <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto" IsVisible="{Binding ShowDecks}" i:Motion.RevealOnShow="True">
                 <Border Classes="card first" VerticalAlignment="Top">
                     <StackPanel>
                         <c:Ornament Text="{i:Loc Match.View.YourDeck}" Icon="&#xF0638;" Size="13" Margin="0,0,0,4" />
@@ -1350,7 +1350,7 @@
             </Grid>
 
             <!-- ===== Analysis (Core MatchAnalysis) ===== -->
-            <StackPanel IsVisible="{Binding ShowAnalysis}">
+            <StackPanel IsVisible="{Binding ShowAnalysis}" i:Motion.RevealOnShow="True">
                 <Border Classes="card" Margin="0,0,0,16">
                     <ItemsControl ItemsSource="{Binding Analysis.Tiles}">
                         <ItemsControl.ItemsPanel>
@@ -1516,7 +1516,7 @@
             </StackPanel>
 
             <!-- ===== Battlegrounds rounds ===== -->
-            <ItemsControl ItemsSource="{Binding Rounds}" IsVisible="{Binding ShowRounds}">
+            <ItemsControl ItemsSource="{Binding Rounds}" IsVisible="{Binding ShowRounds}" i:Motion.RevealOnShow="True">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="r:MatchRoundView">
                         <Border Classes="card" Margin="0,0,0,12" Padding="20,14">
@@ -1554,7 +1554,7 @@
             </ItemsControl>
 
             <!-- ===== Battlegrounds lobby ===== -->
-            <Border Classes="card" IsVisible="{Binding ShowLobby}">
+            <Border Classes="card" IsVisible="{Binding ShowLobby}" i:Motion.RevealOnShow="True">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Match.View.TabLobby}" Icon="&#xF0849;" Size="13" Margin="0,0,0,8" />
                     <ItemsControl ItemsSource="{Binding Lobby}">

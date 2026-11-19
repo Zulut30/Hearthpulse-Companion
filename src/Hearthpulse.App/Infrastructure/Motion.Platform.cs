@@ -16,34 +16,6 @@ public static partial class Motion
 
     private static bool SystemAnimations() => SystemParameters.ClientAreaAnimation;
 
-    /// <summary>
-    /// The page coming in fades in and rises <see cref="Rise"/> DIP over <see cref="Enter"/>: opacity and a render
-    /// transform only, so nothing is laid out again. The motion starts once the page has been laid out and drawn
-    /// (<see cref="AfterLayout"/>), the page held unseen until then: a first opening can lay out for hundreds of ms,
-    /// and motion started before it would be over by its first frame. With motion off the page is simply shown.
-    /// </summary>
-    public static void Reveal(UIElement page, double rise = Rise)
-    {
-        if (!On)
-        {
-            Still(page);
-            return;
-        }
-
-        Hold(page, rise);
-        AfterLayout(page, () =>
-        {
-            if (On)
-            {
-                FadeIn(page);
-            }
-            else
-            {
-                Still(page);
-            }
-        });
-    }
-
     /// <summary>Moves <paramref name="shift"/> to <paramref name="y"/> over <see cref="Settle"/>, or at once with motion off.</summary>
     public static void Glide(TranslateTransform shift, double y, bool animate = true)
     {

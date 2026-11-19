@@ -13,15 +13,23 @@ namespace Hearthpulse.UI.Infrastructure;
 /// Every switch and every page has a turn: a fade that ends after a later switch never hides a page that switch shows,
 /// and a superseded switch never starts its motion. With motion off, or before the view is on screen, the switch is
 /// instant.
+/// The same switch cross-fades the views of a tab bar that share one cell (the Battlegrounds tier tabs), with a
+/// smaller rise.
 /// </summary>
 public sealed class PageSwitch
 {
     private readonly Func<bool> _motion;
+    private readonly double _rise;
     private readonly Dictionary<Control, PageMotion> _pages = [];
     private int _switches;
 
     /// <param name="motion">Whether to animate; <see cref="Motion.On"/> unless a test says otherwise.</param>
-    public PageSwitch(Func<bool>? motion = null) => _motion = motion ?? (() => Motion.On);
+    /// <param name="rise">How far the page coming in rises, in DIP.</param>
+    public PageSwitch(Func<bool>? motion = null, double rise = Motion.Rise)
+    {
+        _motion = motion ?? (() => Motion.On);
+        _rise = rise;
+    }
 
     /// <summary>The page shown last (it may still be coming in).</summary>
     public Control? Current { get; private set; }
@@ -58,7 +66,7 @@ public sealed class PageSwitch
         if (!page.IsVisible)
         {
             page.Opacity = 0;
-            Of(page).Shift.Y = Motion.Rise;
+            Of(page).Shift.Y = _rise;
             page.IsVisible = true;
         }
 
@@ -88,6 +96,21 @@ public sealed class PageSwitch
                 LeaveAsync(other).Forget("Page leave");
             }
         });
+    }
+
+    /// <summary>
+    /// Hides every page of <paramref name="pages"/> at once, with no motion: their whole place goes out of sight (the
+    /// tier tabs under My stats). A fade still to end or a switch still to start does nothing after it.
+    /// </summary>
+    public void Clear(IEnumerable<Control> pages)
+    {
+        _switches++;
+        Current = null;
+        foreach (var page in pages.Where(p => p.IsVisible).Distinct().ToList())
+        {
+            Stop(page);
+            Collapse(page);
+        }
     }
 
     private static bool OnScreen(Control page) => page.IsEffectivelyVisible && TopLevel.GetTopLevel(page) is { IsVisible: true };

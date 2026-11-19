@@ -24,7 +24,7 @@
 
         <!-- The rest of My stats, closed until asked for: going first / on the coin, classes, opponents, archetypes, length -->
         <ToggleButton x:Name="CtMore" Style="{StaticResource MoreToggle}" />
-        <StackPanel Visibility="{Binding IsChecked, ElementName=CtMore, Converter={StaticResource Vis}}">
+        <StackPanel i:Motion.RevealOnShow="True" Visibility="{Binding IsChecked, ElementName=CtMore, Converter={StaticResource Vis}}">
             <ItemsControl ItemsSource="{Binding CtMoreTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
             <Grid Margin="0,0,0,16">
                 <Grid.ColumnDefinitions>

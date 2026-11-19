@@ -11,15 +11,26 @@ namespace Hearthpulse.App.Infrastructure;
 /// Every switch and every page has a turn: a fade that ends after a later switch never collapses a page that switch
 /// shows, and a superseded switch never starts its motion. With motion off, or before the window is on screen, the
 /// switch is instant.
+/// The same switch cross-fades the views of a tab bar that share one cell (the Battlegrounds tier tabs), with a
+/// smaller rise.
 /// </summary>
 public sealed class PageSwitch
 {
     private readonly Func<bool> _motion;
+    private readonly double _rise;
+    private readonly Action<UIElement>? _hidden;
     private readonly Dictionary<UIElement, int> _turns = [];
     private int _switches;
 
     /// <param name="motion">Whether to animate; <see cref="Motion.On"/> unless a test says otherwise.</param>
-    public PageSwitch(Func<bool>? motion = null) => _motion = motion ?? (() => Motion.On);
+    /// <param name="rise">How far the page coming in rises, in DIP.</param>
+    /// <param name="hidden">Runs for a page once it is collapsed (after its fade), for what must go with it.</param>
+    public PageSwitch(Func<bool>? motion = null, double rise = Motion.Rise, Action<UIElement>? hidden = null)
+    {
+        _motion = motion ?? (() => Motion.On);
+        _rise = rise;
+        _hidden = hidden;
+    }
 
     /// <summary>The page shown last (it may still be coming in).</summary>
     public UIElement? Current { get; private set; }
@@ -55,7 +66,7 @@ public sealed class PageSwitch
 
         if (page.Visibility != Visibility.Visible)
         {
-            Motion.Hold(page, Motion.Rise);
+            Motion.Hold(page, _rise);
             page.Visibility = Visibility.Visible;
         }
 
@@ -96,12 +107,28 @@ public sealed class PageSwitch
         });
     }
 
+    /// <summary>
+    /// Hides every page of <paramref name="pages"/> at once, with no motion: their whole place goes out of sight (the
+    /// tier tabs under My stats). A fade still to end or a switch still to start does nothing after it.
+    /// </summary>
+    public void Clear(IEnumerable<UIElement> pages)
+    {
+        _switches++;
+        Current = null;
+        foreach (var page in pages.Where(p => p.Visibility == Visibility.Visible).Distinct().ToList())
+        {
+            Turn(page);
+            Collapse(page);
+        }
+    }
+
     /// <summary>A page out of sight: collapsed, at rest and clickable again for when it comes back.</summary>
-    private static void Collapse(UIElement page)
+    private void Collapse(UIElement page)
     {
         page.Visibility = Visibility.Collapsed;
         page.IsHitTestVisible = true;
         Motion.Still(page);
+        _hidden?.Invoke(page);
     }
 
     private void Turn(UIElement page) => _turns[page] = TurnOf(page) + 1;

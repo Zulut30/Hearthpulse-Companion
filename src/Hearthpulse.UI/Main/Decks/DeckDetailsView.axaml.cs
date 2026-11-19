@@ -1,13 +1,46 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Main.Decks;
 
 public partial class DeckDetailsView : UserControl
 {
+    /// <summary>The card diffs (of a version, of a merge suggestion) open when their rows were last built.</summary>
+    private readonly HashSet<string> _openDiffs = new(StringComparer.Ordinal);
+
     public DeckDetailsView() => InitializeComponent();
+
+    /// <summary>
+    /// A row's card diff joined the page: a diff toggled builds every row of its list anew. The one just opened comes in
+    /// with a reveal (before its first frame); the ones open before stay as they were.
+    /// </summary>
+    private void OnDiffAttached(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        if (sender is not Control diff || DiffKey(diff.DataContext) is not { } key)
+        {
+            return;
+        }
+
+        if (!diff.IsVisible)
+        {
+            _openDiffs.Remove(key);
+        }
+        else if (_openDiffs.Add(key))
+        {
+            Motion.Reveal(diff);
+        }
+    }
+
+    private static string? DiffKey(object? row) => row switch
+    {
+        DeckVersionRow version => "version:" + version.Key,
+        DeckSuggestionRow suggestion => "suggestion:" + suggestion.SecondKey,
+        _ => null,
+    };
 
     /// <summary>Shows the hover card of one chart point (the UI render check uses it; -1 hides it).</summary>
     public void HoverGame(int index)
