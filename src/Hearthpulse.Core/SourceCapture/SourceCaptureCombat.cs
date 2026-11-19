@@ -160,7 +160,7 @@ internal static partial class SourceCaptureCombat
         }
 
         var fight = new SourceCombat(
-            index, combat.Turn, capture.OursFirst, Ref(capture.FirstAttackerEntityId), options.DamageCap, options.CountDamage,
+            index, combat.Turn, capture.OursFirst, EnteredFirst(ours, theirs), Ref(capture.FirstAttackerEntityId), options.DamageCap, options.CountDamage,
             Side(ours, opponent: false, Ref, Known), Side(theirs, opponent: true, Ref, Known),
             facts.Select(f => new SourceCombatFact(Ref(f.EntityId), f.CardId, f.Markers.ToArray())).ToArray(),
             result, combat.DamageTaken, combat.DamageDealt, Odds(combat.Odds), steps);
@@ -207,6 +207,14 @@ internal static partial class SourceCaptureCombat
     }
 
     private static SimSide PostGameIf(SimOptions options, SimSide side) => options.PostGame ? SimInputs.PostGame(side) : side;
+
+    /// <summary>
+    /// Whether the player's side entered play first: its hero has the lower lobby PLAYER_ID (rules-evidence 4a, which side's
+    /// minions die first in a death phase; <c>Fight.EnteredFirst</c> reads nothing else of the two numbers). Only this
+    /// order leaves, never the numbers (legal review LEGAL-sim-pool-combats-v3, L-M1); null when either is unknown.
+    /// </summary>
+    private static bool? EnteredFirst(SimSide ours, SimSide theirs) =>
+        ours.PlayerId > 0 && theirs.PlayerId > 0 && ours.PlayerId != theirs.PlayerId ? ours.PlayerId < theirs.PlayerId : null;
 
     private static SourceCombatSide Side(SimSide side, bool opponent, Func<int, int> reference, Func<int, int> known) => new(
         side.HeroCardId.Length > 0 ? side.HeroCardId : null,
@@ -278,12 +286,13 @@ internal static partial class SourceCaptureCombat
     /// </summary>
     internal static void Validate(JsonElement d)
     {
-        S.Fields(d, "fight", "turn", "oursFirst", "firstAttacker", "damageCap", "countDamage", "ours", "theirs", "facts", "result",
+        S.Fields(d, "fight", "turn", "oursFirst", "oursEnteredFirst", "firstAttacker", "damageCap", "countDamage", "ours", "theirs", "facts", "result",
             "damageTaken", "damageDealt", "odds", "transcript");
         S.Require(Encoding.UTF8.GetByteCount(d.GetRawText()) <= MaxDataBytes);
         S.Number(d.GetProperty("fight"), 0, MaxFights - 1);
         S.Number(d.GetProperty("turn"), 0, 1000);
         Nullable(d.GetProperty("oursFirst"), v => S.Boolean(v));
+        Nullable(d.GetProperty("oursEnteredFirst"), v => S.Boolean(v));
         var attacker = S.Number(d.GetProperty("firstAttacker"), 0, MaxRef);
         S.Number(d.GetProperty("damageCap"), 0, 1000);
         S.Boolean(d.GetProperty("countDamage"));

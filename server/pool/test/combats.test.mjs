@@ -79,6 +79,15 @@ test('bg_combat: the app\'s fight is valid; every field outside the allowlist, o
     f => { f.ours.minions[0].enchantmentValues[0].creatorEntity = COMBAT.maxRef + 1; },
     f => { f.ours.minions[0].enchantmentValues = Array(COMBAT.maxEnchantments + 1).fill(f.ours.minions[0].enchantmentValues[0]); },
     f => { f.ours.lobbyTribes = 4096; },
+    // The order the sides entered play, never a lobby number, an account id or the player's secrets.
+    f => { f.oursEnteredFirst = 1; },
+    f => { delete f.oursEnteredFirst; },
+    f => { f.playerId = 3; },
+    f => { f.ours.playerId = 3; },
+    f => { f.theirs.gameAccountId = { hi: 144115198130930503, lo: 12345678 }; },
+    f => { f.theirs.hi = 1; },
+    f => { f.ours.lo = 12345678; },
+    f => { f.ours.secrets = ['LOCAL_SECRET_CARD']; },
     f => { f.ours.minions[0].friendlyDeaths = -1; },
     f => { f.ours.minions[0].bloodGemAttack = -1; },
     f => { delete f.ours.minions[0].bloodGemHealth; },
@@ -111,6 +120,8 @@ test('bg_combat: the app\'s fight is valid; every field outside the allowlist, o
   }
   // Without a transcript, and with one exactly at the step limit, a fight is valid.
   assert.equal(validCombat({ ...clone(FIGHT), transcript: null }), true);
+  assert.equal(validCombat({ ...clone(FIGHT), oursEnteredFirst: null }), true);
+  assert.equal(validCombat({ ...clone(FIGHT), oursEnteredFirst: false }), true);
   // A minion that died before the capture (a death, a remembered one) can be below 0, a hero beaten in a lethal fight
   // too; a board minion cannot.
   const lethal = clone(FIGHT);

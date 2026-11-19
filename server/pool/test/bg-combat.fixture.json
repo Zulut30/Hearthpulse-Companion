@@ -2,6 +2,7 @@
   "fight": 2,
   "turn": 3,
   "oursFirst": true,
+  "oursEnteredFirst": true,
   "firstAttacker": 1,
   "damageCap": 0,
   "countDamage": true,

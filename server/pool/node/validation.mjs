@@ -197,9 +197,10 @@ export function validTranscript(t, captured, ours, theirs) {
   return true;
 }
 export function validCombat(d) {
-  if (!fields(d, 'fight turn oursFirst firstAttacker damageCap countDamage ours theirs facts result damageTaken damageDealt odds transcript')
+  if (!fields(d, 'fight turn oursFirst oursEnteredFirst firstAttacker damageCap countDamage ours theirs facts result damageTaken damageDealt odds transcript')
     || Buffer.byteLength(JSON.stringify(d)) > COMBAT.maxDataBytes
-    || !int(d.fight, 0, COMBAT.maxFights - 1) || !int(d.turn, 0, 1000) || !nullable(d.oursFirst, bool)
+    // oursEnteredFirst: which side entered play first (lower lobby PLAYER_ID), the only use of those numbers; never the numbers.
+    || !int(d.fight, 0, COMBAT.maxFights - 1) || !int(d.turn, 0, 1000) || !nullable(d.oursFirst, bool) || !nullable(d.oursEnteredFirst, bool)
     || !int(d.firstAttacker, 0, COMBAT.maxRef) || !int(d.damageCap, 0, 1000) || !bool(d.countDamage)) return false;
   const board = new Set();
   if (!combatSide(d.ours, false, board) || !combatSide(d.theirs, true, board) || (d.firstAttacker !== 0 && !board.has(d.firstAttacker))

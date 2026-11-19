@@ -30,7 +30,11 @@ internal static partial class SourceCaptureCombat
         return new SourceCombatInput(
             fight.Fight,
             fight.Turn,
-            new BattlegroundsTracker.CombatCapture(ToSim(fight.Ours), ToSim(fight.Theirs), fight.OursFirst, fight.FirstAttacker),
+            // The order the sides entered play, as the simulator compares it: two lobby numbers in that order (1 before 2).
+            new BattlegroundsTracker.CombatCapture(
+                ToSim(fight.Ours) with { PlayerId = fight.OursEnteredFirst switch { true => 1, false => 2, null => 0 } },
+                ToSim(fight.Theirs) with { PlayerId = fight.OursEnteredFirst switch { true => 2, false => 1, null => 0 } },
+                fight.OursFirst, fight.FirstAttacker),
             fight.DamageCap,
             fight.CountDamage,
             fight.Facts.Select(f => new BattlegroundsTracker.MinionFacts(f.Entity, f.Card, f.Markers.ToArray())).ToArray(),
@@ -96,6 +100,9 @@ internal static partial class SourceCaptureCombat
 
 /// <summary>Data of one <c>bg_combat</c> record (camelCase on the wire); see <see cref="SourceCaptureCombat"/>.</summary>
 /// <param name="Fight">The combat's number in the game (0 = the first fight), growing within a capture.</param>
+/// <param name="OursEnteredFirst">
+/// The player's side entered play first (its hero has the lower lobby PLAYER_ID: its minions die first); null when unknown.
+/// </param>
 /// <param name="FirstAttacker">Reference of the minion that attacked first; 0 when unknown.</param>
 /// <param name="Result">W, T or L from the player's side.</param>
 /// <param name="Transcript">
@@ -103,8 +110,9 @@ internal static partial class SourceCaptureCombat
 /// the fight has none or what of it may leave is outside the rules.
 /// </param>
 internal sealed record SourceCombat(
-    int Fight, int Turn, bool? OursFirst, int FirstAttacker, int DamageCap, bool CountDamage, SourceCombatSide Ours, SourceCombatSide Theirs,
-    IReadOnlyList<SourceCombatFact> Facts, string Result, int DamageTaken, int DamageDealt, SourceCombatOdds? Odds, JsonElement? Transcript);
+    int Fight, int Turn, bool? OursFirst, bool? OursEnteredFirst, int FirstAttacker, int DamageCap, bool CountDamage, SourceCombatSide Ours,
+    SourceCombatSide Theirs, IReadOnlyList<SourceCombatFact> Facts, string Result, int DamageTaken, int DamageDealt, SourceCombatOdds? Odds,
+    JsonElement? Transcript);
 
 /// <summary>
 /// One side: hero, hero power, player-level cards, tier, hero health with armor, allowlisted values, the player's own

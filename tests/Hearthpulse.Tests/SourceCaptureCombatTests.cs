@@ -70,6 +70,8 @@ public sealed class SourceCaptureCombatTests : IDisposable
             PlayerEnchantments = [new SimEnchantment("BG27_556pe") { ScriptData1 = 1, CreatorEntityId = 4100 }],
             LobbyTribes = Tribe.Beast | Tribe.Mech | Tribe.Aberration,
             DeathsBeforeCapture = [M(4000, "BG_CFM_315", 1, 1)],
+            PlayerId = 3,
+            Secrets = ["LOCAL_SECRET_CARD"],
         };
         var theirs = new SimSide([M(9050, "BGS_119", 5, 5, Keyword.Stealth | Keyword.Reborn)])
         {
@@ -85,6 +87,7 @@ public sealed class SourceCaptureCombatTests : IDisposable
             Turn = 3,
             PlayerEnchantments = [new SimEnchantment("OPPONENT_PLAYER_ENCHANTMENT") { ScriptData1 = 9 }],
             LobbyTribes = Tribe.Beast | Tribe.Mech | Tribe.Aberration,
+            PlayerId = 6,
         };
         var capture = new BattlegroundsTracker.CombatCapture(ours, theirs, true, 9050);
         var options = BattlegroundsTracker.DefaultSimOptions with { FirstAttackerEntityId = 9050, DamageCap = 15 };
@@ -147,7 +150,7 @@ public sealed class SourceCaptureCombatTests : IDisposable
         foreach (var absent in new[]
                  {
                      "LOCAL_HAND_CARD", "HAND_DRAWN_CARD", "OPPONENT_HAND_CARD", "hand", "PLAYER_ID", "BACON_RATING", "GAME_ACCOUNT_ID", "COST",
-                     "OPPONENT_TRINKET", "OPPONENT_PLAYER_ENCHANTMENT", "123456", "7000",
+                     "OPPONENT_TRINKET", "OPPONENT_PLAYER_ENCHANTMENT", "LOCAL_SECRET_CARD", "secret", "playerId", "gameAccountId", "123456", "7000",
                  })
         {
             Assert.DoesNotContain(absent, text, StringComparison.Ordinal);
@@ -166,8 +169,27 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Assert.Equal((int)(Tribe.Beast | Tribe.Mech | Tribe.Aberration), theirs.GetProperty("lobbyTribes").GetInt32());
         Assert.Equal("BG_CFM_315", Assert.Single(ours.GetProperty("deaths").EnumerateArray()).GetProperty("card").GetString());
         Assert.Equal(JsonValueKind.Object, root.GetProperty("transcript").ValueKind);
+        // Which side entered play first (the lower lobby PLAYER_ID, 3 before 6), never the numbers; the own secrets never.
+        Assert.True(root.GetProperty("oursEnteredFirst").GetBoolean());
         Assert.Equal("W", root.GetProperty("result").GetString());
         Assert.Equal(0.6123, root.GetProperty("odds").GetProperty("win").GetDouble());
+    }
+
+    [Fact]
+    public void Only_the_order_the_sides_entered_play_leaves_never_the_lobby_numbers()
+    {
+        var f = Fight();
+        bool? Order(int ours, int theirs) =>
+            Project(f with { Capture = f.Capture with { Ours = f.Capture.Ours with { PlayerId = ours }, Theirs = f.Capture.Theirs with { PlayerId = theirs } } })
+                .OursEnteredFirst;
+
+        Assert.Equal([true, false, null, null, null], new[] { Order(3, 6), Order(7, 2), Order(0, 4), Order(5, 0), Order(4, 4) });
+        // Read back, the simulator gets the same order (Fight.EnteredFirst compares the two numbers, nothing else).
+        using var json = JsonDocument.Parse(Wire(Project(f with { Capture = f.Capture with { Ours = f.Capture.Ours with { PlayerId = 7 }, Theirs = f.Capture.Theirs with { PlayerId = 2 } } })));
+        var input = SourceCaptureCombat.Read(json.RootElement)!;
+        Assert.Equal((2, 1), (input.Capture.Ours.PlayerId, input.Capture.Theirs.PlayerId));
+        using var unknown = JsonDocument.Parse(Wire(Project(f with { Capture = f.Capture with { Ours = f.Capture.Ours with { PlayerId = 0 } } })));
+        Assert.Equal((0, 0), (SourceCaptureCombat.Read(unknown.RootElement)!.Capture.Ours.PlayerId, SourceCaptureCombat.Read(unknown.RootElement)!.Capture.Theirs.PlayerId));
     }
 
     [Fact]
@@ -214,6 +236,8 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Assert.Equal(Tribe.Beast | Tribe.Mech | Tribe.Aberration, input.Capture.Theirs.LobbyTribes);
         Assert.Equal("BG_CFM_315", Assert.Single(input.Capture.Ours.DeathsBeforeCapture).CardId);
         Assert.Empty(input.Capture.Theirs.PlayerEnchantments);
+        Assert.True(input.Capture.Ours.PlayerId is > 0 && input.Capture.Ours.PlayerId < input.Capture.Theirs.PlayerId);
+        Assert.Empty(input.Capture.Ours.Secrets);
         Assert.NotNull(input.Transcript);
 
         // Projected again it is the same record: the reading loses nothing the record holds.
@@ -230,6 +254,7 @@ public sealed class SourceCaptureCombatTests : IDisposable
             ExtraTags = opponent ? SimSide.EmptyExtraTags : side.ExtraTags.ToDictionary(t => t.Key,
                 t => (IReadOnlyDictionary<string, int>)t.Value.Where(v => SourceCaptureCombat.CardTags.Contains(v.Key)).ToDictionary(v => v.Key, v => v.Value)),
             PlayerEnchantments = opponent ? [] : side.PlayerEnchantments,
+            Secrets = [],
         };
         var fixedRuns = original.Options with { Runs = 300, MinRuns = 300, TimeBudget = null };
         var before = CombatSimulator.Run(Kept(original.Capture.Ours, false), Kept(original.Capture.Theirs, true), original.Capture.OursFirst, fixedRuns);
