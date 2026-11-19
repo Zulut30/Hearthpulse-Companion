@@ -304,6 +304,18 @@ internal static class SimPerfBench
     private const string ObsidianRavager = "BG27_017";
     private const string WildfireElemental = "BGS_126";
 
+    // Package E2 (main 44e706f4): battlecries triggered in combat, Blood Gem bonuses, stat-gain hooks.
+    private const string Greenskeeper = "BG34_Giant_041";
+    private const string Brann = "BG_LOE_077";
+    private const string Kalecgos = "BGS_041";
+    private const string SanguineChampion = "BG23_017";
+    private const string SanguineRefiner = "BG33_885";
+    private const string RotHideGnoll = "BG25_013";
+    private const string TideOracleMorgl = "BG27_513";
+    private const string Fishbait = "BG36_205";
+    private const string Mishmash = "TB_BaconShop_HERO_33_Buddy";
+    private const string Joyous = "BG36_110";
+
     /// <summary>
     /// Boards built to be slow: many deaths, summons and triggers per fight. Card ids are only those with a registered
     /// effect; a missing one is reported, so a renamed effect does not silently make a board cheaper.
@@ -316,6 +328,9 @@ internal static class SimPerfBench
 
         static SimMinion Dr(string id, int attack, int health, Keyword keywords = Keyword.None, bool golden = false) =>
             M(id, attack, health, keywords, golden, mechanics: CardMechanic.Deathrattle);
+
+        static SimMinion Bc(string id, int attack, int health, Keyword keywords = Keyword.None, bool golden = false, Tribe tribe = Tribe.None) =>
+            M(id, attack, health, keywords, golden, mechanics: CardMechanic.Battlecry | CardMechanic.Deathrattle) with { Tribes = tribe };
 
         static SimSide S(params SimMinion[] minions) => new(minions) { TavernTier = 6, Health = 30 };
 
@@ -360,6 +375,15 @@ internal static class SimPerfBench
                   M(string.Empty, 3, 8, Keyword.DivineShield | Keyword.Reborn), Dr(HarmlessBonehead, 2, 2), Dr(CordPuller, 3, 3, Keyword.DivineShield),
                   M(string.Empty, 3, 8, Keyword.DivineShield), Dr(BuzzingVermin, 2, 6, Keyword.Taunt)),
                 false, options),
+            new("battlecries in combat", false,
+                S(M(Greenskeeper, 6, 9, Keyword.Taunt, golden: true, mechanics: CardMechanic.Rally), M(Brann, 4, 8, golden: true),
+                  M(Kalecgos, 6, 12, tier: 6) with { Tribes = Tribe.Dragon }, Bc(SanguineChampion, 5, 5, tribe: Tribe.Dragon),
+                  M(SanguineRefiner, 4, 6, Keyword.DivineShield, mechanics: CardMechanic.Rally), M(RotHideGnoll, 2, 10, golden: true),
+                  Bc(Joyous, 4, 4, Keyword.Reborn, tribe: Tribe.Dragon)),
+                S(M(TideOracleMorgl, 5, 7, Keyword.Poisonous, golden: true), Dr(Fishbait, 0, 2, golden: true), M(Mishmash, 8, 8, golden: true),
+                  M(Greenskeeper, 6, 9, mechanics: CardMechanic.Rally), Bc(SanguineChampion, 5, 5), Dr(Fishbait, 0, 1),
+                  M(RotHideGnoll, 1, 4, Keyword.Taunt)),
+                null, options),
             new("long stall", false,
                 S(Enumerable.Range(0, 7).Select(i => M(string.Empty, 1 + (i % 2), 40, i % 3 == 0 ? Keyword.DivineShield : Keyword.None)).ToArray()),
                 S(Enumerable.Range(0, 7).Select(i => M(string.Empty, 1 + ((i + 1) % 2), 40, i % 3 == 1 ? Keyword.DivineShield : Keyword.None)).ToArray()),
