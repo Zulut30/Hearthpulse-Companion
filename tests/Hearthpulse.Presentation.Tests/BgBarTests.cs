@@ -85,14 +85,14 @@ public sealed class BgBarTests : IDisposable
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void Odds_show_damage_ranges_both_ways_and_an_estimate_line(bool wpf)
+    public void Odds_show_damage_ranges_both_ways_and_an_unsimulated_line(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.Russian);
         var model = Model(wpf, View(["BEAST"], Odds()));
 
         Assert.Equal("Нанесёте 8–16", (string)model.OddsDamageWin);
         Assert.Equal("Получите 9–17", (string)model.OddsDamageLoss);
-        Assert.Equal("Оценка: 1 эффект не учтён", (string)model.OddsNote);
+        Assert.Equal("1 эффект не учтён", (string)model.OddsNote);
         // The cells carry the label, the value is just the share.
         Assert.Equal(Hearthpulse.App.Overlay.OverlayFormat.Percent(0.311, 1), (string)model.OddsLethal);
         Assert.Equal(Hearthpulse.App.Overlay.OverlayFormat.Percent(0.197, 1), (string)model.OddsKill);
@@ -101,7 +101,7 @@ public sealed class BgBarTests : IDisposable
         Loc.Instance.SetLanguage(Loc.English);
         model = Model(wpf, View(["BEAST"], Odds()));
         Assert.Equal(("You deal 8–16", "You take 9–17"), ((string)model.OddsDamageWin, (string)model.OddsDamageLoss));
-        Assert.Equal("Estimate: 1 effect not simulated", (string)model.OddsNote);
+        Assert.Equal("1 effect not simulated", (string)model.OddsNote);
     }
 
     [Theory]
@@ -117,6 +117,6 @@ public sealed class BgBarTests : IDisposable
         Assert.False((bool)model.LethalDanger);
 
         Assert.Equal("Hero damage capped at 15", (string)Model(wpf, View(["BEAST"], Odds(unsimulated: 0, cap: 15))).OddsNote);
-        Assert.Equal("Estimate: 2 effects not simulated · hero damage capped at 15", (string)Model(wpf, View(["BEAST"], Odds(unsimulated: 2, cap: 15))).OddsNote);
+        Assert.Equal("2 effects not simulated · hero damage capped at 15", (string)Model(wpf, View(["BEAST"], Odds(unsimulated: 2, cap: 15))).OddsNote);
     }
 }

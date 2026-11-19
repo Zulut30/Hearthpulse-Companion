@@ -25,4 +25,19 @@ public static class CombatOddsScene
             CombatOdds = odds,
         };
     }
+
+    /// <summary>
+    /// <paramref name="view"/>'s fight as if the opponent had a sleeping Deity, Quilboar and a Tavern spell caster: three
+    /// of their values the player cannot see, estimated (the odds panel's "≈" mark and its tooltip).
+    /// </summary>
+    public static BattlegroundsView Estimated(BattlegroundsView view) => view with
+    {
+        CombatOdds = view.CombatOdds is { } odds ? odds with { Estimated = 3 } : null,
+        CombatEstimates =
+        [
+            new EstimatedItem(SimInputs.DeityStats, 1, 1, "hidden from the player: the printed 1/1", true),
+            new EstimatedItem(SimInputs.BloodGemBonus, 0, 0, "hidden from the player: the printed +1/+1", true),
+            new EstimatedItem(SimInputs.TavernSpellBonus, 0, 0, "hidden from the player: the printed numbers", true),
+        ],
+    };
 }

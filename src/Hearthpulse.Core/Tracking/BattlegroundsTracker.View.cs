@@ -119,6 +119,7 @@ public sealed partial class BattlegroundsTracker
             DiscoverOptions = heroChosen && !game.CombatOnScreen ? PendingDiscover(game) : Array.Empty<BgDiscoverOption>(),
             DiscoverSource = _discoverOffer.Count == 0 ? null : DiscoverSourceLabel(_discoverSource),
             CombatOdds = combat ? _combatOdds : null,
+            CombatEstimates = combat ? _combatEstimates : Array.Empty<EstimatedItem>(),
             Trinkets = scan.LocalPlay.Where(IsTrinket).Select(e => e.CardId).Distinct().ToList(),
             DarkGiftReady = darkGift is not null && darkGift.GetInt("EXHAUSTED") == 0 && !combat,
             DarkGiftCost = darkGift?.GetInt(GameTag.Cost) ?? 0,
