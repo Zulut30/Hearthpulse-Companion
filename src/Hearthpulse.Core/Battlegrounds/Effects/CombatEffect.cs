@@ -197,6 +197,32 @@ public abstract class CombatEffect
     /// <summary>Re-evaluates state-dependent keywords or thresholds (e.g. "has Taunt while it has Divine Shield").</summary>
     public virtual void Refresh(Fight fight, Unit self) { }
 
+    // ---- Battlecries and spell multipliers ---------------------------------------------------------------------
+
+    /// <summary>
+    /// This minion's Battlecry, when an effect triggers it in combat (<see cref="Fight.TriggerBattlecry"/>, e.g. a Rally
+    /// that triggers your right-most Battlecry). Runs once per trigger; the engine repeats it for multipliers.
+    /// </summary>
+    public virtual void Battlecry(Fight fight, Unit self) { }
+
+    /// <summary>Extra times friendly Battlecries trigger while this minion is alive (Brann Bronzebeard: 1, golden 2).</summary>
+    public virtual int ExtraBattlecries(Fight fight, Unit self) => 0;
+
+    /// <summary>After one friendly Battlecry trigger in combat (per trigger, multipliers included): "after you trigger a Battlecry".</summary>
+    public virtual void AfterFriendlyBattlecry(Fight fight, Unit self, Unit source) { }
+
+    /// <summary>
+    /// Extra casts of a spell the owner casts in combat while this minion is alive (Balinda Stonehearth: 1 for a spell
+    /// that targets a friendly minion, golden 2). <paramref name="target"/> is the spell's target, null when it has none.
+    /// </summary>
+    public virtual int ExtraSpellCasts(Fight fight, Unit self, string spellCardId, Unit? target) => 0;
+
+    /// <summary>
+    /// After a friendly minion (possibly self) gained stats from <see cref="Fight.Buff"/>: the positive part of the buff
+    /// (auras and summon buffs are not reported). "Whenever your Amalgam gains stats" (Mishmash).
+    /// </summary>
+    public virtual void AfterFriendlyGainedStats(Fight fight, Unit self, Unit unit, int attack, int health) { }
+
     private static Hook ScanHooks(Type type)
     {
         var hooks = Hook.None;
@@ -237,6 +263,11 @@ public abstract class CombatEffect
         (nameof(AfterFriendlySpellCast), Hook.SpellCast),
         (nameof(AuraFor), Hook.Aura),
         (nameof(Refresh), Hook.Refresh),
+        (nameof(Battlecry), Hook.Battlecry),
+        (nameof(ExtraBattlecries), Hook.ExtraBattlecries),
+        (nameof(AfterFriendlyBattlecry), Hook.FriendlyBattlecry),
+        (nameof(ExtraSpellCasts), Hook.ExtraSpellCasts),
+        (nameof(AfterFriendlyGainedStats), Hook.FriendlyGainedStats),
     ];
 }
 
@@ -260,30 +291,35 @@ public abstract class AvengeEffect : CombatEffect
 
 /// <summary>Which hooks an effect overrides; the engine skips the rest.</summary>
 [Flags]
-internal enum Hook
+internal enum Hook : long
 {
     None = 0,
-    FightStart = 1 << 0,
-    Attack = 1 << 1,
-    FriendlyAttack = 1 << 2,
-    FriendlyAttacked = 1 << 3,
-    AttackDamage = 1 << 4,
-    AfterAttack = 1 << 5,
-    AfterFriendlyAttack = 1 << 6,
-    Damaged = 1 << 7,
-    FriendlyDealtDamage = 1 << 8,
-    Kill = 1 << 9,
-    ShieldLost = 1 << 10,
-    Deathrattle = 1 << 11,
-    ExtraDeathrattles = 1 << 12,
-    FriendlyDeathrattle = 1 << 13,
-    FriendlyDeath = 1 << 14,
-    EnemyDeath = 1 << 15,
-    Summoned = 1 << 16,
-    WheneverSummon = 1 << 17,
-    AfterSummon = 1 << 18,
-    Reborn = 1 << 19,
-    SpellCast = 1 << 20,
-    Aura = 1 << 21,
-    Refresh = 1 << 22,
+    FightStart = 1L << 0,
+    Attack = 1L << 1,
+    FriendlyAttack = 1L << 2,
+    FriendlyAttacked = 1L << 3,
+    AttackDamage = 1L << 4,
+    AfterAttack = 1L << 5,
+    AfterFriendlyAttack = 1L << 6,
+    Damaged = 1L << 7,
+    FriendlyDealtDamage = 1L << 8,
+    Kill = 1L << 9,
+    ShieldLost = 1L << 10,
+    Deathrattle = 1L << 11,
+    ExtraDeathrattles = 1L << 12,
+    FriendlyDeathrattle = 1L << 13,
+    FriendlyDeath = 1L << 14,
+    EnemyDeath = 1L << 15,
+    Summoned = 1L << 16,
+    WheneverSummon = 1L << 17,
+    AfterSummon = 1L << 18,
+    Reborn = 1L << 19,
+    SpellCast = 1L << 20,
+    Aura = 1L << 21,
+    Refresh = 1L << 22,
+    Battlecry = 1L << 23,
+    ExtraBattlecries = 1L << 24,
+    FriendlyBattlecry = 1L << 25,
+    ExtraSpellCasts = 1L << 26,
+    FriendlyGainedStats = 1L << 27,
 }
