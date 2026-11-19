@@ -94,6 +94,13 @@ internal static class SimCoverBench
             }
         }
 
+        // Players' fights from the stats pool's owner export. The owner's own games can be in it too: for a held-out
+        // measure, run it without --captures and with --logs pointing at an empty folder.
+        if (options.Pool.Length > 0 && File.Exists(options.Pool))
+        {
+            games.AddRange(PoolFights.Read(options.Pool, cards));
+        }
+
         var all = games.SelectMany(g => g.Fights).ToList();
         var fights = all.Where(f => f.Capture is not null).ToList();
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,

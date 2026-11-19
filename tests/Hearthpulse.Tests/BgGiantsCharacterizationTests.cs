@@ -121,8 +121,10 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // Balinda, Timewarped Greenskeeper, Kalecgos, Dark Paradox and its t6 form, Rot Hide Gnoll, Mishmash, Joyous,
         // Hackerfin, Nerubian Deathswarmer, Electric Synthesizer); without them (checked) the fingerprint is still
         // FECFFCB0BDD005AE.
+        // 2026-11-19 (sim-all-mechanics P0): Ghastcoiler and Undead pools regenerated from patch 37.0.2 card data (new
+        // stats, Rot Hide Gnoll); with the old pool files (checked) the fingerprint is still A488D069E48228A5.
         // 2026-11-19 (P1, decisions through ICombatChooser): Best's tie-break no longer draws for a tie a higher value later
         // beats; these boards meet no such tie (checked: the same fingerprint with and without those draws).
-        Assert.Equal("fights A488D069E48228A5", actual);
+        Assert.Equal("fights 60958721CA247FFC", actual);
     }
 }

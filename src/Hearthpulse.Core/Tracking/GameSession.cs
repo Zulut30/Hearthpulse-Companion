@@ -131,6 +131,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _memoryPoller = new MemoryPoller(memory);
         CollectionWatch = new Hearthpulse.Core.Collection.CollectionWatch(new Hearthpulse.Core.Collection.CollectionStore(AppPaths.Collection));
         _turnClock = new TurnClock(() => _parser?.LastTimestamp);
+        _sourceCapture.Combats = SourceCombats;
         _history.Changed += () =>
         {
             lock (_statsGate)

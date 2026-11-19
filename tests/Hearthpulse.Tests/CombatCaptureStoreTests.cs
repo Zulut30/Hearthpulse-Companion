@@ -394,11 +394,16 @@ public sealed class CombatCaptureStoreTests : IDisposable
     /// <summary>The words that reach the capture file from code: its store, its records, its folder.</summary>
     private static readonly string[] CaptureWords = ["CombatCaptureStore", "SavedCaptures", "SavedFight", "CombatCaptures", "combat-captures", "CapturedFight"];
 
-    /// <summary>The only source files that may know the capture file: the store, who fills it, and its path.</summary>
+    /// <summary>
+    /// The only source files that may know the capture file: the store, who fills it, and its path. And the journal's
+    /// allowlisted copy of the same fights in memory (<c>bg_combat</c>, docs/source-capture.md; owner, 2026-11-19), which
+    /// reads the tracker's fights, never the file, and holds no network type (checked below).
+    /// </summary>
     private static readonly string[] Allowed =
     [
         "AppPaths.cs", "CombatCaptureStore.cs", "GameSession.Captures.cs", "GameSession.Recording.cs",
         "BattlegroundsTracker.cs", "BattlegroundsTracker.Combat.cs", "BattlegroundsTracker.Entities.cs", "BattlegroundsTracker.Types.cs",
+        "SourceCaptureCombat.cs",
         "BattlegroundsTracker.Transcript.cs",
     ];
 
@@ -432,12 +437,17 @@ public sealed class CombatCaptureStoreTests : IDisposable
         Assert.True(senders.Count >= 5, $"{senders.Count} sending files found");
         Assert.All(senders, f => Assert.DoesNotContain(Path.GetFileName(f), Allowed));
         // And the capture's own code holds no network type at all.
-        foreach (var name in new[] { "CombatCaptureStore.cs", "GameSession.Captures.cs" })
+        foreach (var name in new[] { "CombatCaptureStore.cs", "GameSession.Captures.cs", "SourceCaptureCombat.cs" })
         {
             var text = File.ReadAllText(RepoFiles.Sources(".cs").Single(f => Path.GetFileName(f) == name));
             Assert.DoesNotContain("Http", text, StringComparison.Ordinal);
             Assert.DoesNotContain("System.Net", text, StringComparison.Ordinal);
         }
+
+        // The journal's copy knows the fights in memory only: not the store, its records, its folder or its path.
+        var journal = File.ReadAllText(RepoFiles.Sources(".cs").Single(f => Path.GetFileName(f) == "SourceCaptureCombat.cs"));
+        Assert.All(new[] { "CombatCaptureStore", "SavedCaptures", "SavedFight", "CombatCaptures", "combat-captures", "AppPaths" },
+            word => Assert.DoesNotContain(word, journal, StringComparison.Ordinal));
     }
 
     [Fact]

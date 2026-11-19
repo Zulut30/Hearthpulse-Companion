@@ -5,8 +5,11 @@ namespace Hearthpulse.Core.SourceCapture;
 /// <summary>A validated observation. Construction stays inside the visible projection, never a raw-log API.</summary>
 public sealed class SourceCaptureRecord
 {
-    /// <summary>The wire version new observations are written in. A spooled capture keeps the version it started with.</summary>
-    public const int CurrentVersion = 2;
+    /// <summary>
+    /// The wire version new observations are written in. A spooled capture keeps the version it started with. v3 = v2 plus
+    /// the <c>bg_combat</c> record (<see cref="SourceCaptureCombat"/>).
+    /// </summary>
+    public const int CurrentVersion = 3;
 
     internal SourceCaptureRecord(int seq, string kind, int turn, string side, int entity, string? card, int target, object data, int v = CurrentVersion)
     {

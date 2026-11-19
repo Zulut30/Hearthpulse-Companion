@@ -9,44 +9,64 @@ using static Hearthpulse.Bench.Measure;
 namespace Hearthpulse.Bench;
 
 /// <summary>
-/// The combat simulator's coverage matrix of the current pool (plan S1): every pool minion, the hero power of every hero
-/// in the API's hero list, every trinket, Dark Gift and combat enchantment, with one of the six statuses of
-/// <see cref="SimCoverage"/> and whether the card's pool membership is confirmed. Writes docs/bg-sim-matrix.md.
-/// Inputs from the data folder copy (HEARTHPULSE_DATA): cache/cards.enUS.json (HearthstoneJSON), cache/bgcards.hsbg.json
-/// (hsbg.cards: current pool), cache/api/bg-minions-all.json and cache/api/bg-heroes-*.json (Hearthpulse API).
+/// The combat simulator's coverage matrix of today's game (plan S1, task sim-all-mechanics P0): every kind of card that
+/// can act in a Battlegrounds fight - pool minions, Timewarped minions, minions seen on boards this patch (tokens and
+/// generated minions, from the API's community stats), Duos-only Tavern cards, the hero power of every
+/// hero, trinkets, Dark Gifts, quests, quest rewards, anomalies, Tavern spells of the pool and spells other cards cast in
+/// combat, combat enchantments - with one of the six statuses of <see cref="SimCoverage"/> and whether the card is in
+/// today's game. Writes docs/bg-sim-matrix.md.
+/// Inputs: the card data snapshot named by <c>HP_BENCH_BGDATA</c> (tools/effects/fetch_bg_data.py: HearthstoneJSON enUS
+/// and the Hearthpulse data API v1 libraries with <c>in_pool</c>; the same data the effect tables are generated from) and
+/// hsbg.cards from the data folder copy (HEARTHPULSE_DATA) for what the API has no pool flag for (heroes, Timewarped).
 /// </summary>
 internal static class SimMatrix
 {
     private const string Yes = "да";
     private const string Unconfirmed = "пул не подтверждён";
     private const string OutOfPool = "вне пула";
+    private const string CombatCast = "SP_COMBAT_CAST(";
 
     private sealed record Row(CoverageKind Kind, string Id, string Name, Coverage Coverage, string Pool);
 
+    /// <summary>One item of an API v1 library: card id, pool flag (null when the library has none), Duos-only, type slug.</summary>
+    private sealed record Item(string Id, bool? InPool, bool DuosOnly, string Type);
+
+    /// <summary>What snapshot.json says about the data: the card data build and dates.</summary>
+    private sealed record Meta(int Build, string CardsDate, string FetchedAt);
+
     public static void Run()
     {
-        if (Environment.GetEnvironmentVariable("HEARTHPULSE_DATA") is not { Length: > 0 } data)
+        if (Environment.GetEnvironmentVariable("HEARTHPULSE_DATA") is not { Length: > 0 })
         {
             Console.WriteLine("[matrix] HEARTHPULSE_DATA is not set");
             return;
         }
 
-        using var http = Http();
-        var cards = CardDb.LoadAsync("enUS", http).GetAwaiter().GetResult();
-        var raw = Path.Combine(data, "cache", "cards.enUS.json");
-        if (cards.Count == 0 || !File.Exists(raw))
+        if (Environment.GetEnvironmentVariable("HP_BENCH_BGDATA") is not { Length: > 0 } snapshot
+            || !File.Exists(Path.Combine(snapshot, "snapshot.json")) || !File.Exists(Path.Combine(snapshot, "cards.enUS.json")))
         {
-            Console.WriteLine($"[matrix] no card data ({raw})");
+            Console.WriteLine("[matrix] HP_BENCH_BGDATA must name a snapshot folder of tools/effects/fetch_bg_data.py");
             return;
         }
 
-        var (heroPowerDbf, darkGifts) = ReadRawCards(raw);
-        var apiMinions = ApiIds(Path.Combine(data, "cache", "api", "bg-minions-all.json"), "data", "card_id");
-        var apiHeroes = Directory.EnumerateFiles(Path.Combine(data, "cache", "api"), "bg-heroes-*.json")
-            .SelectMany(f => ApiIds(f, "heroes", "id")).ToHashSet(StringComparer.Ordinal);
-        var hsbg = cards.BgCards;
+        var raw = Path.Combine(snapshot, "cards.enUS.json");
+        CardDb cards;
+        using (var stream = File.OpenRead(raw))
+        {
+            cards = CardDb.Parse("enUS", stream);
+        }
 
-        string PoolOf(string id) => hsbg.Count == 0 ? Unconfirmed : hsbg.Get(id) is not null ? Yes : OutOfPool;
+        using var http = Http();
+        var hsbg = BgCardDb.LoadAsync(http).GetAwaiter().GetResult();
+        var meta = ReadMeta(Path.Combine(snapshot, "snapshot.json"));
+        var (heroPowerDbf, rawDarkGifts) = ReadRawCards(raw);
+        List<Item> Library(string name) => ReadLibrary(Path.Combine(snapshot, $"api-{name}.json"));
+        var apiCards = Library("cards");
+        var apiById = apiCards.GroupBy(i => i.Id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+
+        string HsbgPool(string id) => hsbg.Count == 0 ? Unconfirmed : hsbg.Get(id) is not null ? Yes : OutOfPool;
+        string PoolOf(Item item) => item.InPool is { } inPool ? inPool ? Yes : OutOfPool : HsbgPool(item.Id);
+        bool IsDuos(string id) => id.StartsWith("BGDUO", StringComparison.Ordinal) || hsbg.Get(id)?.IsDuosOnly == true;
 
         var rows = new List<Row>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -58,35 +78,108 @@ internal static class SimMatrix
                 return;
             }
 
+            note = IsDuos(card.Id) && kind != CoverageKind.DuosOnly ? note is null ? "Duos" : $"Duos; {note}" : note;
             var coverage = SimCoverage.Classify(classifyId ?? card.Id, kind, cards.Get(classifyId ?? card.Id)?.Text ?? card.Text);
             rows.Add(new Row(kind, card.Id, card.Name, note is null ? coverage : coverage with { Note = $"{note}; {coverage.Note}" }, pool));
         }
 
-        // Minions: the card data's pool flag and the API's community list (which also holds current Timewarped minions).
-        foreach (var card in cards.All.Where(c => c.Type == "MINION" && c.BattlegroundsNormalDbfId == 0
-                                                  && (c.IsBattlegroundsPoolMinion || apiMinions.Contains(c.Id))))
+        void AddLibrary(CoverageKind kind, string library)
         {
-            var confirmed = apiMinions.Contains(card.Id) || hsbg.Get(card.Id) is { IsPoolCard: true };
-            Add(CoverageKind.Minion, card, confirmed ? Yes : Unconfirmed);
-        }
-
-        // Hero powers of the heroes in the API's list (current patch, any rating band).
-        foreach (var hero in apiHeroes.Select(cards.Get).OfType<Card>())
-        {
-            if (heroPowerDbf.TryGetValue(hero.Id, out var dbf) && cards.Get(dbf) is { } power)
+            foreach (var item in Library(library))
             {
-                Add(CoverageKind.HeroPower, power, Yes, note: hero.Name);
+                if (cards.Get(item.Id) is { } card)
+                {
+                    Add(kind, card, PoolOf(item));
+                }
             }
         }
 
+        // Minions of the Tavern pool: the API's in_pool (HearthstoneJSON's pool flag and hsbg.cards when the API list is
+        // missing); Duos-only ones go to their own section.
+        var poolMinions = apiCards.Where(i => i.Type == "minion" && i.InPool == true).ToList();
+        if (poolMinions.Count == 0)
+        {
+            poolMinions = cards.All.Where(c => c.Type == "MINION" && c.IsBattlegroundsPoolMinion && c.BattlegroundsNormalDbfId == 0)
+                .Select(c => new Item(c.Id, null, c.IsBattlegroundsDuosExclusive, "minion")).ToList();
+        }
+
+        foreach (var item in poolMinions.Where(i => !i.DuosOnly))
+        {
+            if (cards.Get(item.Id) is { } card)
+            {
+                Add(CoverageKind.Minion, card, PoolOf(item));
+            }
+        }
+
+        // Timewarped minions: the API's library has no pool flag; hsbg.cards lists the current ones.
+        foreach (var item in Library("timewarped-cards").Where(i => i.Type == "minion"))
+        {
+            if (cards.Get(item.Id) is { } card)
+            {
+                Add(CoverageKind.Minion, card, HsbgPool(item.Id), note: "Timewarped");
+            }
+        }
+
+        // Duos-only Tavern cards (minions and spells).
+        foreach (var item in apiCards.Where(i => i.DuosOnly && i.InPool == true))
+        {
+            if (cards.Get(item.Id) is { } card)
+            {
+                Add(CoverageKind.DuosOnly, card, Yes, note: item.Type == "spell" ? "заклинание" : null);
+            }
+        }
+
+        // Minions seen on boards this patch (the API's community stats): tokens and generated minions no pool flag names.
+        foreach (var item in Library("minions-seen"))
+        {
+            if (cards.Get(item.Id) is { Type: "MINION" } card)
+            {
+                Add(CoverageKind.Minion, card, Yes, note: "на досках этого патча (статистика API), не в пуле таверны");
+            }
+        }
+
+        // Hero powers: of every hero (the API's hero library, else HearthstoneJSON's heroes), in today's game when
+        // hsbg.cards lists the hero; then the hero powers hsbg.cards lists that no hero starts with (an anomaly's second
+        // hero power, upgrades).
+        var heroIds = Library("heroes").Select(i => i.Id).ToList();
+        if (heroIds.Count == 0)
+        {
+            heroIds = cards.All.Where(c => c.IsBattlegroundsHero && c.BattlegroundsSkinParentId == 0).Select(c => c.Id).ToList();
+        }
+
+        foreach (var hero in heroIds.Select(cards.Get).OfType<Card>())
+        {
+            if (heroPowerDbf.TryGetValue(hero.Id, out var dbf) && cards.Get(dbf) is { } power)
+            {
+                Add(CoverageKind.HeroPower, power, HsbgPool(hero.Id), note: hero.Name);
+            }
+        }
+
+        foreach (var power in hsbg.Cards.Where(c => c.CardType == "hero_power").Select(c => cards.Get(c.ExternalId)).OfType<Card>())
+        {
+            Add(CoverageKind.HeroPower, power, Yes, note: "сила героя из пула hsbg.cards (не стартовая)");
+        }
+
+        AddLibrary(CoverageKind.Trinket, "trinkets");
         foreach (var card in cards.All.Where(c => c.Type == "BATTLEGROUND_TRINKET"))
         {
-            Add(CoverageKind.Trinket, card, PoolOf(card.Id));
+            Add(CoverageKind.Trinket, card, HsbgPool(card.Id));
         }
 
         // Dark Gifts: the spell is offered, the enchantment it leaves on the minion is what the simulator sees.
-        foreach (var gift in darkGifts.Select(cards.Get).OfType<Card>())
+        var gifts = Library("dark-gifts");
+        if (gifts.Count == 0)
         {
+            gifts = rawDarkGifts.Select(id => new Item(id, null, false, "SPELL")).ToList();
+        }
+
+        foreach (var item in gifts)
+        {
+            if (cards.Get(item.Id) is not { } gift)
+            {
+                continue;
+            }
+
             var enchantment = cards.All
                 .Where(c => c.Type == "ENCHANTMENT" && c.Name == gift.Name && c.Id.StartsWith(gift.Id, StringComparison.Ordinal))
                 .OrderByDescending(c => CombatRelevance.Find(c.Id) is not null || EffectRegistry.Default.Get(c.Id, golden: false) is not null)
@@ -97,7 +190,28 @@ internal static class SimMatrix
                 seen.Add(enchantment.Id);
             }
 
-            Add(CoverageKind.DarkGift, gift, PoolOf(gift.Id), enchantment?.Id, enchantment is null ? "зачарование не найдено" : enchantment.Id);
+            Add(CoverageKind.DarkGift, gift, PoolOf(item), enchantment?.Id, enchantment is null ? "зачарование не найдено" : enchantment.Id);
+        }
+
+        AddLibrary(CoverageKind.Quest, "quests");
+        AddLibrary(CoverageKind.QuestReward, "rewards");
+        AddLibrary(CoverageKind.Anomaly, "anomalies");
+
+        // Tavern spells of the pool, then spells another card's combat effect casts (the table names the casters): in
+        // today's game when one of their casters is.
+        foreach (var item in apiCards.Where(i => i.Type == "spell" && i.InPool == true && !i.DuosOnly))
+        {
+            if (cards.Get(item.Id) is { } card)
+            {
+                Add(CoverageKind.Spell, card, Yes);
+            }
+        }
+
+        foreach (var card in cards.All.Where(c => CombatRelevance.Find(c.Id)?.Category.StartsWith(CombatCast, StringComparison.Ordinal) == true))
+        {
+            var casters = Casters(CombatRelevance.Find(card.Id)!.Category);
+            var inGame = casters.Any(c => apiById.TryGetValue(c, out var item) ? item.InPool == true : hsbg.Get(c)?.IsPoolCard == true);
+            Add(CoverageKind.Spell, card, inGame ? Yes : OutOfPool, note: "кастуется в бою");
         }
 
         // Other combat enchantments: table rows and registered effects on enchantments.
@@ -110,7 +224,7 @@ internal static class SimMatrix
         }
 
         var path = Path.Combine(RepoRoot(), "docs", "bg-sim-matrix.md");
-        File.WriteAllText(path, Markdown(rows, cards, hsbg.Count > 0), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        File.WriteAllText(path, Markdown(rows, cards, meta, hsbg.Count > 0), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         Console.WriteLine($"[matrix] {rows.Count} rows -> {path}");
         foreach (var group in rows.GroupBy(r => r.Coverage.Status).OrderBy(g => g.Key))
         {
@@ -118,22 +232,29 @@ internal static class SimMatrix
         }
     }
 
-    private static string Markdown(List<Row> rows, CardDb cards, bool hsbgLoaded)
+    /// <summary>The caster ids a "SP_COMBAT_CAST(a,b,+3)" category names (the count of the cut ones is skipped).</summary>
+    private static string[] Casters(string category) =>
+        category[CombatCast.Length..].TrimEnd(')').Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Where(c => !c.StartsWith('+')).ToArray();
+
+    private static string Markdown(List<Row> rows, CardDb cards, Meta meta, bool hsbgLoaded)
     {
         var sb = new StringBuilder();
         sb.AppendLine("# Матрица покрытия симулятора боя BG");
         sb.AppendLine();
         sb.AppendLine("<!-- Generated by `Hearthpulse.Bench simmatrix` (tools/Hearthpulse.Bench/SimMatrix.cs); do not edit by hand. -->");
         sb.AppendLine();
-        var poolSource = hsbgLoaded ? "hsbg.cards (кэш)" : "hsbg.cards недоступен — принадлежность тринкетов и даров не подтверждена";
+        var hsbgSource = hsbgLoaded ? "hsbg.cards (кэш)" : "hsbg.cards недоступен — для героев и Timewarped пул не подтверждён";
         sb.AppendLine(CultureInfo.InvariantCulture,
-            $"Таблица релевантности: патч {CombatRelevance.Patch}. Данные карт: HearthstoneJSON enUS ({cards.Count} карт); пул: {poolSource}, список существ и героев API Hearthpulse (кэш).");
+            $"Таблица релевантности: патч {CombatRelevance.Patch}. Данные карт: HearthstoneJSON enUS, сборка {meta.Build} ({meta.CardsDate}, {cards.Count} карт); " +
+            $"пул: `in_pool` API данных Hearthpulse v1 (снимок {meta.FetchedAt}, `tools/effects/fetch_bg_data.py`), для героев и Timewarped — {hsbgSource}.");
         sb.AppendLine();
         sb.AppendLine("Статусы (`SimCoverage`, те же правила, что помечают бой «not simulated»): `no_effect` — текст не меняет бой после " +
                       "снимка; `resolved` — Start of Combat, разрешился до снимка; `implemented` — есть эффект; `missing_effect` — меняет " +
                       "бой, эффекта нет; `missing_input` — эффекту нужна величина, которой нет в снимке; `unknown` — карты нет в таблицах. " +
-                      "Пул: «да» — карта есть в текущем пуле (API или hsbg.cards), «вне пула» — hsbg.cards её не знает, " +
-                      "«пул не подтверждён» — проверить нельзя. Как читать и обновлять — docs/bg-combat-sim.md.");
+                      "Пул: «да» — карта есть в сегодняшней игре (`in_pool` API; герой, его сила и Timewarped — в hsbg.cards; заклинание, " +
+                      "которое кастуют в бою, — в пуле его кастер), «вне пула» — нет, «пул не подтверждён» — проверить нельзя. " +
+                      "Как читать и обновлять — docs/bg-combat-sim.md.");
         sb.AppendLine();
         sb.AppendLine("## Итоги");
         sb.AppendLine();
@@ -173,6 +294,11 @@ internal static class SimMatrix
         CoverageKind.HeroPower => "Силы героя",
         CoverageKind.Trinket => "Тринкеты",
         CoverageKind.DarkGift => "Тёмные дары",
+        CoverageKind.Quest => "Квесты",
+        CoverageKind.QuestReward => "Награды квестов",
+        CoverageKind.Anomaly => "Аномалии",
+        CoverageKind.Spell => "Заклинания таверны",
+        CoverageKind.DuosOnly => "Только Duos",
         _ => "Боевые зачарования",
     };
 
@@ -206,32 +332,43 @@ internal static class SimMatrix
         return (heroPowers, gifts);
     }
 
-    /// <summary>The ids in a cached API list: <c>{"data": [...]}</c> or <c>{"data": {"heroes": [...]}}</c>.</summary>
-    private static HashSet<string> ApiIds(string path, string list, string field)
+    /// <summary>The items of an API v1 library file <c>{"data": [...]}</c> (base cards only; golden variants are skipped).</summary>
+    private static List<Item> ReadLibrary(string path)
     {
-        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var items = new List<Item>();
         if (!File.Exists(path))
         {
-            return ids;
+            return items;
         }
 
         using var doc = JsonDocument.Parse(File.ReadAllBytes(path));
-        var data = doc.RootElement.GetProperty("data");
-        var items = data.ValueKind == JsonValueKind.Array ? data : data.TryGetProperty(list, out var inner) ? inner : default;
-        if (items.ValueKind != JsonValueKind.Array)
+        foreach (var e in doc.RootElement.GetProperty("data").EnumerateArray())
         {
-            return ids;
-        }
-
-        foreach (var item in items.EnumerateArray())
-        {
-            if (item.TryGetProperty(field, out var value) && value.GetString() is { Length: > 0 } id)
+            if (!e.TryGetProperty("card_id", out var id) || id.GetString() is not { Length: > 0 } cardId
+                || (e.TryGetProperty("variant", out var variant) && variant.ValueKind == JsonValueKind.Object
+                    && variant.TryGetProperty("kind", out var kind) && kind.GetString() is { } k && k != "base"))
             {
-                ids.Add(id);
+                continue;
             }
+
+            bool? inPool = e.TryGetProperty("in_pool", out var pool) && pool.ValueKind is JsonValueKind.True or JsonValueKind.False ? pool.GetBoolean() : null;
+            var duos = e.TryGetProperty("duos_only", out var d) && d.ValueKind == JsonValueKind.True;
+            var type = e.TryGetProperty("card_type", out var t) && t.ValueKind == JsonValueKind.Object && t.TryGetProperty("slug", out var slug)
+                ? slug.GetString() ?? string.Empty
+                : string.Empty;
+            items.Add(new Item(cardId, inPool, duos, type));
         }
 
-        return ids;
+        return items;
+    }
+
+    private static Meta ReadMeta(string path)
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllBytes(path));
+        var root = doc.RootElement;
+        string Text(string name) => root.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? string.Empty : string.Empty;
+        var build = root.TryGetProperty("build", out var b) && b.ValueKind == JsonValueKind.Number ? b.GetInt32() : 0;
+        return new Meta(build, Text("hsjson_date"), Text("fetched_at"));
     }
 
     private static string RepoRoot()
