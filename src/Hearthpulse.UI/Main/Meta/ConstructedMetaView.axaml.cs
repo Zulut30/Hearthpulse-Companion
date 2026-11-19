@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using Hearthpulse.Core;
+using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Main.Meta;
 
@@ -34,6 +35,7 @@ public partial class ConstructedMetaView : UserControl
     private IDisposable? _prebuildWait;
     private bool _prebuildStarted;
     private bool _prebuilding;
+    private string? _shownTab;
 
     /// <summary>
     /// How long after the page was shown the build ahead starts (zero: at once). A third of a second: the page has
@@ -332,6 +334,22 @@ public partial class ConstructedMetaView : UserControl
         MetaDecksPanel.IsVisible = tab == "Top";
         MetaMatchupsPanel.IsVisible = tab == "Matchups";
         IsVisible = tab is "Tiers" or "Top" or "Matchups";
+
+        // The tab that comes in fades in with a short rise once laid out, as the WPF window reveals it; the same tab shown
+        // again (the page coming back) is the page switch's to show.
+        Control? shown = tab switch
+        {
+            "Tiers" => MetaTiersPanel,
+            "Top" => MetaDecksPanel,
+            "Matchups" => MetaMatchupsPanel,
+            _ => null,
+        };
+        if (shown is not null && tab != _shownTab)
+        {
+            ContentMotion.Reveal(shown, 8);
+        }
+
+        _shownTab = tab;
     }
 
     /// <summary>The tier list and the chosen archetype's card: side by side, or one under the other when narrow.</summary>

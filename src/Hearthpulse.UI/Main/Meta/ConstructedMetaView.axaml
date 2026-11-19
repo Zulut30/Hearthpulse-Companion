@@ -193,10 +193,17 @@
         <Grid Name="MetaTiersPanel" ColumnDefinitions="3*,16,2*">
             <Border Name="TierCard" Classes="card" VerticalAlignment="Top">
                 <StackPanel>
-                    <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto">
+                    <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto,Auto">
                         <c:Ornament Text="{Binding ConstructedTitle}" Icon="&#xF11D0;" Size="13" HorizontalAlignment="Left" VerticalAlignment="Center"
                                     ToolTip.Tip="{i:Loc Main.Meta.TierTip}" />
-                        <Border Grid.Column="1" Classes="segmentBar" ToolTip.Tip="{i:Loc Main.Meta.ViewTip}">
+                        <!-- New stats on their way: a cue that always keeps its room, so the head does not move when it shows -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0" IsHitTestVisible="False"
+                                    i:ContentMotion.Lit="{Binding MetaRefreshing}" AutomationProperties.LiveSetting="Polite">
+                            <TextBlock Text="&#xF04E6;" Classes="icon" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Accent2}"
+                                       VerticalAlignment="Center" Margin="0,0,4,0" />
+                            <TextBlock Text="{i:Loc Main.Meta.Refreshing}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Border Grid.Column="2" Classes="segmentBar" ToolTip.Tip="{i:Loc Main.Meta.ViewTip}">
                             <StackPanel Orientation="Horizontal">
                                 <RadioButton Classes="segment" Content="{i:Loc Main.Meta.ViewTiers}" GroupName="MetaView" IsChecked="{Binding MetaTierView, Mode=OneWay}"
                                              Command="{Binding SetMetaView}" CommandParameter="Tiers" />
@@ -253,31 +260,33 @@
                          Not clipped: a row's plate stands 8 px out of the list on each side, into the card's padding. -->
                     <!-- Both lists in one holder: the view keeps it hidden while it builds the rest of the tab ahead of the first
                          click (Prebuild in the code-behind), so the rows are built where the page really shows them. -->
-                    <StackPanel Name="MetaLists">
+                    <!-- While the stats of a new filter load, the old rows stay where they are, dimmed (no loading box under them). -->
+                    <StackPanel Name="MetaLists" i:ContentMotion.Dim="{Binding MetaRefreshing}">
                         <ItemsControl Name="MetaTierList" ItemsSource="{Binding MetaTierRows}" ItemsPanel="{StaticResource PageRows}" ClipToBounds="False"
-                                      IsVisible="{Binding MetaTierView}" />
+                                      i:ContentMotion.Shown="{Binding MetaTierView}" i:ContentMotion.Rise="6" />
 
                         <!-- Table: the archetypes alone, in the chosen order -->
                         <ItemsControl Name="MetaTable" ItemsSource="{Binding MetaArchetypes}" ItemsPanel="{StaticResource PageRows}" ClipToBounds="False"
-                                      IsVisible="{Binding MetaTableView}" />
+                                      i:ContentMotion.Shown="{Binding MetaTableView}" i:ContentMotion.Rise="6" />
                     </StackPanel>
 
                     <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaLoading}" />
                     <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Main.Meta.Unavailable}" IsVisible="{Binding MetaUnavailable}" />
                     <ContentControl Classes="emptyState" Tag="&#xF0233;" Content="{i:Loc Main.Meta.Empty}" IsVisible="{Binding MetaEmpty}" />
                     <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
-                               TextWrapping="Wrap" IsVisible="{Binding MetaStatusShown}" />
+                               TextWrapping="Wrap" IsVisible="{Binding MetaStatusShown}"
+                               i:ContentMotion.Dim="{Binding MetaRefreshing}" />
                 </StackPanel>
             </Border>
 
             <Border Name="ArchetypeCard" Grid.Column="2" Classes="card" VerticalAlignment="Top">
-                <StackPanel>
+                <StackPanel i:ContentMotion.Dim="{Binding MetaRefreshing}">
                     <TextBlock Text="{Binding SelectedArchetypeTitle}" FontSize="{StaticResource FontSizeSubhead}" FontWeight="SemiBold"
                                FontFamily="{DynamicResource DisplayFont}" TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding ArchetypeSummary}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
                     <!-- The sections come in one step after the list is ready for input (ArchetypeDetailScheduler, set in the
                          code-behind); until the first build nothing stands here, not a false "not enough games". -->
-                    <StackPanel Name="ArchetypeSections" IsVisible="{Binding ArchetypeDetailReady}">
+                    <StackPanel Name="ArchetypeSections" IsVisible="{Binding ArchetypeDetailReady}" i:ContentMotion.Refresh="{Binding DetailArchetype}">
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0" IsVisible="{Binding DetailArchetype.HasPlaySplit, FallbackValue=False}">
                         <Border Classes="segmentBar" Padding="12,4" Margin="0,0,8,0" ToolTip.Tip="{i:Loc Main.Meta.FirstTip}">
                             <TextBlock><Run Text="{i:Loc Main.Meta.GoingFirst}" Foreground="{StaticResource Muted}" /><Run Text="{Binding DetailArchetype.First, Mode=OneWay, FallbackValue=''}" FontWeight="Bold" /></TextBlock>
@@ -302,7 +311,7 @@
                     </Border>
                     <TextBlock Text="{Binding MulliganSource}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,4"
                                IsVisible="{Binding MulliganSource, Converter={StaticResource Truthy}}" />
-                    <ItemsControl ItemsSource="{Binding Mulligan}">
+                    <ItemsControl ItemsSource="{Binding Mulligan}" i:ContentMotion.Dim="{Binding MulliganLoading}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:MulliganRow">
                                 <!-- A click opens the card's page (docs/card-page.md) -->
@@ -324,7 +333,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <TextBlock Text="{i:Loc Main.Meta.MulliganEmpty}" Classes="caption" Margin="0,4"
-                               IsVisible="{Binding Mulligan, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                               IsVisible="{Binding MulliganEmptyShown}" />
 
                     <c:Ornament Text="{i:Loc Main.Meta.BestLists}" Icon="&#xF0639;" Size="13" Margin="0,16,0,8" />
                     <ItemsControl Name="BestLists" ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" />
@@ -382,31 +391,45 @@
                         <ColumnDefinition Width="Auto" SharedSizeGroup="DeckCopy" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Deck}" Classes="tableHead" />
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0" IsHitTestVisible="False"
+                                i:ContentMotion.Lit="{Binding MetaDecksRefreshing}" AutomationProperties.LiveSetting="Polite">
+                        <TextBlock Text="&#xF04E6;" Classes="icon" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Accent2}"
+                                   VerticalAlignment="Center" Margin="0,0,4,0" />
+                        <TextBlock Text="{i:Loc Main.Meta.Refreshing}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                    </StackPanel>
                     <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.WinRate}" Classes="tableHead" MinWidth="64" TextAlignment="Right" />
                     <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.Games}" Classes="tableHead metaWide" MinWidth="64" TextAlignment="Right" />
                     <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Dust}" Classes="tableHead metaWide" MinWidth="64" TextAlignment="Right"
                                ToolTip.Tip="{i:Loc Collection.Dust.ColumnTip}" />
                 </Grid>
-                <ItemsControl ItemsSource="{Binding MetaDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" />
+                <ItemsControl ItemsSource="{Binding MetaDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}"
+                              i:ContentMotion.Dim="{Binding MetaDecksRefreshing}" i:ContentMotion.Refresh="{Binding MetaDecks.Count}" />
                 <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaLoading}" />
                 <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Main.Meta.Unavailable}" IsVisible="{Binding MetaUnavailable}" />
                 <ContentControl Classes="emptyState" Tag="&#xF0639;" Content="{i:Loc Main.Meta.DecksEmpty}" IsVisible="{Binding MetaDecksEmpty}" />
                 <ContentControl Classes="emptyState" Tag="&#xF0232;" Content="{i:Loc Collection.Filter.Empty}" IsVisible="{Binding MetaCanBuildEmpty}" />
-                <ContentControl Name="MetaPricing" Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Collection.Pricing}" IsVisible="{Binding MetaPricingShown}" />
+                <ContentControl Name="MetaPricing" Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Collection.Pricing}" i:ContentMotion.Shown="{Binding MetaPricingShown}" />
                 <TextBlock Text="{Binding CopyNote}" Classes="caption" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                            IsVisible="{Binding CopyNote, Converter={StaticResource Truthy}}" />
                 <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
-                           TextWrapping="Wrap" IsVisible="{Binding MetaStatusShown}" />
+                           TextWrapping="Wrap" IsVisible="{Binding MetaStatusShown}"
+                           i:ContentMotion.Dim="{Binding MetaRefreshing}" />
             </StackPanel>
         </Border>
 
         <!-- Matchups: a heat map of the most played archetypes, the row's win rate against the column -->
         <Border Name="MetaMatchupsPanel" Classes="card" IsVisible="False">
             <StackPanel>
-                <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto">
+                <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto,Auto">
                     <c:Ornament Text="{i:Loc Main.Ct.MetaMatchups}" Icon="&#xF04E5;" Size="13" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0" IsHitTestVisible="False"
+                                i:ContentMotion.Lit="{Binding MetaMatchupsRefreshing}" AutomationProperties.LiveSetting="Polite">
+                        <TextBlock Text="&#xF04E6;" Classes="icon" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Accent2}"
+                                   VerticalAlignment="Center" Margin="0,0,4,0" />
+                        <TextBlock Text="{i:Loc Main.Meta.Refreshing}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                    </StackPanel>
                     <!-- Legend: red loses, plain is even, green wins -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <Border Width="14" Height="14" CornerRadius="2" Background="{StaticResource Negative}" />
                         <TextBlock Text="{i:Loc Main.Meta.LegendLose}" Classes="caption" Margin="4,0,12,0" VerticalAlignment="Center" />
                         <Border Width="14" Height="14" CornerRadius="2" Background="{StaticResource Surface3}" />
@@ -418,7 +441,8 @@
                 <TextBlock Text="{i:Loc Main.Meta.MatchupsCaption}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,12" />
                 <TextBlock Text="{Binding MatchupsRankNote}" Classes="caption" TextWrapping="Wrap" Margin="0,-8,0,12"
                            IsVisible="{Binding MatchupsRankNote, Converter={StaticResource Truthy}}" />
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" IsVisible="{Binding HasMatchupMatrix}">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" IsVisible="{Binding HasMatchupMatrix}"
+                              i:ContentMotion.Dim="{Binding MetaMatchupsRefreshing}">
                     <StackPanel Name="MatchupGrid">
                         <!-- Column heads: the opponent's portrait and short name, the full name on hover -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
@@ -467,11 +491,12 @@
                         </ItemsControl>
                     </StackPanel>
                 </ScrollViewer>
-                <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaLoading}" />
+                <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaMatchupsLoading}" />
                 <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Main.Meta.Unavailable}" IsVisible="{Binding MetaUnavailable}" />
                 <ContentControl Classes="emptyState" Tag="&#xF04E5;" Content="{i:Loc Main.Meta.MatchupsEmpty}" IsVisible="{Binding MetaMatchupsEmpty}" />
                 <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
-                           TextWrapping="Wrap" IsVisible="{Binding MetaStatusShown}" />
+                           TextWrapping="Wrap" IsVisible="{Binding MetaStatusShown}"
+                           i:ContentMotion.Dim="{Binding MetaRefreshing}" />
             </StackPanel>
         </Border>
     </StackPanel>

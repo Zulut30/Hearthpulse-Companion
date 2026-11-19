@@ -211,6 +211,7 @@
   "Main.Meta.DecksEmpty": "No decklist with enough games in this slice yet.",
   "Main.Meta.Loading": "Loading meta stats…",
   "Main.Meta.LoadingShort": "Loading…",
+  "Main.Meta.Refreshing": "Updating…",
   "Main.Meta.Unavailable": "Meta stats are unavailable right now. Hearthpulse tries again later.",
   "Main.Meta.Copied": "{0} copied. In Hearthstone, make a new deck and it offers to paste it.",
   "Main.Meta.ClipboardBusy": "The clipboard is busy. Try again.",

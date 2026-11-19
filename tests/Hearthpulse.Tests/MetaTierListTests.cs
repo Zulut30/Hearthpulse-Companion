@@ -163,9 +163,11 @@ public sealed class MetaTierListTests : IDisposable
         Assert.All(vm.MetaTierRows, r => Assert.True(Assert.IsType<TierHeadRow>(r).IsEmpty));
         Assert.Equal(0, requests);
 
+        // A rank loads again; the stats shown stay meanwhile, with no loading box under them (MetaReloadTests).
         vm.SetMetaRank.Execute("legend");
         Assert.Equal(1, requests);
-        Assert.True(vm.MetaLoading);
+        Assert.False(vm.MetaLoading);
+        Assert.True(vm.MetaEmpty);
     }
 
     [Fact]

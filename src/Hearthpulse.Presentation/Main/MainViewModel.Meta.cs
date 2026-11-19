@@ -23,7 +23,6 @@ public sealed partial class MainViewModel
 
     /// <summary>Community stats by format key ("standard", "wild"), as the host loaded them.</summary>
     private readonly Dictionary<string, ConstructedMeta> _constructedMetas = new(StringComparer.Ordinal);
-    private IReadOnlyList<MetaDeckRow> _metaDecks = [];
     private IReadOnlyList<MetaDeckRow> _archetypeDecks = [];
     private IReadOnlyList<MulliganRow> _mulligan = [];
     private IReadOnlyList<MetaChoice> _metaClasses = [];
@@ -37,6 +36,9 @@ public sealed partial class MainViewModel
     private int _metaMinGames = MetaMinGameChoices[0];
     private bool _metaLoading = true;
     private bool _metaUnavailable;
+    private bool _metaReloading;
+    private ConstructedMeta? _earlyGivenUp;
+    private string? _matrixFormat;
     private Func<string> _constructedMetaStatus = () => Loc.T("Main.Meta.Loading");
     private string _archetypeSummary = string.Empty;
     private Func<string> _copyNote = () => string.Empty;
@@ -88,8 +90,30 @@ public sealed partial class MainViewModel
 
     public MetaSortArrows MetaArrows => new(Arrow("Tier"), Arrow("Name"), Arrow("WinRate"), Arrow("Popularity"), Arrow("Games"));
 
-    /// <summary>The page's stats are being downloaded (nothing to show yet).</summary>
+    /// <summary>The page's stats are being downloaded and there is nothing of its format to show yet: the tabs' loading state.</summary>
     public bool MetaLoading { get => _metaLoading; private set { if (Set(ref _metaLoading, value)) RaiseMetaStates(); } }
+
+    /// <summary>
+    /// A filter changed and the stats shown are still the old filter's: they stay where they are, dimmed, with a busy
+    /// cue in the card's head, until the new ones replace them in one step. Never a loading box under the old rows.
+    /// </summary>
+    public bool MetaRefreshing => _metaReloading && PageMeta is { } meta && !OfCurrentFilter(meta);
+
+    /// <summary>
+    /// The tier list came ahead of the full stats (<see cref="ConstructedMeta.IsEarly"/>): the mulligan numbers and the
+    /// matchups are still on their way, so their empty lists mean "not yet", not "none". Over when the full stats come,
+    /// or when the load ends without them.
+    /// </summary>
+    private bool MetaDetailWaiting => PageMeta is { IsEarly: true } meta && !ReferenceEquals(meta, _earlyGivenUp);
+
+    /// <summary>The top decks wait for new stats or for the prices of new lists: the rows shown stay, dimmed.</summary>
+    public bool MetaDecksRefreshing => MetaRefreshing || _metaDecksHeld;
+
+    /// <summary>The heat map shown is the old filter's, or waits for the new matrix: it stays, dimmed, with the busy cue.</summary>
+    public bool MetaMatchupsRefreshing => HasMatchupMatrix && (MetaRefreshing || MetaDetailWaiting);
+
+    /// <summary>The matchups tab has no matrix to show while one is on its way: its loading state.</summary>
+    public bool MetaMatchupsLoading => _metaLoading || (MetaDetailWaiting && !HasMatchupMatrix);
 
     /// <summary>The page's format could not be loaded: the "unavailable" state shows, not the filters' empty one.</summary>
     public bool MetaUnavailable { get => _metaUnavailable; private set { if (Set(ref _metaUnavailable, value)) RaiseMetaStates(); } }
@@ -98,10 +122,10 @@ public sealed partial class MainViewModel
     public bool MetaEmpty => MetaStatusShown && MetaArchetypes.Count == 0;
 
     /// <summary>Stats are in and the top-decks tab has no list.</summary>
-    public bool MetaDecksEmpty => MetaStatusShown && _metaDecks.Count == 0 && !CanBuildOnly;
+    public bool MetaDecksEmpty => MetaStatusShown && MetaDecks.Count == 0 && !CanBuildOnly;
 
-    /// <summary>Stats are in and the matchups tab has no matrix.</summary>
-    public bool MetaMatchupsEmpty => MetaStatusShown && !HasMatchupMatrix;
+    /// <summary>Stats are in and the matchups tab has no matrix (not while the matrix is still on its way).</summary>
+    public bool MetaMatchupsEmpty => MetaStatusShown && !HasMatchupMatrix && !MetaDetailWaiting;
 
     /// <summary>The status line under each tab (games, source, updated): only with stats in, never a second "Loading".</summary>
     public bool MetaStatusShown => !_metaLoading && !_metaUnavailable;
@@ -109,12 +133,15 @@ public sealed partial class MainViewModel
     /// <summary>The "1st"/"Coin" columns: shown only when the source has those numbers, not as a column of dashes.</summary>
     public bool MetaHasPlaySplit => MetaArchetypes.Any(r => r.HasPlaySplit);
 
-    /// <summary>Most played decklists, best first among those with enough games.</summary>
-    public IReadOnlyList<MetaDeckRow> MetaDecks { get => _metaDecks; private set { if (Set(ref _metaDecks, value)) { Raise(nameof(MetaDecksEmpty)); Raise(nameof(MetaCanBuildEmpty)); } } }
+    /// <summary>
+    /// Most played decklists, best first among those with enough games. One list for the life of the page, changed in
+    /// place: a row that shows what it showed before keeps its container (and its hero art) through a rebuild.
+    /// </summary>
+    public SyncList<MetaDeckRow> MetaDecks { get; } = [];
 
     public IReadOnlyList<MetaDeckRow> ArchetypeDecks { get => _archetypeDecks; private set => Set(ref _archetypeDecks, value); }
 
-    public IReadOnlyList<MulliganRow> Mulligan { get => _mulligan; private set => Set(ref _mulligan, value); }
+    public IReadOnlyList<MulliganRow> Mulligan { get => _mulligan; private set { if (Set(ref _mulligan, value)) Raise(nameof(MulliganEmptyShown)); } }
 
     /// <summary>The heat map's columns: the most played archetypes.</summary>
     public IReadOnlyList<MatchupHead> MatchupHeads { get => _matchupHeads; private set => Set(ref _matchupHeads, value); }
@@ -129,6 +156,8 @@ public sealed partial class MainViewModel
             {
                 Raise(nameof(HasMatchupMatrix));
                 Raise(nameof(MetaMatchupsEmpty));
+                Raise(nameof(MetaMatchupsRefreshing));
+                Raise(nameof(MetaMatchupsLoading));
             }
         }
     }
@@ -221,8 +250,17 @@ public sealed partial class MainViewModel
         if (meta is null)
         {
             MetaLoading = false;
-            // Stats shown before stay; with none the page says so instead of blaming the filters.
+            // Stats shown before stay; with none the page says so instead of blaming the filters. They are no longer
+            // waited for: the old rows come back to full, and an early tier list's empty parts say what they lack.
             MetaUnavailable = PageMeta is null;
+            _metaReloading = false;
+            if (PageMeta is { IsEarly: true } early)
+            {
+                _earlyGivenUp = early;
+                RebuildConstructedMeta();
+            }
+
+            RaiseMetaStates();
             ShowMetaStatus(() => Loc.T("Main.Meta.Unavailable"));
             return;
         }
@@ -231,6 +269,12 @@ public sealed partial class MainViewModel
         if (PageMeta is not null)
         {
             MetaUnavailable = false;
+        }
+
+        // The stats of the filter shown came: the wait is over (another format's, or the old filter's, do not end it).
+        if (PageMeta is { } shown && OfCurrentFilter(shown))
+        {
+            _metaReloading = false;
         }
 
         RebuildConstructedMeta();
@@ -284,7 +328,15 @@ public sealed partial class MainViewModel
         Raise(nameof(MetaPricingShown));
         Raise(nameof(MetaMatchupsEmpty));
         Raise(nameof(MetaStatusShown));
+        Raise(nameof(MetaRefreshing));
+        Raise(nameof(MetaDecksRefreshing));
+        Raise(nameof(MetaMatchupsRefreshing));
+        Raise(nameof(MetaMatchupsLoading));
     }
+
+    /// <summary>Whether stats are of the rank and period the filters ask for now (not the old filter's, kept while they load).</summary>
+    private bool OfCurrentFilter(ConstructedMeta meta) =>
+        meta.Rank == ConstructedMeta.Key(ConstructedMeta.Ranks, Settings.MetaRank) && meta.Period == ConstructedMeta.Key(ConstructedMeta.Periods, Settings.MetaPeriod);
 
     private void ShowMetaStatus(Func<string> text)
     {
@@ -304,9 +356,20 @@ public sealed partial class MainViewModel
         Raise(nameof(MetaRanks));
         Raise(nameof(MatchupsRankNote));
         Raise(nameof(MetaPeriods));
-        MetaLoading = true;
         MetaUnavailable = false;
-        ShowMetaStatus(() => Loc.T("Main.Meta.LoadingShort"));
+        if (PageMeta is null)
+        {
+            // Nothing of the page's format to keep: the tabs wait with their loading state.
+            MetaLoading = true;
+            ShowMetaStatus(() => Loc.T("Main.Meta.LoadingShort"));
+        }
+        else
+        {
+            // The old filter's rows stay where they are, dimmed, until the new stats replace them in one step.
+            _metaReloading = true;
+            RaiseMetaStates();
+        }
+
         ConstructedMetaRequested?.Invoke(null);
     }
 
@@ -376,8 +439,10 @@ public sealed partial class MainViewModel
             ShowMetaDecks();
             MatchupHeads = [];
             MatchupMatrix = [];
+            _matrixFormat = null;
             SelectedArchetype = null;
             RebuildArchetypeDetail();
+            RaiseMetaStates();
             return;
         }
 
@@ -416,7 +481,19 @@ public sealed partial class MainViewModel
         // The top decks, with what the player's collection says of each (MainViewModel.Collection.cs).
         ShowMetaDecks();
 
-        RebuildMatchupMatrix(meta.Matchups);
+        // An early tier list has no matrix yet: the one shown for the same format stays (dimmed) until the full stats.
+        if (!MetaDetailWaiting)
+        {
+            RebuildMatchupMatrix(meta.Matchups);
+            _matrixFormat = meta.Format;
+        }
+        else if (_matrixFormat != meta.Format)
+        {
+            RebuildMatchupMatrix(MetaMatchups.Empty);
+            _matrixFormat = null;
+        }
+
+        RaiseMetaStates();
 
         // The choice stays on the same archetype's row (a new object when what it shows changed) or moves to the first
         // one; an emptied list clears it. The side card is built again either way: the stats under it may be new.

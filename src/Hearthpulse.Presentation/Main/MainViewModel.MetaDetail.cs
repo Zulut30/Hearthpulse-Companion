@@ -19,6 +19,7 @@ public sealed partial class MainViewModel
 {
     private bool _archetypeDetailReady;
     private bool _archetypeDetailQueued;
+    private bool _mulliganLoading;
     private MetaArchetypeRow? _detailArchetype;
 
     /// <summary>
@@ -39,6 +40,16 @@ public sealed partial class MainViewModel
     /// previous archetype's rows stay until the new ones replace them in one step.
     /// </summary>
     public MetaArchetypeRow? DetailArchetype { get => _detailArchetype; private set => Set(ref _detailArchetype, value); }
+
+    /// <summary>
+    /// The chosen archetype's mulligan numbers are on their way (a rank's slice, or the full stats after an early tier
+    /// list): the rows shown stay, dimmed, until the new ones replace them, so the card never collapses to "loading" and
+    /// back. The source line under the title says "Loading".
+    /// </summary>
+    public bool MulliganLoading { get => _mulliganLoading; private set { if (Set(ref _mulliganLoading, value)) Raise(nameof(MulliganEmptyShown)); } }
+
+    /// <summary>"Not enough games for a mulligan guide": only with the numbers in and no card in them.</summary>
+    public bool MulliganEmptyShown => _mulligan.Count == 0 && !_mulliganLoading;
 
     /// <summary>The heat map: every archetype of the matrix against every other, rows and columns in the same order.</summary>
     private void RebuildMatchupMatrix(MetaMatchups matchups)
@@ -124,6 +135,7 @@ public sealed partial class MainViewModel
             ArchetypeDecks = [];
             _mulliganLoad?.Cancel();
             Mulligan = [];
+            MulliganLoading = false;
             MulliganSource = string.Empty;
             return;
         }
@@ -142,7 +154,16 @@ public sealed partial class MainViewModel
             return;
         }
 
+        if (MetaDetailWaiting)
+        {
+            // The tier list came ahead of the mulligan numbers: what the guide shows stays, dimmed, until they come.
+            MulliganLoading = true;
+            MulliganSource = Loc.T("Main.Meta.LoadingShort");
+            return;
+        }
+
         // Best cards to keep first, by the win rate of games where the card stayed in the opening hand.
+        MulliganLoading = false;
         Mulligan = archetype.Mulligan
             .Take(12)
             .Select(c => new MulliganRow(
