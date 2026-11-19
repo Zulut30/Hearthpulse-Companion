@@ -181,7 +181,7 @@
                 <!-- Rare and expert: the leaderboard calibration -->
                 <ToggleButton x:Name="AdvancedToggle" Style="{StaticResource AdvancedToggle}" Content="{i:Loc Settings.Advanced}" Checked="OnDisclosure" Unchecked="OnDisclosure"
                               AutomationProperties.Name="{i:Loc Settings.Advanced}" />
-                <StackPanel x:Name="AdvancedPanel" Margin="0,16,0,0" Tag="{Binding ElementName=AdvancedToggle}"
+                <StackPanel x:Name="AdvancedPanel" Margin="0,16,0,0" Tag="{Binding ElementName=AdvancedToggle}" i:Motion.RevealOnShow="True"
                             Visibility="{Binding IsChecked, ElementName=AdvancedToggle, Converter={StaticResource Vis}}">
                 <Grid Margin="0,0,0,12">
                     <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" />

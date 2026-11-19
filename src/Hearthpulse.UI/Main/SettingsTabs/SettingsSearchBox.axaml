@@ -17,7 +17,7 @@
                     IsVisible="{Binding SettingsSearching}" />
         </Panel>
 
-        <Border Classes="card" IsVisible="{Binding SettingsSearching}" MinWidth="420" HorizontalAlignment="Left" Margin="0,0,0,24">
+        <Border Classes="card" IsVisible="{Binding SettingsSearching}" i:Motion.RevealOnShow="True" MinWidth="420" HorizontalAlignment="Left" Margin="0,0,0,24">
             <StackPanel>
                 <ItemsControl Name="Hits" ItemsSource="{Binding SettingsHits}" AutomationProperties.Name="{i:Loc Settings.Search.Results}">
                     <ItemsControl.ItemTemplate>

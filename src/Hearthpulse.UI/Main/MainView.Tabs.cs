@@ -1,12 +1,21 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Main;
 
-/// <summary>The tabs inside the Battlegrounds and Standard/Wild pages: which is open, and what each one shows.</summary>
+/// <summary>
+/// The tabs inside the Battlegrounds and Standard/Wild pages: which is open, and what each one shows. A view that shares
+/// one cell with the others cross-fades with them (the Battlegrounds tier tabs); a view stacked with the others reveals
+/// itself as it comes, the others hidden at once (My stats and the tier lists through <c>Motion.RevealOnShow</c> in the
+/// Battlegrounds page; My decks and the meta views here).
+/// </summary>
 public partial class MainView
 {
+    /// <summary>The Constructed tab shown last, to reveal only what a change of tab brings.</summary>
+    private string? _constructedTabShown;
+
     /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
     private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabMine, PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards];
 
@@ -77,5 +86,26 @@ public partial class MainView
         PageConstructed.CtPeriodBar.IsVisible = mine;
         var tab = ConstructedTab;
         PageConstructed.CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
+        var changed = _constructedTabShown is not null && tab != _constructedTabShown;
+        _constructedTabShown = tab;
+        if (!changed)
+        {
+            return;
+        }
+
+        // My decks and the meta views are stacked: the view that comes reveals itself, the others hidden at once (as the
+        // WPF window does: the meta tab's panel, or My decks' columns and stats).
+        var meta = PageConstructed.CtMeta;
+        Control[] shown = tab switch
+        {
+            "Tiers" => [meta.MetaTiersPanel],
+            "Top" => [meta.MetaDecksPanel],
+            "Matchups" => [meta.MetaMatchupsPanel],
+            _ => [PageConstructed.DeckColumns, PageConstructed.CtStats],
+        };
+        foreach (var view in shown)
+        {
+            Motion.Reveal(view);
+        }
     }
 }

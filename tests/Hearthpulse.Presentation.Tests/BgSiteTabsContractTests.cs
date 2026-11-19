@@ -166,6 +166,8 @@ public sealed class BgSiteTabsContractTests
             // Cards: its own card; another tavern tier keeps the list and the head that stays.
             window.BattlegroundsTab = "Cards";
             Pump();
+            // The cards cross-fade: Heroes goes once its fade has ended.
+            PageSwitchTests.Settle();
             Assert.Equal(["Cards", "Heroes"], tiers.BuiltTabs.Order());
             Assert.Equal(Visibility.Collapsed, card.Visibility);
             // The hidden tab's list is collapsed itself: under a collapsed card alone it would still build rows when its

@@ -92,7 +92,7 @@
             <!-- The own hero statistics of Hearthpulse (metric bg.hero.offer_pick_placement, docs/analytics-api.md): on the
                  Heroes tab above the external tier list, with its own sample and date; a value the pool keeps back reads
                  "not enough data". Hidden without a stats pool and in Duos. Same tree as the Avalonia page. -->
-            <Border x:Name="BgOwnCard" Style="{StaticResource Card}" Margin="0,0,0,24" Visibility="{Binding ShowBgOwn, Converter={StaticResource Vis}}">
+            <Border x:Name="BgOwnCard" Style="{StaticResource Card}" Margin="0,0,0,24" i:Motion.RevealOnShow="True" Visibility="{Binding ShowBgOwn, Converter={StaticResource Vis}}">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Main.BgOwn.Title}" Icon="&#xF0128;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,12" />
                     <StackPanel Visibility="{Binding BgOwn.HasRows, Converter={StaticResource Vis}}">
@@ -155,10 +155,10 @@
             </Border>
 
             <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
-            <s:BattlegroundsStatsView x:Name="BgStats" Visibility="{Binding IsChecked, ElementName=TabMine, Converter={StaticResource Vis}}" />
+            <s:BattlegroundsStatsView x:Name="BgStats" i:Motion.RevealOnShow="True" Visibility="{Binding IsChecked, ElementName=TabMine, Converter={StaticResource Vis}}" />
 
             <!-- Tier lists (Main/Meta): heroes and trinkets by tier, comps, cards -->
-            <mm:BattlegroundsTiersView x:Name="BgTiers" Visibility="{Binding IsChecked, ElementName=TabMine, Converter={StaticResource Vis}, ConverterParameter=!}" />
+            <mm:BattlegroundsTiersView x:Name="BgTiers" i:Motion.RevealOnShow="True" Visibility="{Binding IsChecked, ElementName=TabMine, Converter={StaticResource Vis}, ConverterParameter=!}" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

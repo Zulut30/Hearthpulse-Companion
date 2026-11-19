@@ -858,11 +858,11 @@
         </Button>
 
         <!-- While the game's replay is read -->
-        <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Match.View.Loading}" Margin="0,48,0,0"
+        <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Match.View.Loading}" Margin="0,48,0,0" i:Motion.RevealOnShow="True"
                         Visibility="{Binding Loading, Converter={StaticResource Vis}}" />
 
         <!-- Header: you, the result, the opponent; then the game's facts -->
-        <StackPanel Visibility="{Binding Loading, Converter={StaticResource Vis}, ConverterParameter=!}">
+        <StackPanel i:Motion.RevealOnShow="True" Visibility="{Binding Loading, Converter={StaticResource Vis}, ConverterParameter=!}">
             <DockPanel>
                 <!-- The same star and Share as the game's library card; only with a replay file -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0"
@@ -1050,7 +1050,7 @@
             </StackPanel>
 
             <!-- ===== Replay: the player (timeline over the bar), then the table of the mode ===== -->
-            <StackPanel Visibility="{Binding ShowReplay, Converter={StaticResource Vis}}">
+            <StackPanel i:Motion.RevealOnShow="True" Visibility="{Binding ShowReplay, Converter={StaticResource Vis}}">
                 <Border Style="{StaticResource Card}" Padding="16,12" Margin="0,0,0,16">
                     <StackPanel>
                         <!-- "Turn" (G) on the left; the bookmark, ‹ "Bookmarks" › on the right -->
@@ -1357,7 +1357,7 @@
             </StackPanel>
 
             <!-- ===== Decks ===== -->
-            <Grid Visibility="{Binding ShowDecks, Converter={StaticResource Vis}}">
+            <Grid i:Motion.RevealOnShow="True" Visibility="{Binding ShowDecks, Converter={StaticResource Vis}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="16" />
@@ -1402,7 +1402,7 @@
             </Grid>
 
             <!-- ===== Analysis (Core MatchAnalysis) ===== -->
-            <StackPanel Visibility="{Binding ShowAnalysis, Converter={StaticResource Vis}}">
+            <StackPanel i:Motion.RevealOnShow="True" Visibility="{Binding ShowAnalysis, Converter={StaticResource Vis}}">
                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <ItemsControl ItemsSource="{Binding Analysis.Tiles}" ItemsPanel="{StaticResource StatsTilesPanel}">
                         <ItemsControl.ItemTemplate>
@@ -1628,7 +1628,7 @@
             </StackPanel>
 
             <!-- ===== Battlegrounds rounds ===== -->
-            <ItemsControl ItemsSource="{Binding Rounds}" Visibility="{Binding ShowRounds, Converter={StaticResource Vis}}">
+            <ItemsControl ItemsSource="{Binding Rounds}" i:Motion.RevealOnShow="True" Visibility="{Binding ShowRounds, Converter={StaticResource Vis}}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type r:MatchRoundView}">
                         <Border Style="{StaticResource Card}" Margin="0,0,0,12" Padding="20,14">
@@ -1669,7 +1669,7 @@
             </ItemsControl>
 
             <!-- ===== Battlegrounds lobby ===== -->
-            <Border Style="{StaticResource Card}" Visibility="{Binding ShowLobby, Converter={StaticResource Vis}}">
+            <Border Style="{StaticResource Card}" i:Motion.RevealOnShow="True" Visibility="{Binding ShowLobby, Converter={StaticResource Vis}}">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Match.View.TabLobby}" Icon="&#xF0849;" Size="13" Margin="0,0,0,8" />
                     <ItemsControl ItemsSource="{Binding Lobby}">

@@ -264,7 +264,7 @@
 
         <!-- The rest of the summary, closed until asked for: going first / on the coin, win rate over time, results by length -->
         <ToggleButton Name="DeckMore" Classes="more" />
-        <StackPanel IsVisible="{Binding #DeckMore.IsChecked}">
+        <StackPanel IsVisible="{Binding #DeckMore.IsChecked}" i:Motion.RevealOnShow="True">
             <ItemsControl ItemsSource="{Binding MoreTiles}" ItemTemplate="{StaticResource StatsTile}" Margin="0,0,-12,4">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -469,7 +469,7 @@
                                                     </StackPanel>
                                                 </Border>
                                             </Button>
-                                            <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,4,0,0" IsVisible="{Binding DiffOpen}" />
+                                            <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,4,0,0" IsVisible="{Binding DiffOpen}" AttachedToVisualTree="OnDiffAttached" />
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -524,7 +524,7 @@
                                                                 Command="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).Dismiss}" CommandParameter="{Binding}" />
                                                     </StackPanel>
                                                 </Grid>
-                                                <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,8,0,0" IsVisible="{Binding DiffOpen}" />
+                                                <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,8,0,0" IsVisible="{Binding DiffOpen}" AttachedToVisualTree="OnDiffAttached" />
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
@@ -639,7 +639,7 @@
             </StackPanel>
         </Border>
         <!-- Personal mulligan (the extra columns behind «Все столбцы»; the meta columns also hide on narrow screens) -->
-        <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding #TabDeckMulligan.IsChecked}">
+        <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding #TabDeckMulligan.IsChecked}" i:Motion.RevealOnShow="True">
             <StackPanel>
                 <!-- The essential columns; the switch shows the rest -->
                 <Grid Margin="0,0,0,8">
@@ -696,7 +696,7 @@
         </Border>
 
         <!-- Card performance -->
-        <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding #TabDeckCards.IsChecked}">
+        <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding #TabDeckCards.IsChecked}" i:Motion.RevealOnShow="True">
             <StackPanel>
                 <!-- The essential columns; the switch shows the rest -->
                 <Grid Margin="0,0,0,8">

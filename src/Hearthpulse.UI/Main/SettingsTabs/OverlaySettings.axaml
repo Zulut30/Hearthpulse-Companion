@@ -164,7 +164,7 @@
                         ToolTip.Tip="{i:Loc Settings.Layout.CaptionWindows}" />
                 <!-- Rare and expert: the leaderboard calibration -->
                 <ToggleButton Name="AdvancedToggle" Classes="advanced" Content="{i:Loc Settings.Advanced}" AutomationProperties.Name="{i:Loc Settings.Advanced}" />
-                <StackPanel Name="AdvancedPanel" Margin="0,16,0,0" Tag="{Binding #AdvancedToggle}" IsVisible="{Binding #AdvancedToggle.IsChecked}">
+                <StackPanel Name="AdvancedPanel" Margin="0,16,0,0" Tag="{Binding #AdvancedToggle}" IsVisible="{Binding #AdvancedToggle.IsChecked}" i:Motion.RevealOnShow="True">
                 <Grid Margin="0,0,0,12">
                     <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" />
                     <Button Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"

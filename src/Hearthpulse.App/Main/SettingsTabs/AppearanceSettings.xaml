@@ -58,7 +58,7 @@
                 <!-- Rare: the custom theme's three hues -->
                 <ToggleButton x:Name="CustomToggle" Style="{StaticResource AdvancedToggle}" Content="{i:Loc Settings.Theme.MakeOwn}" Checked="OnDisclosure" Unchecked="OnDisclosure"
                               AutomationProperties.Name="{i:Loc Settings.Theme.MakeOwn}" />
-                <Grid Margin="0,12,0,0" Visibility="{Binding IsChecked, ElementName=CustomToggle, Converter={StaticResource Vis}}">
+                <Grid Margin="0,12,0,0" i:Motion.RevealOnShow="True" Visibility="{Binding IsChecked, ElementName=CustomToggle, Converter={StaticResource Vis}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />

@@ -429,7 +429,7 @@
                             <!-- Search over every tab; while a query is typed its matches replace the tabs -->
                             <st:SettingsSearchBox x:Name="SettingsSearchBar" />
 
-                            <StackPanel x:Name="SettingsTabsArea" Visibility="{Binding SettingsSearching, Converter={StaticResource Vis}, ConverterParameter=!}">
+                            <StackPanel x:Name="SettingsTabsArea" i:Motion.RevealOnShow="True" Visibility="{Binding SettingsSearching, Converter={StaticResource Vis}, ConverterParameter=!}">
                             <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,20">
                                 <WrapPanel>
                                     <RadioButton x:Name="SettingsTabGeneral" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.General}" GroupName="SettingsTab" Tag="General" IsChecked="True" Checked="OnSettingsTab" />
@@ -444,28 +444,28 @@
                             </Border>
 
                             <!-- ===== General: language, app ===== -->
-                            <st:GeneralSettings x:Name="SettingsGeneral" />
+                            <st:GeneralSettings x:Name="SettingsGeneral" i:Motion.RevealOnShow="True" />
 
                             <!-- ===== Appearance: theme gallery, accent, page background, corners, density, size ===== -->
-                            <st:AppearanceSettings x:Name="SettingsAppearance" Visibility="Collapsed" />
+                            <st:AppearanceSettings x:Name="SettingsAppearance" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
 
                             <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->
-                            <st:OverlaySettings x:Name="SettingsOverlay" Visibility="Collapsed" />
+                            <st:OverlaySettings x:Name="SettingsOverlay" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
 
                             <!-- ===== Tracker: the Constructed deck tracker, counters and mulligan ===== -->
-                            <st:TrackerSettings x:Name="SettingsTracker" Visibility="Collapsed" />
+                            <st:TrackerSettings x:Name="SettingsTracker" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
 
                             <!-- ===== Stream: streamer mode and the OBS windows ===== -->
-                            <st:StreamSettings x:Name="SettingsStream" Visibility="Collapsed" />
+                            <st:StreamSettings x:Name="SettingsStream" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
 
                             <!-- ===== Account: the hearthpulse.net sign-in ===== -->
-                            <st:AccountSettings x:Name="SettingsAccount" Visibility="Collapsed" />
+                            <st:AccountSettings x:Name="SettingsAccount" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
 
                             <!-- ===== Data: history, the data folder, where the numbers come from ===== -->
-                            <st:DataSettings x:Name="SettingsData" Visibility="Collapsed" />
+                            <st:DataSettings x:Name="SettingsData" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
 
                             <!-- ===== About: version, updates, licences ===== -->
-                            <st:AboutSettings x:Name="SettingsAbout" Visibility="Collapsed" />
+                            <st:AboutSettings x:Name="SettingsAbout" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
                             </StackPanel>
 
                         </StackPanel>

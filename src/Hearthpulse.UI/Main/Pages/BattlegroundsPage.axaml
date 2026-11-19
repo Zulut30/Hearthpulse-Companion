@@ -104,7 +104,7 @@
                  Heroes tab above the external tier list, with its own sample and date; a value the pool keeps back reads
                  "not enough data". Hidden without a stats pool and in Duos. Same tree as the WPF page; the compact layout
                  keeps the hero and the place, the title and a long name wrap. -->
-            <Border Name="BgOwnCard" Classes="card" Margin="0,0,0,24" IsVisible="{Binding ShowBgOwn}">
+            <Border Name="BgOwnCard" Classes="card" Margin="0,0,0,24" IsVisible="{Binding ShowBgOwn}" i:Motion.RevealOnShow="True">
                 <StackPanel>
                     <c:Ornament Name="BgOwnTitle" Classes="wide" Text="{i:Loc Main.BgOwn.Title}" Icon="&#xF0128;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,12" />
                     <!-- Compact: the ornament draws one line and would cut the title, so it is plain text on as many lines as it needs -->
@@ -153,10 +153,10 @@
             </Border>
 
             <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
-            <s:BattlegroundsStatsView Name="BgStats" />
+            <s:BattlegroundsStatsView Name="BgStats" i:Motion.RevealOnShow="True" />
 
             <!-- Tier lists (Main/Meta): heroes and trinkets by tier, comps, cards -->
-            <mm:BattlegroundsTiersView Name="BgTiers" IsVisible="False" />
+            <mm:BattlegroundsTiersView Name="BgTiers" IsVisible="False" i:Motion.RevealOnShow="True" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>
