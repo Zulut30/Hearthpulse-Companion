@@ -31,35 +31,21 @@ internal static partial class PiratePool
     }
 
     /// <summary>
-    /// A random Pirate up to the player's Tavern tier (every tier when the tier is unknown), without allocating a list.
-    /// Null when there is none.
+    /// A random Pirate up to the player's Tavern tier (every tier when the tier is unknown), picked for
+    /// <paramref name="source"/> (<see cref="ChoiceKind.RandomSummon"/>). Null when there is none.
     /// </summary>
-    public static SimMinion? Random(Fight fight, int tavernTier)
+    public static SimMinion? Draw(Fight fight, Unit source, int tavernTier)
     {
-        var count = 0;
+        var candidates = new List<SimMinion>();
         foreach (var minion in Generated)
         {
             if (Allowed(minion, tavernTier))
             {
-                count++;
+                candidates.Add(minion);
             }
         }
 
-        if (count == 0)
-        {
-            return null;
-        }
-
-        var pick = fight.Random.Next(count);
-        foreach (var minion in Generated)
-        {
-            if (Allowed(minion, tavernTier) && pick-- == 0)
-            {
-                return minion;
-            }
-        }
-
-        return null;
+        return candidates.Count == 0 ? null : candidates[fight.Choose(ChoiceKind.RandomSummon, source, candidates)];
     }
 
     private static bool Allowed(SimMinion minion, int tavernTier) => tavernTier <= 0 || minion.TechLevel <= tavernTier;

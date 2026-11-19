@@ -270,6 +270,7 @@ public sealed partial class Fight
         side.Insert(index, unit, leftOfGap);
         side.ApplySummonBuffs(unit);
         if (Tracing) Trace($"{(rebornFrom is null ? "summoned" : "reborn")} {Name(unit)} at {unit.Position}");
+        _chooser.OnSummon(this, unit);
 
         _depth++;
         try

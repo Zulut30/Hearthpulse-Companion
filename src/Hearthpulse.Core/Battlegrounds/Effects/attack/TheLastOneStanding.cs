@@ -60,7 +60,7 @@ internal sealed class TheLastOneStanding : CombatEffect
             }
 
             var fewest = candidates.Min(TypeCount);
-            if (fight.RandomOf(candidates.Where(u => TypeCount(u) == fewest).ToList()) is { } pick)
+            if (fight.RandomOf(candidates.Where(u => TypeCount(u) == fewest).ToList(), self) is { } pick)
             {
                 chosen.Add(pick);
             }

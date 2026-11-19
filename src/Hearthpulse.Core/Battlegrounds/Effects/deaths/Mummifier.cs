@@ -16,7 +16,7 @@ internal sealed class Mummifier : CombatEffect
     {
         var candidates = fight.Alive(self.Side, Tribe.Undead, except: self);
         candidates.RemoveAll(static unit => unit.Reborn);
-        foreach (var unit in DeathKit.Choose(fight, candidates, self.Pick(1, 2)))
+        foreach (var unit in DeathKit.Choose(fight, candidates, self.Pick(1, 2), self))
         {
             fight.GiveKeywords(unit, Keyword.Reborn);
         }

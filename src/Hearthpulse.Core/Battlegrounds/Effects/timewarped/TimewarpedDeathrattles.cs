@@ -117,7 +117,7 @@ internal sealed class TimewarpedWarghoul : CombatEffect
             if (left is not null) fight.TriggerDeathrattles(left);
             if (right is not null) fight.TriggerDeathrattles(right);
         }
-        else if (OneOf(fight, left, right) is { } chosen)
+        else if (OneOf(fight, self, left, right) is { } chosen)
         {
             fight.TriggerDeathrattles(chosen);
         }
@@ -140,8 +140,8 @@ internal sealed class TimewarpedWarghoul : CombatEffect
         unit is { IsOnBoard: true, HasDeathrattle: true } && unit.CardId != WarghoulId ? unit : null;
 
     /// <summary>The random adjacent minion: one of the two when both qualify.</summary>
-    private static Unit? OneOf(Fight fight, Unit? left, Unit? right) =>
-        left is null ? right : right is null ? left : fight.Random.Next(2) == 0 ? left : right;
+    private static Unit? OneOf(Fight fight, Unit self, Unit? left, Unit? right) =>
+        left is null ? right : right is null ? left : fight.RandomOf([left, right], self);
 }
 
 /// <summary>
@@ -163,7 +163,7 @@ internal sealed class TimewarpedTideRazor : CombatEffect
         var anchor = self;
         for (var i = 0; i < self.Pick(4, 8); i++)
         {
-            if (PiratePool.Random(fight, tier) is not { } pirate)
+            if (PiratePool.Draw(fight, self, tier) is not { } pirate)
             {
                 return;
             }

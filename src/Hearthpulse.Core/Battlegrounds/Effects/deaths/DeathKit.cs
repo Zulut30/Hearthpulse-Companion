@@ -51,6 +51,6 @@ internal static class DeathKit
     /// <paramref name="count"/> different random candidates (board order); all of them, without a random pick, when there
     /// are no more than <paramref name="count"/>.
     /// </summary>
-    public static IReadOnlyList<Unit> Choose(Fight fight, List<Unit> candidates, int count) =>
-        candidates.Count <= count ? candidates : fight.RandomDistinct(candidates, count);
+    public static IReadOnlyList<Unit> Choose(Fight fight, List<Unit> candidates, int count, Unit? source = null) =>
+        candidates.Count <= count ? candidates : fight.RandomDistinct(candidates, count, source);
 }

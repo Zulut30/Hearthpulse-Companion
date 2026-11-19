@@ -31,7 +31,7 @@ internal sealed class TimewarpedChimera : CombatEffect
             var chosen = 0;
             foreach (var type in Types)
             {
-                var index = Choose(fight, side, type, chosen);
+                var index = Pick(fight, self, side, type, chosen);
                 if (index >= 0)
                 {
                     chosen |= 1 << index;
@@ -49,7 +49,7 @@ internal sealed class TimewarpedChimera : CombatEffect
     }
 
     /// <summary>Board index of the random minion chosen for <paramref name="type"/>, or -1.</summary>
-    private static int Choose(Fight fight, Side side, Tribe type, int chosen)
+    private static int Pick(Fight fight, Unit self, Side side, Tribe type, int chosen)
     {
         var fewest = int.MaxValue;
         var count = 0;
@@ -74,16 +74,17 @@ internal sealed class TimewarpedChimera : CombatEffect
             return -1;
         }
 
-        var pick = count > 1 ? fight.Random.Next(count) : 0;
+        var candidates = new List<Unit>(count);
         for (var i = 0; i < side.Count; i++)
         {
-            if (Candidate(side.Minions[i], type, chosen, i) && TypeCount(side.Minions[i]) == fewest && pick-- == 0)
+            if (Candidate(side.Minions[i], type, chosen, i) && TypeCount(side.Minions[i]) == fewest)
             {
-                return i;
+                candidates.Add(side.Minions[i]);
             }
         }
 
-        return -1;
+        var pick = count > 1 ? fight.Choose(ChoiceKind.RandomTarget, self, candidates) : 0;
+        return side.IndexOf(candidates[pick]);
     }
 
     private static bool Candidate(Unit unit, Tribe type, int chosen, int index) =>

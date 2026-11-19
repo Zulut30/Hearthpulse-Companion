@@ -24,7 +24,7 @@ internal sealed class TimewarpedBassgill : CombatEffect
         var place = self;
         for (var n = 0; n < self.Pick(1, 2); n++)
         {
-            var index = HighestHealth(fight, hand);
+            var index = fight.BestCard(hand, static _ => true, static m => m.Health, self);
             if (index < 0 || fight.SummonAt(place, hand[index]) is not { } summoned)
             {
                 return;
@@ -34,26 +34,6 @@ internal sealed class TimewarpedBassgill : CombatEffect
             fight.GiveKeywords(summoned, Keyword.DivineShield);
             place = summoned;
         }
-    }
-
-    /// <summary>Index of the highest-Health minion of the hand, a random one among ties; -1 when the hand is empty.</summary>
-    private static int HighestHealth(Fight fight, List<SimMinion> hand)
-    {
-        int best = -1, ties = 0;
-        for (var i = 0; i < hand.Count; i++)
-        {
-            if (best < 0 || hand[i].Health > hand[best].Health)
-            {
-                best = i;
-                ties = 1;
-            }
-            else if (hand[i].Health == hand[best].Health && fight.Random.Next(++ties) == 0)
-            {
-                best = i;
-            }
-        }
-
-        return best;
     }
 }
 
@@ -109,14 +89,11 @@ internal sealed class TimewarpedScourfin : CombatEffect
             return;
         }
 
-        var index = RandomIndex(fight, hand.Count);
+        var index = hand.Count > 1 ? fight.Choose(ChoiceKind.RandomHandCard, self, hand) : 0;
         hand[index] = TimewarpedMurcules.Buffed(hand[index], self.Pick(7, 14));
         if (fight.SummonAt(self, hand[index]) is not null)
         {
             hand.RemoveAt(index);
         }
     }
-
-    /// <summary>The random minion of the hand.</summary>
-    private static int RandomIndex(Fight fight, int count) => count > 1 ? fight.Random.Next(count) : 0;
 }

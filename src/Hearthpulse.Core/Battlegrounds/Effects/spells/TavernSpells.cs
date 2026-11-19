@@ -155,7 +155,7 @@ internal static class TavernSpells
                 }
             }
 
-            var picked = PickForType(fight, candidates);
+            var picked = PickForType(fight, spell.Source, candidates);
             open &= ~type;
             if (picked is null)
             {
@@ -170,7 +170,7 @@ internal static class TavernSpells
     private static int OpenTypes(Tribe tribes) => System.Numerics.BitOperations.PopCount((uint)tribes);
 
     /// <summary>The random pick of Misplaced Tea Set among equal candidates for one type.</summary>
-    private static Unit? PickForType(Fight fight, List<Unit> candidates) => fight.RandomOf(candidates);
+    private static Unit? PickForType(Fight fight, Unit? source, List<Unit> candidates) => fight.RandomOf(candidates, source);
 
     private static void BuffAll(Fight fight, Side side, int attack, int health, Func<Unit, bool> which)
     {

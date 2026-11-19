@@ -29,6 +29,7 @@ internal sealed class DiremuckForager : CombatEffect
         var holder = PlayerEffects.Attach(self.Side, self.CardId, PendingMurlocs.Instance);
         var state = UnitState<PendingMurlocs.State>.Of(holder);
         state.Remaining = SimInputs.PendingForagerSummons(self.Side.Info, self.Spec.EntityId) ?? self.Pick(1, 2);
+        state.Source = self;
     }
 }
 
@@ -40,6 +41,9 @@ internal sealed class PendingMurlocs : CombatEffect
     public sealed class State
     {
         public int Remaining;
+
+        /// <summary>The Forager whose summon this is: the owner of the tie-break decision (it may have died since).</summary>
+        public Unit? Source;
     }
 
     public override void AfterFriendlyDeath(Fight fight, Unit self, Unit dead)
@@ -49,7 +53,7 @@ internal sealed class PendingMurlocs : CombatEffect
         while (state.Remaining > 0 && !side.IsFull)
         {
             var hand = side.Hand;
-            var best = Best(fight, hand);
+            var best = fight.BestCard(hand, IsMurloc, m => m.Attack, state.Source ?? self);
             if (best < 0)
             {
                 return;
@@ -66,29 +70,5 @@ internal sealed class PendingMurlocs : CombatEffect
         }
     }
 
-    /// <summary>Index of the highest-Attack Murloc in the hand (random among equals), or -1.</summary>
-    private static int Best(Fight fight, List<SimMinion> hand)
-    {
-        var best = -1;
-        var ties = 0;
-        for (var i = 0; i < hand.Count; i++)
-        {
-            if ((hand[i].Tribes & Tribe.Murloc) == 0)
-            {
-                continue;
-            }
-
-            if (best < 0 || hand[i].Attack > hand[best].Attack)
-            {
-                best = i;
-                ties = 1;
-            }
-            else if (hand[i].Attack == hand[best].Attack && fight.Random.Next(++ties) == 0)
-            {
-                best = i;
-            }
-        }
-
-        return best;
-    }
+    private static bool IsMurloc(SimMinion minion) => (minion.Tribes & Tribe.Murloc) != 0;
 }

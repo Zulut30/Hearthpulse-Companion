@@ -128,8 +128,12 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // 2026-11-19 (sim-all-mechanics E4): 29 new effect ids (Death's Embrace, Turbulent Tombs, Gilnean War Horn,
         // Temporal Tampering, Echoes of Argus, 23 Timewarped minions); without them (checked) the fingerprint is still
         // 30FC3B58C163F3F4.
+        // 2026-11-19 (P1, decisions through ICombatChooser): Best's tie-break no longer draws for a tie a higher value later
+        // beats. Such ties occur on these boards: with those draws put back (checked) the fingerprint is still E4's
+        // D257E5976B8595DA. The picks of E1 (Lichling Hoarder, Lovely Locket, Misplaced Tea Set) and E4 (Timewarped Tide
+        // Razor, Warghoul, Chimera, Scourfin) moved to the chooser draw as before.
         // 2026-11-19 (FIX sim-effects-audit): effects corrected to the live card text (The Last One Standing, Eudora, Kodo,
-        // C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose; the ids are the same (fingerprint taken after E2, P0, E1, I and E4).
-        Assert.Equal("fights BFD75C7802387EFD", actual);
+        // C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose; the ids are the same (fingerprint taken after E2, P0, E1, I, E4 and P1).
+        Assert.Equal("fights 16DC29C6CD234E73", actual);
     }
 }
