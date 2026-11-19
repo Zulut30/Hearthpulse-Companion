@@ -151,7 +151,8 @@ public sealed partial class Fight
         Attacking = side;
         StartFight();
 
-        while (Ours.Count > 0 && Theirs.Count > 0 && _attacks < MaxAttacks)
+        // BoardsStanding: both sides have minions; in Duos it first brings in the teammate of a side left without any.
+        while (BoardsStanding() && _attacks < MaxAttacks)
         {
             Attacking = side;
             var attacker = side.NextAttacker();

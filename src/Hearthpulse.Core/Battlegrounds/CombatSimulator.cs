@@ -336,15 +336,18 @@ public static partial class CombatSimulator
     {
         if (options?.PostGame == true)
         {
-            (ours, theirs) = (SimInputs.PostGame(ours), SimInputs.PostGame(theirs));
+            (ours, theirs) = (PostGameTeam(ours), PostGameTeam(theirs));
         }
 
-        return RunFights(ours, theirs, firstAttackerIsOurs, options) with { Estimated = ours.Estimates.Count + theirs.Estimates.Count };
+        var estimated = EstimateCount(ours) + EstimateCount(theirs);
+        (ours, theirs) = (StartingBoard(ours), StartingBoard(theirs));
+        return RunFights(ours, theirs, firstAttackerIsOurs, options) with { Estimated = estimated };
     }
 
     /// <summary>The inputs of a side the fight was simulated with an estimate for, and what each estimate rests on.</summary>
     public static IReadOnlyList<EstimatedItem> ExplainEstimates(SimSide side, bool isOpponent) =>
-        side.Estimates.Select(e => new EstimatedItem(e.Input, e.Value1, e.Value2, e.Basis, isOpponent)).ToList();
+        side.Estimates.Concat(side.Teammate?.Estimates ?? [])
+            .Select(e => new EstimatedItem(e.Input, e.Value1, e.Value2, e.Basis, isOpponent)).ToList();
 
     private static CombatOdds RunFights(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs, SimOptions? options)
     {
@@ -419,7 +422,8 @@ public static partial class CombatSimulator
     /// the card data has a row, so an unknown one is newer than the data) or whose effect lacks a captured value.
     /// </summary>
     private static int Unsimulated(SimSide side, bool isOpponent, EffectRegistry effects) =>
-        side.Minions.Count(m => m.HasUnsimulatedEffect) + side.Extras.Count(id => ExtraReason(side, id, isOpponent, effects) is not null);
+        side.Minions.Count(m => m.HasUnsimulatedEffect) + side.Extras.Count(id => ExtraReason(side, id, isOpponent, effects) is not null)
+        + (side.Teammate is { } teammate ? Unsimulated(teammate, isOpponent, effects) : 0);
 
     /// <summary>
     /// Why a side is "not simulated": one entry per flagged minion and per player-level card, with the reason. The count
@@ -440,6 +444,11 @@ public static partial class CombatSimulator
             {
                 items.Add(new UnsimulatedItem(id, Golden: false, isOpponent, reason, Extra: true));
             }
+        }
+
+        if (side.Teammate is { } teammate)
+        {
+            items.AddRange(Explain(teammate, isOpponent, effects));
         }
 
         return items;
@@ -575,6 +584,18 @@ public static partial class CombatSimulator
         AddSide(ours);
         Add(-1);
         AddSide(theirs);
+        // Duos only, so solo boards keep the seeds they had.
+        if (ours.Teammate is { } ourTeammate)
+        {
+            Add(-2);
+            AddSide(ourTeammate);
+        }
+
+        if (theirs.Teammate is { } theirTeammate)
+        {
+            Add(-3);
+            AddSide(theirTeammate);
+        }
         Add(firstAttackerIsOurs switch { true => 1, false => 2, null => 3 });
         return (int)(hash ^ (hash >> 32));
     }

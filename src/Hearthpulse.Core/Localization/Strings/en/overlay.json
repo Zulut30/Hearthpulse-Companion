@@ -164,6 +164,8 @@
   "Overlay.Odds.Estimated.TavernSpells": "The opponent's Tavern spells",
   "Overlay.Odds.Estimated.Trinket": "The number on the opponent's trinket",
   "Overlay.Odds.Estimated.LobbyTribes": "Lobby tribes (not read yet)",
+  "Overlay.Odds.Estimated.DuosOpponentTeammate": "The opponent teammate's board (last seen)",
+  "Overlay.Odds.Estimated.DuosPartnerBoard": "Your team's second board (last seen)",
   "Overlay.Odds.Estimated.Other": "Other values",
   "Overlay.Odds.Cap": "{0} · hero damage capped at {1}",
   "Overlay.Odds.DamageWinTip": "If you win, the opponent takes {0:0.#} on average: {1}–{2} in 8 of 10 fights, {3} at most",

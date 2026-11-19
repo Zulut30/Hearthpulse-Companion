@@ -72,6 +72,7 @@ public sealed partial class BattlegroundsTracker
         _combatOpponent = game.OpponentPlayerEntity?.GetInt(GameTag.CurrentCombatPlayerId) ?? 0;
         _localHealthAtCombat = Durability(game.LocalHero);
         _opponentHealthAtCombat = Durability(LeaderboardHero(game, _combatOpponent));
+        NoteDuosCombatStart(game);
     }
 
     /// <summary>
@@ -136,6 +137,8 @@ public sealed partial class BattlegroundsTracker
             theirs = theirs with { TavernTier = opponentTier };
         }
 
+        // Duos: each team's second board, entering when the first is cleared (BattlegroundsTracker.Duos.cs).
+        (ours, theirs) = WithTeammates(game, ours, theirs, enchantments);
         var attacker = firstAttacker is { IsMinion: true } a ? a : null;
         bool? oursFirst = attacker is null ? null : attacker.Controller == game.LocalPlayerId;
         var options = SimOptions with
