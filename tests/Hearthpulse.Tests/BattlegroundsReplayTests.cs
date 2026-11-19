@@ -762,7 +762,9 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         var actual = $"events {Print(events)} text {Print(text)} view {Print(System.Text.Json.JsonSerializer.Serialize(view))} captures {Print(captures.ToString())}";
         output.WriteLine(actual);
         // 2026-11-09 (S1): captures carry SimSide.ExtraTags (our cards, whitelisted tags); without that property the capture hash is still A999F5C9B68FBBC3.
-        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 30DDE1DCF7070D18 captures C0B789C0BE0531F8", actual);
+        // 2026-11-19 (E3): captures carry SimMinion.BloodGemAttack/Health and SimSide.RemovedByExtras; without them (checked)
+        // the capture hash is still C0B789C0BE0531F8.
+        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 30DDE1DCF7070D18 captures E4636AB7DD4BB5BA", actual);
     }
 
     [Fact]

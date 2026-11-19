@@ -11,11 +11,11 @@
 | Вид | no_effect | resolved | implemented | missing_effect | missing_input | unknown | всего |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Существа | 223 | 10 | 82 | 13 | 0 | 0 | 328 |
-| Силы героя | 102 | 7 | 5 | 1 | 1 | 0 | 116 |
-| Тринкеты | 331 | 36 | 27 | 25 | 1 | 0 | 420 |
+| Силы героя | 102 | 7 | 7 | 0 | 0 | 0 | 116 |
+| Тринкеты | 331 | 36 | 38 | 15 | 0 | 0 | 420 |
 | Тёмные дары | 34 | 5 | 6 | 0 | 0 | 2 | 47 |
 | Боевые зачарования | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Без «вне пула»** | 567 | 37 | 103 | 23 | 2 | 2 | 734 |
+| **Без «вне пула»** | 567 | 38 | 115 | 13 | 0 | 2 | 735 |
 
 ## Существа
 
@@ -463,13 +463,13 @@
 | TB_BaconShop_HP_086 | Swatting Insects | resolved | да | Al'Akir; Start of Combat: разрешилось до снимка |
 | TB_BaconShop_HP_037a | Wax Warband | resolved | да | Queen Wagtoggle; Start of Combat: разрешилось до снимка |
 | TB_BaconShop_HP_069 | Wingmen | resolved | да | Illidan Stormrage; Start of Combat: разрешилось до снимка |
+| BG22_HERO_305p | Broodmother | implemented | да | Onyxia; HP_AVENGE_SUMMON; величина: размер Whelp — TAG_SCRIPT_DATA_NUM_1 = NUM_2 своей силы героя (иначе 1/1); Avenge — SCORE_VALUE_1/2, без неё missing_input |
 | BG22_HERO_002p | Frostwolf Fervor | implemented | да | Drek'Thar; HP_SPACE_SUMMON |
 | BG20_HERO_100p | Glory of Combat | implemented | да | Rokara; HP_KILL_BUFF |
+| BG25_HERO_103p | Rapid Reanimation | implemented | да | Teron Gorefiend; HP_RELEVANT; величина: существо, уничтоженное силой в начале боя (SimSide.RemovedByExtras), без неё missing_input |
 | TB_BaconShop_HP_107 | Sprout It Out! | implemented | да | Greybough; HP_SUMMON_BUFF |
 | BG22_HERO_003p | Stormpike Strength | implemented | да | Vanndar Stormpike; HP_SPACE_SUMMON |
-| BG23_HERO_201p | Tentacular | implemented | да | Ozumat; HP_SPACE_SUMMON; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты как рост с начала игры (допущение, не сверено с логом; у соперника не читается), без неё missing_input |
-| BG25_HERO_103p | Rapid Reanimation | missing_effect | да | Teron Gorefiend; HP_RELEVANT |
-| BG22_HERO_305p | Broodmother | missing_input | да | Onyxia; HP_AVENGE_SUMMON; эффект есть, но нет в снимке: прогресс Avenge (4) до снимка |
+| BG23_HERO_201p | Tentacular | implemented | да | Ozumat; HP_SPACE_SUMMON; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
 
 ## Тринкеты
 
@@ -836,12 +836,13 @@
 | BG35_MagicItem_702 | Stegodon Portrait | resolved | вне пула | Start of Combat: разрешилось до снимка |
 | BGDUO_MagicItem_003 | Summoning Sphere | resolved | да | Start of Combat: разрешилось до снимка |
 | BG30_MagicItem_441 | Tinyfin Onesie | resolved | вне пула | Start of Combat: разрешилось до снимка |
-| BG30_MagicItem_962 | Training Certificate | resolved | вне пула | Start of Combat: разрешилось до снимка |
+| BG30_MagicItem_962 | Training Certificate | resolved | да | Start of Combat: разрешилось до снимка |
 | BG32_MagicItem_365 | Valdrakken Wind Chimes | resolved | вне пула | Start of Combat: разрешилось до снимка |
 | BG30_MagicItem_970 | Valorous Medallion | resolved | вне пула | Start of Combat: разрешилось до снимка |
 | BG30_MagicItem_970t | Valorous Medallion | resolved | вне пула | Start of Combat: разрешилось до снимка |
 | BG32_MagicItem_932 | Vash'jir Anemone | resolved | вне пула | Start of Combat: разрешилось до снимка |
 | BG32_MagicItem_419 | Yu'lon Sticker | resolved | вне пула | Start of Combat: разрешилось до снимка |
+| BG32_MagicItem_200 | All-Purpose Kibble | implemented | да | TR_ATTACK_BUFF; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
 | BG30_MagicItem_433 | Alliance Keychain | implemented | вне пула | TR_DEATH_BUFF |
 | BG30_MagicItem_433t | Alliance Keychain | implemented | вне пула | TR_DEATH_BUFF |
 | BG32_MagicItem_301 | Bassgill Portrait | implemented | да | TR_SUMMON_KEYWORD |
@@ -851,50 +852,49 @@
 | BG32_MagicItem_864 | Bird Feeder | implemented | вне пула | TR_AVENGE_BUFF |
 | BG32_MagicItem_864t | Bird Feeder | implemented | вне пула | TR_AVENGE_BUFF |
 | BG30_MagicItem_978 | Blingtron's Sunglasses | implemented | вне пула | TR_SUMMON_KEYWORD |
+| BG30_MagicItem_442 | Blood Golem Sticker | implemented | да | TR_DEATH_SUMMON |
 | BG30_MagicItem_925 | Ceremonial Sword | implemented | вне пула | TR_ATTACK_BUFF |
 | BG35_MagicItem_849 | Cloud Serpent Horn | implemented | вне пула | TR_AVENGE_BUFF |
+| BG36_MagicItem_362 | Cyclist Portrait | implemented | вне пула | TR_RELEVANT |
 | BG30_MagicItem_700 | Deathly Phylactery | implemented | да | TR_DEATHRATTLE |
 | BG35_MagicItem_731 | Deathtouch Apple | implemented | вне пула | TR_REBORN_KEYWORD |
 | BG36_MagicItem_205 | Deathwhisper Sticker | implemented | вне пула | TR_REBORN_BUFF |
+| BG36_MagicItem_216 | Eternal Portrait | implemented | да | TR_DEATH_BUFF |
+| BG36_MagicItem_416 | Evil Experiment | implemented | да | TR_DEITY_KEYWORD |
 | BG32_MagicItem_363 | Faerie Dragon Scale | implemented | да | TR_ATTACK_KEYWORD |
-| BG35_MagicItem_701 | Fang Anklet | implemented | да | TR_SUMMON_AURA; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты как рост с начала игры (допущение, не сверено с логом; у соперника не читается), без неё missing_input |
+| BG35_MagicItem_701 | Fang Anklet | implemented | да | TR_SUMMON_AURA; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
 | BG30_MagicItem_880 | Feral Talisman | implemented | вне пула | TR_AURA |
 | BG30_MagicItem_880t | Feral Talisman | implemented | вне пула | TR_AURA |
 | BG30_MagicItem_864 | Gilnean Thorned Rose | implemented | вне пула | TR_AVENGE_BUFF |
+| BG36_MagicItem_403 | Hammer of Twilight | implemented | да | TR_AURA; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
+| BG36_MagicItem_403t | Hammer of Twilight | implemented | да | TR_AURA; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
+| BG30_MagicItem_546 | Jar o' Gems | implemented | да | TR_RELEVANT |
 | BG36_MagicItem_201 | Lionfish Portrait | implemented | да | TR_ATTACK_BUFF |
+| BG35_MagicItem_871 | Mama Bear Sticker | implemented | да | TR_RELEVANT |
 | BG30_MagicItem_910 | Mechagon Adapter | implemented | вне пула | TR_SHIELD |
 | BG30_MagicItem_886 | Reinforced Shield | implemented | да | TR_SUMMON_KEYWORD |
 | BG32_MagicItem_907 | S'Thara Sticker | implemented | вне пула | TR_LAST_DEATH_SUMMON |
 | BG30_MagicItem_540 | Slamma Sticker | implemented | да | TR_SUMMON_BUFF |
+| BG36_MagicItem_450 | Snarky Portrait | implemented | да | TR_RELEVANT; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
+| BG35_MagicItem_732 | Soul Fermenter | implemented | да | TR_LAST_DEATH_SUMMON; величина: существа, уничтоженные тринкетом в начале боя (SimSide.RemovedByExtras), без неё missing_input |
 | BG30_MagicItem_437 | Staff of the Scourge | implemented | да | TR_AVENGE_KEYWORD |
 | BG32_MagicItem_862 | Unholy Sanctum | implemented | вне пула | TR_DEATHRATTLE_BUFF |
 | BG32_MagicItem_862t | Unholy Sanctum | implemented | вне пула | TR_DEATHRATTLE_BUFF |
-| BG32_MagicItem_200 | All-Purpose Kibble | missing_effect | да | TR_ATTACK_BUFF |
 | BG32_MagicItem_415 | Battle Horn | missing_effect | вне пула | TR_AVENGE_BATTLECRY |
 | BG30_MagicItem_432 | Belcher Portrait | missing_effect | вне пула | TR_VENOM_BUFF |
 | BG30_MagicItem_432t | Belcher Portrait | missing_effect | вне пула | TR_VENOM_BUFF |
 | BG35_MagicItem_432 | Blood Amulet | missing_effect | вне пула | TR_DEATHRATTLE_GEM |
 | BG30_MagicItem_440 | Boom Controller | missing_effect | вне пула | TR_RELEVANT |
 | BG32_MagicItem_960 | Crocheted Sungill | missing_effect | вне пула | TR_RELEVANT |
-| BG36_MagicItem_362 | Cyclist Portrait | missing_effect | вне пула | TR_RELEVANT |
 | BG32_MagicItem_934 | Dazzling Dagger | missing_effect | вне пула | TR_AURA |
-| BG36_MagicItem_216 | Eternal Portrait | missing_effect | да | TR_DEATH_BUFF |
-| BG36_MagicItem_416 | Evil Experiment | missing_effect | да | TR_DEITY_KEYWORD |
-| BG36_MagicItem_403 | Hammer of Twilight | missing_effect | да | TR_AURA |
-| BG36_MagicItem_403t | Hammer of Twilight | missing_effect | да | TR_AURA |
 | BG32_MagicItem_820 | Impulsive Portrait | missing_effect | вне пула | TR_RELEVANT |
-| BG30_MagicItem_546 | Jar o' Gems | missing_effect | да | TR_RELEVANT |
 | BG30_MagicItem_803 | Kaboom Bot Portrait | missing_effect | вне пула | TR_RELEVANT |
-| BG35_MagicItem_871 | Mama Bear Sticker | missing_effect | да | TR_RELEVANT |
 | BG30_MagicItem_438t | Mug of the Sire | missing_effect | вне пула | TR_RELEVANT |
 | BG35_MagicItem_430 | Scrapsmith Portrait | missing_effect | вне пула | TR_DEATH_GEM |
-| BG36_MagicItem_450 | Snarky Portrait | missing_effect | да | TR_RELEVANT |
-| BG35_MagicItem_732 | Soul Fermenter | missing_effect | да | TR_LAST_DEATH_SUMMON |
 | BG30_MagicItem_427 | Tiger Carving | missing_effect | вне пула | TR_DAMAGE_BUFF |
 | BG30_MagicItem_427t | Tiger Carving | missing_effect | вне пула | TR_DAMAGE_BUFF |
 | BG30_MagicItem_822 | Twin Sky Lanterns | missing_effect | вне пула | TR_RELEVANT |
 | BG30_MagicItem_822t2 | Twin Sky Lanterns | missing_effect | вне пула | TR_RELEVANT |
-| BG30_MagicItem_442 | Blood Golem Sticker | missing_input | да | размер Голема («its Blood Gems») не найден в тегах снимка |
 
 ## Тёмные дары
 
