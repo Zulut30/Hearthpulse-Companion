@@ -48,9 +48,9 @@ public sealed partial class Fight
 
     private readonly EffectRegistry _registry;
     private readonly List<string>? _log;
-    private readonly List<Unit> _dead = new();
+    private readonly List<Unit> _dead;
     // One observer buffer per nesting depth, so hooks can be dispatched without allocating.
-    private readonly Unit[]?[] _buffers = new Unit[MaxDepth + 8][];
+    private readonly Unit[]?[] _buffers;
     private readonly ICombatChooser _chooser;
     private Queue<Unit>? _queuedAttacks;
     private List<DamageEvent>? _batch;
@@ -61,9 +61,12 @@ public sealed partial class Fight
     private int _nextEntry = SimSummonEntry;
     private int _attacksInProgress;
 
-    internal Fight(SimSide ours, SimSide theirs, EffectRegistry registry, ICombatChooser chooser, bool trace, PreparedEffects? prepared = null)
+    internal Fight(SimSide ours, SimSide theirs, EffectRegistry registry, ICombatChooser chooser, bool trace, PreparedEffects? prepared = null,
+                   Scratch? scratch = null)
     {
         _registry = registry;
+        _dead = scratch?.Dead ?? new List<Unit>();
+        _buffers = scratch?.Buffers ?? new Unit[MaxDepth + 8][];
         _chooser = chooser;
         _log = trace ? new List<string>() : null;
         Ours = new Side(this, 0, ours);
@@ -98,6 +101,17 @@ public sealed partial class Fight
             theirs.Minions.Select(registry.EffectsFor).ToArray(),
             ours.Extras.Select(id => registry.Get(id, golden: false)).ToArray(),
             theirs.Extras.Select(id => registry.Get(id, golden: false)).ToArray());
+    }
+
+    /// <summary>
+    /// Working memory one thread reuses for its fights one after another (observer buffers, the death list), so a fight
+    /// does not allocate it again. Never shared by two fights at once; the death list is empty between fights.
+    /// </summary>
+    internal sealed class Scratch
+    {
+        internal List<Unit> Dead { get; } = new();
+
+        internal Unit[]?[] Buffers { get; } = new Unit[MaxDepth + 8][];
     }
 
     /// <summary>The local player's side.</summary>

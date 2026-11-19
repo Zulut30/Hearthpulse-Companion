@@ -263,13 +263,14 @@ public static partial class CombatSimulator
 
         private void Work()
         {
+            var scratch = new Fight.Scratch();
             while (Claim() is var (chunk, runs, tally))
             {
                 // One chooser per chunk, seeded for that chunk only: a chunk's fights never depend on another chunk's.
                 var chooser = new RandomChooser(new Random(ChunkSeed(seed, chunk)));
                 for (var r = 0; r < runs; r++)
                 {
-                    var fight = new Fight(ours, theirs, effects, chooser, trace: false, _prepared);
+                    var fight = new Fight(ours, theirs, effects, chooser, trace: false, _prepared, scratch);
                     // Which side entered play first decides the death order (rules-evidence 4a). Without both PLAYER_IDs the
                     // runs alternate between the two orders: an even mix, not the attacking side first (right in 47 of 89).
                     fight.EnteredFirst ??= r % 2 == 0 ? fight.Ours : fight.Theirs;
