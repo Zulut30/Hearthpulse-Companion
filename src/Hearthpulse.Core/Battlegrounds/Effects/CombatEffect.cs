@@ -197,6 +197,26 @@ public abstract class CombatEffect
     /// <summary>Re-evaluates state-dependent keywords or thresholds (e.g. "has Taunt while it has Divine Shield").</summary>
     public virtual void Refresh(Fight fight, Unit self) { }
 
+    // ---- Battlecries and spell multipliers ---------------------------------------------------------------------
+
+    /// <summary>
+    /// This minion's Battlecry, when an effect triggers it in combat (<see cref="Fight.TriggerBattlecry"/>, e.g. a Rally
+    /// that triggers your right-most Battlecry). Runs once per trigger; the engine repeats it for multipliers.
+    /// </summary>
+    public virtual void Battlecry(Fight fight, Unit self) { }
+
+    /// <summary>Extra times friendly Battlecries trigger while this minion is alive (Brann Bronzebeard: 1, golden 2).</summary>
+    public virtual int ExtraBattlecries(Fight fight, Unit self) => 0;
+
+    /// <summary>After one friendly Battlecry trigger in combat (per trigger, multipliers included): "after you trigger a Battlecry".</summary>
+    public virtual void AfterFriendlyBattlecry(Fight fight, Unit self, Unit source) { }
+
+    /// <summary>
+    /// Extra casts of a spell the owner casts in combat while this minion is alive (Balinda Stonehearth: 1 for a spell
+    /// that targets a friendly minion, golden 2). <paramref name="target"/> is the spell's target, null when it has none.
+    /// </summary>
+    public virtual int ExtraSpellCasts(Fight fight, Unit self, string spellCardId, Unit? target) => 0;
+
     private static Hook ScanHooks(Type type)
     {
         var hooks = Hook.None;
@@ -237,6 +257,10 @@ public abstract class CombatEffect
         (nameof(AfterFriendlySpellCast), Hook.SpellCast),
         (nameof(AuraFor), Hook.Aura),
         (nameof(Refresh), Hook.Refresh),
+        (nameof(Battlecry), Hook.Battlecry),
+        (nameof(ExtraBattlecries), Hook.ExtraBattlecries),
+        (nameof(AfterFriendlyBattlecry), Hook.FriendlyBattlecry),
+        (nameof(ExtraSpellCasts), Hook.ExtraSpellCasts),
     ];
 }
 
@@ -286,4 +310,8 @@ internal enum Hook
     SpellCast = 1 << 20,
     Aura = 1 << 21,
     Refresh = 1 << 22,
+    Battlecry = 1 << 23,
+    ExtraBattlecries = 1 << 24,
+    FriendlyBattlecry = 1 << 25,
+    ExtraSpellCasts = 1 << 26,
 }

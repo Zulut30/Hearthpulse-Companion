@@ -10,12 +10,12 @@
 
 | Вид | no_effect | resolved | implemented | missing_effect | missing_input | unknown | всего |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Существа | 229 | 10 | 68 | 18 | 0 | 3 | 328 |
+| Существа | 228 | 10 | 77 | 13 | 0 | 0 | 328 |
 | Силы героя | 102 | 7 | 5 | 1 | 1 | 0 | 116 |
 | Тринкеты | 331 | 36 | 27 | 25 | 1 | 0 | 420 |
 | Тёмные дары | 34 | 5 | 6 | 0 | 0 | 2 | 47 |
 | Боевые зачарования | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Без «вне пула»** | 573 | 37 | 89 | 28 | 2 | 5 | 734 |
+| **Без «вне пула»** | 572 | 37 | 98 | 23 | 2 | 2 | 734 |
 
 ## Существа
 
@@ -60,7 +60,6 @@
 | BGDUO33_150 | Dark Dazzler | no_effect | да | SELL |
 | BG36_360t3 | Dark Paradox | no_effect | да | нет в таблице; по тексту |
 | BG36_360t5 | Dark Paradox | no_effect | да | нет в таблице; по тексту |
-| BG36_360t6 | Dark Paradox | no_effect | да | нет в таблице; по тексту |
 | BG36_104 | Dark Puppeteer | no_effect | да | DR_TAVERN |
 | BG31_920 | Darkcrest Strategist | no_effect | пул не подтверждён | SPELLCRAFT |
 | BG36_511 | Dead Bellringer | no_effect | да | ACTIVATE |
@@ -129,7 +128,6 @@
 | BG27_000 | Iron Groundskeeper | no_effect | да | BATTLECRY |
 | BG36_110 | Joyous | no_effect | да | BATTLECRY |
 | BGDUO_115 | Jumping Jack | no_effect | да | SELL |
-| BGS_041 | Kalecgos, Arcane Aspect | no_effect | да | BATTLECRY_TRIGGER |
 | BG36_701 | Kelp Keeper | no_effect | да | ACTIVATE |
 | BG35_150 | Laboratory Assistant | no_effect | да | BATTLECRY |
 | BG23_009 | Lava Lurker | no_effect | пул не подтверждён | SPELL_CAST_TAVERN |
@@ -242,6 +240,7 @@
 | BGDUO_700 | Voidpriest Cloner | no_effect | да | PASS_DUOS |
 | BGDUO_100 | Wanderer Cho | no_effect | да | PASS_DUOS |
 | BG36_100 | Wandering Willbreaker | no_effect | да | SELL |
+| BGS_115t | Water Droplet | no_effect | да | TOKEN |
 | BG34_856 | Waveling | no_effect | да | DR_TAVERN |
 | BG23_007 | Waverider | no_effect | пул не подтверждён | SPELLCRAFT |
 | BGDUO_120 | Well Wisher | no_effect | да | SPELLCRAFT |
@@ -260,11 +259,13 @@
 | BG36_245 | Runic Arcanist | resolved | да | Start of Combat: разрешилось до снимка |
 | BGDUO_125 | Sandy | resolved | да | Start of Combat: разрешилось до снимка |
 | BG31_810 | Ultraviolet Ascendant | resolved | да | Start of Combat: разрешилось до снимка |
+| BG35_883 | Balinda Stonehearth | implemented | да | MULTIPLIER |
 | BG26_802 | Banana Slamma | implemented | да | ON_SUMMON |
 | BG36_514 | Barrier Banshee | implemented | да | ON_REBORN |
 | BG33_318 | Bile Spitter | implemented | да | RALLY_KEYWORD |
 | BG26_817 | Blade Collector | implemented | да | CLEAVE |
 | BG20_104 | Bonker | implemented | да | RALLY_BUFF |
+| BG_LOE_077 | Brann Bronzebeard | implemented | да | MULTIPLIER |
 | BG31_803 | Buzzing Vermin | implemented | да | DR_SUMMON |
 | BGDUO_701 | C'Thrax Wrecker | implemented | да | RALLY_DEITY |
 | BGFYM_000 | C'Thun | implemented | да | TOKEN |
@@ -272,7 +273,9 @@
 | BG36_211 | Cage Gnawer | implemented | да | ON_FRIENDLY_ATTACK |
 | BG29_611 | Cord Puller | implemented | да | DR_SUMMON |
 | BG36_241 | Crimson Vindicator | implemented | да | RALLY_SPELL |
+| BG36_360 | Dark Paradox | implemented | да | DARK_PARADOX |
 | BG36_360t4 | Dark Paradox | implemented | да | нет в таблице релевантности |
+| BG36_360t6 | Dark Paradox | implemented | да | нет в таблице релевантности |
 | BG36_360t9 | Dark Paradox | implemented | да | нет в таблице релевантности |
 | BG36_102 | De-volition-ist | implemented | да | AFTER_ATTACK |
 | BG31_835 | Deathly Striker | implemented | да | AVENGE_COMBAT; у соперника missing_input (рука скрыта) |
@@ -285,6 +288,7 @@
 | BG34_403 | Eternal Tycoon | implemented | да | AVENGE_COMBAT |
 | BG36_318 | Faceless Converter | implemented | да | DR_DEITY |
 | BG35_342 | Falling Sky Golem | implemented | да | AURA_DYNAMIC |
+| BG36_205 | Fishbait | implemented | да | DR_BUFF |
 | BG36_200 | Flittering Bat | implemented | да | RALLY_SUMMON |
 | BG31_801 | Forest Rover | implemented | да | DR_SUMMON |
 | BGS_008 | Ghastcoiler | implemented | да | DR_SUMMON |
@@ -297,6 +301,7 @@
 | BG36_210 | Hoarding Hyena | implemented | да | RALLY_SUMMON |
 | BG26_805 | Humming Bird | implemented | да | SOC_PERSISTENT |
 | BG36_333 | Jailbird Juggernaut | implemented | да | RALLY_SUMMON |
+| BGS_041 | Kalecgos, Arcane Aspect | implemented | да | BATTLECRY_TRIGGER |
 | BG23_318 | Leeroy the Reckless | implemented | да | DR_DESTROY |
 | BG35_602 | Lurking Leviathan | implemented | да | ON_SUMMON |
 | BG28_309 | Mummifier | implemented | да | DR_KEYWORD |
@@ -310,6 +315,8 @@
 | BG34_405 | Relentless Deflector | implemented | да | AURA_DYNAMIC |
 | BG29_816 | Roaring Recruiter | implemented | да | ON_FRIENDLY_ATTACK |
 | BGDUO31_208 | San'layn Scribe | implemented | да | AURA_DYNAMIC |
+| BG23_017 | Sanguine Champion | implemented | да | DR_COUNTER |
+| BG33_885 | Sanguine Refiner | implemented | да | RALLY_COUNTER |
 | BG25_022 | Scarlet Skull | implemented | да | DR_BUFF |
 | BG35_814 | Scarlet Survivor | implemented | да | THRESHOLD |
 | BG35_604 | Sewer Lord | implemented | да | DR_SUMMON |
@@ -321,6 +328,7 @@
 | BG31_999 | Stitched Salvager | implemented | да | DR_SUMMON |
 | BG36_202 | Tasty Lobster | implemented | да | DR_BUFF |
 | BG34_320 | The Last One Standing | implemented | да | RALLY_BUFF |
+| BG27_513 | Tide Oracle Morgl | implemented | да | KILL_HAND_BUFF; у соперника missing_input (рука скрыта) |
 | BG25_354 | Titus Rivendare | implemented | да | MULTIPLIER |
 | BG31_809 | Turquoise Skitterer | implemented | да | DR_SUMMON |
 | BG33_886 | Tusked Camper | implemented | да | RALLY_BUFF |
@@ -328,17 +336,12 @@
 | BGS_126 | Wildfire Elemental | implemented | да | AFTER_ATTACK |
 | BG36_207 | Wolf Pup | implemented | да | RALLY_BUFF |
 | BGFYM_011 | Y'Shaarj | implemented | да | TOKEN |
-| BG35_883 | Balinda Stonehearth | missing_effect | да | условный (MULTIPLIER): бой не помечается |
-| BG_LOE_077 | Brann Bronzebeard | missing_effect | да | условный (MULTIPLIER): бой не помечается |
 | BG28_741 | Charging Czarina | missing_effect | да | условный (SPELL_TRIGGER): бой не помечается |
-| BG36_360 | Dark Paradox | missing_effect | да | DARK_PARADOX |
 | BG36_921 | Fleeing Fugitive | missing_effect | пул не подтверждён | условный (SPELL_TRIGGER): бой не помечается |
 | BG34_692 | Forsaken Weaver | missing_effect | да | условный (SPELL_TRIGGER): бой не помечается |
 | BG36_640 | Gatekeeper Amalgam | missing_effect | да | условный (SPELL_TRIGGER): бой не помечается |
 | BG28_583 | Geomagus Roogug | missing_effect | да | условный (ON_BLOOD_GEM): бой не помечается |
 | BG36_853 | Glambot | missing_effect | да | условный (SPELL_TRIGGER): бой не помечается |
-| BG23_017 | Sanguine Champion | missing_effect | да | условный (DR_COUNTER): бой не помечается |
-| BG33_885 | Sanguine Refiner | missing_effect | да | условный (RALLY_COUNTER): бой не помечается |
 | BG34_925 | Seafloor Recruiter | missing_effect | пул не подтверждён | условный (RALLY_SPELL): бой не помечается |
 | BG36_111 | Sha of Fear | missing_effect | да | условный (SPELL_TRIGGER): бой не помечается |
 | BG36_704 | Shamanic Tidecaller | missing_effect | да | условный (SPELL_TRIGGER): бой не помечается |
@@ -346,9 +349,6 @@
 | BG27_005 | Timecap'n Hooktail | missing_effect | да | условный (SPELL_TRIGGER): бой не помечается |
 | BG36_622 | Torrential Ruiner | missing_effect | пул не подтверждён | условный (SPELL_TRIGGER): бой не помечается |
 | BG36_108 | Vicious Mindslasher | missing_effect | да | условный (SPELL_TRIGGER): бой не помечается |
-| BG36_205 | Fishbait | unknown | да | нет в таблице; текст похож на боевой |
-| BG27_513 | Tide Oracle Morgl | unknown | да | нет в таблице; текст похож на боевой |
-| BGS_115t | Water Droplet | unknown | да | нет в таблице и нет текста |
 
 ## Силы героя
 
