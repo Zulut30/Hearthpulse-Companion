@@ -12,7 +12,8 @@ namespace Hearthpulse.Bench;
 /// <c>simreplay</c>: real Battlegrounds fights replayed step by step through the combat engine (docs/bg-combat-sim.md,
 /// "Пошаговая сверка"). Every fight of the logs (Power*.log under --logs, any depth) and of the app's capture files
 /// (--captures) that has a transcript is fought once with every decision answered from the log, and the boards are
-/// compared with the log's before every regular attack and at the end. The report: fights replayed to the end without a
+/// compared with the log's before every regular attack and at the end; with --pool, also the players' fights of the stats
+/// pool's owner export (<see cref="PoolFights"/>). The report: fights replayed to the end without a
 /// divergence (with the Wilson interval), first divergences by engine rule, and every fight's first divergence.
 /// <c>--cost n</c> also measures what recording the transcripts costs the log thread: the logs read n times through the
 /// tracker with and without it.
@@ -61,6 +62,18 @@ internal static class SimReplayBench
                     continue;
                 }
 
+                games.Add(game);
+                Print(game);
+            }
+        }
+
+        // Players' fights from the stats pool's owner export, with the transcripts their records carry (no hand in them:
+        // a decision that needs the hand diverges as "Other"). For a held-out measure, run without --captures and with
+        // --logs pointing at an empty folder.
+        if (options.Pool.Length > 0 && File.Exists(options.Pool))
+        {
+            foreach (var game in PoolFights.Replayable(options.Pool))
+            {
                 games.Add(game);
                 Print(game);
             }

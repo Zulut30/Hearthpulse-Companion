@@ -40,8 +40,9 @@ internal static class Program
                     the .hpr replays hold, Duos fights with both tables)
           simreplay real fights replayed step by step through the combat engine, every decision answered from the fight's
                     transcript: fights replayed to the end without divergence, first divergences by engine rule, per fight
-                    (--captures <dir>: the app's capture files join the logs; --out <file>: the report; --cost <n>: what
-                    recording transcripts costs the log thread, n rounds)
+                    (--captures <dir>: the app's capture files join the logs; --pool <file>: players' fights of the stats
+                    pool's owner export with their transcripts (no hand in them); --out <file>: the report; --cost <n>:
+                    what recording transcripts costs the log thread, n rounds)
           simmatrix combat simulator coverage matrix of the current pool (six statuses) -> docs/bg-sim-matrix.md
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
           art       decode the cached portraits and deck tiles at once (--games caps the count): time, allocations, GCs
@@ -186,7 +187,7 @@ internal sealed record Options(string Logs, int Rounds, int Games)
     /// <summary>simcover: a folder of the app's combat capture files (&lt;data&gt;/combat-captures) to add to the fights.</summary>
     public string Captures { get; init; } = string.Empty;
 
-    /// <summary>simcover: the stats pool's export of players' fights (JSONL, server/pool/node/export-combats.mjs).</summary>
+    /// <summary>simcover, simreplay: the stats pool's export of players' fights (JSONL, server/pool/node/export-combats.mjs).</summary>
     public string Pool { get; init; } = string.Empty;
 
     /// <summary>simreplay: rounds of measuring what recording transcripts costs; 0 = not measured.</summary>
