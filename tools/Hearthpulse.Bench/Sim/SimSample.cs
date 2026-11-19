@@ -177,8 +177,11 @@ internal static class SimSample
         return budget switch
         {
             SimBudget.Quick => BattlegroundsTracker.QuickPass(captured),
-            SimBudget.App => captured with { Runs = app.Runs, MinRuns = app.MinRuns, TimeBudget = app.TimeBudget },
-            _ => captured with { Runs = FullRuns, MinRuns = FullRuns, TimeBudget = null },
+            SimBudget.App => captured with
+            {
+                Runs = app.Runs, MinRuns = app.MinRuns, TimeBudget = app.TimeBudget, TargetHalfWidth = app.TargetHalfWidth, Parallelism = app.Parallelism,
+            },
+            _ => captured with { Runs = FullRuns, MinRuns = FullRuns, TimeBudget = null, TargetHalfWidth = 0 },
         };
     }
 
