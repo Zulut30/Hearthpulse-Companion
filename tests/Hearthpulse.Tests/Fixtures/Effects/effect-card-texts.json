@@ -1,0 +1,2028 @@
+{
+ "source": "HearthstoneJSON v1/latest/enUS cards.json, Last-Modified Tue, 03 Nov 2026 17:22:53 GMT",
+ "generator": "tools/effects/gen_effect_texts.py",
+ "cards": {
+  "BG19_010": {
+   "name": "Sewer Rat",
+   "text": "Deathrattle: Summon a 2/3 Turtle with Taunt.",
+   "attack": 3,
+   "health": 2,
+   "golden": {
+    "id": "BG19_010_G",
+    "text": "Deathrattle: Summon a 4/6 Turtle with Taunt.",
+    "attack": 6,
+    "health": 4
+   }
+  },
+  "BG19_010t": {
+   "name": "Half-Shell",
+   "text": "Taunt",
+   "attack": 2,
+   "health": 3,
+   "golden": {
+    "id": "BG19_010_Gt",
+    "text": "Taunt",
+    "attack": 4,
+    "health": 6
+   }
+  },
+  "BG20_101": {
+   "name": "Roadboar",
+   "text": "Rally: Get a Blood Gem.",
+   "attack": 2,
+   "health": 4,
+   "golden": {
+    "id": "BG20_101_G",
+    "text": "Rally: Get 2 Blood Gems.",
+    "attack": 4,
+    "health": 8
+   }
+  },
+  "BG20_104": {
+   "name": "Bonker",
+   "text": "Windfury Rally: This plays a Blood Gem on all your other minions.",
+   "attack": 2,
+   "health": 7,
+   "golden": {
+    "id": "BG20_104_G",
+    "text": "Windfury Rally: This plays 2 Blood Gems on all your other minions.",
+    "attack": 4,
+    "health": 14
+   }
+  },
+  "BG20_GEM": {
+   "name": "Blood Gem",
+   "text": "Give a minion +1/+1.",
+   "attack": null,
+   "health": null
+  },
+  "BG23_017": {
+   "name": "Sanguine Champion",
+   "text": "Battlecry and Deathrattle: Your Blood Gems give an extra +2/+1 this game.",
+   "attack": 9,
+   "health": 4,
+   "golden": {
+    "id": "BG23_017_G",
+    "text": "Battlecry and Deathrattle: Your Blood Gems give an extra +4/+2 this game.",
+    "attack": 18,
+    "health": 8
+   }
+  },
+  "BG23_318": {
+   "name": "Leeroy the Reckless",
+   "text": "Deathrattle: Destroy the minion that killed this.",
+   "attack": 6,
+   "health": 2,
+   "golden": {
+    "id": "BG23_318_G",
+    "text": "Deathrattle: Destroy the minion that killed this.",
+    "attack": 12,
+    "health": 4
+   }
+  },
+  "BG25_008": {
+   "name": "Eternal Knight",
+   "text": "Has +4/+2 for each friendly Eternal Knight that died this game (wherever this is).",
+   "attack": 4,
+   "health": 2,
+   "golden": {
+    "id": "BG25_008_G",
+    "text": "Has +8/+4 for each friendly Eternal Knight that died this game (wherever this is).",
+    "attack": 8,
+    "health": 4
+   }
+  },
+  "BG25_009": {
+   "name": "Eternal Summoner",
+   "text": "Reborn. Deathrattle: Summon 1 Eternal Knight.",
+   "attack": 8,
+   "health": 1,
+   "golden": {
+    "id": "BG25_009_G",
+    "text": "Reborn. Deathrattle: Summon a Golden Eternal Knight.",
+    "attack": 16,
+    "health": 2
+   }
+  },
+  "BG25_010": {
+   "name": "Handless Forsaken",
+   "text": "Deathrattle: Summon a 2/1 Hand with Reborn.",
+   "attack": 2,
+   "health": 1,
+   "golden": {
+    "id": "BG25_010_G",
+    "text": "Deathrattle: Summon two 2/1 Hands with Reborn.",
+    "attack": 4,
+    "health": 2
+   }
+  },
+  "BG25_010t": {
+   "name": "Helping Hand",
+   "text": "Reborn",
+   "attack": 2,
+   "health": 1,
+   "golden": {
+    "id": "BG25_010_Gt",
+    "text": "Reborn",
+    "attack": 4,
+    "health": 2
+   }
+  },
+  "BG25_011": {
+   "name": "Nerubian Deathswarmer",
+   "text": "Battlecry: Your Undead have +1 Attack this game (wherever they are).",
+   "attack": 1,
+   "health": 4,
+   "golden": {
+    "id": "BG25_011_G",
+    "text": "Battlecry: Your Undead have +2 Attack this game (wherever they are).",
+    "attack": 2,
+    "health": 8
+   }
+  },
+  "BG25_013": {
+   "name": "Rot Hide Gnoll",
+   "text": "Has +1 Attack for each friendly minion that died this combat.",
+   "attack": 1,
+   "health": 4,
+   "golden": {
+    "id": "BG25_013_G",
+    "text": "Has +2 Attack for each friendly minion that died this combat.",
+    "attack": 2,
+    "health": 8
+   }
+  },
+  "BG25_016": {
+   "name": "Sin'dorei Straight Shot",
+   "text": "Divine Shield, Windfury Rally: Remove Reborn and Taunt from the target.",
+   "attack": 3,
+   "health": 4,
+   "golden": {
+    "id": "BG25_016_G",
+    "text": "Divine Shield, Windfury Rally: Remove Reborn and Taunt from the target.",
+    "attack": 6,
+    "health": 8
+   }
+  },
+  "BG25_022": {
+   "name": "Scarlet Skull",
+   "text": "Reborn Deathrattle: Give a friendly Undead +1/+2.",
+   "attack": 2,
+   "health": 1,
+   "golden": {
+    "id": "BG25_022_G",
+    "text": "Reborn Deathrattle: Give a friendly Undead +2/+4.",
+    "attack": 4,
+    "health": 2
+   }
+  },
+  "BG25_354": {
+   "name": "Titus Rivendare",
+   "text": "Your Deathrattles trigger an extra time.",
+   "attack": 1,
+   "health": 7,
+   "golden": {
+    "id": "BG25_354_G",
+    "text": "Your Deathrattles trigger 2 extra times.",
+    "attack": 2,
+    "health": 14
+   }
+  },
+  "BG26_350": {
+   "name": "Bassgill",
+   "text": "Deathrattle: Summon the highest-Health Murloc from your hand for this combat only.",
+   "attack": 5,
+   "health": 2,
+   "golden": {
+    "id": "BG26_350_G",
+    "text": "Deathrattle: Summon the 2 highest-Health Murlocs from your hand for this combat only.",
+    "attack": 10,
+    "health": 4
+   }
+  },
+  "BG26_802": {
+   "name": "Banana Slamma",
+   "text": "After you summon a Beast in combat, double its Attack.",
+   "attack": 3,
+   "health": 6,
+   "golden": {
+    "id": "BG26_802_G",
+    "text": "After you summon a Beast in combat, triple its Attack.",
+    "attack": 6,
+    "health": 12
+   }
+  },
+  "BG26_805": {
+   "name": "Humming Bird",
+   "text": "Start of Combat: For the rest of this combat, your Beasts have +1 Attack.",
+   "attack": 1,
+   "health": 4,
+   "golden": {
+    "id": "BG26_805_G",
+    "text": "Start of Combat: For the rest of this combat, your Beasts have +2 Attack.",
+    "attack": 2,
+    "health": 8
+   }
+  },
+  "BG26_817": {
+   "name": "Blade Collector",
+   "text": "Also damages the enemies next to whomever this attacks.",
+   "attack": 3,
+   "health": 2,
+   "golden": {
+    "id": "BG26_817_G",
+    "text": "Also damages the enemies next to whomever this attacks.",
+    "attack": 6,
+    "health": 4
+   }
+  },
+  "BG26_963": {
+   "name": "Electric Synthesizer",
+   "text": "Battlecry and Start of Combat: Give your other Dragons +1/+1.",
+   "attack": 3,
+   "health": 4,
+   "golden": {
+    "id": "BG26_963_G",
+    "text": "Battlecry and Start of Combat: Give your other Dragons +2/+2.",
+    "attack": 6,
+    "health": 8
+   }
+  },
+  "BG27_005": {
+   "name": "Timecap'n Hooktail",
+   "text": "Whenever you cast a Tavern spell, give your minions +1 Attack.",
+   "attack": 1,
+   "health": 4,
+   "golden": {
+    "id": "BG27_005_G",
+    "text": "Whenever you cast a Tavern spell, give your minions +1 Attack twice.",
+    "attack": 2,
+    "health": 8
+   }
+  },
+  "BG27_017": {
+   "name": "Obsidian Ravager",
+   "text": "Rally: Deal damage equal to this minion's Attack to the target and an adjacent minion.",
+   "attack": 11,
+   "health": 11,
+   "golden": {
+    "id": "BG27_017_G",
+    "text": "Rally: Deal damage equal to this minion's Attack to the target and its neighbors.",
+    "attack": 22,
+    "health": 22
+   }
+  },
+  "BG27_023": {
+   "name": "Murcules",
+   "text": "Whenever this kills a minion, give a minion in your hand +3/+3.",
+   "attack": 5,
+   "health": 3,
+   "golden": {
+    "id": "BG27_023_G",
+    "text": "Whenever this kills a minion, give a minion in your hand +6/+6.",
+    "attack": 10,
+    "health": 6
+   }
+  },
+  "BG27_513": {
+   "name": "Tide Oracle Morgl",
+   "text": "Poisonous. When this attacks and kills a minion, give its maximum stats to a minion in your hand.",
+   "attack": 1,
+   "health": 10,
+   "golden": {
+    "id": "BG27_513_G",
+    "text": "Poisonous. When this attacks and kills a minion, give double its maximum stats to a minion in your hand.",
+    "attack": 2,
+    "health": 20
+   }
+  },
+  "BG27_556": {
+   "name": "Diremuck Forager",
+   "text": "Start of Combat: When you have space, summon the highest-Attack Murloc from your hand for this combat only.",
+   "attack": 4,
+   "health": 5,
+   "golden": {
+    "id": "BG27_556_G",
+    "text": "Start of Combat: When you have space, summon the two highest-Attack Murlocs from your hand for this combat only.",
+    "attack": 8,
+    "health": 10
+   }
+  },
+  "BG27_Anomaly_802": {
+   "name": "Echoes of Argus",
+   "text": "Your Battlecries and Deathrattles trigger an extra time.",
+   "attack": null,
+   "health": null
+  },
+  "BG27_Reward_802": {
+   "name": "Gilnean War Horn",
+   "text": "Get a copy of '0'. Your Battlecries trigger an extra time.",
+   "attack": null,
+   "health": null
+  },
+  "BG27_Reward_803": {
+   "name": "Turbulent Tombs",
+   "text": "Get a copy of '0'. Your Deathrattles trigger an extra time.",
+   "attack": null,
+   "health": null
+  },
+  "BG28_300": {
+   "name": "Harmless Bonehead",
+   "text": "Deathrattle: Summon two 1/1 Skeletons.",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BG28_300_G",
+    "text": "Deathrattle: Summon four 1/1 Skeletons.",
+    "attack": 2,
+    "health": 2
+   }
+  },
+  "BG28_309": {
+   "name": "Mummifier",
+   "text": "Deathrattle: Give a different friendly Undead Reborn.",
+   "attack": 5,
+   "health": 2,
+   "golden": {
+    "id": "BG28_309_G",
+    "text": "Deathrattle: Give 2 different friendly Undead Reborn.",
+    "attack": 10,
+    "health": 4
+   }
+  },
+  "BG28_518": {
+   "name": "Chef's Choice",
+   "text": "Choose a minion. Get a different minion of the same type.",
+   "attack": null,
+   "health": null
+  },
+  "BG28_583": {
+   "name": "Geomagus Roogug",
+   "text": "Divine Shield. Whenever a Blood Gem is played on this, this plays a Blood Gem on a different friendly minion.",
+   "attack": 4,
+   "health": 6,
+   "golden": {
+    "id": "BG28_583_G",
+    "text": "Divine Shield. Whenever a Blood Gem is played on this, this plays 2 Blood Gems on a different friendly minion.",
+    "attack": 8,
+    "health": 12
+   }
+  },
+  "BG28_603t": {
+   "name": "Beetle",
+   "text": "",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "BG28_603t_G",
+    "text": "",
+    "attack": 4,
+    "health": 4
+   }
+  },
+  "BG28_741": {
+   "name": "Charging Czarina",
+   "text": "Divine Shield Whenever you cast a Tavern spell, give your minions with Divine Shield +4 Attack.",
+   "attack": 4,
+   "health": 1,
+   "golden": {
+    "id": "BG28_741_G",
+    "text": "Divine Shield Whenever you cast a Tavern spell, give your minions with Divine Shield +8 Attack.",
+    "attack": 8,
+    "health": 2
+   }
+  },
+  "BG28_888": {
+   "name": "Misplaced Tea Set",
+   "text": "Give a friendly minion of each type +3/+3.",
+   "attack": null,
+   "health": null
+  },
+  "BG28_Reward_501": {
+   "name": "Temporal Tampering",
+   "text": "Your Tavern spells cast an extra time.",
+   "attack": null,
+   "health": null
+  },
+  "BG29_611": {
+   "name": "Cord Puller",
+   "text": "Divine Shield Deathrattle: Summon a 1/1 Microbot.",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BG29_611_G",
+    "text": "Divine Shield Deathrattle: Summon a 2/2 Microbot.",
+    "attack": 2,
+    "health": 2
+   }
+  },
+  "BG29_816": {
+   "name": "Roaring Recruiter",
+   "text": "Whenever another friendly Dragon attacks, give it +3/+1.",
+   "attack": 2,
+   "health": 8,
+   "golden": {
+    "id": "BG29_816_G",
+    "text": "Whenever another friendly Dragon attacks, give it +6/+2.",
+    "attack": 4,
+    "health": 16
+   }
+  },
+  "BG29_864t": {
+   "name": "Deserted Golem",
+   "text": "",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG29_864_Gt",
+    "text": "",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG29_888": {
+   "name": "Glim Guardian",
+   "text": "Rally: Gain +2 Attack.",
+   "attack": 1,
+   "health": 4,
+   "golden": {
+    "id": "BG29_888_G",
+    "text": "Rally: Gain +4 Attack.",
+    "attack": 2,
+    "health": 8
+   }
+  },
+  "BG30_125": {
+   "name": "Cadaver Caretaker",
+   "text": "Deathrattle: Summon three 1/1 Skeletons.",
+   "attack": 3,
+   "health": 3,
+   "golden": {
+    "id": "BG30_125_G",
+    "text": "Deathrattle: Summon six 1/1 Skeletons.",
+    "attack": 6,
+    "health": 6
+   }
+  },
+  "BG30_MagicItem_547": {
+   "name": "Comfy Coffin",
+   "text": "Whenever you cast a Tavern spell, your Undead have +1 Attack this game (wherever they are).",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_547t": {
+   "name": "Comfy Coffin",
+   "text": "Whenever you cast a Tavern spell, your Undead have +2 Attack this game (wherever they are).",
+   "attack": null,
+   "health": null
+  },
+  "BG31_148": {
+   "name": "Hackerfin",
+   "text": "Battlecry: Give your other minions +3/+2. (Improved by each different Bonus Keyword in your warband!)",
+   "attack": 5,
+   "health": 3,
+   "golden": {
+    "id": "BG31_148_G",
+    "text": "Battlecry: Give your other minions +6/+4. (Improved by each different Bonus Keyword in your warband!)",
+    "attack": 10,
+    "health": 6
+   }
+  },
+  "BG31_801": {
+   "name": "Forest Rover",
+   "text": "Battlecry: Your Beetles have +2/+1 this game. Deathrattle: Summon a 2/2 Beetle.",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BG31_801_G",
+    "text": "Battlecry: Your Beetles have +4/+2 this game. Deathrattle: Summon two 2/2 Beetles.",
+    "attack": 2,
+    "health": 2
+   }
+  },
+  "BG31_803": {
+   "name": "Buzzing Vermin",
+   "text": "Taunt Deathrattle: Summon a 2/2 Beetle.",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BG31_803_G",
+    "text": "Taunt Deathrattle: Summon two 2/2 Beetles.",
+    "attack": 2,
+    "health": 2
+   }
+  },
+  "BG31_809": {
+   "name": "Turquoise Skitterer",
+   "text": "Deathrattle: Your Beetles have +5/+5 this game. Summon a 2/2 Beetle.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG31_809_G",
+    "text": "Deathrattle: Your Beetles have +10/+10 this game. Summon two 2/2 Beetles.",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG31_835": {
+   "name": "Deathly Striker",
+   "text": "Avenge (4): Get a random Undead. Deathrattle: Summon it from your hand for this combat only.",
+   "attack": 8,
+   "health": 8,
+   "golden": {
+    "id": "BG31_835_G",
+    "text": "Avenge (4): Get 2 random Undead. Deathrattle: Summon them from your hand for this combat only.",
+    "attack": 16,
+    "health": 16
+   }
+  },
+  "BG31_925": {
+   "name": "Showy Cyclist",
+   "text": "Deathrattle: Give all your Naga +2/+1. (Improved by every 3 spells you've cast this game!)",
+   "attack": 4,
+   "health": 2,
+   "golden": {
+    "id": "BG31_925_G",
+    "text": "Deathrattle: Give all your Naga +4/+2. (Improved by every 3 spells you've cast this game!)",
+    "attack": 8,
+    "health": 4
+   }
+  },
+  "BG31_999": {
+   "name": "Stitched Salvager",
+   "text": "Start of Combat: Destroy the minion to the left. Deathrattle: Summon an exact copy of it. (Except Stitched Salvager.)",
+   "attack": 16,
+   "health": 4,
+   "golden": {
+    "id": "BG31_999_G",
+    "text": "Start of Combat: Destroy adjacent minions. Deathrattle: Summon exact copies of them. (Except Stitched Salvager.)",
+    "attack": 32,
+    "health": 8
+   }
+  },
+  "BG32_111": {
+   "name": "Nightmare Par-tea Guest",
+   "text": "Battlecry and Deathrattle: Get a Misplaced Tea Set.",
+   "attack": 3,
+   "health": 3,
+   "golden": {
+    "id": "BG32_111_G",
+    "text": "Battlecry and Deathrattle: Get 2 Misplaced Tea Sets.",
+    "attack": 6,
+    "health": 6
+   }
+  },
+  "BG32_324": {
+   "name": "Drustfallen Butcher",
+   "text": "Avenge (4): Get a Butchering.",
+   "attack": 2,
+   "health": 7,
+   "golden": {
+    "id": "BG32_324_G",
+    "text": "Avenge (4): Get 2 Butcherings.",
+    "attack": 4,
+    "health": 14
+   }
+  },
+  "BG32_336": {
+   "name": "Gormling Gourmet",
+   "text": "Taunt Battlecry and Deathrattle: Get a Seafood Stew.",
+   "attack": 4,
+   "health": 3,
+   "golden": {
+    "id": "BG32_336_G",
+    "text": "Taunt Battlecry and Deathrattle: Get 2 Seafood Stews.",
+    "attack": 8,
+    "health": 6
+   }
+  },
+  "BG32_820": {
+   "name": "Firescale Hoarder",
+   "text": "Battlecry and Deathrattle: Get a Shiny Ring.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG32_820_G",
+    "text": "Battlecry and Deathrattle: Get 2 Shiny Rings.",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG32_MagicItem_893": {
+   "name": "Bluegill Flippers",
+   "text": "Whenever you cast a Tavern spell, give the left-most minion in your hand and warband +3/+3.",
+   "attack": null,
+   "health": null
+  },
+  "BG33_155": {
+   "name": "Devout Hellcaller",
+   "text": "After another friendly Demon deals damage, gain +2/+2 permanently.",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "BG33_155_G",
+    "text": "After another friendly Demon deals damage, gain +4/+4 permanently.",
+    "attack": 8,
+    "health": 8
+   }
+  },
+  "BG33_318": {
+   "name": "Bile Spitter",
+   "text": "Venomous Rally: Give another friendly Murloc Venomous.",
+   "attack": 1,
+   "health": 10,
+   "golden": {
+    "id": "BG33_318_G",
+    "text": "Venomous Rally: Give 2 other friendly Murlocs Venomous.",
+    "attack": 2,
+    "health": 20
+   }
+  },
+  "BG33_430": {
+   "name": "Prodigious Tusker",
+   "text": "Whenever another friendly minion attacks, this plays a Blood Gem on it.",
+   "attack": 2,
+   "health": 5,
+   "golden": {
+    "id": "BG33_430_G",
+    "text": "Whenever another friendly minion attacks, this plays 2 Blood Gems on it.",
+    "attack": 4,
+    "health": 10
+   }
+  },
+  "BG33_821": {
+   "name": "Shipwrecked Rascal",
+   "text": "Battlecry and Deathrattle: Get a random Bounty.",
+   "attack": 5,
+   "health": 4,
+   "golden": {
+    "id": "BG33_821_G",
+    "text": "Battlecry and Deathrattle: Get 2 random Bounties.",
+    "attack": 10,
+    "health": 8
+   }
+  },
+  "BG33_822": {
+   "name": "Bigwig Bandit",
+   "text": "Rally: Get a random Bounty.",
+   "attack": 4,
+   "health": 6,
+   "golden": {
+    "id": "BG33_822_G",
+    "text": "Rally: Get 2 random Bounties.",
+    "attack": 8,
+    "health": 12
+   }
+  },
+  "BG33_828": {
+   "name": "Ship Master Eudora",
+   "text": "Deathrattle: Give your minions +8/+8. Golden ones keep it permanently.",
+   "attack": 10,
+   "health": 3,
+   "golden": {
+    "id": "BG33_828_G",
+    "text": "Deathrattle: Give your minions +8/+8 twice. Golden ones keep it permanently.",
+    "attack": 20,
+    "health": 6
+   }
+  },
+  "BG33_883": {
+   "name": "Razorfen Vineweaver",
+   "text": "Rally: This plays 4 permanent Blood Gems on itself.",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "BG33_883_G",
+    "text": "Rally: This plays 8 permanent Blood Gems on itself.",
+    "attack": 8,
+    "health": 8
+   }
+  },
+  "BG33_885": {
+   "name": "Sanguine Refiner",
+   "text": "Rally: Your Blood Gems give an extra +1/+1 this game.",
+   "attack": 4,
+   "health": 9,
+   "golden": {
+    "id": "BG33_885_G",
+    "text": "Rally: Your Blood Gems give an extra +2/+2 this game.",
+    "attack": 8,
+    "health": 18
+   }
+  },
+  "BG33_886": {
+   "name": "Tusked Camper",
+   "text": "Rally: This plays a Blood Gem on itself.",
+   "attack": 2,
+   "health": 3,
+   "golden": {
+    "id": "BG33_886_G",
+    "text": "Rally: This plays 2 Blood Gems on itself.",
+    "attack": 4,
+    "health": 6
+   }
+  },
+  "BG34_140": {
+   "name": "Expert Aviator",
+   "text": "Rally: Summon the highest- Attack Murloc from your hand for this combat only.",
+   "attack": 3,
+   "health": 5,
+   "golden": {
+    "id": "BG34_140_G",
+    "text": "Rally: Summon the 2 highest-Attack Murlocs from your hand for this combat only.",
+    "attack": 6,
+    "health": 10
+   }
+  },
+  "BG34_171": {
+   "name": "Conveyor Construct",
+   "text": "Deathrattle: Get a random Magnetic Volumizer.",
+   "attack": 5,
+   "health": 2,
+   "golden": {
+    "id": "BG34_171_G",
+    "text": "Deathrattle: Get 2 random Magnetic Volumizers.",
+    "attack": 10,
+    "health": 4
+   }
+  },
+  "BG34_319": {
+   "name": "Highkeeper Ra",
+   "text": "Battlecry, Deathrattle, and Rally: Get a random Tier 6 minion.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "BG34_319_G",
+    "text": "Battlecry, Deathrattle, and Rally: Get two random Tier 6 minions.",
+    "attack": 12,
+    "health": 12
+   }
+  },
+  "BG34_320": {
+   "name": "The Last One Standing",
+   "text": "Rally: Give a friendly minion of each type +10/+10 permanently and improve this.",
+   "attack": 10,
+   "health": 10,
+   "golden": {
+    "id": "BG34_320_G",
+    "text": "Rally: Give a friendly minion of each type +10/+10 permanently and improve this, twice.",
+    "attack": 20,
+    "health": 20
+   }
+  },
+  "BG34_322": {
+   "name": "Stalwart Kodo",
+   "text": "After you summon a different minion in combat, give it double this minion's maximum stats. (3 times per combat.)",
+   "attack": 15,
+   "health": 30,
+   "golden": {
+    "id": "BG34_322_G",
+    "text": "After you summon a different minion in combat, give it triple this minion's maximum stats. (3 times per combat.)",
+    "attack": 30,
+    "health": 60
+   }
+  },
+  "BG34_403": {
+   "name": "Eternal Tycoon",
+   "text": "Avenge (5): Summon an Eternal Knight. It attacks immediately.",
+   "attack": 4,
+   "health": 8,
+   "golden": {
+    "id": "BG34_403_G",
+    "text": "Avenge (5): Summon a Golden Eternal Knight. It attacks immediately.",
+    "attack": 8,
+    "health": 16
+   }
+  },
+  "BG34_405": {
+   "name": "Relentless Deflector",
+   "text": "Has Taunt while this has Divine Shield. Avenge (3): Gain Divine Shield.",
+   "attack": 5,
+   "health": 4,
+   "golden": {
+    "id": "BG34_405_G",
+    "text": "Has Taunt while this has Divine Shield. Avenge (3): Gain Divine Shield.",
+    "attack": 10,
+    "health": 8
+   }
+  },
+  "BG34_604": {
+   "name": "Heroic Underdog",
+   "text": "Stealth Rally: Gain the target's Attack.",
+   "attack": 1,
+   "health": 10,
+   "golden": {
+    "id": "BG34_604_G",
+    "text": "Stealth Rally: Gain double the target's Attack.",
+    "attack": 2,
+    "health": 20
+   }
+  },
+  "BG34_633": {
+   "name": "Draconic Warden",
+   "text": "Battlecry and Deathrattle: Get a random Chromadrake.",
+   "attack": 7,
+   "health": 4,
+   "golden": {
+    "id": "BG34_633_G",
+    "text": "Battlecry and Deathrattle: Get 2 random Chromadrakes.",
+    "attack": 14,
+    "health": 8
+   }
+  },
+  "BG34_682": {
+   "name": "Razorfen Flapper",
+   "text": "Battlecry and Deathrattle: Get a Blood Gem Barrage.",
+   "attack": 5,
+   "health": 3,
+   "golden": {
+    "id": "BG34_682_G",
+    "text": "Battlecry and Deathrattle: Get 2 Blood Gem Barrages.",
+    "attack": 10,
+    "health": 6
+   }
+  },
+  "BG34_690": {
+   "name": "Plaguerunner",
+   "text": "Deathrattle: Your Undead have +2 Attack this game, wherever they are. (+4 if triggered outside combat!)",
+   "attack": 4,
+   "health": 2,
+   "golden": {
+    "id": "BG34_690_G",
+    "text": "Deathrattle: Your Undead have +4 Attack this game, wherever they are. (+8 if triggered outside combat!)",
+    "attack": 8,
+    "health": 4
+   }
+  },
+  "BG34_692": {
+   "name": "Forsaken Weaver",
+   "text": "After you cast a Tavern spell, your Undead have +3 Attack this game (wherever they are).",
+   "attack": 3,
+   "health": 8,
+   "golden": {
+    "id": "BG34_692_G",
+    "text": "After you cast a Tavern spell, your Undead have +6 Attack this game (wherever they are).",
+    "attack": 6,
+    "health": 16
+   }
+  },
+  "BG34_925": {
+   "name": "Seafloor Recruiter",
+   "text": "Rally: Cast Chef's Choice on the minion to the right.",
+   "attack": 3,
+   "health": 5,
+   "golden": {
+    "id": "BG34_925_G",
+    "text": "Rally: Cast Chef's Choice on the minion to the right twice.",
+    "attack": 6,
+    "health": 10
+   }
+  },
+  "BG34_Giant_001": {
+   "name": "Timewarped Busker",
+   "text": "Battlecry and Deathrattle: Gain 1 Gold next turn.",
+   "attack": 4,
+   "health": 2,
+   "golden": {
+    "id": "BG34_Giant_001_G",
+    "text": "Battlecry and Deathrattle: Gain 2 Gold next turn.",
+    "attack": 8,
+    "health": 4
+   }
+  },
+  "BG34_Giant_017": {
+   "name": "Timewarped Scourfin",
+   "text": "Taunt. Deathrattle: Give a random minion in your hand +7/+7 and summon it for this combat only.",
+   "attack": 7,
+   "health": 7,
+   "golden": {
+    "id": "BG34_Giant_017_G",
+    "text": "Taunt. Deathrattle: Give a random minion in your hand +14/+14 and summon it for this combat only.",
+    "attack": 14,
+    "health": 14
+   }
+  },
+  "BG34_Giant_041": {
+   "name": "Timewarped Greenskeeper",
+   "text": "Rally: Trigger your right-most Battlecry and Deathrattle.",
+   "attack": 5,
+   "health": 9,
+   "golden": {
+    "id": "BG34_Giant_041_G",
+    "text": "Rally: Trigger your right-most Battlecry and Deathrattle twice.",
+    "attack": 10,
+    "health": 18
+   }
+  },
+  "BG34_Giant_069": {
+   "name": "Timewarped Piper",
+   "text": "Whenever this takes damage, your Blood Gems give an extra +1 Attack this game. (3 times per combat.)",
+   "attack": 2,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_069_G",
+    "text": "Whenever this takes damage, your Blood Gems give an extra +2 Attack this game. (3 times per combat.)",
+    "attack": 4,
+    "health": 16
+   }
+  },
+  "BG34_Giant_071": {
+   "name": "Timewarped Bassgill",
+   "text": "Deathrattle: Summon the highest-Health minion from your hand and give it Divine Shield for this combat only.",
+   "attack": 7,
+   "health": 4,
+   "golden": {
+    "id": "BG34_Giant_071_G",
+    "text": "Deathrattle: Summon the 2 highest-Health minions from your hand and give them Divine Shield for this combat only.",
+    "attack": 14,
+    "health": 8
+   }
+  },
+  "BG34_Giant_081": {
+   "name": "Timewarped Deathswarmer",
+   "text": "Whenever this takes damage, your Undead have +1 Attack this game (wherever they are).",
+   "attack": 1,
+   "health": 9,
+   "golden": {
+    "id": "BG34_Giant_081_G",
+    "text": "Whenever this takes damage, your Undead have +2 Attack this game (wherever they are).",
+    "attack": 2,
+    "health": 18
+   }
+  },
+  "BG34_Giant_207": {
+   "name": "Timewarped Murcules",
+   "text": "Divine Shield Whenever this kills a minion, give the left-most minion in your hand +4/+4.",
+   "attack": 10,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_207_G",
+    "text": "Divine Shield Whenever this kills a minion, give the left-most minion in your hand +8/+8.",
+    "attack": 20,
+    "health": 10
+   }
+  },
+  "BG34_Giant_208": {
+   "name": "Timewarped Pagle",
+   "text": "Once per combat, when this attacks and kills a minion, get a Triple Reward.",
+   "attack": 8,
+   "health": 6,
+   "golden": {
+    "id": "BG34_Giant_208_G",
+    "text": "Once per combat, when this attacks and kills a minion, get 2 Triple Rewards.",
+    "attack": 16,
+    "health": 12
+   }
+  },
+  "BG34_Giant_306": {
+   "name": "Timewarped Jazzer",
+   "text": "Deathrattle: Your Blood Gems give an extra +2 Health this game.",
+   "attack": 5,
+   "health": 3,
+   "golden": {
+    "id": "BG34_Giant_306_G",
+    "text": "Deathrattle: Your Blood Gems give an extra +4 Health this game.",
+    "attack": 10,
+    "health": 6
+   }
+  },
+  "BG34_Giant_328": {
+   "name": "Timewarped Tide Razor",
+   "text": "Deathrattle: Summon and get 4 random Pirates.",
+   "attack": 12,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_328_G",
+    "text": "Deathrattle: Summon and get 8 random Pirates.",
+    "attack": 24,
+    "health": 16
+   }
+  },
+  "BG34_Giant_331": {
+   "name": "Timewarped Warghoul",
+   "text": "Taunt. Deathrattle: Trigger an adjacent minion's Deathrattle (except Timewarped Warghoul).",
+   "attack": 9,
+   "health": 3,
+   "golden": {
+    "id": "BG34_Giant_331_G",
+    "text": "Taunt. Deathrattle: Trigger adjacent minions' Deathrattles (except Timewarped Warghoul).",
+    "attack": 18,
+    "health": 6
+   }
+  },
+  "BG34_Giant_342": {
+   "name": "Timewarped Hag",
+   "text": "Start of Combat: Give the Undead to the right Reborn and \"This is Reborn with full Health and enchantments\".",
+   "attack": 6,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_342_G",
+    "text": "Start of Combat: Give adjacent Undead Reborn and \"This is Reborn with full Health and enchantments\".",
+    "attack": 12,
+    "health": 16
+   }
+  },
+  "BG34_Giant_581": {
+   "name": "Timewarped Hyena",
+   "text": "Whenever a friendly Beast dies, gain +2/+2 permanently.",
+   "attack": 3,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_581_G",
+    "text": "Whenever a friendly Beast dies, gain +4/+4 permanently.",
+    "attack": 6,
+    "health": 10
+   }
+  },
+  "BG34_Giant_595": {
+   "name": "Timewarped Tamuzo",
+   "text": "After you summon a minion in combat, double its stats.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_595_G",
+    "text": "After you summon a minion in combat, triple its stats.",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG34_Giant_608": {
+   "name": "Timewarped Lil' Quilboar",
+   "text": "Reborn Deathrattle: This plays 3 Blood Gems on all your Quilboar.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_608_G",
+    "text": "Reborn Deathrattle: This plays 6 Blood Gems on all your Quilboar.",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG34_Giant_618": {
+   "name": "Timewarped Caretaker",
+   "text": "Deathrattle: Summon five 1/1 Skeletons. Any that don't fit give your Undead +1 Attack this game (wherever they are).",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_618_G",
+    "text": "Deathrattle: Summon ten 1/1 Skeletons. Any that don't fit give your Undead +1 Attack this game (wherever they are).",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG34_Giant_644": {
+   "name": "Timewarped Gemsplitter",
+   "text": "Divine Shield. After a friendly minion loses Divine Shield, your Blood Gems give an extra +1 Attack this game.",
+   "attack": 5,
+   "health": 10,
+   "golden": {
+    "id": "BG34_Giant_644_G",
+    "text": "Divine Shield. After a friendly minion loses Divine Shield, your Blood Gems give an extra +2 Attack this game.",
+    "attack": 10,
+    "health": 20
+   }
+  },
+  "BG34_Giant_654": {
+   "name": "Timewarped Deadstomper",
+   "text": "After you summon a minion, give your minions +4 Attack permanently.",
+   "attack": 6,
+   "health": 12,
+   "golden": {
+    "id": "BG34_Giant_654_G",
+    "text": "After you summon a minion, give your minions +8 Attack permanently.",
+    "attack": 12,
+    "health": 24
+   }
+  },
+  "BG34_Giant_674": {
+   "name": "Timewarped Icky Imp",
+   "text": "Deathrattle: Summon 2 Imps with this minion's maximum stats.",
+   "attack": 12,
+   "health": 12,
+   "golden": {
+    "id": "BG34_Giant_674_G",
+    "text": "Deathrattle: Summon 4 Imps with this minion's maximum stats.",
+    "attack": 24,
+    "health": 24
+   }
+  },
+  "BG34_Giant_679": {
+   "name": "Timewarped Chimera",
+   "text": "Whenever this takes damage, give a friendly minion of each type +2/+1 permanently.",
+   "attack": 1,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_679_G",
+    "text": "Whenever this takes damage, give a friendly minion of each type +2/+1 permanently, twice.",
+    "attack": 2,
+    "health": 16
+   }
+  },
+  "BG34_Giant_680": {
+   "name": "Timewarped Collector",
+   "text": "Also damages adjacent minions. Rally: If you control 4 Golden minions, gain Divine Shield.",
+   "attack": 12,
+   "health": 12,
+   "golden": {
+    "id": "BG34_Giant_680_G",
+    "text": "Also damages adjacent minions. Rally: If you control 4 Golden minions, gain Divine Shield.",
+    "attack": 24,
+    "health": 24
+   }
+  },
+  "BG34_Giant_687": {
+   "name": "Timewarped Nest Swarmer",
+   "text": "Battlecry, Deathrattle, and Rally: Your Beetles have +2/+2 this game. Summon a 2/2 Beetle.",
+   "attack": 7,
+   "health": 7,
+   "golden": {
+    "id": "BG34_Giant_687_G",
+    "text": "Battlecry, Deathrattle, and Rally: Your Beetles have +4/+4 this game. Summon two 2/2 Beetles.",
+    "attack": 14,
+    "health": 14
+   }
+  },
+  "BG34_PreMadeChamp_004": {
+   "name": "Timewarped Jungle King",
+   "text": "Stealth After you summon a Beast, give it +4/+3. Improves after you cast a spell.",
+   "attack": 8,
+   "health": 12,
+   "golden": {
+    "id": "BG34_PreMadeChamp_004_G",
+    "text": "Stealth After you summon a Beast, give it +8/+6. Improves after you cast a spell.",
+    "attack": 16,
+    "health": 24
+   }
+  },
+  "BG34_PreMadeChamp_020": {
+   "name": "Timewarped Duskmaw",
+   "text": "Avenge (1): Give your Dragons +6/+4.",
+   "attack": 6,
+   "health": 14,
+   "golden": {
+    "id": "BG34_PreMadeChamp_020_G",
+    "text": "Avenge (1): Give your Dragons +12/+8.",
+    "attack": 12,
+    "health": 28
+   }
+  },
+  "BG35_342": {
+   "name": "Falling Sky Golem",
+   "text": "Divine Shield. Has +4/+2 for each Deathrattle you've triggered this game (wherever this is).",
+   "attack": 4,
+   "health": 2,
+   "golden": {
+    "id": "BG35_342_G",
+    "text": "Divine Shield. Has +8/+4 for each Deathrattle you've triggered this game (wherever this is).",
+    "attack": 8,
+    "health": 4
+   }
+  },
+  "BG35_602": {
+   "name": "Lurking Leviathan",
+   "text": "Whenever you summon a Beast, give it +3 Attack and improve this permanently.",
+   "attack": 3,
+   "health": 9,
+   "golden": {
+    "id": "BG35_602_G",
+    "text": "Whenever you summon a Beast, give it +6 Attack and improve this permanently.",
+    "attack": 6,
+    "health": 18
+   }
+  },
+  "BG35_604": {
+   "name": "Sewer Lord",
+   "text": "Deathrattle: Summon two Sewer Rats that summon 2/3 Turtles with Taunt.",
+   "attack": 4,
+   "health": 6,
+   "golden": {
+    "id": "BG35_604_G",
+    "text": "Deathrattle: Summon two Golden Sewer Rats that summon 4/6 Turtles with Taunt.",
+    "attack": 8,
+    "health": 12
+   }
+  },
+  "BG35_814": {
+   "name": "Scarlet Survivor",
+   "text": "Once this reaches 6 Attack, gain Divine Shield.",
+   "attack": 3,
+   "health": 3,
+   "golden": {
+    "id": "BG35_814_G",
+    "text": "Once this reaches 6 Attack, gain Divine Shield.",
+    "attack": 6,
+    "health": 6
+   }
+  },
+  "BG35_881": {
+   "name": "Leyline Surfacer",
+   "text": "Battlecry and Deathrattle: Get an Arcane Absorption.",
+   "attack": 4,
+   "health": 6,
+   "golden": {
+    "id": "BG35_881_G",
+    "text": "Battlecry and Deathrattle: Get 2 Arcane Absorptions.",
+    "attack": 8,
+    "health": 12
+   }
+  },
+  "BG35_883": {
+   "name": "Balinda Stonehearth",
+   "text": "Your spells that target friendly minions cast twice.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "BG35_883_G",
+    "text": "Your spells that target friendly minions cast three times.",
+    "attack": 12,
+    "health": 12
+   }
+  },
+  "BG35_921": {
+   "name": "Abyssal Bruiser",
+   "text": "Divine Shield Has +2/+1 for each Tavern spell you've cast this game.",
+   "attack": 2,
+   "health": 1,
+   "golden": {
+    "id": "BG35_921_G",
+    "text": "Divine Shield Has +4/+2 for each Tavern spell you've cast this game.",
+    "attack": 4,
+    "health": 2
+   }
+  },
+  "BG35_MagicItem_710": {
+   "name": "Miniature Ship",
+   "text": "After you cast a Tavern spell, give your Pirates +4/+4.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_101": {
+   "name": "Unwilling Slacker",
+   "text": "Deathrattle: Get a random 1-Cost Tavern spell.",
+   "attack": 3,
+   "health": 2,
+   "golden": {
+    "id": "BG36_101_G",
+    "text": "Deathrattle: Get two random 1-Cost Tavern spells.",
+    "attack": 6,
+    "health": 4
+   }
+  },
+  "BG36_102": {
+   "name": "De-volition-ist",
+   "text": "After this attacks, deal damage equal to this minion's Attack to the highest- Health enemy minion.",
+   "attack": 4,
+   "health": 8,
+   "golden": {
+    "id": "BG36_102_G",
+    "text": "After this attacks, deal damage equal to double this minion's Attack to the highest- Health enemy minion.",
+    "attack": 8,
+    "health": 16
+   }
+  },
+  "BG36_103": {
+   "name": "N'raqi Sapper",
+   "text": "Battlecry and Deathrattle: Get an Energizing Chamber.",
+   "attack": 6,
+   "health": 3,
+   "golden": {
+    "id": "BG36_103_G",
+    "text": "Battlecry and Deathrattle: Get 2 Energizing Chambers.",
+    "attack": 12,
+    "health": 6
+   }
+  },
+  "BG36_108": {
+   "name": "Vicious Mindslasher",
+   "text": "Whenever you cast a Tavern spell, give this and your Deity +1/+2.",
+   "attack": 1,
+   "health": 2,
+   "golden": {
+    "id": "BG36_108_G",
+    "text": "Whenever you cast a Tavern spell, give this and your Deity +2/+4.",
+    "attack": 2,
+    "health": 4
+   }
+  },
+  "BG36_109": {
+   "name": "The Shadow of Doubt",
+   "text": "Whenever a card is added to your hand, give your Deity +4/+5.",
+   "attack": 6,
+   "health": 8,
+   "golden": {
+    "id": "BG36_109_G",
+    "text": "Whenever a card is added to your hand, give your Deity +8/+10.",
+    "attack": 12,
+    "health": 16
+   }
+  },
+  "BG36_110": {
+   "name": "Joyous",
+   "text": "Battlecry: Give your Deity +2/+1.",
+   "attack": 2,
+   "health": 3,
+   "golden": {
+    "id": "BG36_110_G",
+    "text": "Battlecry: Give your Deity +4/+2.",
+    "attack": 4,
+    "health": 6
+   }
+  },
+  "BG36_111": {
+   "name": "Sha of Fear",
+   "text": "Whenever you cast a Tavern spell, give your minions and Deity +3/+3.",
+   "attack": 10,
+   "health": 13,
+   "golden": {
+    "id": "BG36_111_G",
+    "text": "Whenever you cast a Tavern spell, give your minions and Deity +6/+6.",
+    "attack": 20,
+    "health": 26
+   }
+  },
+  "BG36_113": {
+   "name": "Drifting Sacrifice",
+   "text": "Reborn Deathrattle: Give your Deity +2/+1.",
+   "attack": 2,
+   "health": 1,
+   "golden": {
+    "id": "BG36_113_G",
+    "text": "Reborn Deathrattle: Give your Deity +4/+2.",
+    "attack": 4,
+    "health": 2
+   }
+  },
+  "BG36_116": {
+   "name": "Underrot Spawn",
+   "text": "Deathrattle: Summon an 0/2 Tentacle with Taunt. Give your minions +1 Attack.",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "BG36_116_G",
+    "text": "Deathrattle: Summon two 0/2 Tentacles with Taunt. Give your minions +2 Attack.",
+    "attack": 4,
+    "health": 4
+   }
+  },
+  "BG36_200": {
+   "name": "Flittering Bat",
+   "text": "Rally: Summon a 1/1 Beast.",
+   "attack": 1,
+   "health": 4,
+   "golden": {
+    "id": "BG36_200_G",
+    "text": "Rally: Summon two 1/1 Beasts.",
+    "attack": 2,
+    "health": 8
+   }
+  },
+  "BG36_200t": {
+   "name": "Foraging Bat",
+   "text": "",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BG36_200_Gt",
+    "text": "",
+    "attack": 2,
+    "health": 2
+   }
+  },
+  "BG36_202": {
+   "name": "Tasty Lobster",
+   "text": "Deathrattle: Give a random friendly Beast +2/+1. Improve your future Tasty Lobsters.",
+   "attack": 2,
+   "health": 1,
+   "golden": {
+    "id": "BG36_202_G",
+    "text": "Deathrattle: Give a random friendly Beast +4/+2. Improve your future Tasty Lobsters.",
+    "attack": 4,
+    "health": 2
+   }
+  },
+  "BG36_204": {
+   "name": "Headhunter Gryphon",
+   "text": "Rally: Get a random Beast.",
+   "attack": 3,
+   "health": 5,
+   "golden": {
+    "id": "BG36_204_G",
+    "text": "Rally: Get 2 random Beasts.",
+    "attack": 6,
+    "health": 10
+   }
+  },
+  "BG36_205": {
+   "name": "Fishbait",
+   "text": "This can't gain stats. Deathrattle: Give the minion that killed this +5/+5.",
+   "attack": 0,
+   "health": 1,
+   "golden": {
+    "id": "BG36_205_G",
+    "text": "This can't gain stats. Deathrattle: Give the minion that killed this +10/+10.",
+    "attack": 0,
+    "health": 2
+   }
+  },
+  "BG36_207": {
+   "name": "Wolf Pup",
+   "text": "Rally: Give your other minions +4/+1.",
+   "attack": 3,
+   "health": 6,
+   "golden": {
+    "id": "BG36_207_G",
+    "text": "Rally: Give your other minions +8/+2.",
+    "attack": 6,
+    "health": 12
+   }
+  },
+  "BG36_208": {
+   "name": "Deathstrider",
+   "text": "After a friendly Rally minion attacks, trigger your left-most Deathrattle.",
+   "attack": 10,
+   "health": 11,
+   "golden": {
+    "id": "BG36_208_G",
+    "text": "After a friendly Rally minion attacks, trigger your left-most Deathrattle twice.",
+    "attack": 20,
+    "health": 22
+   }
+  },
+  "BG36_209": {
+   "name": "Ravaging Scorpid",
+   "text": "After a friendly minion attacks, your Beetles have +4/+4 this game. Deathrattle: Summon a 2/2 Beetle.",
+   "attack": 6,
+   "health": 7,
+   "golden": {
+    "id": "BG36_209_G",
+    "text": "After a friendly minion attacks, your Beetles have +8/+8 this game. Deathrattle: Summon two 2/2 Beetles.",
+    "attack": 12,
+    "health": 14
+   }
+  },
+  "BG36_210": {
+   "name": "Hoarding Hyena",
+   "text": "Rally: Summon a Tasty Lobster.",
+   "attack": 4,
+   "health": 6,
+   "golden": {
+    "id": "BG36_210_G",
+    "text": "Rally: Summon a Golden Tasty Lobster.",
+    "attack": 8,
+    "health": 12
+   }
+  },
+  "BG36_211": {
+   "name": "Cage Gnawer",
+   "text": "Whenever a friendly Beast attacks, give your Beasts +2/+1.",
+   "attack": 2,
+   "health": 7,
+   "golden": {
+    "id": "BG36_211_G",
+    "text": "Whenever a friendly Beast attacks, give your Beasts +4/+2.",
+    "attack": 4,
+    "health": 14
+   }
+  },
+  "BG36_241": {
+   "name": "Crimson Vindicator",
+   "text": "Divine Shield. Windfury. Rally: Cast Mighty Dragonbreath.",
+   "attack": 9,
+   "health": 7,
+   "golden": {
+    "id": "BG36_241_G",
+    "text": "Divine Shield. Windfury, Rally: Cast Mighty Dragonbreath twice.",
+    "attack": 18,
+    "health": 14
+   }
+  },
+  "BG36_242": {
+   "name": "Bronze Timewalker",
+   "text": "Rally: Get a random Chromadrake.",
+   "attack": 4,
+   "health": 5,
+   "golden": {
+    "id": "BG36_242_G",
+    "text": "Rally: Get 2 random Chromadrakes.",
+    "attack": 8,
+    "health": 10
+   }
+  },
+  "BG36_246": {
+   "name": "Mighty Dragonbreath",
+   "text": "Give your minions +3/+2. Repeat for your Dragons. Repeat for your minions with Divine Shield.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_318": {
+   "name": "Faceless Converter",
+   "text": "Deathrattle: Give your Deity +2/+1. (Improved by each Tavern spell you've cast this game!)",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG36_318_G",
+    "text": "Deathrattle: Give your Deity +4/+2. (Improved by each Tavern spell you've cast this game!)",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG36_331": {
+   "name": "Bramble Tunneler",
+   "text": "Rally: Get a random Choose One card.",
+   "attack": 3,
+   "health": 6,
+   "golden": {
+    "id": "BG36_331_G",
+    "text": "Rally: Get 2 random Choose One cards.",
+    "attack": 6,
+    "health": 12
+   }
+  },
+  "BG36_333": {
+   "name": "Jailbird Juggernaut",
+   "text": "Rally: Summon a Golem with this minion's stats to attack the target first.",
+   "attack": 13,
+   "health": 17,
+   "golden": {
+    "id": "BG36_333_G",
+    "text": "Rally: Summon a Golem with double this minion's stats to attack the target first.",
+    "attack": 26,
+    "health": 34
+   }
+  },
+  "BG36_360": {
+   "name": "Dark Paradox",
+   "text": "This has a different Dark Gift, stats, and Tier each game!",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BG36_360_G",
+    "text": "This has a different Dark Gift, stats, and Tier each game!",
+    "attack": 1,
+    "health": 1
+   }
+  },
+  "BG36_360_Gt4": {
+   "name": "Dark Paradox",
+   "text": "Divine Shield This minion's Divine Shield takes 4 hits to break.",
+   "attack": 16,
+   "health": 8
+  },
+  "BG36_360_Gt6": {
+   "name": "Dark Paradox",
+   "text": "Has +8/+8 for each Battlecry you've triggered this game (wherever this is).",
+   "attack": 8,
+   "health": 8
+  },
+  "BG36_360_Gt9": {
+   "name": "Dark Paradox",
+   "text": "Deathrattle: Summon a Golem with double this minion's stats.",
+   "attack": 20,
+   "health": 4
+  },
+  "BG36_360t4": {
+   "name": "Dark Paradox",
+   "text": "Divine Shield This minion's Divine Shield takes 3 hits to break.",
+   "attack": 8,
+   "health": 4,
+   "golden": {
+    "id": "BG36_360_Gt4",
+    "text": "Divine Shield This minion's Divine Shield takes 4 hits to break.",
+    "attack": 16,
+    "health": 8
+   }
+  },
+  "BG36_360t6": {
+   "name": "Dark Paradox",
+   "text": "Has +4/+4 for each Battlecry you've triggered this game (wherever this is).",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "BG36_360_Gt6",
+    "text": "Has +8/+8 for each Battlecry you've triggered this game (wherever this is).",
+    "attack": 8,
+    "health": 8
+   }
+  },
+  "BG36_360t9": {
+   "name": "Dark Paradox",
+   "text": "Deathrattle: Summon a Golem with this minion's stats.",
+   "attack": 10,
+   "health": 2,
+   "golden": {
+    "id": "BG36_360_Gt9",
+    "text": "Deathrattle: Summon a Golem with double this minion's stats.",
+    "attack": 20,
+    "health": 4
+   }
+  },
+  "BG36_514": {
+   "name": "Barrier Banshee",
+   "text": "After a friendly minion is Reborn, gain Divine Shield and +8/+8.",
+   "attack": 8,
+   "health": 8,
+   "golden": {
+    "id": "BG36_514_G",
+    "text": "After a friendly minion is Reborn, gain Divine Shield and +16/+16.",
+    "attack": 16,
+    "health": 16
+   }
+  },
+  "BG36_515": {
+   "name": "Snazzy Phantom",
+   "text": "After a friendly minion is Reborn, give stats equal to its Attack to your right-most Undead.",
+   "attack": 6,
+   "health": 8,
+   "golden": {
+    "id": "BG36_515_G",
+    "text": "After a friendly minion is Reborn, give stats equal to double its Attack to your right-most Undead.",
+    "attack": 12,
+    "health": 16
+   }
+  },
+  "BG36_622": {
+   "name": "Torrential Ruiner",
+   "text": "Whenever you cast a spell on a Naga, give your minions +2/+3.",
+   "attack": 6,
+   "health": 3,
+   "golden": {
+    "id": "BG36_622_G",
+    "text": "Whenever you cast a spell on a Naga, give your minions +4/+6.",
+    "attack": 12,
+    "health": 6
+   }
+  },
+  "BG36_640": {
+   "name": "Gatekeeper Amalgam",
+   "text": "Whenever you cast a spell on this, it casts Misplaced Tea Set.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "BG36_640_G",
+    "text": "Whenever you cast a spell on this, it casts Misplaced Tea Set twice.",
+    "attack": 12,
+    "health": 12
+   }
+  },
+  "BG36_703": {
+   "name": "Twilight Tidehunter",
+   "text": "Whenever you cast a spell on this, give the left-most minion in your hand +9/+9.",
+   "attack": 3,
+   "health": 7,
+   "golden": {
+    "id": "BG36_703_G",
+    "text": "Whenever you cast a spell on this, give the left-most minion in your hand +18/+18.",
+    "attack": 6,
+    "health": 14
+   }
+  },
+  "BG36_704": {
+   "name": "Shamanic Tidecaller",
+   "text": "Whenever you cast a spell on a Murloc, give Murlocs in your hand and board +3/+4.",
+   "attack": 6,
+   "health": 9,
+   "golden": {
+    "id": "BG36_704_G",
+    "text": "Whenever you cast a spell on a Murloc, give Murlocs in your hand and board +6/+8.",
+    "attack": 12,
+    "health": 18
+   }
+  },
+  "BG36_731": {
+   "name": "Imp-lusionist",
+   "text": "Deathrattle: Get a Methodical Madness.",
+   "attack": 4,
+   "health": 2,
+   "golden": {
+    "id": "BG36_731_G",
+    "text": "Deathrattle: Get 2 copies of Methodical Madness.",
+    "attack": 8,
+    "health": 4
+   }
+  },
+  "BG36_848": {
+   "name": "Lichling Hoarder",
+   "text": "Avenge (3): Get a plain copy of a minion that started in your warband this combat.",
+   "attack": 6,
+   "health": 9,
+   "golden": {
+    "id": "BG36_848_G",
+    "text": "Avenge (3): Get 2 plain copies of a minion that started in your warband this combat.",
+    "attack": 12,
+    "health": 18
+   }
+  },
+  "BG36_849": {
+   "name": "Heroic Broodmother",
+   "text": "Rally: Gain Divine Shield. Start of Combat: Attack immediately.",
+   "attack": 7,
+   "health": 7,
+   "golden": {
+    "id": "BG36_849_G",
+    "text": "Rally: Gain Divine Shield. Start of Combat: Attack immediately twice.",
+    "attack": 14,
+    "health": 14
+   }
+  },
+  "BG36_853": {
+   "name": "Glambot",
+   "text": "Whenever you cast a spell on a Mech, Magnetize a 5/5 Satellite to it.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG36_853_G",
+    "text": "Whenever you cast a spell on a Mech, Magnetize a 5/5 Satellite to it twice.",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG36_854": {
+   "name": "Rescue Bot",
+   "text": "Taunt Deathrattle: Get a Repair Job.",
+   "attack": 2,
+   "health": 1,
+   "golden": {
+    "id": "BG36_854_G",
+    "text": "Taunt Deathrattle: Get 2 Repair Jobs.",
+    "attack": 4,
+    "health": 2
+   }
+  },
+  "BG36_921": {
+   "name": "Fleeing Fugitive",
+   "text": "Whenever you cast a spell on this, gain +1 Health.",
+   "attack": 5,
+   "health": 2,
+   "golden": {
+    "id": "BG36_921_G",
+    "text": "Whenever you cast a spell on this, gain +2 Health.",
+    "attack": 10,
+    "health": 4
+   }
+  },
+  "BG36_MagicItem_211": {
+   "name": "Lovely Locket",
+   "text": "After you cast a spell on a friendly minion, this casts it on another friendly minion.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_404": {
+   "name": "Corrupted Baton",
+   "text": "After you cast a Tavern spell, give your Deity +4/+4.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_404t": {
+   "name": "Corrupted Baton",
+   "text": "After you cast a Tavern spell, give your Deity +10/+10.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MagicItem_820": {
+   "name": "Flighty Portrait",
+   "text": "Get a Flighty Scout. After you cast a Tavern spell, give Flighty Scouts in your hand and warband +3/+3.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t12e": {
+   "name": "Persisting Horror",
+   "text": "Reborn. Is Reborn with full stats and Bonus Keywords.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t15e": {
+   "name": "Toreth's Blessing",
+   "text": "This minion's Divine Shield takes 3 hits to break.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t29e": {
+   "name": "Death's Embrace",
+   "text": "Has +2/+2 for each Deathrattle you've triggered this game. (0)",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t29te": {
+   "name": "Death's Embrace",
+   "text": "Has +1/+1 for each Deathrattle you've triggered this game. (0)",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t2e2": {
+   "name": "Defensive Sacrifice",
+   "text": "Deathrattle: Give this minion's max Health to another friendly minion.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t60e": {
+   "name": "Invulnerability",
+   "text": "Immune while attacking.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t61e": {
+   "name": "Golemancy",
+   "text": "Deathrattle: Summon a Golem with this minion's stats.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000te2": {
+   "name": "Offensive Sacrifice",
+   "text": "Deathrattle: Give this minion's Attack to another friendly minion.",
+   "attack": null,
+   "health": null
+  },
+  "BGDUO31_208": {
+   "name": "San'layn Scribe",
+   "text": "Has +4/+4 for each of your team's San'layn Scribes that died this game (wherever this is).",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "BGDUO31_208_G",
+    "text": "Has +8/+8 for each of your team's San'layn Scribes that died this game (wherever this is).",
+    "attack": 8,
+    "health": 8
+   }
+  },
+  "BGDUO_111": {
+   "name": "Generous Geomancer",
+   "text": "Deathrattle: You and your teammate each get a Blood Gem.",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BGDUO_111_G",
+    "text": "Deathrattle: You and your teammate each get 2 Blood Gems.",
+    "attack": 2,
+    "health": 2
+   }
+  },
+  "BGDUO_701": {
+   "name": "C'Thrax Wrecker",
+   "text": "Battlecry, Deathrattle, and Rally: Give your team's Deities +4/+4.",
+   "attack": 8,
+   "health": 8,
+   "golden": {
+    "id": "BGDUO_701_G",
+    "text": "Battlecry, Deathrattle, and Rally: Give your team's Deities +8/+8.",
+    "attack": 16,
+    "health": 16
+   }
+  },
+  "BGFYM_000": {
+   "name": "C'Thun",
+   "text": "Deity. After this awakens, give this minion's stats split amongst your other minions.",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BGFYM_000_G",
+    "text": "Deity. After this awakens, give double this minion's stats split amongst your other minions.",
+    "attack": 2,
+    "health": 2
+   }
+  },
+  "BGFYM_002t": {
+   "name": "Aberrant Tentacle",
+   "text": "Taunt",
+   "attack": 0,
+   "health": 2,
+   "golden": {
+    "id": "BGFYM_002t_G",
+    "text": "Taunt",
+    "attack": 0,
+    "health": 4
+   }
+  },
+  "BGFYM_011": {
+   "name": "Y'Shaarj",
+   "text": "Deity. Deathrattle: Summon your first 2 Aberrations that died this combat with their maximum stats (except Deities).",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BGFYM_011_G",
+    "text": "Deity. Deathrattle: Summon your first 4 Aberrations that died this combat with their maximum stats (except Deities).",
+    "attack": 2,
+    "health": 2
+   }
+  },
+  "BGS_008": {
+   "name": "Ghastcoiler",
+   "text": "Deathrattle: Summon 2 random Deathrattle minions.",
+   "attack": 7,
+   "health": 7,
+   "golden": {
+    "id": "TB_BaconUps_057",
+    "text": "Deathrattle: Summon 4 random Deathrattle minions.",
+    "attack": 14,
+    "health": 14
+   }
+  },
+  "BGS_018": {
+   "name": "Goldrinn, the Great Wolf",
+   "text": "Deathrattle: Your Beasts have +7/+7 until next turn.",
+   "attack": 7,
+   "health": 7,
+   "golden": {
+    "id": "TB_BaconUps_085",
+    "text": "Deathrattle: Your Beasts have +14/+14 until next turn.",
+    "attack": 14,
+    "health": 14
+   }
+  },
+  "BGS_040": {
+   "name": "Nadina the Red",
+   "text": "Deathrattle: Give 3 friendly Dragons Divine Shield.",
+   "attack": 8,
+   "health": 4,
+   "golden": {
+    "id": "TB_BaconUps_154",
+    "text": "Deathrattle: Give 6 friendly Dragons Divine Shield.",
+    "attack": 16,
+    "health": 8
+   }
+  },
+  "BGS_041": {
+   "name": "Kalecgos, Arcane Aspect",
+   "text": "After you trigger a Battlecry, give your Dragons +2/+2.",
+   "attack": 4,
+   "health": 12,
+   "golden": {
+    "id": "TB_BaconUps_109",
+    "text": "After you trigger a Battlecry, give your Dragons +4/+4.",
+    "attack": 8,
+    "health": 24
+   }
+  },
+  "BGS_126": {
+   "name": "Wildfire Elemental",
+   "text": "After this attacks and kills a minion, deal excess damage to an adjacent enemy.",
+   "attack": 6,
+   "health": 3,
+   "golden": {
+    "id": "TB_BaconUps_166",
+    "text": "After this attacks and kills a minion, deal excess damage to both adjacent enemies.",
+    "attack": 12,
+    "health": 6
+   }
+  },
+  "BG_BOT_312t": {
+   "name": "Microbot",
+   "text": "",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "TB_BaconUps_032t",
+    "text": "",
+    "attack": 2,
+    "health": 2
+   }
+  },
+  "BG_ICC_026t": {
+   "name": "Skeleton",
+   "text": "",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BG_ICC_026t_G",
+    "text": "",
+    "attack": 2,
+    "health": 2
+   }
+  },
+  "BG_LOE_077": {
+   "name": "Brann Bronzebeard",
+   "text": "Your Battlecries trigger twice.",
+   "attack": 2,
+   "health": 4,
+   "golden": {
+    "id": "TB_BaconUps_045",
+    "text": "Your Battlecries trigger three times.",
+    "attack": 4,
+    "health": 8
+   }
+  },
+  "TB_BaconShop_HERO_33_Buddy": {
+   "name": "Mishmash",
+   "text": "Whenever your Amalgam gains stats, this gains them too.",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "TB_BaconShop_HERO_33_Buddy_G",
+    "text": "Whenever your Amalgam gains stats, this gains them twice.",
+    "attack": 8,
+    "health": 8
+   }
+  },
+  "TB_BaconShop_HP_033t": {
+   "name": "Amalgam",
+   "text": "Venomous",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "TB_BaconShop_HP_033t_G",
+    "text": "Venomous",
+    "attack": 4,
+    "health": 4
+   }
+  }
+ }
+}

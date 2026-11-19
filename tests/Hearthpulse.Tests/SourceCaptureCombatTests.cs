@@ -231,7 +231,11 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Assert.All(Enum.GetValues<Keyword>(), k => Assert.Equal(0, (int)k & ~SourceCaptureCombat.BaseKeywordMask));
         Assert.All(Enum.GetValues<CardMechanic>(), m => Assert.Equal(0, (int)m & ~SourceCaptureCombat.MechanicMask));
         Assert.Equal(CombatRelevance.EffectMarkers(_ => true), SourceCaptureCombat.Markers);
-        Assert.Equal(CombatEffect.CapturedTags.Order(StringComparer.Ordinal), SourceCaptureCombat.CardTags.Order(StringComparer.Ordinal));
+        // The wire sends a subset of the card tags the capture keeps: SCORE_VALUE_1/2 (Avenge X and progress of hero powers
+        // and trinkets, E3) stay local until the pool's validation takes them (a server change; an older pool would refuse
+        // the whole fight). Without them a pool replay starts that Avenge from 0.
+        Assert.Subset(CombatEffect.CapturedTags.ToHashSet(StringComparer.Ordinal), SourceCaptureCombat.CardTags.ToHashSet(StringComparer.Ordinal));
+        Assert.Equal(["SCORE_VALUE_1", "SCORE_VALUE_2"], CombatEffect.CapturedTags.Except(SourceCaptureCombat.CardTags, StringComparer.Ordinal).Order(StringComparer.Ordinal));
         var stored = typeof(BattlegroundsTracker).Assembly.GetType("Hearthpulse.Core.Tracking.CombatCaptureStore")!
             .GetField("CounterTags", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null) as IEnumerable<string>;
         Assert.Equal(stored!.Order(StringComparer.Ordinal), SourceCaptureCombat.PlayerTags.Order(StringComparer.Ordinal));

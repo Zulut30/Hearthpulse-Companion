@@ -90,6 +90,50 @@ public sealed class DeityTests
     }
 
     [Fact]
+    public void Cthun_splits_its_stats_evenly_as_in_the_real_log()
+    {
+        // Real log 15.11.2026 (build 255790, game 2): C'Thun awakened as 726/793 with three other minions; each got
+        // +242/+264 and the remaining 1 Health went to the left-most one. Here the four 0/1 Aberrations die to their 1/1,
+        // C'Thun awakens with the player's 726/793 and the walls get +242/+265, +242/+264, +242/+264. The left wall's
+        // Divine Shield takes the 1/1's hit when it attacks, so the stats stay as given.
+        var ours = DeitySide(
+            Tokens.CThunId, 726, 793,
+            Minion(0, 1, cardId: "AB1", tribes: Tribe.Aberration),
+            Minion(0, 1, cardId: "AB2", tribes: Tribe.Aberration),
+            Minion(0, 1, cardId: "AB3", tribes: Tribe.Aberration),
+            Minion(0, 1, cardId: "AB4", tribes: Tribe.Aberration),
+            Minion(0, 100, Keyword.DivineShield, "W1"),
+            Minion(0, 100, cardId: "W2"),
+            Minion(0, 100, cardId: "W3"));
+
+        var result = Fight(ours, Side(Minion(1, 1)), oursFirst: false, Effects(typeof(CThun)));
+
+        Assert.Equal(1, result.Outcome);
+        Assert.Equal([(242, 365), (242, 364), (242, 364), (726, 793)], Stats(result.Ours));
+    }
+
+    [Fact]
+    public void Cthun_gives_a_small_remainder_to_the_left_most_minions()
+    {
+        // 2/7 split among three: Attack 0 each + 1 to the first two, Health 2 each + 1 to the first. W1 +1/+3 (Divine
+        // Shield takes the 1/1's hit), W2 +1/+2, W3 +0/+2.
+        var ours = DeitySide(
+            Tokens.CThunId, 2, 7,
+            Minion(0, 1, cardId: "AB1", tribes: Tribe.Aberration),
+            Minion(0, 1, cardId: "AB2", tribes: Tribe.Aberration),
+            Minion(0, 1, cardId: "AB3", tribes: Tribe.Aberration),
+            Minion(0, 1, cardId: "AB4", tribes: Tribe.Aberration),
+            Minion(0, 100, Keyword.DivineShield, "W1"),
+            Minion(0, 100, cardId: "W2"),
+            Minion(0, 100, cardId: "W3"));
+
+        var result = Fight(ours, Side(Minion(1, 1)), oursFirst: false, Effects(typeof(CThun)));
+
+        Assert.Equal(1, result.Outcome);
+        Assert.Equal([(1, 103), (1, 102), (0, 102), (2, 7)], Stats(result.Ours));
+    }
+
+    [Fact]
     public void Reported_aberration_board_with_yshaarj_is_not_a_certain_loss()
     {
         // The exact turn-3 board from the reported game: three Aberrations vs a 9/7 and a 3/3. Underrot Spawn's token is

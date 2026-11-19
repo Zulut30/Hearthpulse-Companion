@@ -4,12 +4,13 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 /// Relentless Deflector (BG34_405): "Has Taunt while this has Divine Shield. Avenge (3): Gain Divine Shield." Golden: same
 /// text. Taunt follows Divine Shield: it goes when the shield breaks and comes back with the Avenge shield. A Deflector
 /// captured with Taunt but no Divine Shield got its Taunt from something else and keeps it. Avenge counts friendly
-/// deaths from the start of the fight (engine rule).
+/// deaths from the start of the fight (engine rule). The X of Avenge (X) is the captured TAG_SCRIPT_DATA_NUM_1
+/// (real log 15.11.2026: 3, unchanged while it counts), else the printed 3.
 /// </summary>
 [CardEffect("BG34_405")]
 internal sealed class RelentlessDeflector : AvengeEffect
 {
-    protected override int Threshold(Unit self) => 3;
+    protected override int Threshold(Unit self) => Deaths.DeathKit.Shown1(self, 3, 3);
 
     protected override void Avenge(Fight fight, Unit self)
     {

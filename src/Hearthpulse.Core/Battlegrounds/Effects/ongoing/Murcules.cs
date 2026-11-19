@@ -1,7 +1,8 @@
 namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 
 /// <summary>
-/// Murcules (BG27_023): "Whenever this kills a minion, give a minion in your hand +3/+3." Golden: +6/+6.
+/// Murcules (BG27_023): "Whenever this kills a minion, give a minion in your hand +{0}/+{1}." (+3/+3; golden +6/+6.)
+/// The amount is the captured TAG_SCRIPT_DATA_NUM_1/2 (real log 15.11.2026: 3/3), else the printed value.
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
@@ -27,13 +28,13 @@ internal sealed class Murcules : CombatEffect
         }
 
         var index = fight.Choose(ChoiceKind.RandomHandCard, self, hand);
-        var bonus = self.Pick(3, 6);
+        var (attack, health) = Deaths.DeathKit.Shown(self, (3, 3), (6, 6));
         var minion = hand[index];
         hand[index] = minion with
         {
-            Attack = minion.Attack + bonus,
-            Health = minion.Health + bonus,
-            MaxHealth = (minion.MaxHealth > 0 ? minion.MaxHealth : minion.Health) + bonus,
+            Attack = minion.Attack + attack,
+            Health = minion.Health + health,
+            MaxHealth = (minion.MaxHealth > 0 ? minion.MaxHealth : minion.Health) + health,
         };
     }
 }

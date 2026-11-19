@@ -2,6 +2,7 @@ using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Battlegrounds.Effects.Attack;
 using Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
+using Hearthpulse.Core.Battlegrounds.Effects.Player;
 using Hearthpulse.Core.Battlegrounds.Effects.Spells;
 
 namespace Hearthpulse.Core.Tracking;
@@ -28,6 +29,11 @@ internal static class SimEstimates
     private static readonly string[] ShownTrinkets =
         ["BG36_MagicItem_404", "BG36_MagicItem_404t", "BG35_MagicItem_710", "BG30_MagicItem_547", "BG30_MagicItem_547t", "BG32_MagicItem_893", "BG36_MagicItem_820",
          "BG32_MagicItem_808", "BG32_MagicItem_808t"];
+
+    // Player cards whose number grows over the game and an effect reads (Effects/player/GrowingValues and E3 trinkets): All-
+    // Purpose Kibble, Hammer of Twilight, Snarky Portrait, Fang Anklet, Broodmother; Tentacular only when a Tentacle is owed.
+    private static readonly string[] GrowingPlayerCards =
+        ["BG32_MagicItem_200", "BG36_MagicItem_403", "BG36_MagicItem_403t", "BG36_MagicItem_450", "BG35_MagicItem_701", "BG22_HERO_305p"];
 
     // Cards whose text shows the player's Beetle ("{0}/{1} Beetle"), Timewarped Nest Swarmer (same Beetle, printed 2/2) and
     // Beetle Band, which summon the player's Beetle.
@@ -68,6 +74,11 @@ internal static class SimEstimates
         foreach (var trinket in side.Extras.Where(ShownTrinkets.Contains))
         {
             estimates.Add(new SimEstimate(SimInputs.TrinketValue, 0, 0, trinket + ": its number is hidden from the player: the printed card"));
+        }
+
+        foreach (var card in side.Extras.Where(id => GrowingPlayerCards.Contains(id) || (id == Tentacular.Id && Tentacular.Owed(side, id))))
+        {
+            estimates.Add(new SimEstimate(SimInputs.TrinketValue, 0, 0, card + ": its number is hidden from the player: the printed card"));
         }
 
         BeetleStats(side, local, estimates);
