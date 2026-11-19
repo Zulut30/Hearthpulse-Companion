@@ -374,8 +374,10 @@ internal sealed class CombatCaptureStore(string directory)
 
     private static SimSide Restore(SimSide side, SavedInputs? inputs)
     {
-        // A side written without the post-game values (older files, or a JSON null) has none.
+        // A side written without the post-game values (older files, or a JSON null) has none; likewise the minions a hero
+        // power or trinket removed at Start of Combat (E3; written in the side's own JSON).
         side = side.HiddenTags is null ? side with { HiddenTags = SimSide.EmptyTags } : side;
+        side = side.RemovedByExtras is null ? side with { RemovedByExtras = SimSide.EmptyRemovedByExtras } : side;
         return inputs?.ApplyTo(side) ?? side;
     }
 
@@ -395,7 +397,8 @@ internal sealed class CombatCaptureStore(string directory)
     private static bool ValidSide(SimSide? side) =>
         side is { Minions: not null, Hand: not null, Tags: not null, ExtraTags: not null, Extras: not null, HeroCardId: not null, HeroPowerCardId: not null }
         && side.Minions.All(ValidMinion) && side.Hand.All(ValidMinion) && side.Extras.All(e => e is not null)
-        && side.ExtraTags.Values.All(tags => tags is not null);
+        && side.ExtraTags.Values.All(tags => tags is not null)
+        && (side.RemovedByExtras is null || side.RemovedByExtras.All(r => r.Key is not null && r.Value is not null && r.Value.All(ValidMinion)));
 
     private static bool ValidMinion(SimMinion? minion) =>
         minion is { CardId: not null, CreatorCardId: not null, Enchantments: not null, Remembered: not null }
