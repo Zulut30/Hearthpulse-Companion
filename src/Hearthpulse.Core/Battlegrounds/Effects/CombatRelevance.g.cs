@@ -494,5 +494,8 @@ internal static partial class CombatRelevanceTable
         new("BG34_Giant_599", "BG34_Giant_599_G", Relevance.None, "TIMEWARPED_SOC", "Timewarped Whirl-O-Tron", Origin.Heuristic),
         new("BG27_023", "BG27_023_G", Relevance.Relevant, "KILL_HAND_BUFF", "Murcules", Origin.Pool),
         new("BG26_350", "BG26_350_G", Relevance.Relevant, "DR_SUMMON", "Bassgill", Origin.Pool),
+        new("BG36_205", "BG36_205_G", Relevance.Relevant, "DR_BUFF", "Fishbait", Origin.Pool),
+        new("BG27_513", "BG27_513_G", Relevance.Relevant, "KILL_HAND_BUFF", "Tide Oracle Morgl", Origin.Pool),
+        new("BGS_115t", "BGS_115t_G", Relevance.None, "TOKEN", "Water Droplet", Origin.Pool),
     ];
 }
