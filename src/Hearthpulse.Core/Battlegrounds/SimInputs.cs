@@ -38,6 +38,15 @@ public static class SimInputs
     /// <summary>The crew of the opponent's Timewarped Nellie's Ship: a Discover pick the player does not see.</summary>
     public const string ShipCrew = "ship_crew";
 
+    /// <summary>
+    /// "A random opponent's warband" (Timewarped Magnanimoose): the fight knows only this fight's opponent, whose board at
+    /// the start of combat stands in for the lobby's.
+    /// </summary>
+    public const string OpponentWarband = "opponent_warband";
+
+    /// <summary>Timewarped Magnanimoose, which summons a minion from a random opponent's warband.</summary>
+    public const string Magnanimoose = "BG34_Giant_619";
+
     /// <summary>Timewarped Nellie's Ship, whose crew the tracker records for the local player (<see cref="SimMinion.Crew"/>).</summary>
     public const string NelliesShip = "BG34_Giant_074t";
 

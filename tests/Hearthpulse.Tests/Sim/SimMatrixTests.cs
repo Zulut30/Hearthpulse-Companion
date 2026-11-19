@@ -104,7 +104,7 @@ public sealed partial class SimMatrixTests
 
     [Theory]
     [InlineData("BG24_Quest_124", CoverageStatus.Implemented)] // Reenact the Murder: minions die in a fight (E5 quest effect)
-    [InlineData("BG24_Quest_320", CoverageStatus.MissingEffect)] // Exhume the Bones (out of the pool): conditional, no effect
+    [InlineData("BG24_Quest_320", CoverageStatus.Implemented)] // Exhume the Bones (out of the pool): deathrattles trigger in a fight (E6a)
     [InlineData("BG24_Quest_313", CoverageStatus.NoEffect)] // Invite the Guests: buying is Tavern only
     public void Quests_that_progress_in_combat_are_conditional(string cardId, CoverageStatus status)
     {

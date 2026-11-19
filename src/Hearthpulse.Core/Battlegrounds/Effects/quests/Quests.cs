@@ -87,6 +87,12 @@ internal static class QuestRewards
         [104673] = new("BG27_Reward_802", GetsCopy: true),  // Gilnean War Horn: "Get a copy of '{0}'. Your Battlecries trigger an extra time."
         [110299] = new("BG28_Reward_501", GetsCopy: false), // Temporal Tampering: "Your Tavern spells cast an extra time."
         [122905] = new("BG33_Reward_021", GetsCopy: true),  // Rallying Cry: "Get a copy of '{0}'. Your Rallies trigger an extra time."
+        // Out of today's pool (E6a; HearthstoneJSON latest 2026-11-03): rewards that need no state from the start of the fight.
+        // The Smoking Gun, Volatile Venom and Tumbling Disaster set their summon bonus at the fight's start, so they are not
+        // attached mid-fight.
+        [89483] = new("BG24_Reward_113", GetsCopy: false),  // Ritual Dagger: "After a friendly Deathrattle minion dies, give it +5/+5 permanently."
+        [104697] = new("BG27_Reward_502", GetsCopy: false), // Boom Squad: "Avenge (3): Deal 10 damage to the highest-Health enemy minion."
+        [110551] = new("BG28_Reward_518", GetsCopy: false), // Stable Amalgamation: "Avenge (7): When you have space, summon a 50/50 Amalgam."
     };
 
     /// <summary>The reward with a combat effect of dbfId <paramref name="dbf"/>, or null (none captured, or a Tavern-only reward).</summary>

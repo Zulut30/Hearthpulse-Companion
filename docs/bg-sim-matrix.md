@@ -465,19 +465,19 @@
 | BG36_108 | Vicious Mindslasher | implemented | да | SPELL_TRIGGER |
 | BGS_126 | Wildfire Elemental | implemented | да | AFTER_ATTACK |
 | BG36_207 | Wolf Pup | implemented | да | RALLY_BUFF |
-| BG34_Giant_027 | Timewarped Arm | missing_effect | вне пула | Timewarped; TIMEWARPED_ON_ATTACK |
-| BG34_Giant_104 | Timewarped Bristler | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_027 | Timewarped Arm | implemented | вне пула | Timewarped; TIMEWARPED_ON_ATTACK |
+| BG34_Giant_104 | Timewarped Bristler | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_590 | Timewarped Festergut | missing_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_362 | Timewarped Goldrinn | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_656 | Timewarped Grease Bot | missing_effect | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
-| BG34_Giant_068 | Timewarped Guard | missing_effect | вне пула | Timewarped; TIMEWARPED_RALLY |
-| BG34_Giant_024 | Timewarped Jelly Belly | missing_effect | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
-| BG34_PreMadeChamp_056 | Timewarped Karathress | missing_effect | вне пула | Timewarped; TIMEWARPED_ON_SUMMON |
-| BG34_Giant_031 | Timewarped Leapfrogger | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_619 | Timewarped Magnanimoose | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_592 | Timewarped Spirit of Air | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_010 | Timewarped Trickster | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Treasure_994 | Timewarped Ultralisk | missing_effect | вне пула | Timewarped; TIMEWARPED_SOC |
+| BG34_Giant_362 | Timewarped Goldrinn | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_656 | Timewarped Grease Bot | implemented | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
+| BG34_Giant_068 | Timewarped Guard | implemented | вне пула | Timewarped; TIMEWARPED_RALLY |
+| BG34_Giant_024 | Timewarped Jelly Belly | implemented | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
+| BG34_PreMadeChamp_056 | Timewarped Karathress | implemented | вне пула | Timewarped; TIMEWARPED_ON_SUMMON |
+| BG34_Giant_031 | Timewarped Leapfrogger | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_619 | Timewarped Magnanimoose | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_592 | Timewarped Spirit of Air | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_010 | Timewarped Trickster | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Treasure_994 | Timewarped Ultralisk | implemented | вне пула | Timewarped; TIMEWARPED_SOC |
 
 ## Силы героя
 
@@ -1129,8 +1129,8 @@
 | BG27_Quest_801 | Pressure the Authorities | implemented | да | QU_COMBAT_PROGRESS |
 | BG24_Quest_124 | Reenact the Murder | implemented | да | QU_COMBAT_PROGRESS |
 | BG27_Quest_802 | Round Up the Suspects | implemented | да | QU_COMBAT_PROGRESS |
-| BG24_Quest_320 | Exhume the Bones | missing_effect | вне пула | условный (QU_COMBAT_PROGRESS): бой не помечается |
-| BG24_Quest_318 | Witness Protection | missing_effect | вне пула | условный (QU_COMBAT_PROGRESS): бой не помечается |
+| BG24_Quest_320 | Exhume the Bones | implemented | вне пула | QU_COMBAT_PROGRESS |
+| BG24_Quest_318 | Witness Protection | implemented | вне пула | QU_COMBAT_PROGRESS |
 
 ## Награды квестов
 
@@ -1203,12 +1203,12 @@
 | BG33_Reward_021 | Rallying Cry | implemented | вне пула | QR_RELEVANT |
 | BG28_Reward_501 | Temporal Tampering | implemented | да | QR_NONE |
 | BG27_Reward_803 | Turbulent Tombs | implemented | да | QR_RELEVANT |
-| BG27_Reward_502 | Boom Squad | missing_effect | вне пула | QR_RELEVANT |
-| BG24_Reward_113 | Ritual Dagger | missing_effect | вне пула | QR_RELEVANT |
-| BG28_Reward_518 | Stable Amalgamation | missing_effect | вне пула | QR_RELEVANT |
-| BG24_Reward_125 | The Smoking Gun | missing_effect | вне пула | QR_RELEVANT |
-| BG28_Reward_505 | Tumbling Disaster | missing_effect | вне пула | QR_RELEVANT |
-| BG24_Reward_364 | Volatile Venom | missing_effect | вне пула | QR_RELEVANT |
+| BG27_Reward_502 | Boom Squad | implemented | вне пула | QR_RELEVANT |
+| BG24_Reward_113 | Ritual Dagger | implemented | вне пула | QR_RELEVANT |
+| BG28_Reward_518 | Stable Amalgamation | implemented | вне пула | QR_RELEVANT |
+| BG24_Reward_125 | The Smoking Gun | implemented | вне пула | QR_RELEVANT |
+| BG28_Reward_505 | Tumbling Disaster | implemented | вне пула | QR_RELEVANT |
+| BG24_Reward_364 | Volatile Venom | implemented | вне пула | QR_RELEVANT |
 
 ## Аномалии
 
