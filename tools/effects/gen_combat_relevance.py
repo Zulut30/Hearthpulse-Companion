@@ -5,36 +5,40 @@ The table says, per Battlegrounds minion (normal and golden card id), whether it
 fight after the boards are captured at the first attack. The overlay's "N minion effects not simulated"
 note counts minions that are combat-relevant and have no registered effect implementation.
 
-Inputs (research data, labelled by hand from the card text of the current patch):
-  bg_pool_effects.json    302 pool minions: id, golden_id, name, category, combat_relevant (y/conditional/
-                          resolved/simulated/n)
-  bg_tokens.csv           tokens and summoned non-pool minions (optional)
-  bg_timewarped_auto.csv  Timewarped minions, classified here with the text heuristic below (optional)
-  carddefs_parsed.json    all cards of the patch, used only for golden ids of tokens/Timewarped (optional)
+Inputs:
+  table        the current generated table. Its hand-labelled rows are carried over as they are: pool minions
+               (Origin.Pool, labelled from the card text for patch 37.0.0.255130 by research files that are not kept in
+               the repository, plus later additions) and tokens (Origin.Token).
+  --data       a snapshot of tools/effects/fetch_bg_data.py: HearthstoneJSON enUS (texts, golden ids) and the
+               Hearthpulse data API v1 (the current pool's minions with `in_pool`, the Timewarped library).
+  --additions  relevance_additions.json: minions the carried rows lack, labelled by hand from the card text - pool
+               minions, and tokens or generated minions seen on boards ("origin": "token"); kept in this folder and always
+               worth passing.
 
-  relevance_additions.json  minions the research files of a patch lack (a pool change between patches), labelled
-                          by hand from the card text; kept in this folder and always worth passing (--additions)
+Rows, in this order (a card keeps the first label it gets):
+  1. the carried hand-labelled rows;
+  2. the additions;
+  3. pool minions of the snapshot no hand row knows: labelled by the text heuristic below (Origin.Heuristic) and
+     listed on stderr - label them by hand in the additions and run again;
+  4. Timewarped minions of the snapshot: labelled by the text heuristic from today's text (Origin.Heuristic);
+  5. carried heuristic rows of cards the snapshot no longer lists, as they were.
 
-Usage (run with an isolated interpreter, data files are passed as arguments):
-  python3 -I tools/effects/gen_combat_relevance.py <bg_pool_effects.json> <output.g.cs> \
-      [--tokens bg_tokens.csv] [--timewarped bg_timewarped_auto.csv] [--carddefs carddefs_parsed.json] \
-      [--additions tools/effects/relevance_additions.json]
-
-Without the research files (they are not kept in the repository) the table is rebuilt from itself: pass the
-generated file as the first argument and its rows are carried over as they are, then the additions follow:
+Usage (isolated interpreter; the snapshot folder is data passed as an argument):
+  python3 -I tools/effects/fetch_bg_data.py <snapshot>
   python3 -I tools/effects/gen_combat_relevance.py src/Hearthpulse.Core/Battlegrounds/Effects/CombatRelevance.g.cs \
-      src/Hearthpulse.Core/Battlegrounds/Effects/CombatRelevance.g.cs --additions tools/effects/relevance_additions.json
+      src/Hearthpulse.Core/Battlegrounds/Effects/CombatRelevance.g.cs --data <snapshot> \
+      --additions tools/effects/relevance_additions.json
 
 The text heuristic must stay in sync with CombatRelevance.TextSuggestsCombatEffect (C#), which is the
 runtime fallback for cards a new patch adds before this table is regenerated.
 """
 import argparse
-import csv
 import json
+import pathlib
 import re
 import sys
 
-COMBAT_VERB = (r"(Summon|summon|Give|give|Gain|gain|Deal|deal|Destroy|destroy|Remove|remove|Cast|cast|"
+COMBAT_VERB = (r"(Summon|summon|Trigger|trigger|Give|give|Gain|gain|Deal|deal|Destroy|destroy|Remove|remove|Cast|cast|"
                r"plays? \d* ?(a )?Blood Gem|Reborn|Divine Shield|Attack|have \+|Blood \|4)")
 NOT_COMBAT = (r"^(Get|get|Add|You and your teammate|Your teammate|Reduce|Your Tavern spells|Gain \d+ free|"
               r"Gain .*Refresh|Give minions in the Tavern|After the Tavern)")
@@ -66,7 +70,7 @@ def needs_sim(raw):
         reasons.append("cleave")
     if re.search(r"(Whenever|After) you summon|summon a (Beast|minion) in combat", t):
         reasons.append("on_summon")
-    if re.search(r"is Reborn|deals damage, gain|that died this game|Deathrattle you've triggered|Deathrattles trigger|"
+    if re.search(r"is Reborn|deals damage, gain|that died this (game|combat)|Deathrattle you've triggered|Deathrattles trigger|"
                  r"while this has Divine Shield|Once this reaches", t):
         reasons.append("dynamic")
     if re.search(r"rest of this combat|When you have space|attack immediately", t):
@@ -86,23 +90,19 @@ RELEVANCE = {
     "n": "None",
 }
 
-KEYWORD_MECHANICS = {"TAUNT", "DIVINE_SHIELD", "POISONOUS", "VENOMOUS", "REBORN", "WINDFURY", "MEGA_WINDFURY", "STEALTH"}
-EFFECT_MECHANICS = {"DEATHRATTLE", "TRIGGER_VISUAL", "AURA", "AVENGE", "BACON_RALLY", "BACON_OLD_GOD", "OVERKILL"}
-
-
 ROW = re.compile(r'new\("([^"]*)", "([^"]*)", Relevance\.(\w+), "([^"]*)", "((?:[^"\\]|\\.)*)", Origin\.(\w+)\),')
 
 
 def read_table(path):
-    """The rows, source and patch of a generated table, to rebuild it without the research files."""
+    """The rows and the hand-label note of a generated table."""
     text = open(path, encoding="utf-8").read()
-    source = re.search(r"^// Source: (.*)$", text, re.M)
-    patch = re.search(r'Patch = "([^"]*)"', text)
+    # A table this script wrote names its hand labels; an older one only its research source.
+    labels = re.search(r"^// Hand labels: (.*)$", text, re.M) or re.search(r"^// Source: (.*)$", text, re.M)
     rows = [(m[1], m[2], m[3], m[4], m[5].replace('\\"', '"').replace("\\\\", "\\"), m[6].lower())
             for m in ROW.finditer(text)]
-    if not source or not patch or not rows:
+    if not labels or not rows:
         sys.exit(f"{path} is not a generated relevance table")
-    return {"source": source.group(1), "patch": patch.group(1), "rows": rows}
+    return {"labels": labels.group(1), "rows": rows}
 
 
 def cs(s):
@@ -111,94 +111,87 @@ def cs(s):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("pool")
+    ap.add_argument("table")
     ap.add_argument("output")
-    ap.add_argument("--tokens")
-    ap.add_argument("--timewarped")
-    ap.add_argument("--carddefs")
+    ap.add_argument("--data", required=True)
     ap.add_argument("--additions")
     args = ap.parse_args()
 
-    carried = None
-    if args.pool.endswith(".cs"):
-        carried = read_table(args.pool)
-        pool = {"source": carried["source"], "build": {"": carried["patch"]}, "minions": []}
-    else:
-        pool = json.load(open(args.pool, encoding="utf-8"))
-    build = pool.get("build", {})
-    source = pool.get("source", "")
-    m = re.search(r"patch ([\d.]+)", source)
-    patch = m.group(1) if m else build.get("CardDefs.Bacon.xml") or next(iter(build.values()), "")
-    additions = json.load(open(args.additions, encoding="utf-8")) if args.additions else {"minions": []}
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    from bgdata import Snapshot  # noqa: E402
 
-    golden_of = {}
-    english = {}
-    if args.carddefs:
-        cards = json.load(open(args.carddefs, encoding="utf-8"))["cards"]
-        by_dbf = {c["dbfId"]: c for c in cards}
-        for c in cards:
-            up = c["tags"].get("BACON_TRIPLE_UPGRADE_MINION_ID")
-            if up in by_dbf:
-                golden_of[c["id"]] = by_dbf[up]["id"]
-            english[c["id"]] = c.get("text") or ""
+    data = Snapshot(args.data)
+    carried = read_table(args.table)
+    additions = json.load(open(args.additions, encoding="utf-8")) if args.additions else {"minions": []}
 
     entries = []  # (normal, golden, relevance, category, name, origin)
     seen = set()
 
     def add(normal, golden, relevance, category, name, origin):
         if normal in seen or (golden and golden in seen):
-            return
+            return False
         seen.add(normal)
         if golden:
             seen.add(golden)
         entries.append((normal, golden or "", relevance, category, name, origin))
+        return True
 
-    for r in pool["minions"]:
-        add(r["id"], r["golden_id"], RELEVANCE[r["combat_relevant"]], r["category"], r["name"], "pool")
+    hand = [r for r in carried["rows"] if r[5] in ("pool", "token")]
+    heuristic = {r[0]: r for r in carried["rows"] if r[5] == "heuristic"}
+    for row in hand:
+        add(*row)
+    for r in additions["minions"]:
+        add(r["id"], r["golden_id"], RELEVANCE[r["combat_relevant"]], r["category"], r["name"], r.get("origin", "pool"))
 
-    for row in (carried["rows"] if carried else []):
+    unlabelled = []
+    for card, _ in sorted(data.pool_minions(), key=lambda cd: cd[0]["id"]):
+        reasons = needs_sim(card.get("text"))
+        if add(card["id"], data.golden_id(card["id"]), "Relevant" if reasons else "None",
+               "UNLABELLED_" + (reasons[0].upper() if reasons else "OTHER"), card.get("name", ""), "heuristic"):
+            unlabelled.append(card)
+
+    relabelled = []
+    for card in sorted(data.timewarped_minions(), key=lambda c: c["id"]):
+        reasons = needs_sim(card.get("text"))
+        relevance = "Relevant" if reasons else "None"
+        old = heuristic.get(card["id"])
+        category = old[3] if old and old[2] == relevance else "TIMEWARPED_" + (reasons[0].upper() if reasons else "OTHER")
+        if old and old[2] != relevance:
+            relabelled.append((card["id"], card.get("name", ""), old[2], relevance))
+        add(card["id"], data.golden_id(card["id"]) or (old[1] if old else ""), relevance, category, card.get("name", ""), "heuristic")
+    for row in heuristic.values():
         add(*row)
 
-    # After the rows of the patch: a card both know keeps the patch's label.
-    for r in additions["minions"]:
-        add(r["id"], r["golden_id"], RELEVANCE[r["combat_relevant"]], r["category"], r["name"], "pool")
-
-    if args.tokens:
-        for r in csv.DictReader(open(args.tokens, encoding="utf-8")):
-            mechanics = set(filter(None, r["mechanics"].split("|")))
-            if mechanics & EFFECT_MECHANICS:
-                relevance = "Relevant"
-            elif mechanics & KEYWORD_MECHANICS:
-                relevance = "Keywords"
-            else:
-                relevance = "None"
-            add(r["id"], golden_of.get(r["id"], ""), relevance, "TOKEN", r["name"], "token")
-
-    if args.timewarped:
-        for r in csv.DictReader(open(args.timewarped, encoding="utf-8")):
-            text = english.get(r["id"]) or r["text"]
-            relevance = "Relevant" if needs_sim(text) else "None"
-            add(r["id"], golden_of.get(r["id"], ""), relevance, "TIMEWARPED_" + r["auto_category"], r["name"], "heuristic")
-
-    # Heuristic quality on the hand-labelled pool, printed for the record.
+    # Heuristic quality on the hand-labelled rows of today's pool, printed for the record.
+    pool_ids = {c["id"] for c, _ in data.pool_minions()}
     tp = fp = fn = 0
-    for r in pool["minions"]:
-        pred = bool(needs_sim(r["text"]))
-        truth = r["combat_relevant"] == "y"
+    misses = []
+    for normal, _, relevance, _, name, origin in entries:
+        if origin != "pool" or normal not in pool_ids:
+            continue
+        pred = bool(needs_sim(data.by_id[normal].get("text")))
+        truth = relevance == "Relevant"
         tp += pred and truth
         fp += pred and not truth
         fn += truth and not pred
-    if pool["minions"]:
-        print(f"heuristic on pool: precision={tp / max(1, tp + fp):.2f} recall={tp / max(1, tp + fn):.2f} (tp={tp} fp={fp} fn={fn})",
-              file=sys.stderr)
+        if pred != truth:
+            misses.append(f"{'missed' if truth else 'false alarm'}: {normal} {name} ({relevance})")
+    print(f"heuristic on the hand-labelled pool: precision={tp / max(1, tp + fp):.2f} recall={tp / max(1, tp + fn):.2f} "
+          f"(tp={tp} fp={fp} fn={fn})", file=sys.stderr)
+    for line in misses:
+        print("  " + line, file=sys.stderr)
+    for card in unlabelled:
+        print(f"UNLABELLED pool minion {card['id']} {card.get('name', '')}: label it in relevance_additions.json", file=sys.stderr)
+    for cid, name, old, new in relabelled:
+        print(f"relabelled Timewarped {cid} {name}: {old} -> {new}", file=sys.stderr)
 
     lines = [
         "// <auto-generated>",
-        "// Generated by tools/effects/gen_combat_relevance.py; do not edit by hand. Regenerate after a patch:",
-        "//   python3 -I tools/effects/gen_combat_relevance.py bg_pool_effects.json \\",
-        "//       src/Hearthpulse.Core/Battlegrounds/Effects/CombatRelevance.g.cs \\",
-        "//       --tokens bg_tokens.csv --timewarped bg_timewarped_auto.csv --carddefs carddefs_parsed.json",
-        f"// Source: {source}",
+        "// Generated by tools/effects/gen_combat_relevance.py; do not edit by hand. Regenerate after a patch (see the",
+        "// script header): fetch_bg_data.py <snapshot>, then gen_combat_relevance.py <this file> <this file> --data <snapshot>",
+        "//     --additions tools/effects/relevance_additions.json",
+        f"// Source: {data.source}",
+        f"// Hand labels: {carried['labels']}",
         "// Pool rows are labelled by hand from card text; Timewarped rows come from the text heuristic.",
         *([f"// Additions: {additions['source']}"] if additions["minions"] else []),
         "// </auto-generated>",
@@ -207,7 +200,7 @@ def main():
         "",
         "internal static partial class CombatRelevanceTable",
         "{",
-        f"    internal const string Patch = {cs(patch)};",
+        f"    internal const string Patch = {cs(data.patch)};",
         "",
         "    internal static readonly CardRelevance[] Entries =",
         "    [",
