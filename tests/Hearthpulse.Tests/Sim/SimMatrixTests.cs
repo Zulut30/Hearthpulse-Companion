@@ -96,14 +96,15 @@ public sealed partial class SimMatrixTests
     [InlineData("BG20_GEM", CoverageStatus.Implemented)] // Blood Gem: played by the minion effects through BloodGems.Play
     [InlineData("BG28_518", CoverageStatus.Implemented)] // Chef's Choice: Seafloor Recruiter's Rally casts it (spell pipeline)
     [InlineData("BG28_888", CoverageStatus.Implemented)] // Misplaced Tea Set: Gatekeeper Amalgam casts it (spell pipeline)
-    [InlineData("BG28_603", CoverageStatus.MissingEffect)] // Boon of Beetles: "When you have space in combat, summon..."
+    [InlineData("BG28_603", CoverageStatus.Implemented)] // Boon of Beetles: "When you have space in combat, summon..." (E5)
     [InlineData("BG28_897", CoverageStatus.NoEffect)] // Tavern Dish Banana: nothing in the pool casts it in combat
     [InlineData("BG28_573", CoverageStatus.Resolved)] // Upper Hand: Start of Combat
     public void Tavern_spells_are_judged_by_who_casts_them_in_combat(string cardId, CoverageStatus status) =>
         Assert.Equal(status, SimCoverage.Classify(cardId, CoverageKind.Spell).Status);
 
     [Theory]
-    [InlineData("BG24_Quest_124", CoverageStatus.MissingEffect)] // Reenact the Murder: minions die in a fight (conditional)
+    [InlineData("BG24_Quest_124", CoverageStatus.Implemented)] // Reenact the Murder: minions die in a fight (E5 quest effect)
+    [InlineData("BG24_Quest_320", CoverageStatus.MissingEffect)] // Exhume the Bones (out of the pool): conditional, no effect
     [InlineData("BG24_Quest_313", CoverageStatus.NoEffect)] // Invite the Guests: buying is Tavern only
     public void Quests_that_progress_in_combat_are_conditional(string cardId, CoverageStatus status)
     {

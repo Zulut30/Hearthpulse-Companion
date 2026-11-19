@@ -144,6 +144,10 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // after Avenge, reborn max Health, friendly-attack hooks before Rally, deathrattles A,A,B,B; simreplay: Diremuck
         // Forager's pending Murloc at the right end after Reborn); the boards are the
         // same, and before those rules (main at 21a1bb33) the fingerprint is B38EEFBF3604898A.
-        Assert.Equal("fights 686C34B3497F4560", actual);
+        // 2026-11-19 (E5 sim-leftovers): 21 new effect ids (Bubble Gunner, Captain Sanders, Elite Navigator, Disguised
+        // Graverobber, Maw Caster, Locked-up Mutineer, Dark Paradox t5, Nellie's Ship, Boon of Beetles, three spell trinkets,
+        // Rallying Cry, seven quests) change the boards and, through the Pirate/Undead pools, the summons; with a registry
+        // without those classes (checked) the fingerprint is still 686C34B3497F4560 (sim-rules).
+        Assert.Equal("fights 5887EA944D5F7F33", actual);
     }
 }

@@ -114,16 +114,16 @@ public sealed class TimewarpedTriggersTests
     }
 
     [Fact]
-    public void Jungle_king_buffs_summoned_beasts_and_says_its_growth_is_not_captured()
+    public void Jungle_king_buffs_summoned_beasts_with_its_printed_bonus_without_script_data()
     {
         // The Sewer Rat dies to Killer 5/1 and summons a 2/3 Taunt Half-Shell (a Beast): +4/+3 → 6/6. Skeletons (Undead)
-        // would get nothing.
+        // would get nothing. The King's grown bonus is its script data (E5, LeftoverTimewarpedTests); without it the printed one.
         var ours = Side(Minion(3, 2, Keyword.Taunt, Tokens.SewerRatId, Tribe.Beast, mechanics: CardMechanic.Deathrattle),
                         Minion(8, 12, cardId: "BG34_PreMadeChamp_004", tribes: Tribe.Beast));
         var result = Fight(ours, Side(Killer(5, 1), Wall), oursFirst: false, Only(typeof(SewerRat), typeof(TimewarpedJungleKing)));
 
         Assert.Equal(["BG19_010t 6/6 Taunt", "BG34_PreMadeChamp_004 8/12"], Board(result.Ours));
-        Assert.Equal(CoverageStatus.MissingInput, SimCoverage.Classify("BG34_PreMadeChamp_004", CoverageKind.Minion).Status);
+        Assert.Equal(CoverageStatus.Implemented, SimCoverage.Classify("BG34_PreMadeChamp_004", CoverageKind.Minion).Status);
     }
 
     [Fact]
