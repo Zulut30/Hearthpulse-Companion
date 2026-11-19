@@ -29,6 +29,12 @@ public static class SimInputs
     /// <summary>The lobby's tribes (random summons draw from them).</summary>
     public const string LobbyTribes = "lobby_tribes";
 
+    /// <summary>Duos: the opponent team's second board, as last seen (or not seen yet: the fight then has none).</summary>
+    public const string DuosOpponentTeammate = "duos_opponent_teammate";
+
+    /// <summary>Duos: our teammate's board, when it was not on the log at capture: as last seen (or none).</summary>
+    public const string DuosPartnerBoard = "duos_partner_board";
+
     /// <summary>The crew of the opponent's Timewarped Nellie's Ship: a Discover pick the player does not see.</summary>
     public const string ShipCrew = "ship_crew";
 

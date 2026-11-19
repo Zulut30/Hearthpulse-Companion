@@ -56,14 +56,11 @@ public sealed class SimReplayResidualTests
     }
 
     [RealLogsFact]
-    public void The_last_one_standing_fight_follows_the_log_until_the_opponents_deity_awakens()
+    public void The_last_one_standing_fight_replays_with_the_opponents_deity_awakening_from_its_progress()
     {
-        // Game 3 fight 11: both Rallies of The Last One Standing match (+20/+20 then +10/+10). The first divergence is the
-        // opponent's Y'Shaarj awakening after attack 8: its progress (QUEST_PROGRESS 2 of 4 on their BG_OldGod copy) comes
-        // from earlier fights and is not an input of the simulator yet.
-        var replayed = SimReplay.Replay(Fight("#3/11").Key, Fight("#3/11").Fight, Cards.Value);
-
-        var first = Assert.IsType<Divergence>(replayed!.First);
-        Assert.Equal((8, ReplayCategory.SummonPosition), (first.Attack, first.Category));
+        // Game 3 fight 11: both Rallies of The Last One Standing match (+20/+20 then +10/+10), and the opponent's Y'Shaarj
+        // awakens after attack 8 because its progress (QUEST_PROGRESS 2 of 4 on their BG_OldGod copy, carried over from
+        // earlier fights) is an input of the simulator (SimSide.DeityAwakening).
+        SimReplayKit.AssertReplays(Fight("#3/11"), Cards.Value);
     }
 }
