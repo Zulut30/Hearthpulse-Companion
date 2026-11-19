@@ -112,9 +112,12 @@ public sealed class SimMeasurementTests
         var quick = SimSample.Budgeted(captured, SimBudget.Quick);
         Assert.Equal(BattlegroundsTracker.QuickPass(captured), quick);
         Assert.True(quick.Runs < app.Runs && quick.TimeBudget < app.TimeBudget);
-        Assert.Equal(captured with { Runs = app.Runs, MinRuns = app.MinRuns, TimeBudget = app.TimeBudget }, SimSample.Budgeted(captured, SimBudget.App));
+        Assert.Equal(captured with
+        {
+            Runs = app.Runs, MinRuns = app.MinRuns, TimeBudget = app.TimeBudget, TargetHalfWidth = app.TargetHalfWidth, Parallelism = app.Parallelism,
+        }, SimSample.Budgeted(captured, SimBudget.App));
         var full = SimSample.Budgeted(captured, SimBudget.Full);
-        Assert.Equal((SimOptions.Default.Runs, SimOptions.Default.Runs, (TimeSpan?)null), (full.Runs, full.MinRuns, full.TimeBudget));
+        Assert.Equal((SimOptions.Default.Runs, SimOptions.Default.Runs, (TimeSpan?)null, 0.0), (full.Runs, full.MinRuns, full.TimeBudget, full.TargetHalfWidth));
         // The fight's own facts stay as captured under every budget.
         Assert.All(new[] { quick, full }, o => Assert.Equal((5, false, 7), (o.DamageCap, o.CountDamage, o.FirstAttackerEntityId)));
     }

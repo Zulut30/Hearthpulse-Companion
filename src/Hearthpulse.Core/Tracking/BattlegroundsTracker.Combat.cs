@@ -163,6 +163,10 @@ public sealed partial class BattlegroundsTracker
         Runs = 150,
         MinRuns = 0,
         TimeBudget = TimeSpan.FromMilliseconds(40),
+
+        // On the calling thread only: a second thread takes p95 from ~2 to ~1.7 ms on real boards, far inside the budget
+        // (docs/bg-combat-sim.md, "Скорость"), and the background pass that starts right after gets the cores.
+        Parallelism = 1,
     };
 
     /// <summary>
