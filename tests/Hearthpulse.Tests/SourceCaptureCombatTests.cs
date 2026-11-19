@@ -47,6 +47,8 @@ public sealed class SourceCaptureCombatTests : IDisposable
                 Enchantments = ["BG28_503e"], ScriptData1 = 7, Remembered = [M(5001, "BG_CFM_315", 2, 1)],
                 EnchantmentValues = [new SimEnchantment("BG28_503e") { ScriptData1 = 3, ScriptData2 = 3, CreatorEntityId = 6000 }],
                 FriendlyDeathsBeforeCapture = 1,
+                BloodGemAttack = 2,
+                BloodGemHealth = 1,
             },
             M(4100, "BG26_800", 4, 6, Keyword.Windfury) with { Golden = true, CreatorCardId = "TB_BaconShop_HP_001", Mechanics = CardMechanic.Deathrattle },
             .. Enumerable.Range(0, Math.Max(0, minions - 2)).Select(i => M(7000 + i, "BG_CFM_315", 1, 1)),
@@ -200,7 +202,7 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Assert.Empty(input.Capture.Theirs.Hand);
         Assert.Equal(("Win", 5, 3, 15, true), (input.Result, input.DamageDealt, input.Turn, input.DamageCap, input.CountDamage));
         var first = input.Capture.Ours.Minions[0];
-        Assert.True(first is { Taunt: true, DivineShield: true, Stealth: false, ScriptData1: 7, FriendlyDeathsBeforeCapture: 1 });
+        Assert.True(first is { Taunt: true, DivineShield: true, Stealth: false, ScriptData1: 7, FriendlyDeathsBeforeCapture: 1, BloodGemAttack: 2, BloodGemHealth: 1 });
         Assert.Equal(["BG28_503e"], first.Enchantments);
         Assert.Equal(new SimEnchantment("BG28_503e") { ScriptData1 = 3, ScriptData2 = 3 }, Assert.Single(first.EnchantmentValues));
         Assert.Equal(2, input.Capture.Ours.Minions[1].AttacksPerTurn);
@@ -253,6 +255,22 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Assert.Null(SourceCaptureCombat.Project(0, enchanted, ok.Options, [], ok.Combat));
         Assert.Null(SourceCaptureCombat.Project(0, ok.Capture, ok.Options, [new(4100, string.Empty, [])], ok.Combat));
         Assert.Null(SourceCaptureCombat.Project(0, ok.Capture, ok.Options, [new(4100, "BG26_800", ["TAUNT"])], ok.Combat));
+
+        // A board minion below 0 is outside the rules; a minion that died before the capture (damage past its health) and a
+        // hero beaten in a lethal fight are what the simulator got, and go (real logs of 2026-11-15 have both).
+        var hurt = ok.Capture with { Ours = ok.Capture.Ours with { Minions = [ok.Capture.Ours.Minions[0] with { Health = -1 }] } };
+        Assert.Null(SourceCaptureCombat.Project(0, hurt, ok.Options, [], ok.Combat));
+        var lethal = ok.Capture with
+        {
+            Ours = ok.Capture.Ours with
+            {
+                DeathsBeforeCapture = [M(4000, "BG_CFM_315", 4, -340)],
+                Minions = [ok.Capture.Ours.Minions[0] with { Remembered = [M(5001, "BG_CFM_315", 458, -51)] }, ok.Capture.Ours.Minions[1]],
+            },
+            Theirs = ok.Capture.Theirs with { Health = -7 },
+        };
+        var dead = SourceCaptureCombat.Project(0, lethal, ok.Options, ok.Facts, ok.Combat)!;
+        Assert.Equal((-340, -51, -7), (Assert.Single(dead.Ours.Deaths).Health, Assert.Single(dead.Ours.Minions[0].Remembered).Health, dead.Theirs.Health));
 
         // Combat 0 twice, combat 1 too big, combat 2 fine, combat 5 never ended: 0 and 2 go.
         BattlegroundsTracker.CapturedFight Captured(int index, (BattlegroundsTracker.CombatCapture Capture, SimOptions Options, Facts Facts, CombatRecord Combat) f) =>

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.SourceCapture.Processing;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.SourceCapture;
@@ -86,6 +87,8 @@ internal static partial class SourceCaptureCombat
             Enchantments = m.Enchantments.ToArray(),
             EnchantmentValues = m.EnchantmentValues.Select(ToSim).ToArray(),
             FriendlyDeathsBeforeCapture = m.FriendlyDeaths,
+            BloodGemAttack = m.BloodGemAttack,
+            BloodGemHealth = m.BloodGemHealth,
             Remembered = m.Remembered.Select(ToSim).ToArray(),
         };
     }
@@ -114,13 +117,15 @@ internal sealed record SourceCombatSide(
 
 /// <summary>
 /// A minion as the simulator gets it; <paramref name="Keywords"/> are <see cref="Keyword"/> bits without Windfury,
-/// <paramref name="EnchantmentValues"/> the numbers its enchantments carry, <paramref name="FriendlyDeaths"/> the friendly
+/// <paramref name="EnchantmentValues"/> the numbers its enchantments carry, <paramref name="BloodGemAttack"/> and
+/// <paramref name="BloodGemHealth"/> what its Blood Gems gave it (tags 4235/4236), <paramref name="FriendlyDeaths"/> the friendly
 /// minions that died at Start of Combat while it was on the board.
 /// </summary>
 internal sealed record SourceCombatMinion(
     int Entity, string? Card, bool Golden, int Attack, int Health, int MaxHealth, int BaseHealth, int RebornAttack, int Keywords, int Attacks,
     int BaseKeywords, int Tribes, int Mechanics, int Tier, int Script1, int Script2, string? Creator, IReadOnlyList<string> Enchantments,
-    IReadOnlyList<SourceCombatEnchantment> EnchantmentValues, int FriendlyDeaths, IReadOnlyList<SourceCombatMinion> Remembered, bool Unsimulated);
+    IReadOnlyList<SourceCombatEnchantment> EnchantmentValues, int FriendlyDeaths, int BloodGemAttack, int BloodGemHealth,
+    IReadOnlyList<SourceCombatMinion> Remembered, bool Unsimulated);
 
 /// <summary>
 /// An enchantment with the numbers it carries at capture (<see cref="SimEnchantment"/>); <paramref name="CreatorEntity"/> is

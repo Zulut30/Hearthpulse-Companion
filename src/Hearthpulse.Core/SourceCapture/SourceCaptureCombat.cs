@@ -258,6 +258,8 @@ internal static partial class SourceCaptureCombat
         m.Enchantments.ToArray(),
         m.EnchantmentValues.Select(e => Enchantment(e, known)).ToArray(),
         m.FriendlyDeathsBeforeCapture,
+        m.BloodGemAttack,
+        m.BloodGemHealth,
         withRemembered ? m.Remembered.Select(r => Minion(r, reference, known, withRemembered: false)).ToArray() : [],
         m.HasUnsimulatedEffect);
 
@@ -335,7 +337,8 @@ internal static partial class SourceCaptureCombat
             playerCards.Add(heroPower);
         }
         S.Number(side.GetProperty("tier"), 0, 10);
-        S.Number(side.GetProperty("health"), 0, 10_000);
+        // Below 0 when the capture saw a hero already beaten (a lethal fight): sent as the simulator got it.
+        S.Number(side.GetProperty("health"), -10_000, 10_000);
         S.Number(side.GetProperty("turn"), 0, 1000);
         var tags = side.GetProperty("tags");
         S.Require(tags.ValueKind == JsonValueKind.Object);
@@ -403,13 +406,14 @@ internal static partial class SourceCaptureCombat
     {
         S.Fields(m, "entity", "card", "golden", "attack", "health", "maxHealth", "baseHealth", "rebornAttack", "keywords", "attacks",
             "baseKeywords", "tribes", "mechanics", "tier", "script1", "script2", "creator", "enchantments", "enchantmentValues", "friendlyDeaths",
-            "remembered", "unsimulated");
+            "bloodGemAttack", "bloodGemHealth", "remembered", "unsimulated");
         var entity = S.Number(m.GetProperty("entity"), onBoard ? 1 : 0, MaxRef);
         S.Card(m.GetProperty("card"));
         S.Boolean(m.GetProperty("golden"));
+        // A minion that died before the capture (a death, a remembered one) can have its damage past its health.
         foreach (var stat in new[] { "attack", "health", "maxHealth", "baseHealth", "rebornAttack" })
         {
-            S.Number(m.GetProperty(stat), 0, MaxStat);
+            S.Number(m.GetProperty(stat), onBoard ? 0 : -MaxStat, MaxStat);
         }
 
         S.Require((S.Number(m.GetProperty("keywords"), 0, KeywordMask) & ~KeywordMask) == 0);
@@ -436,6 +440,8 @@ internal static partial class SourceCaptureCombat
         }
 
         S.Number(m.GetProperty("friendlyDeaths"), 0, 1000);
+        S.Number(m.GetProperty("bloodGemAttack"), 0, MaxStat);
+        S.Number(m.GetProperty("bloodGemHealth"), 0, MaxStat);
         var remembered = m.GetProperty("remembered");
         S.Require(remembered.ValueKind == JsonValueKind.Array && remembered.GetArrayLength() <= (onBoard ? MaxRemembered : 0));
         foreach (var minion in remembered.EnumerateArray())

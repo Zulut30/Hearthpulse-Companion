@@ -22,7 +22,7 @@
       {
         "entity": 5, "card": "BG_CFM_315", "golden": false, "attack": 1, "health": 1, "maxHealth": 1, "baseHealth": 0,
         "rebornAttack": 1, "keywords": 0, "attacks": 1, "baseKeywords": 0, "tribes": 1, "mechanics": 0, "tier": 0,
-        "script1": 0, "script2": 0, "creator": null, "enchantments": [], "enchantmentValues": [], "friendlyDeaths": 0,
+        "script1": 0, "script2": 0, "creator": null, "enchantments": [], "enchantmentValues": [], "friendlyDeaths": 0, "bloodGemAttack": 0, "bloodGemHealth": 0,
         "remembered": [], "unsimulated": false
       }
     ],
@@ -34,18 +34,18 @@
         "enchantmentValues": [
           { "card": "BG28_503e", "script1": 3, "script2": 3, "attack": 0, "health": 0, "creatorEntity": 0 }
         ],
-        "friendlyDeaths": 1, "remembered": [], "unsimulated": false
+        "friendlyDeaths": 1, "bloodGemAttack": 2, "bloodGemHealth": 1, "remembered": [], "unsimulated": false
       },
       {
         "entity": 3, "card": "BG26_800", "golden": true, "attack": 4, "health": 6, "maxHealth": 6, "baseHealth": 6,
         "rebornAttack": 4, "keywords": 0, "attacks": 2, "baseKeywords": 32, "tribes": 16, "mechanics": 1, "tier": 2,
         "script1": 1, "script2": 0, "creator": "TB_BaconShop_HP_001", "enchantments": [], "enchantmentValues": [],
-        "friendlyDeaths": 0,
+        "friendlyDeaths": 0, "bloodGemAttack": 0, "bloodGemHealth": 0,
         "remembered": [
           {
             "entity": 2, "card": "BG_CFM_315", "golden": false, "attack": 2, "health": 1, "maxHealth": 1, "baseHealth": 1,
             "rebornAttack": 2, "keywords": 0, "attacks": 1, "baseKeywords": 0, "tribes": 1, "mechanics": 0, "tier": 1,
-            "script1": 0, "script2": 0, "creator": null, "enchantments": [], "enchantmentValues": [], "friendlyDeaths": 0,
+            "script1": 0, "script2": 0, "creator": null, "enchantments": [], "enchantmentValues": [], "friendlyDeaths": 0, "bloodGemAttack": 0, "bloodGemHealth": 0,
             "remembered": [], "unsimulated": false
           }
         ],
@@ -69,7 +69,7 @@
       {
         "entity": 4, "card": null, "golden": false, "attack": 5, "health": 5, "maxHealth": 0, "baseHealth": 0,
         "rebornAttack": 0, "keywords": 144, "attacks": 1, "baseKeywords": 0, "tribes": 0, "mechanics": 0, "tier": 0,
-        "script1": 0, "script2": -3, "creator": null, "enchantments": [], "enchantmentValues": [], "friendlyDeaths": 0,
+        "script1": 0, "script2": -3, "creator": null, "enchantments": [], "enchantmentValues": [], "friendlyDeaths": 0, "bloodGemAttack": 0, "bloodGemHealth": 0,
         "remembered": [], "unsimulated": false
       }
     ]

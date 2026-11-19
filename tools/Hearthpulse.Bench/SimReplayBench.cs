@@ -68,8 +68,8 @@ internal static class SimReplayBench
         }
 
         // Players' fights from the stats pool's owner export, with the transcripts their records carry (no hand in them:
-        // a decision that needs the hand diverges as "Other"). For a held-out measure, run without --captures and with
-        // --logs pointing at an empty folder.
+        // an effect that uses the hand plays without it, and such a fight can leave the log). For a held-out measure, run
+        // without --captures and with --logs pointing at an empty folder.
         if (options.Pool.Length > 0 && File.Exists(options.Pool))
         {
             foreach (var game in PoolFights.Replayable(options.Pool))

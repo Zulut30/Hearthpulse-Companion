@@ -109,18 +109,20 @@ const KEYWORDS = 1 | 2 | 4 | 8 | 16 | 128;
 const bool = x => typeof x === 'boolean';
 const share = x => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= 1;
 const value = x => int(x, -COMBAT.maxStat, COMBAT.maxStat);
-const MINION = 'entity card golden attack health maxHealth baseHealth rebornAttack keywords attacks baseKeywords tribes mechanics tier script1 script2 creator enchantments enchantmentValues friendlyDeaths remembered unsimulated';
+const MINION = 'entity card golden attack health maxHealth baseHealth rebornAttack keywords attacks baseKeywords tribes mechanics tier script1 script2 creator enchantments enchantmentValues friendlyDeaths bloodGemAttack bloodGemHealth remembered unsimulated';
 // An enchantment with the numbers it carries; creatorEntity is a reference of the record, or 0.
 const enchantment = e => fields(e, 'card script1 script2 attack health creatorEntity') && card(e.card)
   && ['script1', 'script2', 'attack', 'health'].every(k => value(e[k])) && int(e.creatorEntity, 0, COMBAT.maxRef);
 const enchantments = (x, max) => Array.isArray(x) && x.length <= max && x.every(enchantment);
 function combatMinion(m, onBoard) {
   return fields(m, MINION) && int(m.entity, onBoard ? 1 : 0, COMBAT.maxRef) && nullable(m.card, card) && bool(m.golden)
-    && ['attack', 'health', 'maxHealth', 'baseHealth', 'rebornAttack'].every(k => int(m[k], 0, COMBAT.maxStat))
+    // A minion that died before the capture (a death, a remembered one) can have its damage past its health.
+    && ['attack', 'health', 'maxHealth', 'baseHealth', 'rebornAttack'].every(k => int(m[k], onBoard ? 0 : -COMBAT.maxStat, COMBAT.maxStat))
     && int(m.keywords, 0, KEYWORDS) && (m.keywords & ~KEYWORDS) === 0 && int(m.attacks, 0, 8) && int(m.baseKeywords, 0, 255)
     && int(m.tribes, 0, 2047) && int(m.mechanics, 0, 63) && int(m.tier, 0, 10) && value(m.script1) && value(m.script2)
     && nullable(m.creator, card) && cards(m.enchantments, COMBAT.maxEnchantments)
     && enchantments(m.enchantmentValues, COMBAT.maxEnchantments) && int(m.friendlyDeaths, 0, 1000)
+    && int(m.bloodGemAttack, 0, COMBAT.maxStat) && int(m.bloodGemHealth, 0, COMBAT.maxStat)
     && Array.isArray(m.remembered) && m.remembered.length <= (onBoard ? COMBAT.maxRemembered : 0) && m.remembered.every(x => combatMinion(x, false))
     && bool(m.unsimulated);
 }
@@ -128,7 +130,8 @@ function combatSide(s, opponent, board) {
   if (!fields(s, 'hero heroPower extras tier health turn tags cardTags playerEnchantments lobbyTribes deaths minions')
     || !nullable(s.hero, card) || !nullable(s.heroPower, card)
     || !cards(s.extras, COMBAT.maxExtras) || new Set(s.extras).size !== s.extras.length
-    || !int(s.tier, 0, 10) || !int(s.health, 0, 10_000) || !int(s.turn, 0, 1000)
+    // Below 0 when the capture saw a hero already beaten (a lethal fight).
+    || !int(s.tier, 0, 10) || !int(s.health, -10_000, 10_000) || !int(s.turn, 0, 1000)
     || !object(s.tags) || !Object.entries(s.tags).every(([k, v]) => PLAYER_TAGS.has(k) && value(v))
     // The opponent's card values are not shown by the client, so a record never holds them.
     || !object(s.cardTags) || Object.keys(s.cardTags).length > (opponent ? 0 : COMBAT.maxExtras)
