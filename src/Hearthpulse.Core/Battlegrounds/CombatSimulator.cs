@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.Json.Serialization;
 using Hearthpulse.Core.Battlegrounds.Effects;
 
 namespace Hearthpulse.Core.Battlegrounds;
@@ -7,7 +6,7 @@ namespace Hearthpulse.Core.Battlegrounds;
 /// <summary>One minion as it stands when the first attack of a combat starts.</summary>
 /// <param name="RebornAttack">The card's printed Attack (golden-aware), which a reborn copy comes back with.</param>
 /// <param name="HasUnsimulatedEffect">The card (or an enchantment on it) changes the fight in a way no registered effect models.</param>
-public sealed record SimMinion(
+public sealed partial record SimMinion(
     int Attack,
     int Health,
     bool Taunt,
@@ -66,20 +65,6 @@ public sealed record SimMinion(
     /// </summary>
     public IReadOnlyList<SimMinion> Remembered { get; init; } = Array.Empty<SimMinion>();
 
-    /// <summary>
-    /// The enchantments of <see cref="Enchantments"/> with the numbers they carry at capture (a Blood Gem total, a granted
-    /// buff's size), in the same order. Empty in captures saved before it was recorded.
-    /// </summary>
-    [JsonIgnore]
-    public IReadOnlyList<SimEnchantment> EnchantmentValues { get; init; } = Array.Empty<SimEnchantment>();
-
-    /// <summary>
-    /// Friendly minions that died during Start of Combat (between the combat's start and the capture) while this one was
-    /// on the board: the Avenge progress and "after a friendly minion dies" counts it brings into the fight.
-    /// </summary>
-    [JsonIgnore]
-    public int FriendlyDeathsBeforeCapture { get; init; }
-
     /// <summary>Current keywords as flags.</summary>
     public Keyword Keywords =>
         (Taunt ? Keyword.Taunt : 0) | (DivineShield ? Keyword.DivineShield : 0) | (Poisonous ? Keyword.Poisonous : 0)
@@ -128,7 +113,7 @@ public sealed record SimMinion(
 /// One side of a combat: the minions plus what the player can see about that player. Only public information:
 /// the opponent's hand and secrets are never filled in.
 /// </summary>
-public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
+public sealed partial record SimSide(IReadOnlyList<SimMinion> Minions)
 {
     public string HeroCardId { get; init; } = string.Empty;
 
@@ -165,80 +150,11 @@ public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
     /// <summary>The Battlegrounds turn of the fight (hero powers that unlock on a turn); 0 when unknown.</summary>
     public int Turn { get; init; }
 
-    /// <summary>
-    /// Enchantments on the player entity at capture (Diremuck Forager's pending summons, the Beetle Army bonus...): the
-    /// local player's only; whether the client shows the opponent's is not established.
-    /// </summary>
-    [JsonIgnore]
-    public IReadOnlyList<SimEnchantment> PlayerEnchantments { get; init; } = Array.Empty<SimEnchantment>();
-
-    /// <summary>The player enchantment <paramref name="cardId"/> (made by <paramref name="creatorEntityId"/> when not 0), or null.</summary>
-    public SimEnchantment? PlayerEnchantment(string cardId, int creatorEntityId = 0)
-    {
-        foreach (var enchantment in PlayerEnchantments)
-        {
-            if (enchantment.CardId == cardId && (creatorEntityId == 0 || enchantment.CreatorEntityId == creatorEntityId))
-            {
-                return enchantment;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// This side's minions that died during Start of Combat, before the capture, in the order they died (public: the
-    /// player saw them die). Deaths that count for the Deity or Avenge before the fight is simulated.
-    /// </summary>
-    [JsonIgnore]
-    public IReadOnlyList<SimMinion> DeathsBeforeCapture { get; init; } = Array.Empty<SimMinion>();
-
-    /// <summary>
-    /// The lobby's tribes (random summons draw only from them; minions without a tribe always can be drawn);
-    /// <see cref="Tribe.None"/> when unknown.
-    /// </summary>
-    [JsonIgnore]
-    public Tribe LobbyTribes { get; init; }
-
-    /// <summary>
-    /// Inputs this side's effects read that the log does not show the player (the opponent's) or that were not read,
-    /// with the estimate used in their place (<see cref="SimInputs"/>). Not the same as "not simulated": the effect runs.
-    /// </summary>
-    [JsonIgnore]
-    public IReadOnlyList<SimEstimate> Estimates { get; init; } = Array.Empty<SimEstimate>();
-
     internal static readonly IReadOnlyDictionary<string, int> EmptyTags = new Dictionary<string, int>();
 
     internal static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> EmptyExtraTags =
         new Dictionary<string, IReadOnlyDictionary<string, int>>();
 }
-
-/// <summary>An enchantment as the log shows it at capture: its card id and the numbers it carries (0 when a tag is absent).</summary>
-public sealed record SimEnchantment(string CardId)
-{
-    /// <summary>TAG_SCRIPT_DATA_NUM_1/2: the numbers its text shows (a Blood Gem total, a counter).</summary>
-    public int ScriptData1 { get; init; }
-
-    public int ScriptData2 { get; init; }
-
-    /// <summary>The ATK / HEALTH tags of the enchantment entity.</summary>
-    public int Attack { get; init; }
-
-    public int Health { get; init; }
-
-    /// <summary>Entity id of what made it (its CREATOR tag), e.g. the Diremuck Forager whose summon is pending.</summary>
-    public int CreatorEntityId { get; init; }
-}
-
-/// <summary>
-/// An input the simulator estimated instead of reading it: a value of the opponent the player cannot see, or one the
-/// tracker could not read. The effect runs with the estimate; the fight is not "not simulated".
-/// </summary>
-/// <param name="Input">Which input (the names in <see cref="SimInputs"/>).</param>
-/// <param name="Value1">The estimate (an Attack, a count).</param>
-/// <param name="Value2">A second number (a Health), 0 when the input has one.</param>
-/// <param name="Basis">What the estimate rests on (visible information only), for diagnostics.</param>
-public sealed record SimEstimate(string Input, int Value1, int Value2, string Basis);
 
 public sealed record SimOptions
 {
@@ -267,6 +183,13 @@ public sealed record SimOptions
     /// Estimate hero damage and lethal. Off for Duos, where the loser of one board is not the one who takes the damage.
     /// </summary>
     public bool CountDamage { get; init; } = true;
+
+    /// <summary>
+    /// Simulate with the opponent's values the player could not see during the game (<see cref="SimSide.HiddenTags"/>, see
+    /// <see cref="SimInputs.PostGame"/>). Only for consumers after the game (saved captures, Bench); the live tracker never
+    /// sets it.
+    /// </summary>
+    public bool PostGame { get; init; }
 }
 
 /// <summary>
@@ -301,9 +224,6 @@ public sealed record CombatOdds(double Win, double Tie, double Loss, int Unsimul
     /// </summary>
     public int Estimated { get; init; }
 }
-
-/// <summary>One estimated input of a side (<see cref="CombatSimulator.ExplainEstimates"/>).</summary>
-public sealed record EstimatedItem(string Input, int Value1, int Value2, string Basis, bool IsOpponent);
 
 /// <summary>Why something in a captured fight is "not simulated" (the coverage matrix uses the same words).</summary>
 public enum UnsimulatedReason
@@ -341,8 +261,15 @@ public static class CombatSimulator
     public static CombatOdds Run(IReadOnlyList<SimMinion> ours, IReadOnlyList<SimMinion> theirs, bool? firstAttackerIsOurs, int runs = 4000) =>
         Run(new SimSide(ours), new SimSide(theirs), firstAttackerIsOurs, new SimOptions { Runs = runs });
 
-    public static CombatOdds Run(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs, SimOptions? options = null) =>
-        RunFights(ours, theirs, firstAttackerIsOurs, options) with { Estimated = ours.Estimates.Count + theirs.Estimates.Count };
+    public static CombatOdds Run(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs, SimOptions? options = null)
+    {
+        if (options?.PostGame == true)
+        {
+            (ours, theirs) = (SimInputs.PostGame(ours), SimInputs.PostGame(theirs));
+        }
+
+        return RunFights(ours, theirs, firstAttackerIsOurs, options) with { Estimated = ours.Estimates.Count + theirs.Estimates.Count };
+    }
 
     /// <summary>The inputs of a side the fight was simulated with an estimate for, and what each estimate rests on.</summary>
     public static IReadOnlyList<EstimatedItem> ExplainEstimates(SimSide side, bool isOpponent) =>

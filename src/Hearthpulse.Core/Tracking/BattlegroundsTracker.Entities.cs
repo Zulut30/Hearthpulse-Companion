@@ -198,7 +198,17 @@ public sealed partial class BattlegroundsTracker
                 .OrderBy(e => e.ZonePosition)
                 .Select(e => ToSim(e, isOpponent: false, enchantments) with { HasUnsimulatedEffect = false })
                 .ToArray();
-        var tags = NumericTags(player);
+        // The opponent's player tags (Blood Gem and tavern spell values, Deity stats...) are not on the player's screen: the
+        // live side gets none of them, only estimates; the values the log had wait for the end of the game.
+        var playerTags = NumericTags(player);
+        var tags = isOpponent ? new Dictionary<string, int>(StringComparer.Ordinal) : playerTags;
+        if (isOpponent)
+        {
+            _hiddenOpponentTags[_combats.Count] = playerTags
+                .Where(t => SimInputs.HiddenPlayerTags.Contains(t.Key))
+                .ToDictionary(t => t.Key, t => t.Value, StringComparer.Ordinal);
+        }
+
         var side = new SimSide(minions)
         {
             HeroCardId = hero?.CardId ?? string.Empty,
@@ -369,5 +379,20 @@ public sealed partial class BattlegroundsTracker
     /// Every fight of this game the simulator was given, in order, with the index of its combat in <see cref="Combats"/>
     /// (the combat is added when the fight ends). Kept for the local capture file (<see cref="CombatCaptureStore"/>).
     /// </summary>
-    internal IReadOnlyList<CapturedFight> Captures => _captures;
+    /// <remarks>
+    /// During the game these are the fights as the live simulator got them. Once the game is over for the player, the
+    /// opponent's player values the client did not show (<see cref="SimSide.HiddenTags"/>) are added and the options say
+    /// <see cref="SimOptions.PostGame"/>: the post-game reveal, like the match page's (docs/adr/0005-hidden-information.md).
+    /// </remarks>
+    internal IReadOnlyList<CapturedFight> Captures => LocalFinished || _gameEnded ? PostGameCaptures() : _captures;
+
+    private List<CapturedFight> PostGameCaptures() =>
+        _captures.Select(c => _hiddenOpponentTags.TryGetValue(c.CombatIndex, out var hidden)
+                ? c with
+                {
+                    Capture = c.Capture with { Theirs = c.Capture.Theirs with { HiddenTags = hidden } },
+                    Options = c.Options with { PostGame = true },
+                }
+                : c)
+            .ToList();
 }

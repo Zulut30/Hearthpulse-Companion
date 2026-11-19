@@ -40,6 +40,59 @@ public static class SimInputs
 
     private static readonly ConditionalWeakTable<IReadOnlyList<SimMinion>, ConcurrentDictionary<Tribe, IReadOnlyList<SimMinion>>> LobbyPools = new();
 
+    /// <summary>
+    /// The player tags effects read (<see cref="Side.Counter"/>) that the client does not show for the opponent: Blood Gem
+    /// and tavern spell values, the Deity's stats (by name and by the number the log prints without one). During the game
+    /// the opponent's never reach <see cref="SimSide.Tags"/>; they are kept in <see cref="SimSide.HiddenTags"/> for after it.
+    /// </summary>
+    public static IReadOnlyCollection<string> HiddenPlayerTags { get; } = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "BACON_BLOODGEMBUFFATKVALUE", "BACON_BLOODGEMBUFFHEALTHVALUE",
+        "TAVERN_SPELL_ATTACK_INCREASE", "TAVERN_SPELL_HEALTH_INCREASE",
+        "BACON_OLD_GOD_ATTACK", "BACON_OLD_GOD_HEALTH", "4914", "4915",
+    };
+
+    /// <summary>
+    /// <paramref name="side"/> with the values of <see cref="SimSide.HiddenTags"/> in place of the estimates that stood in
+    /// for them: for consumers after the game only (<see cref="SimOptions.PostGame"/>). An estimate stays when the log had no
+    /// value for it either.
+    /// </summary>
+    public static SimSide PostGame(SimSide side)
+    {
+        if (side.HiddenTags.Count == 0)
+        {
+            return side;
+        }
+
+        var hidden = side.HiddenTags;
+        bool Known(string tag) => hidden.TryGetValue(tag, out var value) && value > 0;
+        var tags = new Dictionary<string, int>(side.Tags, StringComparer.Ordinal);
+        var kept = new List<SimEstimate>();
+        foreach (var estimate in side.Estimates)
+        {
+            if (estimate.Tags.Count > 0 && estimate.Tags.Any(Known))
+            {
+                // The log has the value: the estimate and everything it wrote go.
+                foreach (var tag in estimate.Tags)
+                {
+                    tags.Remove(tag);
+                }
+            }
+            else
+            {
+                kept.Add(estimate);
+            }
+        }
+
+        // A value the log had where no estimate still stands in for it.
+        foreach (var (tag, value) in hidden)
+        {
+            tags.TryAdd(tag, value);
+        }
+
+        return side with { Tags = tags, Estimates = kept };
+    }
+
     /// <summary>The estimate of <paramref name="input"/> on <paramref name="side"/>, or null when it was read (or not needed).</summary>
     public static SimEstimate? Estimate(SimSide side, string input)
     {

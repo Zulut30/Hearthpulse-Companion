@@ -38,6 +38,11 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     // their controller; and for minions that entered the board in that time, how many of those deaths came before.
     private readonly List<(int Controller, SimMinion Dead)> _deathsBeforeCapture = new();
     private readonly Dictionary<int, int> _enteredAfterDeaths = new();
+
+    // The opponent's player values the client does not show, as the log had them at each capture, by combat index: kept
+    // out of the live simulation and handed out only after the game (Captures).
+    private readonly Dictionary<int, IReadOnlyDictionary<string, int>> _hiddenOpponentTags = new();
+    private bool _gameEnded;
     private readonly List<CombatRecord> _combats = new();
 
     // The fights of this game as the simulator got them, and what the log said about the minions of the fight being captured.
@@ -175,8 +180,12 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _pendingDamage = -1;
         _deathsBeforeCapture.Clear();
         _enteredAfterDeaths.Clear();
+        _hiddenOpponentTags.Clear();
+        _gameEnded = false;
         ResetRounds();
     }
+
+    public void OnGameEnded(GameState game) => _gameEnded = true;
 
     public void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options)
     {

@@ -34,6 +34,7 @@ public sealed class SimInputsTests
           {"id":"BG36_116","dbfId":1004,"name":"Underrot Spawn","type":"MINION","attack":2,"health":2,"races":["ABERRATION"],"mechanics":["DEATHRATTLE"],"techLevel":2,"isBattlegroundsPoolMinion":true,"text":"<b>Deathrattle:</b> Summon a 1/1."},
           {"id":"BG_QB","dbfId":1005,"name":"Test Quilboar","type":"MINION","attack":2,"health":2,"races":["QUILBOAR"],"techLevel":1,"isBattlegroundsPoolMinion":true,"text":""},
           {"id":"BGS_008","dbfId":1006,"name":"Ghastcoiler","type":"MINION","attack":7,"health":7,"races":["BEAST"],"mechanics":["DEATHRATTLE"],"techLevel":6,"isBattlegroundsPoolMinion":true,"text":"<b>Deathrattle:</b> Summon 2 random <b>Deathrattle</b> minions."},
+          {"id":"BG36_241","dbfId":1007,"name":"Crimson Vindicator","type":"MINION","attack":3,"health":2,"races":["DRAGON"],"techLevel":5,"isBattlegroundsPoolMinion":true,"text":""},
           {"id":"BGFYM_000","dbfId":{{CThunDbf}},"name":"C'Thun","type":"MINION","attack":1,"health":1,"races":["ABERRATION"],"techLevel":1,"text":""}
         ]
         """)));
@@ -196,24 +197,85 @@ public sealed class SimInputsTests
         Assert.DoesNotContain(CombatSimulator.Explain(capture.Theirs, isOpponent: true, EffectRegistry.Empty), i => i.Reason == UnsimulatedReason.MissingInput);
     }
 
+    /// <summary>
+    /// The opponent's player values the client does not show (docs/adr/0005-hidden-information.md), all in the log here
+    /// (G1: Gimrion's Deity 726/793, Amulet21's Blood Gems 11/5, G4: Lapinmignon's spell bonus), and ours for the prior.
+    /// </summary>
+    private static PowerLog HiddenValuesGame() => new PowerLog()
+        .BattlegroundsGame(
+            ourTags: [("BACON_BLOODGEMBUFFATKVALUE", "2"), ("BACON_BLOODGEMBUFFHEALTHVALUE", "3"), ("TAVERN_SPELL_ATTACK_INCREASE", "1"),
+                      ("TAVERN_SPELL_HEALTH_INCREASE", "1"), ("BACON_OLD_GOD_ATTACK", "10"), ("BACON_OLD_GOD_HEALTH", "12")],
+            theirTags: [("BACON_BLOODGEMBUFFATKVALUE", "11"), ("BACON_BLOODGEMBUFFHEALTHVALUE", "5"), ("TAVERN_SPELL_ATTACK_INCREASE", "7"),
+                        ("TAVERN_SPELL_HEALTH_INCREASE", "6"), ("BACON_OLD_GOD_ATTACK", "726"), ("BACON_OLD_GOD_HEALTH", "793"), ("BACON_TEST_COUNTER", "4242")])
+        .Deity(CThunDbf)
+        .Minion(30, "BG36_116", Me, 1, 2, 2)
+        .Minion(40, "BG36_116", Them, 1, 2, 2)
+        .Minion(41, "BG_QB", Them, 2, 2, 2)
+        .Minion(42, "BG36_241", Them, 3, 9, 7)
+        .CombatStarts()
+        .Block("ATTACK", Ref(30, "Underrot Spawn", "BG36_116", Me));
+
+    private static readonly int[] TheirHiddenValues = [11, 5, 7, 6, 726, 793, 4242];
+
     [Fact]
-    public void Opponent_values_the_log_has_are_used_as_they_are()
+    public void The_live_odds_input_never_holds_the_opponents_hidden_player_values()
     {
-        // Their Deity 726/793 (G1 Gimrion) and Blood Gem value are in the log: no estimate.
-        var log = new PowerLog()
-            .BattlegroundsGame(theirTags: [("BACON_OLD_GOD_ATTACK", "726"), ("BACON_OLD_GOD_HEALTH", "793"), ("BACON_BLOODGEMBUFFATKVALUE", "11"), ("BACON_BLOODGEMBUFFHEALTHVALUE", "5")])
-            .Deity(CThunDbf)
-            .Minion(30, "BG36_116", Me, 1, 2, 2)
-            .Minion(40, "BG36_116", Them, 1, 2, 2)
-            .Minion(41, "BG_QB", Them, 2, 2, 2)
-            .CombatStarts()
-            .Block("ATTACK", Ref(30, "Underrot Spawn", "BG36_116", Me));
+        var (game, tracker) = HiddenValuesGame().Replay(Cards, EffectRegistry.Empty);
+        var theirs = tracker.LastCapture!.Theirs;
 
-        var (game, tracker) = log.Replay(Cards, EffectRegistry.Empty);
+        // Nothing of the opponent's player entity: only estimates, from our own values.
+        Assert.DoesNotContain(theirs.Tags, t => TheirHiddenValues.Contains(t.Value));
+        Assert.DoesNotContain("BACON_TEST_COUNTER", theirs.Tags.Keys);
+        Assert.Empty(theirs.HiddenTags);
+        Assert.Equal(
+            [(SimInputs.DeityStats, 10, 12), (SimInputs.BloodGemBonus, 2, 3), (SimInputs.TavernSpellBonus, 1, 1)],
+            theirs.Estimates.Select(e => (e.Input, e.Value1, e.Value2)));
+        Assert.False(tracker.LastCaptureOptions!.PostGame);
+        Assert.Equal(3, tracker.BuildView(game).CombatOdds!.Estimated);
+        // The game is not over: the kept fights carry nothing hidden either.
+        Assert.All(tracker.Captures, c => Assert.Empty(c.Capture.Theirs.HiddenTags));
+        Assert.All(tracker.Captures, c => Assert.False(c.Options.PostGame));
+        // Our own values are on our screen: exact.
+        Assert.Equal(2, tracker.LastCapture.Ours.Tags["BACON_BLOODGEMBUFFATKVALUE"]);
+        Assert.Empty(tracker.LastCapture.Ours.Estimates);
+    }
 
-        Assert.Empty(tracker.LastCapture!.Theirs.Estimates);
-        Assert.Equal(726, tracker.LastCapture.Theirs.Tags[Deity.AttackTag]);
-        Assert.Equal(0, tracker.BuildView(game).CombatOdds!.Estimated);
+    [Fact]
+    public void After_the_game_the_captures_have_the_opponents_exact_values()
+    {
+        var (_, tracker) = HiddenValuesGame().Tag("2", "PLAYSTATE", "LOST").Replay(Cards, EffectRegistry.Empty);
+
+        var fight = Assert.Single(tracker.Captures);
+        Assert.True(fight.Options.PostGame);
+        var hidden = fight.Capture.Theirs.HiddenTags;
+        Assert.Equal((11, 5, 7, 726), (hidden["BACON_BLOODGEMBUFFATKVALUE"], hidden["BACON_BLOODGEMBUFFHEALTHVALUE"], hidden["TAVERN_SPELL_ATTACK_INCREASE"], hidden[Deity.AttackTag]));
+        Assert.DoesNotContain("BACON_TEST_COUNTER", hidden.Keys);
+
+        var exact = SimInputs.PostGame(fight.Capture.Theirs);
+        Assert.Equal((11, 7, 726, 793), (exact.Tags["BACON_BLOODGEMBUFFATKVALUE"], exact.Tags["TAVERN_SPELL_ATTACK_INCREASE"], exact.Tags[Deity.AttackTag], exact.Tags[Deity.HealthTag]));
+        Assert.Empty(exact.Estimates);
+
+        var options = fight.Options with { Runs = 10, TimeBudget = null, Effects = EffectRegistry.Empty };
+        Assert.Equal(0, CombatSimulator.Run(fight.Capture.Ours, fight.Capture.Theirs, fight.Capture.OursFirst, options).Estimated);
+        Assert.Equal(3, CombatSimulator.Run(fight.Capture.Ours, fight.Capture.Theirs, fight.Capture.OursFirst, options with { PostGame = false }).Estimated);
+        // What the live simulation was given stays as it was.
+        Assert.Empty(tracker.LastCapture!.Theirs.HiddenTags);
+    }
+
+    [Fact]
+    public void A_value_the_log_lacks_stays_estimated_after_the_game()
+    {
+        var side = new SimSide([])
+        {
+            Tags = new Dictionary<string, int> { [Deity.AttackTag] = 10, [Deity.HealthTag] = 12 },
+            Estimates = [new SimEstimate(SimInputs.DeityStats, 10, 12, "prior") { Tags = [Deity.AttackTag, Deity.HealthTag] }],
+            HiddenTags = new Dictionary<string, int> { [Deity.AttackTag] = 0, ["BACON_BLOODGEMBUFFATKVALUE"] = 4 },
+        };
+
+        var post = SimInputs.PostGame(side);
+
+        Assert.Equal(SimInputs.DeityStats, Assert.Single(post.Estimates).Input);
+        Assert.Equal((10, 4), (post.Tags[Deity.AttackTag], post.Tags["BACON_BLOODGEMBUFFATKVALUE"]));
     }
 
     [Fact]
