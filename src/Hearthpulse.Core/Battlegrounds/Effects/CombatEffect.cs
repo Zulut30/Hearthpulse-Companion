@@ -217,6 +217,12 @@ public abstract class CombatEffect
     /// </summary>
     public virtual int ExtraSpellCasts(Fight fight, Unit self, string spellCardId, Unit? target) => 0;
 
+    /// <summary>
+    /// After a friendly minion (possibly self) gained stats from <see cref="Fight.Buff"/>: the positive part of the buff
+    /// (auras and summon buffs are not reported). "Whenever your Amalgam gains stats" (Mishmash).
+    /// </summary>
+    public virtual void AfterFriendlyGainedStats(Fight fight, Unit self, Unit unit, int attack, int health) { }
+
     private static Hook ScanHooks(Type type)
     {
         var hooks = Hook.None;
@@ -261,6 +267,7 @@ public abstract class CombatEffect
         (nameof(ExtraBattlecries), Hook.ExtraBattlecries),
         (nameof(AfterFriendlyBattlecry), Hook.FriendlyBattlecry),
         (nameof(ExtraSpellCasts), Hook.ExtraSpellCasts),
+        (nameof(AfterFriendlyGainedStats), Hook.FriendlyGainedStats),
     ];
 }
 
@@ -314,4 +321,5 @@ internal enum Hook
     ExtraBattlecries = 1 << 24,
     FriendlyBattlecry = 1 << 25,
     ExtraSpellCasts = 1 << 26,
+    FriendlyGainedStats = 1 << 27,
 }

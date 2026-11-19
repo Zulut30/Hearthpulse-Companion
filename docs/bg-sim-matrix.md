@@ -10,12 +10,12 @@
 
 | Вид | no_effect | resolved | implemented | missing_effect | missing_input | unknown | всего |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Существа | 228 | 10 | 77 | 13 | 0 | 0 | 328 |
+| Существа | 223 | 10 | 82 | 13 | 0 | 0 | 328 |
 | Силы героя | 102 | 7 | 5 | 1 | 1 | 0 | 116 |
 | Тринкеты | 331 | 36 | 27 | 25 | 1 | 0 | 420 |
 | Тёмные дары | 34 | 5 | 6 | 0 | 0 | 2 | 47 |
 | Боевые зачарования | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Без «вне пула»** | 572 | 37 | 98 | 23 | 2 | 2 | 734 |
+| **Без «вне пула»** | 567 | 37 | 103 | 23 | 2 | 2 | 734 |
 
 ## Существа
 
@@ -110,7 +110,6 @@
 | BG34_170t3 | Green Volumizer | no_effect | да | MAGNETIC_TAVERN |
 | BG31_035 | Groundbreaker | no_effect | пул не подтверждён | PLAY_BUY_TRIGGER |
 | BG26_810 | Gunpowder Courier | no_effect | да | PLAY_BUY_TRIGGER |
-| BG31_148 | Hackerfin | no_effect | да | BATTLECRY |
 | BGFYM_005 | Harbinger Aph'lass | no_effect | да | HAND_DISCARD_TRIGGER |
 | BG36_204 | Headhunter Gryphon | no_effect | да | RALLY_TAVERN |
 | BG25_010t | Helping Hand | no_effect | да | TOKEN |
@@ -126,7 +125,6 @@
 | BG21_004 | Insatiable Ur'zul | no_effect | да | PLAY_BUY_TRIGGER |
 | BG32_237 | Intrepid Botanist | no_effect | да | CHOOSE_ONE |
 | BG27_000 | Iron Groundskeeper | no_effect | да | BATTLECRY |
-| BG36_110 | Joyous | no_effect | да | BATTLECRY |
 | BGDUO_115 | Jumping Jack | no_effect | да | SELL |
 | BG36_701 | Kelp Keeper | no_effect | да | ACTIVATE |
 | BG35_150 | Laboratory Assistant | no_effect | да | BATTLECRY |
@@ -154,11 +152,9 @@
 | BG36_312 | Mindbending Recruiter | no_effect | да | ACTIVATE |
 | BG23_000 | Mini-Myrmidon | no_effect | пул не подтверждён | SPELLCRAFT |
 | BGDUO_108 | Mirror Monster | no_effect | да | PASS_DUOS |
-| TB_BaconShop_HERO_33_Buddy | Mishmash | no_effect | да | нет в таблице; по тексту |
 | BG36_320 | Mysterious K'Thir | no_effect | да | END_OF_TURN |
 | BG36_300 | N'raqi Frostcaller | no_effect | да | ACTIVATE |
 | BG36_103 | N'raqi Sapper | no_effect | да | DR_TAVERN |
-| BG25_011 | Nerubian Deathswarmer | no_effect | да | BATTLECRY |
 | BG36_115 | Nightmare Corroder | no_effect | да | END_OF_TURN |
 | BG32_111 | Nightmare Par-tea Guest | no_effect | да | DR_TAVERN |
 | BG31_330 | Ominous Seer | no_effect | да | BATTLECRY |
@@ -185,7 +181,6 @@
 | BG25_001 | Risen Rider | no_effect | да | KEYWORDS |
 | BG20_101 | Roadboar | no_effect | да | RALLY_TAVERN |
 | BG28_550 | Rodeo Performer | no_effect | да | BATTLECRY |
-| BG25_013 | Rot Hide Gnoll | no_effect | пул не подтверждён | нет в таблице; по тексту |
 | BG36_362 | Sacrificial Wrathguard | no_effect | да | DR_TAVERN |
 | BG31_171t | Satellite | no_effect | да | нет в таблице; по тексту |
 | BG27_514 | Sea Witch Zar'jira | no_effect | пул не подтверждён | SPELLCRAFT |
@@ -294,6 +289,7 @@
 | BGS_008 | Ghastcoiler | implemented | да | DR_SUMMON |
 | BG29_888 | Glim Guardian | implemented | да | RALLY_BUFF |
 | BGS_018 | Goldrinn, the Great Wolf | implemented | да | DR_BUFF |
+| BG31_148 | Hackerfin | implemented | да | BATTLECRY |
 | BG25_010 | Handless Forsaken | implemented | да | DR_SUMMON |
 | BG28_300 | Harmless Bonehead | implemented | да | DR_SUMMON |
 | BG36_849 | Heroic Broodmother | implemented | да | RALLY_KEYWORD |
@@ -301,12 +297,15 @@
 | BG36_210 | Hoarding Hyena | implemented | да | RALLY_SUMMON |
 | BG26_805 | Humming Bird | implemented | да | SOC_PERSISTENT |
 | BG36_333 | Jailbird Juggernaut | implemented | да | RALLY_SUMMON |
+| BG36_110 | Joyous | implemented | да | BATTLECRY |
 | BGS_041 | Kalecgos, Arcane Aspect | implemented | да | BATTLECRY_TRIGGER |
 | BG23_318 | Leeroy the Reckless | implemented | да | DR_DESTROY |
 | BG35_602 | Lurking Leviathan | implemented | да | ON_SUMMON |
+| TB_BaconShop_HERO_33_Buddy | Mishmash | implemented | да | нет в таблице релевантности |
 | BG28_309 | Mummifier | implemented | да | DR_KEYWORD |
 | BG27_023 | Murcules | implemented | да | KILL_HAND_BUFF; у соперника missing_input (рука скрыта) |
 | BGS_040 | Nadina the Red | implemented | да | DR_KEYWORD |
+| BG25_011 | Nerubian Deathswarmer | implemented | да | BATTLECRY |
 | BG27_017 | Obsidian Ravager | implemented | да | RALLY_DAMAGE |
 | BG34_690 | Plaguerunner | implemented | да | DR_BUFF |
 | BG33_430 | Prodigious Tusker | implemented | да | ON_FRIENDLY_ATTACK |
@@ -314,6 +313,7 @@
 | BG33_883 | Razorfen Vineweaver | implemented | да | RALLY_BUFF |
 | BG34_405 | Relentless Deflector | implemented | да | AURA_DYNAMIC |
 | BG29_816 | Roaring Recruiter | implemented | да | ON_FRIENDLY_ATTACK |
+| BG25_013 | Rot Hide Gnoll | implemented | пул не подтверждён | нет в таблице релевантности |
 | BGDUO31_208 | San'layn Scribe | implemented | да | AURA_DYNAMIC |
 | BG23_017 | Sanguine Champion | implemented | да | DR_COUNTER |
 | BG33_885 | Sanguine Refiner | implemented | да | RALLY_COUNTER |

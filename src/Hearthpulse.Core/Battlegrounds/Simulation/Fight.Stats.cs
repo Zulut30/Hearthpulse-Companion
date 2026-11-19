@@ -12,6 +12,7 @@ public sealed partial class Fight
         target.Health = (int)Math.Clamp((long)target.Health + health, -1_000_000_000, int.MaxValue);
         target.MaxHealth = (int)Math.Clamp((long)target.MaxHealth + health, 0, int.MaxValue);
         RefreshUnit(target);
+        if ((attack > 0 || health > 0) && (target.Side.Hooks & Hook.FriendlyGainedStats) != 0) StatsGained(target, Math.Max(0, attack), Math.Max(0, health));
     }
 
     /// <summary>Sets Attack and Health (and maximum Health).</summary>
