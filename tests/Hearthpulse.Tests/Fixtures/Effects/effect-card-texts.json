@@ -56,6 +56,18 @@
    "attack": null,
    "health": null
   },
+  "BG21_015": {
+   "name": "Tarecgosa",
+   "text": "This permanently keeps Bonus Keywords and stats gained in combat.",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "BG21_015_G",
+    "text": "This permanently keeps Bonus Keywords and double stats gained in combat.",
+    "attack": 8,
+    "health": 8
+   }
+  },
   "BG23_017": {
    "name": "Sanguine Champion",
    "text": "Battlecry and Deathrattle: Your Blood Gems give an extra +2/+1 this game.",
@@ -403,6 +415,18 @@
    "text": "Your Tavern spells cast an extra time.",
    "attack": null,
    "health": null
+  },
+  "BG29_300": {
+   "name": "Very Hungry Winterfinner",
+   "text": "Taunt Whenever this takes damage, give a minion in your hand +2/+1.",
+   "attack": 2,
+   "health": 6,
+   "golden": {
+    "id": "BG29_300_G",
+    "text": "Taunt Whenever this takes damage, give a minion in your hand +4/+2.",
+    "attack": 4,
+    "health": 12
+   }
   },
   "BG29_611": {
    "name": "Cord Puller",

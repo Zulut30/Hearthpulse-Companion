@@ -13,9 +13,10 @@ public sealed class RelevanceTests
         var pool = CombatRelevance.Table.Where(r => r.Origin == Origin.Pool).ToList();
         // 302 of the research files of patch 37.0.0.255130 and the pool additions of tools/effects/relevance_additions.json
         // (Murcules, Bassgill, Rot Hide Gnoll: back in the pool of 37.0.2). Fishbait, Tide Oracle Morgl and Water Droplet
-        // are additions too, but Origin.Token: the data API has them out of the Tavern pool (seen on boards).
+        // are additions too, but Origin.Token: the data API has them out of the Tavern pool (seen on boards). Very Hungry
+        // Winterfinner and Tarecgosa were relabelled Relevant on 2026-11-19 (real fights: hand buff, golden doubles gains).
         Assert.Equal(305, pool.Count);
-        Assert.Equal(68, pool.Count(r => r.Relevance == Relevance.Relevant));
+        Assert.Equal(70, pool.Count(r => r.Relevance == Relevance.Relevant));
         Assert.Equal(Origin.Token, CombatRelevance.Find("BG36_205")?.Origin);
         Assert.Equal(Relevance.Relevant, CombatRelevance.Find("BG27_023_G")?.Relevance);
         Assert.Equal(Relevance.Relevant, CombatRelevance.Find("BG26_350")?.Relevance);
