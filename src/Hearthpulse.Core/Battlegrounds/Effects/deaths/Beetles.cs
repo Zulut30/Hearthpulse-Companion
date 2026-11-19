@@ -24,14 +24,16 @@ internal static class Beetles
     public static bool IsBeetle(Unit unit) => unit.CardId == Tokens.BeetleId;
 
     /// <summary>The stats of the Beetle <paramref name="summoner"/> summons, before in-fight "+X/+Y this game" bonuses.</summary>
-    public static (int Attack, int Health) Stats(Unit summoner)
-    {
-        if (HasStats(summoner.Spec))
-        {
-            return Of(summoner.Spec);
-        }
+    public static (int Attack, int Health) Stats(Unit summoner) => HasStats(summoner.Spec) ? Of(summoner.Spec) : Stats(summoner.Side);
 
-        var info = summoner.Side.Info;
+    /// <summary>
+    /// The player's current Beetle, before in-fight "+X/+Y this game" bonuses: what the first captured friendly Beetle
+    /// summoner with script data shows (board, then the local player's hand), else 2/2. For summons that print a plain
+    /// "2/2 Beetle" (Beetle Band): "Your Beetles have +X/+Y this game" applies to every Beetle of the player.
+    /// </summary>
+    public static (int Attack, int Health) Stats(Side side)
+    {
+        var info = side.Info;
         foreach (var minion in info.Minions)
         {
             if (IsSummoner(minion) && HasStats(minion))
@@ -40,7 +42,7 @@ internal static class Beetles
             }
         }
 
-        if (!summoner.Side.IsOpponent)
+        if (!side.IsOpponent)
         {
             foreach (var minion in info.Hand)
             {

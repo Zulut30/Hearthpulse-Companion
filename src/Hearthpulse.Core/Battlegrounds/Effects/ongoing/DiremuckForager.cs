@@ -7,9 +7,11 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 /// The Start of Combat part has resolved when the boards are captured: with space the Murloc is already on the board (and no
 /// longer in the hand). What is left is the "when you have space" wait: if the board was full at the start of the fight
 /// (7 minions), the summon is still pending, and it happens as soon as a friendly minion has died and there is room
-/// (<see cref="PendingMurlocs"/>), even after the Forager itself died. The Murloc is summoned right of the Forager while it
-/// is on the board, else at the right end. Needs the hand, which only the local player's is known: the opponent's Forager
-/// stays "not simulated". With a golden Forager and a full board the sim assumes none of the two was summoned yet.
+/// (<see cref="PendingMurlocs"/>), even after the Forager itself died. The Murloc is summoned at the right end of the board,
+/// wherever the Forager stands (real log 15.11.2026, build 255790: the delayed summon went to position 7 with the Forager
+/// alive at position 4, and with a golden one at position 3). Needs the hand, which only the local player's is known: the
+/// opponent's Forager stays "not simulated". With a golden Forager and a full board the sim assumes none of the two was
+/// summoned yet (the log keeps the count on a player enchantment the capture does not read yet).
 /// </para>
 /// </summary>
 [CardEffect("BG27_556")]
@@ -27,7 +29,6 @@ internal sealed class DiremuckForager : CombatEffect
         var holder = PlayerEffects.Attach(self.Side, self.CardId, PendingMurlocs.Instance);
         var state = UnitState<PendingMurlocs.State>.Of(holder);
         state.Remaining = self.Pick(1, 2);
-        state.Source = self;
     }
 }
 
@@ -39,7 +40,6 @@ internal sealed class PendingMurlocs : CombatEffect
     public sealed class State
     {
         public int Remaining;
-        public Unit? Source;
     }
 
     public override void AfterFriendlyDeath(Fight fight, Unit self, Unit dead)
@@ -56,10 +56,7 @@ internal sealed class PendingMurlocs : CombatEffect
             }
 
             var murloc = hand[best];
-            var unit = state.Source is { IsOnBoard: true } source
-                ? fight.SummonAt(source, murloc)
-                : fight.Summon(side, murloc, side.Count);
-            if (unit is null)
+            if (fight.Summon(side, murloc, side.Count) is null)
             {
                 return;
             }

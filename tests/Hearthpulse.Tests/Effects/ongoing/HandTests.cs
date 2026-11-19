@@ -30,13 +30,15 @@ public sealed class HandTests
     public void Diremuck_forager_summons_the_highest_attack_murloc_from_the_hand_once_there_is_space()
     {
         // Full board, hand: a 3/3 Murloc, a 5/2 Murloc and a 9/9 Beast. Their 1/3 kills a bystander (pick 1): space. The
-        // 5/2 (highest-Attack Murloc) is summoned right of the Forager. Then our Forager (4 Attack) kills the 1/3 and takes 1.
+        // 5/2 (highest-Attack Murloc) is summoned at the right end of the board, not next to the living Forager (real log
+        // 15.11.2026, build 255790: position 7 with the Forager at position 4). Then our Forager (4 Attack) kills the 1/3
+        // and takes 1.
         var ours = FullBoardWithForager(hand: [Murloc("MUR_LOW", 3, 3), Murloc("MUR_HIGH", 5, 2), Minion(9, 9, cardId: "BEAST", tribes: Tribe.Beast)]);
         var result = Fight(ours, Side(Minion(1, 3)), oursFirst: false, Effects(typeof(DiremuckForager)), 1);
 
         Assert.Equal(1, result.Outcome);
-        Assert.Equal([(4, 4), (5, 2), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1)], Stats(result.Ours));
-        Assert.Equal(["summoned our MUR_HIGH 5/2 at 1"], result.Lines("summoned"));
+        Assert.Equal([(4, 4), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (5, 2)], Stats(result.Ours));
+        Assert.Equal(["summoned our MUR_HIGH 5/2 at 6"], result.Lines("summoned"));
     }
 
     [Fact]
@@ -44,12 +46,13 @@ public sealed class HandTests
     {
         // Golden Forager 8/10, hand: Murlocs 6/2, 4/4 and 2/2. Their 1/20 kills a bystander (pick 1): the 6/2 is summoned and
         // the board is full again. Our Forager attacks (the target pick takes the second value). Their next attack (pick 2)
-        // kills another bystander: the 4/4 is summoned right of the Forager, in front of the 6/2. The 2/2 stays in the hand.
+        // kills another bystander: the 4/4 is summoned at the right end too, after the 6/2 (real log: a golden Forager at
+        // position 3, the delayed Murloc at position 7). The 2/2 stays in the hand.
         var ours = FullBoardWithForager(golden: true, foragerAttack: 8, foragerHealth: 10,
                                         hand: [Murloc("MUR_A", 6, 2), Murloc("MUR_B", 4, 4), Murloc("MUR_C", 2, 2)]);
         var result = Fight(ours, Side(Minion(1, 20)), oursFirst: false, Effects(typeof(DiremuckForager)), 1, 0, 2);
 
-        Assert.Equal(["summoned our MUR_A 6/2 at 1", "summoned our MUR_B 4/4 at 1"], result.Lines("summoned"));
+        Assert.Equal(["summoned our MUR_A 6/2 at 6", "summoned our MUR_B 4/4 at 6"], result.Lines("summoned"));
     }
 
     [Fact]
@@ -91,8 +94,8 @@ public sealed class HandTests
         var first = Fight(FullBoardWithForager(hand: hand), Side(Minion(1, 3)), oursFirst: false, Effects(typeof(DiremuckForager)), 1, 1);
         var second = Fight(FullBoardWithForager(hand: hand), Side(Minion(1, 3)), oursFirst: false, Effects(typeof(DiremuckForager)), 1, 0);
 
-        Assert.Equal(["summoned our MUR_FIRST 5/2 at 1"], first.Lines("summoned"));
-        Assert.Equal(["summoned our MUR_SECOND 5/3 at 1"], second.Lines("summoned"));
+        Assert.Equal(["summoned our MUR_FIRST 5/2 at 6"], first.Lines("summoned"));
+        Assert.Equal(["summoned our MUR_SECOND 5/3 at 6"], second.Lines("summoned"));
     }
 
     [Fact]

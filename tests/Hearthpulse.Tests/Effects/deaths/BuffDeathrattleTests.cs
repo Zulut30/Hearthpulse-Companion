@@ -161,13 +161,36 @@ public sealed class BuffDeathrattleTests
     // ------------------------------------------------------------------------------------------- Ship Master Eudora
 
     [Fact]
-    public void Eudora_gives_your_minions_six_six()
+    public void Eudora_without_script_data_gives_your_minions_eight_eight()
     {
-        // Killer 3/8 → Eudora 8/3 (pick 0): both die. A 1/1 → 7/7, B 2/2 → 8/8.
-        var result = Fight(Side(Minion(8, 3, cardId: Ids.Eudora, tribes: Tribe.Pirate), Minion(1, 1, cardId: "A"), Minion(2, 2, cardId: "B")),
-                           Side(Killer(3, 8), Wall), false, Only(typeof(ShipMasterEudora)), 0);
+        // A copy without script data (e.g. a Ghastcoiler summon) uses the current printed +8/+8 (it was +6/+6 in
+        // 37.0.0.255130). Killer 3/10 → Eudora 10/3 (pick 0): both die. A 1/1 → 9/9, B 2/2 → 10/10.
+        var result = Fight(Side(Minion(10, 3, cardId: Ids.Eudora, tribes: Tribe.Pirate), Minion(1, 1, cardId: "A"), Minion(2, 2, cardId: "B")),
+                           Side(Killer(3, 10), Wall), false, Only(typeof(ShipMasterEudora)), 0);
 
-        Assert.Equal(["A 7/7", "B 8/8"], Board(result.Ours));
+        Assert.Equal(["A 9/9", "B 10/10"], Board(result.Ours));
+    }
+
+    [Fact]
+    public void Eudora_gives_its_script_data_as_in_the_real_log()
+    {
+        // Real log 15.11.2026 (build 255790, game 1): Eudora with TAG_SCRIPT_DATA_NUM_1/2 = 8/8 gave each friendly minion
+        // +8/+8. A 1/1 → 9/9, B 2/2 → 10/10.
+        var eudora = Minion(10, 3, cardId: Ids.Eudora, tribes: Tribe.Pirate) with { ScriptData1 = 8, ScriptData2 = 8 };
+        var result = Fight(Side(eudora, Minion(1, 1, cardId: "A"), Minion(2, 2, cardId: "B")), Side(Killer(3, 10), Wall), false,
+                           Only(typeof(ShipMasterEudora)), 0);
+
+        Assert.Equal(["A 9/9", "B 10/10"], Board(result.Ours));
+    }
+
+    [Fact]
+    public void Golden_eudora_without_script_data_gives_eight_eight_twice()
+    {
+        // Golden text: "Give your minions +8/+8 twice". A 1/1 → 17/17, B 2/2 → 18/18.
+        var result = Fight(Side(Minion(20, 6, cardId: Ids.Eudora, tribes: Tribe.Pirate, golden: true), Minion(1, 1, cardId: "A"), Minion(2, 2, cardId: "B")),
+                           Side(Killer(6, 20), Wall), false, Only(typeof(ShipMasterEudora)), 0);
+
+        Assert.Equal(["A 17/17", "B 18/18"], Board(result.Ours));
     }
 
     [Fact]

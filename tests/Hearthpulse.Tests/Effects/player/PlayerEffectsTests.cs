@@ -207,12 +207,33 @@ public sealed class PlayerEffectsTests
     }
 
     [Fact]
-    public void Golden_beetle_band_summons_two_beetles_on_the_seventh_death()
+    public void Golden_beetle_band_summons_two_beetles_on_the_eighth_death()
     {
-        var side = Side(Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(0, 30));
-        var golden = Fight(With(side, "BG32_MagicItem_860t"), Side(Minion(1, 500)), false, Effects(typeof(BeetleBand)));
+        // Current golden text: "Avenge (8)" (it was Avenge (7) in 37.0.0.255130). Seven deaths are not enough: the six 1/1
+        // and the 0/30 die without a Beetle.
+        var seven = Side(Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(0, 30));
+        var none = Fight(With(seven, "BG32_MagicItem_860t"), Side(Minion(1, 500)), false, Effects(typeof(BeetleBand)));
+        Assert.DoesNotContain(none.Log, l => l.StartsWith("summoned our BG28_603t", StringComparison.Ordinal));
+
+        // A Harmless Bonehead adds two Skeletons: Bonehead, two Skeletons and five 1/1 are eight deaths before the 0/30.
+        var bonehead = Minion(1, 1, cardId: "BG28_300", mechanics: CardMechanic.Deathrattle);
+        var eight = Side(bonehead, Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(0, 30));
+        var golden = Fight(With(eight, "BG32_MagicItem_860t"), Side(Minion(1, 500)), false,
+            Effects(typeof(BeetleBand), typeof(Hearthpulse.Core.Battlegrounds.Effects.Deaths.HarmlessBonehead)));
 
         Assert.Equal(2, golden.Log.Count(l => l.StartsWith("summoned our BG28_603t", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void Beetle_band_summons_the_players_current_beetle()
+    {
+        // "Your Beetles have +X/+Y this game" covers every Beetle: a captured Buzzing Vermin shows the player's Beetle as
+        // 7/5 (TAG_SCRIPT_DATA_NUM_1/2), so the Band's Beetle is 7/5 with Taunt, not a plain 2/2.
+        var vermin = Minion(0, 30, cardId: "BG31_803", tribes: Tribe.Beast) with { ScriptData1 = 7, ScriptData2 = 5 };
+        var side = Side(Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), vermin);
+        var result = Fight(With(side, "BG32_MagicItem_860"), Side(Minion(1, 200)), false, Effects(typeof(BeetleBand)));
+
+        Assert.Contains(result.Log, l => l.StartsWith("summoned our BG28_603t 7/5", StringComparison.Ordinal));
     }
 
     [Fact]

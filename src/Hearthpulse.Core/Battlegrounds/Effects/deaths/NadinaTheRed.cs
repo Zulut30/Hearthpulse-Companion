@@ -6,14 +6,15 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Deaths;
 /// </summary>
 /// <remarks>
 /// Assumption (usual Battlegrounds behaviour for "give friendly minions Divine Shield"): random living friendly Dragons
-/// that do not have Divine Shield yet; all of them when there are 3 (golden 6) or fewer.
+/// that do not have Divine Shield yet; all of them when there are 3 (golden 6) or fewer. "Friendly Dragons" does not
+/// exclude Nadina: when its deathrattle is triggered while it is alive (Deathstrider), it can shield itself.
 /// </remarks>
 [CardEffect("BGS_040")]
 internal sealed class NadinaTheRed : CombatEffect
 {
     public override void Deathrattle(Fight fight, Unit self)
     {
-        var candidates = fight.Alive(self.Side, Tribe.Dragon, except: self);
+        var candidates = fight.Alive(self.Side, Tribe.Dragon);
         candidates.RemoveAll(static unit => unit.DivineShield);
         foreach (var unit in DeathKit.Choose(fight, candidates, self.Pick(3, 6)))
         {
