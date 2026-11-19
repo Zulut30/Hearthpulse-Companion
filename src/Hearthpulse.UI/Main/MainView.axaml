@@ -47,7 +47,7 @@
             <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
         <Style Selector="Grid.navGroup">
-            <Setter Property="Margin" Value="28,16,20,4" />
+            <Setter Property="Margin" Value="28,12,20,4" />
         </Style>
         <Style Selector="StackPanel.pageSubtitle">
             <Setter Property="Orientation" Value="Horizontal" />
@@ -326,34 +326,48 @@
                         </StackPanel>
                     </Grid>
                 </Border>
-
-                <RadioButton Name="NavOverview" Classes="nav" Content="{i:Loc Main.Nav.Home}" Tag="{x:Static c:GameIcons.Home}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+1" IsChecked="True"
-                             ToolTip.Tip="{i:Loc Main.Nav.HomeTip}" />
-
-                <Grid Classes="navGroup wide" ColumnDefinitions="Auto,*">
-                    <TextBlock Text="{i:Loc Main.Nav.Modes}" Classes="label" />
-                    <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
-                </Grid>
-                <RadioButton Name="NavBattlegrounds" Classes="nav" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="{x:Static c:GameIcons.Battlegrounds}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+2"
-                             ToolTip.Tip="{i:Loc Main.Nav.BattlegroundsTip}" />
-                <RadioButton Name="NavStandard" Classes="nav" Content="{i:Loc Main.Nav.Standard}" Tag="{x:Static c:GameIcons.Standard}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+3"
-                             ToolTip.Tip="{i:Loc Main.Nav.StandardTipShort}" />
-                <RadioButton Name="NavWild" Classes="nav" Content="{i:Loc Main.Nav.Wild}" Tag="{x:Static c:GameIcons.Wild}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+4"
-                             ToolTip.Tip="{i:Loc Main.Nav.WildTipShort}" />
-                <RadioButton Name="NavArena" Classes="nav" Content="{i:Loc Main.Mode.Arena}" Tag="{x:Static c:GameIcons.Arena}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+5"
-                             ToolTip.Tip="{i:Loc Main.Nav.ArenaTip}" />
-                <RadioButton Name="NavBrawl" Classes="nav" Content="{i:Loc Main.Mode.Brawl}" Tag="{x:Static c:GameIcons.Brawl}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+6"
-                             ToolTip.Tip="{i:Loc Brawl.NavTip}" />
-
-                <Grid Classes="navGroup wide" ColumnDefinitions="Auto,*">
-                    <TextBlock Text="{i:Loc Main.Nav.Library}" Classes="label" />
-                    <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
-                </Grid>
-                <RadioButton Name="NavHistory" Classes="nav" Content="{i:Loc Main.Nav.History}" Tag="{x:Static c:GameIcons.History}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+7"
-                             ToolTip.Tip="{i:Loc Main.Nav.HistoryTip}" />
             </StackPanel>
 
-            <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
+            <!-- The pages scroll between the status card and the overlay card when the window is too short for all of them
+                 (eleven pages since the library ones); the foot stays put. Same as the WPF MainWindow. -->
+            <Grid RowDefinitions="*,Auto">
+                <ScrollViewer Name="NavScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                    <StackPanel>
+                        <RadioButton Name="NavOverview" Classes="nav" Content="{i:Loc Main.Nav.Home}" Tag="{x:Static c:GameIcons.Home}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+1" IsChecked="True"
+                                     ToolTip.Tip="{i:Loc Main.Nav.HomeTip}" />
+
+                        <Grid Classes="navGroup wide" ColumnDefinitions="Auto,*">
+                            <TextBlock Text="{i:Loc Main.Nav.Modes}" Classes="label" />
+                            <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
+                        </Grid>
+                        <RadioButton Name="NavBattlegrounds" Classes="nav" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="{x:Static c:GameIcons.Battlegrounds}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+2"
+                                     ToolTip.Tip="{i:Loc Main.Nav.BattlegroundsTip}" />
+                        <RadioButton Name="NavStandard" Classes="nav" Content="{i:Loc Main.Nav.Standard}" Tag="{x:Static c:GameIcons.Standard}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+3"
+                                     ToolTip.Tip="{i:Loc Main.Nav.StandardTipShort}" />
+                        <RadioButton Name="NavWild" Classes="nav" Content="{i:Loc Main.Nav.Wild}" Tag="{x:Static c:GameIcons.Wild}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+4"
+                                     ToolTip.Tip="{i:Loc Main.Nav.WildTipShort}" />
+                        <RadioButton Name="NavArena" Classes="nav" Content="{i:Loc Main.Mode.Arena}" Tag="{x:Static c:GameIcons.Arena}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+5"
+                                     ToolTip.Tip="{i:Loc Main.Nav.ArenaTip}" />
+                        <RadioButton Name="NavBrawl" Classes="nav" Content="{i:Loc Main.Mode.Brawl}" Tag="{x:Static c:GameIcons.Brawl}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+6"
+                                     ToolTip.Tip="{i:Loc Brawl.NavTip}" />
+
+                        <Grid Classes="navGroup wide" ColumnDefinitions="Auto,*">
+                            <TextBlock Text="{i:Loc Main.Nav.Library}" Classes="label" />
+                            <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
+                        </Grid>
+                        <RadioButton Name="NavHistory" Classes="nav" Content="{i:Loc Main.Nav.History}" Tag="{x:Static c:GameIcons.History}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+7"
+                                     ToolTip.Tip="{i:Loc Main.Nav.HistoryTip}" />
+                        <!-- The library pages after History have no Ctrl+digit (MainViewModel.NavDigitPages) -->
+                        <RadioButton Name="NavCollection" Classes="nav" Content="{i:Loc Main.Nav.Collection}" Tag="{x:Static c:GameIcons.Collection}" GroupName="Nav"
+                                     ToolTip.Tip="{i:Loc Main.Nav.CollectionTip}" />
+                        <RadioButton Name="NavAchievements" Classes="nav" Content="{i:Loc Main.Nav.Achievements}" Tag="{x:Static c:GameIcons.Achievements}" GroupName="Nav"
+                                     ToolTip.Tip="{i:Loc Main.Nav.AchievementsTip}" />
+                        <RadioButton Name="NavWrapped" Classes="nav" Content="{i:Loc Main.Nav.Wrapped}" Tag="{x:Static c:GameIcons.Wrapped}" GroupName="Nav"
+                                     ToolTip.Tip="{i:Loc Main.Nav.WrappedTip}" />
+                    </StackPanel>
+                </ScrollViewer>
+
+            <StackPanel Grid.Row="1" Margin="0,0,0,16">
                 <!-- The overlay (owner's pick B, 2026-11-05): its switch, the main panels as buttons and every panel in the ⋯ menu
                      (the same settings as Settings -> Overlay / Tracker), arrange and streamer mode; the buttons wrap to a second
                      line. Compact: the switch without its label, the ⋯ menu and streamer mode, one under the other. Same as WPF. -->
@@ -397,7 +411,7 @@
                              ToolTip.Tip="{i:Loc Main.Nav.SettingsTip}" />
                 <TextBlock Text="{Binding Version}" Classes="caption wide" FontSize="11" Foreground="{StaticResource Muted}" Margin="28,8,0,0" />
             </StackPanel>
-            <Panel />
+            </Grid>
         </DockPanel>
 
         <!-- ================= Content ================= -->
@@ -518,6 +532,11 @@
 
                 <!-- ===== History ===== -->
                 <pg:HistoryPage Name="PageHistory" Grid.Row="1" IsVisible="False" />
+
+                <!-- ===== Library: Collection, Achievements, Recap ===== -->
+                <pg:CollectionPage Name="PageCollection" Grid.Row="1" IsVisible="False" />
+                <pg:AchievementsPage Name="PageAchievements" Grid.Row="1" IsVisible="False" />
+                <pg:WrappedPage Name="PageWrapped" Grid.Row="1" IsVisible="False" />
 
                 <!-- ===== Match page (Main/Match): replaces the History list while a game is open ===== -->
                 <ScrollViewer Name="PageMatch" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">

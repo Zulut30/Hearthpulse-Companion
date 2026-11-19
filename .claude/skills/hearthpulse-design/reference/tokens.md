@@ -111,6 +111,7 @@ Font files (both projects, `Assets/Fonts/`): `Montserrat-Bold.ttf`, `Montserrat-
 |---|---|---|---|---|---|
 | `Base` | (inherited from view: UiFont 13) | UiFont | 13 | Normal | Text |
 | `Display` | `display` | DisplayFont | 32 (`FontSizeDisplay`) | ExtraBold | `GildedText` |
+| - (local `FontSize`) | - | DisplayFont | 64 (`FontSizeHero`: the Recap page's hero number only) | ExtraBold | `GildedText` |
 | `H1` | - | DisplayFont | 32 | ExtraBold | Text |
 | `H2` | `h2` | DisplayFont | 16 | Bold | Text |
 | `Label` | `label` | UiFont | 12 | SemiBold | Muted |

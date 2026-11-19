@@ -118,7 +118,7 @@ public partial class MainView : UserControl
     public string CurrentPage => MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)) ?? MainViewModel.NavPages[0];
 
     /// <summary>The sidebar buttons in <see cref="MainViewModel.NavPages"/> order.</summary>
-    private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings];
+    private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavCollection, NavAchievements, NavWrapped, NavSettings];
 
     private static bool?[] States(ToggleButton[] buttons) => Array.ConvertAll(buttons, b => b.IsChecked);
 
@@ -379,7 +379,7 @@ public partial class MainView : UserControl
         // The old page fades out under the new one, which comes in once it has been laid out, as in the WPF app
         // (PageSwitch; instant with motion off).
         var page = PageToShow();
-        _pages.Show(page, [PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageCard, PageArena, PageBrawl, PageHistory, PageMatch, PageSettings]);
+        _pages.Show(page, [PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageCard, PageArena, PageBrawl, PageHistory, PageMatch, PageCollection, PageAchievements, PageWrapped, PageSettings]);
         if (page == PageConstructed)
         {
             // The meta tabs' fixed part (filters, card frames) is built ahead of the first click on one of them.
@@ -409,6 +409,9 @@ public partial class MainView : UserControl
             "Brawl" => PageBrawl,
             // The match page stands in for the History list while a game is open.
             "History" => _viewModel?.MatchOpen == true ? PageMatch : PageHistory,
+            "Collection" => PageCollection,
+            "Achievements" => PageAchievements,
+            "Wrapped" => PageWrapped,
             "Settings" => PageSettings,
             _ => PageOverview,
         };

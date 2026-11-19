@@ -12,8 +12,18 @@ namespace Hearthpulse.UI.Main;
 /// </summary>
 public sealed partial class MainViewModel
 {
-    /// <summary>The sidebar pages in order, as the window's <c>ShowPage</c> takes them; Ctrl+1 opens the first.</summary>
+    /// <summary>
+    /// The sidebar pages in order, as the window's <c>ShowPage</c> takes them. The library pages after History
+    /// (Collection, Achievements, Recap) have no Ctrl+digit: <see cref="NavDigitPages"/>.
+    /// </summary>
     public static IReadOnlyList<string> NavPages { get; } =
+        ["Overview", "Battlegrounds", ConstructedPage.Standard, ConstructedPage.Wild, "Arena", "Brawl", "History", "Collection", "Achievements", "Wrapped", "Settings"];
+
+    /// <summary>
+    /// The pages Ctrl+1…8 open, in order: Ctrl+1 the first, Ctrl+8 Settings, as the tips and the shortcuts card say.
+    /// The library pages added after History keep no number (there are no digits past 9).
+    /// </summary>
+    public static IReadOnlyList<string> NavDigitPages { get; } =
         ["Overview", "Battlegrounds", ConstructedPage.Standard, ConstructedPage.Wild, "Arena", "Brawl", "History", "Settings"];
 
     /// <summary>The Battlegrounds page's tabs in order, as the window's <c>BattlegroundsTab</c> takes them; the first (My stats, as on Standard and Wild) is the default.</summary>
@@ -23,7 +33,7 @@ public sealed partial class MainViewModel
     public static IReadOnlyList<string> ConstructedTabs { get; } = ["Decks", "Tiers", "Top", "Matchups"];
 
     /// <summary>The page Ctrl+<paramref name="digit"/> opens, or null when no page has that number.</summary>
-    public static string? NavPageForDigit(int digit) => digit >= 1 && digit <= NavPages.Count ? NavPages[digit - 1] : null;
+    public static string? NavPageForDigit(int digit) => digit >= 1 && digit <= NavDigitPages.Count ? NavDigitPages[digit - 1] : null;
 
     /// <summary>
     /// Which button of a page or tab list (<see cref="NavPages"/>, <see cref="BattlegroundsTabs"/>,
@@ -85,6 +95,20 @@ public sealed partial class MainViewModel
         {
             // The card page lives on the Standard and Wild pages: leaving them lets go of it, as History does of a match.
             CloseCard();
+        }
+
+        // The library pages build their content when shown (MainViewModel.LibraryPages.cs).
+        switch (page)
+        {
+            case "Collection":
+                CollectionPageShown();
+                break;
+            case "Achievements":
+                AchievementsPageShown();
+                break;
+            case "Wrapped":
+                WrappedPageShown();
+                break;
         }
     }
 

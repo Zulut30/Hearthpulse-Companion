@@ -14,6 +14,9 @@ public static class GameIcons
     public static Geometry Arena { get; } = Parse(GameIconData.Arena);
     public static Geometry Brawl { get; } = Parse(GameIconData.Brawl);
     public static Geometry History { get; } = Parse(GameIconData.History);
+    public static Geometry Collection { get; } = Parse(GameIconData.Collection);
+    public static Geometry Achievements { get; } = Parse(GameIconData.Achievements);
+    public static Geometry Wrapped { get; } = Parse(GameIconData.Wrapped);
     public static Geometry Settings { get; } = Parse(GameIconData.Settings);
 
     private static Geometry Parse(string data)

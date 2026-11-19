@@ -5,7 +5,7 @@ description: Use when adding or changing a page, tab, section or settings card i
 
 # Adding or changing a main-window page or tab
 
-Main window = sidebar (Home, Modes: Battlegrounds / Standard / Wild / Arena, Library: History, Settings at the bottom) +
+Main window = sidebar (Home, Modes: Battlegrounds / Standard / Wild / Arena, Library: History, Collection, Achievements, Recap; Settings at the bottom; the library pages after History have no Ctrl+digit, `NavDigitPages`) +
 one visible page; the sidebar also holds the game's status card and the overlay card. UI text is **English and Russian**: every string is a key in
 `src/Hearthpulse.Core/Localization/Strings/{en,ru}/*.json`, used as `{i:Loc Key}` in XAML and `Loc.T/F/P` in view
 models, and the language switches live (Settings -> General). Recipe, conventions and glossary:

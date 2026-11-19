@@ -64,4 +64,25 @@ public sealed partial class LocBindingTests
         Assert.Equal(ConstructedPage.Standard, view.CurrentPage);
         Assert.Equal([ConstructedPage.FormatOf(ConstructedPage.Wild), ConstructedPage.FormatOf(ConstructedPage.Standard)], formats);
     }));
+
+    /// <summary>
+    /// The library pages after History (Collection, Achievements, Recap) open by name, each its own page, from their
+    /// sidebar items; an unknown name still goes home. The WPF twin is MainNavigationContractTests.
+    /// </summary>
+    [Fact]
+    public void Library_pages_open_by_name_each_on_its_own_page() => Headless.Run(() => WithMainView((view, _) =>
+    {
+        foreach (var (page, nav, control) in new[] { ("Collection", "NavCollection", "PageCollection"), ("Achievements", "NavAchievements", "PageAchievements"), ("Wrapped", "NavWrapped", "PageWrapped") })
+        {
+            view.ShowPage(page);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(page, view.CurrentPage);
+            Assert.True(view.FindControl<RadioButton>(nav)!.IsChecked);
+            Assert.True(view.FindControl<UserControl>(control)!.IsVisible);
+        }
+
+        view.ShowPage("Nowhere");
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal("Overview", view.CurrentPage);
+    }));
 }

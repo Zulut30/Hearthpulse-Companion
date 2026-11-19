@@ -1,0 +1,35 @@
+<UserControl
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Main.Pages.AchievementsPage"
+             x:DataType="m:MainViewModel">
+    <!-- The Achievements page: Hearthstone's achievements read from the game, the tracked ones and the nearly done. Same tree as the WPF AchievementsPage.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Pages/LibraryLook.axaml" />
+    </UserControl.Styles>
+    <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
+                <StackPanel>
+                    <!-- The glyph, then the title in the rest of the width: a long title wraps under itself. -->
+                    <Grid ColumnDefinitions="Auto,*">
+                        <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Achievements}" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Nav.Achievements}" Classes="display pageTitle" TextWrapping="Wrap" />
+                    </Grid>
+                    <c:Wave Classes="pageRule" />
+                </StackPanel>
+            </Grid>
+            <ContentControl Classes="emptyState" Tag="&#xF0538;" Content="{i:Loc Main.Nav.AchievementsTip}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

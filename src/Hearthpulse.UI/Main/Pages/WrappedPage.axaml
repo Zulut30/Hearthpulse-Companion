@@ -1,0 +1,35 @@
+<UserControl
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Main.Pages.WrappedPage"
+             x:DataType="m:MainViewModel">
+    <!-- The Recap page ("Wrapped"): a month or a year of the player's own games. Same tree as the WPF WrappedPage.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Pages/LibraryLook.axaml" />
+    </UserControl.Styles>
+    <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
+                <StackPanel>
+                    <!-- The glyph, then the title in the rest of the width: a long title wraps under itself. -->
+                    <Grid ColumnDefinitions="Auto,*">
+                        <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Wrapped}" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Nav.Wrapped}" Classes="display pageTitle" TextWrapping="Wrap" />
+                    </Grid>
+                    <c:Wave Classes="pageRule" />
+                </StackPanel>
+            </Grid>
+            <ContentControl Classes="emptyState" Tag="&#xF00ED;" Content="{i:Loc Main.Nav.WrappedTip}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

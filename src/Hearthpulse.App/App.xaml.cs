@@ -253,6 +253,7 @@ public partial class App : Application
         Controls.CardPreview.Related = _session.RelatedCardsOf;
         _session.ConstructedMetaNeeded += format => _ = Dispatcher.BeginInvoke(() => _constructedLoader.Ensure(format));
         ShowCollection();
+        ShowLibraryPages();
         _session.GameFinished += outcome => _ = Dispatcher.BeginInvoke(() => OnGameFinished(outcome));
         _history.Changed += () => _ = Dispatcher.BeginInvoke(() =>
         {

@@ -6,12 +6,15 @@ using Hearthpulse.App.Infrastructure;
 
 namespace Hearthpulse.App.Main;
 
-/// <summary>The pages built on first use (Battlegrounds, Standard/Wild, History, a deck) and the tabs inside them.</summary>
+/// <summary>The pages built on first use (Battlegrounds, Standard/Wild, History, the library pages, a deck) and the tabs inside them.</summary>
 public partial class MainWindow
 {
     private Pages.BattlegroundsPage? _battlegrounds;
     private Pages.ConstructedPageView? _constructed;
     private Pages.HistoryPage? _history;
+    private Pages.CollectionPage? _collectionPage;
+    private Pages.AchievementsPage? _achievementsPage;
+    private Pages.WrappedPage? _wrappedPage;
 
     /// <summary>A tab asked for before its page was built: the page opens on it.</summary>
     private string? _pendingBattlegroundsTab;
@@ -25,6 +28,15 @@ public partial class MainWindow
 
     /// <summary>The History page, built on first use.</summary>
     public Pages.HistoryPage PageHistory => _history ??= Build(SlotHistory, new Pages.HistoryPage { Name = nameof(PageHistory) });
+
+    /// <summary>The Collection page, built on first use.</summary>
+    public Pages.CollectionPage PageCollection => _collectionPage ??= Build(SlotCollection, new Pages.CollectionPage { Name = nameof(PageCollection) });
+
+    /// <summary>The Achievements page, built on first use.</summary>
+    public Pages.AchievementsPage PageAchievements => _achievementsPage ??= Build(SlotAchievements, new Pages.AchievementsPage { Name = nameof(PageAchievements) });
+
+    /// <summary>The Recap page, built on first use.</summary>
+    public Pages.WrappedPage PageWrapped => _wrappedPage ??= Build(SlotWrapped, new Pages.WrappedPage { Name = nameof(PageWrapped) });
 
     private Pages.BattlegroundsPage BuildBattlegrounds()
     {

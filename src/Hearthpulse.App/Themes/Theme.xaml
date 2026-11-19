@@ -449,6 +449,8 @@
     <sys:Double x:Key="FontSizeHeadline">24</sys:Double>
     <sys:Double x:Key="FontSizeStat">28</sys:Double>
     <sys:Double x:Key="FontSizeDisplay">32</sys:Double>
+    <!-- The one number of the Recap page's hero card (design TASK-2026-11-19): a step over Display -->
+    <sys:Double x:Key="FontSizeHero">64</sys:Double>
     <CornerRadius x:Key="RadiusSmall">4</CornerRadius>
     <CornerRadius x:Key="RadiusMedium">8</CornerRadius>
     <CornerRadius x:Key="RadiusLarge">12</CornerRadius>
@@ -941,7 +943,8 @@
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeLead}" />
-        <Setter Property="Height" Value="46" />
+        <!-- 40 (was 46) since the library pages: eleven items fit the default window (MainNavigationContractTests) -->
+        <Setter Property="Height" Value="40" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingNav}" />
         <Setter Property="Template">

@@ -36,7 +36,7 @@
         <Setter Property="HorizontalAlignment" Value="Left" />
     </Style>
     <Style x:Key="NavGroup" TargetType="Grid">
-        <Setter Property="Margin" Value="28,16,20,4" />
+        <Setter Property="Margin" Value="28,12,20,4" />
     </Style>
     <Style x:Key="PageSubtitle" TargetType="StackPanel">
         <Setter Property="Orientation" Value="Horizontal" />

@@ -1,0 +1,48 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:m="using:Hearthpulse.UI.Main">
+    <!-- The common look of the library pages (Collection, Achievements, Recap): the status line under the title, the
+         "from saved data" mark, the badge on a tile and the accent bar. Theme tokens only; the WPF twin is
+         Main/Pages/LibraryLook.xaml. A page includes it in its own Styles. -->
+    <Styles.Resources>
+        <!-- The status line (MainViewModel.LibraryStatus): a muted glyph, where the numbers come from and of what time, and,
+             for saved data, the mark under it with its reason in the tip. Read out when it changes. -->
+        <DataTemplate x:Key="LibraryStatusLine" x:DataType="m:LibraryStatus">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,0,0,16">
+                <TextBlock Text="{Binding Glyph}" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Muted}"
+                           VerticalAlignment="Top" Margin="0,1,8,0" />
+                <TextBlock Grid.Column="1" Text="{Binding Text}" Classes="caption" FontSize="{StaticResource FontSizeLead}" TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Polite" />
+                <Border Grid.Row="1" Grid.Column="1" Classes="pill" HorizontalAlignment="Left" Margin="0,4,0,0" IsVisible="{Binding Saved}"
+                        ToolTip.Tip="{Binding MarkTip}" AutomationProperties.Name="{Binding Mark}" AutomationProperties.HelpText="{Binding MarkTip}">
+                    <TextBlock Text="{Binding Mark}" Classes="caption" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </Styles.Resources>
+
+    <!-- A tile's badge in its corner (a heart for a favourite, a lock for one not owned): graphics only, the tile says the
+         same in words. The glyph takes tileBadgeGlyph with its own colour (Accent for the heart, Muted for the lock). -->
+    <Style Selector="Border.tileBadge">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="4" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <Style Selector="TextBlock.tileBadgeGlyph">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- An accent bar on a library page: the stats' share bar (red, dimmed) in the theme's accent at full strength.
+         WPF sets Foreground on its ShareBar in place. -->
+    <Style Selector="ProgressBar.shareBar.fill">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+</Styles>

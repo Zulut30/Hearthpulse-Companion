@@ -100,7 +100,7 @@ with the motif), `Motif<Name>` geometries.
   numbers; `number` 16 (Avalonia); base text 13.
 - **Scale (D1).** Sizes come from tokens defined with the same values in both theme files: `FontSizeMicro` 10,
   `Small` 11, `Label` 12, `Body` 13, `Lead` 14, `Title` 16, `Icon` 18, `Subhead` 20, `Headline` 24, `Stat` 28,
-  `Display` 32 (`FontSize="{StaticResource FontSizeBody}"`); radii `RadiusSmall` 4 (`Pill`), `RadiusMedium` 8
+  `Display` 32, `Hero` 64 (the Recap page's one number) (`FontSize="{StaticResource FontSizeBody}"`); radii `RadiusSmall` 4 (`Pill`), `RadiusMedium` 8
   (`OverlayCard`), `RadiusLarge` 12 (`Card`), `RadiusPill` 999 (switch track; a pill or circle may also use half its
   size); `CardPadding` 24. Margin/Padding literals stay on 0/1/2/4/8/12/16/24/32 (multiples of 4 from 40 are layout
   offsets). `DesignTokenTests` counts literal font sizes and off-scale radii (`CornerRadius`, `RoundClip.Radius`) and
@@ -122,7 +122,7 @@ with the motif), `Motif<Name>` geometries.
 | Secondary button | `GhostButton` | `ghost` |
 | Primary (one per area) | `PrimaryButton` | `ghost primary` |
 | Round icon button | `IconButton` (32x32) | `icon` |
-| Sidebar item | `NavItem` (h46, glyph in `Tag`) | `nav` |
+| Sidebar item | `NavItem` (h40, glyph in `Tag`; the page list scrolls above the foot when the window is short) | `nav` |
 | Segmented choices (underline tabs: muted text on a thin line, the chosen one gold with a 2 px gold line; no frame, no check) | `Segment` / `Tab` inside `SegmentBar` | `segment` inside `segmentBar` |
 | Page tabs | `Tab` (Segment + 2px gold underline) | `segment` (no tab class) |
 | Toggle | `Switch` (CheckBox) | `switch` |

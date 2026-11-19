@@ -82,7 +82,7 @@ public partial class MainWindow : Window
     public string CurrentPage => MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)) ?? MainViewModel.NavPages[0];
 
     /// <summary>The sidebar buttons in <see cref="MainViewModel.NavPages"/> order.</summary>
-    private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings];
+    private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavCollection, NavAchievements, NavWrapped, NavSettings];
 
     private static bool?[] States(ToggleButton[] buttons) => Array.ConvertAll(buttons, b => b.IsChecked);
 
@@ -283,7 +283,7 @@ public partial class MainWindow : Window
         var wasShown = ReferenceEquals(page, _pages.Current);
         // The old page fades out under the new one, which comes in once it has been laid out (PageSwitch); the pill
         // glides with it, so a page that lays out long the first time eats neither motion.
-        _pages.Show(page, new FrameworkElement?[] { PageOverview, _battlegrounds, _constructed, PageDeck, PageCard, PageArena, PageBrawl, _history, PageMatch, PageSettings }
+        _pages.Show(page, new FrameworkElement?[] { PageOverview, _battlegrounds, _constructed, PageDeck, PageCard, PageArena, PageBrawl, _history, PageMatch, _collectionPage, _achievementsPage, _wrappedPage, PageSettings }
             .OfType<FrameworkElement>(), () => PlacePill(animate: true));
         if (page == PageDeck && !_cardClosing)
         {
@@ -308,20 +308,38 @@ public partial class MainWindow : Window
         : NavBrawl.IsChecked == true ? PageBrawl
         // The match page stands in for the History list while a game is open.
         : NavHistory.IsChecked == true ? _viewModel.MatchOpen ? PageMatch : PageHistory
+        : NavCollection.IsChecked == true ? PageCollection
+        : NavAchievements.IsChecked == true ? PageAchievements
+        : NavWrapped.IsChecked == true ? PageWrapped
         : NavSettings.IsChecked == true ? PageSettings
         : PageOverview;
 
     private void OnSidebarSize(object sender, SizeChangedEventArgs e) => PlacePill(animate: false);
 
-    /// <summary>Moves the selection pill behind the checked sidebar item.</summary>
+    /// <summary>The pages scrolled under the status card or over the foot (a short window): the pill moves with them.</summary>
+    private void OnNavScroll(object sender, ScrollChangedEventArgs e)
+    {
+        if (e.VerticalChange != 0 || e.ViewportHeightChange != 0)
+        {
+            PlacePill(animate: false);
+        }
+    }
+
+    /// <summary>
+    /// Moves the selection pill behind the checked sidebar item. An item of the scrolling list keeps its pill inside
+    /// the list's viewport, so a page scrolled half out of view never lights the status card or the foot.
+    /// </summary>
     private void PlacePill(bool animate)
     {
-        var nav = new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings }.FirstOrDefault(n => n.IsChecked == true);
+        var nav = PageButtons.FirstOrDefault(n => n.IsChecked == true);
         if (nav is null || Sidebar is null || nav.ActualHeight <= 0)
         {
             return;
         }
 
+        NavPillLayer.Clip = NavScroll.IsAncestorOf(nav)
+            ? new RectangleGeometry(new Rect(NavScroll.TranslatePoint(default, Sidebar), new Size(Sidebar.ActualWidth, NavScroll.ViewportHeight)))
+            : null;
         var y = nav.TranslatePoint(new Point(0, 2), Sidebar).Y;
         NavPill.Height = nav.ActualHeight - 4;
         // Glides over Motion.Settle with a quintic ease-out (no overshoot); the first placement is instant.
