@@ -270,7 +270,7 @@ public static partial class CombatSimulator
                 var chooser = new RandomChooser(new Random(ChunkSeed(seed, chunk)));
                 for (var r = 0; r < runs; r++)
                 {
-                    var fight = new Fight(ours, theirs, effects, chooser, trace: false, _prepared, scratch);
+                    var fight = Fight.Next(scratch, ours, theirs, effects, chooser, _prepared);
                     // Which side entered play first decides the death order (rules-evidence 4a). Without both PLAYER_IDs the
                     // runs alternate between the two orders: an even mix, not the attacking side first (right in 47 of 89).
                     fight.EnteredFirst ??= r % 2 == 0 ? fight.Ours : fight.Theirs;

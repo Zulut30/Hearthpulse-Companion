@@ -62,6 +62,25 @@ internal static class SimPerfBench
                 continue;
             }
 
+            // HP_BENCH_ONLY=threads: one and four threads, then the app's two passes, for A/B runs of an engine change
+            // whose gain is in scaling (allocations: a gen0 collection stops every thread).
+            if (Environment.GetEnvironmentVariable("HP_BENCH_ONLY") == "threads")
+            {
+                Throughput("real", real, 1);
+                Throughput("synthetic", synthetic, 1);
+                Throughput("real x4", real, 4);
+                Throughput("synthetic x4", synthetic, 4);
+                foreach (var budget in new[] { SimBudget.Quick, SimBudget.App })
+                {
+                    Passes(budget, "app", "real", real, o => o);
+                    Passes(budget, "app", "synthetic", synthetic, o => o);
+                    Passes(budget, "cap", "real", real, o => o with { Runs = 1_000_000, MinRuns = 0, TargetHalfWidth = 0 });
+                    Passes(budget, "cap", "synthetic", synthetic, o => o with { Runs = 1_000_000, MinRuns = 0, TargetHalfWidth = 0 });
+                }
+
+                continue;
+            }
+
             Throughput("real", real, 1);
             Throughput("synthetic", synthetic, 1);
             foreach (var board in synthetic)
