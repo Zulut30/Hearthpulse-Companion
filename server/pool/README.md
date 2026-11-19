@@ -8,6 +8,16 @@ stale deletion-sensitive totals in a public cache. Apply migration `0008_capture
 transactional snapshot invalidation; the Node service applies it automatically. Migration `0009_analytics.sql`
 adds the source v2 analytics facts and the published snapshot behind `GET /v2/analytics/bg/heroes`
 ([docs/analytics-api.md](../../docs/analytics-api.md)); the Node service applies it too, the Worker never serves it.
+Migration `0010_bg_combats.sql` adds the Battlegrounds fights of source v3 journals (`bg_combat`, table `bg_combats`,
+[docs/source-capture.md](../../docs/source-capture.md) "Battlegrounds fights"): stored with the manifest commit, gone
+with the capture (expiry, forget, deletion), never published, read only by the owner's export: on the host,
+`set -a; . /etc/hearthpulse-pool/pool.env; set +a` (or `read -rs POOL_OPERATOR_TOKEN; export POOL_OPERATOR_TOKEN`, never
+the token on a command line), then `node server/pool/node/export-combats.mjs --out fights.jsonl` (loopback operator
+route `/v1/captures/combats/export`, refused by nginx). The export file is a working copy only on this host or the
+owner's PC, moved over SSH, never committed, put on a cloud drive or given to anyone, and deleted after the measurement
+and no later than 180 days from the `day` of its rows (`simcover --pool` ignores older rows). Deploy this before an app
+that writes source v3 is released, and update the site's privacy policy first (docs/source-capture.md). Tests:
+`npm test` here (the same `node --test server/pool/test/*.test.mjs` as CI).
 
 A small Cloudflare Worker that collects the Battlegrounds games players choose to share and serves the totals:
 heroes, final boards, trinkets, tribes, tavern tier timing, combat odds, picks (Discover, triple rewards, trinkets)
