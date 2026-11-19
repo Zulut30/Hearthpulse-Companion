@@ -19,7 +19,7 @@ namespace Hearthpulse.Tests.Sim;
 /// read from synthetic Power.log lines in the shape of the owner's log of 2026-11-15 (line numbers in the comments), and
 /// explicit estimates for the opponent's values the player cannot see.
 /// </summary>
-public sealed class SimInputsTests
+public sealed partial class SimInputsTests
 {
     private const int Me = 5;
     private const int Them = 13;
@@ -559,6 +559,18 @@ public sealed class SimInputsTests
             Power($"BLOCK_START BlockType={type} Entity={entity} EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ");
 
         public PowerLog Tag(string entity, string tag, string value) => Power($"TAG_CHANGE Entity={entity} tag={tag} value={value} ");
+
+        /// <summary>A SHOW_ENTITY of a hidden entity: its card id and the tags the reveal prints.</summary>
+        public PowerLog Show(int id, string cardId, params (string Tag, string Value)[] tags)
+        {
+            Power($"SHOW_ENTITY - Updating Entity={id} CardID={cardId}");
+            foreach (var (tag, value) in tags)
+            {
+                Power($"    tag={tag} value={value}");
+            }
+
+            return this;
+        }
 
         public PowerLog End() => Power("BLOCK_END");
 

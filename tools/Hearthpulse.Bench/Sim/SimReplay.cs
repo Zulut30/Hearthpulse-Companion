@@ -191,8 +191,16 @@ internal static class SimReplay
 
         static string Side(IEnumerable<SimMinion> minions) =>
             string.Join(" | ", minions.Select(m => string.Create(CultureInfo.InvariantCulture, $"{m.CardId}{(m.Golden ? "(G)" : "")}#{m.EntityId} {m.Attack}/{m.Health} {m.Keywords}")));
+        static string Pairs(IEnumerable<KeyValuePair<string, int>> tags) =>
+            string.Join(", ", tags.OrderBy(t => t.Key, StringComparer.Ordinal).Select(t => string.Create(CultureInfo.InvariantCulture, $"{t.Key}={t.Value}")));
         yield return $"capture ours: {Side(fight.Ours.Minions)}";
         yield return $"capture theirs: {Side(fight.Theirs.Minions)}";
+        foreach (var (name, side) in new[] { ("ours", fight.Ours), ("theirs", fight.Theirs) })
+        {
+            // The side's player-level inputs: Deity, trinkets, exact and hidden player values, estimates.
+            yield return $"inputs {name}: extras [{string.Join(", ", side.Extras)}]; deity tags [{Pairs(side.Tags.Where(t => t.Key.StartsWith("BACON_OLD_GOD", StringComparison.Ordinal)))}]; awakening {side.DeityAwakening?.Progress}/{side.DeityAwakening?.Total}; hidden [{Pairs(side.HiddenTags)}]; estimates [{string.Join(", ", side.Estimates.Select(e => string.Create(CultureInfo.InvariantCulture, $"{e.Input} {e.Value1}/{e.Value2}")))}]";
+        }
+
         yield return string.Create(CultureInfo.InvariantCulture, $"first: {fight.OursFirst} #{fight.FirstAttackerEntityId}; complete {transcript.Complete} ({transcript.Ending})");
         var boards = transcript.Boards.ToDictionary(b => b.Event, b => b);
         var depth = 0;

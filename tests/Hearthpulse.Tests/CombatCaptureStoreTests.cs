@@ -277,6 +277,7 @@ public sealed class CombatCaptureStoreTests : IDisposable
         LobbyTribes = Tribe.Beast | Tribe.Murloc,
         Estimates = opponent ? [new SimEstimate("BloodGem", 2, 2, "turn 9") { Tags = ["BACON_BLOODGEMBUFFATKVALUE"] }] : [],
         HiddenTags = opponent ? new Dictionary<string, int> { ["BACON_BLOODGEMBUFFATKVALUE"] = 4 } : SimSide.EmptyTags,
+        DeityAwakening = new DeityAwakening(opponent ? 2 : 0, 4),
     };
 
     [Fact]
@@ -304,6 +305,7 @@ public sealed class CombatCaptureStoreTests : IDisposable
             Assert.Equal(before.DeathsBeforeCapture.Select(m => (m.CardId, m.EntityId, m.Attack, m.Health)), after.DeathsBeforeCapture.Select(m => (m.CardId, m.EntityId, m.Attack, m.Health)));
             Assert.Equal(JsonSerializer.Serialize(before.Estimates), JsonSerializer.Serialize(after.Estimates));
             Assert.Equal(before.HiddenTags.OrderBy(t => t.Key), after.HiddenTags.OrderBy(t => t.Key));
+            Assert.Equal(before.DeityAwakening, after.DeityAwakening);
         }
 
         Assert.Equal(ours.PlayerEnchantments, read.Ours.PlayerEnchantments);
