@@ -117,8 +117,12 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         output.WriteLine(actual);
         // 2026-11-09 (S1): four new effect ids change the random boards; without them the fingerprint is still 6C3E80D601C5A873.
         // 2026-11-15 (S2): Murcules and Bassgill add two ids; without them (checked) the fingerprint is still 4B6145B26A89595C.
+        // 2026-11-19 (sim-minions): sixteen new effect ids (Sanguine Champion/Refiner, Fishbait, Tide Oracle Morgl, Brann,
+        // Balinda, Timewarped Greenskeeper, Kalecgos, Dark Paradox and its t6 form, Rot Hide Gnoll, Mishmash, Joyous,
+        // Hackerfin, Nerubian Deathswarmer, Electric Synthesizer); without them (checked) the fingerprint is still
+        // FECFFCB0BDD005AE.
         // 2026-11-19 (P1, decisions through ICombatChooser): Best's tie-break no longer draws for a tie a higher value later
-        // beats; with those draws put back (checked) the fingerprint is still FECFFCB0BDD005AE.
-        Assert.Equal("fights 911D92CB6F1DD26B", actual);
+        // beats; these boards meet no such tie (checked: the same fingerprint with and without those draws).
+        Assert.Equal("fights A488D069E48228A5", actual);
     }
 }
