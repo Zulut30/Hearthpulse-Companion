@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
+using Hearthpulse.Core.Battlegrounds.Effects.Player;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Memory;
@@ -88,16 +89,17 @@ public sealed partial class BattlegroundsTracker
         LeaderboardHeroes(game).FirstOrDefault(h => h.GetInt(GameTag.PlayerId) == playerId);
 
     /// <summary>
-    /// A minion left the board during start of combat inside a TRIGGER block of another minion: remember it for that
-    /// minion (Stitched Salvager's deathrattle summons a copy of the minion it destroyed). Inferred from the log's block
-    /// structure; not yet checked against a real log.
+    /// A minion left the board during start of combat inside a TRIGGER block of another minion or of a player-level card
+    /// (hero power, trinket): remember it for that source (Stitched Salvager's deathrattle summons a copy of the minion it
+    /// destroyed; Rapid Reanimation and Soul Fermenter resummon theirs). Inferred from the log's block structure; not yet
+    /// checked against a real log.
     /// </summary>
     private void RememberRemoval(GameState game, Entity removed)
     {
         for (var i = game.OpenBlocks.Count - 1; i >= 0; i--)
         {
             var block = game.OpenBlocks[i];
-            if (block.Type != "TRIGGER" || block.Source is not { IsMinion: true } source || source.Id == removed.Id)
+            if (block.Type != "TRIGGER" || block.Source is not { } source || source.Id == removed.Id || !(source.IsMinion || IsPlayerCard(source)))
             {
                 continue;
             }
@@ -112,6 +114,26 @@ public sealed partial class BattlegroundsTracker
             list.Add(copy);
             return;
         }
+    }
+
+    private static bool IsPlayerCard(Entity e) => ExtraCardTypes.Contains(e.CardType) || IsTrinket(e);
+
+    /// <summary>
+    /// What the player-level cards of <paramref name="controller"/> removed during start of combat (see
+    /// <see cref="RememberRemoval"/>), by the card's id.
+    /// </summary>
+    private IReadOnlyDictionary<string, IReadOnlyList<SimMinion>> RemovedByExtras(GameState game, int controller)
+    {
+        Dictionary<string, IReadOnlyList<SimMinion>>? removed = null;
+        foreach (var (sourceId, minions) in _removedBy)
+        {
+            if (game.Entities.GetValueOrDefault(sourceId) is { CardId.Length: > 0 } source && source.Controller == controller && IsPlayerCard(source))
+            {
+                (removed ??= new Dictionary<string, IReadOnlyList<SimMinion>>(StringComparer.Ordinal))[source.CardId] = minions.ToArray();
+            }
+        }
+
+        return removed ?? SimSide.EmptyRemovedByExtras;
     }
 
     /// <summary>Enchantments in play (with a card id) by the entity they are attached to: a minion, a hand card or a player.</summary>
@@ -129,6 +151,23 @@ public sealed partial class BattlegroundsTracker
         Health = e.GetInt(GameTag.Health),
         CreatorEntityId = e.GetInt(GameTag.Creator),
     };
+
+    /// <summary>
+    /// A minion's Blood Gem total: the NUM_1/NUM_2 of its "Blood Gems" enchantment (real logs: they equal the minion's tags
+    /// 4235/4236, 12/12 on a combat copy of 2026-11-15), else those tags.
+    /// </summary>
+    private static int BloodGemTotal(Entity minion, IEnumerable<Entity> attached, string enchantmentTag, string minionTag)
+    {
+        foreach (var enchantment in attached)
+        {
+            if (enchantment.CardId == BloodGolemSticker.GemsEnchantmentId)
+            {
+                return enchantment.GetInt(enchantmentTag);
+            }
+        }
+
+        return minion.GetInt(minionTag);
+    }
 
     /// <summary>A minion that died before the capture, as the death count needs it: card, golden, tribes.</summary>
     private SimMinion DeadMinion(Entity e)
@@ -218,6 +257,7 @@ public sealed partial class BattlegroundsTracker
             // Only the local player's own hand: it is on their screen. The opponent's is hidden.
             Hand = hand,
             Tags = tags,
+            RemovedByExtras = RemovedByExtras(game, controller),
             TavernTier = hero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var tier ? tier : player?.GetInt(GameTag.PlayerTechLevel) ?? 0,
             // Enchantments on the player entity: only our own (whether the client shows the opponent's is not established).
             PlayerEnchantments = isOpponent || player is null ? Array.Empty<SimEnchantment>() : enchantments[player.Id].Select(ToEnchantment).ToArray(),
@@ -308,7 +348,10 @@ public sealed partial class BattlegroundsTracker
             ScriptData2 = e.GetInt(GameTag.ScriptData2),
             Enchantments = attached,
             EnchantmentValues = attachedEntities.Select(ToEnchantment).ToArray(),
-            Remembered =_removedBy.TryGetValue(e.Id, out var removed) ? removed.ToArray() : Array.Empty<SimMinion>(),
+            Remembered = _removedBy.TryGetValue(e.Id, out var removed) ? removed.ToArray() : Array.Empty<SimMinion>(),
+            // "Its Blood Gems" (Blood Golem Sticker): the visible "Blood Gems" enchantment BG20_GEMe2, else tags 4235/4236.
+            BloodGemAttack = BloodGemTotal(e, attachedEntities, GameTag.ScriptData1, BloodGolemSticker.GemAttackTag),
+            BloodGemHealth = BloodGemTotal(e, attachedEntities, GameTag.ScriptData2, BloodGolemSticker.GemHealthTag),
         };
     }
 

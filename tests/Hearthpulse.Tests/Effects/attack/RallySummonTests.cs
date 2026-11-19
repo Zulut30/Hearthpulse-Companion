@@ -58,19 +58,36 @@ public sealed class RallySummonTests
         Assert.Equal((Tokens.TastyLobsterId, 2, 1, false), (lobster.CardId, lobster.Attack, lobster.Health, lobster.Golden));
         Assert.Equal(Tribe.Beast, lobster.Tribes);
         Assert.Equal(CardMechanic.Deathrattle, lobster.Mechanics);
-        Assert.Equal((2, 1), (lobster.ScriptData1, lobster.ScriptData2));
+        // No printed script data: its deathrattle reads the player's current Lobster value (TastyLobster.Bonus).
+        Assert.Equal((0, 0), (lobster.ScriptData1, lobster.ScriptData2));
+    }
+
+    [Fact]
+    public void Hoarding_hyenas_lobster_gives_the_players_improved_lobster_value()
+    {
+        // "Improve your future Tasty Lobsters": a Lobster captured on the board shows the player's value +6/+3, so the
+        // Lobster the Hyena summons gives +6/+3 too (with the printed +2/+1 the Hyena would end 6/5).
+        // Hyena 4/6 hits E 1/7 (→3) and takes 1 (4/5); E attacks the new Lobster (pick 1) and both trade 1 and 2 (E 1/1);
+        // the Lobster's deathrattle buffs the Hyena (pick 0): 10/8; the Hyena kills E and takes 1: 10/7.
+        var captured = Minion(0, 50, cardId: Tokens.TastyLobsterId, tribes: Tribe.Beast) with { ScriptData1 = 6, ScriptData2 = 3 };
+        var result = Fight(Side(Minion(4, 6, cardId: "BG36_210", tribes: Tribe.Beast), Minion(0, 20, cardId: "B"), captured),
+                           Side(Minion(1, 7, cardId: "E")), true,
+                           Effects(typeof(HoardingHyena), typeof(Hearthpulse.Core.Battlegrounds.Effects.Deaths.TastyLobster)), 0, 1, 0);
+
+        Assert.Equal(1, result.Outcome);
+        Assert.Equal((10, 7), (result.Ours[0].Attack, result.Ours[0].Health));
     }
 
     [Fact]
     public void Golden_hoarding_hyena_summons_a_golden_tasty_lobster()
     {
-        // Golden 8/12 vs 0/8: a Golden Tasty Lobster 4/2 (its deathrattle values +4/+2).
+        // Golden 8/12 vs 0/8: a Golden Tasty Lobster 4/2 (its deathrattle gives +4/+2 unless the player improved Lobsters).
         var result = Fight(Side(Minion(8, 12, cardId: "BG36_210", tribes: Tribe.Beast, golden: true)), Side(Minion(0, 8, cardId: "E")), true,
                            Effects(typeof(HoardingHyena)));
 
         var lobster = result.Ours[1];
         Assert.Equal((Tokens.TastyLobsterId, 4, 2, true), (lobster.CardId, lobster.Attack, lobster.Health, lobster.Golden));
-        Assert.Equal((4, 2), (lobster.ScriptData1, lobster.ScriptData2));
+        Assert.Equal((0, 0), (lobster.ScriptData1, lobster.ScriptData2));
     }
 
     // ------------------------------------------------------------------------------------------- Expert Aviator

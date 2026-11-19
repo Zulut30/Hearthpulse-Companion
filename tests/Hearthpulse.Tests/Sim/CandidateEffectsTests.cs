@@ -5,7 +5,8 @@ namespace Hearthpulse.Tests.Sim;
 
 /// <summary>
 /// Plan S1 candidates that are in the current pool (docs/bg-sim-matrix.md): one minimal fight each, from the card text.
-/// None of them has a golden version. Tiger Carving is out of the pool (no code); Blood Golem Sticker lacks its input.
+/// None of them has a golden version. Tiger Carving is out of the pool (no code). Captured numbers are the card's current
+/// ones (TAG_SCRIPT_DATA_NUM_1/2, see GrowingValue); Broodmother's progress and Blood Golem Sticker: Effects/player tests.
 /// </summary>
 public sealed class CandidateEffectsTests
 {
@@ -13,9 +14,10 @@ public sealed class CandidateEffectsTests
     private const string Broodmother = "BG22_HERO_305p";
     private const string Tentacular = "BG23_HERO_201p";
     private const string FangAnklet = "BG35_MagicItem_701";
-    private const string BloodGolemSticker = "BG30_MagicItem_442";
 
-    private static readonly Dictionary<string, int> Growth21 = new() { ["TAG_SCRIPT_DATA_NUM_1"] = 2, ["TAG_SCRIPT_DATA_NUM_2"] = 1 };
+    // The card's current numbers: a +3/+2 aura; a 3/3 Whelp (Broodmother trusts NUM_1/2 only when they agree).
+    private static readonly Dictionary<string, int> Current32 = new() { ["TAG_SCRIPT_DATA_NUM_1"] = 3, ["TAG_SCRIPT_DATA_NUM_2"] = 2 };
+    private static readonly Dictionary<string, int> Whelp33 = new() { ["TAG_SCRIPT_DATA_NUM_1"] = 3, ["TAG_SCRIPT_DATA_NUM_2"] = 3 };
 
     private static SimSide WithExtra(SimSide side, string cardId, Dictionary<string, int>? tags = null) => side with
     {
@@ -55,42 +57,27 @@ public sealed class CandidateEffectsTests
     [Fact]
     public void Broodmother_summons_a_grown_whelp_on_the_fourth_death_and_improves_it()
     {
-        // Four 1/1s die to their 1/100; the fourth death summons a (1+2)/(1+1) Whelp that attacks right away.
+        // Four 1/1s die to their 1/100; the fourth death summons the captured 3/3 Whelp, which attacks right away.
         var ours = WithExtra(Side(Minion(1, 1, cardId: "A"), Minion(1, 1, cardId: "B"), Minion(1, 1, cardId: "C"), Minion(1, 1, cardId: "D")),
-                             Broodmother, Growth21);
+                             Broodmother, Whelp33);
         var result = Fight(ours, Side(Minion(1, 100, cardId: "WALL")), oursFirst: true);
 
         var whelps = result.Lines("summoned our BG22_HERO_305t");
-        Assert.Equal("summoned our BG22_HERO_305t 3/2 at 0", whelps[0]);
-        var attack = result.IndexOf("our BG22_HERO_305t 3/2 attacks");
-        Assert.True(attack > result.IndexOf("summoned our BG22_HERO_305t 3/2"), string.Join('\n', result.Log));
+        Assert.Equal("summoned our BG22_HERO_305t 3/3 at 0", whelps[0]);
+        var attack = result.IndexOf("our BG22_HERO_305t 3/3 attacks");
+        Assert.True(attack > result.IndexOf("summoned our BG22_HERO_305t 3/3"), string.Join('\n', result.Log));
     }
 
     [Fact]
     public void Broodmother_improves_the_next_whelp_by_one_one_each_trigger()
     {
         // Seven 1/1s and the first Whelp die to their 1/100: deaths 4 and 8 trigger, the second Whelp is +1/+1 bigger.
-        var ours = WithExtra(Side(Enumerable.Range(0, 7).Select(i => Minion(1, 1, cardId: $"M{i}")).ToArray()), Broodmother, Growth21);
+        var ours = WithExtra(Side(Enumerable.Range(0, 7).Select(i => Minion(1, 1, cardId: $"M{i}")).ToArray()), Broodmother, Whelp33);
         var whelps = Fight(ours, Side(Minion(1, 100, cardId: "WALL")), oursFirst: true).Lines("summoned our BG22_HERO_305t");
 
         Assert.True(whelps.Count >= 2, string.Join('\n', whelps));
-        Assert.StartsWith("summoned our BG22_HERO_305t 3/2", whelps[0], StringComparison.Ordinal);
-        Assert.StartsWith("summoned our BG22_HERO_305t 4/3", whelps[1], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Broodmother_is_missing_input_until_its_avenge_progress_is_captured()
-    {
-        // Without its value it summons nothing; with it the Whelps come, but the Avenge progress made before the capture
-        // is in no known tag, so the fight stays an estimate either way.
-        var ours = WithExtra(Side(Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1)), Broodmother);
-        var item = Assert.Single(CombatSimulator.Explain(ours, isOpponent: false));
-        Assert.Equal((Broodmother, UnsimulatedReason.MissingInput, "missing_input"), (item.CardId, item.Reason, item.Code));
-        Assert.Empty(Fight(ours, Side(Minion(1, 100)), oursFirst: true).Lines("summoned our BG22_HERO_305t"));
-        Assert.Equal(1, CombatSimulator.Run(ours, Side(Minion(1, 100)), true, new SimOptions { Runs = 10 }).Unsimulated);
-        var grown = WithExtra(ours, Broodmother, Growth21);
-        Assert.Equal(UnsimulatedReason.MissingInput, Assert.Single(CombatSimulator.Explain(grown, isOpponent: false)).Reason);
-        Assert.Equal(1, CombatSimulator.Run(grown, Side(Minion(1, 100)), true, new SimOptions { Runs = 10 }).Unsimulated);
+        Assert.StartsWith("summoned our BG22_HERO_305t 3/3", whelps[0], StringComparison.Ordinal);
+        Assert.StartsWith("summoned our BG22_HERO_305t 4/4", whelps[1], StringComparison.Ordinal);
     }
 
     // ------------------------------------------------------------------------------------------- Tentacular
@@ -99,7 +86,7 @@ public sealed class CandidateEffectsTests
     public void Tentacular_owed_on_a_full_board_comes_after_the_first_death()
     {
         var board = Enumerable.Range(0, 7).Select(i => Minion(1, 1, cardId: $"M{i}")).ToArray();
-        var ours = WithExtra(Side(board), Tentacular, new Dictionary<string, int> { ["TAG_SCRIPT_DATA_NUM_1"] = 1 });
+        var ours = WithExtra(Side(board), Tentacular, new Dictionary<string, int> { ["TAG_SCRIPT_DATA_NUM_1"] = 3 });
         var result = Fight(ours, Side(Minion(1, 100, cardId: "WALL")), oursFirst: true);
 
         var tentacles = result.Lines("summoned our BG23_HERO_201pt");
@@ -127,8 +114,8 @@ public sealed class CandidateEffectsTests
     [Fact]
     public void Fang_anklet_buffs_beasts_summoned_in_combat_with_the_captured_value()
     {
-        // Buzzing Vermin dies and summons a 2/2 Beetle: +(1+2)/+(1+1) from the anklet.
-        var ours = WithExtra(Side(Minion(1, 1, Keyword.Taunt, "BG31_803", Tribe.Beast)), FangAnklet, Growth21);
+        // Buzzing Vermin dies and summons a 2/2 Beetle: +3/+2 from the anklet's captured number.
+        var ours = WithExtra(Side(Minion(1, 1, Keyword.Taunt, "BG31_803", Tribe.Beast)), FangAnklet, Current32);
         var result = Fight(ours, Side(Minion(5, 50, cardId: "WALL")), oursFirst: false);
 
         Assert.StartsWith("summoned our BG28_603t 5/4", Assert.Single(result.Lines("summoned our BG28_603t")), StringComparison.Ordinal);
@@ -140,14 +127,5 @@ public sealed class CandidateEffectsTests
         var item = Assert.Single(CombatSimulator.Explain(WithExtra(Side(Minion(1, 1)), FangAnklet), isOpponent: true));
         Assert.Equal(UnsimulatedReason.MissingInput, item.Reason);
         Assert.True(item.Extra);
-    }
-
-    // ------------------------------------------------------------------------------------------- Blood Golem Sticker
-
-    [Fact]
-    public void Blood_golem_sticker_is_missing_input_not_a_missing_effect()
-    {
-        var item = Assert.Single(CombatSimulator.Explain(WithExtra(Side(Minion(1, 1)), BloodGolemSticker), isOpponent: true));
-        Assert.Equal(UnsimulatedReason.MissingInput, item.Reason);
     }
 }

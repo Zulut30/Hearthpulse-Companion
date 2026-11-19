@@ -59,10 +59,10 @@ public sealed partial class SimMatrixTests
 
     [Theory]
     [InlineData("BG36_MidGameEffect_000t60e", CoverageStatus.Implemented)] // Invulnerability
-    [InlineData("BG22_HERO_305p", CoverageStatus.MissingInput)] // Broodmother: Avenge progress before the capture
+    [InlineData("BG22_HERO_305p", CoverageStatus.Implemented)] // Broodmother: Avenge progress is SCORE_VALUE_2 (E3)
     [InlineData("BG23_HERO_201p", CoverageStatus.Implemented)] // Tentacular
     [InlineData("BG35_MagicItem_701", CoverageStatus.Implemented)] // Fang Anklet
-    [InlineData("BG30_MagicItem_442", CoverageStatus.MissingInput)] // Blood Golem Sticker
+    [InlineData("BG30_MagicItem_442", CoverageStatus.Implemented)] // Blood Golem Sticker: tags 4235/4236 (E3)
     [InlineData("BG30_MagicItem_427", CoverageStatus.MissingEffect)] // Tiger Carving: out of the pool, no code
     public void Plan_candidates(string cardId, CoverageStatus status) =>
         Assert.Equal(status, SimCoverage.Classify(cardId, CoverageKind.Trinket).Status);
@@ -183,7 +183,7 @@ public sealed partial class SimMatrixTests
     {
         var ours = new SimSide([SimMinion.Create("BG36_207", 3, 6) with { HasUnsimulatedEffect = true }])
         {
-            Extras = ["BG30_MagicItem_442", "BG30_MagicItem_925", "TEST_NEWER_THAN_DATA"],
+            Extras = ["BG35_MagicItem_701", "BG30_MagicItem_925", "TEST_NEWER_THAN_DATA"],
         };
         var theirs = new SimSide([SimMinion.Create("BG36_207", 3, 6)]);
         var items = CombatSimulator.Explain(ours, isOpponent: false);

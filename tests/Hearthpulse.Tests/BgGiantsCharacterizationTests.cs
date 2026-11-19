@@ -132,6 +132,11 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // beats. Such ties occur on these boards: with those draws put back (checked) the fingerprint is still E4's
         // D257E5976B8595DA. The picks of E1 (Lichling Hoarder, Lovely Locket, Misplaced Tea Set) and E4 (Timewarped Tide
         // Razor, Warghoul, Chimera, Scourfin) moved to the chooser draw as before.
-        Assert.Equal("fights 95522083F5E8B9A8", actual);
+        // 2026-11-19 (E3): twelve new player-card ids change the random boards, and player cards changed on purpose (as a
+        // minion without a capture Broodmother and Tentacular now summon their printed Whelp/Tentacle, Fang Anklet gives
+        // its printed +1/+1, golden Beetle Band is Avenge (8) with the player's Beetle); not split up and checked one by one.
+        // 2026-11-19 (FIX sim-effects-audit, merged after E3): effects corrected to the live card text (The Last One
+        // Standing, Eudora, Kodo, C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose.
+        Assert.Equal("fights B38EEFBF3604898A", actual);
     }
 }

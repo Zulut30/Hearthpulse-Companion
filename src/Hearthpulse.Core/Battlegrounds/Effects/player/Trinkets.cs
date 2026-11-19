@@ -1,38 +1,57 @@
 namespace Hearthpulse.Core.Battlegrounds.Effects.Player;
 
 // Trinkets whose text acts in combat after the boards are captured (PlayerCardTable), from their English card text
-// (patch 37.0). A trinket is an off-board extra unit of its side: it gets the side's hooks, and its Counter / Counter2 /
-// AvengeCount are per-fight state. "(N times per combat.)" counts in Counter. Golden ("…t") versions are separate cards.
+// (HearthstoneJSON latest, checked 2026-11-19). A trinket is an off-board extra unit of its side: it gets the side's hooks,
+// and its Counter / Counter2 / AvengeCount are per-fight state. "(N times per combat.)" counts in Counter. Golden ("…t")
+// versions are separate cards. "(N times per combat.)" starts from the trinket's NUM_1 = uses left (PlayerCards.UsesLeft).
+// Balance changes on the server without a new client, so a number the trinket shows is read
+// from its captured TAG_SCRIPT_DATA_NUM_1/2 when present (our own trinkets; GrowingValue), the text's number otherwise.
+// Avenge trinkets do not read NUM_1 for their stats: on the one Avenge card in the logs NUM_1 holds the Avenge number;
+// their X and progress come from SCORE_VALUE_1/2 (PlayerAvengeEffect).
 
 /// <summary>Ceremonial Sword (BG30_MagicItem_925): "Whenever a friendly minion attacks, give it +4 Attack."</summary>
 [CardEffect("BG30_MagicItem_925")]
 internal sealed class CeremonialSword : CombatEffect
 {
-    public override void OnFriendlyAttack(Fight fight, Unit self, Unit attacker, Unit target) => fight.Buff(attacker, 4, 0);
+    // Counter: the Attack given, read once per fight.
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = GrowingValue.Current(self.Side.Info, self.CardId, 4, 0).Attack;
+
+    public override void OnFriendlyAttack(Fight fight, Unit self, Unit attacker, Unit target) => fight.Buff(attacker, self.Counter, 0);
 }
 
 /// <summary>Lionfish Portrait (BG36_MagicItem_201): "… Whenever a friendly Beast attacks, give it +4/+2."</summary>
 [CardEffect("BG36_MagicItem_201")]
 internal sealed class LionfishPortrait : CombatEffect
 {
+    public override void OnFightStart(Fight fight, Unit self) => (self.Counter, self.Counter2) = GrowingValue.Current(self.Side.Info, self.CardId, 4, 2);
+
     public override void OnFriendlyAttack(Fight fight, Unit self, Unit attacker, Unit target)
     {
         if (attacker.Is(Tribe.Beast))
         {
-            fight.Buff(attacker, 4, 2);
+            fight.Buff(attacker, self.Counter, self.Counter2);
         }
     }
 }
 
-/// <summary>Faerie Dragon Scale (BG32_MagicItem_363): "Whenever a friendly Dragon attacks, give it Divine Shield. (3 times per combat.)"</summary>
+/// <summary>
+/// Faerie Dragon Scale (BG32_MagicItem_363): "Whenever a friendly Dragon attacks, give it Divine Shield. (3 times per
+/// combat.)" Its NUM_1 counts the uses left down 3, 2, 1 in a fight (real log 2026-11-15, game 4, the effects audit), so
+/// the captured value says how many are left at the first attack; 3 without it.
+/// </summary>
 [CardEffect("BG32_MagicItem_363")]
 internal sealed class FaerieDragonScale : CombatEffect
 {
+    private const int Uses = 3;
+
+    // Counter: uses left (PlayerCards.UsesLeft).
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = PlayerCards.UsesLeft(self.Side.Info, self.CardId, Uses);
+
     public override void OnFriendlyAttack(Fight fight, Unit self, Unit attacker, Unit target)
     {
-        if (attacker.Is(Tribe.Dragon) && self.Counter < 3)
+        if (attacker.Is(Tribe.Dragon) && self.Counter > 0)
         {
-            self.Counter++;
+            self.Counter--;
             fight.GiveKeywords(attacker, Keyword.DivineShield);
         }
     }
@@ -49,7 +68,8 @@ internal sealed class FeralTalisman : CombatEffect
     public override void OnFightStart(Fight fight, Unit self)
     {
         var golden = self.CardId.EndsWith('t');
-        self.Side.AddSummonBuff(_ => true, golden ? 8 : 2, golden ? 5 : 1);
+        var (attack, health) = GrowingValue.Current(self.Side.Info, self.CardId, golden ? 8 : 2, golden ? 5 : 1);
+        self.Side.AddSummonBuff(Tribe.All, attack, health);
     }
 }
 
@@ -57,11 +77,14 @@ internal sealed class FeralTalisman : CombatEffect
 [CardEffect("BG30_MagicItem_886")]
 internal sealed class ReinforcedShield : CombatEffect
 {
+    // Counter: uses left (PlayerCards.UsesLeft).
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = PlayerCards.UsesLeft(self.Side.Info, self.CardId, 5);
+
     public override void WheneverFriendlySummoned(Fight fight, Unit self, Unit summoned)
     {
-        if (self.Counter < 5)
+        if (self.Counter > 0)
         {
-            self.Counter++;
+            self.Counter--;
             fight.GiveKeywords(summoned, Keyword.DivineShield);
         }
     }
@@ -110,11 +133,14 @@ internal sealed class BlingtronsSunglasses : CombatEffect
 [CardEffect("BG30_MagicItem_910")]
 internal sealed class MechagonAdapter : CombatEffect
 {
+    // Counter: uses left (PlayerCards.UsesLeft).
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = PlayerCards.UsesLeft(self.Side.Info, self.CardId, 3);
+
     public override void OnFriendlyShieldLost(Fight fight, Unit self, Unit unit)
     {
-        if (unit.Is(Tribe.Mech) && unit.IsOnBoard && self.Counter < 3)
+        if (unit.Is(Tribe.Mech) && unit.IsOnBoard && self.Counter > 0)
         {
-            self.Counter++;
+            self.Counter--;
             fight.GiveKeywords(unit, Keyword.DivineShield);
         }
     }
@@ -147,11 +173,13 @@ internal sealed class AllianceKeychain : CombatEffect
 [CardEffect("BG36_MagicItem_205")]
 internal sealed class DeathwhisperSticker : CombatEffect
 {
+    public override void OnFightStart(Fight fight, Unit self) => (self.Counter, self.Counter2) = GrowingValue.Current(self.Side.Info, self.CardId, 2, 2);
+
     public override void AfterFriendlyReborn(Fight fight, Unit self, Unit reborn)
     {
         foreach (var minion in fight.Alive(self.Side))
         {
-            fight.Buff(minion, 2, 2);
+            fight.Buff(minion, self.Counter, self.Counter2);
         }
     }
 }
@@ -160,11 +188,14 @@ internal sealed class DeathwhisperSticker : CombatEffect
 [CardEffect("BG35_MagicItem_731")]
 internal sealed class DeathtouchApple : CombatEffect
 {
+    // Counter: uses left (PlayerCards.UsesLeft; "per turn", the combat is the rest of the turn).
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = PlayerCards.UsesLeft(self.Side.Info, self.CardId, 3);
+
     public override void AfterFriendlyReborn(Fight fight, Unit self, Unit reborn)
     {
-        if (reborn.Is(Tribe.Undead) && self.Counter < 3)
+        if (reborn.Is(Tribe.Undead) && self.Counter > 0)
         {
-            self.Counter++;
+            self.Counter--;
             fight.GiveKeywords(reborn, Keyword.Reborn);
         }
     }
@@ -178,13 +209,22 @@ internal sealed class DeathtouchApple : CombatEffect
 [CardEffect("BG32_MagicItem_862t")]
 internal sealed class UnholySanctum : CombatEffect
 {
+    public override void OnFightStart(Fight fight, Unit self)
+    {
+        var golden = self.CardId.EndsWith('t');
+        (self.Counter, self.Counter2) = GrowingValue.Current(self.Side.Info, self.CardId, golden ? 6 : 2, golden ? 4 : 2);
+    }
+
     public override void OnFriendlyDeathrattle(Fight fight, Unit self, Unit source)
     {
-        var alive = fight.Alive(self.Side);
-        if (alive.Count > 0)
+        var board = self.Side.Minions;
+        for (var i = board.Count - 1; i >= 0; i--)
         {
-            var golden = self.CardId.EndsWith('t');
-            fight.Buff(alive[^1], golden ? 6 : 2, golden ? 4 : 2);
+            if (board[i].IsAlive)
+            {
+                fight.Buff(board[i], self.Counter, self.Counter2);
+                return;
+            }
         }
     }
 }
@@ -234,9 +274,9 @@ internal sealed class STharaSticker : CombatEffect
 /// <summary>Bird Feeder (BG32_MagicItem_864): "Avenge (2): Give your minions +1/+1." Golden (…864t): "+4/+4".</summary>
 [CardEffect("BG32_MagicItem_864")]
 [CardEffect("BG32_MagicItem_864t")]
-internal sealed class BirdFeeder : AvengeEffect
+internal sealed class BirdFeeder : PlayerAvengeEffect
 {
-    protected override int Threshold(Unit self) => 2;
+    protected override int PrintedThreshold(Unit self) => 2;
 
     protected override void Avenge(Fight fight, Unit self)
     {
@@ -250,9 +290,9 @@ internal sealed class BirdFeeder : AvengeEffect
 
 /// <summary>Gilnean Thorned Rose (BG30_MagicItem_864): "Avenge (3): Give your minions +4/+5 permanently and deal 1 damage to them."</summary>
 [CardEffect("BG30_MagicItem_864")]
-internal sealed class GilneanThornedRose : AvengeEffect
+internal sealed class GilneanThornedRose : PlayerAvengeEffect
 {
-    protected override int Threshold(Unit self) => 3;
+    protected override int PrintedThreshold(Unit self) => 3;
 
     protected override void Avenge(Fight fight, Unit self)
     {
@@ -271,9 +311,9 @@ internal sealed class GilneanThornedRose : AvengeEffect
 
 /// <summary>Staff of the Scourge (BG30_MagicItem_437): "Avenge (5): Give a random friendly Undead Reborn."</summary>
 [CardEffect("BG30_MagicItem_437")]
-internal sealed class StaffOfTheScourge : AvengeEffect
+internal sealed class StaffOfTheScourge : PlayerAvengeEffect
 {
-    protected override int Threshold(Unit self) => 5;
+    protected override int PrintedThreshold(Unit self) => 5;
 
     protected override void Avenge(Fight fight, Unit self)
     {
@@ -285,20 +325,25 @@ internal sealed class StaffOfTheScourge : AvengeEffect
 }
 
 /// <summary>
-/// Beetle Band (BG32_MagicItem_860): "Avenge (5): Summon a 2/2 Beetle. Give it Taunt." Golden (…860t): "Avenge (7): Summon two
-/// 2/2 Beetles. Give them Taunt."
+/// Beetle Band (BG32_MagicItem_860): "Avenge (5): Summon a 2/2 Beetle. Give it Taunt." Golden (…860t): "Avenge (8): Summon
+/// two 2/2 Beetles. Give them Taunt." (HearthstoneJSON latest; 37.0 said Avenge (7).) A Beetle is the player's current
+/// Beetle: 2/2 plus "your Beetles have +X/+Y this game" so far (<see cref="SimInputs.BeetleStatsOf"/>: the Beetle Army
+/// enchantment, an estimate for the opponent; else what a Beetle summoner shows, <see cref="Deaths.Beetles.Stats"/>), plus
+/// bonuses gained in this fight.
 /// </summary>
 [CardEffect("BG32_MagicItem_860")]
 [CardEffect("BG32_MagicItem_860t")]
-internal sealed class BeetleBand : AvengeEffect
+internal sealed class BeetleBand : PlayerAvengeEffect
 {
-    protected override int Threshold(Unit self) => self.CardId.EndsWith('t') ? 7 : 5;
+    protected override int PrintedThreshold(Unit self) => self.CardId.EndsWith('t') ? 8 : 5;
 
     protected override void Avenge(Fight fight, Unit self)
     {
+        // The player's Beetle: the Beetle Army enchantment or its estimate (SimInputs), else what a Beetle summoner shows.
+        var (attack, health) = SimInputs.BeetleStatsOf(self.Side.Info) ?? Deaths.Beetles.Stats(self);
         for (var i = self.CardId.EndsWith('t') ? 2 : 1; i > 0; i--)
         {
-            if (fight.Summon(self.Side, Tokens.Beetle(), self.Side.Count) is { } beetle)
+            if (fight.Summon(self.Side, Tokens.Make(Tokens.BeetleId, attack, health, Tribe.Beast), self.Side.Count) is { } beetle)
             {
                 fight.GiveKeywords(beetle, Keyword.Taunt);
             }
@@ -308,9 +353,9 @@ internal sealed class BeetleBand : AvengeEffect
 
 /// <summary>Cloud Serpent Horn (BG35_MagicItem_849): "Avenge (3): Give the Attack of your right-most minion to another friendly Dragon."</summary>
 [CardEffect("BG35_MagicItem_849")]
-internal sealed class CloudSerpentHorn : AvengeEffect
+internal sealed class CloudSerpentHorn : PlayerAvengeEffect
 {
-    protected override int Threshold(Unit self) => 3;
+    protected override int PrintedThreshold(Unit self) => 3;
 
     protected override void Avenge(Fight fight, Unit self)
     {

@@ -183,32 +183,49 @@ public sealed class RallyBuffTests
     // ------------------------------------------------------------------------------------------- The Last One Standing
 
     [Fact]
-    public void Last_one_standing_buffs_one_minion_of_each_type()
+    public void Last_one_standing_buffs_one_minion_of_each_type_and_improves()
     {
-        // Board: TLOS 15/15 (every type), N 1/1 (no type), B 1/1 Beast; enemy 0/40.
-        // Rally: Beast → B (single-type minions are preferred over TLOS), Demon → TLOS (the only one left), no other type
-        // has an unchosen minion. B 16/16, TLOS 30/30; N has no type and gets nothing.
-        // TLOS hits 30 (40→10), N 1 (→9), B 16: dies.
+        // No script data (a copy made in combat): the printed +10/+10, improved by +10/+10 after each Rally.
+        // Board: TLOS 10/10 (every type), N 1/1 (no type), B 1/1 Beast; enemy 0/72.
+        // Rally +10: Beast → B (single-type minions first), Demon → TLOS; N has no type. B 11/11, TLOS 20/20, hits 20 (→52);
+        // N 1 (→51); B 11 (→40); Rally +20: B 31/31, TLOS 40/40, hits 40: dies.
         var result = Fight(
-            Side(Minion(15, 15, cardId: "BG34_320", tribes: Tribe.All), Minion(1, 1, cardId: "N"), Minion(1, 1, cardId: "B", tribes: Tribe.Beast)),
-            Side(Minion(0, 40, cardId: "E")),
+            Side(Minion(10, 10, cardId: "BG34_320", tribes: Tribe.All), Minion(1, 1, cardId: "N"), Minion(1, 1, cardId: "B", tribes: Tribe.Beast)),
+            Side(Minion(0, 72, cardId: "E")),
             true, Effects(typeof(TheLastOneStanding)));
 
         Assert.Equal(1, result.Outcome);
-        Assert.Equal([(30, 30), (1, 1), (16, 16)], Stats(result.Ours));
+        Assert.Equal([(40, 40), (1, 1), (31, 31)], Stats(result.Ours));
     }
 
     [Fact]
-    public void Golden_last_one_standing_buffs_twice()
+    public void Last_one_standing_uses_its_script_data_as_in_the_real_log()
     {
-        // Golden 30/30, N 1/1, B 1/1 Beast vs 0/100. Rally twice: B 31/31, TLOS 60/60. Hits 60 (→40), N 1 (→39), B 31 (→8).
-        // TLOS attacks again: twice more, B 61/61, TLOS 90/90; hits 90: dies.
+        // Real log 15.11.2026 (build 255790, game 3): TLOS 23/21 with TAG_SCRIPT_DATA_NUM_1/2 = 20/20, an Aberration 20/23
+        // and a Mech 97/83. The Rally gave +20/+20 to TLOS, the Mech and the Aberration (43/41, 117/103, 40/43), then the
+        // script data went to 30/30. Here: TLOS hits 43 (273→230), the Aberration 40 (→190), the Mech 117 (→73); the next
+        // Rally gives +30/+30 (TLOS 73/71, Aberration 70/73, Mech 147/133) and TLOS hits 73: dies.
+        var tlos = Minion(23, 21, cardId: "BG34_320", tribes: Tribe.All) with { ScriptData1 = 20, ScriptData2 = 20 };
         var result = Fight(
-            Side(Minion(30, 30, cardId: "BG34_320", tribes: Tribe.All, golden: true), Minion(1, 1, cardId: "N"), Minion(1, 1, cardId: "B", tribes: Tribe.Beast)),
-            Side(Minion(0, 100, cardId: "E")),
+            Side(tlos, Minion(20, 23, cardId: "SHA", tribes: Tribe.Aberration), Minion(97, 83, cardId: "MECH", tribes: Tribe.Mech)),
+            Side(Minion(0, 273, cardId: "E")),
             true, Effects(typeof(TheLastOneStanding)));
 
         Assert.Equal(1, result.Outcome);
-        Assert.Equal([(90, 90), (1, 1), (61, 61)], Stats(result.Ours));
+        Assert.Equal([(73, 71), (70, 73), (147, 133)], Stats(result.Ours));
+    }
+
+    [Fact]
+    public void Golden_last_one_standing_buffs_and_improves_twice()
+    {
+        // Golden 20/20, N 1/1, B 1/1 Beast vs 0/202. Rally: +10 (B 11/11, TLOS 30/30), +20 (B 31/31, TLOS 50/50); hits 50
+        // (→152), N 1 (→151), B 31 (→120). Rally: +30 (B 61/61, TLOS 80/80), +40 (B 101/101, TLOS 120/120); hits 120: dies.
+        var result = Fight(
+            Side(Minion(20, 20, cardId: "BG34_320", tribes: Tribe.All, golden: true), Minion(1, 1, cardId: "N"), Minion(1, 1, cardId: "B", tribes: Tribe.Beast)),
+            Side(Minion(0, 202, cardId: "E")),
+            true, Effects(typeof(TheLastOneStanding)));
+
+        Assert.Equal(1, result.Outcome);
+        Assert.Equal([(120, 120), (1, 1), (101, 101)], Stats(result.Ours));
     }
 }

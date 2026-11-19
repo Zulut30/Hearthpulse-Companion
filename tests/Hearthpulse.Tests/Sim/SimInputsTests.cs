@@ -372,8 +372,9 @@ public sealed class SimInputsTests
         var older = Fight(full, Side(Minion(1, 3)), oursFirst: false, Effects(typeof(DiremuckForager)), 1);
 
         Assert.Empty(none.Lines("summoned"));
-        Assert.Equal(["summoned our MUR 5/2 at 1"], one.Lines("summoned"));
-        Assert.Equal(["summoned our MUR 5/2 at 1"], older.Lines("summoned"));
+        // At the right end of the board (FIX sim-effects-audit, real log 15.11.2026), not next to the Forager.
+        Assert.Equal(["summoned our MUR 5/2 at 6"], one.Lines("summoned"));
+        Assert.Equal(["summoned our MUR 5/2 at 6"], older.Lines("summoned"));
     }
 
     [Fact]

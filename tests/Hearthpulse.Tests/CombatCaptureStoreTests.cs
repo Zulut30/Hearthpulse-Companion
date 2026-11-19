@@ -308,6 +308,31 @@ public sealed class CombatCaptureStoreTests : IDisposable
     }
 
     [Fact]
+    public void Minions_a_player_card_removed_and_blood_gem_totals_survive_the_capture_file()
+    {
+        // E3: Rapid Reanimation / Soul Fermenter resummon what they removed at Start of Combat (both sides: it was on the
+        // board the player saw), Blood Golem Sticker reads a minion's Blood Gem total.
+        var saved = Captured(out _);
+        var fight = Assert.Single(saved.Fights);
+        var removed = SimMinion.Create("BG_REMOVED", 9, 8) with { EntityId = 444, Taunt = true };
+        IReadOnlyDictionary<string, IReadOnlyList<SimMinion>> byCard = new Dictionary<string, IReadOnlyList<SimMinion>> { ["BG25_HERO_103p"] = [removed] };
+        var ours = fight.Ours with { RemovedByExtras = byCard, Minions = fight.Ours.Minions.Select(m => m with { BloodGemAttack = 27, BloodGemHealth = 24 }).ToList() };
+        var theirs = fight.Theirs with { RemovedByExtras = byCard };
+        saved = saved with { Fights = [fight with { Ours = ours, Theirs = theirs }] };
+        var store = new CombatCaptureStore(_dir);
+
+        var read = Assert.Single(store.Load(store.Save("20261023123000|removed", saved)!)!.Fights);
+
+        foreach (var side in new[] { read.Ours, read.Theirs })
+        {
+            var back = Assert.Single(side.RemovedByExtras["BG25_HERO_103p"]);
+            Assert.Equal(("BG_REMOVED", 444, 9, 8, true), (back.CardId, back.EntityId, back.Attack, back.Health, back.Taunt));
+        }
+
+        Assert.All(read.Ours.Minions, m => Assert.Equal((27, 24), (m.BloodGemAttack, m.BloodGemHealth)));
+    }
+
+    [Fact]
     public void The_opponents_player_enchantments_never_reach_the_file()
     {
         var saved = Captured(out _);
@@ -340,6 +365,7 @@ public sealed class CombatCaptureStoreTests : IDisposable
         var fight = Assert.Single(store.Load(name)!.Fights);
 
         Assert.Empty(fight.Theirs.HiddenTags);
+        Assert.Empty(fight.Ours.RemovedByExtras);
         Assert.Empty(fight.Ours.PlayerEnchantments);
         Assert.Empty(fight.Theirs.Estimates);
         Assert.Equal(Tribe.None, fight.Ours.LobbyTribes);

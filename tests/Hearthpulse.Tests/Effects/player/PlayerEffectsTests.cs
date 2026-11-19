@@ -207,9 +207,10 @@ public sealed class PlayerEffectsTests
     }
 
     [Fact]
-    public void Golden_beetle_band_summons_two_beetles_on_the_seventh_death()
+    public void Golden_beetle_band_summons_two_beetles_on_the_eighth_death()
     {
-        var side = Side(Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(0, 30));
+        // Avenge (8) in the current text (37.0 said 7): six 1/1s (one Reborn, so seven deaths), then the 0/30 is the eighth.
+        var side = Side(Minion(1, 1, Keyword.Reborn), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(0, 30));
         var golden = Fight(With(side, "BG32_MagicItem_860t"), Side(Minion(1, 500)), false, Effects(typeof(BeetleBand)));
 
         Assert.Equal(2, golden.Log.Count(l => l.StartsWith("summoned our BG28_603t", StringComparison.Ordinal)));

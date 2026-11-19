@@ -99,16 +99,17 @@ public sealed class SummonHookTests
     // ------------------------------------------------------------------------------------------- Stalwart Kodo
 
     [Fact]
-    public void Stalwart_kodo_gives_its_maximum_stats_to_the_first_three_summoned_minions()
+    public void Stalwart_kodo_gives_double_its_maximum_stats_to_the_first_three_summoned_minions()
     {
-        // Kodo 3/10 (for the test) with 3 uses (captured TAG_SCRIPT_DATA_NUM_1 = 3). The deathrattle minion summons four 2/3
-        // Beasts. The first three get +3/+10: 5/13 each; the fourth is not buffed: 2/3.
+        // Current text: "give it double this minion's maximum stats" (it was "this minion's maximum stats" in
+        // 37.0.0.255130). Kodo 3/10 (for the test) with 3 uses (captured TAG_SCRIPT_DATA_NUM_1 = 3). The deathrattle
+        // minion summons four 2/3 Beasts. The first three get +6/+20: 8/23 each; the fourth is not buffed: 2/3.
         var kodo = Minion(3, 10, cardId: "BG34_322", tribes: Tribe.Beast) with { ScriptData1 = 3 };
         var ours = Side(kodo, Summoner("TEST_DR_FOUR_BEASTS"), Minion(0, 9));
         var result = Fight(ours, Side(Minion(1, 1)), oursFirst: false, Effects(typeof(StalwartKodo), typeof(DrSummonFourBeasts)), 1);
 
         Assert.Equal(1, result.Outcome);
-        Assert.Equal([(3, 10), (5, 13), (5, 13), (5, 13), (2, 3), (0, 9)], Stats(result.Ours));
+        Assert.Equal([(3, 10), (8, 23), (8, 23), (8, 23), (2, 3), (0, 9)], Stats(result.Ours));
     }
 
     [Fact]
@@ -117,7 +118,7 @@ public sealed class SummonHookTests
         var ours = Side(Minion(3, 10, cardId: "BG34_322", tribes: Tribe.Beast), Summoner("TEST_DR_FOUR_BEASTS"), Minion(0, 9));
         var result = Fight(ours, Side(Minion(1, 1)), oursFirst: false, Effects(typeof(StalwartKodo), typeof(DrSummonFourBeasts)), 1);
 
-        Assert.Equal([(3, 10), (5, 13), (5, 13), (5, 13), (2, 3), (0, 9)], Stats(result.Ours));
+        Assert.Equal([(3, 10), (8, 23), (8, 23), (8, 23), (2, 3), (0, 9)], Stats(result.Ours));
     }
 
     [Fact]
@@ -128,18 +129,19 @@ public sealed class SummonHookTests
         var ours = Side(kodo, Summoner("TEST_DR_TWO_BEASTS"), Minion(0, 9));
         var result = Fight(ours, Side(Minion(1, 1)), oursFirst: false, Effects(typeof(StalwartKodo), typeof(DrSummonTwoBeasts)), 1);
 
-        Assert.Equal([(3, 10), (5, 13), (2, 3), (0, 9)], Stats(result.Ours));
+        Assert.Equal([(3, 10), (8, 23), (2, 3), (0, 9)], Stats(result.Ours));
     }
 
     [Fact]
-    public void Golden_stalwart_kodo_gives_double_its_maximum_stats()
+    public void Golden_stalwart_kodo_gives_triple_its_maximum_stats()
     {
-        // Golden Kodo 6/20: double its maximum stats = +12/+40 for three summons: 2/3 -> 14/43.
+        // Golden text: "triple this minion's maximum stats" (it was "double"). Golden Kodo 6/20: +18/+60 for three summons:
+        // 2/3 -> 20/63.
         var kodo = Minion(6, 20, cardId: "BG34_322", tribes: Tribe.Beast, golden: true) with { ScriptData1 = 3 };
         var ours = Side(kodo, Summoner("TEST_DR_FOUR_BEASTS"), Minion(0, 9));
         var result = Fight(ours, Side(Minion(1, 1)), oursFirst: false, Effects(typeof(StalwartKodo), typeof(DrSummonFourBeasts)), 1);
 
-        Assert.Equal([(6, 20), (14, 43), (14, 43), (14, 43), (2, 3), (0, 9)], Stats(result.Ours));
+        Assert.Equal([(6, 20), (20, 63), (20, 63), (20, 63), (2, 3), (0, 9)], Stats(result.Ours));
     }
 
     // ------------------------------------------------------------------------------------------- Humming Bird

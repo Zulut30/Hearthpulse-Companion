@@ -272,10 +272,9 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Assert.All(Enum.GetValues<Keyword>(), k => Assert.Equal(0, (int)k & ~SourceCaptureCombat.BaseKeywordMask));
         Assert.All(Enum.GetValues<CardMechanic>(), m => Assert.Equal(0, (int)m & ~SourceCaptureCombat.MechanicMask));
         Assert.Equal(CombatRelevance.EffectMarkers(_ => true), SourceCaptureCombat.Markers);
-        // The card values effects read, and Avenge (X) and its progress on hero powers and trinkets (SCORE_VALUE_1/2; the
-        // capture records them from package E3 on, the wire takes them already).
-        Assert.Equal(CombatEffect.CapturedTags.Union(["SCORE_VALUE_1", "SCORE_VALUE_2"], StringComparer.Ordinal).Order(StringComparer.Ordinal),
-            SourceCaptureCombat.CardTags.Order(StringComparer.Ordinal));
+        // Every card value effects read leaves, Avenge (X) and its progress on hero powers and trinkets (SCORE_VALUE_1/2)
+        // included: a pool replay starts that Avenge where the game had it.
+        Assert.Equal(CombatEffect.CapturedTags.Order(StringComparer.Ordinal), SourceCaptureCombat.CardTags.Order(StringComparer.Ordinal));
         var stored = typeof(BattlegroundsTracker).Assembly.GetType("Hearthpulse.Core.Tracking.CombatCaptureStore")!
             .GetField("CounterTags", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null) as IEnumerable<string>;
         Assert.Equal(stored!.Order(StringComparer.Ordinal), SourceCaptureCombat.PlayerTags.Order(StringComparer.Ordinal));
