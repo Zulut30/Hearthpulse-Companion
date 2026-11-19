@@ -121,6 +121,10 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // Balinda, Timewarped Greenskeeper, Kalecgos, Dark Paradox and its t6 form, Rot Hide Gnoll, Mishmash, Joyous,
         // Hackerfin, Nerubian Deathswarmer, Electric Synthesizer); without them (checked) the fingerprint is still
         // FECFFCB0BDD005AE.
-        Assert.Equal("fights A488D069E48228A5", actual);
+        // 2026-11-19 (sim-rules): engine rules from real Power.log fights change these fights on purpose (rules-evidence
+        // 2b, 4a, 4d, 4e; effects-audit E1, E2: a dead attacker's summons attack next, deaths in order of play, Reborn
+        // after Avenge, reborn max Health, friendly-attack hooks before Rally, deathrattles A,A,B,B); the boards are the
+        // same, and before those rules (main at 44e706f4) the fingerprint is A488D069E48228A5.
+        Assert.Equal("fights C8DF6913ECA637EF", actual);
     }
 }
