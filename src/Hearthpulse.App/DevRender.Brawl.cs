@@ -33,6 +33,8 @@ public partial class App
     private async Task RenderOnlyAsync(string folder)
     {
         if (RenderOnly("mystats")) await RenderMyStatsAsync(folder);
+        if (RenderOnly("achievements")) await RenderAchievementsAsync(folder);
+        if (RenderOnly("wrapped")) await RenderWrappedAsync(folder);
         if (RenderOnly("metatiers")) await RenderMetaTiersAsync(folder);
         if (RenderOnly("bgtabs")) await RenderBgTabsAsync(folder);
         if (RenderOnly("bgown")) await RenderBgOwnAsync(folder);
