@@ -35,8 +35,9 @@ public sealed partial class Side
         _counters = null;
         _summonBuffs = null;
         _hand = null;
+        // Empty board and no holders: no hooks, exactly (units entering add theirs).
         _hooks = Hook.None;
-        _hooksDirty = true;
+        _hooksDirty = false;
         DeathrattlesTriggered = 0;
         ExtraDeathrattles = 0;
         Gap = 0;
@@ -95,20 +96,21 @@ public sealed partial class Side
     /// </summary>
     internal Unit? LastAttacker { get; set; }
 
-    internal Hook Hooks
-    {
-        get
-        {
-            if (_hooksDirty)
-            {
-                _hooks = Hook.None;
-                foreach (var unit in _board) _hooks |= unit.Hooks;
-                foreach (var unit in _extras) _hooks |= unit.Hooks;
-                _hooksDirty = false;
-            }
+    /// <summary>
+    /// Every hook of the board and the player-level holders. Read before each dispatch, so the read is a field (inlined);
+    /// a unit entering adds its hooks, and only a unit leaving or gaining an effect makes it recount.
+    /// </summary>
+    internal Hook Hooks => _hooksDirty ? RecountHooks() : _hooks;
 
-            return _hooks;
-        }
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private Hook RecountHooks()
+    {
+        var hooks = Hook.None;
+        foreach (var unit in _board) hooks |= unit.Hooks;
+        foreach (var unit in _extras) hooks |= unit.Hooks;
+        _hooks = hooks;
+        _hooksDirty = false;
+        return hooks;
     }
 
     internal bool HasAppliedAuras { get; set; }
@@ -194,14 +196,14 @@ public sealed partial class Side
     {
         _board.Add(unit);
         unit.IsOnBoard = true;
-        _hooksDirty = true;
+        _hooks |= unit.Hooks;
         AuraDirty = true;
     }
 
     internal void AddExtra(Unit unit)
     {
         _extras.Add(unit);
-        _hooksDirty = true;
+        _hooks |= unit.Hooks;
     }
 
     internal void Insert(int index, Unit unit, bool leftOfGap)
@@ -214,7 +216,7 @@ public sealed partial class Side
             Gap++;
         }
 
-        _hooksDirty = true;
+        _hooks |= unit.Hooks;
         AuraDirty = true;
     }
 
