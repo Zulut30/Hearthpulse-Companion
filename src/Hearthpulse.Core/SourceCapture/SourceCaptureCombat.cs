@@ -12,11 +12,14 @@ namespace Hearthpulse.Core.SourceCapture;
 /// Battlegrounds game as the combat simulator was given it at the first attack, with what really happened and the odds
 /// the app showed. Built at the end of the game from the tracker's fights in memory, never from the local capture file.
 /// An allowlist, not a copy of <see cref="SimSide"/>: card ids, fight-scoped entity references, stats, keyword, tribe
-/// and mechanic flags and the few numeric tags effects read. Never the player's hand, the opponent's hand or card
-/// values, names, BattleTags, accounts, ratings, paths or text. A fight outside these rules is left out whole, never cut:
-/// the decoder (<see cref="Validate"/>) and the pool (<c>server/pool/node/validation.mjs</c>) apply the same ones.
+/// and mechanic flags, the few numeric tags effects read, the inputs the simulator reads besides the boards (enchantment
+/// values, deaths before the capture, the lobby's tribes) and the fight step by step (the transcript,
+/// <c>SourceCaptureCombat.Transcript.cs</c>). Never the player's hand, the opponent's hand, card values or player
+/// enchantments, names, BattleTags, accounts, ratings, paths or text. A fight outside these rules is left out whole,
+/// never cut (a transcript outside them is left out alone): the decoder (<see cref="Validate"/>) and the pool
+/// (<c>server/pool/node/validation.mjs</c>) apply the same ones.
 /// </summary>
-internal static class SourceCaptureCombat
+internal static partial class SourceCaptureCombat
 {
     /// <summary>Fights of one game; the record's <c>fight</c> (the combat's number in the game) stays below this.</summary>
     public const int MaxFights = 64;
@@ -27,6 +30,9 @@ internal static class SourceCaptureCombat
     public const int MaxRemembered = 7;
 
     public const int MaxEnchantments = 32;
+
+    /// <summary>Minions of a side that died during Start of Combat, before the capture.</summary>
+    public const int MaxDeaths = 32;
 
     /// <summary>Player-level cards of a side (hero power, trinkets, quest rewards, anomaly, Deity), and their values.</summary>
     public const int MaxExtras = 16;
@@ -42,9 +48,8 @@ internal static class SourceCaptureCombat
     public const int MaxDataBytes = 56 * 1024;
 
     /// <summary>
-    /// Format version of the reserved <c>transcript</c>, the fight step by step. Until its allowlist is written the field
-    /// is always null and anything else is refused; then it holds at most <see cref="MaxTranscriptSteps"/> steps in at
-    /// most <see cref="MaxTranscriptBytes"/>.
+    /// Format version of the <c>transcript</c>, the fight step by step (null when the fight has none or it is outside the
+    /// rules): at most <see cref="MaxTranscriptSteps"/> steps in at most <see cref="MaxTranscriptBytes"/> of compact JSON.
     /// </summary>
     public const int TranscriptVersion = 1;
 
@@ -63,8 +68,11 @@ internal static class SourceCaptureCombat
         "BACON_OLD_GOD_ATTACK", "BACON_OLD_GOD_HEALTH", "4914", "4915",
     ];
 
-    /// <summary>Tags of the local player's player-level cards that effects read (<c>CombatEffect.CapturedTags</c>).</summary>
-    internal static readonly string[] CardTags = ["TAG_SCRIPT_DATA_NUM_1", "TAG_SCRIPT_DATA_NUM_2"];
+    /// <summary>
+    /// Tags of the local player's player-level cards that effects read (<c>CombatEffect.CapturedTags</c>): their script
+    /// numbers, and Avenge (X) and its progress on hero powers and trinkets (SCORE_VALUE_1/2, captured from package E3 on).
+    /// </summary>
+    internal static readonly string[] CardTags = ["TAG_SCRIPT_DATA_NUM_1", "TAG_SCRIPT_DATA_NUM_2", "SCORE_VALUE_1", "SCORE_VALUE_2"];
 
     /// <summary>Effect marker tags the log showed on a minion (<c>CombatRelevance.EffectMarkers</c>).</summary>
     internal static readonly string[] Markers = ["DEATHRATTLE", "TRIGGER_VISUAL", "AURA", "AVENGE", "OVERKILL", "BACON_RALLY"];
@@ -94,7 +102,8 @@ internal static class SourceCaptureCombat
                 continue;
             }
 
-            if (list.Count == MaxFights || Project(fight.CombatIndex, fight.Capture, fight.Options, fight.Facts, combats[fight.CombatIndex]) is not { } combat)
+            if (list.Count == MaxFights
+                || Project(fight.CombatIndex, fight.Capture, fight.Options, fight.Facts, combats[fight.CombatIndex], fight.Transcript) is not { } combat)
             {
                 left++;
                 continue;
@@ -112,9 +121,13 @@ internal static class SourceCaptureCombat
         return list;
     }
 
-    /// <summary>One fight as a <c>bg_combat</c> record, or null when it is outside the rules (then nothing of it is sent).</summary>
+    /// <summary>
+    /// One fight as a <c>bg_combat</c> record, or null when it is outside the rules (then nothing of it is sent). Its
+    /// <paramref name="transcript"/> goes with it when what of it may leave fits the rules; otherwise the fight goes without.
+    /// </summary>
     internal static SourceCombat? Project(int index, BattlegroundsTracker.CombatCapture capture, SimOptions options,
-                                         IReadOnlyList<BattlegroundsTracker.MinionFacts> facts, CombatRecord combat)
+                                         IReadOnlyList<BattlegroundsTracker.MinionFacts> facts, CombatRecord combat,
+                                         BattlegroundsTracker.CombatTranscript? transcript = null)
     {
         var result = combat.Result switch { "Win" => "W", "Loss" => "L", "Tie" => "T", _ => null };
         if (result is null || index is < 0 or >= MaxFights || combat.Odds is { } o
@@ -124,15 +137,33 @@ internal static class SourceCaptureCombat
             return null;
         }
 
-        var refs = References(capture, facts);
+        // After the game (options.PostGame) the opponent's player values are the ones the log had, not the estimates the
+        // live odds used; the allowlist below decides what of them leaves, as before.
+        var ours = PostGameIf(options, capture.Ours);
+        var theirs = PostGameIf(options, capture.Theirs);
+        var kept = transcript is null ? null : KeepTranscript(transcript, ours, theirs);
+        return (kept is null ? null : Build(index, capture, options, facts, combat, result, ours, theirs, kept))
+               ?? Build(index, capture, options, facts, combat, result, ours, theirs, kept: null);
+    }
+
+    private static SourceCombat? Build(int index, BattlegroundsTracker.CombatCapture capture, SimOptions options, IReadOnlyList<BattlegroundsTracker.MinionFacts> facts,
+                                       CombatRecord combat, string result, SimSide ours, SimSide theirs, KeptTranscript? kept)
+    {
+        var refs = References(ours, theirs, capture.FirstAttackerEntityId, facts, kept);
         int Ref(int id) => id > 0 ? refs[id] : 0;
+        // What made an enchantment is a reference only when the record holds that entity anyway; else unknown (0).
+        int Known(int id) => id > 0 && refs.TryGetValue(id, out var known) ? known : 0;
+        JsonElement? steps = null;
+        if (kept is not null && (steps = WriteTranscript(kept, Ref)) is null)
+        {
+            return null;
+        }
+
         var fight = new SourceCombat(
-            index, combat.Turn, capture.OursFirst, Ref(capture.FirstAttackerEntityId), options.DamageCap, options.CountDamage,
-            // After the game (options.PostGame) the opponent's player values are the ones the log had, not the estimates
-            // the live odds used; the allowlist below decides what of them leaves, as before.
-            Side(PostGameIf(options, capture.Ours), opponent: false, Ref), Side(PostGameIf(options, capture.Theirs), opponent: true, Ref),
+            index, combat.Turn, capture.OursFirst, EnteredFirst(ours, theirs), Ref(capture.FirstAttackerEntityId), options.DamageCap, options.CountDamage,
+            Side(ours, opponent: false, Ref, Known), Side(theirs, opponent: true, Ref, Known),
             facts.Select(f => new SourceCombatFact(Ref(f.EntityId), f.CardId, f.Markers.ToArray())).ToArray(),
-            result, combat.DamageTaken, combat.DamageDealt, Odds(combat.Odds), Transcript: null);
+            result, combat.DamageTaken, combat.DamageDealt, Odds(combat.Odds), steps);
         // The decoder's and the pool's rules on exactly the bytes that would be sent: a fight they would refuse (and with
         // it the whole journal) is left out here instead.
         try
@@ -149,15 +180,20 @@ internal static class SourceCaptureCombat
 
     /// <summary>
     /// Power.log entity ids become fight-scoped references 1.. in the same order: the simulator only compares them, and
-    /// the record carries no id of the game.
+    /// the record carries no id of the game. The boards, the minions they remembered, the deaths before the capture and
+    /// the entities of the transcript's steps share one numbering.
     /// </summary>
-    private static Dictionary<int, int> References(BattlegroundsTracker.CombatCapture capture, IReadOnlyList<BattlegroundsTracker.MinionFacts> facts)
+    private static Dictionary<int, int> References(SimSide ours, SimSide theirs, int firstAttacker, IReadOnlyList<BattlegroundsTracker.MinionFacts> facts,
+                                                   KeptTranscript? kept)
     {
-        var ids = capture.Ours.Minions.Concat(capture.Theirs.Minions)
+        var ids = ours.Minions.Concat(theirs.Minions)
             .SelectMany(m => m.Remembered.Prepend(m))
+            .Concat(ours.DeathsBeforeCapture)
+            .Concat(theirs.DeathsBeforeCapture)
             .Select(m => m.EntityId)
             .Concat(facts.Select(f => f.EntityId))
-            .Append(capture.FirstAttackerEntityId)
+            .Concat(kept?.Entities ?? [])
+            .Append(firstAttacker)
             .Where(id => id > 0)
             .Distinct()
             .Order();
@@ -172,7 +208,15 @@ internal static class SourceCaptureCombat
 
     private static SimSide PostGameIf(SimOptions options, SimSide side) => options.PostGame ? SimInputs.PostGame(side) : side;
 
-    private static SourceCombatSide Side(SimSide side, bool opponent, Func<int, int> reference) => new(
+    /// <summary>
+    /// Whether the player's side entered play first: its hero has the lower lobby PLAYER_ID (rules-evidence 4a, which side's
+    /// minions die first in a death phase; <c>Fight.EnteredFirst</c> reads nothing else of the two numbers). Only this
+    /// order leaves, never the numbers (legal review LEGAL-sim-pool-combats-v3, L-M1); null when either is unknown.
+    /// </summary>
+    private static bool? EnteredFirst(SimSide ours, SimSide theirs) =>
+        ours.PlayerId > 0 && theirs.PlayerId > 0 && ours.PlayerId != theirs.PlayerId ? ours.PlayerId < theirs.PlayerId : null;
+
+    private static SourceCombatSide Side(SimSide side, bool opponent, Func<int, int> reference, Func<int, int> known) => new(
         side.HeroCardId.Length > 0 ? side.HeroCardId : null,
         side.HeroPowerCardId.Length > 0 ? side.HeroPowerCardId : null,
         side.Extras.ToArray(),
@@ -191,9 +235,17 @@ internal static class SourceCaptureCombat
                 t => (IReadOnlyDictionary<string, int>)t.Value.Where(v => CardTags.Contains(v.Key, StringComparer.Ordinal))
                     .OrderBy(v => v.Key, StringComparer.Ordinal).ToDictionary(v => v.Key, v => v.Value, StringComparer.Ordinal),
                 StringComparer.Ordinal),
-        side.Minions.Select(m => Minion(m, reference, withRemembered: true)).ToArray());
+        // The player's own enchantments only, as the local capture file keeps them (the client may not show the opponent's).
+        opponent ? [] : side.PlayerEnchantments.Select(e => Enchantment(e, known)).ToArray(),
+        (int)side.LobbyTribes,
+        // Both sides' minions that died at Start of Combat: the player saw them die.
+        side.DeathsBeforeCapture.Select(m => Minion(m, reference, known, withRemembered: false)).ToArray(),
+        side.Minions.Select(m => Minion(m, reference, known, withRemembered: true)).ToArray());
 
-    private static SourceCombatMinion Minion(SimMinion m, Func<int, int> reference, bool withRemembered) => new(
+    private static SourceCombatEnchantment Enchantment(SimEnchantment e, Func<int, int> known) =>
+        new(e.CardId, e.ScriptData1, e.ScriptData2, e.Attack, e.Health, known(e.CreatorEntityId));
+
+    private static SourceCombatMinion Minion(SimMinion m, Func<int, int> reference, Func<int, int> known, bool withRemembered) => new(
         reference(m.EntityId),
         m.CardId.Length > 0 ? m.CardId : null,
         m.Golden,
@@ -212,7 +264,11 @@ internal static class SourceCaptureCombat
         m.ScriptData2,
         m.CreatorCardId.Length > 0 ? m.CreatorCardId : null,
         m.Enchantments.ToArray(),
-        withRemembered ? m.Remembered.Select(r => Minion(r, reference, withRemembered: false)).ToArray() : [],
+        m.EnchantmentValues.Select(e => Enchantment(e, known)).ToArray(),
+        m.FriendlyDeathsBeforeCapture,
+        m.BloodGemAttack,
+        m.BloodGemHealth,
+        withRemembered ? m.Remembered.Select(r => Minion(r, reference, known, withRemembered: false)).ToArray() : [],
         m.HasUnsimulatedEffect);
 
     private static SourceCombatOdds? Odds(CombatOdds? odds) => odds is null
@@ -230,18 +286,19 @@ internal static class SourceCaptureCombat
     /// </summary>
     internal static void Validate(JsonElement d)
     {
-        S.Fields(d, "fight", "turn", "oursFirst", "firstAttacker", "damageCap", "countDamage", "ours", "theirs", "facts", "result",
+        S.Fields(d, "fight", "turn", "oursFirst", "oursEnteredFirst", "firstAttacker", "damageCap", "countDamage", "ours", "theirs", "facts", "result",
             "damageTaken", "damageDealt", "odds", "transcript");
         S.Require(Encoding.UTF8.GetByteCount(d.GetRawText()) <= MaxDataBytes);
         S.Number(d.GetProperty("fight"), 0, MaxFights - 1);
         S.Number(d.GetProperty("turn"), 0, 1000);
         Nullable(d.GetProperty("oursFirst"), v => S.Boolean(v));
+        Nullable(d.GetProperty("oursEnteredFirst"), v => S.Boolean(v));
         var attacker = S.Number(d.GetProperty("firstAttacker"), 0, MaxRef);
         S.Number(d.GetProperty("damageCap"), 0, 1000);
         S.Boolean(d.GetProperty("countDamage"));
         var board = new HashSet<int>();
-        ValidateSide(d.GetProperty("ours"), opponent: false, board);
-        ValidateSide(d.GetProperty("theirs"), opponent: true, board);
+        var ours = ValidateSide(d.GetProperty("ours"), opponent: false, board);
+        var theirs = ValidateSide(d.GetProperty("theirs"), opponent: true, board);
         S.Require(attacker == 0 || board.Contains(attacker));
         var facts = d.GetProperty("facts");
         S.Require(facts.ValueKind == JsonValueKind.Array && facts.GetArrayLength() <= MaxFacts);
@@ -274,18 +331,23 @@ internal static class SourceCaptureCombat
             S.Number(odds.GetProperty("unsimulated"), 0, 1000);
             S.Number(odds.GetProperty("runs"), 0, 10_000_000);
         });
-        // Reserved: null until the transcript's allowlist exists (TranscriptVersion, MaxTranscriptSteps, MaxTranscriptBytes).
-        S.Require(d.GetProperty("transcript").ValueKind == JsonValueKind.Null);
+        Nullable(d.GetProperty("transcript"), t => ValidateTranscript(t, board, ours, theirs));
     }
 
-    private static void ValidateSide(JsonElement side, bool opponent, HashSet<int> board)
+    /// <summary>Checks a side and adds its board minions' references to <paramref name="board"/>; returns its player-level cards.</summary>
+    private static HashSet<string> ValidateSide(JsonElement side, bool opponent, HashSet<int> board)
     {
-        S.Fields(side, "hero", "heroPower", "extras", "tier", "health", "turn", "tags", "cardTags", "minions");
+        S.Fields(side, "hero", "heroPower", "extras", "tier", "health", "turn", "tags", "cardTags", "playerEnchantments", "lobbyTribes", "deaths",
+            "minions");
         S.Card(side.GetProperty("hero"));
-        S.Card(side.GetProperty("heroPower"));
-        DistinctCards(side.GetProperty("extras"), MaxExtras);
+        var playerCards = DistinctCards(side.GetProperty("extras"), MaxExtras);
+        if (S.Card(side.GetProperty("heroPower")) is { } heroPower)
+        {
+            playerCards.Add(heroPower);
+        }
         S.Number(side.GetProperty("tier"), 0, 10);
-        S.Number(side.GetProperty("health"), 0, 10_000);
+        // Below 0 when the capture saw a hero already beaten (a lethal fight): sent as the simulator got it.
+        S.Number(side.GetProperty("health"), -10_000, 10_000);
         S.Number(side.GetProperty("turn"), 0, 1000);
         var tags = side.GetProperty("tags");
         S.Require(tags.ValueKind == JsonValueKind.Object);
@@ -311,24 +373,56 @@ internal static class SourceCaptureCombat
             }
         }
 
+        // The opponent's player enchantments are not captured (whether the client shows them is not established).
+        var enchantments = side.GetProperty("playerEnchantments");
+        S.Require(enchantments.ValueKind == JsonValueKind.Array && enchantments.GetArrayLength() <= (opponent ? 0 : MaxEnchantments));
+        foreach (var enchantment in enchantments.EnumerateArray())
+        {
+            ValidateEnchantment(enchantment);
+        }
+
+        S.Number(side.GetProperty("lobbyTribes"), 0, TribeMask);
+        var deaths = side.GetProperty("deaths");
+        S.Require(deaths.ValueKind == JsonValueKind.Array && deaths.GetArrayLength() <= MaxDeaths);
+        foreach (var dead in deaths.EnumerateArray())
+        {
+            ValidateMinion(dead, onBoard: false);
+        }
+
         var minions = side.GetProperty("minions");
         S.Require(minions.ValueKind == JsonValueKind.Array && minions.GetArrayLength() <= MaxMinions);
         foreach (var minion in minions.EnumerateArray())
         {
             S.Require(board.Add(ValidateMinion(minion, onBoard: true)));
         }
+
+        return playerCards;
+    }
+
+    private static void ValidateEnchantment(JsonElement e)
+    {
+        S.Fields(e, "card", "script1", "script2", "attack", "health", "creatorEntity");
+        S.Require(S.Card(e.GetProperty("card")) is not null);
+        foreach (var value in new[] { "script1", "script2", "attack", "health" })
+        {
+            S.Number(e.GetProperty(value), -MaxStat, MaxStat);
+        }
+
+        S.Number(e.GetProperty("creatorEntity"), 0, MaxRef);
     }
 
     private static int ValidateMinion(JsonElement m, bool onBoard)
     {
         S.Fields(m, "entity", "card", "golden", "attack", "health", "maxHealth", "baseHealth", "rebornAttack", "keywords", "attacks",
-            "baseKeywords", "tribes", "mechanics", "tier", "script1", "script2", "creator", "enchantments", "remembered", "unsimulated");
+            "baseKeywords", "tribes", "mechanics", "tier", "script1", "script2", "creator", "enchantments", "enchantmentValues", "friendlyDeaths",
+            "bloodGemAttack", "bloodGemHealth", "remembered", "unsimulated");
         var entity = S.Number(m.GetProperty("entity"), onBoard ? 1 : 0, MaxRef);
         S.Card(m.GetProperty("card"));
         S.Boolean(m.GetProperty("golden"));
+        // A minion that died before the capture (a death, a remembered one) can have its damage past its health.
         foreach (var stat in new[] { "attack", "health", "maxHealth", "baseHealth", "rebornAttack" })
         {
-            S.Number(m.GetProperty(stat), 0, MaxStat);
+            S.Number(m.GetProperty(stat), onBoard ? 0 : -MaxStat, MaxStat);
         }
 
         S.Require((S.Number(m.GetProperty("keywords"), 0, KeywordMask) & ~KeywordMask) == 0);
@@ -347,6 +441,16 @@ internal static class SourceCaptureCombat
             S.Require(S.Card(enchantment) is not null);
         }
 
+        var values = m.GetProperty("enchantmentValues");
+        S.Require(values.ValueKind == JsonValueKind.Array && values.GetArrayLength() <= MaxEnchantments);
+        foreach (var value in values.EnumerateArray())
+        {
+            ValidateEnchantment(value);
+        }
+
+        S.Number(m.GetProperty("friendlyDeaths"), 0, 1000);
+        S.Number(m.GetProperty("bloodGemAttack"), 0, MaxStat);
+        S.Number(m.GetProperty("bloodGemHealth"), 0, MaxStat);
         var remembered = m.GetProperty("remembered");
         S.Require(remembered.ValueKind == JsonValueKind.Array && remembered.GetArrayLength() <= (onBoard ? MaxRemembered : 0));
         foreach (var minion in remembered.EnumerateArray())
@@ -358,7 +462,7 @@ internal static class SourceCaptureCombat
         return entity;
     }
 
-    private static void DistinctCards(JsonElement list, int max)
+    private static HashSet<string> DistinctCards(JsonElement list, int max)
     {
         S.Require(list.ValueKind == JsonValueKind.Array && list.GetArrayLength() <= max);
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -366,6 +470,8 @@ internal static class SourceCaptureCombat
         {
             S.Require(S.Card(card) is { } id && seen.Add(id));
         }
+
+        return seen;
     }
 
     private static void Share(JsonElement value)
@@ -380,105 +486,4 @@ internal static class SourceCaptureCombat
             check(value);
         }
     }
-
-    // ------------------------------------------------------------------------------------- back to simulator input
-
-    /// <summary>
-    /// A checked record as simulator input again (the measurement reads the pool's export this way); null when it breaks
-    /// a rule. The hand is empty: the record never holds one.
-    /// </summary>
-    internal static SourceCombatInput? Read(JsonElement data)
-    {
-        try
-        {
-            Validate(data);
-        }
-        catch (SourceCaptureException)
-        {
-            return null;
-        }
-
-        var fight = data.Deserialize<SourceCombat>(SourceCaptureRecord.Json)!;
-        CombatOdds? odds = fight.Odds is { } o
-            ? new CombatOdds(o.Win, o.Tie, o.Loss, o.Unsimulated) { Runs = o.Runs, LethalTaken = o.LethalTaken, LethalDealt = o.LethalDealt }
-            : null;
-        return new SourceCombatInput(
-            fight.Fight,
-            fight.Turn,
-            new BattlegroundsTracker.CombatCapture(ToSim(fight.Ours), ToSim(fight.Theirs), fight.OursFirst, fight.FirstAttacker),
-            fight.DamageCap,
-            fight.CountDamage,
-            fight.Facts.Select(f => new BattlegroundsTracker.MinionFacts(f.Entity, f.Card, f.Markers.ToArray())).ToArray(),
-            fight.Result switch { "W" => "Win", "L" => "Loss", _ => "Tie" },
-            fight.DamageTaken,
-            fight.DamageDealt,
-            odds);
-    }
-
-    private static SimSide ToSim(SourceCombatSide side) => new(side.Minions.Select(ToSim).ToArray())
-    {
-        HeroCardId = side.Hero ?? string.Empty,
-        HeroPowerCardId = side.HeroPower ?? string.Empty,
-        Extras = side.Extras.ToArray(),
-        Tags = side.Tags.ToDictionary(t => t.Key, t => t.Value, StringComparer.Ordinal),
-        ExtraTags = side.CardTags.ToDictionary(t => t.Key, t => (IReadOnlyDictionary<string, int>)t.Value.ToDictionary(v => v.Key, v => v.Value, StringComparer.Ordinal), StringComparer.Ordinal),
-        TavernTier = side.Tier,
-        Health = side.Health,
-        Turn = side.Turn,
-    };
-
-    private static SimMinion ToSim(SourceCombatMinion m)
-    {
-        var keywords = (Keyword)m.Keywords;
-        bool Has(Keyword keyword) => (keywords & keyword) != 0;
-        return new SimMinion(m.Attack, m.Health, Has(Keyword.Taunt), Has(Keyword.DivineShield), Has(Keyword.Poisonous), Has(Keyword.Venomous),
-            Has(Keyword.Reborn), m.Attacks, Has(Keyword.Stealth), m.RebornAttack, m.Unsimulated)
-        {
-            CardId = m.Card ?? string.Empty,
-            Golden = m.Golden,
-            EntityId = m.Entity,
-            Tribes = (Tribe)m.Tribes,
-            MaxHealth = m.MaxHealth,
-            BaseHealth = m.BaseHealth,
-            BaseKeywords = (Keyword)m.BaseKeywords,
-            Mechanics = (CardMechanic)m.Mechanics,
-            TechLevel = m.Tier,
-            ScriptData1 = m.Script1,
-            ScriptData2 = m.Script2,
-            CreatorCardId = m.Creator ?? string.Empty,
-            Enchantments = m.Enchantments.ToArray(),
-            Remembered = m.Remembered.Select(ToSim).ToArray(),
-        };
-    }
 }
-
-/// <summary>Data of one <c>bg_combat</c> record (camelCase on the wire); see <see cref="SourceCaptureCombat"/>.</summary>
-/// <param name="Fight">The combat's number in the game (0 = the first fight), growing within a capture.</param>
-/// <param name="FirstAttacker">Reference of the minion that attacked first; 0 when unknown.</param>
-/// <param name="Result">W, T or L from the player's side.</param>
-/// <param name="Transcript">Reserved for the fight step by step; always null in this version.</param>
-internal sealed record SourceCombat(
-    int Fight, int Turn, bool? OursFirst, int FirstAttacker, int DamageCap, bool CountDamage, SourceCombatSide Ours, SourceCombatSide Theirs,
-    IReadOnlyList<SourceCombatFact> Facts, string Result, int DamageTaken, int DamageDealt, SourceCombatOdds? Odds, object? Transcript);
-
-/// <summary>One side: hero, hero power, player-level cards, tier, hero health with armor, allowlisted values, the board.</summary>
-internal sealed record SourceCombatSide(
-    string? Hero, string? HeroPower, IReadOnlyList<string> Extras, int Tier, int Health, int Turn, IReadOnlyDictionary<string, int> Tags,
-    IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> CardTags, IReadOnlyList<SourceCombatMinion> Minions);
-
-/// <summary>A minion as the simulator gets it; <paramref name="Keywords"/> are <see cref="Keyword"/> bits without Windfury.</summary>
-internal sealed record SourceCombatMinion(
-    int Entity, string? Card, bool Golden, int Attack, int Health, int MaxHealth, int BaseHealth, int RebornAttack, int Keywords, int Attacks,
-    int BaseKeywords, int Tribes, int Mechanics, int Tier, int Script1, int Script2, string? Creator, IReadOnlyList<string> Enchantments,
-    IReadOnlyList<SourceCombatMinion> Remembered, bool Unsimulated);
-
-/// <summary>What the log said about a board minion: its card id as logged and its effect markers.</summary>
-internal sealed record SourceCombatFact(int Entity, string Card, IReadOnlyList<string> Markers);
-
-/// <summary>The odds the app showed for the fight when the game ended, rounded to 4 decimals.</summary>
-internal sealed record SourceCombatOdds(double Win, double Tie, double Loss, double? LethalTaken, double? LethalDealt, int Unsimulated, int Runs);
-
-/// <summary>A <c>bg_combat</c> record read back as the simulator's input, what happened and the odds shown.</summary>
-internal sealed record SourceCombatInput(
-    int Fight, int Turn, BattlegroundsTracker.CombatCapture Capture, int DamageCap, bool CountDamage,
-    IReadOnlyList<BattlegroundsTracker.MinionFacts> Facts, string Result, int DamageTaken, int DamageDealt, CombatOdds? Odds);

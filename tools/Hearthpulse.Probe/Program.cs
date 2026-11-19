@@ -8,6 +8,8 @@ using Hearthpulse.Core.Power;
 //   class <Name> [field...]         dump a class's fields / follow a static path
 //   lobby                           Battlegrounds lobby names by player id (opponent MMR, docs/bg-opponent-mmr.md)
 //   collection [samples] [file]     the collection and dust, read twice and compared; saved to file when given (docs/collection.md)
+//   walk <root> [segment...]        print a client object reached from a net cache object, service or static field
+//   cosmetics [file]                card backs, coins and achievements with the player's state, saved to file when given
 return args.FirstOrDefault() switch
 {
     "heroes" => Heroes(args[1], args.Length > 2 ? int.Parse(args[2]) : int.MaxValue),
@@ -16,6 +18,8 @@ return args.FirstOrDefault() switch
     "hover" => Hover(args.Length > 1 ? int.Parse(args[1]) : 30),
     "class" => ClassDump(args[1], args.Skip(2).ToArray()),
     "upgrade" => Upgrade(),
+    "walk" => Hearthpulse.Probe.Walk.Run(args[1..]),
+    "cosmetics" => Hearthpulse.Probe.Cosmetics.Run(args[1..]),
     "collection" => Collection(args.Length > 1 ? int.Parse(args[1]) : 5, args.Length > 2 ? args[2] : null),
     _ => Usage(),
 };

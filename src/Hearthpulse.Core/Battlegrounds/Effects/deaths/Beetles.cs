@@ -61,6 +61,17 @@ internal static class Beetles
         fight.SummonAt(summoner, Tokens.Make(Tokens.BeetleId, attack, health, Tribe.Beast), count);
     }
 
+    /// <summary>
+    /// The "+X/+Y" of "your Beetles have +X/+Y this game" on <paramref name="self"/> (Turquoise Skitterer, Ravaging Scorpid):
+    /// its captured TAG_SCRIPT_DATA_NUM_3/4, which the card text shows (5/5 and 4/4 in a real log of 2026-11-15, NUM_1/2
+    /// being the Beetle), else the printed value of the normal or golden card (a minion made in combat has no script data).
+    /// </summary>
+    public static (int Attack, int Health) Bonus(Unit self, int normal, int golden)
+    {
+        var spec = self.Spec;
+        return spec.ScriptData3 > 0 || spec.ScriptData4 > 0 ? (spec.ScriptData3, spec.ScriptData4) : (self.Pick(normal, golden), self.Pick(normal, golden));
+    }
+
     /// <summary>"Your Beetles have +X/+Y this game": living Beetles now, and Beetles summoned later this fight.</summary>
     public static void Improve(Fight fight, Side side, int attack, int health)
     {

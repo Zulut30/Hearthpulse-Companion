@@ -45,14 +45,22 @@ GAME STATISTICS
   marked separately. Stored journals can be reprocessed as the parser improves.
 - After a Battlegrounds game the journal also holds each of its fights as the
   combat simulator saw it at the first attack: both boards (cards, stats,
-  keywords, enchantments, the card that created each minion), heroes, hero
-  powers and trinkets, tavern tier, health and player counters such as Blood
-  Gem values of both sides, the odds shown, the result and damage. Never your
-  hand. It is used to measure the simulator and is not published.
+  keywords, enchantments and their values, Blood Gem buffs, the card that
+  created each minion), minions that died before the first attack, heroes,
+  hero powers and trinkets with their values, your player enchantments, the
+  lobby's tribes, the order of the sides (which entered play first, no seat
+  numbers), tavern tier, health and player counters such as Blood Gem values of
+  both sides, the fight step by step (attacks, damage, deaths, summons, stat
+  changes and effects on the boards), the odds shown, the result and damage.
+  For the opponent this includes what the game may not show: the card that
+  created a minion, its enchantments and their values, his counters. Never your
+  hand or the cards it gets. It is used only to measure the simulator: not
+  published, never joined with site profiles or other players' data.
 - No name, BattleTag, account, deck name, exact rating, private network log or
-  hidden opponent cards. Source identities are random per installation and
-  generation, separate from the website account; only aggregate statistics
-  are published, including in paid features. Storage is up to 180 days.
+  hidden opponent cards (except the fight inputs above). Source identities
+  are random per installation and generation, separate from the website
+  account; only aggregate statistics are published, including in paid
+  features. Storage is up to 180 days.
 - Turning sending off clears pending journals and asks the server to delete
   uploaded data. Pending deletion remains visible until the server confirms it.
 - Shared games for the public statistics pool, also on by default after the

@@ -120,12 +120,13 @@ internal sealed record SavedInputs
     public static SavedInputs? Of(SimSide side)
     {
         var minions = side.Minions.Concat(side.Hand)
-            .Where(m => m.EnchantmentValues.Count > 0 || m.FriendlyDeathsBeforeCapture != 0 || m.SummonedInCombat)
+            .Where(m => m.EnchantmentValues.Count > 0 || m.FriendlyDeathsBeforeCapture != 0 || m.SummonedInCombat || m.Crew.Count > 0)
             .Select(m => new SavedMinionInputs(m.EntityId)
             {
                 EnchantmentValues = m.EnchantmentValues,
                 FriendlyDeathsBeforeCapture = m.FriendlyDeathsBeforeCapture,
                 SummonedInCombat = m.SummonedInCombat,
+                Crew = m.Crew.Count > 0 ? m.Crew : null,
             })
             .ToList();
         var inputs = new SavedInputs
@@ -153,6 +154,7 @@ internal sealed record SavedInputs
                 EnchantmentValues = saved.EnchantmentValues ?? [],
                 FriendlyDeathsBeforeCapture = saved.FriendlyDeathsBeforeCapture,
                 SummonedInCombat = saved.SummonedInCombat,
+                Crew = saved.Crew ?? [],
             }
             : m;
         return side with
@@ -178,6 +180,9 @@ internal sealed record SavedMinionInputs(int EntityId)
 
     /// <summary>Summoned during Start of Combat (<see cref="SimMinion.SummonedInCombat"/>).</summary>
     public bool SummonedInCombat { get; init; }
+
+    /// <summary>A Timewarped Nellie's Ship's crew (<see cref="SimMinion.Crew"/>); null when it has none.</summary>
+    public IReadOnlyList<SimMinion>? Crew { get; init; }
 }
 
 /// <summary>The fights of one Battlegrounds game. No names, account ids or ratings: cards by card id only.</summary>
@@ -413,7 +418,8 @@ internal sealed class CombatCaptureStore(string directory)
         || ((inputs.PlayerEnchantments ?? []).All(e => e is { CardId: not null })
             && (inputs.DeathsBeforeCapture ?? []).All(ValidMinion)
             && (inputs.Estimates ?? []).All(e => e is { Input: not null, Basis: not null, Tags: not null } && e.Tags.All(t => t is not null))
-            && (inputs.Minions ?? []).All(m => m is not null && (m.EnchantmentValues ?? []).All(e => e is { CardId: not null }))
+            && (inputs.Minions ?? []).All(m => m is not null && (m.EnchantmentValues ?? []).All(e => e is { CardId: not null })
+                                               && (m.Crew ?? []).All(ValidMinion))
             && (inputs.Secrets ?? []).All(s => s is not null));
 
     private static bool ValidTranscript(BattlegroundsTracker.CombatTranscript transcript) =>

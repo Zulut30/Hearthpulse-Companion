@@ -6,8 +6,8 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Spells;
 /// </summary>
 /// <remarks>
 /// Each card is added through <see cref="Fight.AddToHand"/>. Spells and random cards (random Bounty, Chromadrake, Beast,
-/// Tier 6 minion...) only count as a card: which card it is does not change this combat. Not covered: Locked-up Mutineer
-/// (whether it adds a Lockbox depends on one the capture does not show) and Duos cards whose card goes to the teammate.
+/// Tier 6 minion...) only count as a card: which card it is does not change this combat. Locked-up Mutineer and Dark
+/// Paradox's "Get" form: CardToHandMore.cs. Not covered: Duos cards whose card goes to the teammate.
 /// </remarks>
 internal static class CardToHand
 {
