@@ -45,6 +45,15 @@ public sealed class SimulatorProperties
         }, iter: 60);
 
     [Fact]
+    public void The_odds_of_a_seed_are_the_same_on_any_number_of_threads() =>
+        Gen.Select(Board(Minion, 1), Board(Minion, 1), Gen.Bool, Gen.Int[2, 6]).Sample((ours, theirs, oursFirst, threads) =>
+        {
+            // 230 runs: four whole chunks and a short one.
+            var options = new SimOptions { Runs = 230, TargetHalfWidth = 0.05, MinRuns = 100 };
+            Assert.Equal(CombatSimulator.Run(ours, theirs, oursFirst, options), CombatSimulator.Run(ours, theirs, oursFirst, options with { Parallelism = threads }));
+        }, iter: 40);
+
+    [Fact]
     public void A_fight_seen_from_the_other_side_is_the_same_fight() =>
         Gen.Select(Board(Vanilla, 1), Board(Vanilla, 1), Gen.Int).Sample((a, b, seed) =>
         {

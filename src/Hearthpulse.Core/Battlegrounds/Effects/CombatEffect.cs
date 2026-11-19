@@ -91,9 +91,10 @@ public abstract class CombatEffect
 
     /// <summary>
     /// The tags of the local player's player-level cards the capture keeps (<see cref="SimSide.ExtraTags"/>); nothing
-    /// else is read, and nothing of the opponent's.
+    /// else is read, and nothing of the opponent's. SCORE_VALUE_1 / SCORE_VALUE_2 are Avenge (X) and its progress (real
+    /// logs: 3 and 1, 2, 3 on an Avenge (3) minion, the progress back to 0 when Avenge fires).
     /// </summary>
-    public static IReadOnlyList<string> CapturedTags { get; } = ["TAG_SCRIPT_DATA_NUM_1", "TAG_SCRIPT_DATA_NUM_2"];
+    public static IReadOnlyList<string> CapturedTags { get; } = ["TAG_SCRIPT_DATA_NUM_1", "TAG_SCRIPT_DATA_NUM_2", "SCORE_VALUE_1", "SCORE_VALUE_2"];
 
     /// <summary>
     /// False when the value this effect needs is not in the capture of <paramref name="side"/>: the fight is then

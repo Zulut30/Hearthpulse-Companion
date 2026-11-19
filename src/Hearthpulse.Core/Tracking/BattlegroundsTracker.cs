@@ -91,6 +91,9 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     private Entity? _discoverSource;
     private volatile CombatOdds? _combatOdds;
 
+    /// <summary>The estimated inputs of the fight <see cref="_combatOdds"/> belongs to (both sides).</summary>
+    private IReadOnlyList<EstimatedItem> _combatEstimates = Array.Empty<EstimatedItem>();
+
     /// <summary>Number of the newest fight simulation; older results are dropped when they arrive late.</summary>
     private int _simulationGeneration;
     private CancellationTokenSource? _simulationCancel;
@@ -122,9 +125,9 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     public EffectRegistry Effects { get; set; } = EffectRegistry.Default;
 
     /// <summary>
-    /// Options for the combat simulation, which runs on the log thread at the first attack: up to 4000 fights, stopping
-    /// after 200 ms (at least 500 fights). Keyword-only boards need ~20–60 ms; a full 7v7 board full of effects
-    /// ~100–160 ms once the code is warm, more on the first fight after start-up.
+    /// Options of the background combat simulation started at the first attack (the log thread makes a short
+    /// <see cref="QuickPass"/> first): fights until the odds are within 1 percentage point either side (95 %), at most
+    /// 10000 and 200 ms, at least 200, on <see cref="SimOptions.BackgroundParallelism"/> threads.
     /// </summary>
     public SimOptions SimOptions { get; set; } = DefaultSimOptions;
 
@@ -133,10 +136,12 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     {
         TimeBudget = TimeSpan.FromMilliseconds(200),
 
-        // A live simulation must not hog the CPU while the game is running: the fight is only an estimate, so a
-        // few hundred runs are enough and a slow PC stops early instead of stalling the game.
+        // A live simulation must not hog the CPU while the game is running: a lopsided fight stops once its odds are
+        // precise enough (often a few hundred runs), a close one goes on to ±1 point, and a slow PC stops at 200 ms.
         MinRuns = 200,
-        Runs = 2000,
+        Runs = 10000,
+        TargetHalfWidth = 0.01,
+        Parallelism = SimOptions.BackgroundParallelism,
     };
 
     public Func<string, HeroStats?>? HeroStatsProvider { get; set; }
@@ -179,6 +184,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _discoverOffer = Array.Empty<Entity>();
         _discoverSource = null;
         _combatOdds = null;
+        _combatEstimates = Array.Empty<EstimatedItem>();
         MemoryRaces = null;
         LiveButtonCosts = null;
         LocalFinished = false;

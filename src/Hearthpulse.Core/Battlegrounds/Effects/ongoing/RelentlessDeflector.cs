@@ -7,11 +7,13 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 /// Deflector that came to the fight with Taunt keeps it when its shield breaks (g3c9, #9636: DIVINE_SHIELD 0 at its first
 /// hit, TAUNT stays 1, and our next three attacks all had to hit it). Avenge counts friendly deaths from the start of the
 /// fight (engine rule).
+/// The X of Avenge (X) is the captured TAG_SCRIPT_DATA_NUM_1 (real log 15.11.2026: 3, unchanged while it counts), else
+/// the printed 3.
 /// </summary>
 [CardEffect("BG34_405")]
 internal sealed class RelentlessDeflector : AvengeEffect
 {
-    protected override int Threshold(Unit self) => 3;
+    protected override int Threshold(Unit self) => Deaths.DeathKit.Shown1(self, 3, 3);
 
     protected override void Avenge(Fight fight, Unit self)
     {

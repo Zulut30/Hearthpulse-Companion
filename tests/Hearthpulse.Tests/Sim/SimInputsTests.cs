@@ -242,6 +242,30 @@ public sealed class SimInputsTests
     }
 
     [Fact]
+    public void The_view_names_what_the_live_odds_estimated_for_the_overlay()
+    {
+        var (game, tracker) = HiddenValuesGame().Replay(Cards, EffectRegistry.Empty);
+        var view = tracker.BuildView(game);
+
+        // What the odds panel's estimate mark lists: both sides' estimates, as many as the odds count.
+        Assert.Equal([SimInputs.DeityStats, SimInputs.BloodGemBonus, SimInputs.TavernSpellBonus], view.CombatEstimates.Select(e => e.Input));
+        Assert.All(view.CombatEstimates, e => Assert.True(e.IsOpponent));
+        Assert.Equal(view.CombatOdds!.Estimated, view.CombatEstimates.Count);
+
+        // A capture with nothing estimated publishes none.
+        var (exactGame, exactTracker) = new PowerLog()
+            .BattlegroundsGame()
+            .Minion(30, "BG36_207", Me, 1, 3, 6)
+            .Minion(40, "BG36_207", Them, 1, 3, 6)
+            .CombatStarts()
+            .Block("ATTACK", Ref(30, "Wolf Pup", "BG36_207", Me))
+            .Replay(Cards, EffectRegistry.Empty, races: ["BEAST", "MECHANICAL", "MURLOC", "UNDEAD", "NAGA"]);
+        var exact = exactTracker.BuildView(exactGame);
+        Assert.Equal(0, exact.CombatOdds!.Estimated);
+        Assert.Empty(exact.CombatEstimates);
+    }
+
+    [Fact]
     public void After_the_game_the_captures_have_the_opponents_exact_values()
     {
         var (_, tracker) = HiddenValuesGame().Tag("2", "PLAYSTATE", "LOST").Replay(Cards, EffectRegistry.Empty);
@@ -373,6 +397,7 @@ public sealed class SimInputsTests
         var older = Fight(full, Side(Minion(1, 3)), oursFirst: false, Effects(typeof(DiremuckForager)), 1);
 
         Assert.Empty(none.Lines("summoned"));
+        // At the right end of the board (FIX sim-effects-audit, real log 15.11.2026), not next to the Forager.
         Assert.Equal(["summoned our MUR 5/2 at 6"], one.Lines("summoned"));
         Assert.Equal(["summoned our MUR 5/2 at 6"], older.Lines("summoned"));
     }

@@ -66,10 +66,8 @@ public static class SimCoverage
     /// </summary>
     private static readonly Dictionary<string, string> InputGaps = new(StringComparer.OrdinalIgnoreCase)
     {
-        // Seen in a real log (2026-11-04): the Golem came out 67/51 while the player's Blood Gem tags said +7/+0 and the
-        // dying Quilboar was a plain 4/4; 67/51 sat on unnamed enchantments of another Quilboar. Which value "its Blood
-        // Gems" means is not established, and the capture keeps no enchantment values.
-        ["BG30_MagicItem_442"] = "размер Голема («its Blood Gems») не найден в тегах снимка",
+        // Empty for now. Blood Golem Sticker was here until E3 (2026-11-19) found "its Blood Gems" in the dying Quilboar's
+        // tags 4235/4236 (Effects/player/BloodGolemSticker.cs).
     };
 
     /// <summary>

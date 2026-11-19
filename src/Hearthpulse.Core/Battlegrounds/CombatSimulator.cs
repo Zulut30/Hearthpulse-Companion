@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Hearthpulse.Core.Battlegrounds.Effects;
 
 namespace Hearthpulse.Core.Battlegrounds;
@@ -64,6 +63,15 @@ public sealed partial record SimMinion(
     /// Salvager destroyed), as they were when removed.
     /// </summary>
     public IReadOnlyList<SimMinion> Remembered { get; init; } = Array.Empty<SimMinion>();
+
+    /// <summary>
+    /// Attack this minion has gained from Blood Gems ("its Blood Gems"): Power.log tag 4235 on the minion, the total its
+    /// visible "Blood Gems" enchantment shows (seen in real logs of 2026-11-05 and 2026-11-15). 0 when it has none.
+    /// </summary>
+    public int BloodGemAttack { get; init; }
+
+    /// <summary>Health gained from Blood Gems (tag 4236), see <see cref="BloodGemAttack"/>.</summary>
+    public int BloodGemHealth { get; init; }
 
     /// <summary>Current keywords as flags.</summary>
     public Keyword Keywords =>
@@ -147,6 +155,13 @@ public sealed partial record SimSide(IReadOnlyList<SimMinion> Minions)
     public int? ExtraTag(string cardId, string tag) =>
         ExtraTags.TryGetValue(cardId, out var tags) && tags.TryGetValue(tag, out var value) ? value : null;
 
+    /// <summary>
+    /// Minions a player-level card of this player (hero power, trinket) removed at Start of Combat, before the capture, as
+    /// they were when removed, by that card's id: Rapid Reanimation and Soul Fermenter summon them again later. Public
+    /// information: they stood on the board the player saw.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<SimMinion>> RemovedByExtras { get; init; } = EmptyRemovedByExtras;
+
     public int TavernTier { get; init; }
 
     /// <summary>The hero's health plus armor when the fight starts (public on the leaderboard); 0 when unknown.</summary>
@@ -159,6 +174,9 @@ public sealed partial record SimSide(IReadOnlyList<SimMinion> Minions)
 
     internal static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> EmptyExtraTags =
         new Dictionary<string, IReadOnlyDictionary<string, int>>();
+
+    internal static readonly IReadOnlyDictionary<string, IReadOnlyList<SimMinion>> EmptyRemovedByExtras =
+        new Dictionary<string, IReadOnlyList<SimMinion>>();
 }
 
 public sealed record SimOptions
@@ -167,10 +185,33 @@ public sealed record SimOptions
 
     public int Runs { get; init; } = 4000;
 
-    /// <summary>Stop early once this much time has passed (checked every 100 runs, after <see cref="MinRuns"/>).</summary>
+    /// <summary>
+    /// Stop early once this much time has passed (checked before each chunk of <see cref="CombatSimulator.ChunkRuns"/>
+    /// runs, after <see cref="MinRuns"/>).
+    /// </summary>
     public TimeSpan? TimeBudget { get; init; }
 
+    /// <summary>Neither <see cref="TimeBudget"/> nor <see cref="TargetHalfWidth"/> stops the runs before this many.</summary>
     public int MinRuns { get; init; } = 500;
+
+    /// <summary>
+    /// Stop early, after <see cref="MinRuns"/>, once the 95 % interval (Wilson) of each of win, tie and loss reaches at
+    /// most this far either side of the share: a lopsided fight needs fewer runs than a close one for the same
+    /// precision. Checked after each chunk in chunk order, so the result still depends on the seed only. 0 = no such stop.
+    /// </summary>
+    public double TargetHalfWidth { get; init; }
+
+    /// <summary>
+    /// Most threads the runs are spread over, the calling thread included; 1 (or less) = the calling thread only. The
+    /// odds do not depend on it: runs are made in chunks with seeds of their own and counted in chunk order.
+    /// </summary>
+    public int Parallelism { get; init; } = 1;
+
+    /// <summary>
+    /// Threads a background simulation may take while the game runs: half the logical processors, at most four (the
+    /// gain above four is small, docs/bg-combat-sim.md "Скорость"), at least one.
+    /// </summary>
+    public static int BackgroundParallelism { get; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
 
     /// <summary>Card effects to apply; null uses <see cref="EffectRegistry.Default"/>.</summary>
     public EffectRegistry? Effects { get; init; }
@@ -178,7 +219,7 @@ public sealed record SimOptions
     /// <summary>Entity id of the minion that made the first attack, when known; attack order starts from it.</summary>
     public int FirstAttackerEntityId { get; init; }
 
-    /// <summary>Ends the runs early (checked every 100 runs); the odds then cover the runs done so far.</summary>
+    /// <summary>Ends the runs early (checked before each chunk after the first); the odds then cover the chunks done so far.</summary>
     public CancellationToken Cancel { get; init; }
 
     /// <summary>The lobby's combat damage cap (<see cref="DamageRules.Cap"/>); 0 = none.</summary>
@@ -207,6 +248,12 @@ public sealed record CombatOdds(double Win, double Tie, double Loss, int Unsimul
 
     /// <summary>Number of simulated fights behind the numbers (0 when the result needed no simulation).</summary>
     public int Runs { get; init; }
+
+    /// <summary>
+    /// Sampling error of the numbers: the 95 % half-width (Wilson) of the least certain of win, tie and loss at
+    /// <see cref="Runs"/>; 0 when no fight was simulated.
+    /// </summary>
+    public double HalfWidth { get; init; }
 
     /// <summary>Damage our hero takes in the fights we lose; null when we never lose (or damage is not counted).</summary>
     public DamageSpread? DamageTaken { get; init; }
@@ -270,8 +317,17 @@ public sealed record FightResult(int Outcome, IReadOnlyList<SimMinion> Ours, IRe
 /// Start-of-combat effects have already resolved when the boards are captured (at the first attack), so they are
 /// reflected in the stats.
 /// </summary>
-public static class CombatSimulator
+/// <remarks>
+/// Runs are made in chunks of <see cref="ChunkRuns"/>, each with its own random source seeded from the boards' seed
+/// and the chunk's index (<see cref="ChunkSeed"/>), and counted in chunk order. The odds for a pair of boards are
+/// therefore the same however many threads made the chunks and in whatever order they finished; only how many chunks
+/// a time budget or a cancellation leaves can differ between two calls.
+/// </remarks>
+public static partial class CombatSimulator
 {
+    /// <summary>Runs per chunk: the unit of seeding, of the time, cancellation and precision checks, and of work per thread.</summary>
+    public const int ChunkRuns = 50;
+
     /// <param name="firstAttackerIsOurs">Who attacks first if known (read from the first attack), else null.</param>
     public static CombatOdds Run(IReadOnlyList<SimMinion> ours, IReadOnlyList<SimMinion> theirs, bool? firstAttackerIsOurs, int runs = 4000) =>
         Run(new SimSide(ours), new SimSide(theirs), firstAttackerIsOurs, new SimOptions { Runs = runs });
@@ -295,50 +351,27 @@ public static class CombatSimulator
         options ??= SimOptions.Default;
         var effects = options.Effects ?? EffectRegistry.Default;
         var unsimulated = Unsimulated(ours, isOpponent: false, effects) + Unsimulated(theirs, isOpponent: true, effects);
-        var damage = options.CountDamage ? new DamageTally(ours, theirs, options.DamageCap) : null;
+        var rules = new DamageRule(ours, theirs, options.DamageCap, options.CountDamage);
         if (ours.Minions.Count == 0 || theirs.Minions.Count == 0)
         {
             var win = ours.Minions.Count > 0 ? 1.0 : 0;
             var loss = theirs.Minions.Count > 0 ? 1.0 : 0;
-            damage?.Add(win > 0 ? 1 : loss > 0 ? -1 : 0, ours.Minions.Select(m => m.TechLevel), theirs.Minions.Select(m => m.TechLevel));
             var certain = new CombatOdds(win, 1 - win - loss, loss, unsimulated);
-            return damage?.With(certain) ?? certain;
+            if (!rules.Count)
+            {
+                return certain;
+            }
+
+            var tally = new Tally();
+            rules.Add(tally, win > 0 ? 1 : loss > 0 ? -1 : 0, Tiers(ours.Minions), Tiers(theirs.Minions));
+            return rules.With(certain, tally);
         }
 
-        var prepared = Fight.PreparedEffects.For(ours, theirs, effects);
-        // Stable seed: the same boards always show the same numbers, in every session.
-        var chooser = new RandomChooser(new Random(Seed(ours, theirs, firstAttackerIsOurs)));
-        var clock = options.TimeBudget is { } ? Stopwatch.StartNew() : null;
-        int done = 0, wins = 0, losses = 0, truncated = 0;
-        for (; done < options.Runs; done++)
-        {
-            if (done > 0 && done % 100 == 0 && options.Cancel.IsCancellationRequested)
-            {
-                break;
-            }
-
-            if (clock is not null && done >= options.MinRuns && done % 100 == 0 && clock.Elapsed > options.TimeBudget)
-            {
-                break;
-            }
-
-            var fight = new Fight(ours, theirs, effects, chooser, trace: false, prepared);
-            // Which side entered play first decides the death order (rules-evidence 4a). Without both PLAYER_IDs the
-            // runs alternate between the two orders: an even mix, not the attacking side first (right in 47 of 89).
-            fight.EnteredFirst ??= done % 2 == 0 ? fight.Ours : fight.Theirs;
-            var outcome = fight.Run(firstAttackerIsOurs, options.FirstAttackerEntityId);
-            switch (outcome)
-            {
-                case > 0: wins++; break;
-                case < 0: losses++; break;
-            }
-
-            truncated += fight.Truncated ? 1 : 0;
-            damage?.Add(outcome, Survivors(fight.Ours), Survivors(fight.Theirs));
-        }
-
+        // Stable seed: the same boards always show the same numbers, in every session and on any number of threads.
+        var total = new Batch(ours, theirs, firstAttackerIsOurs, options, effects, rules, Seed(ours, theirs, firstAttackerIsOurs)).Run();
+        int done = total.Done, wins = total.Wins, losses = total.Losses;
         // A fight cut short by an engine limit dropped effects: one more "not simulated" item, not silence.
-        unsimulated += truncated > 0 ? 1 : 0;
+        unsimulated += total.Truncated > 0 ? 1 : 0;
         if (done == 0)
         {
             return new CombatOdds(0, 1.0, 0, unsimulated) { Runs = 0 };
@@ -371,62 +404,13 @@ public static class CombatSimulator
             tieRate = Math.Max(0.0, 1.0 - winRate - lossRate);
         }
 
-        var odds = new CombatOdds(winRate, tieRate, lossRate, unsimulated) { Runs = done, Truncated = truncated };
-        return damage?.With(odds) ?? odds;
-    }
-
-    private static IEnumerable<int> Survivors(Side side)
-    {
-        foreach (var unit in side.Minions)
+        var odds = new CombatOdds(winRate, tieRate, lossRate, unsimulated)
         {
-            if (unit.IsAlive)
-            {
-                yield return unit.Spec.TechLevel;
-            }
-        }
-    }
-
-    /// <summary>Hero damage per finished fight, by who won (<see cref="DamageRules"/>), and the fights that were lethal.</summary>
-    private sealed class DamageTally(SimSide ours, SimSide theirs, int cap)
-    {
-        // Damage above this is counted here (no real board gets near it: tier 7 + 7 golden tier-7 minions = 56).
-        private const int MaxDamage = 80;
-
-        private readonly int[] _taken = new int[MaxDamage + 1];
-        private readonly int[] _dealt = new int[MaxDamage + 1];
-        private readonly bool _ourIceBlock = DamageRules.HasIceBlock(ours);
-        private readonly bool _theirIceBlock = DamageRules.HasIceBlock(theirs);
-        private int _fights;
-        private int _lethalTaken;
-        private int _lethalDealt;
-
-        public void Add(int outcome, IEnumerable<int> ourSurvivors, IEnumerable<int> theirSurvivors)
-        {
-            _fights++;
-            if (outcome > 0)
-            {
-                var dealt = DamageRules.Taken(DamageRules.Damage(ours.TavernTier, ourSurvivors, cap), theirs.Health, _theirIceBlock);
-                _dealt[Math.Min(dealt, MaxDamage)]++;
-                _lethalDealt += DamageRules.IsLethal(dealt, theirs.Health) ? 1 : 0;
-            }
-            else if (outcome < 0)
-            {
-                var taken = DamageRules.Taken(DamageRules.Damage(theirs.TavernTier, theirSurvivors, cap), ours.Health, _ourIceBlock);
-                _taken[Math.Min(taken, MaxDamage)]++;
-                _lethalTaken += DamageRules.IsLethal(taken, ours.Health) ? 1 : 0;
-            }
-        }
-
-        public CombatOdds With(CombatOdds odds) => _fights == 0
-            ? odds
-            : odds with
-            {
-                DamageTaken = DamageSpread.From(_taken),
-                DamageDealt = DamageSpread.From(_dealt),
-                LethalTaken = ours.Health > 0 ? _lethalTaken / (double)_fights : null,
-                LethalDealt = theirs.Health > 0 ? _lethalDealt / (double)_fights : null,
-                DamageCap = cap,
-            };
+            Runs = done,
+            HalfWidth = HalfWidth(wins, losses, done),
+            Truncated = total.Truncated,
+        };
+        return rules.Count ? rules.With(odds, total) : odds;
     }
 
     /// <summary>

@@ -14,9 +14,16 @@ public static class DamageRules
 {
     /// <summary>Damage dealt by a winner on <paramref name="tavernTier"/> with surviving minions of the given tiers.</summary>
     /// <param name="cap">Combat damage cap; 0 or less means none.</param>
-    public static int Damage(int tavernTier, IEnumerable<int> survivorTiers, int cap)
+    public static int Damage(int tavernTier, IEnumerable<int> survivorTiers, int cap) =>
+        DamageOfTiers(tavernTier, survivorTiers.Sum(MinionTier), cap);
+
+    /// <summary>
+    /// <see cref="Damage(int, IEnumerable{int}, int)"/> with the survivors' shares (<see cref="MinionTier"/>) already
+    /// summed: the simulator adds them up per fight without a list.
+    /// </summary>
+    internal static int DamageOfTiers(int tavernTier, int survivorTierTotal, int cap)
     {
-        var damage = Math.Max(0, tavernTier) + survivorTiers.Sum(MinionTier);
+        var damage = Math.Max(0, tavernTier) + survivorTierTotal;
         return cap > 0 ? Math.Min(damage, cap) : damage;
     }
 

@@ -28,8 +28,18 @@ public partial class App
                 SaveScaled(card, Path.Combine(folder, "overlay-odds-panel.png"));
             }
 
-            // The widest state: all five cells, wide damage both ways, an estimate and the cap in the bottom line.
-            _overlayViewModel.Update(snapshot with { Battlegrounds = BarScene() with { CombatOdds = FiveCells(BarScene().CombatOdds!) } }, _cards, _settings, null, null);
+            // The same fight resting on estimates of the opponent's hidden values: the "≈" mark at the bar's end, same card size.
+            _overlayViewModel.Update(snapshot with { Battlegrounds = CombatOddsScene.Estimated(BarScene()) }, _cards, _settings, null, null);
+            await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-odds-estimated.png"), 1920, 1080, 0);
+            if (FindLogical<Overlay.OddsPanel>(_overlay)?.FindName("OddsCard") is FrameworkElement estimated)
+            {
+                SaveScaled(estimated, Path.Combine(folder, "overlay-odds-estimated-panel.png"));
+            }
+
+            // The widest state: all five cells, wide damage both ways, the estimate mark, an unsimulated effect and the cap in
+            // the bottom line.
+            _overlayViewModel.Update(snapshot with { Battlegrounds = CombatOddsScene.Estimated(BarScene()) with { CombatOdds = FiveCells(BarScene().CombatOdds!) with { Estimated = 3 } } },
+                _cards, _settings, null, null);
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-odds-full.png"), 1920, 1080, 0);
             if (FindLogical<Overlay.OddsPanel>(_overlay)?.FindName("OddsCard") is FrameworkElement full)
             {

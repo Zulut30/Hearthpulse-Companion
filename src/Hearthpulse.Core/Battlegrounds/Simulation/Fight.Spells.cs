@@ -189,6 +189,9 @@ public sealed partial class Fight
         }
 
         Buff(target, attack, health);
+        // "Its Blood Gems" (Blood Golem Sticker) grows with every gem, as tags 4235/4236 do in real logs.
+        target.BloodGemAttack += attack;
+        target.BloodGemHealth += health;
         if (Tracing) Trace($"{Name(target)} gets a Blood Gem");
         var side = target.Side;
         if ((side.Hooks & Hook.BloodGem) == 0 || _depth >= MaxDepth)

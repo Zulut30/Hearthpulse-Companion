@@ -62,7 +62,9 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
 
         var actual = $"views {Fingerprint(views)} replay {Fingerprint(replay)} data {Fingerprint(data)}";
         output.WriteLine(actual);
-        Assert.Equal("views 353E1634374395D9 replay 3DB931AD881A2307 data 2C492810FA8A5101", actual);
+        // 2026-11-19 (odds estimate mark): every view carries BattlegroundsView.CombatEstimates (empty throughout this game);
+        // without that property the views hash is still 353E1634374395D9.
+        Assert.Equal("views 911DF8F2524AB527 replay 3DB931AD881A2307 data 2C492810FA8A5101", actual);
     }
 
     /// <summary>The pool's totals with missing numbers, malformed rows and brackets (review m10).</summary>
@@ -132,11 +134,16 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // beats. Such ties occur on these boards: with those draws put back (checked) the fingerprint is still E4's
         // D257E5976B8595DA. The picks of E1 (Lichling Hoarder, Lovely Locket, Misplaced Tea Set) and E4 (Timewarped Tide
         // Razor, Warghoul, Chimera, Scourfin) moved to the chooser draw as before.
+        // 2026-11-19 (E3): twelve new player-card ids change the random boards, and player cards changed on purpose (as a
+        // minion without a capture Broodmother and Tentacular now summon their printed Whelp/Tentacle, Fang Anklet gives
+        // its printed +1/+1, golden Beetle Band is Avenge (8) with the player's Beetle); not split up and checked one by one.
+        // 2026-11-19 (FIX sim-effects-audit, merged after E3): effects corrected to the live card text (The Last One
+        // Standing, Eudora, Kodo, C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose.
         // 2026-11-19 (sim-rules): engine rules from real Power.log fights change these fights on purpose (rules-evidence
         // 2b, 4a, 4d, 4e; effects-audit E1, E2: a dead attacker's summons attack next, deaths in order of play, Reborn
         // after Avenge, reborn max Health, friendly-attack hooks before Rally, deathrattles A,A,B,B; simreplay: Diremuck
         // Forager's pending Murloc at the right end after Reborn); the boards are the
-        // same, and before those rules (main at 477cea1e) the fingerprint is 95522083F5E8B9A8.
-        Assert.Equal("fights 899C5E7A6BC31E03", actual);
+        // same, and before those rules (main at 21a1bb33) the fingerprint is B38EEFBF3604898A.
+        Assert.Equal("fights 686C34B3497F4560", actual);
     }
 }

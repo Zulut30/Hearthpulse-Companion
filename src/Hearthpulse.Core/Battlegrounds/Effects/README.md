@@ -76,11 +76,15 @@ Properties: `NeedsHand` (the effect reads its owner's hand; stays "not simulated
 `HasInputs(side, cardId)` + `CapturedInput` (a player-level card whose value grows over the game reads it from
 `side.Info.ExtraTag(cardId, tag)`, the card's own tags at capture; false = "not simulated" with `missing_input`, never a
 silent printed value; only `CombatEffect.CapturedTags` of the local player's cards are captured, never the opponent's),
-`UncapturedInput` (a value no capture holds, e.g. Avenge progress before the capture: always `missing_input`).
+`UncapturedInput` (a value no capture holds: always `missing_input`). A player card's TAG_SCRIPT_DATA_NUM_1/2 hold the
+number its text shows now, not a bonus on top of the printed one (`Player.GrowingValue`; real logs), and balance changes on
+the server without a new client: read a shown number from the capture, the HearthstoneJSON latest text is the fallback.
 
 `AvengeEffect`: override `Threshold(self)` and `Avenge(f, self)`; it counts friendly deaths while self is alive.
 The counter starts at 0 each fight (start-of-combat deaths before capture are not counted: progress is not read
-from the log yet).
+from the log yet). Hero powers and trinkets derive from `Player.PlayerAvengeEffect`: X and the progress come from the
+card's SCORE_VALUE_1 / SCORE_VALUE_2 at capture (on an Avenge minion in real logs SCORE_VALUE_2 counts the deaths and
+returns to 0 when Avenge fires).
 
 ## Helpers (`Fight`)
 
@@ -118,7 +122,9 @@ from the log yet).
   player only; always empty for the opponent), `side.ExtraDeathrattles`.
 - Captured data on `unit.Spec`: `CardId` (normal id), `Golden`, `Tribes`, `BaseKeywords`, `RebornAttack`,
   `BaseHealth`, `ScriptData1/2`, `Enchantments`, `Remembered` (minions its start-of-combat trigger removed, e.g.
-  Stitched Salvager's victim).
+  Stitched Salvager's victim), `BloodGemAttack/Health` ("its Blood Gems", tags 4235/4236; `unit.BloodGemAttack` also
+  counts gems played in the fight). `side.Info.RemovedByExtras`: minions a hero power or trinket removed at Start of
+  Combat, by its card id (Rapid Reanimation, Soul Fermenter).
 
 ## Engine order (see `Fight` remarks)
 

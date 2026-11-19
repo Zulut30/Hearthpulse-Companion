@@ -32,6 +32,8 @@ public sealed class Unit
         Stealth = spec.Stealth;
         Counter = spec.ScriptData1;
         Counter2 = spec.ScriptData2;
+        BloodGemAttack = spec.BloodGemAttack;
+        BloodGemHealth = spec.BloodGemHealth;
     }
 
     /// <summary>What this unit was created from: the captured minion, a token, or a reborn copy.</summary>
@@ -79,6 +81,12 @@ public sealed class Unit
 
     /// <summary>Friendly deaths counted towards Avenge since it last fired (see <see cref="AvengeEffect"/>).</summary>
     public int AvengeCount { get; set; }
+
+    /// <summary>Attack gained from Blood Gems ("its Blood Gems"): the captured total plus gems played on it this fight.</summary>
+    public int BloodGemAttack { get; set; }
+
+    /// <summary>Health gained from Blood Gems, see <see cref="BloodGemAttack"/>.</summary>
+    public int BloodGemHealth { get; set; }
 
     /// <summary>On its side's board (dying minions stay on the board until the death phase removes them).</summary>
     public bool IsOnBoard { get; internal set; }
