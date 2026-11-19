@@ -61,6 +61,7 @@ public sealed partial class BattlegroundsTracker
         // A fight captured for a combat that was never recorded (no opponent named) is not the next combat's.
         _captures.RemoveAll(c => c.CombatIndex >= _combats.Count);
         _combatOdds = null;
+        _combatEstimates = Array.Empty<EstimatedItem>();
         Interlocked.Increment(ref _simulationGeneration);
         _pendingDamage = -1;
         _localAlive = 0;
@@ -147,6 +148,7 @@ public sealed partial class BattlegroundsTracker
         LastCaptureOptions = options;
         var board = ours.Minions.Concat(theirs.Minions).Select(m => m.EntityId).ToHashSet();
         _captures.Add(new CapturedFight(_combats.Count, LastCapture, options, _minionFacts.Values.Where(f => board.Contains(f.EntityId)).OrderBy(f => f.EntityId).ToList()));
+        _combatEstimates = [.. CombatSimulator.ExplainEstimates(ours, isOpponent: false), .. CombatSimulator.ExplainEstimates(theirs, isOpponent: true)];
         StartSimulation(ours, theirs, oursFirst, options);
         if (attacker is not null && RecordsTranscripts)
         {

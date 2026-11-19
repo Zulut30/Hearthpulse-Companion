@@ -52,10 +52,11 @@ public sealed partial class OverlayViewModel
             OddsLoss = OddsPercent(odds.Loss, odds.Runs);
             SetOddsShares(odds.Win, odds.Tie, odds.Loss);
             // The bottom line only when there is something to say: unsimulated effects, the hero damage cap, or both.
-            var estimate = odds.Approximate ? Loc.P("Overlay.Odds.Estimate", odds.Unsimulated) : string.Empty;
-            OddsNote = odds.DamageCap <= 0 ? estimate
-                : estimate.Length > 0 ? Loc.F("Overlay.Odds.Cap", estimate, odds.DamageCap)
+            var unsimulated = odds.Approximate ? Loc.P("Overlay.Odds.Unsimulated", odds.Unsimulated) : string.Empty;
+            OddsNote = odds.DamageCap <= 0 ? unsimulated
+                : unsimulated.Length > 0 ? Loc.F("Overlay.Odds.Cap", unsimulated, odds.DamageCap)
                 : Loc.F("Overlay.Odds.CapOnly", odds.DamageCap);
+            UpdateOddsEstimate(odds, view.CombatEstimates);
 
             // Damage as the range of 8 fights in 10 ("You deal 8–16"); the cells' labels say who dies.
             OddsDamageWin = odds.DamageDealt is null ? string.Empty : Loc.F("Overlay.Odds.DamageDealt", CombatOddsText.Damage(odds.DamageDealt));

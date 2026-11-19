@@ -90,6 +90,9 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     private Entity? _discoverSource;
     private volatile CombatOdds? _combatOdds;
 
+    /// <summary>The estimated inputs of the fight <see cref="_combatOdds"/> belongs to (both sides).</summary>
+    private IReadOnlyList<EstimatedItem> _combatEstimates = Array.Empty<EstimatedItem>();
+
     /// <summary>Number of the newest fight simulation; older results are dropped when they arrive late.</summary>
     private int _simulationGeneration;
     private CancellationTokenSource? _simulationCancel;
@@ -180,6 +183,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _discoverOffer = Array.Empty<Entity>();
         _discoverSource = null;
         _combatOdds = null;
+        _combatEstimates = Array.Empty<EstimatedItem>();
         MemoryRaces = null;
         LiveButtonCosts = null;
         LocalFinished = false;
