@@ -39,6 +39,17 @@ public sealed class TrinketRulesHardeningTests
     }
 
     [Fact]
+    public void Gilnean_thorned_rose_itself_deals_the_one_damage()
+    {
+        // As in PlayerEffectsTests, A, B and C die and the 0/10 D gets +4/+5. The damage that follows has no source minion
+        // ("takes 1" with no "from"); a hit by their 1/50 would read "takes 1 from their …" and is not the Rose's.
+        var result = Fight(With(Side(Minion(1, 1, cardId: "A"), Minion(1, 1, cardId: "B"), Minion(1, 1, cardId: "C"), Minion(0, 10, cardId: "D")), "BG30_MagicItem_864"),
+            Side(Minion(1, 50)), false, Effects(typeof(GilneanThornedRose)));
+
+        Assert.Single(result.Log, l => l.StartsWith("our D ", StringComparison.Ordinal) && l.EndsWith(" takes 1", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Mechagon_adapter_does_not_shield_a_minion_that_is_not_a_mech()
     {
         var result = Fight(With(Side(Minion(0, 1, Keyword.DivineShield, cardId: "B", tribes: Tribe.Beast)), "BG30_MagicItem_910"),
