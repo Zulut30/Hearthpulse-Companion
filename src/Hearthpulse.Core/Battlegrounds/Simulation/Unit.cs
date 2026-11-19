@@ -128,6 +128,9 @@ public sealed class Unit
     /// <summary>An effect on it makes it Immune while it attacks (Invulnerability).</summary>
     public bool ImmuneWhileAttacking { get; private set; }
 
+    /// <summary>Per-unit state objects of effects (Effects/ongoing/UnitState), one per state type; null until one is made.</summary>
+    internal object[]? EffectStates { get; set; }
+
     /// <summary>Attacks of this unit being resolved right now (more than one only for nested attacks); 0 = not attacking.</summary>
     internal int AttackDepth { get; set; }
 
