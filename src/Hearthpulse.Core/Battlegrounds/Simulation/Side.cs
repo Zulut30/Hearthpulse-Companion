@@ -3,7 +3,7 @@ using Hearthpulse.Core.Battlegrounds.Effects;
 namespace Hearthpulse.Core.Battlegrounds;
 
 /// <summary>One player's side during a simulated fight: board, player-level effects and per-fight counters.</summary>
-public sealed class Side
+public sealed partial class Side
 {
     public const int MaxMinions = 7;
 
@@ -32,7 +32,7 @@ public sealed class Side
     public bool IsOpponent => Index == 1;
 
     /// <summary>What was captured for this player (hero, hero power, tags, the local player's hand).</summary>
-    public SimSide Info { get; }
+    public SimSide Info { get; private set; }
 
     public Side Enemy { get; internal set; } = null!;
 

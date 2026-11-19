@@ -171,6 +171,9 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     {
         _lastVisibleCards = Array.Empty<string>();
         _boards.Clear();
+        _duosSides.Clear();
+        _duosNoted.Clear();
+        _duosOwnId = 0;
         _combats.Clear();
         _captures.Clear();
         _minionFacts.Clear();
@@ -400,6 +403,11 @@ public sealed partial class BattlegroundsTracker : IPowerListener
             var ours = attacker.Controller == game.LocalPlayerId;
             var defender = ours ? CombatOpponentHero(game) : game.LocalHero;
             _heroHit = new HeroHit(ours, defender, Durability(defender), game.OpenBlocks.Count);
+        }
+
+        if (_boardCaptured && blockType == "ATTACK" && game.IsDuos)
+        {
+            NoteDuosBoards(game);
         }
 
         if (_boardCaptured || blockType != "ATTACK")
