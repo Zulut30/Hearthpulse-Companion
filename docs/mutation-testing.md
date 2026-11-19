@@ -21,6 +21,8 @@ dotnet dotnet-stryker -f tests/mutation/likely-deck.json -c 2
 | `crash-report` | `Diagnostics/CrashReport.cs` | What a crash report sends: the personal-data scrubber |
 | `likely-deck` | `Constructed/LikelyDeck.cs` | What the overlay tells the player about the opponent's deck |
 | `combat-simulator` | `Battlegrounds/CombatSimulator.cs`, `CombatDamage.cs` | The combat odds; runs only the simulator's own 405 tests (all 2,500 took more than two hours) |
+| `combat-engine` | `Battlegrounds/Simulation/*.cs` | The fight engine: attacks, targets, deaths, Reborn, summons, auras, keywords; the `Sim.*` tests without the replay and timing ones (~20 min at `-c 8`, not in the workflow's list) |
+| `combat-effects` | `Battlegrounds/Effects/**/*.cs` without `*.g.cs` | The card effects with the same tests (~20 min at `-c 10`, not in the workflow's list). Runs of 2026-11-19 and their survivors: `../reference/tasks/TASK-2026-11-19-sim-all-mechanics/stryker-sim.md` (outside the repository) |
 
 ## Runs (2026-11-05)
 
