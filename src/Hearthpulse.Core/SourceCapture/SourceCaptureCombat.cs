@@ -128,7 +128,9 @@ internal static class SourceCaptureCombat
         int Ref(int id) => id > 0 ? refs[id] : 0;
         var fight = new SourceCombat(
             index, combat.Turn, capture.OursFirst, Ref(capture.FirstAttackerEntityId), options.DamageCap, options.CountDamage,
-            Side(capture.Ours, opponent: false, Ref), Side(capture.Theirs, opponent: true, Ref),
+            // After the game (options.PostGame) the opponent's player values are the ones the log had, not the estimates
+            // the live odds used; the allowlist below decides what of them leaves, as before.
+            Side(PostGameIf(options, capture.Ours), opponent: false, Ref), Side(PostGameIf(options, capture.Theirs), opponent: true, Ref),
             facts.Select(f => new SourceCombatFact(Ref(f.EntityId), f.CardId, f.Markers.ToArray())).ToArray(),
             result, combat.DamageTaken, combat.DamageDealt, Odds(combat.Odds), Transcript: null);
         // The decoder's and the pool's rules on exactly the bytes that would be sent: a fight they would refuse (and with
@@ -168,6 +170,8 @@ internal static class SourceCaptureCombat
         return refs;
     }
 
+    private static SimSide PostGameIf(SimOptions options, SimSide side) => options.PostGame ? SimInputs.PostGame(side) : side;
+
     private static SourceCombatSide Side(SimSide side, bool opponent, Func<int, int> reference) => new(
         side.HeroCardId.Length > 0 ? side.HeroCardId : null,
         side.HeroPowerCardId.Length > 0 ? side.HeroPowerCardId : null,
@@ -175,7 +179,9 @@ internal static class SourceCaptureCombat
         side.TavernTier,
         side.Health,
         side.Turn,
-        side.Tags.Where(t => PlayerTags.Contains(t.Key, StringComparer.Ordinal)).OrderBy(t => t.Key, StringComparer.Ordinal)
+        // A tag an estimate stands in for is not the player's value: it is not sent.
+        side.Tags.Where(t => PlayerTags.Contains(t.Key, StringComparer.Ordinal) && !side.Estimates.Any(e => e.Tags.Contains(t.Key, StringComparer.Ordinal)))
+            .OrderBy(t => t.Key, StringComparer.Ordinal)
             .ToDictionary(t => t.Key, t => t.Value, StringComparer.Ordinal),
         // The opponent's card values are not shown by the client, so they are not captured (and never sent).
         opponent

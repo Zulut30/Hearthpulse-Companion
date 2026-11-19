@@ -12,7 +12,7 @@ internal sealed class ScarletSurvivor : CombatEffect
 {
     private const int Threshold = 6;
 
-    public override void OnFightStart(Fight fight, Unit self) => self.Counter2 = self.Attack >= Threshold ? 1 : 0;
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter2 = self.Spec.ScriptData2 != 0 || self.Attack >= Threshold ? 1 : 0;
 
     public override void OnSummoned(Fight fight, Unit self) => self.Counter2 = self.Attack >= Threshold ? 1 : 0;
 

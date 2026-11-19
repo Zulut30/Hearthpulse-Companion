@@ -51,7 +51,7 @@ internal static class Beetles
             }
         }
 
-        return (2, 2);
+        return SimInputs.BeetleStatsOf(info) ?? (2, 2);
     }
 
     /// <summary>Summons <paramref name="count"/> Beetles where <paramref name="summoner"/> is (its old slot when it died).</summary>
