@@ -36,8 +36,11 @@ public sealed class Unit
         BloodGemHealth = spec.BloodGemHealth;
     }
 
-    /// <summary>What this unit was created from: the captured minion, a token, or a reborn copy.</summary>
-    public SimMinion Spec { get; }
+    /// <summary>
+    /// What this unit was created from: the captured minion, a token, or a reborn copy. Replaced only when an effect turns
+    /// the minion into another version of its card ("make Golden").
+    /// </summary>
+    public SimMinion Spec { get; internal set; }
 
     public string CardId => Spec.CardId;
 

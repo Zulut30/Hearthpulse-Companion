@@ -157,21 +157,25 @@ internal sealed class TimewarpedHyena : CombatEffect
 /// cast a spell." Golden: +8/+6.
 /// </summary>
 /// <remarks>
-/// The summoned Beast gets the printed bonus. How much the bonus has grown from the spells cast this game is not in the
-/// capture (the card text shows no number from the entity; the enchantment Law of the Jungle, BG34_PreMadeChamp_004e,
-/// may hold it, and enchantment values are not captured), nor by how much a spell improves it: the fight is marked
-/// <c>missing_input</c> and the printed bonus is a lower bound. Stealth is a keyword the engine handles.
+/// <list type="bullet">
+/// <item>The bonus grown from the spells cast this game is the King's captured TAG_SCRIPT_DATA_NUM_1/2: cards that
+/// "improve" keep their current value there even when HearthstoneJSON prints a literal number (The Last One Standing,
+/// BG34_320: "+10/+10" in the text, NUM_1/2 10/20/30 in real logs of 2026-11-15). Without script data (a King made in
+/// combat, or a log that sent none) the printed +4/+3 (golden +8/+6) is used.</item>
+/// <item>"Improves after you cast a spell" during the fight: the step of one improvement is not in the text or a kept log,
+/// so a spell cast in combat leaves the bonus unchanged for the rest of the fight (a lower bound).</item>
+/// <item>No real log with the King was available (2026-11-19). Stealth is a keyword the engine handles.</item>
+/// </list>
 /// </remarks>
 [CardEffect("BG34_PreMadeChamp_004")]
 internal sealed class TimewarpedJungleKing : CombatEffect
 {
-    public override string? UncapturedInput => "рост бонуса от заклинаний за игру (Improves after you cast a spell)";
-
     public override void AfterFriendlySummoned(Fight fight, Unit self, Unit summoned)
     {
         if (summoned.Is(Tribe.Beast))
         {
-            fight.Buff(summoned, self.Pick(4, 8), self.Pick(3, 6));
+            var (attack, health) = Deaths.DeathKit.Shown(self, (4, 3), (8, 6));
+            fight.Buff(summoned, attack, health);
         }
     }
 }

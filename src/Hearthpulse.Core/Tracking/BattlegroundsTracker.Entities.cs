@@ -204,6 +204,55 @@ public sealed partial class BattlegroundsTracker
         enchantments[card.Id].Any(e => e.CardId == SimInputs.UnplayableEnchantment);
 
     /// <summary>
+    /// The player's quests and lasting Tavern spells waiting in the SECRET zone (Boon of Beetles: "When you have space in
+    /// combat..."): a cast Tavern spell with a Start of Combat or later effect moves from the hand to SECRET and leaves the
+    /// game once done (Power.log 2026-11-15 L801212, Brood of Nozdormu); a quest sits there with its progress
+    /// (L504885). The local player's only: they are on the player's screen, the opponent's secret zone is hidden.
+    /// </summary>
+    private static IEnumerable<Entity> Objectives(GameState game, int controller) =>
+        game.Controlled(controller, "SECRET")
+            .Where(e => e.CardId.Length > 0 && (e.CardType == "BATTLEGROUND_SPELL" || e.Has("QUEST")))
+            .OrderBy(e => e.Id);
+
+    /// <summary>A local Discover offer opened: remember it when it is a Timewarped Nellie's Ship crewing itself.</summary>
+    private void NoteCrewOffer(Entity? source) =>
+        _crewShip = source is { CardId.Length: > 0 } ship && CombatRelevance.Normalize(ship.CardId, Cards).CardId == SimInputs.NelliesShip ? source.Id : 0;
+
+    /// <summary>
+    /// The local player picked <paramref name="chosen"/> in the ship's Discover ("At the start of each turn, Discover a
+    /// Pirate to crew the ship"): it is the crew until a later turn's pick replaces it (golden: two picks a turn). The
+    /// player made the pick, so it is on their screen; the opponent's picks are never seen.
+    /// </summary>
+    private void NoteCrewPick(GameState game, Entity chosen)
+    {
+        if (_crewShip == 0 || chosen.CardId.Length == 0)
+        {
+            return;
+        }
+
+        var turn = game.BattlegroundsTurn;
+        if (!_crew.TryGetValue(_crewShip, out var crew) || crew.Turn != turn)
+        {
+            _crew[_crewShip] = crew = (turn, new List<string>());
+        }
+
+        crew.Pirates.Add(chosen.CardId);
+    }
+
+    /// <summary>The crew of ship <paramref name="e"/> as fresh cards (printed stats and keywords), or none.</summary>
+    private IReadOnlyList<SimMinion> CrewOf(Entity e) =>
+        _crew.TryGetValue(e.Id, out var crew) ? crew.Pirates.Select(FreshCard).ToArray() : Array.Empty<SimMinion>();
+
+    private SimMinion FreshCard(string id)
+    {
+        var card = Cards.Get(id);
+        var (cardId, golden) = CombatRelevance.Normalize(id, Cards);
+        var mechanics = card?.Mechanics ?? Array.Empty<string>();
+        return SimMinion.Create(cardId, card?.Attack ?? 0, Math.Max(1, card?.Health ?? 1), Traits.ParseTribes(card?.Races),
+            Traits.KeywordsFromMechanics(mechanics), golden, Traits.MechanicsFrom(mechanics)) with { TechLevel = card?.TechLevel ?? 0 };
+    }
+
+    /// <summary>
     /// One side for the simulator: board minions plus what the player can see about that player. The opponent's hand
     /// and secrets are hidden information and are never read.
     /// </summary>
@@ -226,6 +275,11 @@ public sealed partial class BattlegroundsTracker
         var played = game.Controlled(controller, "PLAY").Where(e => e.CardId.Length > 0).OrderBy(e => e.Id).ToList();
         var heroPower = played.FirstOrDefault(e => e.CardType == "HERO_POWER");
         var extras = played.Where(e => ExtraCardTypes.Contains(e.CardType) || IsTrinket(e)).Select(e => e.CardId).ToList();
+        if (!isOpponent)
+        {
+            extras.AddRange(Objectives(game, controller).Select(e => e.CardId));
+        }
+
         // Lobby-wide cards: the anomaly and this season's Deity (tag name as hsdata names it; unverified in a real log).
         foreach (var tag in GlobalCardTags)
         {
@@ -357,6 +411,9 @@ public sealed partial class BattlegroundsTracker
             TechLevel = e.GetInt(GameTag.TechLevel) is > 0 and var tier ? tier : card?.TechLevel ?? 0,
             ScriptData1 = e.GetInt(GameTag.ScriptData1),
             ScriptData2 = e.GetInt(GameTag.ScriptData2),
+            ScriptData3 = e.GetInt(GameTag.ScriptData3),
+            ScriptData4 = e.GetInt(GameTag.ScriptData4),
+            Crew = isOpponent ? Array.Empty<SimMinion>() : CrewOf(e),
             Enchantments = attached,
             EnchantmentValues = attachedEntities.Select(ToEnchantment).ToArray(),
             Remembered = _removedBy.TryGetValue(e.Id, out var removed) ? removed.ToArray() : Array.Empty<SimMinion>(),

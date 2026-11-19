@@ -609,7 +609,7 @@ internal static class PlayerCardGenerated
         new("BG33_Reward_015", "", Relevance.None, "QR_NONE", "Jumbo Warehouse", Origin.Player),
         new("BG33_Reward_017", "", Relevance.None, "QR_NONE", "Cosmic Reward", Origin.Player),
         new("BG33_Reward_020", "", Relevance.None, "QR_NONE", "Perpetual Incantation", Origin.Player),
-        new("BG33_Reward_021", "", Relevance.None, "QR_NONE", "Rallying Cry", Origin.Player),
+        new("BG33_Reward_021", "", Relevance.Relevant, "QR_RELEVANT", "Rallying Cry", Origin.Player),
         new("BG34_270", "", Relevance.None, "SP_NONE", "Time Snap", Origin.Player),
         new("BG34_272", "", Relevance.None, "SP_NONE", "Menagerie Tableware", Origin.Player),
         new("BG34_330", "", Relevance.None, "SP_NONE", "Search Through Time", Origin.Player),
