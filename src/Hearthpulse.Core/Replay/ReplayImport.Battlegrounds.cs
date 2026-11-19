@@ -26,7 +26,7 @@ public static partial class ReplayImport
 
         var events = new List<string>(count);
         var shown = new Dictionary<string, char>(StringComparer.Ordinal);
-        bool fight = false, opponentInView = false;
+        bool fight = false, opponentInView = false, offerLeaving = false;
         for (var i = 0; i < count; i++)
         {
             var line = body[i];
@@ -36,12 +36,19 @@ public static partial class ReplayImport
             }
 
             var t = line.Split(' ');
+            if (offerLeaving && !(t[0] == "X" && shown.TryGetValue(t[1], out var side) && side == 'B'))
+            {
+                // Bob's offer leaves view when the combat starts: the X lines right after F keep the file's order, the
+                // cards it did not take away go now, before anything else of the fight is shown.
+                LeaveView(events, shown, 'B');
+                offerLeaving = false;
+            }
+
             switch (t[0])
             {
                 case "F":
                     events.Add(line);
-                    // Bob's offer leaves view when the combat starts.
-                    LeaveView(events, shown, 'B');
+                    offerLeaving = shown.ContainsValue('B');
                     fight = opponentInView = true;
                     continue;
                 case "f":
@@ -69,6 +76,11 @@ public static partial class ReplayImport
             events.Add(line);
         }
 
+        if (offerLeaving)
+        {
+            LeaveView(events, shown, 'B');
+        }
+
         var summary = header.Summary is { } given ? CleanSummary(given, dateOnly) : RebuildBattlegroundsSummary(data);
         if (summary is null)
         {
@@ -79,10 +91,10 @@ public static partial class ReplayImport
         return ReplayFile.WriteBattlegrounds(clean, data, events.Count > 0 ? events : null);
     }
 
-    /// <summary>Every card of <paramref name="side"/> still shown leaves view (<c>X</c>).</summary>
+    /// <summary>Every card of <paramref name="side"/> still shown leaves view (<c>X</c>), by id: not in the dictionary's order, which removals shuffle.</summary>
     private static void LeaveView(List<string> events, Dictionary<string, char> shown, char side)
     {
-        foreach (var id in shown.Where(s => s.Value == side).Select(s => s.Key).ToList())
+        foreach (var id in shown.Where(s => s.Value == side).Select(s => s.Key).OrderBy(id => int.Parse(id, CultureInfo.InvariantCulture)).ToList())
         {
             shown.Remove(id);
             events.Add("X " + id);
