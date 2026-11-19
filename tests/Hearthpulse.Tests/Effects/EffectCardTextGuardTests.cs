@@ -48,6 +48,9 @@ public sealed class EffectCardTextGuardTests
         ("BG36_849", "Rally: Gain Divine Shield.", "Rally: Gain Divine Shield."),
         ("BG20_GEM", "Give a minion +1/+1.", null),
         ("BGS_126", "After this attacks and kills a minion, deal excess damage to an adjacent enemy.", "After this attacks and kills a minion, deal excess damage to both adjacent enemies."),
+        ("BG33_885", "Rally: Your Blood Gems give an extra +1/+1 this game.", "Rally: Your Blood Gems give an extra +2/+2 this game."),
+        ("BG27_513", "When this attacks and kills a minion, give its maximum stats to a minion in your hand.", "When this attacks and kills a minion, give double its maximum stats to a minion in your hand."),
+        ("BG34_Giant_041", "Rally: Trigger your right-most Battlecry and Deathrattle.", "Rally: Trigger your right-most Battlecry and Deathrattle twice."),
 
         // deaths/
         ("BG19_010", "Deathrattle: Summon a 2/3 Turtle with Taunt.", "Deathrattle: Summon a 4/6 Turtle with Taunt."),
@@ -77,6 +80,8 @@ public sealed class EffectCardTextGuardTests
         ("BGS_008", "Deathrattle: Summon 2 random Deathrattle minions.", "Deathrattle: Summon 4 random Deathrattle minions."),
         ("BGS_018", "Deathrattle: Your Beasts have +7/+7 until next turn.", "Deathrattle: Your Beasts have +14/+14 until next turn."),
         ("BGS_040", "Deathrattle: Give 3 friendly Dragons Divine Shield.", "Deathrattle: Give 6 friendly Dragons Divine Shield."),
+        ("BG23_017", "Battlecry and Deathrattle: Your Blood Gems give an extra +2/+1 this game.", "Battlecry and Deathrattle: Your Blood Gems give an extra +4/+2 this game."),
+        ("BG36_205", "This can't gain stats. Deathrattle: Give the minion that killed this +5/+5.", "This can't gain stats. Deathrattle: Give the minion that killed this +10/+10."),
 
         // ongoing/
         ("BG25_008", "Has +4/+2 for each friendly Eternal Knight that died this game", "Has +8/+4 for each friendly Eternal Knight that died this game"),
@@ -108,6 +113,18 @@ public sealed class EffectCardTextGuardTests
         ("BGDUO_701", "Battlecry, Deathrattle, and Rally: Give your team's Deities +4/+4.", "Battlecry, Deathrattle, and Rally: Give your team's Deities +8/+8."),
         ("BGFYM_000", "After this awakens, give this minion's stats split amongst your other minions.", "After this awakens, give double this minion's stats split amongst your other minions."),
         ("BGFYM_011", "Deathrattle: Summon your first 2 Aberrations that died this combat with their maximum stats (except Deities).", "Deathrattle: Summon your first 4 Aberrations that died this combat with their maximum stats (except Deities)."),
+        ("BG35_883", "Your spells that target friendly minions cast twice.", "Your spells that target friendly minions cast three times."),
+        ("BG_LOE_077", "Your Battlecries trigger twice.", "Your Battlecries trigger three times."),
+        ("BGS_041", "After you trigger a Battlecry, give your Dragons +2/+2.", "After you trigger a Battlecry, give your Dragons +4/+4."),
+        ("TB_BaconShop_HERO_33_Buddy", "Whenever your Amalgam gains stats, this gains them too.", "Whenever your Amalgam gains stats, this gains them twice."),
+        ("BG25_013", "Has +1 Attack for each friendly minion that died this combat.", "Has +2 Attack for each friendly minion that died this combat."),
+        ("BG36_110", "Battlecry: Give your Deity +2/+1.", "Battlecry: Give your Deity +4/+2."),
+        ("BG31_148", "Battlecry: Give your other minions +3/+2.", "Battlecry: Give your other minions +6/+4."),
+        ("BG25_011", "Battlecry: Your Undead have +1 Attack this game", "Battlecry: Your Undead have +2 Attack this game"),
+        ("BG26_963", "Battlecry and Start of Combat: Give your other Dragons +1/+1.", "Battlecry and Start of Combat: Give your other Dragons +2/+2."),
+        ("BG36_360", "This has a different Dark Gift, stats, and Tier each game!", "This has a different Dark Gift, stats, and Tier each game!"),
+        ("BG36_360t6", "Has +4/+4 for each Battlecry you've triggered this game", "Has +8/+8 for each Battlecry you've triggered this game"),
+        ("BG36_360_Gt6", "Has +8/+8 for each Battlecry you've triggered this game", null),
     ];
 
     /// <summary>Tokens the effects summon with printed stats from <see cref="Tokens"/>: card id and factory.</summary>

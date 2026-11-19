@@ -44,6 +44,18 @@
    "attack": null,
    "health": null
   },
+  "BG23_017": {
+   "name": "Sanguine Champion",
+   "text": "Battlecry and Deathrattle: Your Blood Gems give an extra +2/+1 this game.",
+   "attack": 9,
+   "health": 4,
+   "golden": {
+    "id": "BG23_017_G",
+    "text": "Battlecry and Deathrattle: Your Blood Gems give an extra +4/+2 this game.",
+    "attack": 18,
+    "health": 8
+   }
+  },
   "BG23_318": {
    "name": "Leeroy the Reckless",
    "text": "Deathrattle: Destroy the minion that killed this.",
@@ -102,6 +114,30 @@
     "text": "Reborn",
     "attack": 4,
     "health": 2
+   }
+  },
+  "BG25_011": {
+   "name": "Nerubian Deathswarmer",
+   "text": "Battlecry: Your Undead have +1 Attack this game (wherever they are).",
+   "attack": 1,
+   "health": 4,
+   "golden": {
+    "id": "BG25_011_G",
+    "text": "Battlecry: Your Undead have +2 Attack this game (wherever they are).",
+    "attack": 2,
+    "health": 8
+   }
+  },
+  "BG25_013": {
+   "name": "Rot Hide Gnoll",
+   "text": "Has +1 Attack for each friendly minion that died this combat.",
+   "attack": 1,
+   "health": 4,
+   "golden": {
+    "id": "BG25_013_G",
+    "text": "Has +2 Attack for each friendly minion that died this combat.",
+    "attack": 2,
+    "health": 8
    }
   },
   "BG25_016": {
@@ -188,6 +224,18 @@
     "health": 4
    }
   },
+  "BG26_963": {
+   "name": "Electric Synthesizer",
+   "text": "Battlecry and Start of Combat: Give your other Dragons +1/+1.",
+   "attack": 3,
+   "health": 4,
+   "golden": {
+    "id": "BG26_963_G",
+    "text": "Battlecry and Start of Combat: Give your other Dragons +2/+2.",
+    "attack": 6,
+    "health": 8
+   }
+  },
   "BG27_017": {
    "name": "Obsidian Ravager",
    "text": "Rally: Deal damage equal to this minion's Attack to the target and an adjacent minion.",
@@ -210,6 +258,18 @@
     "text": "Whenever this kills a minion, give a minion in your hand +6/+6.",
     "attack": 10,
     "health": 6
+   }
+  },
+  "BG27_513": {
+   "name": "Tide Oracle Morgl",
+   "text": "Poisonous. When this attacks and kills a minion, give its maximum stats to a minion in your hand.",
+   "attack": 1,
+   "health": 10,
+   "golden": {
+    "id": "BG27_513_G",
+    "text": "Poisonous. When this attacks and kills a minion, give double its maximum stats to a minion in your hand.",
+    "attack": 2,
+    "health": 20
    }
   },
   "BG27_556": {
@@ -317,6 +377,18 @@
     "id": "BG30_125_G",
     "text": "Deathrattle: Summon six 1/1 Skeletons.",
     "attack": 6,
+    "health": 6
+   }
+  },
+  "BG31_148": {
+   "name": "Hackerfin",
+   "text": "Battlecry: Give your other minions +3/+2. (Improved by each different Bonus Keyword in your warband!)",
+   "attack": 5,
+   "health": 3,
+   "golden": {
+    "id": "BG31_148_G",
+    "text": "Battlecry: Give your other minions +6/+4. (Improved by each different Bonus Keyword in your warband!)",
+    "attack": 10,
     "health": 6
    }
   },
@@ -452,6 +524,18 @@
     "health": 8
    }
   },
+  "BG33_885": {
+   "name": "Sanguine Refiner",
+   "text": "Rally: Your Blood Gems give an extra +1/+1 this game.",
+   "attack": 4,
+   "health": 9,
+   "golden": {
+    "id": "BG33_885_G",
+    "text": "Rally: Your Blood Gems give an extra +2/+2 this game.",
+    "attack": 8,
+    "health": 18
+   }
+  },
   "BG33_886": {
    "name": "Tusked Camper",
    "text": "Rally: This plays a Blood Gem on itself.",
@@ -548,6 +632,18 @@
     "health": 4
    }
   },
+  "BG34_Giant_041": {
+   "name": "Timewarped Greenskeeper",
+   "text": "Rally: Trigger your right-most Battlecry and Deathrattle.",
+   "attack": 5,
+   "health": 9,
+   "golden": {
+    "id": "BG34_Giant_041_G",
+    "text": "Rally: Trigger your right-most Battlecry and Deathrattle twice.",
+    "attack": 10,
+    "health": 18
+   }
+  },
   "BG35_342": {
    "name": "Falling Sky Golem",
    "text": "Divine Shield. Has +4/+2 for each Deathrattle you've triggered this game (wherever this is).",
@@ -596,6 +692,18 @@
     "health": 6
    }
   },
+  "BG35_883": {
+   "name": "Balinda Stonehearth",
+   "text": "Your spells that target friendly minions cast twice.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "BG35_883_G",
+    "text": "Your spells that target friendly minions cast three times.",
+    "attack": 12,
+    "health": 12
+   }
+  },
   "BG36_102": {
    "name": "De-volition-ist",
    "text": "After this attacks, deal damage equal to this minion's Attack to the highest- Health enemy minion.",
@@ -606,6 +714,18 @@
     "text": "After this attacks, deal damage equal to double this minion's Attack to the highest- Health enemy minion.",
     "attack": 8,
     "health": 16
+   }
+  },
+  "BG36_110": {
+   "name": "Joyous",
+   "text": "Battlecry: Give your Deity +2/+1.",
+   "attack": 2,
+   "health": 3,
+   "golden": {
+    "id": "BG36_110_G",
+    "text": "Battlecry: Give your Deity +4/+2.",
+    "attack": 4,
+    "health": 6
    }
   },
   "BG36_113": {
@@ -665,6 +785,18 @@
     "id": "BG36_202_G",
     "text": "Deathrattle: Give a random friendly Beast +4/+2. Improve your future Tasty Lobsters.",
     "attack": 4,
+    "health": 2
+   }
+  },
+  "BG36_205": {
+   "name": "Fishbait",
+   "text": "This can't gain stats. Deathrattle: Give the minion that killed this +5/+5.",
+   "attack": 0,
+   "health": 1,
+   "golden": {
+    "id": "BG36_205_G",
+    "text": "This can't gain stats. Deathrattle: Give the minion that killed this +10/+10.",
+    "attack": 0,
     "health": 2
    }
   },
@@ -770,10 +902,28 @@
     "health": 34
    }
   },
+  "BG36_360": {
+   "name": "Dark Paradox",
+   "text": "This has a different Dark Gift, stats, and Tier each game!",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BG36_360_G",
+    "text": "This has a different Dark Gift, stats, and Tier each game!",
+    "attack": 1,
+    "health": 1
+   }
+  },
   "BG36_360_Gt4": {
    "name": "Dark Paradox",
    "text": "Divine Shield This minion's Divine Shield takes 4 hits to break.",
    "attack": 16,
+   "health": 8
+  },
+  "BG36_360_Gt6": {
+   "name": "Dark Paradox",
+   "text": "Has +8/+8 for each Battlecry you've triggered this game (wherever this is).",
+   "attack": 8,
    "health": 8
   },
   "BG36_360_Gt9": {
@@ -791,6 +941,18 @@
     "id": "BG36_360_Gt4",
     "text": "Divine Shield This minion's Divine Shield takes 4 hits to break.",
     "attack": 16,
+    "health": 8
+   }
+  },
+  "BG36_360t6": {
+   "name": "Dark Paradox",
+   "text": "Has +4/+4 for each Battlecry you've triggered this game (wherever this is).",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "BG36_360_Gt6",
+    "text": "Has +8/+8 for each Battlecry you've triggered this game (wherever this is).",
+    "attack": 8,
     "health": 8
    }
   },
@@ -974,6 +1136,18 @@
     "health": 8
    }
   },
+  "BGS_041": {
+   "name": "Kalecgos, Arcane Aspect",
+   "text": "After you trigger a Battlecry, give your Dragons +2/+2.",
+   "attack": 4,
+   "health": 12,
+   "golden": {
+    "id": "TB_BaconUps_109",
+    "text": "After you trigger a Battlecry, give your Dragons +4/+4.",
+    "attack": 8,
+    "health": 24
+   }
+  },
   "BGS_126": {
    "name": "Wildfire Elemental",
    "text": "After this attacks and kills a minion, deal excess damage to an adjacent enemy.",
@@ -1008,6 +1182,30 @@
     "text": "",
     "attack": 2,
     "health": 2
+   }
+  },
+  "BG_LOE_077": {
+   "name": "Brann Bronzebeard",
+   "text": "Your Battlecries trigger twice.",
+   "attack": 2,
+   "health": 4,
+   "golden": {
+    "id": "TB_BaconUps_045",
+    "text": "Your Battlecries trigger three times.",
+    "attack": 4,
+    "health": 8
+   }
+  },
+  "TB_BaconShop_HERO_33_Buddy": {
+   "name": "Mishmash",
+   "text": "Whenever your Amalgam gains stats, this gains them too.",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "TB_BaconShop_HERO_33_Buddy_G",
+    "text": "Whenever your Amalgam gains stats, this gains them twice.",
+    "attack": 8,
+    "health": 8
    }
   },
   "TB_BaconShop_HP_033t": {

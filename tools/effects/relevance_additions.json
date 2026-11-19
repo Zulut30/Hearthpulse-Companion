@@ -20,6 +20,36 @@
       "text": "Deathrattle: Summon the highest-Health Murloc from your hand for this combat only.",
       "added": "2026-11-15",
       "why": "deathrattle summon"
+    },
+    {
+      "id": "BG36_205",
+      "golden_id": "BG36_205_G",
+      "name": "Fishbait",
+      "category": "DR_BUFF",
+      "combat_relevant": "y",
+      "text": "This can't gain stats. Deathrattle: Give the minion that killed this +5/+5.",
+      "added": "2026-11-19",
+      "why": "deathrattle buffs the enemy that killed it; it cannot gain stats in combat either"
+    },
+    {
+      "id": "BG27_513",
+      "golden_id": "BG27_513_G",
+      "name": "Tide Oracle Morgl",
+      "category": "KILL_HAND_BUFF",
+      "combat_relevant": "y",
+      "text": "Poisonous. When this attacks and kills a minion, give its maximum stats to a minion in your hand.",
+      "added": "2026-11-19",
+      "why": "changes the fight through cards that summon from the hand (Bassgill, Expert Aviator, Diremuck Forager)"
+    },
+    {
+      "id": "BGS_115t",
+      "golden_id": "BGS_115t_G",
+      "name": "Water Droplet",
+      "category": "TOKEN",
+      "combat_relevant": "n",
+      "text": "",
+      "added": "2026-11-19",
+      "why": "Sellemental's 3/3 Elemental token, no text"
     }
   ]
 }
