@@ -97,6 +97,15 @@ public sealed class CombatEngineHardeningTests
         Assert.StartsWith("our X ", Attacks(result)[2]);
     }
 
+    [Fact]
+    public void A_logged_first_attacker_that_is_not_on_the_board_leaves_the_usual_order()
+    {
+        var ours = Side(Minion(1, 50, cardId: "X") with { EntityId = 11 }, Minion(1, 50, cardId: "Y") with { EntityId = 12 });
+        var result = CombatSimulator.RunSingle(ours, Side(Minion(1, 50, cardId: "Z")), true, new ScriptedRandom(), firstAttackerEntityId: 99);
+
+        Assert.StartsWith("our X ", Attacks(result)[0]);
+    }
+
     // ------------------------------------------------------------------------------------------- simultaneous deaths
 
     private static SimMinion Bonehead => Minion(1, 1, cardId: Ids.Bonehead, tribes: Tribe.Undead, mechanics: CardMechanic.Deathrattle);
