@@ -62,7 +62,9 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
 
         var actual = $"views {Fingerprint(views)} replay {Fingerprint(replay)} data {Fingerprint(data)}";
         output.WriteLine(actual);
-        Assert.Equal("views 353E1634374395D9 replay 3DB931AD881A2307 data 2C492810FA8A5101", actual);
+        // 2026-11-19 (odds estimate mark): every view carries BattlegroundsView.CombatEstimates (empty throughout this game);
+        // without that property the views hash is still 353E1634374395D9.
+        Assert.Equal("views 911DF8F2524AB527 replay 3DB931AD881A2307 data 2C492810FA8A5101", actual);
     }
 
     /// <summary>The pool's totals with missing numbers, malformed rows and brackets (review m10).</summary>

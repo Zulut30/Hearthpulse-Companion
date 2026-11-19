@@ -31,8 +31,19 @@ internal static partial class OffscreenRenderer
                 SaveCrop(overlay, card, Path.Combine(folder, "overlay-odds-panel.png"));
             }
 
-            // The widest state: all five cells, wide damage both ways, an estimate and the cap in the bottom line.
-            host.Overlay.Update(snapshot with { Battlegrounds = BarScene() with { CombatOdds = FiveCells(BarScene().CombatOdds!) } }, host.Cards, settings, null, null);
+            // The same fight resting on estimates of the opponent's hidden values: the "≈" mark at the bar's end, same card size.
+            host.Overlay.Update(snapshot with { Battlegrounds = CombatOddsScene.Estimated(BarScene()) }, host.Cards, settings, null, null);
+            overlayView.Fit(1920, 1080);
+            await Save(overlay, Path.Combine(folder, "overlay-odds-estimated.png"));
+            if (overlayView.GetVisualDescendants().OfType<OddsPanel>().FirstOrDefault()?.FindControl<Control>("OddsCard") is { } estimated)
+            {
+                SaveCrop(overlay, estimated, Path.Combine(folder, "overlay-odds-estimated-panel.png"));
+            }
+
+            // The widest state: all five cells, wide damage both ways, the estimate mark, an unsimulated effect and the cap in
+            // the bottom line.
+            host.Overlay.Update(snapshot with { Battlegrounds = CombatOddsScene.Estimated(BarScene()) with { CombatOdds = FiveCells(BarScene().CombatOdds!) with { Estimated = 3 } } },
+                host.Cards, settings, null, null);
             overlayView.Fit(1920, 1080);
             await Save(overlay, Path.Combine(folder, "overlay-odds-full.png"));
             if (overlayView.GetVisualDescendants().OfType<OddsPanel>().FirstOrDefault()?.FindControl<Control>("OddsCard") is { } full)

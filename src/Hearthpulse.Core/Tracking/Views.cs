@@ -428,6 +428,13 @@ public sealed record BattlegroundsView(
     /// <summary>Simulated odds of the combat in progress (null outside combat or before the first attack).</summary>
     public CombatOdds? CombatOdds { get; init; }
 
+    /// <summary>
+    /// What <see cref="CombatOdds"/> was simulated with an estimate for (<see cref="CombatSimulator.ExplainEstimates"/> of
+    /// both sides; <see cref="Hearthpulse.Core.Battlegrounds.CombatOdds.Estimated"/> counts them); empty outside combat.
+    /// The overlay names the inputs only, never the values used.
+    /// </summary>
+    public IReadOnlyList<EstimatedItem> CombatEstimates { get; init; } = Array.Empty<EstimatedItem>();
+
     /// <summary>Names of minions the player holds two copies of (one more makes a triple).</summary>
     public IReadOnlyList<string> Pairs { get; init; } = Array.Empty<string>();
 
