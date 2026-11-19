@@ -285,23 +285,20 @@ internal sealed class StaffOfTheScourge : AvengeEffect
 }
 
 /// <summary>
-/// Beetle Band (BG32_MagicItem_860): "Avenge (5): Summon a 2/2 Beetle. Give it Taunt." Golden (…860t): "Avenge (8): Summon two
-/// 2/2 Beetles. Give them Taunt." (Avenge (7) in patch 37.0.0.255130; changed on the server without a new client build.)
-/// The Beetle is the player's current Beetle (<see cref="Deaths.Beetles.Stats(Side)"/>): "Your Beetles have +X/+Y this game"
-/// covers every Beetle of the player.
+/// Beetle Band (BG32_MagicItem_860): "Avenge (5): Summon a 2/2 Beetle. Give it Taunt." Golden (…860t): "Avenge (7): Summon two
+/// 2/2 Beetles. Give them Taunt."
 /// </summary>
 [CardEffect("BG32_MagicItem_860")]
 [CardEffect("BG32_MagicItem_860t")]
 internal sealed class BeetleBand : AvengeEffect
 {
-    protected override int Threshold(Unit self) => self.CardId.EndsWith('t') ? 8 : 5;
+    protected override int Threshold(Unit self) => self.CardId.EndsWith('t') ? 7 : 5;
 
     protected override void Avenge(Fight fight, Unit self)
     {
-        var (attack, health) = Deaths.Beetles.Stats(self.Side);
         for (var i = self.CardId.EndsWith('t') ? 2 : 1; i > 0; i--)
         {
-            if (fight.Summon(self.Side, Tokens.Make(Tokens.BeetleId, attack, health, Tribe.Beast), self.Side.Count) is { } beetle)
+            if (fight.Summon(self.Side, Tokens.Beetle(), self.Side.Count) is { } beetle)
             {
                 fight.GiveKeywords(beetle, Keyword.Taunt);
             }
