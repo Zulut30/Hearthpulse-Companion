@@ -137,6 +137,10 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // its printed +1/+1, golden Beetle Band is Avenge (8) with the player's Beetle); not split up and checked one by one.
         // 2026-11-19 (FIX sim-effects-audit, merged after E3): effects corrected to the live card text (The Last One
         // Standing, Eudora, Kodo, C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose.
-        Assert.Equal("fights B38EEFBF3604898A", actual);
+        // 2026-11-19 (E5 sim-leftovers): 21 new effect ids (Bubble Gunner, Captain Sanders, Elite Navigator, Disguised
+        // Graverobber, Maw Caster, Locked-up Mutineer, Dark Paradox t5, Nellie's Ship, Boon of Beetles, three spell trinkets,
+        // Rallying Cry, seven quests) change the boards and, through the Pirate/Undead pools, the summons; with a registry
+        // without those classes (checked) the fingerprint is still B38EEFBF3604898A.
+        Assert.Equal("fights 9E373705B8651BAF", actual);
     }
 }

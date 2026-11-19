@@ -15,7 +15,7 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Timewarped;
 /// <item>No real log with the ship was available (2026-11-19): the summon-then-get order follows the card text.</item>
 /// </list>
 /// </remarks>
-[CardEffect(SimInputs.NelliesShip)]
+[CardEffect("BG34_Giant_074t")]
 internal sealed class TimewarpedNelliesShip : CombatEffect
 {
     public override void Deathrattle(Fight fight, Unit self)

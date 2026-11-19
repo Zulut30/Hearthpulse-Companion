@@ -766,7 +766,8 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         // carries SimSide.HiddenTags, empty during the game; before that the capture hash was C0B789C0BE0531F8.
         // 2026-11-19 (E3): captures carry SimMinion.BloodGemAttack/Health and SimSide.RemovedByExtras; without them (checked)
         // the capture hash is still that of sim-inputs, 11D9EA271D4A9EF7.
-        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 30DDE1DCF7070D18 captures 06C36C54450A6E18", actual);
+        // 2026-11-19 (E5): captures carry SimMinion.ScriptData3/4; without them (checked) the capture hash is still 06C36C54450A6E18.
+        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 30DDE1DCF7070D18 captures 29E5D8A06B2D6713", actual);
     }
 
     [Fact]

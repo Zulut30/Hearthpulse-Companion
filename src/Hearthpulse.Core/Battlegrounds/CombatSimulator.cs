@@ -563,15 +563,9 @@ public static class CombatSimulator
                     AddText(m.CreatorCardId);
                 }
 
-                if (m.ScriptData3 != 0 || m.ScriptData4 != 0)
+                if (m.ScriptData3 != 0 || m.ScriptData4 != 0 || m.Crew.Count > 0)
                 {
-                    Add(m.ScriptData3);
-                    Add(m.ScriptData4);
-                }
-
-                foreach (var pirate in m.Crew)
-                {
-                    AddText(pirate.CardId);
+                    AddText($"{m.ScriptData3}/{m.ScriptData4}/{string.Join(',', m.Crew.Select(c => c.CardId))}");
                 }
 
                 foreach (var remembered in m.Remembered)
