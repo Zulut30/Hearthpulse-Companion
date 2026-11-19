@@ -87,7 +87,7 @@ test('source v2 lines: contract fields accepted, v2 fields never valid in v1, un
     c2(), c2('general'), c2('other'), combat, v2(end()), v2(record(1, 'gap', { reason: 'late_attach', count: 1 }))]) assert.equal(validRecord(ok), true, JSON.stringify(ok));
   for (const bad of [s2({ format: 'standard2' }), s2({ mode: 'bg' }), s2({ mode: 'arena' }), s2({ format: null, arena: 'normal' }),
     s2({ mode: 'arena', format: null, arena: 'heroic' }), v2(start()), c2('discover'), v2(choice()),
-    { ...start(), data: { ...start().data, format: null, arena: null } }, { ...c2(), v: 1 }, { ...combat, v: 1 }, { ...s2(), v: 3 }])
+    { ...start(), data: { ...start().data, format: null, arena: null } }, { ...c2(), v: 1 }, { ...combat, v: 1 }, { ...s2(), v: 4 }])
     assert.equal(validRecord(bad), false, JSON.stringify(bad));
   assert.throws(() => records(jsonl([start(), v2(end(1))])), e => e.code === 'mixed_source_version');
   assert.throws(() => addRecords(streamState(), [s2(), { ...combat }]), e => e.code === 'invalid_combat_view');

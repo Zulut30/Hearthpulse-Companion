@@ -13,6 +13,8 @@ import { CaptureError, fail, MiB, int, parseJson } from './validation.mjs';
 
 const json = (body, code = 200) => new Response(JSON.stringify(body), { status: code, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 const loopback = address => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(address);
+// Loopback plus the operator token; the public proxy also refuses them (deploy/nginx-source-capture.conf).
+const OPERATOR_ROUTES = ['/v1/captures/reprocess', '/v1/captures/combats/export'];
 function operator(request, token) {
   if (!token || !loopback(request.socket.remoteAddress)) return false;
   const got = Buffer.from(request.headers.authorization ?? '');
@@ -76,6 +78,7 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
           metadataBytes: metadata.bytes, metadataCapBytes: archive.maxMetadataBytes, sqliteFileBytes: metadata.fileBytes, sqliteFreeBytes: metadata.freeBytes,
           sqliteWalBytes: metadata.walBytes, sqliteShmBytes: metadata.shmBytes,
           statuses: store.sqlite.prepare('SELECT status,COUNT(*) AS n FROM source_captures GROUP BY status').all(),
+          bgCombats: store.sqlite.prepare('SELECT COUNT(*) AS n FROM bg_combats').get().n,
           ...flow(store.sqlite) });
       } else if (route === '/v2/analytics/bg/heroes') {
         // Reads the published row only; the numbers are built in the archive queue, never in a request.
@@ -84,14 +87,14 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
         response = json(answer.body, answer.status);
       } else if (route.startsWith('/v1/captures/')) {
         if (req.method !== 'POST') fail(405, 'method_not_allowed');
-        if (route === '/v1/captures/reprocess' && !operator(req, operatorToken)) fail(403, 'operator_only');
+        if (OPERATOR_ROUTES.includes(route) && !operator(req, operatorToken)) fail(403, 'operator_only');
         const max = route === '/v1/captures/chunks' ? 6 * MiB : 64 * 1024;
         const bytes = await bodyBytes(req, max);
         let body;
         try { body = parseJson(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); }
         catch (e) { if (e instanceof CaptureError) throw e; fail(400, 'invalid_json'); }
         const method = { '/v1/captures/chunks': 'upload', '/v1/captures/complete': 'complete', '/v1/captures/status': 'status',
-          '/v1/captures/reprocess': 'reprocess', '/v1/captures/forget': 'forget' }[route];
+          '/v1/captures/reprocess': 'reprocess', '/v1/captures/forget': 'forget', '/v1/captures/combats/export': 'exportCombats' }[route];
         if (!method) fail(404, 'not_found');
         const result = await archive[method](body);
         response = result.statusCode ? json(result.body, result.statusCode) : json(result);

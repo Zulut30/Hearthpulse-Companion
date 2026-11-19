@@ -38,10 +38,11 @@ function visibleEntity(x) {
 
 /**
  * Strict allowlist, never a sanitizer of arbitrary raw log text. Source v2 (TASK-2026-11-09 C1) adds start.format and
- * start.arena, choice.choiceType and the gap reason combat_view; a v1 line carrying any of them is invalid.
+ * start.arena, choice.choiceType and the gap reason combat_view; a v1 line carrying any of them is invalid. Source v3
+ * (TASK-2026-11-19 U) is v2 plus the bg_combat record; a v1/v2 line of that kind is invalid.
  */
 export function validRecord(r) {
-  if (!fields(r, 'v seq kind turn side entity card target data') || (r.v !== 1 && r.v !== 2) || !int(r.seq, 0, 10_000_000)
+  if (!fields(r, 'v seq kind turn side entity card target data') || ![1, 2, 3].includes(r.v) || !int(r.seq, 0, 10_000_000)
     || !int(r.turn, 0, 1000) || !SIDES.includes(r.side) || !int(r.entity) || !int(r.target)
     || !nullable(r.card, card) || !object(r.data) || (r.side === 'none' && r.card !== null)) return false;
   const d = r.data;
@@ -77,10 +78,78 @@ export function validRecord(r) {
       && Array.isArray(d.options) && d.options.length >= 1 && d.options.length <= 64
       && d.options.every(x => fields(x, 'card package') && card(x.card) && cards(x.package, 64))
       && nullable(d.picked, v => int(v, 0, d.options.length - 1)) && nullable(d.underground, v => typeof v === 'boolean');
-    case 'gap': return fields(d, 'reason count') && (GAP_REASONS.includes(d.reason) || (r.v === 2 && d.reason === 'combat_view')) && int(d.count, 1, 1_000_000)
+    case 'gap': return fields(d, 'reason count') && (GAP_REASONS.includes(d.reason) || (r.v >= 2 && d.reason === 'combat_view')) && int(d.count, 1, 1_000_000)
       && r.side === 'none' && r.entity === 0 && r.target === 0;
+    case 'bg_combat': return r.v === 3 && r.side === 'none' && r.entity === 0 && r.target === 0 && validCombat(d);
     default: return false;
   }
+}
+
+/**
+ * One Battlegrounds fight as the app's combat simulator got it at the first attack, with the real result and the odds
+ * shown (docs/source-capture.md, "Battlegrounds fights"). The same allowlist as the app's SourceCaptureCombat.Validate:
+ * card ids, fight-scoped references, stats, keyword/tribe/mechanic flags and the numeric tags effects read. Never a
+ * hand, the opponent's card values, a name, account, rating, path or text.
+ */
+export const COMBAT = Object.freeze({
+  maxFights: 64, maxMinions: 7, maxRemembered: 7, maxEnchantments: 32, maxExtras: 16, maxFacts: 14, maxRef: 1000,
+  maxStat: 1_000_000, maxDataBytes: 56 * 1024,
+  // Reserved transcript (the fight step by step): null until its allowlist exists, then within these bounds.
+  transcriptVersion: 1, maxTranscriptSteps: 512, maxTranscriptBytes: 16 * 1024,
+});
+const PLAYER_TAGS = new Set(['BACON_BLOODGEMBUFFATKVALUE', 'BACON_BLOODGEMBUFFHEALTHVALUE', 'TAVERN_SPELL_ATTACK_INCREASE',
+  'TAVERN_SPELL_HEALTH_INCREASE', 'BACON_OLD_GOD_ATTACK', 'BACON_OLD_GOD_HEALTH', '4914', '4915']);
+const CARD_TAGS = new Set(['TAG_SCRIPT_DATA_NUM_1', 'TAG_SCRIPT_DATA_NUM_2']);
+const MARKERS = new Set(['DEATHRATTLE', 'TRIGGER_VISUAL', 'AURA', 'AVENGE', 'OVERKILL', 'BACON_RALLY']);
+// Taunt, Divine Shield, Poisonous, Venomous, Reborn, Stealth; Windfury travels as `attacks`.
+const KEYWORDS = 1 | 2 | 4 | 8 | 16 | 128;
+const bool = x => typeof x === 'boolean';
+const share = x => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= 1;
+const value = x => int(x, -COMBAT.maxStat, COMBAT.maxStat);
+const MINION = 'entity card golden attack health maxHealth baseHealth rebornAttack keywords attacks baseKeywords tribes mechanics tier script1 script2 creator enchantments remembered unsimulated';
+function combatMinion(m, onBoard) {
+  return fields(m, MINION) && int(m.entity, onBoard ? 1 : 0, COMBAT.maxRef) && nullable(m.card, card) && bool(m.golden)
+    && ['attack', 'health', 'maxHealth', 'baseHealth', 'rebornAttack'].every(k => int(m[k], 0, COMBAT.maxStat))
+    && int(m.keywords, 0, KEYWORDS) && (m.keywords & ~KEYWORDS) === 0 && int(m.attacks, 0, 8) && int(m.baseKeywords, 0, 255)
+    && int(m.tribes, 0, 2047) && int(m.mechanics, 0, 63) && int(m.tier, 0, 10) && value(m.script1) && value(m.script2)
+    && nullable(m.creator, card) && cards(m.enchantments, COMBAT.maxEnchantments)
+    && Array.isArray(m.remembered) && m.remembered.length <= (onBoard ? COMBAT.maxRemembered : 0) && m.remembered.every(x => combatMinion(x, false))
+    && bool(m.unsimulated);
+}
+function combatSide(s, opponent, board) {
+  if (!fields(s, 'hero heroPower extras tier health turn tags cardTags minions') || !nullable(s.hero, card) || !nullable(s.heroPower, card)
+    || !cards(s.extras, COMBAT.maxExtras) || new Set(s.extras).size !== s.extras.length
+    || !int(s.tier, 0, 10) || !int(s.health, 0, 10_000) || !int(s.turn, 0, 1000)
+    || !object(s.tags) || !Object.entries(s.tags).every(([k, v]) => PLAYER_TAGS.has(k) && value(v))
+    // The opponent's card values are not shown by the client, so a record never holds them.
+    || !object(s.cardTags) || Object.keys(s.cardTags).length > (opponent ? 0 : COMBAT.maxExtras)
+    || !Object.entries(s.cardTags).every(([k, v]) => card(k) && object(v) && Object.entries(v).every(([t, n]) => CARD_TAGS.has(t) && value(n)))
+    || !Array.isArray(s.minions) || s.minions.length > COMBAT.maxMinions || !s.minions.every(m => combatMinion(m, true))) return false;
+  for (const m of s.minions) {
+    if (board.has(m.entity)) return false;
+    board.add(m.entity);
+  }
+  return true;
+}
+export function validCombat(d) {
+  if (!fields(d, 'fight turn oursFirst firstAttacker damageCap countDamage ours theirs facts result damageTaken damageDealt odds transcript')
+    || Buffer.byteLength(JSON.stringify(d)) > COMBAT.maxDataBytes
+    || !int(d.fight, 0, COMBAT.maxFights - 1) || !int(d.turn, 0, 1000) || !nullable(d.oursFirst, bool)
+    || !int(d.firstAttacker, 0, COMBAT.maxRef) || !int(d.damageCap, 0, 1000) || !bool(d.countDamage)) return false;
+  const board = new Set();
+  if (!combatSide(d.ours, false, board) || !combatSide(d.theirs, true, board) || (d.firstAttacker !== 0 && !board.has(d.firstAttacker))
+    || !Array.isArray(d.facts) || d.facts.length > COMBAT.maxFacts) return false;
+  const known = new Set();
+  for (const f of d.facts) {
+    if (!fields(f, 'entity card markers') || !int(f.entity, 1, COMBAT.maxRef) || !board.has(f.entity) || known.has(f.entity) || !card(f.card)
+      || !Array.isArray(f.markers) || f.markers.length > MARKERS.size || !f.markers.every(x => MARKERS.has(x))
+      || new Set(f.markers).size !== f.markers.length) return false;
+    known.add(f.entity);
+  }
+  return ['W', 'T', 'L'].includes(d.result) && int(d.damageTaken, 0, 1000) && int(d.damageDealt, 0, 1000)
+    && nullable(d.odds, o => fields(o, 'win tie loss lethalTaken lethalDealt unsimulated runs') && share(o.win) && share(o.tie) && share(o.loss)
+      && nullable(o.lethalTaken, share) && nullable(o.lethalDealt, share) && int(o.unsimulated, 0, 1000) && int(o.runs, 0, 10_000_000))
+    && d.transcript === null;
 }
 function multisetSubset(picked, options) {
   const remaining = [...options];
@@ -157,14 +226,14 @@ export function validateManifest(b) {
   if (Array.isArray(b.chunks) && b.chunks.length > 64) fail(413, 'capture_limit');
   if (!fields(b, 'v iid generation captureId captureKind mode day sourceVersion captureStatus chunks gaps')
     || !['game', 'draft'].includes(b.captureKind) || !MODES.includes(b.mode) || !int(b.day, 0, 100000)
-    || ![1, 2].includes(b.sourceVersion) || !['complete', 'incomplete'].includes(b.captureStatus) || !int(b.gaps)
+    || ![1, 2, 3].includes(b.sourceVersion) || !['complete', 'incomplete'].includes(b.captureStatus) || !int(b.gaps)
     || !Array.isArray(b.chunks) || !int(b.chunks.length, 1, 64)) fail(400, 'invalid_manifest');
   for (const [i, c] of b.chunks.entries()) {
     if (!fields(c, 'index sha256 uncompressedBytes') || c.index !== i || !HEX64.test(c.sha256 ?? '') || !int(c.uncompressedBytes, 1, 4 * MiB)) fail(400, 'invalid_manifest');
   }
 }
 
-export function streamState() { return { version: null, combatView: 0, header: true, seq: 0, turn: 0, first: null, last: null, gaps: 0, ended: false, unsupported: false, blocks: [], choices: new Map(), concealed: new Set(), publicRefs: new Set() }; }
+export function streamState() { return { version: null, combatView: 0, header: true, seq: 0, turn: 0, first: null, last: null, gaps: 0, ended: false, unsupported: false, blocks: [], choices: new Map(), concealed: new Set(), publicRefs: new Set(), combats: [] }; }
 export function addRecords(state, list) {
   for (const r of list) {
     if (r.seq !== state.seq++ || state.ended || (r.kind === 'start' && r.seq !== 0)) fail(400, 'invalid_sequence');
@@ -178,6 +247,13 @@ export function addRecords(state, list) {
       if (!state.header || r.data.count !== 1 || ++state.combatView > 1 || s?.captureKind !== 'game' || !['bg', 'duos'].includes(s?.mode)) fail(400, 'invalid_combat_view');
     }
     if (r.turn < state.turn || (r.seq === 0 && r.kind !== 'start')) fail(400, 'invalid_sequence');
+    // v3: the fights of a Battlegrounds game, in order, at most one per combat (the pool stores them on commit).
+    if (r.kind === 'bg_combat') {
+      const s = state.first?.data;
+      if (s?.captureKind !== 'game' || !['bg', 'duos'].includes(s?.mode) || state.combats.length >= COMBAT.maxFights
+        || (state.combats.length && r.data.fight <= state.combats.at(-1).fight)) fail(400, 'invalid_combat');
+      state.combats.push(r.data);
+    }
     state.turn = r.turn;
     state.first ??= r;
     state.last = r;
@@ -221,7 +297,7 @@ export function finishStream(state, b) {
   const start = state.first;
   if (start?.kind !== 'start' || ['captureKind', 'mode', 'day'].some(k => start.data[k] !== b[k]) || state.gaps !== b.gaps
     || state.version !== b.sourceVersion) fail(400, 'manifest_source_mismatch');
-  if (state.version === 2 && start.data.captureKind === 'game' && ['bg', 'duos'].includes(start.data.mode) && state.combatView !== 1) fail(400, 'invalid_combat_view');
+  if (state.version >= 2 && start.data.captureKind === 'game' && ['bg', 'duos'].includes(start.data.mode) && state.combatView !== 1) fail(400, 'invalid_combat_view');
   const end = state.last;
   if (b.captureStatus === 'complete' && (end?.kind !== 'end' || end.data.status !== 'complete' || state.gaps !== 0 || state.unsupported
     || state.blocks.length || [...state.choices.values()].some(x => !x.resolved))) fail(400, 'incomplete_stream');

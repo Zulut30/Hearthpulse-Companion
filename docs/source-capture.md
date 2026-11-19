@@ -15,12 +15,15 @@ with ordered alternatives, actions, visible board/shop snapshots, draft choices 
 a contiguous sequence number, turn, scoped references and versioned payload. Repeated alternatives remain repeated;
 a card instance is distinct from its card definition. Draft captures are independent of completed matches.
 
-Source v2 (current recorder) adds only public context and labels: the game's format for Ranked/Casual
+Source v2 adds only public context and labels: the game's format for Ranked/Casual
 (`standard|wild|classic|twist`), the Arena kind (`normal|underground`, also on draft captures), the client's choice
 type (`mulligan|general|other`) and a named `combat_view` gap that marks every Battlegrounds game source as not a
 replay of the displayed combat. All records of a capture share one version, recorded as `manifest.sourceVersion`; a
 capture spooled by an older app is finished and sent as v1 unchanged. Contract details: the
 [CLI contract](../tools/Hearthpulse.SourceWorker/README.md#source-v2-and-result-v2).
+
+Source v3 (current recorder, 2026-11-19) is v2 plus one record kind, `bg_combat`: the fights of a Battlegrounds game
+(below). A v1/v2 line of that kind is invalid; everything else reads as v2.
 
 There is no player name, BattleTag, account id, deck name, chat, authentication/network log or machine path in the
 wire format. Other players' hidden cards, shop or future post-game reveals are not a source. References across
@@ -30,6 +33,89 @@ Capture is a typed safety boundary. Unknown or unavailable observations produce 
 an arbitrary string payload or an invented zero. A newly supported semantic interpretation can reuse saved source;
 a new capture field or source sometimes needs a client update. The v1 allowlist does not imply coverage of every
 Hearthstone mechanic or a guarantee of complete data from every installation.
+
+## Battlegrounds fights (`bg_combat`, source v3)
+
+Purpose: measure the combat simulator on at least 500 fights it was not tuned on (owner, 2026-11-19; the task card
+TASK-2026-11-19-sim-all-mechanics, package U). Same switch as the rest of the journal: on by default, off with
+"Send my games to Hearthpulse statistics"; no consent question and no notice.
+
+- **When.** At the end of a Battlegrounds or Duos game the recorder asks the tracker for the game's finished fights
+  and writes one `bg_combat` record per fight just before `end` (`SourceCaptureRecorder.Combats`,
+  `GameSession.SourceCombats`). The journal is sent only after `end` is spooled, so no fight leaves during the game. A
+  fight whose combat never ended is not one. A historical catch-up replay records nothing, as before.
+- **From where.** An allowlisted copy of the fights the tracker holds in memory (`SourceCaptureCombat.FromGame`), the
+  same ones the local `combat-captures/` file keeps; that file itself is not read or sent.
+- **What (the allowlist).** Envelope `side:"none"`, `entity:0`, `card:null`, `target:0`; data, every field always
+  present: `fight` (the combat's number in the game, 0–63, growing), `turn`, `oursFirst` (true/false/null),
+  `firstAttacker`, `damageCap`, `countDamage` (false in Duos), `ours`/`theirs`, `facts`, `result` (`W|T|L`),
+  `damageTaken`, `damageDealt`, `odds` (null or `win, tie, loss, lethalTaken, lethalDealt` rounded to 4 decimals,
+  `unsimulated`, `runs`: what the app showed when the game ended) and `transcript`.
+  A side: `hero`, `heroPower`, `extras` (player-level cards: hero powers, trinkets, quest rewards, anomaly, Deity), `tier`,
+  `health` (hero health with armor), `turn`, `tags` (only the player counters effects read: `BACON_BLOODGEMBUFFATKVALUE`,
+  `BACON_BLOODGEMBUFFHEALTHVALUE`, `TAVERN_SPELL_ATTACK_INCREASE`, `TAVERN_SPELL_HEALTH_INCREASE`,
+  `BACON_OLD_GOD_ATTACK`, `BACON_OLD_GOD_HEALTH`, `4914`, `4915`), `cardTags` (the local player's player-level card
+  values `TAG_SCRIPT_DATA_NUM_1/2`; always `{}` for the opponent), `minions`. A minion: `entity`, `card`, `golden`,
+  `attack`, `health`, `maxHealth`, `baseHealth`, `rebornAttack`, `keywords` (Taunt, Divine Shield, Poisonous, Venomous,
+  Reborn, Stealth bits), `attacks` (Windfury), `baseKeywords`, `tribes`, `mechanics`, `tier`, `script1`, `script2`,
+  `creator` (card id), `enchantments` (card ids), `remembered` (minions a start-of-combat trigger removed, one level),
+  `unsimulated`. A fact: `entity`, `card` (as logged), `markers` (`DEATHRATTLE TRIGGER_VISUAL AURA AVENGE OVERKILL
+  BACON_RALLY`).
+- **Never.** Either hand (the player's own included), the opponent's card values, other player tags (ratings, ids),
+  names, BattleTags, account ids, paths or text. Entity ids are fight-scoped references 1.. in Power.log order (the
+  simulator only compares them), not the game's ids.
+- **Caveat to "only what the player saw" (owner's decision, 2026-11-19).** The fights are uploaded to measure the
+  simulator. Simulator inputs the client may not show (the opponent's player counters such as Blood Gem values, the
+  `script1/2` values of his minions and the card that created them, `creator`) are sent after the game, only for this
+  measurement, and never published. Both boards themselves are visible during the combat. `creator` stays on the
+  opponent's side because the simulator needs it there: his hero powers that copy or summon (Vanndar, Drek'Thar, the
+  Tentacle power) check which minion they already made, and it is part of the simulation seed.
+- **Limits** (client, decoder and pool alike): 64 fights a game, 7 minions a side, 7 remembered per minion (none
+  nested), 32 enchantments a minion, 16 player-level cards and values a side, 14 facts, references up to 1000, stats
+  0–1 000 000, data at most 56 KiB (inside the 64 KiB line limit). A fight outside them is left out whole and counted
+  in the log (`Source capture: N fight(s) left out of the journal`), never cut, so the journal is never refused for it.
+- **Transcript.** Reserved for the fight step by step: `null` in this version; anything else is refused until its
+  allowlist is written. Bounds fixed now: format version 1, at most 512 steps and 16 KiB.
+- **Rules in code.** `SourceCaptureCombat` (app and decoder) and `validCombat` in `server/pool/node/validation.mjs`;
+  `server/pool/test/bg-combat.fixture.json` is checked by both test suites (`SourceCaptureCombatTests`,
+  `combats.test.mjs`). A new tribe, keyword or mechanic bit, marker, card value or player counter changes all three
+  (`The_wire_lists_are_the_ones_the_simulator_reads` fails first).
+- **Decoder.** Reads v3; a `bg_combat` adds no fact and no gap, its event keeps no data. Parser version unchanged
+  (`source-v2.0`): v1/v2 sources decode as before.
+- **Pool.** On the manifest commit the fights go to table `bg_combats` (migration `0010_bg_combats.sql`) in the same
+  transaction, or the commit answers 503 to retry under storage pressure. They leave with their capture: expiry (the
+  archive retention, 180 days), forget of the generation, deletion. Nothing is published from them; `/healthz` shows a
+  count (`bgCombats`).
+- **Export (owner only).** On the pool host, with the token from the service's env file, never typed on a command line
+  (it would stay in the shell history):
+
+  ```sh
+  set -a; . /etc/hearthpulse-pool/pool.env; set +a   # or: read -rs POOL_OPERATOR_TOKEN; export POOL_OPERATOR_TOKEN
+  node server/pool/node/export-combats.mjs --out fights.jsonl
+  ```
+
+  The loopback route `POST /v1/captures/combats/export` takes the operator token like reprocess; nginx refuses it. One
+  line per fight: `{"v":1,"game":"<16 hex of a hash of the capture key>","day","build","mode","fight"}`, no
+  installation, generation or capture key. Read with `Hearthpulse.Bench simcover --pool fights.jsonl`.
+- **Rule for an export file** (legal review L-M2). Pool retention, forget and deletion do not reach a copy, so:
+  - it is a working copy only on the pool host or the owner's PC, moved between them over SSH (`scp`/`sftp`);
+  - never committed, never put on a cloud drive, never given to anyone else or to an outside service;
+  - deleted after the measurement and no later than 180 days from the `day` of its rows; a new measurement takes a
+    fresh export;
+  - `simcover --pool` leaves out any row older than 180 days (`PoolFights.MaxAgeDays`), so a stale copy gives nothing.
+- **Order of deployment.** Deploy `server/pool` before releasing an app that writes v3. A pool without v3 refuses a v3
+  journal as an unknown record (`400 invalid_record`); the app then sends that journal and the following ones as v2
+  without their fights until it restarts (`SourceCaptureQueue.Downgrade.cs`, log line `Source capture: the pool does
+  not take source v3 yet...`), so the queue never waits on it, but those fights are lost.
+- **Before releasing v3: update the site's privacy policy, section 9** (legal review L-M1; the site is another
+  repository). The ready paragraph from the review, with the card that created a minion added, for the owner to paste:
+
+  > «После игры в Полях сражений журнал содержит и каждый бой так, как его получил симулятор боёв приложения: оба
+  > стола на момент первой атаки (карты, статы, ключевые слова, усиления, карта, создавшая существо), героев, силы
+  > героя, аксессуары и награды, уровень таверны, здоровье, счётчики игроков обеих сторон (например, усиление Кровавых
+  > самоцветов — в том числе соперника, даже если игра их не показывает), показанные шансы, исход и урон. Никогда —
+  > руки, имена, BattleTag, аккаунты. Цель — проверять точность симулятора. Бои не публикуются, хранятся и удаляются
+  > вместе с журналом (до 180 дней, при выключении отправки).»
 
 ## Delivery and lifecycle
 
