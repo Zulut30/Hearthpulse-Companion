@@ -2,7 +2,7 @@ using Hearthpulse.Core.Battlegrounds.Effects;
 
 namespace Hearthpulse.Core.Battlegrounds;
 
-/// <summary>Changing units: buffs, set stats, keywords, auras and spells cast in combat.</summary>
+/// <summary>Changing units: buffs, set stats, keywords and auras (spells cast in combat: Fight.Spells.cs).</summary>
 public sealed partial class Fight
 {
     /// <summary>Gives +Attack/+Health (negative values reduce; Attack never goes below 0).</summary>
@@ -151,18 +151,5 @@ public sealed partial class Fight
         }
 
         return total;
-    }
-
-    // ================================================================================================ spells
-
-    /// <summary>
-    /// A spell cast in combat by <paramref name="caster"/> (e.g. a Rally that casts a Tavern spell): runs
-    /// <paramref name="resolve"/>, then "after you cast a spell" hooks.
-    /// </summary>
-    public void CastSpell(Side caster, string spellCardId, Unit? target, Action<Fight>? resolve = null)
-    {
-        if (Tracing) Trace($"{(caster.IsOpponent ? "they" : "we")} cast {spellCardId}");
-        resolve?.Invoke(this);
-        Raise(caster, Hook.SpellCast, target, text: spellCardId);
     }
 }

@@ -197,6 +197,23 @@ public abstract class CombatEffect
     /// <summary>Re-evaluates state-dependent keywords or thresholds (e.g. "has Taunt while it has Divine Shield").</summary>
     public virtual void Refresh(Fight fight, Unit self) { }
 
+    // ---- Spells, cards to hand, Blood Gems (Fight.Spells.cs) ------------------------------------------------------
+
+    /// <summary>
+    /// "Whenever you cast a (Tavern) spell (on X)": the owner is casting <paramref name="spell"/>, before it resolves
+    /// (a real log shows such triggers ahead of the spell's own effect). <see cref="AfterFriendlySpellCast"/> runs after it.
+    /// </summary>
+    public virtual void OnFriendlySpellCast(Fight fight, Unit self, in SpellCast spell) { }
+
+    /// <summary>Extra times a spell of the owner casts ("your spells ... cast twice"); each extra time is a full cast.</summary>
+    public virtual int ExtraSpellCasts(Fight fight, Unit self, in SpellCast spell) => 0;
+
+    /// <summary>"Whenever a card is added to your hand" (see <see cref="Fight.AddToHand"/>); empty id = a random card the sim does not pick.</summary>
+    public virtual void AfterCardAddedToHand(Fight fight, Unit self, string cardId) { }
+
+    /// <summary>A Blood Gem was played on a friendly minion (possibly self) by <paramref name="source"/> (see <see cref="Fight.PlayBloodGem"/>).</summary>
+    public virtual void AfterFriendlyBloodGem(Fight fight, Unit self, Unit target, Unit? source) { }
+
     private static Hook ScanHooks(Type type)
     {
         var hooks = Hook.None;
@@ -237,6 +254,10 @@ public abstract class CombatEffect
         (nameof(AfterFriendlySpellCast), Hook.SpellCast),
         (nameof(AuraFor), Hook.Aura),
         (nameof(Refresh), Hook.Refresh),
+        (nameof(OnFriendlySpellCast), Hook.SpellCasting),
+        (nameof(ExtraSpellCasts), Hook.ExtraSpellCasts),
+        (nameof(AfterCardAddedToHand), Hook.CardToHand),
+        (nameof(AfterFriendlyBloodGem), Hook.BloodGem),
     ];
 }
 
@@ -286,4 +307,8 @@ internal enum Hook
     SpellCast = 1 << 20,
     Aura = 1 << 21,
     Refresh = 1 << 22,
+    SpellCasting = 1 << 23,
+    ExtraSpellCasts = 1 << 24,
+    CardToHand = 1 << 25,
+    BloodGem = 1 << 26,
 }
