@@ -91,9 +91,13 @@ public static partial class CombatSimulator
 
         public int LethalDealt { get; set; }
 
+        /// <summary>Fights an engine limit cut short (<see cref="CombatOdds.Truncated"/>).</summary>
+        public int Truncated { get; set; }
+
         public void Add(Tally other)
         {
             Done += other.Done;
+            Truncated += other.Truncated;
             Wins += other.Wins;
             Losses += other.Losses;
             LethalTaken += other.LethalTaken;
@@ -107,7 +111,7 @@ public static partial class CombatSimulator
 
         public void Clear()
         {
-            Done = Wins = Losses = LethalTaken = LethalDealt = 0;
+            Done = Wins = Losses = LethalTaken = LethalDealt = Truncated = 0;
             Array.Clear(Taken);
             Array.Clear(Dealt);
         }
@@ -116,6 +120,9 @@ public static partial class CombatSimulator
     /// <summary>Hero damage per finished fight, by who won (<see cref="DamageRules"/>), and the fights that were lethal.</summary>
     private sealed class DamageRule(SimSide ours, SimSide theirs, int cap, bool count)
     {
+        private readonly bool _ourIceBlock = DamageRules.HasIceBlock(ours);
+        private readonly bool _theirIceBlock = DamageRules.HasIceBlock(theirs);
+
         /// <summary>Damage is estimated (off for Duos).</summary>
         public bool Count => count;
 
@@ -138,13 +145,13 @@ public static partial class CombatSimulator
 
             if (outcome > 0)
             {
-                var dealt = DamageRules.DamageOfTiers(ours.TavernTier, ourSurvivorTiers, cap);
+                var dealt = DamageRules.Taken(DamageRules.DamageOfTiers(ours.TavernTier, ourSurvivorTiers, cap), theirs.Health, _theirIceBlock);
                 tally.Dealt[Math.Min(dealt, Tally.MaxDamage)]++;
                 tally.LethalDealt += DamageRules.IsLethal(dealt, theirs.Health) ? 1 : 0;
             }
             else if (outcome < 0)
             {
-                var taken = DamageRules.DamageOfTiers(theirs.TavernTier, theirSurvivorTiers, cap);
+                var taken = DamageRules.Taken(DamageRules.DamageOfTiers(theirs.TavernTier, theirSurvivorTiers, cap), ours.Health, _ourIceBlock);
                 tally.Taken[Math.Min(taken, Tally.MaxDamage)]++;
                 tally.LethalTaken += DamageRules.IsLethal(taken, ours.Health) ? 1 : 0;
             }
@@ -263,8 +270,12 @@ public static partial class CombatSimulator
                 for (var r = 0; r < runs; r++)
                 {
                     var fight = new Fight(ours, theirs, effects, chooser, trace: false, _prepared);
+                    // Which side entered play first decides the death order (rules-evidence 4a). Without both PLAYER_IDs the
+                    // runs alternate between the two orders: an even mix, not the attacking side first (right in 47 of 89).
+                    fight.EnteredFirst ??= r % 2 == 0 ? fight.Ours : fight.Theirs;
                     var outcome = fight.Run(firstAttackerIsOurs, options.FirstAttackerEntityId);
                     rules.Add(tally, outcome, rules.Count ? SurvivorTiers(fight.Ours) : 0, rules.Count ? SurvivorTiers(fight.Theirs) : 0);
+                    tally.Truncated += fight.Truncated ? 1 : 0;
                 }
 
                 Finish(chunk, tally);

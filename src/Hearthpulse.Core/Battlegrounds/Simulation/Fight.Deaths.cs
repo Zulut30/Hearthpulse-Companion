@@ -23,7 +23,8 @@ public sealed partial class Fight
         try
         {
             var dead = _dead;
-            for (var round = 0; round < MaxDeathRounds; round++)
+            var round = 0;
+            for (; round < MaxDeathRounds; round++)
             {
                 dead.Clear();
                 CollectDead(Attacking, dead);
@@ -33,13 +34,17 @@ public sealed partial class Fight
                     break;
                 }
 
+                SortByEntry(dead);
+
                 // Remember where each one stood, then take them all off the board at once.
                 foreach (var unit in dead)
                 {
                     var side = unit.Side;
                     var index = side.IndexOf(unit);
                     unit.DeathIndex = index;
-                    unit.DiedLeftOfGap = index < side.Gap;
+                    // The side's last attacker stands just left of the gap, but what it leaves in its slot attacks next
+                    // (rules-evidence 2b: 15 of 15, e.g. 15.11 g1c4 Beetle#2118 attacks at line 29266).
+                    unit.DiedLeftOfGap = index < side.Gap && unit != side.LastAttacker;
                     unit.DeathAnchor = null;
                     for (var i = index + 1; i < side.Count; i++)
                     {
@@ -60,10 +65,6 @@ public sealed partial class Fight
                 {
                     if (Tracing) Trace($"{Name(unit)} dies");
                     RunDeathrattles(unit, DeathrattleTriggers(unit.Side));
-                    if (unit.Reborn)
-                    {
-                        SummonReborn(unit);
-                    }
                 }
 
                 foreach (var unit in dead)
@@ -72,7 +73,28 @@ public sealed partial class Fight
                     Raise(unit.Enemy, Hook.EnemyDeath, unit);
                 }
 
+                // Reborn after Avenge (rules-evidence 4d: 15.11 g4c9, AVENGE at line 997634, the copy at 997669).
+                foreach (var unit in dead)
+                {
+                    if (unit.Reborn)
+                    {
+                        SummonReborn(unit);
+                    }
+                }
+
+                // "When you have space" waits look for room once the reborn copies took theirs (simreplay #4/11, 15.11:
+                // Bubble Gunner's copy at line 1086990, Diremuck Forager's Murloc only after it died, 1087143).
+                var first = EnteredFirst ?? Attacking;
+                Raise(first, Hook.DeathPhaseEnd, null);
+                Raise(first.Enemy, Hook.DeathPhaseEnd, null);
+
                 RefreshAuras();
+            }
+
+            if (round == MaxDeathRounds)
+            {
+                // Minions still dying after the last round the engine follows: the result is not simulated.
+                Truncated = true;
             }
         }
         finally
@@ -105,6 +127,32 @@ public sealed partial class Fight
             }
         }
     }
+
+    /// <summary>
+    /// Puts simultaneous deaths in order of play (stable insertion sort, no allocation): rules-evidence 4a, 83 of 83
+    /// phases, e.g. 15.11 g5c12 (PLAYER_ID 8 vs 3): the opponent's N'raqi Sapper (line 1421143) before our Runic Arcanist.
+    /// </summary>
+    private void SortByEntry(List<Unit> dead)
+    {
+        for (var i = 1; i < dead.Count; i++)
+        {
+            var unit = dead[i];
+            var key = EntryKey(unit);
+            var j = i - 1;
+            while (j >= 0 && EntryKey(dead[j]) > key)
+            {
+                dead[j + 1] = dead[j];
+                j--;
+            }
+
+            dead[j + 1] = unit;
+        }
+    }
+
+    private int EntryKey(Unit unit) =>
+        unit.Entry >= CapturedSummonEntry ? unit.Entry
+        : unit.Side == (EnteredFirst ?? Attacking) ? unit.Entry
+        : Side.MaxMinions + unit.Entry;
 
     /// <summary>How many times a deathrattle of this side triggers: 1 + extra triggers from living minions and the side.</summary>
     public int DeathrattleTriggers(Side side)
@@ -153,7 +201,7 @@ public sealed partial class Fight
 
     private void RunDeathrattles(Unit unit, int times)
     {
-        if ((unit.Hooks & Hook.Deathrattle) == 0 || _depth >= MaxDepth)
+        if ((unit.Hooks & Hook.Deathrattle) == 0 || TooDeep())
         {
             return;
         }
@@ -161,16 +209,18 @@ public sealed partial class Fight
         _depth++;
         try
         {
+            // Each deathrattle with all its extra triggers before the next one: A, A, B, B (effects-audit E2, 15.11 G4
+            // Ravaging Scorpid with Golemancy under Titus: lines 1389939, 1390019, then 1390099, 1390176).
             var effects = unit.Effects;
-            for (var t = 0; t < times; t++)
+            foreach (var effect in effects)
             {
-                foreach (var effect in effects)
+                if ((effect.Hooks & Hook.Deathrattle) == 0)
                 {
-                    if ((effect.Hooks & Hook.Deathrattle) == 0)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
+                for (var t = 0; t < times; t++)
+                {
                     if (Tracing) Trace($"deathrattle of {Name(unit)}");
                     effect.Deathrattle(this, unit);
                     unit.Side.DeathrattlesTriggered++;
@@ -259,7 +309,7 @@ public sealed partial class Fight
 
     private Unit? SummonCore(Side side, SimMinion minion, int index, bool leftOfGap, Unit? rebornFrom)
     {
-        if (side.IsFull || _depth >= MaxDepth)
+        if (side.IsFull || TooDeep())
         {
             if (Tracing) Trace($"no room to summon {minion.CardId} for {(side.IsOpponent ? "them" : "us")}");
             return null;

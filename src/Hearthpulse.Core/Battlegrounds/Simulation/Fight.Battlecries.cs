@@ -36,7 +36,7 @@ public sealed partial class Fight
     /// <param name="withMultiplier">Also apply "Battlecries trigger twice" (Brann).</param>
     public void TriggerBattlecry(Unit unit, int times = 1, bool withMultiplier = true)
     {
-        if (!HasBattlecry(unit) || times <= 0 || _depth >= MaxDepth)
+        if (!HasBattlecry(unit) || times <= 0 || TooDeep())
         {
             return;
         }
@@ -87,7 +87,7 @@ public sealed partial class Fight
 
     private void AfterBattlecry(Side side, Unit source)
     {
-        if ((side.Hooks & Hook.FriendlyBattlecry) == 0 || _depth >= MaxDepth)
+        if ((side.Hooks & Hook.FriendlyBattlecry) == 0 || TooDeep())
         {
             return;
         }

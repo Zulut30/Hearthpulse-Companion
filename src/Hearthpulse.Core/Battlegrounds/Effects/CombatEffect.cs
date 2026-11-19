@@ -47,13 +47,14 @@ public readonly record struct StatDelta(int Attack, int Health)
 /// fields: keep per-minion state on <see cref="Unit"/> (Counter, Counter2, AvengeCount) and per-player state on
 /// <see cref="Side"/> (Counter(key)).
 /// <para>
-/// Order of one attack: <see cref="OnAttack"/> (Rally) → <see cref="OnFriendlyAttack"/> → <see cref="OnFriendlyAttacked"/> →
+/// Order of one attack: <see cref="OnFriendlyAttack"/> → <see cref="OnAttack"/> (Rally) → <see cref="OnFriendlyAttacked"/> →
 /// death phase (the attack is cancelled if the attacker or target died) → simultaneous combat damage and
 /// <see cref="OnAttackDamage"/> (cleave) → damage hooks (<see cref="OnDamaged"/>, <see cref="AfterFriendlyDealtDamage"/>,
 /// <see cref="AfterKill"/>, <see cref="OnFriendlyShieldLost"/>) → <see cref="AfterAttack"/> → <see cref="AfterFriendlyAttack"/>
-/// → death phase. A death phase removes every dead minion (attacking side first, each side left to right), then per
-/// dead minion runs its deathrattles (× multiplier) and its Reborn, then <see cref="AfterFriendlyDeath"/> /
-/// <see cref="AfterEnemyDeath"/> for each death, refreshes auras, and repeats while minions keep dying.
+/// → death phase. A death phase removes every dead minion (in order of play: the lower PLAYER_ID side's starting
+/// minions, the other side's, then minions summoned in combat), then per dead minion runs its deathrattles (each one
+/// × multiplier before the next), then <see cref="AfterFriendlyDeath"/> / <see cref="AfterEnemyDeath"/> for each death,
+/// then each Reborn, refreshes auras, and repeats while minions keep dying.
 /// </para>
 /// </summary>
 public abstract class CombatEffect
@@ -114,7 +115,10 @@ public abstract class CombatEffect
     /// <summary>This minion attacks <paramref name="target"/>, before damage: Rally and "whenever this attacks".</summary>
     public virtual void OnAttack(Fight fight, Unit self, Unit target) { }
 
-    /// <summary>A friendly minion attacks, before damage. Also called with <paramref name="attacker"/> == self; check it for "another".</summary>
+    /// <summary>
+    /// A friendly minion attacks, before damage and before the attacker's own <see cref="OnAttack"/> (Rally). Also called
+    /// with <paramref name="attacker"/> == self; check it for "another".
+    /// </summary>
     public virtual void OnFriendlyAttack(Fight fight, Unit self, Unit attacker, Unit target) { }
 
     /// <summary>A friendly minion (possibly self) is attacked, before damage.</summary>
@@ -158,11 +162,17 @@ public abstract class CombatEffect
     /// <summary>After one friendly deathrattle trigger resolved (per trigger, multipliers included).</summary>
     public virtual void OnFriendlyDeathrattle(Fight fight, Unit self, Unit source) { }
 
-    /// <summary>After a friendly minion died (its deathrattles and Reborn have resolved): Avenge, "after a friendly X dies".</summary>
+    /// <summary>After a friendly minion died (its deathrattles have resolved, its Reborn comes after): Avenge, "after a friendly X dies".</summary>
     public virtual void AfterFriendlyDeath(Fight fight, Unit self, Unit dead) { }
 
     /// <summary>After an enemy minion died.</summary>
     public virtual void AfterEnemyDeath(Fight fight, Unit self, Unit dead) { }
+
+    /// <summary>
+    /// Once per side after each round of a death phase, when its deathrattles, Avenge and Reborn have all resolved: a
+    /// "when you have space" wait (Diremuck Forager) looks for room here, after the reborn copies took theirs.
+    /// </summary>
+    public virtual void AfterDeathPhase(Fight fight, Unit self) { }
 
     // ---- Summons -----------------------------------------------------------------------------------------------
 
@@ -271,6 +281,7 @@ public abstract class CombatEffect
         (nameof(OnFriendlyDeathrattle), Hook.FriendlyDeathrattle),
         (nameof(AfterFriendlyDeath), Hook.FriendlyDeath),
         (nameof(AfterEnemyDeath), Hook.EnemyDeath),
+        (nameof(AfterDeathPhase), Hook.DeathPhaseEnd),
         (nameof(OnSummoned), Hook.Summoned),
         (nameof(WheneverFriendlySummoned), Hook.WheneverSummon),
         (nameof(AfterFriendlySummoned), Hook.AfterSummon),
@@ -299,7 +310,11 @@ public abstract class AvengeEffect : CombatEffect
 
     public override void AfterFriendlyDeath(Fight fight, Unit self, Unit dead)
     {
-        if (++self.AvengeCount >= Math.Max(1, Threshold(self)))
+        // The count starts at the friendly deaths of Start of Combat (SimMinion.FriendlyDeathsBeforeCapture); any full X of
+        // them already fired before the capture, so only the remainder carries over.
+        var threshold = Math.Max(1, Threshold(self));
+        self.AvengeCount = self.AvengeCount % threshold + 1;
+        if (self.AvengeCount >= threshold)
         {
             self.AvengeCount = 0;
             Avenge(fight, self);
@@ -328,6 +343,8 @@ internal enum Hook : long
     FriendlyDeathrattle = 1L << 13,
     FriendlyDeath = 1L << 14,
     EnemyDeath = 1L << 15,
+    // Package R's bits are 50-53.
+    DeathPhaseEnd = 1L << 50,
     Summoned = 1L << 16,
     WheneverSummon = 1L << 17,
     AfterSummon = 1L << 18,

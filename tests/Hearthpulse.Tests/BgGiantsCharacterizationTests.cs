@@ -139,6 +139,11 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // its printed +1/+1, golden Beetle Band is Avenge (8) with the player's Beetle); not split up and checked one by one.
         // 2026-11-19 (FIX sim-effects-audit, merged after E3): effects corrected to the live card text (The Last One
         // Standing, Eudora, Kodo, C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose.
-        Assert.Equal("fights B38EEFBF3604898A", actual);
+        // 2026-11-19 (sim-rules): engine rules from real Power.log fights change these fights on purpose (rules-evidence
+        // 2b, 4a, 4d, 4e; effects-audit E1, E2: a dead attacker's summons attack next, deaths in order of play, Reborn
+        // after Avenge, reborn max Health, friendly-attack hooks before Rally, deathrattles A,A,B,B; simreplay: Diremuck
+        // Forager's pending Murloc at the right end after Reborn); the boards are the
+        // same, and before those rules (main at 21a1bb33) the fingerprint is B38EEFBF3604898A.
+        Assert.Equal("fights 686C34B3497F4560", actual);
     }
 }

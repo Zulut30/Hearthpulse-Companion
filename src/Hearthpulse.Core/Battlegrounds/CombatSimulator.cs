@@ -107,13 +107,18 @@ public sealed partial record SimMinion(
 
     /// <summary>
     /// What Reborn brings back: a fresh copy of the card with its printed Attack, 1 Health and its printed keywords
-    /// (not buffs, not enchantments), golden if the minion was golden, without Reborn.
+    /// (not buffs, not enchantments), golden if the minion was golden, without Reborn. Its maximum Health is the printed
+    /// Health, so it is a damaged minion (Power.log: HEALTH = printed, DAMAGE = printed - 1; rules-evidence 4e, 12 copies).
     /// </summary>
     public SimMinion RebornCopy() =>
         Create(CardId, RebornAttack, 1, Tribes, BaseKeywords & ~Keyword.Reborn, Golden, Mechanics) with
         {
+            MaxHealth = Math.Max(1, BaseHealth),
             BaseHealth = BaseHealth,
             TechLevel = TechLevel,
+            // A fresh copy shows the card's base script data: the captured one where it never changes (FixedScriptDataCards).
+            ScriptData1 = FixedScriptDataCards.Contains(CardId) ? ScriptData1 : 0,
+            ScriptData2 = FixedScriptDataCards.Contains(CardId) ? ScriptData2 : 0,
         };
 }
 
@@ -266,6 +271,12 @@ public sealed record CombatOdds(double Win, double Tie, double Loss, int Unsimul
     public int DamageCap { get; init; }
 
     /// <summary>
+    /// Fights cut short by an engine limit (nested triggers deeper than the engine follows, or endless death phases):
+    /// effects were dropped there, so <see cref="Unsimulated"/> counts one more "not simulated" item when this is above 0.
+    /// </summary>
+    public int Truncated { get; init; }
+
+    /// <summary>
     /// Inputs the fight was simulated with an estimate for (<see cref="SimSide.Estimates"/> of both sides): values of the
     /// opponent the player cannot see. Separate from <see cref="Unsimulated"/>: those effects did run.
     /// </summary>
@@ -293,7 +304,11 @@ public sealed record UnsimulatedItem(string CardId, bool Golden, bool IsOpponent
 }
 
 /// <summary>One simulated fight: +1 we won, -1 we lost, 0 tie; the surviving minions and (when traced) a log.</summary>
-public sealed record FightResult(int Outcome, IReadOnlyList<SimMinion> Ours, IReadOnlyList<SimMinion> Theirs, IReadOnlyList<string> Log);
+public sealed record FightResult(int Outcome, IReadOnlyList<SimMinion> Ours, IReadOnlyList<SimMinion> Theirs, IReadOnlyList<string> Log)
+{
+    /// <summary>An engine limit cut the fight short and dropped effects (see <see cref="CombatOdds.Truncated"/>).</summary>
+    public bool Truncated { get; init; }
+}
 
 /// <summary>
 /// Monte Carlo Battlegrounds combat. Keywords (taunt, divine shield, poisonous, venomous, reborn, windfury, stealth) are
@@ -355,6 +370,8 @@ public static partial class CombatSimulator
         // Stable seed: the same boards always show the same numbers, in every session and on any number of threads.
         var total = new Batch(ours, theirs, firstAttackerIsOurs, options, effects, rules, Seed(ours, theirs, firstAttackerIsOurs)).Run();
         int done = total.Done, wins = total.Wins, losses = total.Losses;
+        // A fight cut short by an engine limit dropped effects: one more "not simulated" item, not silence.
+        unsimulated += total.Truncated > 0 ? 1 : 0;
         if (done == 0)
         {
             return new CombatOdds(0, 1.0, 0, unsimulated) { Runs = 0 };
@@ -387,7 +404,12 @@ public static partial class CombatSimulator
             tieRate = Math.Max(0.0, 1.0 - winRate - lossRate);
         }
 
-        var odds = new CombatOdds(winRate, tieRate, lossRate, unsimulated) { Runs = done, HalfWidth = HalfWidth(wins, losses, done) };
+        var odds = new CombatOdds(winRate, tieRate, lossRate, unsimulated)
+        {
+            Runs = done,
+            HalfWidth = HalfWidth(wins, losses, done),
+            Truncated = total.Truncated,
+        };
         return rules.Count ? rules.With(odds, total) : odds;
     }
 
@@ -476,7 +498,10 @@ public static partial class CombatSimulator
             outcome,
             fight.Ours.Minions.Select(u => u.ToSimMinion()).ToList(),
             fight.Theirs.Minions.Select(u => u.ToSimMinion()).ToList(),
-            fight.Log);
+            fight.Log)
+        {
+            Truncated = fight.Truncated,
+        };
     }
 
     /// <summary>FNV-1a over the boards: stable across processes and machines (unlike string/record hash codes).</summary>

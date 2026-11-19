@@ -8,7 +8,7 @@ public sealed partial class Fight
     private void StatsGained(Unit unit, int attack, int health)
     {
         var side = unit.Side;
-        if (_depth >= MaxDepth)
+        if (TooDeep())
         {
             return;
         }

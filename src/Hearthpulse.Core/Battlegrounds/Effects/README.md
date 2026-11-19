@@ -41,7 +41,7 @@ internal sealed class HarmlessBonehead : CombatEffect
 |---|---|
 | `OnFightStart(f, self)` | once per simulated fight, before the first attack (not a Start of Combat trigger: those resolved before capture) |
 | `OnAttack(f, self, target)` | self attacks, **before damage**: Rally, "whenever this attacks" |
-| `OnFriendlyAttack(f, self, attacker, target)` | a friendly minion attacks, before damage (also called for self: check `attacker != self` for "another") |
+| `OnFriendlyAttack(f, self, attacker, target)` | a friendly minion attacks, before damage and before its own `OnAttack` (also called for self: check `attacker != self` for "another") |
 | `OnFriendlyAttacked(f, self, defender, attacker)` | a friendly minion is attacked, before damage |
 | `OnAttackDamage(f, self, target)` | during self's combat damage, after the main exchange: extra simultaneous damage (cleave) |
 | `AfterAttack(f, self, target, outcome)` | after self attacked, before the death phase (`outcome.Killed`, `outcome.Excess`) |
@@ -53,7 +53,8 @@ internal sealed class HarmlessBonehead : CombatEffect
 | `Deathrattle(f, self)` | self died (already off the board) or `TriggerDeathrattles` was called; runs once per trigger |
 | `ExtraDeathrattles(f, self)` | extra triggers for friendly deathrattles while self is alive (Titus: 1, golden 2) |
 | `OnFriendlyDeathrattle(f, self, source)` | after each friendly deathrattle trigger |
-| `AfterFriendlyDeath(f, self, dead)` / `AfterEnemyDeath` | after a death, once its deathrattles and Reborn resolved (Avenge: derive from `AvengeEffect`) |
+| `AfterFriendlyDeath(f, self, dead)` / `AfterEnemyDeath` | after a death, once its deathrattles resolved; its Reborn comes after (Avenge: derive from `AvengeEffect`) |
+| `AfterDeathPhase(f, self)` | once per side after each death-phase round, after its Reborn copies: "when you have space" waits (Diremuck Forager) |
 | `OnSummoned(f, self)` | self was just summoned (token, reborn copy) |
 | `WheneverFriendlySummoned` → `AfterFriendlySummoned(f, self, summoned)` | another friendly minion was summoned ("whenever" first) |
 | `AfterFriendlyReborn(f, self, reborn)` | a friendly minion came back with Reborn (`reborn.RebornFrom` is the old one) |
@@ -127,18 +128,23 @@ returns to 0 when Avenge fires).
 
 ## Engine order (see `Fight` remarks)
 
-attack declared → `OnAttack` / `OnFriendlyAttack` / `OnFriendlyAttacked` → death phase (attack cancelled if the
+attack declared → `OnFriendlyAttack` / `OnAttack` / `OnFriendlyAttacked` → death phase (attack cancelled if the
 attacker or target died) → simultaneous combat damage + `OnAttackDamage` → damage hooks → `AfterAttack` /
 `AfterFriendlyAttack` → death phase → queued "attacks immediately".
 
-Death phase: remove every dead minion at once (attacking side first, each side left to right) → per dead minion:
-deathrattles × (1 + extra triggers) then Reborn → "after a friendly/enemy minion dies" hooks per death → auras →
-repeat while minions keep dying.
+Death phase: remove every dead minion at once, in order of play (the starting minions of the side with the lower
+lobby PLAYER_ID, then the other side's, each left to right, then minions summoned in combat in summon order) → per
+dead minion: each deathrattle × (1 + extra triggers) before the next one (A, A, B, B) → "after a friendly/enemy minion
+dies" hooks per death → each Reborn → `AfterDeathPhase` → auras → repeat while minions keep dying. Without both PLAYER_IDs the runs mix
+both side orders evenly; a single traced fight takes the attacking side first.
 
 Attack order: each side's next attacker is the first minion with Attack at or right of the slot just right of its
-last attacker. Minions summoned into the slot of a minion that was left of that point (e.g. the attacker's own
-deathrattle tokens or reborn copy) wait for the next round; minions summoned right of it attack in turn.
-**Unverified against real logs**; the rule matches the simulator's behaviour before effects existed.
+last attacker. The deathrattle tokens and reborn copy of that last attacker take its slot and attack next; other
+minions summoned into a slot left of that point wait for the next round; minions summoned right of it attack in turn.
+
+These rules are checked against 55 real fights (`CombatRulesEvidenceTests`, with the Power.log lines). A trigger chain
+deeper than the engine follows, or endless death phases, is not dropped silently: the fight counts as
+`CombatOdds.Truncated` and as one more "not simulated" item.
 
 ## Testing an effect
 

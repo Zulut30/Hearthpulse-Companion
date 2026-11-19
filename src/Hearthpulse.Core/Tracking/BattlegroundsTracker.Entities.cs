@@ -209,10 +209,15 @@ public sealed partial class BattlegroundsTracker
     /// </summary>
     private SimSide BuildSide(GameState game, int controller, bool isOpponent, ILookup<int, Entity> enchantments)
     {
+        // The opponent's board is copied when the combat starts, so our minions created after its first copy were
+        // summoned during Start of Combat (15.11 g2c4: copies from 2071, our Flighty Scout 2145). The opponent's own
+        // Start of Combat summons cannot be told from its copies this way and count as starting minions.
+        var combatStart = isOpponent ? 0 : Minions(game, game.OpponentPlayerId).Select(e => e.Id).DefaultIfEmpty(0).Min();
         var minions = Minions(game, controller)
             .Select(e => ToSim(e, isOpponent, enchantments) with
             {
                 CreatorCardId = e.GetInt(GameTag.Creator) is > 0 and var creator ? game.Entities.GetValueOrDefault(creator)?.CardId ?? string.Empty : string.Empty,
+                SummonedInCombat = combatStart > 0 && e.Id > combatStart,
                 FriendlyDeathsBeforeCapture = FriendlyDeathsSeenBy(e),
             })
             .ToList();
@@ -259,6 +264,12 @@ public sealed partial class BattlegroundsTracker
             Tags = tags,
             RemovedByExtras = RemovedByExtras(game, controller),
             TavernTier = hero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var tier ? tier : player?.GetInt(GameTag.PlayerTechLevel) ?? 0,
+            // Lobby PLAYER_ID: on our hero and on the opponent's combat hero copy (decides the death order).
+            PlayerId = hero?.GetInt(GameTag.PlayerId) ?? 0,
+            // Our own secrets are on our screen; the opponent's are hidden and never read.
+            Secrets = isOpponent
+                ? Array.Empty<string>()
+                : game.Controlled(controller, "SECRET").Where(e => e.CardId.Length > 0).OrderBy(e => e.Id).Select(e => e.CardId).ToArray(),
             // Enchantments on the player entity: only our own (whether the client shows the opponent's is not established).
             PlayerEnchantments = isOpponent || player is null ? Array.Empty<SimEnchantment>() : enchantments[player.Id].Select(ToEnchantment).ToArray(),
             DeathsBeforeCapture = _deathsBeforeCapture.Where(d => d.Controller == controller).Select(d => d.Dead).ToArray(),

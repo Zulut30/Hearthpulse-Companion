@@ -5,8 +5,9 @@ internal static class DeathKit
 {
     /// <summary>
     /// The numbers a card shows as {0}/{1} in its text: the minion's captured TAG_SCRIPT_DATA_NUM_1/2 (the client fills
-    /// the text from them, so they include scaling), else the printed values of the normal or golden card. Minions made
-    /// in combat (tokens, reborn copies, Ghastcoiler's summons) carry no script data and use the printed values.
+    /// the text from them, so they include scaling), else the printed values of the normal or golden card. Tokens and
+    /// Ghastcoiler's summons carry no script data and use the printed values; a reborn copy keeps it only for cards whose
+    /// value never changes (<see cref="SimMinion.FixedScriptDataCards"/>).
     /// </summary>
     public static (int First, int Second) Shown(Unit unit, (int, int) normal, (int, int) golden)
     {

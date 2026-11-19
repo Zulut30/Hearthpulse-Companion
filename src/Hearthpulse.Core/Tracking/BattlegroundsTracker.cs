@@ -53,6 +53,12 @@ public sealed partial class BattlegroundsTracker : IPowerListener
 
     private bool _inCombat;
 
+    /// <summary>
+    /// Open blocks when the combat began: tavern blocks the log never closed (a PLAY block, what it opened) stay on the
+    /// parser's stack between combats, so only blocks above this depth belong to the combat.
+    /// </summary>
+    private int _combatBlockBase;
+
     /// <summary>Round the current combat started in, to notice a missed end-of-combat transition.</summary>
     private int _combatTurn;
 
@@ -410,12 +416,25 @@ public sealed partial class BattlegroundsTracker : IPowerListener
 
     /// <summary>
     /// An ATTACK block inside a TRIGGER block of a hero power, minion or quest reward is a start-of-combat attack;
-    /// regular attacks are not nested in such a block (blocks of the game or a player entity do not count).
-    /// Inferred from the log's block structure; not yet checked against a real Illidan/Broodmother log.
+    /// regular attacks are not nested in such a block (blocks of the game or a player entity do not count). Power.log
+    /// 15.11 (rules-evidence 1): g1c6 Wildfire Elemental attacks inside hero power BG22_HERO_000p_Alt's TRIGGER, g5c13
+    /// inside Heroic Broodmother's. Only blocks opened since the combat began count: a tavern block left without
+    /// BLOCK_END is not around this combat's attacks.
     /// </summary>
-    private static bool IsStartOfCombatAttack(GameState game) =>
-        game.OpenBlocks.Any(b => b.Type == "TRIGGER" && b.Source is { } s && s.Id != game.GameEntityId
-                                 && s.CardType is "HERO_POWER" or "MINION" or "BATTLEGROUND_QUEST_REWARD");
+    private bool IsStartOfCombatAttack(GameState game)
+    {
+        var blocks = game.OpenBlocks;
+        for (var i = Math.Min(_combatBlockBase, blocks.Count); i < blocks.Count; i++)
+        {
+            if (blocks[i] is { Type: "TRIGGER", Source: { } s } && s.Id != game.GameEntityId
+                && s.CardType is "HERO_POWER" or "MINION" or "BATTLEGROUND_QUEST_REWARD")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public void OnBlockEnd(GameState game)
     {
@@ -425,6 +444,8 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         }
 
         _combatActivityAt = Environment.TickCount64;
+        // A block that was open when the combat began closed after all: the combat's blocks start lower.
+        _combatBlockBase = Math.Min(_combatBlockBase, game.OpenBlocks.Count);
         TranscriptBlockEnd(game);
         if (_heroHit is { } hit && game.OpenBlocks.Count <= hit.Depth)
         {
