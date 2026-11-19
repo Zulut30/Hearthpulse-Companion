@@ -102,7 +102,7 @@ public sealed partial class BattlegroundsTracker
                 continue;
             }
 
-            var noEnchantments = Array.Empty<string>().ToLookup(_ => 0);
+            var noEnchantments = Array.Empty<Entity>().ToLookup(_ => 0);
             var copy = ToSim(removed, removed.Controller != game.LocalPlayerId, noEnchantments) with { HasUnsimulatedEffect = false };
             if (!_removedBy.TryGetValue(source.Id, out var list))
             {
@@ -114,23 +114,67 @@ public sealed partial class BattlegroundsTracker
         }
     }
 
-    /// <summary>Enchantment card ids by the minion they are attached to.</summary>
-    private static ILookup<int, string> Enchantments(GameState game) =>
+    /// <summary>Enchantments in play (with a card id) by the entity they are attached to: a minion, a hand card or a player.</summary>
+    private static ILookup<int, Entity> Enchantments(GameState game) =>
         game.Entities.Values
             .Where(e => e.CardType == "ENCHANTMENT" && e.InPlay && e.CardId.Length > 0 && e.GetInt(GameTag.Attached) > 0)
             .OrderBy(e => e.Id)
-            .ToLookup(e => e.GetInt(GameTag.Attached), e => e.CardId);
+            .ToLookup(e => e.GetInt(GameTag.Attached));
+
+    private static SimEnchantment ToEnchantment(Entity e) => new(e.CardId)
+    {
+        ScriptData1 = e.GetInt(GameTag.ScriptData1),
+        ScriptData2 = e.GetInt(GameTag.ScriptData2),
+        Attack = e.GetInt(GameTag.Atk),
+        Health = e.GetInt(GameTag.Health),
+        CreatorEntityId = e.GetInt(GameTag.Creator),
+    };
+
+    /// <summary>A minion that died before the capture, as the death count needs it: card, golden, tribes.</summary>
+    private SimMinion DeadMinion(Entity e)
+    {
+        var (cardId, goldenId) = CombatRelevance.Normalize(e.CardId, Cards);
+        var tribes = Traits.ParseTribes(Cards.Get(e.CardId)?.Races) | TribeTag(e.GetString(GameTag.CardRace));
+        return SimMinion.Create(cardId, e.Attack, e.Health, tribes, golden: goldenId || e.GetInt(GameTag.Premium) > 0) with { EntityId = e.Id };
+    }
+
+    /// <summary>A minion entered the board after combat started: deaths before it do not count for it.</summary>
+    private void NoteEnteredBeforeCapture(Entity entity) => _enteredAfterDeaths.TryAdd(entity.Id, _deathsBeforeCapture.Count);
+
+    /// <summary>Friendly minions that died during Start of Combat while <paramref name="e"/> was on the board.</summary>
+    private int FriendlyDeathsSeenBy(Entity e)
+    {
+        var from = _enteredAfterDeaths.GetValueOrDefault(e.Id);
+        var count = 0;
+        for (var i = from; i < _deathsBeforeCapture.Count; i++)
+        {
+            count += _deathsBeforeCapture[i].Controller == e.Controller ? 1 : 0;
+        }
+
+        return count;
+    }
+
+    /// <summary>The lobby's tribes, from client memory (the only complete source); <see cref="Tribe.None"/> when unknown.</summary>
+    private Tribe LobbyTribes() => MemoryRaces is { Count: > 0 } races ? Traits.ParseTribes(races) : Tribe.None;
+
+    /// <summary>
+    /// A hand card summoned "for this combat only" by a Start of Combat effect stays in the hand marked "Unplayable"
+    /// (BG26_350e2, with LITERALLY_UNPLAYABLE): no hand summon can take it again this combat (G1 L349409, L350734).
+    /// </summary>
+    private static bool SummonedFromHandThisCombat(Entity card, ILookup<int, Entity> enchantments) =>
+        enchantments[card.Id].Any(e => e.CardId == SimInputs.UnplayableEnchantment);
 
     /// <summary>
     /// One side for the simulator: board minions plus what the player can see about that player. The opponent's hand
     /// and secrets are hidden information and are never read.
     /// </summary>
-    private SimSide BuildSide(GameState game, int controller, bool isOpponent, ILookup<int, string> enchantments)
+    private SimSide BuildSide(GameState game, int controller, bool isOpponent, ILookup<int, Entity> enchantments)
     {
         var minions = Minions(game, controller)
             .Select(e => ToSim(e, isOpponent, enchantments) with
             {
                 CreatorCardId = e.GetInt(GameTag.Creator) is > 0 and var creator ? game.Entities.GetValueOrDefault(creator)?.CardId ?? string.Empty : string.Empty,
+                FriendlyDeathsBeforeCapture = FriendlyDeathsSeenBy(e),
             })
             .ToList();
         var player = game.Players.TryGetValue(controller, out var slot) ? game.Entities.GetValueOrDefault(slot.EntityId) : null;
@@ -151,23 +195,57 @@ public sealed partial class BattlegroundsTracker
         var hand = isOpponent
             ? Array.Empty<SimMinion>()
             : game.Controlled(controller, "HAND")
-                .Where(e => e.IsMinion && e.CardId.Length > 0)
+                .Where(e => e.IsMinion && e.CardId.Length > 0 && !SummonedFromHandThisCombat(e, enchantments))
                 .OrderBy(e => e.ZonePosition)
                 .Select(e => ToSim(e, isOpponent: false, enchantments) with { HasUnsimulatedEffect = false })
                 .ToArray();
-        return new SimSide(minions)
+        // The opponent's player tags (Blood Gem and tavern spell values, Deity stats...) are not on the player's screen: the
+        // live side gets none of them, only estimates; the values the log had wait for the end of the game.
+        var playerTags = NumericTags(player);
+        var tags = isOpponent ? new Dictionary<string, int>(StringComparer.Ordinal) : playerTags;
+        if (isOpponent)
+        {
+            _hiddenOpponentTags[_combats.Count] = playerTags
+                .Where(t => SimInputs.HiddenPlayerTags.Contains(t.Key))
+                .ToDictionary(t => t.Key, t => t.Value, StringComparer.Ordinal);
+        }
+
+        var side = new SimSide(minions)
         {
             HeroCardId = hero?.CardId ?? string.Empty,
             HeroPowerCardId = heroPower?.CardId ?? string.Empty,
             Extras = extras.Distinct().ToList(),
             // Only the local player's own hand: it is on their screen. The opponent's is hidden.
             Hand = hand,
-            Tags = NumericTags(player),
+            Tags = tags,
             TavernTier = hero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var tier ? tier : player?.GetInt(GameTag.PlayerTechLevel) ?? 0,
+            // Enchantments on the player entity: only our own (whether the client shows the opponent's is not established).
+            PlayerEnchantments = isOpponent || player is null ? Array.Empty<SimEnchantment>() : enchantments[player.Id].Select(ToEnchantment).ToArray(),
+            DeathsBeforeCapture = _deathsBeforeCapture.Where(d => d.Controller == controller).Select(d => d.Dead).ToArray(),
+            LobbyTribes = LobbyTribes(),
+        };
+        return side with { Estimates = SimEstimates.For(side, isOpponent, tags, LocalPlayerSide(game, enchantments, isOpponent)) };
+    }
+
+    /// <summary>
+    /// What the opponent's estimates may lean on from our own side (our player tags and enchantments: on our screen);
+    /// null for our own side.
+    /// </summary>
+    private static SimSide? LocalPlayerSide(GameState game, ILookup<int, Entity> enchantments, bool isOpponent)
+    {
+        if (!isOpponent || game.LocalPlayerEntity is not { } local)
+        {
+            return null;
+        }
+
+        return new SimSide([])
+        {
+            Tags = NumericTags(local),
+            PlayerEnchantments = enchantments[local.Id].Select(ToEnchantment).ToArray(),
         };
     }
 
-    private static IReadOnlyDictionary<string, int> NumericTags(Entity? entity)
+    private static Dictionary<string, int> NumericTags(Entity? entity)
     {
         var tags = new Dictionary<string, int>(StringComparer.Ordinal);
         if (entity is null)
@@ -186,14 +264,15 @@ public sealed partial class BattlegroundsTracker
         return tags;
     }
 
-    private SimMinion ToSim(Entity e, bool isOpponent, ILookup<int, string> enchantments)
+    private SimMinion ToSim(Entity e, bool isOpponent, ILookup<int, Entity> enchantments)
     {
         // Golden minions have their own card id (golden stats and text); effects are keyed by the normal id + Golden.
         var card = Cards.Get(e.CardId);
         var (cardId, goldenId) = CombatRelevance.Normalize(e.CardId, Cards);
         var golden = goldenId || e.GetInt(GameTag.Premium) > 0;
         var mechanics = card?.Mechanics ?? Array.Empty<string>();
-        var attached = enchantments[e.Id].ToList();
+        var attachedEntities = enchantments[e.Id].ToList();
+        var attached = attachedEntities.Select(x => x.CardId).ToList();
         var facts = new MinionFacts(e.Id, e.CardId, CombatRelevance.EffectMarkers(e.Has));
         _minionFacts[e.Id] = facts;
         var unsimulated = IsUnsimulated(facts, cardId, golden, attached, isOpponent, Cards, Effects);
@@ -228,7 +307,8 @@ public sealed partial class BattlegroundsTracker
             ScriptData1 = e.GetInt(GameTag.ScriptData1),
             ScriptData2 = e.GetInt(GameTag.ScriptData2),
             Enchantments = attached,
-            Remembered = _removedBy.TryGetValue(e.Id, out var removed) ? removed.ToArray() : Array.Empty<SimMinion>(),
+            EnchantmentValues = attachedEntities.Select(ToEnchantment).ToArray(),
+            Remembered =_removedBy.TryGetValue(e.Id, out var removed) ? removed.ToArray() : Array.Empty<SimMinion>(),
         };
     }
 
@@ -300,5 +380,20 @@ public sealed partial class BattlegroundsTracker
     /// Every fight of this game the simulator was given, in order, with the index of its combat in <see cref="Combats"/>
     /// (the combat is added when the fight ends). Kept for the local capture file (<see cref="CombatCaptureStore"/>).
     /// </summary>
-    internal IReadOnlyList<CapturedFight> Captures => _captures;
+    /// <remarks>
+    /// During the game these are the fights as the live simulator got them. Once the game is over for the player, the
+    /// opponent's player values the client did not show (<see cref="SimSide.HiddenTags"/>) are added and the options say
+    /// <see cref="SimOptions.PostGame"/>: the post-game reveal, like the match page's (docs/adr/0005-hidden-information.md).
+    /// </remarks>
+    internal IReadOnlyList<CapturedFight> Captures => LocalFinished || _gameEnded ? PostGameCaptures() : _captures;
+
+    private List<CapturedFight> PostGameCaptures() =>
+        _captures.Select(c => _hiddenOpponentTags.TryGetValue(c.CombatIndex, out var hidden)
+                ? c with
+                {
+                    Capture = c.Capture with { Theirs = c.Capture.Theirs with { HiddenTags = hidden } },
+                    Options = c.Options with { PostGame = true },
+                }
+                : c)
+            .ToList();
 }

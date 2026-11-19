@@ -261,6 +261,91 @@ public sealed class CombatCaptureStoreTests : IDisposable
         Assert.Single(fight.Ours.Minions);
     }
 
+    /// <summary>A side carrying every input its records keep out of their JSON (package I).</summary>
+    private static SimSide WithInputs(SimSide side, bool opponent) => side with
+    {
+        Minions = side.Minions.Select((m, i) => m with
+        {
+            EnchantmentValues = [new SimEnchantment("BG_ENCH_" + i) { ScriptData1 = 3 + i, Attack = 1, Health = 2, CreatorEntityId = 77 }],
+            FriendlyDeathsBeforeCapture = 1 + i,
+        }).ToList(),
+        PlayerEnchantments = opponent ? [] : [new SimEnchantment("BG_PLAYER_ENCH") { ScriptData1 = 2, CreatorEntityId = 101 }],
+        DeathsBeforeCapture = [SimMinion.Create("BG_DIED_EARLY", 2, 3) with { EntityId = 999 }],
+        LobbyTribes = Tribe.Beast | Tribe.Murloc,
+        Estimates = opponent ? [new SimEstimate("BloodGem", 2, 2, "turn 9") { Tags = ["BACON_BLOODGEMBUFFATKVALUE"] }] : [],
+        HiddenTags = opponent ? new Dictionary<string, int> { ["BACON_BLOODGEMBUFFATKVALUE"] = 4 } : SimSide.EmptyTags,
+    };
+
+    [Fact]
+    public void The_inputs_the_records_keep_out_of_json_survive_the_capture_file()
+    {
+        var saved = Captured(out _);
+        var fight = Assert.Single(saved.Fights);
+        var ours = WithInputs(fight.Ours, opponent: false);
+        var theirs = WithInputs(fight.Theirs, opponent: true);
+        saved = saved with
+        {
+            Fights = [fight with { Ours = ours, Theirs = theirs, OursInputs = SavedInputs.Of(ours), TheirsInputs = SavedInputs.Of(theirs) }],
+        };
+        var store = new CombatCaptureStore(_dir);
+
+        var read = Assert.Single(store.Load(store.Save("20261023123000|inputs", saved)!)!.Fights);
+
+        foreach (var (before, after) in new[] { (ours, read.Ours), (theirs, read.Theirs) })
+        {
+            Assert.Equal(before.Minions.Select(m => (m.EntityId, m.FriendlyDeathsBeforeCapture)), after.Minions.Select(m => (m.EntityId, m.FriendlyDeathsBeforeCapture)));
+            Assert.Equal(before.Minions.SelectMany(m => m.EnchantmentValues), after.Minions.SelectMany(m => m.EnchantmentValues));
+            Assert.Equal(before.LobbyTribes, after.LobbyTribes);
+            Assert.Equal(before.DeathsBeforeCapture.Select(m => (m.CardId, m.EntityId, m.Attack, m.Health)), after.DeathsBeforeCapture.Select(m => (m.CardId, m.EntityId, m.Attack, m.Health)));
+            Assert.Equal(JsonSerializer.Serialize(before.Estimates), JsonSerializer.Serialize(after.Estimates));
+            Assert.Equal(before.HiddenTags.OrderBy(t => t.Key), after.HiddenTags.OrderBy(t => t.Key));
+        }
+
+        Assert.Equal(ours.PlayerEnchantments, read.Ours.PlayerEnchantments);
+        // A saved fight is read after its game: its options use the opponent's post-game values.
+        Assert.True(read.AsSaved().Options.PostGame);
+        Assert.True(read.Today(CardDb.Empty, EffectRegistry.Default).Options.PostGame);
+    }
+
+    [Fact]
+    public void The_opponents_player_enchantments_never_reach_the_file()
+    {
+        var saved = Captured(out _);
+        var fight = Assert.Single(saved.Fights);
+        var theirs = fight.Theirs with { PlayerEnchantments = [new SimEnchantment("BG_THEIR_PLAYER_ENCH")] };
+        saved = saved with { Fights = [fight with { Theirs = theirs, TheirsInputs = SavedInputs.Of(theirs) }] };
+        var store = new CombatCaptureStore(_dir);
+
+        var name = store.Save("20261023123000|their-enchantments", saved)!;
+
+        Assert.DoesNotContain("BG_THEIR_PLAYER_ENCH", ReadJson(Path.Combine(_dir, name)), StringComparison.Ordinal);
+        Assert.Empty(Assert.Single(store.Load(name)!.Fights).Theirs.PlayerEnchantments);
+    }
+
+    [Fact]
+    public void A_file_without_inputs_or_post_game_values_reads_with_their_defaults()
+    {
+        var saved = Captured(out _);
+        var store = new CombatCaptureStore(_dir);
+        var name = store.Save("20261023123000|plain", saved with { Version = 1, Fights = saved.Fights.Select(f => f with { OursInputs = null, TheirsInputs = null, Transcript = null }).ToList() })!;
+        // What an older build (or a hand-edited file) writes: no inputs, and the opponent's post-game values as null.
+        var json = ReadJson(Path.Combine(_dir, name)).Replace("\"theirs\":{", "\"theirs\":{\"hiddenTags\":null,", StringComparison.Ordinal);
+        Assert.Contains("\"hiddenTags\":null", json, StringComparison.Ordinal);
+        File.Delete(Path.Combine(_dir, name));
+        using (var gzip = new GZipStream(File.Create(Path.Combine(_dir, name)), CompressionLevel.Fastest))
+        {
+            gzip.Write(Encoding.UTF8.GetBytes(json));
+        }
+
+        var fight = Assert.Single(store.Load(name)!.Fights);
+
+        Assert.Empty(fight.Theirs.HiddenTags);
+        Assert.Empty(fight.Ours.PlayerEnchantments);
+        Assert.Empty(fight.Theirs.Estimates);
+        Assert.Equal(Tribe.None, fight.Ours.LobbyTribes);
+        Assert.All(fight.Ours.Minions, m => Assert.Empty(m.EnchantmentValues));
+    }
+
     private static string ReadJson(string path)
     {
         using var gzip = new GZipStream(File.OpenRead(path), CompressionMode.Decompress);

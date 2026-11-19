@@ -164,7 +164,7 @@ internal static class SimReplay
         Divergence? first;
         try
         {
-            CombatSimulator.RunSingle(fight.Ours, fight.Theirs, fight.OursFirst, chooser, effects ?? EffectRegistry.Default, trace: false,
+            CombatSimulator.RunSingle(SimInputs.PostGame(fight.Ours), SimInputs.PostGame(fight.Theirs), fight.OursFirst, chooser, effects ?? EffectRegistry.Default, trace: false,
                 fight.FirstAttackerEntityId);
             first = chooser.Finish();
         }
@@ -223,7 +223,7 @@ internal static class SimReplay
         string? error = null;
         try
         {
-            result = CombatSimulator.RunSingle(fight.Ours, fight.Theirs, fight.OursFirst, chooser, effects ?? EffectRegistry.Default, trace: true,
+            result = CombatSimulator.RunSingle(SimInputs.PostGame(fight.Ours), SimInputs.PostGame(fight.Theirs), fight.OursFirst, chooser, effects ?? EffectRegistry.Default, trace: true,
                 fight.FirstAttackerEntityId);
         }
         catch (ReplayDivergenceException ex)

@@ -19,7 +19,7 @@ internal sealed class Ghastcoiler : CombatEffect
 {
     public override void Deathrattle(Fight fight, Unit self)
     {
-        var pool = GhastcoilerPool.Minions;
+        var pool = SimInputs.InLobby(GhastcoilerPool.Minions, self.Side.Info.LobbyTribes);
         var count = DeathKit.Shown1(self, 2, 4);
         DeathKit.SummonInOrder(fight, self, Draw(fight, self, pool, count));
     }
