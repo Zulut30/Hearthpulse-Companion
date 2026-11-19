@@ -10,17 +10,17 @@
 
 | Вид | no_effect | resolved | implemented | missing_effect | missing_input | unknown | всего |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Существа | 293 | 9 | 135 | 14 | 1 | 0 | 452 |
+| Существа | 286 | 9 | 144 | 13 | 0 | 0 | 452 |
 | Силы героя | 123 | 12 | 5 | 1 | 1 | 0 | 142 |
-| Тринкеты | 323 | 36 | 35 | 25 | 1 | 0 | 420 |
+| Тринкеты | 319 | 36 | 39 | 25 | 1 | 0 | 420 |
 | Тёмные дары | 34 | 5 | 8 | 0 | 0 | 0 | 47 |
 | Боевые зачарования | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| Квесты | 10 | 0 | 0 | 9 | 0 | 0 | 19 |
-| Награды квестов | 60 | 4 | 3 | 6 | 0 | 0 | 73 |
+| Квесты | 10 | 0 | 7 | 2 | 0 | 0 | 19 |
+| Награды квестов | 59 | 4 | 4 | 6 | 0 | 0 | 73 |
 | Аномалии | 109 | 2 | 1 | 0 | 0 | 0 | 112 |
-| Заклинания таверны | 66 | 3 | 4 | 1 | 0 | 0 | 74 |
+| Заклинания таверны | 66 | 3 | 5 | 0 | 0 | 0 | 74 |
 | Только Duos | 29 | 1 | 3 | 0 | 0 | 0 | 33 |
-| **Без «вне пула»** | 800 | 51 | 178 | 21 | 3 | 0 | 1053 |
+| **Без «вне пула»** | 789 | 51 | 199 | 12 | 2 | 0 | 1053 |
 
 ## Существа
 
@@ -47,9 +47,7 @@
 | BG26_137 | Bream Counter | no_effect | да | PLAY_BUY_TRIGGER |
 | BG34_637t | Bronze Chromadrake | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; BATTLECRY |
 | BGS_034 | Bronze Warden | no_effect | да | KEYWORDS |
-| BG31_149 | Bubble Gunner | no_effect | да | BATTLECRY |
 | BG36_508 | Cagey Conjurer | no_effect | да | ACTIVATE |
-| BG25_034 | Captain Sanders | no_effect | да | BATTLECRY |
 | BG35_123 | Cataclysmic Harbinger | no_effect | да | END_OF_TURN |
 | BG27_016 | Champion of Sargeras | no_effect | да | DR_TAVERN |
 | BG36_342 | Clever Castaway | no_effect | да | ACTIVATE |
@@ -57,7 +55,6 @@
 | BG31_320 | Crater Miner | no_effect | да | CHOOSE_ONE |
 | BG36_106 | Cutthroat K'Thir | no_effect | да | HAND_DISCARD_TRIGGER |
 | BG36_360t3 | Dark Paradox | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; PLAY_TRIGGER |
-| BG36_360t5 | Dark Paradox | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; RALLY_GET |
 | BG36_104 | Dark Puppeteer | no_effect | да | DR_TAVERN |
 | BG31_920 | Darkcrest Strategist | no_effect | да | SPELLCRAFT |
 | BG36_511 | Dead Bellringer | no_effect | да | ACTIVATE |
@@ -66,13 +63,11 @@
 | BG23_004 | Deep-Sea Angler | no_effect | да | SPELLCRAFT |
 | BG36_621 | Deft Deserter | no_effect | да | ACTIVATE |
 | BG36_762 | Devilish Distractor | no_effect | да | SPELL_CAST_TAVERN |
-| BG28_303 | Disguised Graverobber | no_effect | да | BATTLECRY |
 | BG31_176 | Dr. Boom's Monster | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; STATS_THIS_GAME |
 | BG26_ICC_901 | Drakkari Enchanter | no_effect | да | AURA_TAVERN |
 | BG36_506 | Drone Duplicator | no_effect | да | ACTIVATE |
 | BG31_815 | Dune Dweller | no_effect | да | BATTLECRY |
 | BG26_175 | Elemental of Surprise | no_effect | да | KEYWORDS |
-| BG32_231 | Elite Navigator | no_effect | да | BATTLECRY |
 | BG34_865 | En-Djinn Blazer | no_effect | да | BATTLECRY |
 | BG35_341 | Enchanted Sentinel | no_effect | да | AURA_TAVERN |
 | BG36_523 | Enterprising Escapee | no_effect | да | PLAY_BUY_TRIGGER |
@@ -115,7 +110,6 @@
 | BG23_009 | Lava Lurker | no_effect | да | SPELL_CAST_TAVERN |
 | BG28_707 | Living Azerite | no_effect | да | SPELL_CAST_TAVERN |
 | BG36_180 | Living Prison | no_effect | да | ACTIVATE |
-| BG36_521 | Locked-up Mutineer | no_effect | да | DR_TAVERN |
 | BG26_814 | Lovesick Balladist | no_effect | да | BATTLECRY |
 | BG26_146 | Lullabot | no_effect | да | END_OF_TURN |
 | BG36_201 | Lurking Lionfish | no_effect | да | ACTIVATE |
@@ -124,7 +118,6 @@
 | BG26_524 | Malchezaar, Prince of Dance | no_effect | да | PLAY_BUY_TRIGGER |
 | BG28_582 | Mangled Bandit | no_effect | да | ACTIVATE |
 | BG36_524 | Maritime Extortionist | no_effect | да | AURA_STATIC |
-| BG32_340 | Maw Caster | no_effect | да | BATTLECRY |
 | BG31_177 | Mechagnome Interpreter | no_effect | да | PLAY_BUY_TRIGGER |
 | BG23_357 | Mind Muck | no_effect | да | BATTLECRY |
 | BG36_097 | Mindbender Ghur'sha | no_effect | да | HAND_DISCARD_TRIGGER |
@@ -339,14 +332,17 @@
 | BG36_331 | Bramble Tunneler | implemented | да | RALLY_TAVERN |
 | BG_LOE_077 | Brann Bronzebeard | implemented | да | MULTIPLIER |
 | BG36_242 | Bronze Timewalker | implemented | да | RALLY_TAVERN |
+| BG31_149 | Bubble Gunner | implemented | да | BATTLECRY |
 | BG31_803 | Buzzing Vermin | implemented | да | DR_SUMMON |
 | BG30_125 | Cadaver Caretaker | implemented | да | DR_SUMMON |
 | BG36_211 | Cage Gnawer | implemented | да | ON_FRIENDLY_ATTACK |
+| BG25_034 | Captain Sanders | implemented | да | BATTLECRY |
 | BG28_741 | Charging Czarina | implemented | да | SPELL_TRIGGER |
 | BG34_171 | Conveyor Construct | implemented | да | DR_TAVERN |
 | BG29_611 | Cord Puller | implemented | да | DR_SUMMON |
 | BG36_241 | Crimson Vindicator | implemented | да | RALLY_SPELL |
 | BG36_360 | Dark Paradox | implemented | да | DARK_PARADOX |
+| BG36_360t5 | Dark Paradox | implemented | да | на досках этого патча (статистика API), не в пуле таверны; RALLY_GET |
 | BG36_360t6 | Dark Paradox | implemented | да | на досках этого патча (статистика API), не в пуле таверны; STATS_THIS_GAME |
 | BG36_360t9 | Dark Paradox | implemented | да | на досках этого патча (статистика API), не в пуле таверны; DR_SUMMON |
 | BG36_102 | De-volition-ist | implemented | да | AFTER_ATTACK |
@@ -354,9 +350,11 @@
 | BG36_208 | Deathstrider | implemented | да | ON_FRIENDLY_ATTACK |
 | BG33_155 | Devout Hellcaller | implemented | да | ON_DAMAGE_DEALT |
 | BG27_556 | Diremuck Forager | implemented | да | SOC_PERSISTENT; у соперника missing_input (рука скрыта) |
+| BG28_303 | Disguised Graverobber | implemented | да | BATTLECRY |
 | BG34_633 | Draconic Warden | implemented | да | DR_TAVERN |
 | BG36_113 | Drifting Sacrifice | implemented | да | DR_DEITY |
 | BG32_324 | Drustfallen Butcher | implemented | да | AVENGE_TAVERN |
+| BG32_231 | Elite Navigator | implemented | да | BATTLECRY |
 | BG25_008 | Eternal Knight | implemented | да | AURA_DYNAMIC |
 | BG25_009 | Eternal Summoner | implemented | да | DR_SUMMON |
 | BG34_403 | Eternal Tycoon | implemented | да | AVENGE_COMBAT |
@@ -391,7 +389,9 @@
 | BG23_318 | Leeroy the Reckless | implemented | да | DR_DESTROY |
 | BG35_881 | Leyline Surfacer | implemented | да | DR_TAVERN |
 | BG36_848 | Lichling Hoarder | implemented | да | AVENGE_TAVERN |
+| BG36_521 | Locked-up Mutineer | implemented | да | DR_TAVERN |
 | BG35_602 | Lurking Leviathan | implemented | да | ON_SUMMON |
+| BG32_340 | Maw Caster | implemented | да | BATTLECRY |
 | TB_BaconShop_HERO_33_Buddy | Mishmash | implemented | да | на досках этого патча (статистика API), не в пуле таверны; AMALGAM_MIRROR |
 | BG28_309 | Mummifier | implemented | да | DR_KEYWORD |
 | BG27_023 | Murcules | implemented | да | KILL_HAND_BUFF; у соперника missing_input (рука скрыта) |
@@ -444,8 +444,10 @@
 | BG34_Giant_581 | Timewarped Hyena | implemented | да | Timewarped; TIMEWARPED_ON_DEATH |
 | BG34_Giant_674 | Timewarped Icky Imp | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_306 | Timewarped Jazzer | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_PreMadeChamp_004 | Timewarped Jungle King | implemented | да | Timewarped; TIMEWARPED_ON_SUMMON |
 | BG34_Giant_608 | Timewarped Lil' Quilboar | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_207 | Timewarped Murcules | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER; у соперника missing_input (рука скрыта) |
+| BG34_Giant_074t | Timewarped Nellie's Ship | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_687 | Timewarped Nest Swarmer | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_208 | Timewarped Pagle | implemented | да | Timewarped; TIMEWARPED_ON_ATTACK |
 | BG34_Giant_069 | Timewarped Piper | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
@@ -473,11 +475,9 @@
 | BG34_PreMadeChamp_056 | Timewarped Karathress | missing_effect | вне пула | Timewarped; TIMEWARPED_ON_SUMMON |
 | BG34_Giant_031 | Timewarped Leapfrogger | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_619 | Timewarped Magnanimoose | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_074t | Timewarped Nellie's Ship | missing_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_592 | Timewarped Spirit of Air | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_010 | Timewarped Trickster | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Treasure_994 | Timewarped Ultralisk | missing_effect | вне пула | Timewarped; TIMEWARPED_SOC |
-| BG34_PreMadeChamp_004 | Timewarped Jungle King | missing_input | да | Timewarped; TIMEWARPED_ON_SUMMON; эффект есть, но нет в снимке: рост бонуса от заклинаний за игру (Improves after you cast a spell) |
 
 ## Силы героя
 
@@ -653,8 +653,6 @@
 | BG32_MagicItem_998 | Behemoth Portrait | no_effect | да | TR_NONE |
 | BG30_MagicItem_713 | Bleeding Heart | no_effect | да | TR_NONE |
 | BG32_MagicItem_894 | Blessing Portrait | no_effect | вне пула | TR_NONE |
-| BG32_MagicItem_808 | Bloodbound Earrings | no_effect | да | TR_NONE |
-| BG32_MagicItem_808t | Bloodbound Earrings | no_effect | да | TR_NONE |
 | BG35_MagicItem_435 | Bloodbound Ring | no_effect | вне пула | TR_NONE |
 | BG36_MagicItem_830 | Bloodfury Shield | no_effect | да | TR_NONE |
 | BG30_MagicItem_996 | Bob's Tip Jar | no_effect | да | TR_NONE |
@@ -778,7 +776,6 @@
 | BG32_MagicItem_801 | Heart of the Forest | no_effect | вне пула | TR_NONE |
 | BG32_MagicItem_801t | Heart of the Forest | no_effect | да | TR_NONE |
 | BG36_MagicItem_200 | Herding Horn | no_effect | да | TR_NONE |
-| BG36_MagicItem_371 | Honeycomb Ring | no_effect | да | TR_NONE |
 | BG30_MagicItem_843t | Horde Keychain | no_effect | вне пула | TR_NONE |
 | BG32_MagicItem_304 | Horn of Summoning | no_effect | вне пула | TR_NONE |
 | BG32_MagicItem_824 | Implicator Portrait | no_effect | вне пула | TR_NONE |
@@ -868,7 +865,6 @@
 | BG30_MagicItem_706 | Reflective Pendant | no_effect | да | TR_NONE |
 | BG36_MagicItem_411 | Reinvigorating Light | no_effect | да | TR_NONE |
 | BG32_MagicItem_817 | Rendle Sticker | no_effect | да | TR_NONE |
-| BG30_MagicItem_434 | Replica Cathedral | no_effect | да | TR_NONE |
 | BG32_MagicItem_278 | Reusable Batteries | no_effect | да | TR_NONE |
 | BG30_MagicItem_868 | Rewinder Portrait | no_effect | да | TR_NONE |
 | BG30_MagicItem_430 | Rockin' Music Box | no_effect | да | TR_NONE |
@@ -998,6 +994,8 @@
 | BG32_MagicItem_864 | Bird Feeder | implemented | вне пула | TR_AVENGE_BUFF |
 | BG32_MagicItem_864t | Bird Feeder | implemented | вне пула | TR_AVENGE_BUFF |
 | BG30_MagicItem_978 | Blingtron's Sunglasses | implemented | вне пула | TR_SUMMON_KEYWORD |
+| BG32_MagicItem_808 | Bloodbound Earrings | implemented | да | TR_NONE |
+| BG32_MagicItem_808t | Bloodbound Earrings | implemented | да | TR_NONE |
 | BG32_MagicItem_893 | Bluegill Flippers | implemented | да | TR_NONE |
 | BG30_MagicItem_925 | Ceremonial Sword | implemented | вне пула | TR_ATTACK_BUFF |
 | BG35_MagicItem_849 | Cloud Serpent Horn | implemented | вне пула | TR_AVENGE_BUFF |
@@ -1014,11 +1012,13 @@
 | BG30_MagicItem_880t | Feral Talisman | implemented | вне пула | TR_AURA |
 | BG36_MagicItem_820 | Flighty Portrait | implemented | да | TR_NONE |
 | BG30_MagicItem_864 | Gilnean Thorned Rose | implemented | вне пула | TR_AVENGE_BUFF |
+| BG36_MagicItem_371 | Honeycomb Ring | implemented | да | TR_NONE |
 | BG36_MagicItem_201 | Lionfish Portrait | implemented | да | TR_ATTACK_BUFF |
 | BG36_MagicItem_211 | Lovely Locket | implemented | да | TR_NONE |
 | BG30_MagicItem_910 | Mechagon Adapter | implemented | вне пула | TR_SHIELD |
 | BG35_MagicItem_710 | Miniature Ship | implemented | да | TR_NONE |
 | BG30_MagicItem_886 | Reinforced Shield | implemented | да | TR_SUMMON_KEYWORD |
+| BG30_MagicItem_434 | Replica Cathedral | implemented | да | TR_NONE |
 | BG32_MagicItem_907 | S'Thara Sticker | implemented | вне пула | TR_LAST_DEATH_SUMMON |
 | BG30_MagicItem_540 | Slamma Sticker | implemented | да | TR_SUMMON_BUFF |
 | BG30_MagicItem_437 | Staff of the Scourge | implemented | да | TR_AVENGE_KEYWORD |
@@ -1122,14 +1122,14 @@
 | BG24_Quest_112 | Track the Footprints | no_effect | вне пула | QU_TAVERN |
 | BG24_Quest_151 | Unlikely Duo | no_effect | да | QU_TAVERN |
 | BG24_Quest_120 | Unmask the Culprit | no_effect | вне пула | QU_TAVERN |
-| BG24_Quest_114 | Assemble a Lineup | missing_effect | да | условный (QU_COMBAT_PROGRESS): бой не помечается |
-| BG24_Quest_352 | Crack the Case | missing_effect | да | условный (QU_COMBAT_PROGRESS): бой не помечается |
+| BG24_Quest_114 | Assemble a Lineup | implemented | да | QU_COMBAT_PROGRESS |
+| BG24_Quest_352 | Crack the Case | implemented | да | QU_COMBAT_PROGRESS |
+| BG28_Quest_500 | Fill the Cauldron | implemented | да | QU_COMBAT_PROGRESS |
+| BG24_Quest_123 | Find the Murder Weapon | implemented | да | QU_COMBAT_PROGRESS |
+| BG27_Quest_801 | Pressure the Authorities | implemented | да | QU_COMBAT_PROGRESS |
+| BG24_Quest_124 | Reenact the Murder | implemented | да | QU_COMBAT_PROGRESS |
+| BG27_Quest_802 | Round Up the Suspects | implemented | да | QU_COMBAT_PROGRESS |
 | BG24_Quest_320 | Exhume the Bones | missing_effect | вне пула | условный (QU_COMBAT_PROGRESS): бой не помечается |
-| BG28_Quest_500 | Fill the Cauldron | missing_effect | да | условный (QU_COMBAT_PROGRESS): бой не помечается |
-| BG24_Quest_123 | Find the Murder Weapon | missing_effect | да | условный (QU_COMBAT_PROGRESS): бой не помечается |
-| BG27_Quest_801 | Pressure the Authorities | missing_effect | да | условный (QU_COMBAT_PROGRESS): бой не помечается |
-| BG24_Quest_124 | Reenact the Murder | missing_effect | да | условный (QU_COMBAT_PROGRESS): бой не помечается |
-| BG27_Quest_802 | Round Up the Suspects | missing_effect | да | условный (QU_COMBAT_PROGRESS): бой не помечается |
 | BG24_Quest_318 | Witness Protection | missing_effect | вне пула | условный (QU_COMBAT_PROGRESS): бой не помечается |
 
 ## Награды квестов
@@ -1173,7 +1173,6 @@
 | BG33_Reward_020 | Perpetual Incantation | no_effect | да | QR_NONE |
 | BG24_Reward_350 | Pilfered Lamps | no_effect | да | QR_NONE |
 | BG33_Reward_014 | Quaint Boutique | no_effect | да | QR_NONE |
-| BG33_Reward_021 | Rallying Cry | no_effect | вне пула | QR_NONE |
 | BG24_Reward_131 | Red Hand | no_effect | вне пула | QR_NONE |
 | BG33_Reward_006 | Rushing Winds | no_effect | вне пула | QR_NONE |
 | BG27_Reward_812 | Scepter of Guidance | no_effect | да | QR_NONE |
@@ -1201,6 +1200,7 @@
 | BG24_Reward_312 | Staff of Origination | resolved | вне пула | Start of Combat: разрешилось до снимка |
 | BG24_Reward_109 | Stolen Gold | resolved | да | Start of Combat: разрешилось до снимка |
 | BG27_Reward_802 | Gilnean War Horn | implemented | да | QR_NONE |
+| BG33_Reward_021 | Rallying Cry | implemented | вне пула | QR_RELEVANT |
 | BG28_Reward_501 | Temporal Tampering | implemented | да | QR_NONE |
 | BG27_Reward_803 | Turbulent Tombs | implemented | да | QR_RELEVANT |
 | BG27_Reward_502 | Boom Squad | missing_effect | вне пула | QR_RELEVANT |
@@ -1401,10 +1401,10 @@
 | BG31_889 | Sharing is Caring | resolved | да | Start of Combat: разрешилось до снимка |
 | BG28_573 | Upper Hand | resolved | да | Start of Combat: разрешилось до снимка |
 | BG20_GEM | Blood Gem | implemented | да | кастуется в бою; разыгрывается в эффектах существ (Fight.PlayBloodGem): не заклинание (в логе BG20_GEM_No_Impact), его видит Geomagus Roogug |
+| BG28_603 | Boon of Beetles | implemented | да | SP_RELEVANT |
 | BG28_518 | Chef's Choice | implemented | да | разрешается в TavernSpells через CastSpell: каст Seafloor Recruiter (BG34_925) |
 | BG36_246 | Mighty Dragonbreath | implemented | да | разрешается в TavernSpells через CastSpell: каст Crimson Vindicator (BG36_241) |
 | BG28_888 | Misplaced Tea Set | implemented | да | разрешается в TavernSpells через CastSpell: каст Gatekeeper Amalgam (BG36_640) |
-| BG28_603 | Boon of Beetles | missing_effect | да | SP_RELEVANT |
 
 ## Только Duos
 

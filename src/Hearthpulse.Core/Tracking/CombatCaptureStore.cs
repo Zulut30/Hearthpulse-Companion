@@ -113,8 +113,13 @@ internal sealed record SavedInputs
     public static SavedInputs? Of(SimSide side)
     {
         var minions = side.Minions.Concat(side.Hand)
-            .Where(m => m.EnchantmentValues.Count > 0 || m.FriendlyDeathsBeforeCapture != 0)
-            .Select(m => new SavedMinionInputs(m.EntityId) { EnchantmentValues = m.EnchantmentValues, FriendlyDeathsBeforeCapture = m.FriendlyDeathsBeforeCapture })
+            .Where(m => m.EnchantmentValues.Count > 0 || m.FriendlyDeathsBeforeCapture != 0 || m.Crew.Count > 0)
+            .Select(m => new SavedMinionInputs(m.EntityId)
+            {
+                EnchantmentValues = m.EnchantmentValues,
+                FriendlyDeathsBeforeCapture = m.FriendlyDeathsBeforeCapture,
+                Crew = m.Crew.Count > 0 ? m.Crew : null,
+            })
             .ToList();
         var inputs = new SavedInputs
         {
@@ -132,7 +137,7 @@ internal sealed record SavedInputs
     {
         var byEntity = (Minions ?? []).GroupBy(m => m.EntityId).ToDictionary(g => g.Key, g => g.First());
         SimMinion Apply(SimMinion m) => m.EntityId != 0 && byEntity.TryGetValue(m.EntityId, out var saved)
-            ? m with { EnchantmentValues = saved.EnchantmentValues ?? [], FriendlyDeathsBeforeCapture = saved.FriendlyDeathsBeforeCapture }
+            ? m with { EnchantmentValues = saved.EnchantmentValues ?? [], FriendlyDeathsBeforeCapture = saved.FriendlyDeathsBeforeCapture, Crew = saved.Crew ?? [] }
             : m;
         return side with
         {
@@ -152,6 +157,9 @@ internal sealed record SavedMinionInputs(int EntityId)
     public IReadOnlyList<SimEnchantment>? EnchantmentValues { get; init; }
 
     public int FriendlyDeathsBeforeCapture { get; init; }
+
+    /// <summary>A Timewarped Nellie's Ship's crew (<see cref="SimMinion.Crew"/>); null when it has none.</summary>
+    public IReadOnlyList<SimMinion>? Crew { get; init; }
 }
 
 /// <summary>The fights of one Battlegrounds game. No names, account ids or ratings: cards by card id only.</summary>
@@ -384,7 +392,8 @@ internal sealed class CombatCaptureStore(string directory)
         || ((inputs.PlayerEnchantments ?? []).All(e => e is { CardId: not null })
             && (inputs.DeathsBeforeCapture ?? []).All(ValidMinion)
             && (inputs.Estimates ?? []).All(e => e is { Input: not null, Basis: not null, Tags: not null } && e.Tags.All(t => t is not null))
-            && (inputs.Minions ?? []).All(m => m is not null && (m.EnchantmentValues ?? []).All(e => e is { CardId: not null })));
+            && (inputs.Minions ?? []).All(m => m is not null && (m.EnchantmentValues ?? []).All(e => e is { CardId: not null })
+                                               && (m.Crew ?? []).All(ValidMinion)));
 
     private static bool ValidTranscript(BattlegroundsTracker.CombatTranscript transcript) =>
         transcript is { Events: not null, Boards: not null, Ending: not null }

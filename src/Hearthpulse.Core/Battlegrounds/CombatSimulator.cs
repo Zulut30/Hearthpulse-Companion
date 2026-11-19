@@ -544,6 +544,17 @@ public static class CombatSimulator
                     AddText(m.CreatorCardId);
                 }
 
+                if (m.ScriptData3 != 0 || m.ScriptData4 != 0)
+                {
+                    Add(m.ScriptData3);
+                    Add(m.ScriptData4);
+                }
+
+                foreach (var pirate in m.Crew)
+                {
+                    AddText(pirate.CardId);
+                }
+
                 foreach (var remembered in m.Remembered)
                 {
                     AddText(remembered.CardId);

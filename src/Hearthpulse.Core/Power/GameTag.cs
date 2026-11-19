@@ -40,6 +40,8 @@ public static class GameTag
     public const string Attached = "ATTACHED";
     public const string ScriptData1 = "TAG_SCRIPT_DATA_NUM_1";
     public const string ScriptData2 = "TAG_SCRIPT_DATA_NUM_2";
+    public const string ScriptData3 = "TAG_SCRIPT_DATA_NUM_3";
+    public const string ScriptData4 = "TAG_SCRIPT_DATA_NUM_4";
 
     // Battlegrounds
     public const string PlayerId = "PLAYER_ID";
