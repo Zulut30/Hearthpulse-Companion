@@ -163,10 +163,11 @@ public sealed class CaptureTests
     }
 
     [Fact]
-    public void Player_card_values_reach_the_side_and_a_missing_one_is_missing_input()
+    public void Player_card_values_reach_the_side_and_the_opponents_is_estimated()
     {
         // Fang Anklet on both sides with its value in the trinket's tags: ours is read (only the effect tags), theirs is
-        // not (whether the client shows it is not established), so their anklet is missing_input.
+        // not (whether the client shows it is not established): their anklet plays its printed number as an estimate
+        // (E3 with sim-inputs), not missing_input.
         var log = new PowerLog()
             .BattlegroundsGame()
             .Minion(30, "BG36_207", Me, 1, 3, 6)
@@ -185,9 +186,11 @@ public sealed class CaptureTests
         Assert.Empty(capture.Theirs.ExtraTags);
         Assert.Empty(CombatSimulator.Explain(capture.Ours, isOpponent: false));
         Assert.Null(capture.Theirs.ExtraTag("BG35_MagicItem_701", "TAG_SCRIPT_DATA_NUM_1"));
-        var missing = Assert.Single(CombatSimulator.Explain(capture.Theirs, isOpponent: true));
-        Assert.Equal(("BG35_MagicItem_701", "missing_input"), (missing.CardId, missing.Code));
-        Assert.Equal(1, tracker.BuildView(game).CombatOdds!.Unsimulated);
+        Assert.Empty(CombatSimulator.Explain(capture.Theirs, isOpponent: true));
+        var estimate = Assert.Single(CombatSimulator.ExplainEstimates(capture.Theirs, isOpponent: true));
+        Assert.Equal(SimInputs.TrinketValue, estimate.Input);
+        Assert.StartsWith("BG35_MagicItem_701:", estimate.Basis, StringComparison.Ordinal);
+        Assert.Equal(0, tracker.BuildView(game).CombatOdds!.Unsimulated);
     }
 
     [Fact]
@@ -208,6 +211,24 @@ public sealed class CaptureTests
 
         Assert.Equal((27, 24), (ours.BloodGemAttack, ours.BloodGemHealth));
         Assert.Equal((111, 96), (theirs.BloodGemAttack, theirs.BloodGemHealth));
+    }
+
+    [Fact]
+    public void Blood_gem_totals_come_from_the_blood_gems_enchantment_first()
+    {
+        // The visible "Blood Gems" enchantment (BG20_GEMe2) carries the totals in NUM_1/NUM_2 (12/12 on a real combat copy).
+        var log = new PowerLog()
+            .BattlegroundsGame()
+            .Minion(30, "BG36_207", Me, 1, 15, 18)
+            .Entity(31, "BG20_GEMe2", Me, "PLAY", "ENCHANTMENT", ("ATTACHED", "30"), ("TAG_SCRIPT_DATA_NUM_1", "12"), ("TAG_SCRIPT_DATA_NUM_2", "12"))
+            .Minion(40, "BG36_207", Them, 1, 3, 6)
+            .CombatStarts()
+            .Block("ATTACK", Ref(30, "Wolf Pup", "BG36_207", Me));
+
+        var (_, tracker) = log.Replay(Cards);
+        var ours = Assert.Single(tracker.LastCapture!.Ours.Minions);
+
+        Assert.Equal((12, 12), (ours.BloodGemAttack, ours.BloodGemHealth));
     }
 
     [Fact]

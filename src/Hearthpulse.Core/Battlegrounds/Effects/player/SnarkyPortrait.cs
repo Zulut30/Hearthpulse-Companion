@@ -20,7 +20,7 @@ internal sealed class SnarkyPortrait : CombatEffect
 
     public override string CapturedInput => GrowingValue.Description;
 
-    public override bool HasInputs(SimSide side, string cardId) => GrowingValue.Captured(side, cardId);
+    public override bool HasInputs(SimSide side, string cardId) => GrowingValue.Known(side, cardId);
 
     // Counter / Counter2: the Attack / Health the next Fishbait death gives.
     public override void OnFightStart(Fight fight, Unit self) =>

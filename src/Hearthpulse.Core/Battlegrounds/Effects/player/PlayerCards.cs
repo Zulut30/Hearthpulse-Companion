@@ -38,6 +38,13 @@ internal static class PlayerCards
     public static IReadOnlyList<SimMinion>? Owed(SimSide side, string cardId) =>
         side.RemovedByExtras.TryGetValue(cardId, out var removed) && removed.Count > 0 && !AnyCreatedBy(side, cardId) ? removed : null;
 
+    /// <summary>
+    /// Uses left of a "(N times per combat.)" card: its TAG_SCRIPT_DATA_NUM_1 counts them down (Faerie Dragon Scale 3, 2, 1
+    /// in a real fight, 2026-11-15); <paramref name="limit"/> when not captured (the opponent's, an older capture).
+    /// </summary>
+    public static int UsesLeft(SimSide side, string cardId, int limit) =>
+        Math.Clamp(side.ExtraTag(cardId, GrowingValue.AttackTag) ?? limit, 0, limit);
+
     /// <summary>An exact copy of a removed minion, made by <paramref name="cardId"/>.</summary>
     public static SimMinion CopyOf(SimMinion removed, string cardId) =>
         removed with { EntityId = 0, CreatorCardId = cardId, HasUnsimulatedEffect = false };

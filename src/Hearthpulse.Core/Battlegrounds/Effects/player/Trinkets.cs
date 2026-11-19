@@ -3,7 +3,8 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Player;
 // Trinkets whose text acts in combat after the boards are captured (PlayerCardTable), from their English card text
 // (HearthstoneJSON latest, checked 2026-11-19). A trinket is an off-board extra unit of its side: it gets the side's hooks,
 // and its Counter / Counter2 / AvengeCount are per-fight state. "(N times per combat.)" counts in Counter. Golden ("…t")
-// versions are separate cards. Balance changes on the server without a new client, so a number the trinket shows is read
+// versions are separate cards. "(N times per combat.)" starts from the trinket's NUM_1 = uses left (PlayerCards.UsesLeft).
+// Balance changes on the server without a new client, so a number the trinket shows is read
 // from its captured TAG_SCRIPT_DATA_NUM_1/2 when present (our own trinkets; GrowingValue), the text's number otherwise.
 // Avenge trinkets do not read NUM_1 for their stats: on the one Avenge card in the logs NUM_1 holds the Avenge number;
 // their X and progress come from SCORE_VALUE_1/2 (PlayerAvengeEffect).
@@ -43,9 +44,8 @@ internal sealed class FaerieDragonScale : CombatEffect
 {
     private const int Uses = 3;
 
-    // Counter: uses left.
-    public override void OnFightStart(Fight fight, Unit self) =>
-        self.Counter = Math.Clamp(self.Side.Info.ExtraTag(self.CardId, GrowingValue.AttackTag) ?? Uses, 0, Uses);
+    // Counter: uses left (PlayerCards.UsesLeft).
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = PlayerCards.UsesLeft(self.Side.Info, self.CardId, Uses);
 
     public override void OnFriendlyAttack(Fight fight, Unit self, Unit attacker, Unit target)
     {
@@ -77,11 +77,14 @@ internal sealed class FeralTalisman : CombatEffect
 [CardEffect("BG30_MagicItem_886")]
 internal sealed class ReinforcedShield : CombatEffect
 {
+    // Counter: uses left (PlayerCards.UsesLeft).
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = PlayerCards.UsesLeft(self.Side.Info, self.CardId, 5);
+
     public override void WheneverFriendlySummoned(Fight fight, Unit self, Unit summoned)
     {
-        if (self.Counter < 5)
+        if (self.Counter > 0)
         {
-            self.Counter++;
+            self.Counter--;
             fight.GiveKeywords(summoned, Keyword.DivineShield);
         }
     }
@@ -130,11 +133,14 @@ internal sealed class BlingtronsSunglasses : CombatEffect
 [CardEffect("BG30_MagicItem_910")]
 internal sealed class MechagonAdapter : CombatEffect
 {
+    // Counter: uses left (PlayerCards.UsesLeft).
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = PlayerCards.UsesLeft(self.Side.Info, self.CardId, 3);
+
     public override void OnFriendlyShieldLost(Fight fight, Unit self, Unit unit)
     {
-        if (unit.Is(Tribe.Mech) && unit.IsOnBoard && self.Counter < 3)
+        if (unit.Is(Tribe.Mech) && unit.IsOnBoard && self.Counter > 0)
         {
-            self.Counter++;
+            self.Counter--;
             fight.GiveKeywords(unit, Keyword.DivineShield);
         }
     }
@@ -182,11 +188,14 @@ internal sealed class DeathwhisperSticker : CombatEffect
 [CardEffect("BG35_MagicItem_731")]
 internal sealed class DeathtouchApple : CombatEffect
 {
+    // Counter: uses left (PlayerCards.UsesLeft; "per turn", the combat is the rest of the turn).
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = PlayerCards.UsesLeft(self.Side.Info, self.CardId, 3);
+
     public override void AfterFriendlyReborn(Fight fight, Unit self, Unit reborn)
     {
-        if (reborn.Is(Tribe.Undead) && self.Counter < 3)
+        if (reborn.Is(Tribe.Undead) && self.Counter > 0)
         {
-            self.Counter++;
+            self.Counter--;
             fight.GiveKeywords(reborn, Keyword.Reborn);
         }
     }
@@ -318,8 +327,9 @@ internal sealed class StaffOfTheScourge : PlayerAvengeEffect
 /// <summary>
 /// Beetle Band (BG32_MagicItem_860): "Avenge (5): Summon a 2/2 Beetle. Give it Taunt." Golden (…860t): "Avenge (8): Summon
 /// two 2/2 Beetles. Give them Taunt." (HearthstoneJSON latest; 37.0 said Avenge (7).) A Beetle is the player's current
-/// Beetle: 2/2 plus "your Beetles have +X/+Y this game" so far, as the captured Beetle summoners show it
-/// (<see cref="Deaths.Beetles.Stats"/>; 2/2 without one), plus bonuses gained in this fight.
+/// Beetle: 2/2 plus "your Beetles have +X/+Y this game" so far (<see cref="SimInputs.BeetleStatsOf"/>: the Beetle Army
+/// enchantment, an estimate for the opponent; else what a Beetle summoner shows, <see cref="Deaths.Beetles.Stats"/>), plus
+/// bonuses gained in this fight.
 /// </summary>
 [CardEffect("BG32_MagicItem_860")]
 [CardEffect("BG32_MagicItem_860t")]
@@ -329,7 +339,8 @@ internal sealed class BeetleBand : PlayerAvengeEffect
 
     protected override void Avenge(Fight fight, Unit self)
     {
-        var (attack, health) = Deaths.Beetles.Stats(self);
+        // The player's Beetle: the Beetle Army enchantment or its estimate (SimInputs), else what a Beetle summoner shows.
+        var (attack, health) = SimInputs.BeetleStatsOf(self.Side.Info) ?? Deaths.Beetles.Stats(self);
         for (var i = self.CardId.EndsWith('t') ? 2 : 1; i > 0; i--)
         {
             if (fight.Summon(self.Side, Tokens.Make(Tokens.BeetleId, attack, health, Tribe.Beast), self.Side.Count) is { } beetle)

@@ -72,6 +72,41 @@ public sealed class CapturedNumbersTests
     }
 
     [Fact]
+    public void Reinforced_shield_starts_from_the_captured_uses_left()
+    {
+        // NUM_1 = 1 use left at the capture: of the two reborn copies only R1's gets Divine Shield; R2's dies without one.
+        var ours = WithCard(Side(Minion(1, 1, Keyword.Reborn, "R1"), Minion(1, 1, Keyword.Reborn, "R2")), "BG30_MagicItem_886", Numbers(1));
+        var result = Fight(ours, Side(Minion(1, 100)), oursFirst: false, Effects(typeof(ReinforcedShield)));
+
+        Assert.True(result.IndexOf("our R1 1/1 DivineShield attacks") >= 0, string.Join('\n', result.Log));
+        Assert.True(result.IndexOf("attacks our R2 1/1") >= 0, string.Join('\n', result.Log));
+        Assert.DoesNotContain(result.Log, l => l.Contains("our R2 1/1 DivineShield", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_opponents_avenge_starts_from_the_start_of_combat_deaths_the_player_saw()
+    {
+        // Their Bird Feeder (Avenge (2)) is not captured: one of their minions died at Start of Combat, so their first death
+        // in the fight already gives their 0/10 +1/+1.
+        var theirs = WithCard(Side(Minion(1, 1, cardId: "A"), Minion(0, 10, cardId: "B")), "BG32_MagicItem_864")
+            with { DeathsBeforeCapture = [Minion(1, 1, cardId: "GONE")] };
+        var result = Fight(Side(Minion(1, 100)), theirs, oursFirst: true, Effects(typeof(BirdFeeder)));
+
+        Assert.True(result.IndexOf("their B 1/11 attacks") >= 0, string.Join('\n', result.Log));
+    }
+
+    [Fact]
+    public void The_opponents_growing_number_is_estimated_not_missing()
+    {
+        // Their Kibble's number is hidden from the player: with the tracker's estimate (the printed card) the fight is simulated.
+        var theirs = WithCard(Side(Minion(1, 10, tribes: Tribe.Beast)), "BG32_MagicItem_200")
+            with { Estimates = [new SimEstimate(SimInputs.TrinketValue, 0, 0, "BG32_MagicItem_200: its number is hidden from the player: the printed card")] };
+
+        Assert.Empty(CombatSimulator.Explain(theirs, isOpponent: true));
+        Assert.Single(CombatSimulator.Explain(theirs with { Estimates = [] }, isOpponent: true));
+    }
+
+    [Fact]
     public void Sprout_it_out_reads_its_captured_stats()
     {
         // "+1/+2 and Taunt" shows +2/+3 now: the reborn 1/1 comes back 3/4 Taunt.

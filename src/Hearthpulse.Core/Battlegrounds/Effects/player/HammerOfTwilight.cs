@@ -15,7 +15,7 @@ internal sealed class HammerOfTwilight : CombatEffect
 {
     public override string CapturedInput => GrowingValue.Description;
 
-    public override bool HasInputs(SimSide side, string cardId) => GrowingValue.Captured(side, cardId);
+    public override bool HasInputs(SimSide side, string cardId) => GrowingValue.Known(side, cardId);
 
     public override void OnFightStart(Fight fight, Unit self)
     {

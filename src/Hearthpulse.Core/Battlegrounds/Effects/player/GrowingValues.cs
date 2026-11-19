@@ -19,6 +19,29 @@ internal static class GrowingValue
     public static bool Captured(SimSide side, string cardId) => side.ExtraTag(cardId, AttackTag) is not null;
 
     /// <summary>
+    /// The number is known: captured (our card), or estimated (the opponent's: hidden from the player, the printed number
+    /// stands in, listed in <see cref="SimSide.Estimates"/> by Tracking/SimEstimates). Without either the fight is
+    /// missing_input.
+    /// </summary>
+    public static bool Known(SimSide side, string cardId)
+    {
+        if (Captured(side, cardId))
+        {
+            return true;
+        }
+
+        foreach (var estimate in side.Estimates)
+        {
+            if (estimate.Input == SimInputs.TrinketValue && estimate.Basis.StartsWith(cardId + ":", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// The card's current Attack/Health numbers: the captured ones (never below the printed ones), else the printed ones.
     /// A card with one number for both ("+1/+1") may carry it in NUM_1 only.
     /// </summary>
@@ -57,7 +80,7 @@ internal sealed class Broodmother : PlayerAvengeEffect
 
     public override string CapturedInput => "размер Whelp — TAG_SCRIPT_DATA_NUM_1 = NUM_2 своей силы героя (иначе 1/1); Avenge — SCORE_VALUE_1/2";
 
-    public override bool HasInputs(SimSide side, string cardId) => WhelpSize(side, cardId) is not null;
+    public override bool HasInputs(SimSide side, string cardId) => WhelpSize(side, cardId) is not null || (!GrowingValue.Captured(side, cardId) && GrowingValue.Known(side, cardId));
 
     public override void OnFightStart(Fight fight, Unit self)
     {
@@ -96,11 +119,12 @@ internal sealed class Broodmother : PlayerAvengeEffect
 [CardEffect("BG23_HERO_201p")]
 internal sealed class Tentacular : CombatEffect
 {
+    public const string Id = "BG23_HERO_201p";
     public const string TentacleId = "BG23_HERO_201pt";
 
     public override string CapturedInput => GrowingValue.Description;
 
-    public override bool HasInputs(SimSide side, string cardId) => !Owed(side, cardId) || GrowingValue.Captured(side, cardId);
+    public override bool HasInputs(SimSide side, string cardId) => !Owed(side, cardId) || GrowingValue.Known(side, cardId);
 
     public override void OnFightStart(Fight fight, Unit self) => self.Counter = Owed(self.Side.Info, self.CardId) ? 1 : 0;
 
@@ -117,7 +141,7 @@ internal sealed class Tentacular : CombatEffect
     }
 
     /// <summary>A Tentacle is owed: the board was full at capture and no Tentacle from this power is on it.</summary>
-    private static bool Owed(SimSide side, string cardId) =>
+    internal static bool Owed(SimSide side, string cardId) =>
         side.Minions.Count >= Side.MaxMinions && !PlayerCards.AnyCreatedBy(side, cardId);
 }
 
@@ -133,7 +157,7 @@ internal sealed class FangAnklet : CombatEffect
 {
     public override string CapturedInput => GrowingValue.Description;
 
-    public override bool HasInputs(SimSide side, string cardId) => GrowingValue.Captured(side, cardId);
+    public override bool HasInputs(SimSide side, string cardId) => GrowingValue.Known(side, cardId);
 
     public override void OnFightStart(Fight fight, Unit self)
     {
