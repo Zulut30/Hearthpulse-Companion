@@ -60,7 +60,7 @@ export function checkResultV2(r, manifest, src) {
   } else if (f.outcome !== null) invalid('worker_outcome_not_in_source');
   if (e.offers) {
     const c = src.choice;
-    if (manifest.sourceVersion !== 2 || !bg || !lifecycleOk || !c || c.data.choiceType !== 'mulligan' || !c.data.resolved
+    if (manifest.sourceVersion < 2 || !bg || !lifecycleOk || !c || c.data.choiceType !== 'mulligan' || !c.data.resolved
       || !int(c.data.options.length, 2, 4) || c.data.picked.length !== 1) invalid('worker_eligibility_not_in_source');
     if (f.offers.length !== 1) invalid('worker_offer_not_in_source');
     const o = f.offers[0];
