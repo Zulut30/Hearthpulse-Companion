@@ -33,11 +33,21 @@
 - **Популярность.** Существа из кэша API (`cache/api/bg-minions-all.json`, `popularity` — доля досок с существом):
   какие из combat-relevant без эффекта и вероятность, что доска (и бой — две доски) без них.
 
-**Матрица пула** — `Hearthpulse.Bench simmatrix` (копия данных в `HEARTHPULSE_DATA`) пишет
-[bg-sim-matrix.md](bg-sim-matrix.md): каждое существо пула, сила героя героев из списка API, тринкет, тёмный дар и
-боевое зачарование с одним из шести статусов (`SimCoverage`: `no_effect`, `resolved`, `implemented`, `missing_effect`,
-`missing_input`, `unknown`) и пометкой пула («да» — API или hsbg.cards, «вне пула», «пул не подтверждён»). Правила те
-же, что помечают бой. После патча или нового эффекта — перегенерировать; `SimMatrixTests` сверяет файл с кодом.
+**Матрица пула** — `Hearthpulse.Bench simmatrix` (копия данных в `HEARTHPULSE_DATA`, снимок данных карт в
+`HP_BENCH_BGDATA`) пишет [bg-sim-matrix.md](bg-sim-matrix.md): все виды карт, которые есть в сегодняшней игре, — существа
+пула и Timewarped, карты только для Duos, сила героя каждого героя (и силы героя из пула hsbg.cards, с которыми не
+начинают: вторая сила от аномалии), тринкеты, тёмные дары, квесты, награды квестов, аномалии, заклинания таверны пула и
+заклинания, которые в бою кастуют другие карты, боевые зачарования — с одним из шести статусов (`SimCoverage`:
+`no_effect`, `resolved`, `implemented`, `missing_effect`, `missing_input`, `unknown`) и пометкой пула («да» — `in_pool`
+API данных v1, для героев и Timewarped — hsbg.cards; «вне пула»; «пул не подтверждён»). Правила те же, что помечают
+бой. После патча или нового эффекта — перегенерировать; `SimMatrixTests` сверяет файл с кодом.
+
+Данные текущего патча (с 19.11.2026): `python3 -I tools/effects/fetch_bg_data.py <снимок>` скачивает HearthstoneJSON enUS
+(последняя сборка) и библиотеки API данных Hearthpulse v1 (карты, герои, тринкеты, аномалии, квесты, награды, тёмные
+дары, Timewarped — с `in_pool`) в папку снимка; из неё строятся все `*.g.cs` эффектов (`gen_combat_relevance.py`,
+`gen_player_relevance.py`, `gen_ghastcoiler_pool.py`, `gen_undead_pool.py`; команды — в заголовках скриптов, сборка и
+дата данных — в заголовках таблиц) и матрица. Ручные метки существ переносятся из таблицы, новые карты пула — в
+`tools/effects/relevance_additions.json`.
 
 История `combat_odds` в `history.db` хранит те же числа по боям, но пересчитать её новым реестром нельзя (доски не
 сохраняются). Поэтому меряем на логах.
@@ -281,7 +291,7 @@ id) — теперь зачарования, заклинания и сущес�
 
 ### Заклинания в бою (E1, 19.11.2026)
 
-Конвейер `Simulation/Fight.Spells.cs`: `CastSpell(SpellCast)` — 1 + дополнительные касты (`ExtraSpellCasts`), каждый:
+Конвейер `Simulation/Fight.Spells.cs`: `CastSpell(SpellCast)` — `SpellCasts` раз (1 + наибольший `ExtraSpellCasts`: Balinda), каждый:
 «whenever you cast» (`OnFriendlySpellCast`) → эффект заклинания → «after you cast» (`AfterFriendlySpellCast`,
 `Fight.CurrentSpell`). Порядок и «чьё это заклинание» сверены с логом владельца (15.11.2026): в таверне Shamanic
 Tidecaller срабатывает до блока POWER заклинания, слева направо; после каждого заклинания — из руки или кастованного
@@ -301,7 +311,8 @@ Tea Set; выбор «по существу каждого типа» — как
 (Tavern-заклинание), The Shadow of Doubt (карта в руку; в логе срабатывает в бою после хрипа N'raqi Sapper) и
 источники карт в руку в бою (хрипы, Rally и Avenge «Get ...»: 21 существо, `CardToHand.cs`; Deathly Striker тоже через
 `Fight.AddToHand`), Geomagus Roogug; Crimson Vindicator переведён на конвейер. Тринкеты, реагирующие на заклинания в
-бою: Lovely Locket, Corrupted Baton, Miniature Ship, Comfy Coffin, Bluegill Flippers, Flighty Portrait. Числа берутся из
+бою: Lovely Locket, Corrupted Baton, Miniature Ship, Comfy Coffin, Bluegill Flippers, Flighty Portrait. Chef's Choice и Misplaced Tea Set в матрице — `implemented` через кастеров
+(`SimCoverage.ResolvedInline`). Числа берутся из
 захваченных `TAG_SCRIPT_DATA_NUM_1/2` (в логах они есть у Hooktail, Czarina, Sha, Mindslasher, Shadow, Tidecaller,
 Glambot, Tidehunter; баланс меняется на сервере), константы — запасной вариант по тексту LATEST.
 
@@ -311,8 +322,9 @@ Glambot, Tidehunter; баланс меняется на сервере), кон�
 реагирует на свой же каст; два Roogug передают камни до предела глубины движка; Bluegill Flippers — только доска (левая
 карта руки может быть заклинанием, его нет в снимке). Не моделируются: Locked-up Mutineer (есть ли уже Lockbox — не
 видно), Replica Cathedral (считается ли бой новым ходом — неизвестно), Honeycomb Ring, Bloodbound Earrings, Heart of the
-Forest (входит ли бонус в теги игрока — неизвестно), рост Faceless Converter и Showy Cyclist от кастов в бою. Balinda
-Stonehearth (пакет E2) и Temporal Tampering (E4) ложатся на хук `ExtraSpellCasts`.
+Forest (входит ли бонус в теги игрока — неизвестно), рост Faceless Converter и Showy Cyclist от кастов в бою, Boon of
+Beetles (заклинание таверны с действием в бою, не каст в бою). Balinda Stonehearth (E2) работает через конвейер;
+Temporal Tampering (E4) ляжет на тот же хук `ExtraSpellCasts`.
 
 ## Допущения (не сверены с логами)
 
