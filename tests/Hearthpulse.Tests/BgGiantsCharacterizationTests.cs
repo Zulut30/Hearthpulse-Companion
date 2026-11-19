@@ -123,6 +123,8 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // FECFFCB0BDD005AE.
         // 2026-11-19 (sim-all-mechanics P0): Ghastcoiler and Undead pools regenerated from patch 37.0.2 card data (new
         // stats, Rot Hide Gnoll); with the old pool files (checked) the fingerprint is still A488D069E48228A5.
-        Assert.Equal("fights 60958721CA247FFC", actual);
+        // 2026-11-19 (sim-all-mechanics E4): 28 new effect ids (Death's Embrace, Turbulent Tombs, Gilnean War Horn, Echoes of
+        // Argus, 23 Timewarped minions); without them (checked) the fingerprint is still 60958721CA247FFC.
+        Assert.Equal("fights 945AE1AA1A5DAF58", actual);
     }
 }

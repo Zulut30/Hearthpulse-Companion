@@ -111,7 +111,7 @@ public sealed class TimewarpedAttacksAndHagTests
             "BG34_Giant_071", "BG34_Giant_001", "BG34_Giant_618", "BG34_Giant_679", "BG34_Giant_680", "BG34_Giant_654",
             "BG34_Giant_081", "BG34_PreMadeChamp_020", "BG34_Giant_644", "BG34_Giant_342", "BG34_Giant_581", "BG34_Giant_674",
             "BG34_Giant_306", "BG34_PreMadeChamp_004", "BG34_Giant_608", "BG34_Giant_207", "BG34_Giant_687", "BG34_Giant_208",
-            "BG34_Giant_069", "BG34_Giant_017", "BG34_Giant_595",
+            "BG34_Giant_069", "BG34_Giant_017", "BG34_Giant_595", "BG34_Giant_331", "BG34_Giant_328",
         ];
         foreach (var id in ids)
         {

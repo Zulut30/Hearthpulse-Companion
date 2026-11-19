@@ -1,8 +1,10 @@
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Battlegrounds.Effects.Deaths;
 using Hearthpulse.Core.Battlegrounds.Effects.Timewarped;
 using static Hearthpulse.Tests.Sim.Deaths.DeathsTestKit;
 using static Hearthpulse.Tests.Sim.SimTestKit;
+using Ids = Hearthpulse.Tests.Sim.Deaths.Ids;
 
 namespace Hearthpulse.Tests.Sim.Timewarped;
 
@@ -106,5 +108,81 @@ public sealed class TimewarpedDeathrattlesTests
 
         Assert.Equal(["Q 4/19"], Board(result.Ours));
         Assert.True(result.IndexOf("deathrattle of our BG34_Giant_306") < result.IndexOf("deathrattle of our BG34_Giant_608"));
+    }
+    private static SimMinion Bonehead => Minion(1, 1, cardId: Ids.Bonehead, tribes: Tribe.Undead, mechanics: CardMechanic.Deathrattle);
+
+    private static SimMinion Warghoul(bool golden = false) => Dr(golden ? 18 : 9, golden ? 6 : 3, "BG34_Giant_331", Tribe.Undead, golden: golden);
+
+    [Fact]
+    public void Warghoul_triggers_the_deathrattle_of_the_neighbour_that_has_one()
+    {
+        // Killer 9/1 and the Taunt Warghoul 9/3 trade. Of its neighbours only the Bonehead has a Deathrattle: it triggers
+        // while the Bonehead lives, two Skeletons to its right (where the Warghoul stood).
+        var result = Fight(Side(Bonehead, Warghoul(), Minion(0, 5, cardId: "X")), Side(Killer(9, 1), Wall), oursFirst: false,
+                           Only(typeof(HarmlessBonehead), typeof(TimewarpedWarghoul)));
+
+        Assert.Equal(["BG28_300 1/1", Skeleton, Skeleton, "X 0/5"], Board(result.Ours));
+    }
+
+    [Fact]
+    public void Warghoul_picks_one_neighbour_at_random()
+    {
+        // Both neighbours are Boneheads: the Killer's target is pick 0, the Warghoul's choice pick 1, the right one.
+        var result = Fight(Side(Bonehead, Warghoul(), Bonehead), Side(Killer(9, 1), Wall), oursFirst: false,
+                           Only(typeof(HarmlessBonehead), typeof(TimewarpedWarghoul)), 0, 1);
+
+        Assert.Equal(["BG28_300 1/1", "BG28_300 1/1", Skeleton, Skeleton], Board(result.Ours));
+    }
+
+    [Fact]
+    public void Golden_warghoul_triggers_both_neighbours_left_first()
+    {
+        var result = Fight(Side(Bonehead, Warghoul(golden: true), Bonehead), Side(Killer(9, 1), Wall), oursFirst: false,
+                           Only(typeof(HarmlessBonehead), typeof(TimewarpedWarghoul)));
+
+        Assert.Equal(["BG28_300 1/1", Skeleton, Skeleton, "BG28_300 1/1", Skeleton, Skeleton], Board(result.Ours));
+    }
+
+    [Fact]
+    public void Warghoul_never_triggers_another_warghoul()
+    {
+        // The left neighbour is a second (non-Taunt) Warghoul: excluded, so nothing triggers.
+        var other = Minion(9, 3, cardId: "BG34_Giant_331", tribes: Tribe.Undead, mechanics: CardMechanic.Deathrattle);
+        var result = Fight(Side(other, Warghoul()), Side(Killer(9, 1), Wall), oursFirst: false, Only(typeof(TimewarpedWarghoul)));
+
+        Assert.Single(result.Lines("deathrattle of our BG34_Giant_331"));
+        Assert.Equal(["BG34_Giant_331 9/3"], Board(result.Ours));
+    }
+    [Fact]
+    public void Tide_razor_summons_four_random_pirates_up_to_the_tavern_tier()
+    {
+        // Tavern tier 1: the pool's Tier 1 Pirates are Southsea Busker and Aureate Laureate. The Killer's target is the
+        // first pick; then Busker, Laureate, Laureate, Busker, left to right in the Razor's slot.
+        var busker = PiratePool.IndexOf("BG26_135", 1);
+        var laureate = PiratePool.IndexOf("BG32_236", 1);
+        var result = Fight(Side(Dr(12, 8, "BG34_Giant_328", Tribe.None)) with { TavernTier = 1 }, Side(Killer(12, 1), Wall), oursFirst: false,
+                           Only(typeof(TimewarpedTideRazor)), 0, busker, laureate, laureate, busker);
+
+        Assert.Equal(["BG26_135 3/1", "BG32_236 2/2 DivineShield", "BG32_236 2/2 DivineShield", "BG26_135 3/1"], Board(result.Ours));
+        Assert.Equal(2, PiratePool.Minions.Count(m => m.TechLevel <= 1));
+    }
+
+    [Fact]
+    public void Golden_tide_razor_fills_the_board()
+    {
+        // Eight Pirates, seven fit.
+        var result = Fight(Side(Dr(24, 16, "BG34_Giant_328", Tribe.None, golden: true)), Side(Killer(24, 1), Wall), oursFirst: false,
+                           Only(typeof(TimewarpedTideRazor)));
+
+        Assert.Equal(7, result.Ours.Count);
+        Assert.All(result.Ours, m => Assert.True((m.Tribes & Tribe.Pirate) != 0));
+    }
+
+    [Fact]
+    public void The_pirate_pool_is_the_card_data_of_the_relevance_table_patch()
+    {
+        Assert.Equal(PiratePool.Patch, CombatRelevance.Patch);
+        Assert.Equal(-1, PiratePool.IndexOf("BG36_360")); // Dark Paradox: its type changes every game
+        Assert.All(PiratePool.Minions, m => Assert.True((m.Tribes & Tribe.Pirate) != 0));
     }
 }
