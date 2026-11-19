@@ -61,6 +61,11 @@ internal sealed class HarmlessBonehead : CombatEffect
 | `AfterFriendlySpellCast(f, self, spellId, target)` | after `Fight.CastSpell` for this side |
 | `AuraFor(f, self, other) → StatDelta` | static aura onto a friendly minion; recomputed when minions enter or leave. Captured stats already include auras present at capture; the engine only applies changes (a lost Health aura lowers Health down to the new maximum only) |
 | `Refresh(f, self)` | re-check state-dependent keywords/thresholds ("Taunt while it has Divine Shield", "once this reaches 6 Attack") after stat changes and board changes |
+| `Battlecry(f, self)` | self's Battlecry when an effect triggers it in combat (`Fight.TriggerBattlecry`); once per trigger |
+| `ExtraBattlecries(f, self)` | "Your Battlecries trigger twice" while self is alive (Brann: 1, golden 2); copies do not add up, the largest wins |
+| `AfterFriendlyBattlecry(f, self, source)` | after each friendly Battlecry trigger in combat, multipliers included ("after you trigger a Battlecry") |
+| `ExtraSpellCasts(f, self, spellId, target)` | extra casts of a spell the owner casts in combat while self is alive (Balinda: 1 for a friendly target, golden 2); the largest wins |
+| `AfterFriendlyGainedStats(f, self, unit, atk, hp)` | a friendly minion gained stats from `Fight.Buff` (the positive part; auras and summon buffs are not reported): Mishmash |
 
 Properties: `NeedsHand` (the effect reads its owner's hand; stays "not simulated" for the opponent),
 `ImmuneWhileAttacking` (the engine prevents all damage to the unit while its own attack resolves: Invulnerability),
@@ -96,7 +101,9 @@ returns to 0 when Avenge fires).
   `AttackSoon(attacker)` ("attacks immediately": right after the current attack).
 - Deathrattles: `TriggerDeathrattles(unit, times, withMultiplier)`; `DeathrattleTriggers(side)`;
   `unit.HasDeathrattle`, `unit.IsRally`, `unit.AddEffect(effect)` (gain another minion's deathrattle).
-- Spells in combat: `CastSpell(side, spellId, target, resolve)`.
+- Battlecries in combat: `TriggerBattlecry(unit, times, withMultiplier)` (a Battlecry with no combat effect still counts
+  as triggered), `BattlecryTriggers(side)`, `Fight.HasBattlecry(unit)`, side counter `Fight.BattlecriesTriggeredKey`.
+- Spells in combat: `CastSpell(side, spellId, target, resolve)` (repeated `SpellCasts(side, spellId, target)` times).
 - Player context: `side.Info` (`HeroCardId`, `HeroPowerCardId`, `Extras`, `Tags`, `TavernTier`), `side.Hand` (local
   player only; always empty for the opponent), `side.ExtraDeathrattles`.
 - Captured data on `unit.Spec`: `CardId` (normal id), `Golden`, `Tribes`, `BaseKeywords`, `RebornAttack`,

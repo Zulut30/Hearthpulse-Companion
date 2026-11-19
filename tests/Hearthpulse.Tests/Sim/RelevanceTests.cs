@@ -11,9 +11,10 @@ public sealed class RelevanceTests
     public void Table_holds_the_hand_labelled_pool()
     {
         var pool = CombatRelevance.Table.Where(r => r.Origin == Origin.Pool).ToList();
-        // 302 of the patch's research files and the additions of tools/effects/relevance_additions.json (Murcules, Bassgill).
-        Assert.Equal(304, pool.Count);
-        Assert.Equal(67, pool.Count(r => r.Relevance == Relevance.Relevant));
+        // 302 of the patch's research files and the additions of tools/effects/relevance_additions.json (Murcules, Bassgill,
+        // Fishbait, Tide Oracle Morgl, Water Droplet).
+        Assert.Equal(307, pool.Count);
+        Assert.Equal(69, pool.Count(r => r.Relevance == Relevance.Relevant));
         Assert.Equal(Relevance.Relevant, CombatRelevance.Find("BG27_023_G")?.Relevance);
         Assert.Equal(Relevance.Relevant, CombatRelevance.Find("BG26_350")?.Relevance);
         Assert.All(pool, r => Assert.NotEqual(string.Empty, r.GoldenCardId));
