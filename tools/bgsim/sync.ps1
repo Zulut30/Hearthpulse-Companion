@@ -62,6 +62,7 @@ $Include = @(
 $ExcludedTests = [ordered]@{
     'tests/Hearthpulse.Tests/Sim/CaptureTests.cs'                   = 'Power.log replay through BattlegroundsTracker'
     'tests/Hearthpulse.Tests/Sim/SimInputsTests.cs'                 = 'Power.log replay through BattlegroundsTracker'
+    'tests/Hearthpulse.Tests/Sim/SimInputsTests.Deity.cs'           = 'Power.log replay through BattlegroundsTracker (PowerLog)'
     'tests/Hearthpulse.Tests/Sim/LeftoverCaptureTests.cs'           = 'GameState and BattlegroundsTracker'
     'tests/Hearthpulse.Tests/Sim/DamageCalibrationReplayTests.cs'   = 'real Power.log games'
     'tests/Hearthpulse.Tests/Sim/GeneratedPoolsTests.cs'            = 'Fixtures/BgPools card data and CardDb.Parse'
@@ -69,6 +70,7 @@ $ExcludedTests = [ordered]@{
     'tests/Hearthpulse.Tests/Sim/SimMeasurementTests.cs'            = 'Hearthpulse.Bench measurement sources'
     'tests/Hearthpulse.Tests/Sim/SimReplayKit.cs'                   = 'Hearthpulse.Bench simreplay'
     'tests/Hearthpulse.Tests/Sim/SimReplayTests.cs'                 = 'Hearthpulse.Bench simreplay'
+    'tests/Hearthpulse.Tests/Sim/SimReplayResidualTests.cs'         = 'Hearthpulse.Bench simreplay and real Power.log games'
     'tests/Hearthpulse.Tests/Sim/ParallelRunsTests.cs'              = 'Hearthpulse.Bench SimStats.Wilson and BattlegroundsTracker in two of its cases'
 }
 
