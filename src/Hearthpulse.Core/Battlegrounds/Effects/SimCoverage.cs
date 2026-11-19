@@ -30,6 +30,21 @@ public enum CoverageKind
     Trinket,
     DarkGift,
     Enchantment,
+
+    /// <summary>A Battlegrounds quest (Sire Denathrius's hero power offers them): its task may progress in a fight.</summary>
+    Quest,
+
+    /// <summary>A quest reward: a player-level card like a trinket.</summary>
+    QuestReward,
+
+    /// <summary>The lobby's anomaly.</summary>
+    Anomaly,
+
+    /// <summary>A Tavern spell: in the pool, or cast during a fight by another card's combat effect.</summary>
+    Spell,
+
+    /// <summary>A Tavern card (minion or spell) that only Duos offers.</summary>
+    DuosOnly,
 }
 
 /// <summary>A card's status and a short note (Russian, for docs/bg-sim-matrix.md).</summary>
@@ -51,13 +66,28 @@ public static class SimCoverage
     /// </summary>
     private static readonly Dictionary<string, string> InputGaps = new(StringComparer.OrdinalIgnoreCase)
     {
-        // Seen in a real log (2026-11-04): the Golem came out 67/51 while the player's Blood Gem tags said +7/+0 and the
-        // dying Quilboar was a plain 4/4; 67/51 sat on unnamed enchantments of another Quilboar. Which value "its Blood
-        // Gems" means is not established, and the capture keeps no enchantment values.
-        ["BG30_MagicItem_442"] = "размер Голема («its Blood Gems») не найден в тегах снимка",
+        // Empty for now. Blood Golem Sticker was here until E3 (2026-11-19) found "its Blood Gems" in the dying Quilboar's
+        // tags 4235/4236 (Effects/player/BloodGolemSticker.cs).
+    };
+
+    /// <summary>
+    /// Spells a combat effect resolves inside its own code instead of a registered spell effect: the spell is simulated
+    /// when one of these casters has an effect. Checked against the effects' source (2026-11-19).
+    /// </summary>
+    private static readonly Dictionary<string, (string[] Casters, string Note)> ResolvedInline = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Effects/attack/CrimsonVindicator.cs: Fight.CastSpell with the spell's text as the resolve step.
+        ["BG36_246"] = (["BG36_241"], "разрешается в эффекте Crimson Vindicator (BG36_241) через CastSpell"),
+        // Effects/attack/BloodGems.cs, called by Bonker, Prodigious Tusker, Razorfen Vineweaver, Tusked Camper.
+        ["BG20_GEM"] = (["BG20_104", "BG33_430", "BG33_883", "BG33_886"],
+            "разыгрывается в эффектах существ (BloodGems.Play), не через CastSpell: триггеры заклинаний его не видят"),
     };
 
     public static string Code(CoverageStatus status) => Codes[(int)status];
+
+    /// <summary>How a spell resolved inside another card's effect is simulated, or null (see <see cref="ResolvedInline"/>).</summary>
+    public static string? InlineResolution(string? cardId) =>
+        cardId is { Length: > 0 } && ResolvedInline.TryGetValue(cardId, out var inline) ? inline.Note : null;
 
     public static string Code(UnsimulatedReason reason) => reason switch
     {
@@ -71,10 +101,12 @@ public static class SimCoverage
         cardId is { Length: > 0 } && InputGaps.TryGetValue(cardId, out var gap) ? gap : null;
 
     /// <summary>
-    /// The card's status. Cards no table knows: an effect makes them implemented; a player-level card (hero power,
-    /// trinket) is unknown, as the simulator counts it; a minion or enchantment falls back to its English text as the
-    /// simulator does (<see cref="CombatRelevance.TextSuggestsCombatEffect"/>): combat-like text = unknown, a Start of
-    /// Combat text = resolved, other text = no effect.
+    /// The card's status. A spell another card's effect resolves itself (<see cref="InlineResolution"/>) is implemented
+    /// while that effect is registered. Cards no table knows: an effect makes them implemented; a player-level card (hero
+    /// power, trinket, quest, quest reward, anomaly, Tavern spell) is unknown, as the simulator counts it; a minion or
+    /// enchantment falls back to its English text as the simulator does
+    /// (<see cref="CombatRelevance.TextSuggestsCombatEffect"/>): combat-like text = unknown, a Start of Combat text =
+    /// resolved, other text = no effect.
     /// </summary>
     /// <param name="cardId">Normal or golden card id.</param>
     /// <param name="kind">What the card is.</param>
@@ -90,10 +122,15 @@ public static class SimCoverage
             return new Coverage(CoverageStatus.MissingInput, gap);
         }
 
+        if (effect is null && ResolvedInline.TryGetValue(cardId, out var inline) && inline.Casters.Any(c => effects.Get(c, golden: false) is not null))
+        {
+            return new Coverage(CoverageStatus.Implemented, inline.Note);
+        }
+
         if (CombatRelevance.Find(cardId) is not { } row)
         {
             return effect is not null ? Implemented(effect, "нет в таблице релевантности")
-                : kind is CoverageKind.HeroPower or CoverageKind.Trinket ? new Coverage(CoverageStatus.Unknown, "нет в таблице: новее данных")
+                : IsPlayerLevel(kind) ? new Coverage(CoverageStatus.Unknown, "нет в таблице: новее данных")
                 : FromText(englishText);
         }
 
@@ -107,6 +144,14 @@ public static class SimCoverage
             _ => Implemented(effect!, row.Category),
         };
     }
+
+    /// <summary>
+    /// Kinds every card of which has a table row (tools/effects/gen_player_relevance.py labels each one of the card
+    /// data): a card no table knows is newer than the data, so it is unknown rather than judged by its text.
+    /// </summary>
+    private static bool IsPlayerLevel(CoverageKind kind) =>
+        kind is CoverageKind.HeroPower or CoverageKind.Trinket or CoverageKind.Quest or CoverageKind.QuestReward
+            or CoverageKind.Anomaly or CoverageKind.Spell;
 
     private static Coverage Implemented(CombatEffect effect, string note) =>
         effect.UncapturedInput is { } missing ? new Coverage(CoverageStatus.MissingInput, $"{note}; эффект есть, но нет в снимке: {missing}")

@@ -48,7 +48,10 @@ flow, the rule below it breaks, and the file. Ban risk, licences and a release-l
    500, day instead of timestamp, as the existing records do.
 2. **Only what the player saw** (`docs/adr/0005-hidden-information.md`). An uploaded Constructed game is read
    without its post-game reveals (`MatchReplay.ParseSeen`); a shared replay goes through `ReplayImport.Sanitize`.
-   Opponent cards that were never shown have no name anywhere outside the player's own match page.
+   Opponent cards that were never shown have no name anywhere outside the player's own match page. One recorded
+   exception (owner, 2026-11-19): the Battlegrounds fights of the journal (`bg_combat`, `docs/source-capture.md`) carry
+   simulator inputs the client may not show (the opponent's player counters, his minions' script values and
+   `creator`), sent after the game, only to measure the simulator, never published. It does not widen to anything else.
 3. **Anonymous pool payloads exclude direct identifiers**: player or opponent name, BattleTag, account id, e-mail,
    deck name, exact rating, machine path or IP. The typed source format has no free-text field: an unknown
    observation becomes a gap. Authenticated profile uploads and replay sharing have separate documented

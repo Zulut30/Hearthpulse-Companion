@@ -74,7 +74,8 @@ public sealed class SourceCaptureClient(HttpClient http)
             request.Content = JsonContent.Create(body, options: SourceCaptureRecord.Json);
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
-                return new(false, (int)response.StatusCode is 400 or 409 or 410 or 413 ? "rejected" : "offline", Retry(response));
+                return new(false, (int)response.StatusCode is 400 or 409 or 410 or 413 ? "rejected" : "offline", Retry(response),
+                    (int)response.StatusCode == 400 ? await ErrorCodeAsync(response, token).ConfigureAwait(false) : null);
             // A hostile/misconfigured endpoint cannot force an unbounded response allocation.
             using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
             using var buffer = new MemoryStream();
@@ -96,12 +97,30 @@ public sealed class SourceCaptureClient(HttpClient http)
         }
     }
 
+    /// <summary>The pool's fixed error code of a refusal (<c>{"error":"invalid_record"}</c>), or null; never other text.</summary>
+    private static async Task<string?> ErrorCodeAsync(HttpResponseMessage response, CancellationToken token)
+    {
+        using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
+        var buffer = new byte[4096];
+        int length = 0, read;
+        while (length < buffer.Length && (read = await stream.ReadAsync(buffer.AsMemory(length), token).ConfigureAwait(false)) > 0) length += read;
+        try
+        {
+            using var json = JsonDocument.Parse(buffer.AsMemory(0, length));
+            return json.RootElement.ValueKind == JsonValueKind.Object && json.RootElement.TryGetProperty("error", out var error)
+                && error.ValueKind == JsonValueKind.String && error.GetString() is { Length: > 0 and <= 40 } code && code.All(c => c is >= 'a' and <= 'z' or '_')
+                ? code : null;
+        }
+        catch (JsonException) { return null; }
+    }
+
     private static bool True(JsonElement root, string key) => root.ValueKind == JsonValueKind.Object && root.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.True;
     private static TimeSpan Retry(HttpResponseMessage response) => response.Headers.RetryAfter?.Delta
         ?? (response.Headers.RetryAfter?.Date is { } date ? TimeSpan.FromSeconds(Math.Clamp((date - DateTimeOffset.UtcNow).TotalSeconds, 1, 3600)) : TimeSpan.FromSeconds(30));
 }
 
-internal sealed record SourceCaptureAnswer(bool Accepted, string Status, TimeSpan RetryAfter);
+/// <param name="Code">The pool's error code of a 400 refusal, when it gave one (see <c>ErrorCodeAsync</c>).</param>
+internal sealed record SourceCaptureAnswer(bool Accepted, string Status, TimeSpan RetryAfter, string? Code = null);
 /// <summary>Aggregate processing status without source records or installation identifiers.</summary>
 public sealed record SourceCaptureRemoteStatus(string Status, string? ParserVersion, int Records, int Unsupported, int Gaps);
 internal sealed record SourceCaptureRevocation(string Iid, string Generation, string Endpoint);
