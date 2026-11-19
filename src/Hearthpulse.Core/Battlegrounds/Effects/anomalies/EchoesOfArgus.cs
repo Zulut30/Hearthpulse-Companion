@@ -8,12 +8,16 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Anomalies;
 
 /// <summary>Echoes of Argus (BG27_Anomaly_802): "Your Battlecries and Deathrattles trigger an extra time."</summary>
 /// <remarks>
-/// Each side's deathrattles trigger once more. Battlecries trigger in the Tavern; the engine triggers none in combat,
-/// so that half has nothing to act on. Assumption (no log with the anomaly): it adds to Titus Rivendare's extra
-/// triggers, as the engine sums every extra-trigger source of a side.
+/// Each side's deathrattles trigger once more, and so do the Battlecries an effect triggers in combat
+/// (<see cref="Fight.TriggerBattlecry"/>, e.g. Timewarped Greenskeeper's Rally). Assumptions (no log with the anomaly):
+/// the extra deathrattle adds to Titus Rivendare's, as the engine sums every extra deathrattle source of a side; the
+/// extra Battlecry follows the engine's Battlecry rule, where the largest multiplier wins, so with Brann Bronzebeard a
+/// Battlecry triggers twice, not three times.
 /// </remarks>
 [CardEffect("BG27_Anomaly_802")]
 internal sealed class EchoesOfArgus : CombatEffect
 {
     public override int ExtraDeathrattles(Fight fight, Unit self) => 1;
+
+    public override int ExtraBattlecries(Fight fight, Unit self) => 1;
 }

@@ -48,7 +48,8 @@ internal sealed class TimewarpedCollector : CombatEffect
 /// In text order, as Turquoise Skitterer: the bonus first (living Beetles, and Beetles summoned later this fight, the
 /// ones this summons included), then the summon. The Beetle's base is <see cref="Beetles.Stats"/>: the summoner's
 /// TAG_SCRIPT_DATA_NUM_1/2 when the log sends them (the player's current Beetle, as for the other Beetle summoners),
-/// else a captured Beetle summoner's, else 2/2. Rally: to its right, before damage; Deathrattle: in its slot.
+/// else a captured Beetle summoner's, else 2/2. Rally: to its right, before damage; Deathrattle: in its slot; a Battlecry
+/// another effect triggers in combat (<see cref="Fight.TriggerBattlecry"/>): to its right.
 /// </remarks>
 [CardEffect("BG34_Giant_687")]
 internal sealed class TimewarpedNestSwarmer : CombatEffect
@@ -58,6 +59,8 @@ internal sealed class TimewarpedNestSwarmer : CombatEffect
     public override void OnAttack(Fight fight, Unit self, Unit target) => Act(fight, self);
 
     public override void Deathrattle(Fight fight, Unit self) => Act(fight, self);
+
+    public override void Battlecry(Fight fight, Unit self) => Act(fight, self);
 
     private static void Act(Fight fight, Unit self)
     {
