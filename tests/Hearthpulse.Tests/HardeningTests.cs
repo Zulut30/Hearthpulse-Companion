@@ -51,6 +51,7 @@ public class HardeningTests
 
         var odds = CombatSimulator.Run(ours, theirs, null, new SimOptions { Runs = 4000, Cancel = cancel.Token });
 
-        Assert.Equal(100, odds.Runs);
+        // Cancellation is checked between chunks, so a token cancelled before the start still lets the first chunk run.
+        Assert.Equal(CombatSimulator.ChunkRuns, odds.Runs);
     }
 }
