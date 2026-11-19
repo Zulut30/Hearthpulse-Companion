@@ -32,7 +32,7 @@ public sealed class HandTests
         // Full board, hand: a 3/3 Murloc, a 5/2 Murloc and a 9/9 Beast. Their 1/3 kills a bystander (pick 1): space. The
         // 5/2 (highest-Attack Murloc) is summoned at the right end of the board, not next to the living Forager (real log
         // 15.11.2026, build 255790: position 7 with the Forager at position 4). Then our Forager (4 Attack) kills the 1/3
-        // and takes 1.
+        // and takes 1. Also simreplay #2/11-#2/14 (lines 349140, 387154, 426591).
         var ours = FullBoardWithForager(hand: [Murloc("MUR_LOW", 3, 3), Murloc("MUR_HIGH", 5, 2), Minion(9, 9, cardId: "BEAST", tribes: Tribe.Beast)]);
         var result = Fight(ours, Side(Minion(1, 3)), oursFirst: false, Effects(typeof(DiremuckForager)), 1);
 
@@ -89,7 +89,8 @@ public sealed class HandTests
     [Fact]
     public void Diremuck_forager_breaks_ties_between_murlocs_at_random()
     {
-        // Two 5-Attack Murlocs: the tie-break pick chooses (1 keeps the first, 0 takes the second).
+        // Two 5-Attack Murlocs: the tie-break pick chooses (1 keeps the first, 0 takes the second). The Murloc comes at the
+        // right end of the board (Power.log 15.11, see the first Diremuck test).
         var hand = new[] { Murloc("MUR_FIRST", 5, 2), Murloc("MUR_SECOND", 5, 3) };
         var first = Fight(FullBoardWithForager(hand: hand), Side(Minion(1, 3)), oursFirst: false, Effects(typeof(DiremuckForager)), 1, 1);
         var second = Fight(FullBoardWithForager(hand: hand), Side(Minion(1, 3)), oursFirst: false, Effects(typeof(DiremuckForager)), 1, 0);

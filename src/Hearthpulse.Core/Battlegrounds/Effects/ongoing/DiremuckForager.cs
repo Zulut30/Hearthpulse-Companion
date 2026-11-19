@@ -6,11 +6,13 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 /// <para>
 /// The Start of Combat part has resolved when the boards are captured: with space the Murloc is already on the board (and no
 /// longer in the hand). What is left is the "when you have space" wait: if the board was full at the start of the fight
-/// (7 minions), the summon is still pending, and it happens as soon as a friendly minion has died and there is room
-/// (<see cref="PendingMurlocs"/>), even after the Forager itself died. The Murloc is summoned at the right end of the board,
-/// wherever the Forager stands (real log 15.11.2026, build 255790: the delayed summon went to position 7 with the Forager
-/// alive at position 4, and with a golden one at position 3). Needs the hand, which only the local player's is known: the
-/// opponent's Forager stays "not simulated". The Murlocs still to summon are the player enchantment's count
+/// (7 minions), the summon is still pending, and it happens at the end of the first death phase that leaves room, after
+/// that phase's Reborn copies took theirs (<see cref="PendingMurlocs"/>; simreplay #4/11: Bubble Gunner's copy at line
+/// 1086990, the Murloc only after the copy died, 1087143), even after the Forager itself died. The Murloc is summoned at
+/// the right end of the board, wherever the Forager stands (real log 15.11.2026, build 255790: the delayed summon went to
+/// position 7 with the Forager alive at position 4, and with a golden one at position 3; simreplay #2/11-#2/14, lines
+/// 349140, 387154, 426591). Needs the hand, which only the local player's is known: the opponent's Forager stays "not
+/// simulated". The Murlocs still to summon are the player enchantment's count
 /// (<see cref="SimInputs.PendingForagerSummons"/>); without it, with a full board, the sim assumes none was summoned yet.
 /// </para>
 /// </summary>
@@ -46,7 +48,7 @@ internal sealed class PendingMurlocs : CombatEffect
         public Unit? Source;
     }
 
-    public override void AfterFriendlyDeath(Fight fight, Unit self, Unit dead)
+    public override void AfterDeathPhase(Fight fight, Unit self)
     {
         var state = UnitState<State>.Of(self);
         var side = self.Side;
