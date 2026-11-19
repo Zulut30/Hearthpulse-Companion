@@ -43,17 +43,20 @@ public sealed class EngineTests
     }
 
     [Fact]
-    public void Reborn_copy_of_the_attacker_waits_and_the_next_minion_attacks()
+    public void Reborn_copy_of_the_last_attacker_attacks_next()
     {
-        // Our R attacks and dies; its copy takes R's slot left of the attack gap, so B attacks next, not the copy.
+        // Our R attacks and dies; its copy takes R's slot and attacks next, before B. This test used to expect B (the
+        // copy "waiting" left of the gap); Power.log 15.11 says otherwise (rules-evidence 2b, 15 of 15): g2c7 reborn
+        // line 207723, the copy's attack 207787; g3c11 Conveyor Construct dies 749548, copy 749624, attacks 750029.
         var r = Minion(2, 1, Keyword.Reborn, "R");
         var b = Minion(3, 5, cardId: "B");
         // Picks: our R → E; their E → B (index 1); then our next attacker.
         var result = Fight(Side(r, b), Side(Minion(1, 20, cardId: "E")), oursFirst: true, picks: [0, 1, 0]);
 
         var attacks = result.Lines("our ").Where(l => l.Contains(" attacks ", StringComparison.Ordinal)).ToList();
-        Assert.StartsWith("our R ", attacks[0]);
-        Assert.StartsWith("our B ", attacks[1]);
+        Assert.StartsWith("our R 2/1 Reborn attacks", attacks[0]);
+        Assert.StartsWith("our R 2/1 attacks", attacks[1]);
+        Assert.StartsWith("our B ", attacks[2]);
     }
 
     [Fact]
@@ -76,19 +79,22 @@ public sealed class EngineTests
     // ------------------------------------------------------------------------------------------- deaths
 
     [Fact]
-    public void Deathrattle_summons_take_the_dead_minions_slot_and_wait_for_the_next_round()
+    public void Deathrattle_summons_of_the_last_attacker_take_its_slot_and_attack_next()
     {
         var effects = Effects(typeof(SummonTwo));
-        // Our DR attacks first and dies to E; two tokens appear in its slot, left of B, so B attacks next and the
-        // tokens attack once the order wraps around. E always hits B (pick 2).
+        // Our DR attacks first and dies to E; two tokens appear in its slot, left of B, and attack next, before B.
+        // E always hits B (pick 2). This test used to expect B next (tokens waiting left of the gap); Power.log 15.11
+        // g1c4 (rules-evidence 2b): Buzzing Vermin#1995 attacks (line 28971) and dies (29049), its Beetle#2118 takes
+        // slot 1 (29063) and is the side's next attacker (29266), not the Crackling Cyclone to its right.
         var result = Fight(Side(Minion(1, 1, cardId: "DR"), Minion(1, 9, cardId: "B")), Side(Minion(1, 50, cardId: "E")), true, effects,
                            picks: [0, 2, 0, 2, 0]);
 
         Assert.Equal(2, result.Lines("summoned our TEST_TOKEN 1/1 at 0").Count + result.Lines("summoned our TEST_TOKEN 1/1 at 1").Count);
         var ourAttacks = result.Lines("our ").Where(l => l.Contains(" attacks ", StringComparison.Ordinal)).ToList();
         Assert.StartsWith("our DR ", ourAttacks[0]);
-        Assert.StartsWith("our B ", ourAttacks[1]);
+        Assert.StartsWith("our TEST_TOKEN ", ourAttacks[1]);
         Assert.StartsWith("our TEST_TOKEN ", ourAttacks[2]);
+        Assert.StartsWith("our B ", ourAttacks[3]);
     }
 
     [Fact]

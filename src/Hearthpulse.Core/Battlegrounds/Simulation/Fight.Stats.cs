@@ -81,15 +81,17 @@ public sealed partial class Fight
             foreach (var unit in side.Minions)
             {
                 var total = AuraTotal(side, unit);
-                var delta = total - unit.AppliedAura;
-                if (!delta.IsZero)
+                // The change in 64 bits: two totals near the int limits must not wrap around when subtracted.
+                var deltaAttack = (long)total.Attack - unit.AppliedAura.Attack;
+                var deltaHealth = (long)total.Health - unit.AppliedAura.Health;
+                if (deltaAttack != 0 || deltaHealth != 0)
                 {
                     // Summed in 64 bits and clamped, like Buff: a huge aura on a huge minion must not wrap around.
-                    unit.Attack = (int)Math.Clamp((long)unit.Attack + delta.Attack, 0, int.MaxValue);
-                    unit.MaxHealth = (int)Math.Clamp((long)unit.MaxHealth + delta.Health, 0, int.MaxValue);
+                    unit.Attack = (int)Math.Clamp(unit.Attack + deltaAttack, 0, int.MaxValue);
+                    unit.MaxHealth = (int)Math.Clamp(unit.MaxHealth + deltaHealth, 0, int.MaxValue);
                     // A removed Health aura lowers current Health only down to the new maximum.
-                    unit.Health = delta.Health > 0
-                        ? (int)Math.Clamp((long)unit.Health + delta.Health, -1_000_000_000, int.MaxValue)
+                    unit.Health = deltaHealth > 0
+                        ? (int)Math.Clamp(unit.Health + deltaHealth, -1_000_000_000, int.MaxValue)
                         : Math.Min(unit.Health, unit.MaxHealth);
                 }
 
@@ -118,39 +120,39 @@ public sealed partial class Fight
         }
     }
 
+    /// <summary>Every aura on <paramref name="target"/>, summed in 64 bits and clamped to int: many huge auras must not wrap around.</summary>
     private StatDelta AuraTotal(Side side, Unit target)
     {
-        StatDelta total = default;
+        long attack = 0, health = 0;
         foreach (var source in side.Minions)
         {
-            total += AuraFrom(source, target);
+            AddAuraFrom(source, target, ref attack, ref health);
         }
 
         foreach (var source in side.Extras)
         {
-            total += AuraFrom(source, target);
+            AddAuraFrom(source, target, ref attack, ref health);
         }
 
-        return total;
+        return new StatDelta((int)Math.Clamp(attack, int.MinValue, int.MaxValue), (int)Math.Clamp(health, int.MinValue, int.MaxValue));
     }
 
-    private StatDelta AuraFrom(Unit source, Unit target)
+    private void AddAuraFrom(Unit source, Unit target, ref long attack, ref long health)
     {
-        StatDelta total = default;
         if ((source.Hooks & Hook.Aura) == 0)
         {
-            return total;
+            return;
         }
 
         foreach (var effect in source.Effects)
         {
             if ((effect.Hooks & Hook.Aura) != 0)
             {
-                total += effect.AuraFor(this, source, target);
+                var aura = effect.AuraFor(this, source, target);
+                attack += aura.Attack;
+                health += aura.Health;
             }
         }
-
-        return total;
     }
 
     // ================================================================================================ spells

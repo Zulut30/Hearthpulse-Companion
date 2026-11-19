@@ -66,6 +66,12 @@ public sealed class Side
     /// </summary>
     internal int Gap { get; set; }
 
+    /// <summary>
+    /// The minion this side last chose to attack with. When it dies, its deathrattle summons and reborn copy take its
+    /// slot and attack next (they do not wait for the next round like other summons left of the gap).
+    /// </summary>
+    internal Unit? LastAttacker { get; set; }
+
     internal Hook Hooks
     {
         get

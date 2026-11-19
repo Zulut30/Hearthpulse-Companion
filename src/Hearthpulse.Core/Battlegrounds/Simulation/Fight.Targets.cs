@@ -85,7 +85,7 @@ public sealed partial class Fight
     private void Raise(Side side, Hook hook, Unit? a, Unit? b = null, int amount = 0, AttackOutcome outcome = default,
                        string? text = null, Unit? exclude = null)
     {
-        if ((side.Hooks & hook) == 0 || _depth >= MaxDepth)
+        if ((side.Hooks & hook) == 0 || TooDeep())
         {
             return;
         }

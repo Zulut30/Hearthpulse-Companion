@@ -11,21 +11,23 @@ namespace Hearthpulse.Core.Battlegrounds;
 /// <list type="bullet">
 /// <item>Sides alternate attacks. A side's next attacker is the first minion with Attack at or right of its "gap",
 /// which sits just right of that side's last attacker (wrapping to the left-most minion). Minions summoned left of the
-/// gap (for example in the slot of an attacker that died) wait for the next round; minions summoned right of it, such as
-/// a reborn copy of the minion that was due to attack next, attack in turn. This reproduces the simulator's previous
-/// behaviour; it is not verified against Power.log.</item>
-/// <item>An attack: "when this attacks" hooks (Rally) and "whenever a friendly minion attacks / is attacked" hooks run
-/// before damage, then a death phase. If the attacker or the target died, the attack is cancelled. Otherwise damage
-/// is simultaneous; damage-triggered hooks and after-attack hooks run while dead minions are still on the board
-/// (mortally wounded), then the death phase.</item>
-/// <item>Death phase: all dead minions are removed at once (the attacking side first, then the other, each left to
-/// right). Then, per dead minion in that order: its deathrattles (× 1 + extra triggers from living minions such as
-/// Titus Rivendare and from the side), then its Reborn. Then "after a friendly/enemy minion dies" hooks (Avenge)
-/// for each death, auras are refreshed, and the phase repeats while minions keep dying.</item>
+/// gap (for example in the slot of another minion that died) wait for the next round; minions summoned right of it,
+/// and the deathrattle summons and reborn copy of the side's last attacker (in its slot), attack in turn (Power.log
+/// 15.11, rules-evidence 2a/2b: 413 of 413 attacker choices).</item>
+/// <item>An attack: "whenever a friendly minion attacks" hooks, then "when this attacks" hooks (Rally), then
+/// "whenever a friendly minion is attacked" hooks run before damage (effects-audit E1), then a death phase. If the
+/// attacker or the target died, the attack is cancelled. Otherwise damage is simultaneous; damage-triggered hooks and
+/// after-attack hooks run while dead minions are still on the board (mortally wounded), then the death phase.</item>
+/// <item>Death phase: all dead minions are removed at once, in order of play: the starting minions of the side with the
+/// lower lobby PLAYER_ID, then the other side's, each left to right, then minions summoned during the combat in the
+/// order summoned (rules-evidence 4a). Then, per dead minion in that order: its deathrattles, each one × (1 + extra
+/// triggers from living minions such as Titus Rivendare and from the side) before the next (effects-audit E2); then
+/// "after a friendly/enemy minion dies" hooks (Avenge) for each death; then each Reborn (rules-evidence 4d); auras are
+/// refreshed, and the phase repeats while minions keep dying.</item>
 /// <item>Summons from a dead minion appear in its slot, left to right in the order they are made, the reborn copy
 /// after its deathrattle summons. A side holds at most 7 minions; summons beyond that are lost.</item>
-/// <item>Reborn brings back the card's printed Attack and keywords with 1 Health, golden if it was golden, without
-/// buffs or enchantments.</item>
+/// <item>Reborn brings back the card's printed Attack and keywords with 1 Health of its printed maximum, golden if it
+/// was golden, without buffs or enchantments.</item>
 /// <item>"Attacks immediately" (<see cref="AttackSoon"/>) happens right after the attack in progress; Windfury's
 /// second attack comes after it.</item>
 /// </list>
@@ -35,6 +37,11 @@ public sealed partial class Fight
     private const int MaxAttacks = 400;
     private const int MaxDepth = 24;
     private const int MaxDeathRounds = 64;
+
+    // Order of play (Unit.Entry): starting minions 0..MaxMinions-1 per side, Start of Combat summons from the capture
+    // after them by entity id, minions summoned by the simulation after those in summon order.
+    private const int CapturedSummonEntry = 16;
+    private const int SimSummonEntry = 1 << 30;
 
     private const Hook DamageHooks = Hook.Damaged | Hook.FriendlyDealtDamage | Hook.Kill | Hook.ShieldLost;
 
@@ -49,6 +56,7 @@ public sealed partial class Fight
     private bool _inDeathPhase;
     private int _depth;
     private int _attacks;
+    private int _nextEntry = SimSummonEntry;
 
     internal Fight(SimSide ours, SimSide theirs, EffectRegistry registry, Random random, bool trace, PreparedEffects? prepared = null)
     {
@@ -63,7 +71,21 @@ public sealed partial class Fight
         prepared ??= PreparedEffects.For(ours, theirs, registry);
         Populate(Ours, ours, prepared.Ours, prepared.OurExtras);
         Populate(Theirs, theirs, prepared.Theirs, prepared.TheirExtras);
+        if (ours.PlayerId > 0 && theirs.PlayerId > 0 && ours.PlayerId != theirs.PlayerId)
+        {
+            EnteredFirst = ours.PlayerId < theirs.PlayerId ? Ours : Theirs;
+        }
     }
+
+    /// <summary>
+    /// The side whose starting minions entered play first: the lower lobby PLAYER_ID (rules-evidence 4a). Null when
+    /// unknown: a death phase then takes the attacking side's starting minions first (the old rule; one traced fight
+    /// must pick an order, while <see cref="CombatSimulator.Run(SimSide, SimSide, bool?, SimOptions?)"/> alternates).
+    /// </summary>
+    internal Side? EnteredFirst { get; set; }
+
+    /// <summary>An engine limit (nesting depth, death phases) dropped an effect: the result is "not simulated".</summary>
+    internal bool Truncated { get; private set; }
 
     /// <summary>Effects of the captured minions and player-level cards, looked up once for many fights.</summary>
     internal sealed record PreparedEffects(CombatEffect[][] Ours, CombatEffect[][] Theirs, CombatEffect?[] OurExtras, CombatEffect?[] TheirExtras)
@@ -87,7 +109,7 @@ public sealed partial class Fight
     /// </summary>
     public Random Random { get; }
 
-    /// <summary>The side whose attack is being resolved; its deaths resolve first.</summary>
+    /// <summary>The side whose attack is being resolved (its deaths resolve first when <see cref="EnteredFirst"/> is unknown).</summary>
     public Side Attacking { get; private set; }
 
     public bool Tracing => _log is not null;
@@ -142,6 +164,7 @@ public sealed partial class Fight
             }
 
             side.Gap = side.IndexOf(attacker) + 1;
+            side.LastAttacker = attacker;
             for (var swing = 0; swing < attacker.AttacksPerTurn && attacker.IsAlive && side.Enemy.Count > 0 && _attacks < MaxAttacks; swing++)
             {
                 Attack(attacker, null);
@@ -160,7 +183,12 @@ public sealed partial class Fight
     {
         for (var i = 0; i < info.Minions.Count; i++)
         {
-            side.AddInitial(new Unit(info.Minions[i], side, effects[i]));
+            var spec = info.Minions[i];
+            // Order of play: starting minions left to right; Start of Combat summons after them, in creation order.
+            side.AddInitial(new Unit(spec, side, effects[i])
+            {
+                Entry = spec.SummonedInCombat ? CapturedSummonEntry + Math.Clamp(spec.EntityId, 0, 1 << 29) : i,
+            });
         }
 
         for (var i = 0; i < info.Extras.Count; i++)
@@ -172,7 +200,7 @@ public sealed partial class Fight
         }
     }
 
-    private Unit CreateUnit(SimMinion spec, Side side) => new(spec, side, _registry.EffectsFor(spec));
+    private Unit CreateUnit(SimMinion spec, Side side) => new(spec, side, _registry.EffectsFor(spec)) { Entry = _nextEntry++ };
 
     private void StartFight()
     {
@@ -230,6 +258,21 @@ public sealed partial class Fight
         }
 
         side.AuraDirty = false;
+    }
+
+    /// <summary>
+    /// Nested triggers reached the depth the engine follows: the caller drops what it was about to do (a summon, an attack,
+    /// deathrattles, hooks) and the fight counts as "not simulated" (<see cref="Truncated"/>) instead of silently differing.
+    /// </summary>
+    private bool TooDeep()
+    {
+        if (_depth < MaxDepth)
+        {
+            return false;
+        }
+
+        Truncated = true;
+        return true;
     }
 
     /// <summary>Board and extra units of a side at this moment, in a buffer owned by the current nesting depth.</summary>

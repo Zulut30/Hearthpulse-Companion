@@ -137,6 +137,9 @@ public sealed class Unit
 
     internal int DeathIndex { get; set; }
 
+    /// <summary>Order of play: when it entered the fight (see <see cref="Fight"/>); simultaneous deaths resolve by it.</summary>
+    internal int Entry { get; init; }
+
     // Aura stats currently applied to this unit (captured stats already include the auras present at capture).
     internal StatDelta AppliedAura { get; set; }
 

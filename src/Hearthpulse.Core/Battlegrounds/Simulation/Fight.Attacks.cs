@@ -9,7 +9,7 @@ public sealed partial class Fight
     {
         var defenders = attacker.Enemy;
         var target = forcedTarget is { IsAlive: true } && forcedTarget.Side == defenders ? forcedTarget : PickTarget(defenders);
-        if (target is null || _depth >= MaxDepth)
+        if (target is null || TooDeep())
         {
             return;
         }
@@ -26,7 +26,10 @@ public sealed partial class Fight
             attacker.Stealth = false;
             if (Tracing) Trace($"{Name(attacker)} attacks {Name(target)}");
 
-            // Attack declared: Rally / "whenever this attacks", then friendly and defending-side triggers, before damage.
+            // Attack declared, before damage: "whenever a friendly minion attacks" first, then the attacker's own Rally /
+            // "whenever this attacks" (effects-audit E1: 15.11 G1 Prodigious Tusker's gem on Bonker at line 236025, Bonker's
+            // Rally at 236080; G4 Faerie Dragon Scale 1331318, Rally 1331351), then the defending side's triggers.
+            Raise(attacker.Side, Hook.FriendlyAttack, attacker, target);
             if ((attacker.Hooks & Hook.Attack) != 0)
             {
                 foreach (var effect in attacker.Effects)
@@ -38,7 +41,6 @@ public sealed partial class Fight
                 }
             }
 
-            Raise(attacker.Side, Hook.FriendlyAttack, attacker, target);
             Raise(defenders, Hook.FriendlyAttacked, target, attacker);
             RefreshAuras();
             ResolveDeaths();

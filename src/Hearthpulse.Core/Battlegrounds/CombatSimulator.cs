@@ -65,6 +65,12 @@ public sealed record SimMinion(
     /// </summary>
     public IReadOnlyList<SimMinion> Remembered { get; init; } = Array.Empty<SimMinion>();
 
+    /// <summary>
+    /// Summoned during this combat before capture (Start of Combat), not brought to the fight: in a death phase it dies
+    /// after every starting minion of both sides, in the order summoned (Power.log, rules-evidence 4a: 17 of 17 phases).
+    /// </summary>
+    public bool SummonedInCombat { get; init; }
+
     /// <summary>Current keywords as flags.</summary>
     public Keyword Keywords =>
         (Taunt ? Keyword.Taunt : 0) | (DivineShield ? Keyword.DivineShield : 0) | (Poisonous ? Keyword.Poisonous : 0)
@@ -99,11 +105,13 @@ public sealed record SimMinion(
 
     /// <summary>
     /// What Reborn brings back: a fresh copy of the card with its printed Attack, 1 Health and its printed keywords
-    /// (not buffs, not enchantments), golden if the minion was golden, without Reborn.
+    /// (not buffs, not enchantments), golden if the minion was golden, without Reborn. Its maximum Health is the printed
+    /// Health, so it is a damaged minion (Power.log: HEALTH = printed, DAMAGE = printed - 1; rules-evidence 4e, 12 copies).
     /// </summary>
     public SimMinion RebornCopy() =>
         Create(CardId, RebornAttack, 1, Tribes, BaseKeywords & ~Keyword.Reborn, Golden, Mechanics) with
         {
+            MaxHealth = Math.Max(1, BaseHealth),
             BaseHealth = BaseHealth,
             TechLevel = TechLevel,
         };
@@ -149,6 +157,18 @@ public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
 
     /// <summary>The Battlegrounds turn of the fight (hero powers that unlock on a turn); 0 when unknown.</summary>
     public int Turn { get; init; }
+
+    /// <summary>
+    /// The hero's lobby PLAYER_ID; 0 when unknown. The side with the lower one entered play first, so its starting
+    /// minions die first in a death phase (Power.log, rules-evidence 4a: 83 of 83 phases).
+    /// </summary>
+    public int PlayerId { get; init; }
+
+    /// <summary>
+    /// The local player's own secrets in play (card ids), which are on their screen; always empty for the opponent,
+    /// whose secrets are hidden. Read for hero damage: Ice Block (<see cref="DamageRules.IceBlock"/>).
+    /// </summary>
+    public IReadOnlyList<string> Secrets { get; init; } = Array.Empty<string>();
 
     internal static readonly IReadOnlyDictionary<string, int> EmptyTags = new Dictionary<string, int>();
 
@@ -210,6 +230,12 @@ public sealed record CombatOdds(double Win, double Tie, double Loss, int Unsimul
 
     /// <summary>The combat damage cap the damage was capped at; 0 = none.</summary>
     public int DamageCap { get; init; }
+
+    /// <summary>
+    /// Fights cut short by an engine limit (nested triggers deeper than the engine follows, or endless death phases):
+    /// effects were dropped there, so <see cref="Unsimulated"/> counts one more "not simulated" item when this is above 0.
+    /// </summary>
+    public int Truncated { get; init; }
 }
 
 /// <summary>Why something in a captured fight is "not simulated" (the coverage matrix uses the same words).</summary>
@@ -233,7 +259,11 @@ public sealed record UnsimulatedItem(string CardId, bool Golden, bool IsOpponent
 }
 
 /// <summary>One simulated fight: +1 we won, -1 we lost, 0 tie; the surviving minions and (when traced) a log.</summary>
-public sealed record FightResult(int Outcome, IReadOnlyList<SimMinion> Ours, IReadOnlyList<SimMinion> Theirs, IReadOnlyList<string> Log);
+public sealed record FightResult(int Outcome, IReadOnlyList<SimMinion> Ours, IReadOnlyList<SimMinion> Theirs, IReadOnlyList<string> Log)
+{
+    /// <summary>An engine limit cut the fight short and dropped effects (see <see cref="CombatOdds.Truncated"/>).</summary>
+    public bool Truncated { get; init; }
+}
 
 /// <summary>
 /// Monte Carlo Battlegrounds combat. Keywords (taunt, divine shield, poisonous, venomous, reborn, windfury, stealth) are
@@ -267,7 +297,7 @@ public static class CombatSimulator
         // Stable seed: the same boards always show the same numbers, in every session.
         var random = new Random(Seed(ours, theirs, firstAttackerIsOurs));
         var clock = options.TimeBudget is { } ? Stopwatch.StartNew() : null;
-        int done = 0, wins = 0, losses = 0;
+        int done = 0, wins = 0, losses = 0, truncated = 0;
         for (; done < options.Runs; done++)
         {
             if (done > 0 && done % 100 == 0 && options.Cancel.IsCancellationRequested)
@@ -281,6 +311,9 @@ public static class CombatSimulator
             }
 
             var fight = new Fight(ours, theirs, effects, random, trace: false, prepared);
+            // Which side entered play first decides the death order (rules-evidence 4a). Without both PLAYER_IDs the
+            // runs alternate between the two orders: an even mix, not the attacking side first (right in 47 of 89).
+            fight.EnteredFirst ??= done % 2 == 0 ? fight.Ours : fight.Theirs;
             var outcome = fight.Run(firstAttackerIsOurs, options.FirstAttackerEntityId);
             switch (outcome)
             {
@@ -288,9 +321,12 @@ public static class CombatSimulator
                 case < 0: losses++; break;
             }
 
+            truncated += fight.Truncated ? 1 : 0;
             damage?.Add(outcome, Survivors(fight.Ours), Survivors(fight.Theirs));
         }
 
+        // A fight cut short by an engine limit dropped effects: one more "not simulated" item, not silence.
+        unsimulated += truncated > 0 ? 1 : 0;
         if (done == 0)
         {
             return new CombatOdds(0, 1.0, 0, unsimulated) { Runs = 0 };
@@ -323,7 +359,7 @@ public static class CombatSimulator
             tieRate = Math.Max(0.0, 1.0 - winRate - lossRate);
         }
 
-        var odds = new CombatOdds(winRate, tieRate, lossRate, unsimulated) { Runs = done };
+        var odds = new CombatOdds(winRate, tieRate, lossRate, unsimulated) { Runs = done, Truncated = truncated };
         return damage?.With(odds) ?? odds;
     }
 
@@ -346,6 +382,8 @@ public static class CombatSimulator
 
         private readonly int[] _taken = new int[MaxDamage + 1];
         private readonly int[] _dealt = new int[MaxDamage + 1];
+        private readonly bool _ourIceBlock = DamageRules.HasIceBlock(ours);
+        private readonly bool _theirIceBlock = DamageRules.HasIceBlock(theirs);
         private int _fights;
         private int _lethalTaken;
         private int _lethalDealt;
@@ -355,13 +393,13 @@ public static class CombatSimulator
             _fights++;
             if (outcome > 0)
             {
-                var dealt = DamageRules.Damage(ours.TavernTier, ourSurvivors, cap);
+                var dealt = DamageRules.Taken(DamageRules.Damage(ours.TavernTier, ourSurvivors, cap), theirs.Health, _theirIceBlock);
                 _dealt[Math.Min(dealt, MaxDamage)]++;
                 _lethalDealt += DamageRules.IsLethal(dealt, theirs.Health) ? 1 : 0;
             }
             else if (outcome < 0)
             {
-                var taken = DamageRules.Damage(theirs.TavernTier, theirSurvivors, cap);
+                var taken = DamageRules.Taken(DamageRules.Damage(theirs.TavernTier, theirSurvivors, cap), ours.Health, _ourIceBlock);
                 _taken[Math.Min(taken, MaxDamage)]++;
                 _lethalTaken += DamageRules.IsLethal(taken, ours.Health) ? 1 : 0;
             }
@@ -459,7 +497,10 @@ public static class CombatSimulator
             outcome,
             fight.Ours.Minions.Select(u => u.ToSimMinion()).ToList(),
             fight.Theirs.Minions.Select(u => u.ToSimMinion()).ToList(),
-            fight.Log);
+            fight.Log)
+        {
+            Truncated = fight.Truncated,
+        };
     }
 
     /// <summary>FNV-1a over the boards: stable across processes and machines (unlike string/record hash codes).</summary>
