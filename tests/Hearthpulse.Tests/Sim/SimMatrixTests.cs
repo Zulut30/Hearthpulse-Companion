@@ -94,7 +94,8 @@ public sealed partial class SimMatrixTests
     [Theory]
     [InlineData("BG36_246", CoverageStatus.Implemented)] // Mighty Dragonbreath: cast and resolved by Crimson Vindicator's Rally
     [InlineData("BG20_GEM", CoverageStatus.Implemented)] // Blood Gem: played by the minion effects through BloodGems.Play
-    [InlineData("BG28_518", CoverageStatus.MissingEffect)] // Chef's Choice: Seafloor Recruiter's Rally casts it, no effect yet
+    [InlineData("BG28_518", CoverageStatus.Implemented)] // Chef's Choice: Seafloor Recruiter's Rally casts it (spell pipeline)
+    [InlineData("BG28_888", CoverageStatus.Implemented)] // Misplaced Tea Set: Gatekeeper Amalgam casts it (spell pipeline)
     [InlineData("BG28_603", CoverageStatus.MissingEffect)] // Boon of Beetles: "When you have space in combat, summon..."
     [InlineData("BG28_897", CoverageStatus.NoEffect)] // Tavern Dish Banana: nothing in the pool casts it in combat
     [InlineData("BG28_573", CoverageStatus.Resolved)] // Upper Hand: Start of Combat
