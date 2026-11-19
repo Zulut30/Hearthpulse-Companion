@@ -308,8 +308,31 @@ internal sealed partial class TranscriptChooser : ICombatChooser
             }
         }
 
-        throw Diverge(choice.Source, $"choice:{choice.Kind}", "a minion the log's effect changed", "one of " + string.Join(", ", units.Select(Name)),
-            ReplayCategory.Trigger);
+        // An effect that copies the minion it picks (a hero power's copy of the highest-Attack minion) changes none of
+        // them: its answer is the summon of a candidate's card on the candidate's side.
+        foreach (var (from, to) in Regions(choice.Source))
+        {
+            for (var i = from; i < to; i = Next(i))
+            {
+                if (_events[i] is not { Kind: CombatEventKind.Summon, Card: { } card } e || _used.Contains(i) || _toSim.ContainsKey(e.Entity) && ids.Contains(e.Entity))
+                {
+                    continue;
+                }
+
+                var (normal, golden) = Normal(card, e.Golden);
+                for (var c = 0; c < units.Count; c++)
+                {
+                    if (units[c].CardId == normal && units[c].Golden == golden && units[c].Side.IsOpponent == e.Opponent)
+                    {
+                        _used.Add(i);
+                        return c;
+                    }
+                }
+            }
+        }
+
+        throw Diverge(choice.Source, $"choice:{choice.Kind}", Regions(choice.Source).Count() > 1 ? "a minion the log's effect changed" : "no effect of this source here",
+            "one of " + string.Join(", ", units.Select(Name)), ReplayCategory.Trigger);
     }
 
     /// <summary>A card an effect summoned (from a pool, or the hand's best): the log's summon of the same source's side.</summary>
