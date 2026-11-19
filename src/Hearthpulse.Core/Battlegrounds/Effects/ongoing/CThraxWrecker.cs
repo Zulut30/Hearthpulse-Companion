@@ -2,13 +2,16 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 
 /// <summary>
 /// C'Thrax Wrecker (BGDUO_701, Duos): "Battlecry, Deathrattle, and Rally: Give your team's Deities +4/+4." Golden: "+8/+8".
-/// The Battlecry is Tavern-only. The Rally (when it attacks, before damage) and the deathrattle give this player's Deity
-/// the stats; the teammate's Deity fights in another combat, so it is not touched. See <see cref="Deity.Give"/>.
+/// The Rally (when it attacks, before damage), the deathrattle and a Battlecry an effect triggers in combat
+/// (<see cref="Fight.TriggerBattlecry"/>) give this player's Deity the stats; the teammate's Deity fights in another
+/// combat, so it is not touched. See <see cref="Deity.Give"/>.
 /// </summary>
 [CardEffect("BGDUO_701")]
 internal sealed class CThraxWrecker : CombatEffect
 {
     public override void OnAttack(Fight fight, Unit self, Unit target) => Give(fight, self);
+
+    public override void Battlecry(Fight fight, Unit self) => Give(fight, self);
 
     public override void Deathrattle(Fight fight, Unit self) => Give(fight, self);
 
