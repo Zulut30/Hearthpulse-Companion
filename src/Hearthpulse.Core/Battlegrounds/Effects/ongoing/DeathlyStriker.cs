@@ -39,7 +39,7 @@ internal sealed class DeathlyStriker : AvengeEffect
             }
 
             if (fight.Tracing) fight.Trace($"avenge: {self} gets {undead.CardId} {undead.Attack}/{undead.Health}");
-            side.Hand.Add(undead);
+            fight.AddToHand(side, undead.CardId, undead);
             state.Got.Add(undead);
         }
     }

@@ -78,11 +78,14 @@ public static class SimCoverage
     /// </summary>
     private static readonly Dictionary<string, (string[] Casters, string Note)> ResolvedInline = new(StringComparer.OrdinalIgnoreCase)
     {
-        // Effects/attack/CrimsonVindicator.cs: Fight.CastSpell with the spell's text as the resolve step.
-        ["BG36_246"] = (["BG36_241"], "разрешается в эффекте Crimson Vindicator (BG36_241) через CastSpell"),
-        // Effects/attack/BloodGems.cs, called by Bonker, Prodigious Tusker, Razorfen Vineweaver, Tusked Camper.
-        ["BG20_GEM"] = (["BG20_104", "BG33_430", "BG33_883", "BG33_886"],
-            "разыгрывается в эффектах существ (BloodGems.Play), не через CastSpell: триггеры заклинаний его не видят"),
+        // Effects/spells/TavernSpells.cs: the spell's effect, cast through the spell pipeline (Fight.CastSpell) by its caster.
+        ["BG36_246"] = (["BG36_241"], "разрешается в TavernSpells через CastSpell: каст Crimson Vindicator (BG36_241)"),
+        ["BG28_518"] = (["BG34_925"], "разрешается в TavernSpells через CastSpell: каст Seafloor Recruiter (BG34_925)"),
+        ["BG28_888"] = (["BG36_640"], "разрешается в TavernSpells через CastSpell: каст Gatekeeper Amalgam (BG36_640)"),
+        // Effects/attack/BloodGems.cs → Fight.PlayBloodGem, called by Bonker, Prodigious Tusker, Razorfen Vineweaver, Tusked
+        // Camper and Geomagus Roogug. In a real log a gem a minion plays is BG20_GEM_No_Impact, not a cast.
+        ["BG20_GEM"] = (["BG20_104", "BG33_430", "BG33_883", "BG33_886", "BG28_583"],
+            "разыгрывается в эффектах существ (Fight.PlayBloodGem): не заклинание (в логе BG20_GEM_No_Impact), его видит Geomagus Roogug"),
     };
 
     public static string Code(CoverageStatus status) => Codes[(int)status];

@@ -58,7 +58,10 @@ internal sealed class HarmlessBonehead : CombatEffect
 | `WheneverFriendlySummoned` → `AfterFriendlySummoned(f, self, summoned)` | another friendly minion was summoned ("whenever" first) |
 | `AfterFriendlyReborn(f, self, reborn)` | a friendly minion came back with Reborn (`reborn.RebornFrom` is the old one) |
 | `RebornAs(f, dead, copy) → SimMinion` | what a dying minion with this effect comes back as with Reborn (before summon buffs and hooks); default: the fresh copy |
-| `AfterFriendlySpellCast(f, self, spellId, target)` | after `Fight.CastSpell` for this side |
+| `OnFriendlySpellCast(f, self, in spell)` | "whenever you cast a (Tavern) spell (on X)": before the spell resolves (`spell.Target`, `spell.IsTavernSpell`, `spell.Source`) |
+| `AfterFriendlySpellCast(f, self, spellId, target)` | "after you cast": the spell resolved; `f.CurrentSpell` holds the whole cast |
+| `AfterCardAddedToHand(f, self, cardId)` | "whenever a card is added to your hand" (`Fight.AddToHand`; empty id = a random card) |
+| `AfterFriendlyBloodGem(f, self, target, source)` | a Blood Gem was played on a friendly minion (`Fight.PlayBloodGem`; Roogug) |
 | `AuraFor(f, self, other) → StatDelta` | static aura onto a friendly minion; recomputed when minions enter or leave. Captured stats already include auras present at capture; the engine only applies changes (a lost Health aura lowers Health down to the new maximum only) |
 | `Refresh(f, self)` | re-check state-dependent keywords/thresholds ("Taunt while it has Divine Shield", "once this reaches 6 Attack") after stat changes and board changes |
 | `Battlecry(f, self)` | self's Battlecry when an effect triggers it in combat (`Fight.TriggerBattlecry`); once per trigger |
@@ -103,7 +106,13 @@ from the log yet).
   `unit.HasDeathrattle`, `unit.IsRally`, `unit.AddEffect(effect)` (gain another minion's deathrattle).
 - Battlecries in combat: `TriggerBattlecry(unit, times, withMultiplier)` (a Battlecry with no combat effect still counts
   as triggered), `BattlecryTriggers(side)`, `Fight.HasBattlecry(unit)`, side counter `Fight.BattlecriesTriggeredKey`.
-- Spells in combat: `CastSpell(side, spellId, target, resolve)` (repeated `SpellCasts(side, spellId, target)` times).
+- Spells in combat (`Simulation/Fight.Spells.cs`; spells and their reactions in `spells/`): `CastSpell(new SpellCast(side,
+  cardId, target, source, resolver))` — `SpellCasts(side, spellId, target)` times (Balinda), each: "whenever" hooks, the
+  resolver, "after" hooks. The simple `CastSpell(side, spellId, target, resolve)` goes the same way. A spell a minion or
+  trinket casts is the player's cast (real log); a Tavern spell's "+X/+Y" adds the player's Tavern spell bonus
+  (`TavernSpells.Stats`). `AddToHand(side, cardId, minion)` for "Get a card"; `PlayBloodGem(source, target, atk, hp)` for
+  each gem (`BloodGems.Play` calls it) — a gem a minion plays is not a spell cast (real log: a separate card,
+  BG20_GEM_No_Impact, without the player's "spell cast" trigger).
 - Player context: `side.Info` (`HeroCardId`, `HeroPowerCardId`, `Extras`, `Tags`, `TavernTier`), `side.Hand` (local
   player only; always empty for the opponent), `side.ExtraDeathrattles`.
 - Captured data on `unit.Spec`: `CardId` (normal id), `Golden`, `Tribes`, `BaseKeywords`, `RebornAttack`,
