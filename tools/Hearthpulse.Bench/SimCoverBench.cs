@@ -117,6 +117,7 @@ internal static class SimCoverBench
         {
             Console.WriteLine($"[sim] {budget,-5} {Describe(budget)}");
             Console.WriteLine($"[sim]   {Summary(scores[budget])}");
+            Console.WriteLine($"[sim]   {Calibration(scores[budget])}");
         }
 
         foreach (var line in SimMisses.Lines(fights, scores[SimBudget.App]))
@@ -171,6 +172,25 @@ internal static class SimCoverBench
         var brier = SimStats.Mean(scored);
         return string.Create(CultureInfo.InvariantCulture,
             $"fights {n}; without \"not simulated\" {Share(clean, n)}; result hit {Share(hit, n)}; damage in range {Share(damageHit, damage)}; Brier {brier.Mean:N3} ({brier.Low:N3}..{brier.High:N3}) over {scored.Count}; runs avg {(n > 0 ? scores.Average(s => s.Runs) : 0):N0}, min {(n > 0 ? scores.Min(s => s.Runs) : 0)}");
+    }
+
+    /// <summary>
+    /// Systematic shift of the odds: per result, the fights the odds expected (the sum of its probability) against the
+    /// fights that had it, with z = (seen - expected) / sqrt(sum p(1 - p)). |z| above 2 on one budget would point at a
+    /// bias of the engine; the budgets score the same fights, so they are not independent evidence.
+    /// </summary>
+    internal static string Calibration(IReadOnlyList<SimScore> scores)
+    {
+        string One(string result, Func<SimScore, double> p)
+        {
+            var expected = scores.Sum(p);
+            var variance = scores.Sum(s => p(s) * (1 - p(s)));
+            var seen = scores.Count(s => s.Result == result);
+            var z = variance > 0 ? (seen - expected) / Math.Sqrt(variance) : 0;
+            return string.Create(CultureInfo.InvariantCulture, $"{result} expected {expected:0.0} seen {seen} (z {z:+0.00;-0.00})");
+        }
+
+        return $"calibration: {One("Win", s => s.Win)}; {One("Tie", s => s.Tie)}; {One("Loss", s => s.Loss)}";
     }
 
     private static string Share(int k, int n)
