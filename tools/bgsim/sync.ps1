@@ -62,6 +62,7 @@ $Include = @(
 $ExcludedTests = [ordered]@{
     'tests/Hearthpulse.Tests/Sim/CaptureTests.cs'                   = 'Power.log replay through BattlegroundsTracker'
     'tests/Hearthpulse.Tests/Sim/SimInputsTests.cs'                 = 'Power.log replay through BattlegroundsTracker'
+    'tests/Hearthpulse.Tests/Sim/LeftoverCaptureTests.cs'           = 'GameState and BattlegroundsTracker'
     'tests/Hearthpulse.Tests/Sim/DamageCalibrationReplayTests.cs'   = 'real Power.log games'
     'tests/Hearthpulse.Tests/Sim/GeneratedPoolsTests.cs'            = 'Fixtures/BgPools card data and CardDb.Parse'
     'tests/Hearthpulse.Tests/Effects/EffectCardTextGuardTests.cs'   = 'Fixtures/Effects/effect-card-texts.json (BGSim.Tests copies no fixtures)'
