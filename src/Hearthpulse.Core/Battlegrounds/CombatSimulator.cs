@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.Json.Serialization;
 using Hearthpulse.Core.Battlegrounds.Effects;
 
 namespace Hearthpulse.Core.Battlegrounds;
@@ -65,13 +64,6 @@ public sealed partial record SimMinion(
     /// Salvager destroyed), as they were when removed.
     /// </summary>
     public IReadOnlyList<SimMinion> Remembered { get; init; } = Array.Empty<SimMinion>();
-
-    /// <summary>
-    /// Summoned during this combat before capture (Start of Combat), not brought to the fight: in a death phase it dies
-    /// after every starting minion of both sides, in the order summoned (Power.log, rules-evidence 4a: 17 of 17 phases).
-    /// </summary>
-    [JsonIgnore]
-    public bool SummonedInCombat { get; init; }
 
     /// <summary>Current keywords as flags.</summary>
     public Keyword Keywords =>
@@ -159,20 +151,6 @@ public sealed partial record SimSide(IReadOnlyList<SimMinion> Minions)
 
     /// <summary>The Battlegrounds turn of the fight (hero powers that unlock on a turn); 0 when unknown.</summary>
     public int Turn { get; init; }
-
-    /// <summary>
-    /// The hero's lobby PLAYER_ID; 0 when unknown. The side with the lower one entered play first, so its starting
-    /// minions die first in a death phase (Power.log, rules-evidence 4a: 83 of 83 phases).
-    /// </summary>
-    [JsonIgnore]
-    public int PlayerId { get; init; }
-
-    /// <summary>
-    /// The local player's own secrets in play (card ids), which are on their screen; always empty for the opponent,
-    /// whose secrets are hidden. Read for hero damage: Ice Block (<see cref="DamageRules.IceBlock"/>).
-    /// </summary>
-    [JsonIgnore]
-    public IReadOnlyList<string> Secrets { get; init; } = Array.Empty<string>();
 
     internal static readonly IReadOnlyDictionary<string, int> EmptyTags = new Dictionary<string, int>();
 
