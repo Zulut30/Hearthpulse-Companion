@@ -44,6 +44,7 @@ public sealed partial class Side
         LastAttacker = null;
         HasAppliedAuras = false;
         AuraDirty = true;
+        MayHaveDying = false;
         TeammateEntered = false;
     }
 
@@ -114,6 +115,13 @@ public sealed partial class Side
     }
 
     internal bool HasAppliedAuras { get; set; }
+
+    /// <summary>
+    /// False only when no minion on the board is dying: set when a unit of this side drops to 0 Health, is destroyed or
+    /// enters the board dying, cleared by a look at the board that finds none (<c>Fight.AnyDying</c>). Saves that look
+    /// after every attack and summon of a fight in which nothing died.
+    /// </summary>
+    internal bool MayHaveDying { get; set; }
 
     /// <summary>Minions entered or left since auras were last recomputed.</summary>
     internal bool AuraDirty { get; set; }
@@ -196,6 +204,7 @@ public sealed partial class Side
     {
         _board.Add(unit);
         unit.IsOnBoard = true;
+        MayHaveDying |= unit.IsDying;
         _hooks |= unit.Hooks;
         AuraDirty = true;
     }
@@ -211,6 +220,7 @@ public sealed partial class Side
         index = Math.Clamp(index, 0, _board.Count);
         _board.Insert(index, unit);
         unit.IsOnBoard = true;
+        MayHaveDying |= unit.IsDying;
         if (index < Gap || (index == Gap && leftOfGap))
         {
             Gap++;

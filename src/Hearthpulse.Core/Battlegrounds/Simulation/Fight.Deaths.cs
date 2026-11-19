@@ -106,6 +106,11 @@ public sealed partial class Fight
 
     private static bool AnyDying(Side side)
     {
+        if (!side.MayHaveDying)
+        {
+            return false;
+        }
+
         foreach (var unit in side.Minions)
         {
             if (unit.IsDying)
@@ -114,18 +119,28 @@ public sealed partial class Fight
             }
         }
 
+        side.MayHaveDying = false;
         return false;
     }
 
     private static void CollectDead(Side side, List<Unit> dead)
     {
+        if (!side.MayHaveDying)
+        {
+            return;
+        }
+
+        var found = false;
         foreach (var unit in side.Minions)
         {
             if (unit.IsDying)
             {
                 dead.Add(unit);
+                found = true;
             }
         }
+
+        side.MayHaveDying = found;
     }
 
     /// <summary>

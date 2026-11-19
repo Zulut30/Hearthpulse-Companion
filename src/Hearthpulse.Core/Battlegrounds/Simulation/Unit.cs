@@ -6,6 +6,8 @@ namespace Hearthpulse.Core.Battlegrounds;
 public sealed class Unit
 {
     private CombatEffect[] _effects;
+    private int _health;
+    private bool _markedForDeath;
 
     internal Unit(SimMinion spec, Side side, CombatEffect[] effects, bool extra = false) => Init(spec, side, effects, extra);
 
@@ -82,7 +84,19 @@ public sealed class Unit
 
     public int Attack { get; set; }
 
-    public int Health { get; set; }
+    /// <summary>Current Health; at 0 or below the unit is dying (its side then looks for deaths, <see cref="Side.MayHaveDying"/>).</summary>
+    public int Health
+    {
+        get => _health;
+        set
+        {
+            _health = value;
+            if (value <= 0)
+            {
+                Side.MayHaveDying = true;
+            }
+        }
+    }
 
     public int MaxHealth { get; set; }
 
@@ -122,7 +136,18 @@ public sealed class Unit
     public bool IsExtra { get; private set; }
 
     /// <summary>Destroyed by an effect; removed at the next death phase.</summary>
-    public bool MarkedForDeath { get; internal set; }
+    public bool MarkedForDeath
+    {
+        get => _markedForDeath;
+        internal set
+        {
+            _markedForDeath = value;
+            if (value)
+            {
+                Side.MayHaveDying = true;
+            }
+        }
+    }
 
     /// <summary>Mortally wounded or destroyed, waiting for the death phase.</summary>
     public bool IsDying => Health <= 0 || MarkedForDeath;
