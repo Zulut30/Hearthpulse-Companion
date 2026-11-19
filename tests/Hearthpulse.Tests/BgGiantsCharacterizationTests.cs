@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -135,6 +135,8 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // 2026-11-19 (E3): twelve new player-card ids change the random boards, and player cards changed on purpose (as a
         // minion without a capture Broodmother and Tentacular now summon their printed Whelp/Tentacle, Fang Anklet gives
         // its printed +1/+1, golden Beetle Band is Avenge (8) with the player's Beetle); not split up and checked one by one.
-        Assert.Equal("fights 105E678493521B8D", actual);
+        // 2026-11-19 (FIX sim-effects-audit, merged after E3): effects corrected to the live card text (The Last One
+        // Standing, Eudora, Kodo, C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose.
+        Assert.Equal("fights B38EEFBF3604898A", actual);
     }
 }
