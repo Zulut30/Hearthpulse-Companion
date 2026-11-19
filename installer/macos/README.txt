@@ -43,6 +43,10 @@ GAME STATISTICS
   visible offers and choices, played/drawn cards, buys, sells, shop refreshes,
   resources, visible board states and outcomes. Incomplete observations are
   marked separately. Stored journals can be reprocessed as the parser improves.
+- After a Battlegrounds game the journal also holds each of its fights as the
+  combat simulator saw it at the first attack: both boards (cards, stats,
+  keywords, enchantments), heroes, hero powers and trinkets, the odds shown,
+  the result and damage. Never your hand. It is used to measure the simulator.
 - No name, BattleTag, account, deck name, exact rating, private network log or
   hidden opponent cards. Source identities are random per installation and
   generation, separate from the website account; only aggregate statistics

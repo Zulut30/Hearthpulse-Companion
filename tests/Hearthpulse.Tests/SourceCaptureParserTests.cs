@@ -104,7 +104,7 @@ public sealed class SourceCaptureParserTests : IDisposable
             9 => Source(Start(), End(1), Action(2, "play")),
             10 => Source(Start()),
             11 => valid.Replace("\"v\":1", "\"v\":1,\"v\":1", StringComparison.Ordinal),
-            12 => valid.Replace("\"v\":1", "\"v\":3", StringComparison.Ordinal),
+            12 => valid.Replace("\"v\":1", "\"v\":4", StringComparison.Ordinal),
             13 => valid.Replace("\"turn\":0", "\"turn\":1001", StringComparison.Ordinal),
             14 => valid.Replace("\"entity\":0", "\"entity\":1000001", StringComparison.Ordinal),
             15 => valid.Replace("\"seq\":0", "\"seq\":0.5", StringComparison.Ordinal),
