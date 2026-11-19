@@ -3,15 +3,19 @@ using Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 namespace Hearthpulse.Core.Battlegrounds.Effects.Player;
 
 // Hero powers whose text acts in combat after the boards are captured (PlayerCardTable), from their English card text
-// (patch 37.0). The hero power is an off-board extra unit of its side, like a trinket.
+// (HearthstoneJSON latest, checked 2026-11-19). The hero power is an off-board extra unit of its side, like a trinket. A
+// number the power shows is read from its captured TAG_SCRIPT_DATA_NUM_1/2 when present (our own power; GrowingValue),
+// the text's number otherwise: balance changes on the server without a new client.
 
 /// <summary>Sprout It Out! (TB_BaconShop_HP_107): "Give +1/+2 and Taunt to minions you summon during combat."</summary>
 [CardEffect("TB_BaconShop_HP_107")]
 internal sealed class SproutItOut : CombatEffect
 {
+    public override void OnFightStart(Fight fight, Unit self) => (self.Counter, self.Counter2) = GrowingValue.Current(self.Side.Info, self.CardId, 1, 2);
+
     public override void AfterFriendlySummoned(Fight fight, Unit self, Unit summoned)
     {
-        fight.Buff(summoned, 1, 2);
+        fight.Buff(summoned, self.Counter, self.Counter2);
         fight.GiveKeywords(summoned, Keyword.Taunt);
     }
 }
@@ -25,13 +29,16 @@ internal sealed class GloryOfCombat : CombatEffect
         public bool Done;
     }
 
+    // Counter: the Attack given, read once per fight.
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = GrowingValue.Current(self.Side.Info, self.CardId, 1, 0).Attack;
+
     public override void AfterFriendlyDealtDamage(Fight fight, Unit self, Unit dealer, Unit victim, int amount)
     {
         // Later damage to a minion that is already dying does not kill it again.
         if (victim.IsDying && victim.Killer == dealer && dealer.IsOnBoard && UnitState<Credited>.Of(victim) is { Done: false } credit)
         {
             credit.Done = true;
-            fight.Buff(dealer, 1, 0);
+            fight.Buff(dealer, self.Counter, 0);
         }
     }
 }

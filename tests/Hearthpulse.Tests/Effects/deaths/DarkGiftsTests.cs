@@ -88,8 +88,8 @@ public sealed class DarkGiftsTests
     [Fact]
     public void Relevant_player_cards_without_an_effect_count_as_not_simulated()
     {
-        // Rapid Reanimation (hero power) has no effect yet: the fight is an estimate. Ceremonial Sword (trinket) is simulated.
-        var ours = Side(Minion(1, 1)) with { Extras = ["BG25_HERO_103p", "BG30_MagicItem_925"] };
+        // Tiger Carving (a relevant trinket) has no effect: the fight is an estimate. Ceremonial Sword (trinket) is simulated.
+        var ours = Side(Minion(1, 1)) with { Extras = ["BG30_MagicItem_427", "BG30_MagicItem_925"] };
         var odds = CombatSimulator.Run(ours, Side(Minion(1, 1)), true, new SimOptions { Runs = 10 });
 
         Assert.Equal(1, odds.Unsimulated);

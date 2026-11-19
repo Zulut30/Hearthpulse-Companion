@@ -31,6 +31,9 @@ internal static class BloodGems
         for (var i = 0; i < count && target.IsOnBoard; i++)
         {
             fight.Buff(target, attack, health);
+            // "Its Blood Gems" (Blood Golem Sticker) grows with every gem, as tag 4235/4236 does in real logs.
+            target.BloodGemAttack += attack;
+            target.BloodGemHealth += health;
         }
     }
 }

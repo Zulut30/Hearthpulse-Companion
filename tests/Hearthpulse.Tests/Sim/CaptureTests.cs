@@ -190,6 +190,52 @@ public sealed class CaptureTests
         Assert.Equal(1, tracker.BuildView(game).CombatOdds!.Unsimulated);
     }
 
+    [Fact]
+    public void Blood_gem_totals_on_minions_are_captured_on_both_sides()
+    {
+        // Tags 4235/4236 are what a minion gained from Blood Gems (its visible "Blood Gems" enchantment): real logs carry
+        // them on combat copies of both players' minions (2026-11-05, 2026-11-15).
+        var log = new PowerLog()
+            .BattlegroundsGame()
+            .Minion(30, "BG36_207", Me, 1, 30, 27, ("4235", "27"), ("4236", "24"))
+            .Minion(40, "BG36_207", Them, 1, 3, 6, ("4235", "111"), ("4236", "96"))
+            .CombatStarts()
+            .Block("ATTACK", Ref(30, "Wolf Pup", "BG36_207", Me));
+
+        var (_, tracker) = log.Replay(Cards);
+        var ours = Assert.Single(tracker.LastCapture!.Ours.Minions);
+        var theirs = Assert.Single(tracker.LastCapture.Theirs.Minions);
+
+        Assert.Equal((27, 24), (ours.BloodGemAttack, ours.BloodGemHealth));
+        Assert.Equal((111, 96), (theirs.BloodGemAttack, theirs.BloodGemHealth));
+    }
+
+    [Fact]
+    public void Minions_a_player_card_removes_at_start_of_combat_are_remembered_by_its_card_id()
+    {
+        // A Rapid Reanimation-style destroy: the chosen minion leaves the board inside the hero power's TRIGGER block. It
+        // reaches the side by the hero power's card id, not any minion's Remembered list; the opponent's side gets nothing.
+        var log = new PowerLog()
+            .BattlegroundsGame()
+            .Minion(30, "BG25_001", Me, 1, 7, 3, ("TAUNT", "1"))
+            .Minion(31, "BG36_207", Me, 2, 3, 6)
+            .Minion(40, "BG36_854", Them, 1, 2, 1)
+            .Entity(60, "BG25_HERO_103p", Me, "PLAY", "HERO_POWER")
+            .CombatStarts()
+            .Block("TRIGGER", "[entityName=Rapid Reanimation id=60 zone=PLAY zonePos=0 cardId=BG25_HERO_103p player=5]")
+            .Tag(Ref(30, "Risen Rider", "BG25_001", Me), "ZONE", "GRAVEYARD")
+            .End()
+            .Block("ATTACK", Ref(31, "Wolf Pup", "BG36_207", Me));
+
+        var (_, tracker) = log.Replay(Cards);
+        var capture = tracker.LastCapture!;
+
+        var removed = Assert.Single(capture.Ours.RemovedByExtras["BG25_HERO_103p"]);
+        Assert.Equal(("BG25_001", 7, 3, true), (removed.CardId, removed.Attack, removed.Health, removed.Taunt));
+        Assert.Empty(Assert.Single(capture.Ours.Minions).Remembered);
+        Assert.Empty(capture.Theirs.RemovedByExtras);
+    }
+
     private static string Ref(int id, string name, string cardId, int player) =>
         $"[entityName={name} id={id} zone=PLAY zonePos=1 cardId={cardId} player={player}]";
 

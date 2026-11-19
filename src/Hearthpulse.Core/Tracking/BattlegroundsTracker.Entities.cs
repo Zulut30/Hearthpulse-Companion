@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
+using Hearthpulse.Core.Battlegrounds.Effects.Player;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Memory;
@@ -87,16 +88,17 @@ public sealed partial class BattlegroundsTracker
         LeaderboardHeroes(game).FirstOrDefault(h => h.GetInt(GameTag.PlayerId) == playerId);
 
     /// <summary>
-    /// A minion left the board during start of combat inside a TRIGGER block of another minion: remember it for that
-    /// minion (Stitched Salvager's deathrattle summons a copy of the minion it destroyed). Inferred from the log's block
-    /// structure; not yet checked against a real log.
+    /// A minion left the board during start of combat inside a TRIGGER block of another minion or of a player-level card
+    /// (hero power, trinket): remember it for that source (Stitched Salvager's deathrattle summons a copy of the minion it
+    /// destroyed; Rapid Reanimation and Soul Fermenter resummon theirs). Inferred from the log's block structure; not yet
+    /// checked against a real log.
     /// </summary>
     private void RememberRemoval(GameState game, Entity removed)
     {
         for (var i = game.OpenBlocks.Count - 1; i >= 0; i--)
         {
             var block = game.OpenBlocks[i];
-            if (block.Type != "TRIGGER" || block.Source is not { IsMinion: true } source || source.Id == removed.Id)
+            if (block.Type != "TRIGGER" || block.Source is not { } source || source.Id == removed.Id || !(source.IsMinion || IsPlayerCard(source)))
             {
                 continue;
             }
@@ -111,6 +113,26 @@ public sealed partial class BattlegroundsTracker
             list.Add(copy);
             return;
         }
+    }
+
+    private static bool IsPlayerCard(Entity e) => ExtraCardTypes.Contains(e.CardType) || IsTrinket(e);
+
+    /// <summary>
+    /// What the player-level cards of <paramref name="controller"/> removed during start of combat (see
+    /// <see cref="RememberRemoval"/>), by the card's id.
+    /// </summary>
+    private IReadOnlyDictionary<string, IReadOnlyList<SimMinion>> RemovedByExtras(GameState game, int controller)
+    {
+        Dictionary<string, IReadOnlyList<SimMinion>>? removed = null;
+        foreach (var (sourceId, minions) in _removedBy)
+        {
+            if (game.Entities.GetValueOrDefault(sourceId) is { CardId.Length: > 0 } source && source.Controller == controller && IsPlayerCard(source))
+            {
+                (removed ??= new Dictionary<string, IReadOnlyList<SimMinion>>(StringComparer.Ordinal))[source.CardId] = minions.ToArray();
+            }
+        }
+
+        return removed ?? SimSide.EmptyRemovedByExtras;
     }
 
     /// <summary>Enchantment card ids by the minion they are attached to.</summary>
@@ -162,7 +184,8 @@ public sealed partial class BattlegroundsTracker
             // Only the local player's own hand: it is on their screen. The opponent's is hidden.
             Hand = hand,
             Tags = NumericTags(player),
-            TavernTier = hero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var tier ? tier : player?.GetInt(GameTag.PlayerTechLevel) ?? 0,
+            RemovedByExtras = RemovedByExtras(game, controller),
+            TavernTier =hero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var tier ? tier : player?.GetInt(GameTag.PlayerTechLevel) ?? 0,
         };
     }
 
@@ -228,6 +251,9 @@ public sealed partial class BattlegroundsTracker
             ScriptData2 = e.GetInt(GameTag.ScriptData2),
             Enchantments = attached,
             Remembered = _removedBy.TryGetValue(e.Id, out var removed) ? removed.ToArray() : Array.Empty<SimMinion>(),
+            // The totals its visible "Blood Gems" enchantment shows, on both sides (Blood Golem Sticker).
+            BloodGemAttack = e.GetInt(BloodGolemSticker.GemAttackTag),
+            BloodGemHealth = e.GetInt(BloodGolemSticker.GemHealthTag),
         };
     }
 

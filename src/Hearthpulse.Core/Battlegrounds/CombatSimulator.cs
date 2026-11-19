@@ -65,6 +65,15 @@ public sealed record SimMinion(
     /// </summary>
     public IReadOnlyList<SimMinion> Remembered { get; init; } = Array.Empty<SimMinion>();
 
+    /// <summary>
+    /// Attack this minion has gained from Blood Gems ("its Blood Gems"): Power.log tag 4235 on the minion, the total its
+    /// visible "Blood Gems" enchantment shows (seen in real logs of 2026-11-05 and 2026-11-15). 0 when it has none.
+    /// </summary>
+    public int BloodGemAttack { get; init; }
+
+    /// <summary>Health gained from Blood Gems (tag 4236), see <see cref="BloodGemAttack"/>.</summary>
+    public int BloodGemHealth { get; init; }
+
     /// <summary>Current keywords as flags.</summary>
     public Keyword Keywords =>
         (Taunt ? Keyword.Taunt : 0) | (DivineShield ? Keyword.DivineShield : 0) | (Poisonous ? Keyword.Poisonous : 0)
@@ -142,6 +151,13 @@ public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
     public int? ExtraTag(string cardId, string tag) =>
         ExtraTags.TryGetValue(cardId, out var tags) && tags.TryGetValue(tag, out var value) ? value : null;
 
+    /// <summary>
+    /// Minions a player-level card of this player (hero power, trinket) removed at Start of Combat, before the capture, as
+    /// they were when removed, by that card's id: Rapid Reanimation and Soul Fermenter summon them again later. Public
+    /// information: they stood on the board the player saw.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<SimMinion>> RemovedByExtras { get; init; } = EmptyRemovedByExtras;
+
     public int TavernTier { get; init; }
 
     /// <summary>The hero's health plus armor when the fight starts (public on the leaderboard); 0 when unknown.</summary>
@@ -154,6 +170,9 @@ public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
 
     internal static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> EmptyExtraTags =
         new Dictionary<string, IReadOnlyDictionary<string, int>>();
+
+    internal static readonly IReadOnlyDictionary<string, IReadOnlyList<SimMinion>> EmptyRemovedByExtras =
+        new Dictionary<string, IReadOnlyList<SimMinion>>();
 }
 
 public sealed record SimOptions
