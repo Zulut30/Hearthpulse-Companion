@@ -35,6 +35,9 @@ internal static class Program
                     (--out <file>: per-fight scores; --before <file> --after <file>: two such files of the same fights
                     compared pair by pair; --captures <dir>: the fights of the app's capture files (<data>/combat-captures)
                     join those of the logs; --replays <dir>: fights the .hpr replays hold, Duos fights with both tables)
+          simperf   combat simulator speed: a fixed corpus (the logs' and --captures' fights plus synthetic worst cases):
+                    fights/s, ns and bytes per fight, the app's quick and background passes (time p50/p95, runs inside the
+                    budget, 95 % half-width of win/tie/loss); --rounds n repeats the timed part
           simmatrix combat simulator coverage matrix of the current pool (six statuses) -> docs/bg-sim-matrix.md
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
           art       decode the cached portraits and deck tiles at once (--games caps the count): time, allocations, GCs
@@ -127,6 +130,8 @@ internal static class Program
                 break;
             case "simcover":
                 return SimCoverBench.Run(options);
+            case "simperf":
+                return SimPerfBench.Run(options);
             case "simmatrix":
                 SimMatrix.Run();
                 break;
