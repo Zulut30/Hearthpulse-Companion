@@ -358,9 +358,17 @@ public sealed partial class SourceCaptureQueue : IAsyncDisposable
                 captures = _manifests.Values.Where(m => m.Finalized).ToArray();
             }
             finally { _disk.Release(); }
-            foreach (var capture in captures)
+            foreach (var listed in captures)
             {
+                var capture = listed;
                 var endpoint = _store.Endpoint!; // Bind destination to this generation, never read a replacement endpoint after HTTP starts.
+                // A pool that does not know source v3 yet gets v3 journals as v2, without their fights (docs/source-capture.md).
+                if (_v2Only && capture.SourceVersion == 3)
+                {
+                    if (await DowngradeAsync(capture, token).ConfigureAwait(false) is not { } v2) return;
+                    capture = v2;
+                }
+            resend:
                 foreach (var chunk in capture.Chunks.Where(c => !c.Acknowledged))
                 {
                     byte[] bytes;
@@ -381,6 +389,14 @@ public sealed partial class SourceCaptureQueue : IAsyncDisposable
                     }
                     finally { _disk.Release(); }
                     var answer = await client.ChunkAsync(endpoint, capture, chunk, bytes, token).ConfigureAwait(false);
+                    if (!answer.Accepted && !_v2Only && UnknownV3(capture, answer))
+                    {
+                        _v2Only = true;
+                        Diag.Info("Source capture: the pool does not take source v3 yet, journals go as v2 without fights until the app restarts");
+                        if (await DowngradeAsync(capture, token).ConfigureAwait(false) is not { } v2) return;
+                        capture = v2;
+                        goto resend;
+                    }
                     if (!answer.Accepted) { Backoff(answer); return; }
                     await _disk.WaitAsync(token).ConfigureAwait(false);
                     try

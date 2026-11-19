@@ -410,7 +410,7 @@ test('AC14 strict v2 intake: accepted contract lines, rejected cross-version fie
     [{ ...ranked[1], data: { ...ranked[1].data, choiceType: 'discover' } }],
     [ranked[0], { ...ranked[1], data: { ...ranked[1].data, choiceType: undefined } }],
     [ranked[0], { ...ranked[1], v: 1, data: { choiceId: 1, sourceCard: null, options: ['A'], picked: ['A'], resolved: true } }],
-    [{ ...ranked[0], v: 3 }],
+    [{ ...ranked[0], v: 4 }],
   ]) assert.equal(await reject(rows), 400, JSON.stringify(rows));
   // A v2 source under a v1 manifest and the reverse; combat_view outside BG and twice in BG.
   assert.equal(await reject(ranked, {}, 'complete'), 400);
@@ -456,8 +456,10 @@ test('AC16 migration 0009 on a 0008 database is additive and idempotent; a faile
     pool = await startPool(config);
     const now = tables(pool.store.sqlite);
     assert.ok(before.every(name => now.includes(name)));
+    // 0009, then 0010 (bg_combats) on the same start.
     assert.deepEqual(now.filter(name => !before.includes(name)).sort(),
-      ['analytics_snap', 'source_fact_game', 'source_fact_game_by_generation', 'source_fact_game_by_mode_day', 'source_fact_offer']);
+      ['analytics_snap', 'bg_combats', 'bg_combats_by_generation', 'source_fact_game', 'source_fact_game_by_generation', 'source_fact_game_by_mode_day',
+        'source_fact_offer', 'sqlite_autoindex_bg_combats_1']);
     assert.equal(pool.store.sqlite.prepare("SELECT status FROM source_captures WHERE key='k'").get().status, 'stored');
     assert.equal(pool.store.sqlite.prepare('SELECT COUNT(*) AS n FROM source_revoked').get().n, 1);
     await pool.close();
