@@ -36,17 +36,17 @@ public sealed class Side
     public Side Enemy { get; internal set; } = null!;
 
     /// <summary>Minions on the board, left to right (dying ones included until the death phase).</summary>
-    public IReadOnlyList<Unit> Minions => _board;
+    public UnitList Minions => new(_board);
 
     public int Count => _board.Count;
 
     public bool IsFull => _board.Count >= MaxMinions;
 
     /// <summary>Player-level effect holders (hero power, trinkets, Deity...), never on the board.</summary>
-    public IReadOnlyList<Unit> Extras => _extras;
+    public UnitList Extras => new(_extras);
 
     /// <summary>Minions that died this fight, in the order they died.</summary>
-    public IReadOnlyList<Unit> DeadThisFight => _dead;
+    public UnitList DeadThisFight => new(_dead);
 
     /// <summary>Deathrattle triggers resolved this fight (multipliers included).</summary>
     public int DeathrattlesTriggered { get; internal set; }

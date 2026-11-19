@@ -118,7 +118,7 @@ public sealed class Unit
         | (AttacksPerTurn >= 4 ? Keyword.MegaWindfury : AttacksPerTurn >= 2 ? Keyword.Windfury : 0);
 
     /// <summary>Its card effect first, then enchantment effects and effects gained in combat.</summary>
-    public IReadOnlyList<CombatEffect> Effects => _effects;
+    public EffectList Effects => new(_effects);
 
     /// <summary>Has a deathrattle: printed on the card, or from a registered effect.</summary>
     public bool HasDeathrattle => (Spec.Mechanics & CardMechanic.Deathrattle) != 0 || (Hooks & Hook.Deathrattle) != 0;
