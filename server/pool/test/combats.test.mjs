@@ -33,7 +33,7 @@ async function commit(f, rows, id = ID) {
 function oversized(f) {
   const minion = (entity, remembered) => ({ ...clone(FIGHT.ours.minions[0]), entity, enchantments: Array(COMBAT.maxEnchantments).fill('E'.repeat(80)), remembered });
   const board = base => Array.from({ length: COMBAT.maxMinions }, (_, i) => minion(base + i, Array.from({ length: COMBAT.maxRemembered }, () => minion(0, []))));
-  Object.assign(f, { firstAttacker: 0, facts: [] });
+  Object.assign(f, { firstAttacker: 0, facts: [], transcript: null });
   f.ours.minions = board(1);
   f.theirs.minions = board(100);
 }
@@ -73,12 +73,68 @@ test('bg_combat: the app\'s fight is valid; every field outside the allowlist, o
     f => { f.odds.win = 1.5; },
     f => { f.odds.text = 'note'; },
     oversized,
+    // The inputs besides the boards: the opponent's player enchantments never, every field known and in range.
+    f => { f.theirs.playerEnchantments = [clone(f.ours.playerEnchantments[0])]; },
+    f => { f.ours.playerEnchantments[0].name = 'x'; },
+    f => { f.ours.minions[0].enchantmentValues[0].creatorEntity = COMBAT.maxRef + 1; },
+    f => { f.ours.minions[0].enchantmentValues = Array(COMBAT.maxEnchantments + 1).fill(f.ours.minions[0].enchantmentValues[0]); },
+    f => { f.ours.lobbyTribes = 4096; },
+    // The order the sides entered play, never a lobby number, an account id or the player's secrets.
+    f => { f.oursEnteredFirst = 1; },
+    f => { delete f.oursEnteredFirst; },
+    f => { f.playerId = 3; },
+    f => { f.ours.playerId = 3; },
+    f => { f.theirs.gameAccountId = { hi: 144115198130930503, lo: 12345678 }; },
+    f => { f.theirs.hi = 1; },
+    f => { f.ours.lo = 12345678; },
+    f => { f.ours.secrets = ['LOCAL_SECRET_CARD']; },
+    f => { f.ours.minions[0].friendlyDeaths = -1; },
+    f => { f.ours.minions[0].bloodGemAttack = -1; },
+    f => { delete f.ours.minions[0].bloodGemHealth; },
+    f => { f.ours.deaths[0].remembered = [clone(f.ours.deaths[0])]; },
+    f => { f.ours.deaths = Array(COMBAT.maxDeaths + 1).fill(f.ours.deaths[0]); },
+    f => { f.ours.cardTags.BG30_MagicItem_301.SCORE_VALUE_3 = 1; },
+    // The transcript: no hand step, only board minions, triggers of what the record names, ends that close one.
+    f => { f.transcript.events.push(['hand', 1, 'BG_CFM_315']); },
+    f => { f.transcript.events.push(['tag', 99, 'ATK', 1]); },
+    f => { f.transcript.events.push(['tag', 3, 'COST', 1]); },
+    f => { f.transcript.events.push(['damage', 2, 1]); },
+    f => { f.transcript.events.push(['trigger', 99, 0, 'LOCAL_HAND_CARD', false]); },
+    f => { f.transcript.events.push(['trigger', 99, 0, 'TB_BaconShop_HP_001', true]); },
+    f => { f.transcript.events.push(['end']); },
+    f => { f.transcript.events.push(['attack', 3, 4, 0, 'extra']); },
+    f => { f.transcript.events[0][2] = 99; },
+    f => { f.transcript.boards[2][0] = 1; },
+    f => { f.transcript.boards[0][1].push([99, null, 1, 1, 0]); },
+    f => { f.transcript.boards[0][2].push([1, null, 1, 1, 0]); },
+    f => { f.transcript.version = 2; },
+    f => { f.transcript.ending = 'other'; },
+    f => { f.transcript.hand = []; },
+    f => { f.transcript.events = Array(COMBAT.maxTranscriptSteps + 1).fill(['damage', 1, 1]); f.transcript.boards = []; },
+    f => { f.transcript.events = Array.from({ length: 200 }, (_, i) => ['summon', 20 + i, `BG_${'X'.repeat(77)}`, 1, false, false]); f.transcript.boards = []; },
   ];
   for (const change of bad) {
     const f = clone(FIGHT);
     change(f);
     assert.equal(validCombat(f), false, change.toString());
   }
+  // Without a transcript, and with one exactly at the step limit, a fight is valid.
+  assert.equal(validCombat({ ...clone(FIGHT), transcript: null }), true);
+  assert.equal(validCombat({ ...clone(FIGHT), oursEnteredFirst: null }), true);
+  assert.equal(validCombat({ ...clone(FIGHT), oursEnteredFirst: false }), true);
+  // A minion that died before the capture (a death, a remembered one) can be below 0, a hero beaten in a lethal fight
+  // too; a board minion cannot.
+  const lethal = clone(FIGHT);
+  lethal.ours.deaths[0].health = -340;
+  lethal.ours.minions[1].remembered[0].health = -51;
+  lethal.theirs.health = -7;
+  assert.equal(validCombat(lethal), true);
+  assert.equal(validCombat({ ...clone(FIGHT), ours: { ...clone(FIGHT.ours), minions: [{ ...clone(FIGHT.ours.minions[0]), health: -1 }] } }), false);
+  assert.equal(validCombat({ ...clone(FIGHT), theirs: { ...clone(FIGHT.theirs), health: -10_001 } }), false);
+  const full = clone(FIGHT);
+  full.transcript.events = Array(COMBAT.maxTranscriptSteps).fill(['damage', 1, 1]);
+  full.transcript.boards = [];
+  assert.equal(validCombat(full), true);
   // The envelope: v3 only, no side, entity, card or target.
   for (const r of [{ ...combat(2, clone(FIGHT)), v: 2 }, { ...combat(2, clone(FIGHT)), side: 'local' }, { ...combat(2, clone(FIGHT)), entity: 4 },
     { ...combat(2, clone(FIGHT)), card: 'BG_CFM_315' }, { ...combat(2, clone(FIGHT)), target: 1 }]) assert.equal(validRecord(r), false, JSON.stringify(r).slice(0, 80));

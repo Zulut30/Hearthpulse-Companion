@@ -24,9 +24,11 @@ internal static class SimEstimates
     private static readonly string[] TavernSpellCasters = ["BG36_241", "BG36_640", "BG34_925"];
 
     // Trinkets whose number an effect reads from the card (SpellTriggers.TrinketShown): Corrupted Baton, Miniature Ship,
-    // Comfy Coffin, Bluegill Flippers, Flighty Portrait. The opponent's is not captured: the printed number is used.
+    // Comfy Coffin, Bluegill Flippers, Flighty Portrait, Bloodbound Earrings ("(N left!)"). The opponent's is not captured:
+    // the printed number is used.
     private static readonly string[] ShownTrinkets =
-        ["BG36_MagicItem_404", "BG36_MagicItem_404t", "BG35_MagicItem_710", "BG30_MagicItem_547", "BG30_MagicItem_547t", "BG32_MagicItem_893", "BG36_MagicItem_820"];
+        ["BG36_MagicItem_404", "BG36_MagicItem_404t", "BG35_MagicItem_710", "BG30_MagicItem_547", "BG30_MagicItem_547t", "BG32_MagicItem_893", "BG36_MagicItem_820",
+         "BG32_MagicItem_808", "BG32_MagicItem_808t"];
 
     // Player cards whose number grows over the game and an effect reads (Effects/player/GrowingValues and E3 trinkets): All-
     // Purpose Kibble, Hammer of Twilight, Snarky Portrait, Fang Anklet, Broodmother; Tentacular only when a Tentacle is owed.
@@ -80,6 +82,12 @@ internal static class SimEstimates
         }
 
         BeetleStats(side, local, estimates);
+        if (side.Minions.FirstOrDefault(m => m.CardId == SimInputs.NelliesShip) is { } ship)
+        {
+            estimates.Add(new SimEstimate(SimInputs.ShipCrew, ship.Golden ? 2 : 1, 0,
+                                          "the ship's Discovered crew is hidden from the player: a random Pirate up to their Tavern tier"));
+        }
+
         return estimates;
     }
 

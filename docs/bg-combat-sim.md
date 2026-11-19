@@ -204,7 +204,11 @@ Bassgill (S2, с обновлением таблицы релевантност�
 С 19.11.2026 (источник v3) журнал игры несёт свою копию тех же боёв из памяти — без руки, по белому списку, под
 переключателем записей игр ([source-capture.md](source-capture.md), «Battlegrounds fights»); это вход для замера на
 ≥ 500 отложенных боёв: выгрузка владельца `server/pool/node/export-combats.mjs` → `simcover --pool <файл>` (те же
-оценки, что у `--captures`; эффекты, читающие руку игрока, играют без неё).
+оценки, что у `--captures`; эффекты, читающие руку игрока, играют без неё) и `simreplay --pool <файл>` (с 19.11.2026,
+пакет U2, запись несёт стенограмму и входы пакета I; эффект, которому нужна рука, играет без неё, и такой бой может
+разойтись с логом: на логе 15.11 (58 боёв) запись получили все 58, все со стенограммой (медиана 3,0 КБ, максимум
+8,7 КБ при пределе 16 КиБ), и после пути «приложение → выгрузка → Bench» 52 боя проигрались так же, как дома, 6 разошлись
+на призыве из руки тринкетом BG32_MagicItem_301).
 `CombatCaptureStoreTests` падает, если о файле узнаёт ещё один исходный файл или если файл, который что-то отправляет
 по HTTP, оказывается среди знающих.
 
@@ -474,11 +478,35 @@ Glambot, Tidehunter; баланс меняется на сервере), кон�
 существо без типа ничего не даёт, полученная случайная карта в список руки не кладётся (только событие «карта в руку»);
 рука считается не полной (заклинания своей руки в снимок не попадают, рука соперника скрыта); Lovely Locket не
 реагирует на свой же каст; два Roogug передают камни до предела глубины движка; Bluegill Flippers — только доска (левая
-карта руки может быть заклинанием, его нет в снимке). Не моделируются: Locked-up Mutineer (есть ли уже Lockbox — не
-видно), Replica Cathedral (считается ли бой новым ходом — неизвестно), Honeycomb Ring, Bloodbound Earrings, Heart of the
-Forest (входит ли бонус в теги игрока — неизвестно), рост Faceless Converter и Showy Cyclist от кастов в бою, Boon of
-Beetles (заклинание таверны с действием в бою, не каст в бою). Balinda Stonehearth (E2) работает через конвейер;
-Temporal Tampering (E4) ляжет на тот же хук `ExtraSpellCasts`.
+карта руки может быть заклинанием, его нет в снимке). Не моделируются: Heart of the Forest (входит ли бонус в теги
+игрока — неизвестно), рост Faceless Converter и Showy Cyclist от кастов в бою. Balinda Stonehearth (E2) работает через
+конвейер; Temporal Tampering (E4) ляжет на тот же хук `ExtraSpellCasts`.
+
+### Остатки (E5, 19.11.2026)
+
+Сделано по тексту карт и логу 15.11 (`Effects/spells/SpellTrinketsMore.cs`, `BoonOfBeetles.cs`, `CardToHandMore.cs`,
+`ongoing/CombatBattlecries.cs`, `quests/Quests.cs`, `rewards/RallyingCry.cs`, `timewarped/TimewarpedNelliesShip.cs`):
+
+- **Replica Cathedral**: бой — отдельный ход игры (TURN 1 → 2 при переходе к первому бою), первое заклинание боя
+  кастуется ещё раз. **Honeycomb Ring**: каст на существо поднимает бонус таверных заклинаний на +1/+1 до конца боя
+  (допущение: теги игрока уже содержат «extra +1/+1»). **Bloodbound Earrings**: счётчик «(N left!)» — NUM_1 своего
+  тринкета, у соперника — печатный (оценка `trinket_value`).
+- **Boon of Beetles** и **квесты**: каст таверного заклинания с боевым действием и квест лежат в зоне SECRET (лог 15.11:
+  Brood of Nozdormu HAND → SECRET, L801212; квест с QUEST_PROGRESS/_TOTAL/QUEST_REWARD_DATABASE_ID, L500730). Свои —
+  extras с этими тегами (`SimInputs.ObjectiveTags`, в файле захвата; в пул не уходят), чужие скрыты. Boon призывает
+  оставшихся Жуков с Taunt, когда есть место. Квест считает прогресс в бою; завершённый в бою даёт награду сразу
+  (допущение, лога нет): Turbulent Tombs, Gilnean War Horn, Temporal Tampering, Rallying Cry.
+- **Bubble Gunner** (Taunt, Divine Shield, Windfury, Venomous, Reborn — без уже имеющихся), **Captain Sanders**, **Elite
+  Navigator** (делает Golden: + печатные статы, золотой текст), **Disguised Graverobber**, **Maw Caster** — когда их
+  Battlecry запускает эффект в бою; цель случайна, себя не выбирает.
+- **Locked-up Mutineer**: Lockbox добавляется, если его нет (есть у игрока с Lockbox Portrait). **Dark Paradox** (t5):
+  Rally — случайная карта. **Rallying Cry**: Rally срабатывает ещё раз (таблица: QR_RELEVANT).
+- **Timewarped Nellie's Ship**: экипаж — свой выбор в Discover корабля (`SimMinion.Crew`, формат 2); у соперника —
+  оценка `ship_crew` (случайный Пират до его уровня таверны). **Jungle King**: бонус — NUM_1/2 Короля (как у The Last One
+  Standing), рост от каста в бою не моделируется. **Skitterer/Scorpid**: «+X/+Y» — TAG_SCRIPT_DATA_NUM_3/4 (лог 15.11:
+  5/5 и 4/4).
+- Не сделан **Timewarped Festergut**: частей Undead Creation нет ни в HearthstoneJSON 256589, ни в hsbg.cards, ни в API,
+  ни в логах.
 
 ## Допущения (не сверены с логами)
 

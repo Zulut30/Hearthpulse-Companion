@@ -34,12 +34,22 @@ public sealed class SourceCaptureCombatTests : IDisposable
     private static SimMinion M(int entity, string card, int attack, int health, Keyword keywords = Keyword.None) =>
         SimMinion.Create(card, attack, health, Tribe.Beast, keywords) with { EntityId = entity, TechLevel = 1 };
 
-    /// <summary>A fight with everything that must not leave: both hands, a rating and an id among the player tags, card values that are no input, the opponent's card values.</summary>
-    private static (BattlegroundsTracker.CombatCapture Capture, SimOptions Options, Facts Facts, CombatRecord Combat) Fight(int minions = 2, string result = "Win", double win = 0.61234)
+    /// <summary>
+    /// A fight with everything that must not leave: both hands, a rating and an id among the player tags, card values that
+    /// are no input, the opponent's card values and player enchantments, an enchantment made by a hand card.
+    /// </summary>
+    internal static (BattlegroundsTracker.CombatCapture Capture, SimOptions Options, Facts Facts, CombatRecord Combat) Fight(int minions = 2, string result = "Win", double win = 0.61234)
     {
         SimMinion[] board =
         [
-            M(5003, "BG_CFM_315", 3, 2, Keyword.Taunt | Keyword.DivineShield) with { Enchantments = ["BG28_503e"], ScriptData1 = 7, Remembered = [M(5001, "BG_CFM_315", 2, 1)] },
+            M(5003, "BG_CFM_315", 3, 2, Keyword.Taunt | Keyword.DivineShield) with
+            {
+                Enchantments = ["BG28_503e"], ScriptData1 = 7, Remembered = [M(5001, "BG_CFM_315", 2, 1)],
+                EnchantmentValues = [new SimEnchantment("BG28_503e") { ScriptData1 = 3, ScriptData2 = 3, CreatorEntityId = 6000 }],
+                FriendlyDeathsBeforeCapture = 1,
+                BloodGemAttack = 2,
+                BloodGemHealth = 1,
+            },
             M(4100, "BG26_800", 4, 6, Keyword.Windfury) with { Golden = true, CreatorCardId = "TB_BaconShop_HP_001", Mechanics = CardMechanic.Deathrattle },
             .. Enumerable.Range(0, Math.Max(0, minions - 2)).Select(i => M(7000 + i, "BG_CFM_315", 1, 1)),
         ];
@@ -52,11 +62,16 @@ public sealed class SourceCaptureCombatTests : IDisposable
             Tags = new Dictionary<string, int>(StringComparer.Ordinal) { ["BACON_BLOODGEMBUFFATKVALUE"] = 2, ["PLAYER_ID"] = 3, ["BACON_RATING"] = 7000, ["4914"] = 1 },
             ExtraTags = new Dictionary<string, IReadOnlyDictionary<string, int>>(StringComparer.Ordinal)
             {
-                ["BG30_MagicItem_301"] = new Dictionary<string, int>(StringComparer.Ordinal) { ["TAG_SCRIPT_DATA_NUM_1"] = 2, ["COST"] = 3 },
+                ["BG30_MagicItem_301"] = new Dictionary<string, int>(StringComparer.Ordinal) { ["TAG_SCRIPT_DATA_NUM_1"] = 2, ["COST"] = 3, ["SCORE_VALUE_1"] = 3 },
             },
             TavernTier = 2,
             Health = 30,
             Turn = 3,
+            PlayerEnchantments = [new SimEnchantment("BG27_556pe") { ScriptData1 = 1, CreatorEntityId = 4100 }],
+            LobbyTribes = Tribe.Beast | Tribe.Mech | Tribe.Aberration,
+            DeathsBeforeCapture = [M(4000, "BG_CFM_315", 1, 1)],
+            PlayerId = 3,
+            Secrets = ["LOCAL_SECRET_CARD"],
         };
         var theirs = new SimSide([M(9050, "BGS_119", 5, 5, Keyword.Stealth | Keyword.Reborn)])
         {
@@ -70,6 +85,9 @@ public sealed class SourceCaptureCombatTests : IDisposable
             TavernTier = 3,
             Health = 25,
             Turn = 3,
+            PlayerEnchantments = [new SimEnchantment("OPPONENT_PLAYER_ENCHANTMENT") { ScriptData1 = 9 }],
+            LobbyTribes = Tribe.Beast | Tribe.Mech | Tribe.Aberration,
+            PlayerId = 6,
         };
         var capture = new BattlegroundsTracker.CombatCapture(ours, theirs, true, 9050);
         var options = BattlegroundsTracker.DefaultSimOptions with { FirstAttackerEntityId = 9050, DamageCap = 15 };
@@ -78,15 +96,16 @@ public sealed class SourceCaptureCombatTests : IDisposable
         return (capture, options, facts, combat);
     }
 
-    private static SourceCombat Project((BattlegroundsTracker.CombatCapture Capture, SimOptions Options, Facts Facts, CombatRecord Combat) f, int index = 2) =>
-        SourceCaptureCombat.Project(index, f.Capture, f.Options, f.Facts, f.Combat)!;
+    internal static SourceCombat Project((BattlegroundsTracker.CombatCapture Capture, SimOptions Options, Facts Facts, CombatRecord Combat) f, int index = 2,
+                                         BattlegroundsTracker.CombatTranscript? transcript = null) =>
+        SourceCaptureCombat.Project(index, f.Capture, f.Options, f.Facts, f.Combat, transcript)!;
 
-    private static string Wire(SourceCombat fight) => JsonSerializer.Serialize(fight, SourceCaptureRecord.Json);
+    internal static string Wire(SourceCombat fight) => JsonSerializer.Serialize(fight, SourceCaptureRecord.Json);
 
     private static readonly string Fixture = File.ReadAllText(Path.Combine(RepoFiles.Root, "server", "pool", "test", "bg-combat.fixture.json"));
 
     /// <summary>The field names of a record at every depth; the values of tag maps are data, not fields.</summary>
-    private static SortedSet<string> Shape(JsonElement value, string at = "")
+    internal static SortedSet<string> Shape(JsonElement value, string at = "")
     {
         var paths = new SortedSet<string>(StringComparer.Ordinal);
         if (value.ValueKind == JsonValueKind.Object && !at.EndsWith(".tags", StringComparison.Ordinal) && !at.EndsWith(".cardTags", StringComparison.Ordinal))
@@ -115,7 +134,7 @@ public sealed class SourceCaptureCombatTests : IDisposable
         SourceCaptureCombat.Validate(fixture.RootElement);
         Assert.NotNull(SourceCaptureCombat.Read(fixture.RootElement));
 
-        using var written = JsonDocument.Parse(Wire(Project(Fight())));
+        using var written = JsonDocument.Parse(Wire(Project(Fight(), transcript: SourceCaptureCombatTranscriptTests.Transcript())));
         // The pool's tests read the fixture with the pool's rules: the same fields at every depth as the app writes.
         Assert.Equal(Shape(fixture.RootElement), Shape(written.RootElement));
         SourceCaptureCombat.Validate(written.RootElement);
@@ -124,22 +143,53 @@ public sealed class SourceCaptureCombatTests : IDisposable
     [Fact]
     public void Only_the_allowlist_leaves_never_a_hand_a_rating_an_id_or_the_opponent_s_card_values()
     {
-        var text = Wire(Project(Fight()));
+        var text = Wire(Project(Fight(), transcript: SourceCaptureCombatTranscriptTests.Transcript()));
         using var json = JsonDocument.Parse(text);
         var root = json.RootElement;
 
-        foreach (var absent in new[] { "LOCAL_HAND_CARD", "OPPONENT_HAND_CARD", "hand", "PLAYER_ID", "BACON_RATING", "GAME_ACCOUNT_ID", "COST", "OPPONENT_TRINKET", "123456", "7000" })
+        foreach (var absent in new[]
+                 {
+                     "LOCAL_HAND_CARD", "HAND_DRAWN_CARD", "OPPONENT_HAND_CARD", "hand", "PLAYER_ID", "BACON_RATING", "GAME_ACCOUNT_ID", "COST",
+                     "OPPONENT_TRINKET", "OPPONENT_PLAYER_ENCHANTMENT", "LOCAL_SECRET_CARD", "secret", "playerId", "gameAccountId", "123456", "7000",
+                 })
         {
             Assert.DoesNotContain(absent, text, StringComparison.Ordinal);
         }
 
-        Assert.Equal("""{"4914":1,"BACON_BLOODGEMBUFFATKVALUE":2}""", root.GetProperty("ours").GetProperty("tags").GetRawText());
-        Assert.Equal("""{"BG30_MagicItem_301":{"TAG_SCRIPT_DATA_NUM_1":2}}""", root.GetProperty("ours").GetProperty("cardTags").GetRawText());
-        Assert.Equal("""{"BACON_BLOODGEMBUFFHEALTHVALUE":3}""", root.GetProperty("theirs").GetProperty("tags").GetRawText());
-        Assert.Equal("{}", root.GetProperty("theirs").GetProperty("cardTags").GetRawText());
-        Assert.Equal(JsonValueKind.Null, root.GetProperty("transcript").ValueKind);
+        var ours = root.GetProperty("ours");
+        var theirs = root.GetProperty("theirs");
+        Assert.Equal("""{"4914":1,"BACON_BLOODGEMBUFFATKVALUE":2}""", ours.GetProperty("tags").GetRawText());
+        Assert.Equal("""{"BG30_MagicItem_301":{"SCORE_VALUE_1":3,"TAG_SCRIPT_DATA_NUM_1":2}}""", ours.GetProperty("cardTags").GetRawText());
+        Assert.Equal("""{"BACON_BLOODGEMBUFFHEALTHVALUE":3}""", theirs.GetProperty("tags").GetRawText());
+        Assert.Equal("{}", theirs.GetProperty("cardTags").GetRawText());
+        // The player's own enchantments and both sides' deaths at Start of Combat and lobby tribes; never the opponent's
+        // player enchantments.
+        Assert.Equal("[]", theirs.GetProperty("playerEnchantments").GetRawText());
+        Assert.Equal("BG27_556pe", Assert.Single(ours.GetProperty("playerEnchantments").EnumerateArray()).GetProperty("card").GetString());
+        Assert.Equal((int)(Tribe.Beast | Tribe.Mech | Tribe.Aberration), theirs.GetProperty("lobbyTribes").GetInt32());
+        Assert.Equal("BG_CFM_315", Assert.Single(ours.GetProperty("deaths").EnumerateArray()).GetProperty("card").GetString());
+        Assert.Equal(JsonValueKind.Object, root.GetProperty("transcript").ValueKind);
+        // Which side entered play first (the lower lobby PLAYER_ID, 3 before 6), never the numbers; the own secrets never.
+        Assert.True(root.GetProperty("oursEnteredFirst").GetBoolean());
         Assert.Equal("W", root.GetProperty("result").GetString());
         Assert.Equal(0.6123, root.GetProperty("odds").GetProperty("win").GetDouble());
+    }
+
+    [Fact]
+    public void Only_the_order_the_sides_entered_play_leaves_never_the_lobby_numbers()
+    {
+        var f = Fight();
+        bool? Order(int ours, int theirs) =>
+            Project(f with { Capture = f.Capture with { Ours = f.Capture.Ours with { PlayerId = ours }, Theirs = f.Capture.Theirs with { PlayerId = theirs } } })
+                .OursEnteredFirst;
+
+        Assert.Equal([true, false, null, null, null], new[] { Order(3, 6), Order(7, 2), Order(0, 4), Order(5, 0), Order(4, 4) });
+        // Read back, the simulator gets the same order (Fight.EnteredFirst compares the two numbers, nothing else).
+        using var json = JsonDocument.Parse(Wire(Project(f with { Capture = f.Capture with { Ours = f.Capture.Ours with { PlayerId = 7 }, Theirs = f.Capture.Theirs with { PlayerId = 2 } } })));
+        var input = SourceCaptureCombat.Read(json.RootElement)!;
+        Assert.Equal((2, 1), (input.Capture.Ours.PlayerId, input.Capture.Theirs.PlayerId));
+        using var unknown = JsonDocument.Parse(Wire(Project(f with { Capture = f.Capture with { Ours = f.Capture.Ours with { PlayerId = 0 } } })));
+        Assert.Equal((0, 0), (SourceCaptureCombat.Read(unknown.RootElement)!.Capture.Ours.PlayerId, SourceCaptureCombat.Read(unknown.RootElement)!.Capture.Theirs.PlayerId));
     }
 
     [Fact]
@@ -147,20 +197,26 @@ public sealed class SourceCaptureCombatTests : IDisposable
     {
         var fight = Project(Fight());
 
-        // 4100, 5001, 5003, 9050 -> 1, 2, 3, 4: the simulator only compares them, and no id of the game remains.
-        Assert.Equal([3, 1], fight.Ours.Minions.Select(m => m.Entity));
-        Assert.Equal(2, Assert.Single(fight.Ours.Minions[0].Remembered).Entity);
-        Assert.Equal(4, Assert.Single(fight.Theirs.Minions).Entity);
-        Assert.Equal(4, fight.FirstAttacker);
-        Assert.Equal([1, 3, 4], fight.Facts.Select(f => f.Entity));
+        // 4000 (died at Start of Combat), 4100, 5001, 5003, 9050 -> 1..5: the simulator only compares them, and no id of
+        // the game remains.
+        Assert.Equal([4, 2], fight.Ours.Minions.Select(m => m.Entity));
+        Assert.Equal(3, Assert.Single(fight.Ours.Minions[0].Remembered).Entity);
+        Assert.Equal(5, Assert.Single(fight.Theirs.Minions).Entity);
+        Assert.Equal(5, fight.FirstAttacker);
+        Assert.Equal([2, 4, 5], fight.Facts.Select(f => f.Entity));
         Assert.Equal(["DEATHRATTLE"], fight.Facts[0].Markers);
+        Assert.Equal(1, Assert.Single(fight.Ours.Deaths).Entity);
+        // What made an enchantment: a reference when the record holds that entity (the Forager 4100), else 0 (a hand card).
+        Assert.Equal(2, Assert.Single(fight.Ours.PlayerEnchantments).CreatorEntity);
+        Assert.Equal(0, Assert.Single(fight.Ours.Minions[0].EnchantmentValues).CreatorEntity);
+        Assert.Equal(1, fight.Ours.Minions[0].FriendlyDeaths);
     }
 
     [Fact]
     public void A_record_reads_back_as_the_same_simulator_input_and_gives_the_same_odds()
     {
         var original = Fight();
-        var wire = Wire(Project(original));
+        var wire = Wire(Project(original, transcript: SourceCaptureCombatTranscriptTests.Transcript()));
         using var json = JsonDocument.Parse(wire);
         var input = SourceCaptureCombat.Read(json.RootElement)!;
 
@@ -168,16 +224,26 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Assert.Empty(input.Capture.Theirs.Hand);
         Assert.Equal(("Win", 5, 3, 15, true), (input.Result, input.DamageDealt, input.Turn, input.DamageCap, input.CountDamage));
         var first = input.Capture.Ours.Minions[0];
-        Assert.True(first is { Taunt: true, DivineShield: true, Stealth: false, ScriptData1: 7 });
+        Assert.True(first is { Taunt: true, DivineShield: true, Stealth: false, ScriptData1: 7, FriendlyDeathsBeforeCapture: 1, BloodGemAttack: 2, BloodGemHealth: 1 });
         Assert.Equal(["BG28_503e"], first.Enchantments);
+        Assert.Equal(new SimEnchantment("BG28_503e") { ScriptData1 = 3, ScriptData2 = 3 }, Assert.Single(first.EnchantmentValues));
         Assert.Equal(2, input.Capture.Ours.Minions[1].AttacksPerTurn);
         Assert.True(input.Capture.Theirs.Minions[0] is { Stealth: true, Reborn: true });
         Assert.Equal(4000, input.Odds!.Runs);
+        // The inputs besides the boards, with the references of the record (the Forager 4100 is 3 here).
+        var forager = input.Capture.Ours.Minions[1].EntityId;
+        Assert.Equal(1, SimInputs.PendingForagerSummons(input.Capture.Ours, forager));
+        Assert.Equal(Tribe.Beast | Tribe.Mech | Tribe.Aberration, input.Capture.Theirs.LobbyTribes);
+        Assert.Equal("BG_CFM_315", Assert.Single(input.Capture.Ours.DeathsBeforeCapture).CardId);
+        Assert.Empty(input.Capture.Theirs.PlayerEnchantments);
+        Assert.True(input.Capture.Ours.PlayerId is > 0 && input.Capture.Ours.PlayerId < input.Capture.Theirs.PlayerId);
+        Assert.Empty(input.Capture.Ours.Secrets);
+        Assert.NotNull(input.Transcript);
 
         // Projected again it is the same record: the reading loses nothing the record holds.
         var options = BattlegroundsTracker.DefaultSimOptions with { FirstAttackerEntityId = input.Capture.FirstAttackerEntityId, DamageCap = input.DamageCap, CountDamage = input.CountDamage };
         var again = SourceCaptureCombat.Project(2, input.Capture, options, input.Facts,
-            new CombatRecord(input.Turn, 0, string.Empty, input.Result, input.DamageTaken, input.DamageDealt, input.Odds));
+            new CombatRecord(input.Turn, 0, string.Empty, input.Result, input.DamageTaken, input.DamageDealt, input.Odds), input.Transcript);
         Assert.Equal(wire, Wire(again!));
 
         // The simulator gives the same odds for the record as for the fight without what the record leaves out.
@@ -187,6 +253,8 @@ public sealed class SourceCaptureCombatTests : IDisposable
             Tags = side.Tags.Where(t => SourceCaptureCombat.PlayerTags.Contains(t.Key)).ToDictionary(t => t.Key, t => t.Value),
             ExtraTags = opponent ? SimSide.EmptyExtraTags : side.ExtraTags.ToDictionary(t => t.Key,
                 t => (IReadOnlyDictionary<string, int>)t.Value.Where(v => SourceCaptureCombat.CardTags.Contains(v.Key)).ToDictionary(v => v.Key, v => v.Value)),
+            PlayerEnchantments = opponent ? [] : side.PlayerEnchantments,
+            Secrets = [],
         };
         var fixedRuns = original.Options with { Runs = 300, MinRuns = 300, TimeBudget = null };
         var before = CombatSimulator.Run(Kept(original.Capture.Ours, false), Kept(original.Capture.Theirs, true), original.Capture.OursFirst, fixedRuns);
@@ -213,6 +281,22 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Assert.Null(SourceCaptureCombat.Project(0, ok.Capture, ok.Options, [new(4100, string.Empty, [])], ok.Combat));
         Assert.Null(SourceCaptureCombat.Project(0, ok.Capture, ok.Options, [new(4100, "BG26_800", ["TAUNT"])], ok.Combat));
 
+        // A board minion below 0 is outside the rules; a minion that died before the capture (damage past its health) and a
+        // hero beaten in a lethal fight are what the simulator got, and go (real logs of 2026-11-15 have both).
+        var hurt = ok.Capture with { Ours = ok.Capture.Ours with { Minions = [ok.Capture.Ours.Minions[0] with { Health = -1 }] } };
+        Assert.Null(SourceCaptureCombat.Project(0, hurt, ok.Options, [], ok.Combat));
+        var lethal = ok.Capture with
+        {
+            Ours = ok.Capture.Ours with
+            {
+                DeathsBeforeCapture = [M(4000, "BG_CFM_315", 4, -340)],
+                Minions = [ok.Capture.Ours.Minions[0] with { Remembered = [M(5001, "BG_CFM_315", 458, -51)] }, ok.Capture.Ours.Minions[1]],
+            },
+            Theirs = ok.Capture.Theirs with { Health = -7 },
+        };
+        var dead = SourceCaptureCombat.Project(0, lethal, ok.Options, ok.Facts, ok.Combat)!;
+        Assert.Equal((-340, -51, -7), (Assert.Single(dead.Ours.Deaths).Health, Assert.Single(dead.Ours.Minions[0].Remembered).Health, dead.Theirs.Health));
+
         // Combat 0 twice, combat 1 too big, combat 2 fine, combat 5 never ended: 0 and 2 go.
         BattlegroundsTracker.CapturedFight Captured(int index, (BattlegroundsTracker.CombatCapture Capture, SimOptions Options, Facts Facts, CombatRecord Combat) f) =>
             new(index, f.Capture, f.Options, f.Facts);
@@ -231,11 +315,9 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Assert.All(Enum.GetValues<Keyword>(), k => Assert.Equal(0, (int)k & ~SourceCaptureCombat.BaseKeywordMask));
         Assert.All(Enum.GetValues<CardMechanic>(), m => Assert.Equal(0, (int)m & ~SourceCaptureCombat.MechanicMask));
         Assert.Equal(CombatRelevance.EffectMarkers(_ => true), SourceCaptureCombat.Markers);
-        // The wire sends a subset of the card tags the capture keeps: SCORE_VALUE_1/2 (Avenge X and progress of hero powers
-        // and trinkets, E3) stay local until the pool's validation takes them (a server change; an older pool would refuse
-        // the whole fight). Without them a pool replay starts that Avenge from 0.
-        Assert.Subset(CombatEffect.CapturedTags.ToHashSet(StringComparer.Ordinal), SourceCaptureCombat.CardTags.ToHashSet(StringComparer.Ordinal));
-        Assert.Equal(["SCORE_VALUE_1", "SCORE_VALUE_2"], CombatEffect.CapturedTags.Except(SourceCaptureCombat.CardTags, StringComparer.Ordinal).Order(StringComparer.Ordinal));
+        // Every card value effects read leaves, Avenge (X) and its progress on hero powers and trinkets (SCORE_VALUE_1/2)
+        // included: a pool replay starts that Avenge where the game had it.
+        Assert.Equal(CombatEffect.CapturedTags.Order(StringComparer.Ordinal), SourceCaptureCombat.CardTags.Order(StringComparer.Ordinal));
         var stored = typeof(BattlegroundsTracker).Assembly.GetType("Hearthpulse.Core.Tracking.CombatCaptureStore")!
             .GetField("CounterTags", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null) as IEnumerable<string>;
         Assert.Equal(stored!.Order(StringComparer.Ordinal), SourceCaptureCombat.PlayerTags.Order(StringComparer.Ordinal));

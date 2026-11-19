@@ -43,7 +43,7 @@ BLOOD_GEM = 'BG20_GEM'
 TRIGGER = re.compile(
     r"\b(Whenever|After|When)\b[^,.:]*\b(attacks?|dies|die|takes damage|kills|loses|is Reborn|summons?|"
     r"trigger a (Deathrattle|Rally)|awakens|space)\b|\bAvenge \(\d+\)|\b(each|in|this|during) combat\b|"
-    r"^Your (minions|[A-Z][a-z]+s) have \+|^Your first Deathrattle|\bYour [A-Za-z' ]*Deathrattles\b|^Give .* during combat",
+    r"^Your (minions|[A-Z][a-z]+s) have \+|^Your first Deathrattle|\bYour [A-Za-z' ]*(Deathrattles|Rallies)\b|^Give .* during combat",
     re.IGNORECASE)
 EFFECT = re.compile(
     r"\b(give|gives|gain \+|gains \+|double|summon|resummon|deal|deals|destroy|trigger|triggers|"

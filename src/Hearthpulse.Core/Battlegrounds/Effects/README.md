@@ -124,7 +124,13 @@ returns to 0 when Avenge fires).
   `BaseHealth`, `ScriptData1/2`, `Enchantments`, `Remembered` (minions its start-of-combat trigger removed, e.g.
   Stitched Salvager's victim), `BloodGemAttack/Health` ("its Blood Gems", tags 4235/4236; `unit.BloodGemAttack` also
   counts gems played in the fight). `side.Info.RemovedByExtras`: minions a hero power or trinket removed at Start of
-  Combat, by its card id (Rapid Reanimation, Soul Fermenter).
+  Combat, by its card id (Rapid Reanimation, Soul Fermenter). `ScriptData3/4`: a second pair the text shows
+  (Skitterer/Scorpid's "+X/+Y"). `Crew`: Timewarped Nellie's Ship's crew, the local player's own Discover pick (the
+  opponent's is estimated, `SimInputs.ShipCrew`).
+- Quests and waiting Tavern spells: the local player's cards in the SECRET zone (a quest, Boon of Beetles) are extras
+  with `SimInputs.ObjectiveTags` in `ExtraTags` (script numbers, `QUEST_PROGRESS`, `QUEST_PROGRESS_TOTAL`,
+  `QUEST_REWARD_DATABASE_ID`); quests in `quests/` count progress in the fight and attach their reward's effect when done.
+- "Make Golden" in combat: `CombatBattlecry.BecomeGolden` (`ongoing/CombatBattlecries.cs`) replaces `unit.Spec`.
 
 ## Engine order (see `Fight` remarks)
 

@@ -10,8 +10,8 @@ internal sealed class TurquoiseSkitterer : CombatEffect
 {
     public override void Deathrattle(Fight fight, Unit self)
     {
-        var bonus = self.Pick(5, 10);
-        Beetles.Improve(fight, self.Side, bonus, bonus);
+        var (attack, health) = Beetles.Bonus(self, 5, 10);
+        Beetles.Improve(fight, self.Side, attack, health);
         Beetles.Summon(fight, self, self.Pick(1, 2));
     }
 }
