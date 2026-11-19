@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -180,7 +181,8 @@ public sealed class ArtMotionTests
 
             // The pointer leaves for good: after the grace period the preview fades out and is gone.
             host.HideSoon(rows[2]);
-            Wait(TimeSpan.FromMilliseconds(140) + Motion.Fast + TimeSpan.FromMilliseconds(400));
+            Assert.NotNull(host.CardShown);
+            WaitUntilHidden(host);
             Assert.Null(host.CardShown);
             Assert.Equal(1, host.Opacity);
             Assert.False(host.HasAnimatedProperties);
@@ -376,6 +378,37 @@ public sealed class ArtMotionTests
         var timer = new DispatcherTimer(time, DispatcherPriority.Background, (_, _) => frame.Continue = false, Dispatcher.CurrentDispatcher);
         Dispatcher.PushFrame(frame);
         timer.Stop();
+    }
+
+    /// <summary>
+    /// Runs the dispatcher until the hover card collapses its frame at the end of the fade-out. The grace timer and the
+    /// fade run on the wall clock: a fixed wait from <see cref="CardPreviewHost.HideSoon"/> ran out under load while the
+    /// fade was still on, so the frame's change ends the wait; 10 s only bounds a hang.
+    /// </summary>
+    private static void WaitUntilHidden(CardPreviewHost host)
+    {
+        var frame = (FrameworkElement)host.Children[0];
+        var pump = new DispatcherFrame();
+        var visibility = DependencyPropertyDescriptor.FromProperty(UIElement.VisibilityProperty, typeof(FrameworkElement));
+        void Changed(object? sender, EventArgs e)
+        {
+            if (host.CardShown is null)
+            {
+                pump.Continue = false;
+            }
+        }
+
+        visibility.AddValueChanged(frame, Changed);
+        var backstop = new DispatcherTimer(TimeSpan.FromSeconds(10), DispatcherPriority.Background, (_, _) => pump.Continue = false, Dispatcher.CurrentDispatcher);
+        try
+        {
+            Dispatcher.PushFrame(pump);
+        }
+        finally
+        {
+            backstop.Stop();
+            visibility.RemoveValueChanged(frame, Changed);
+        }
     }
 
     /// <summary>Runs the dispatcher down to <paramref name="priority"/>.</summary>

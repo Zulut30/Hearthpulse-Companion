@@ -122,6 +122,30 @@
    "attack": null,
    "health": null
   },
+  "BG24_Quest_114": {
+   "name": "Assemble a Lineup",
+   "text": "Quest: Summon 0 minions.",
+   "attack": null,
+   "health": null
+  },
+  "BG24_Quest_123": {
+   "name": "Find the Murder Weapon",
+   "text": "Quest: Increase a friendly minion's stats 0 times.",
+   "attack": null,
+   "health": null
+  },
+  "BG24_Quest_124": {
+   "name": "Reenact the Murder",
+   "text": "Quest: Have 0 friendly minions die.",
+   "attack": null,
+   "health": null
+  },
+  "BG24_Quest_352": {
+   "name": "Crack the Case",
+   "text": "Quest: Have friendly minions attack 0 times.",
+   "attack": null,
+   "health": null
+  },
   "BG25_008": {
    "name": "Eternal Knight",
    "text": "Has +4/+2 for each friendly Eternal Knight that died this game (wherever this is).",
@@ -374,6 +398,18 @@
    "attack": null,
    "health": null
   },
+  "BG27_Quest_801": {
+   "name": "Pressure the Authorities",
+   "text": "Quest: Get your warband to 28 total Attack.",
+   "attack": null,
+   "health": null
+  },
+  "BG27_Quest_802": {
+   "name": "Round Up the Suspects",
+   "text": "Quest: Destroy 0 enemy minions.",
+   "attack": null,
+   "health": null
+  },
   "BG27_Reward_802": {
    "name": "Gilnean War Horn",
    "text": "Get a copy of '0'. Your Battlecries trigger an extra time.",
@@ -473,6 +509,12 @@
   "BG28_888": {
    "name": "Misplaced Tea Set",
    "text": "Give a friendly minion of each type +3/+3.",
+   "attack": null,
+   "health": null
+  },
+  "BG28_Quest_500": {
+   "name": "Fill the Cauldron",
+   "text": "Quest: Cast 0 spells.",
    "attack": null,
    "health": null
   },

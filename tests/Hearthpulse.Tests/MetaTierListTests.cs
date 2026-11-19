@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Specialized;
 using System.Text.Json;
 using Hearthpulse.Core;
@@ -6,6 +7,7 @@ using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 
 namespace Hearthpulse.Tests;
@@ -235,7 +237,10 @@ public sealed class MetaTierListTests : IDisposable
     [Fact]
     public void A_late_tier_list_collection_puts_the_delay_line_under_the_meta_status_and_no_other_source_does()
     {
-        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        // The meta's My Stats build runs on the caller; the deck list's build still answers from the pool and raises
+        // its own properties there, so the names raised are kept in a queue that takes both threads (a List can lose an
+        // Add or throw in the assertion's enumeration when that answer lands under load).
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App) { Background = BackgroundWork.Inline };
         vm.ShowConstructedFormat("FT_STANDARD");
         vm.SetConstructedMeta(Meta());
         var status = vm.ConstructedMetaStatus;
@@ -245,8 +250,8 @@ public sealed class MetaTierListTests : IDisposable
         var collected = new DateTime(2026, 11, 12, 3, 35, 0, DateTimeKind.Utc);
         Hearthpulse.Core.Api.DataHealthReport Summary(string id, Hearthpulse.Core.Api.DataFreshness state) =>
             new([new Hearthpulse.Core.Api.DataSourceHealth(id, state, 90, 36, collected, null)], DateTime.UtcNow);
-        var raised = new List<string?>();
-        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        var raised = new ConcurrentQueue<string?>();
+        vm.PropertyChanged += (_, e) => raised.Enqueue(e.PropertyName);
 
         vm.SetDataHealth(Summary("hsguru_meta_matrix", Hearthpulse.Core.Api.DataFreshness.Stale));
         Assert.Equal(status + "\n" + Loc.F("Source.Health.Delay", collected.ToLocalTime()), vm.ConstructedMetaStatus);
@@ -261,7 +266,7 @@ public sealed class MetaTierListTests : IDisposable
         Assert.Equal(status, vm.ConstructedMetaStatus);
 
         // A page without stats has its "unavailable" text alone, never a delay line.
-        var empty = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
+        var empty = new MainViewModel(_history, new AppSettings(), TestDataFolder.App) { Background = BackgroundWork.Inline };
         empty.ShowConstructedFormat("FT_STANDARD");
         empty.SetConstructedMeta(null);
         empty.SetDataHealth(Summary("hsguru_meta_matrix", Hearthpulse.Core.Api.DataFreshness.Stale));

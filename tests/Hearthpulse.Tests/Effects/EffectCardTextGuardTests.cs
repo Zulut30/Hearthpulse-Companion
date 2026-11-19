@@ -17,8 +17,8 @@ namespace Hearthpulse.Tests.Sim;
 public sealed class EffectCardTextGuardTests
 {
     /// <summary>
-    /// The card text each effect in Effects/attack, deaths, ongoing, spells, timewarped, rewards, anomalies and player
-    /// implements, with the numbers its code uses: the normal card and the golden card (hero powers and trinkets have
+    /// The card text each effect in Effects/attack, deaths, ongoing, spells, timewarped, rewards, anomalies, player and
+    /// quests implements, with the numbers its code uses: the normal card and the golden card (hero powers and trinkets have
     /// none). Every registered card id of those folders has a row (a new effect adds one).
     /// </summary>
     private static readonly (string Id, string Normal, string? Golden)[] Rows =
@@ -268,6 +268,16 @@ public sealed class EffectCardTextGuardTests
         ("BG36_MagicItem_403t", "Your minions have +2/+1.", null),
         ("BG36_MagicItem_416", "After your Deity awakens, give it Reborn.", null),
         ("BG36_MagicItem_450", "Whenever a Fishbait dies, give your Beasts +4/+4 and improve this.", null),
+
+        // quests/: the task's number is the quest's QUEST_PROGRESS_TOTAL from the capture, never printed in the code, so the
+        // row holds what each quest counts (the card text renders the number as 0, or the base value).
+        ("BG24_Quest_114", "Quest: Summon", null),
+        ("BG24_Quest_123", "Quest: Increase a friendly minion's stats", null),
+        ("BG24_Quest_124", "friendly minions die.", null),
+        ("BG24_Quest_352", "Quest: Have friendly minions attack", null),
+        ("BG27_Quest_801", "total Attack.", null),
+        ("BG27_Quest_802", "enemy minions.", null),
+        ("BG28_Quest_500", "Quest: Cast", null),
     ];
 
     /// <summary>Tokens the effects summon with printed stats from <see cref="Tokens"/>: card id and factory.</summary>
@@ -296,6 +306,7 @@ public sealed class EffectCardTextGuardTests
         "Hearthpulse.Core.Battlegrounds.Effects.Rewards",
         "Hearthpulse.Core.Battlegrounds.Effects.Anomalies",
         "Hearthpulse.Core.Battlegrounds.Effects.Player",
+        "Hearthpulse.Core.Battlegrounds.Effects.Quests",
     ];
 
     private static readonly Lazy<Dictionary<string, CardText>> Cards = new(Load);
@@ -364,6 +375,21 @@ public sealed class EffectCardTextGuardTests
 
         Assert.Empty(registered.Except(rows).Order(StringComparer.Ordinal));
         Assert.Equal(Rows.Length, rows.Count);
+    }
+
+    [Fact]
+    public void Every_namespace_with_registered_effects_is_guarded()
+    {
+        // A new folder under Effects/ (quests came that way) is a new namespace: it goes into EffectNamespaces here and
+        // EFFECT_DIRS of tools/effects/gen_effect_texts.py, so its numbers are guarded too.
+        var unguarded = typeof(CombatEffect).Assembly.GetTypes()
+            .Where(type => type.GetCustomAttributes<CardEffectAttribute>().Any())
+            .Select(type => type.Namespace ?? string.Empty)
+            .Where(ns => !EffectNamespaces.Contains(ns, StringComparer.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal);
+
+        Assert.Empty(unguarded);
     }
 
     private static void Compare(List<string> stale, string label, SimMinion token, int? attack, int? health)
