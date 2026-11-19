@@ -48,9 +48,9 @@ public sealed partial class Fight
 
     private readonly EffectRegistry _registry;
     private readonly List<string>? _log;
-    private readonly List<Unit> _dead = new();
+    private readonly List<Unit> _dead;
     // One observer buffer per nesting depth, so hooks can be dispatched without allocating.
-    private readonly Unit[]?[] _buffers = new Unit[MaxDepth + 8][];
+    private readonly Unit[]?[] _buffers;
     private readonly ICombatChooser _chooser;
     private Queue<Unit>? _queuedAttacks;
     private List<DamageEvent>? _batch;
@@ -61,9 +61,12 @@ public sealed partial class Fight
     private int _nextEntry = SimSummonEntry;
     private int _attacksInProgress;
 
-    internal Fight(SimSide ours, SimSide theirs, EffectRegistry registry, ICombatChooser chooser, bool trace, PreparedEffects? prepared = null)
+    internal Fight(SimSide ours, SimSide theirs, EffectRegistry registry, ICombatChooser chooser, bool trace, PreparedEffects? prepared = null,
+                   Scratch? scratch = null)
     {
         _registry = registry;
+        _dead = scratch?.Dead ?? new List<Unit>();
+        _buffers = scratch?.Buffers ?? new Unit[MaxDepth + 8][];
         _chooser = chooser;
         _log = trace ? new List<string>() : null;
         Ours = new Side(this, 0, ours);
@@ -90,14 +93,36 @@ public sealed partial class Fight
     /// <summary>An engine limit (nesting depth, death phases) dropped an effect: the result is "not simulated".</summary>
     internal bool Truncated { get; private set; }
 
-    /// <summary>Effects of the captured minions and player-level cards, looked up once for many fights.</summary>
-    internal sealed record PreparedEffects(CombatEffect[][] Ours, CombatEffect[][] Theirs, CombatEffect?[] OurExtras, CombatEffect?[] TheirExtras)
+    /// <summary>
+    /// Effects of the captured minions and player-level cards, looked up once for many fights. A player-level card with an
+    /// effect gets its holder's spec and effect array here too (both immutable: <see cref="Unit.AddEffect"/> replaces the
+    /// array), so a fight does not build them again; null for a card without an effect.
+    /// </summary>
+    internal sealed record PreparedEffects(CombatEffect[][] Ours, CombatEffect[][] Theirs, ExtraHolder?[] OurExtras, ExtraHolder?[] TheirExtras)
     {
         public static PreparedEffects For(SimSide ours, SimSide theirs, EffectRegistry registry) => new(
             ours.Minions.Select(registry.EffectsFor).ToArray(),
             theirs.Minions.Select(registry.EffectsFor).ToArray(),
-            ours.Extras.Select(id => registry.Get(id, golden: false)).ToArray(),
-            theirs.Extras.Select(id => registry.Get(id, golden: false)).ToArray());
+            ours.Extras.Select(id => ExtraHolder.For(id, registry)).ToArray(),
+            theirs.Extras.Select(id => ExtraHolder.For(id, registry)).ToArray());
+    }
+
+    /// <summary>What a player-level effect holder is made from: a 0/0 spec of the card and its one effect.</summary>
+    internal sealed record ExtraHolder(SimMinion Spec, CombatEffect[] Effects)
+    {
+        public static ExtraHolder? For(string cardId, EffectRegistry registry) =>
+            registry.Get(cardId, golden: false) is { } effect ? new ExtraHolder(SimMinion.Create(cardId, 0, 0), [effect]) : null;
+    }
+
+    /// <summary>
+    /// Working memory one thread reuses for its fights one after another (observer buffers, the death list), so a fight
+    /// does not allocate it again. Never shared by two fights at once; the death list is empty between fights.
+    /// </summary>
+    internal sealed class Scratch
+    {
+        internal List<Unit> Dead { get; } = new();
+
+        internal Unit[]?[] Buffers { get; } = new Unit[MaxDepth + 8][];
     }
 
     /// <summary>The local player's side.</summary>
@@ -183,7 +208,7 @@ public sealed partial class Fight
         return outcome;
     }
 
-    private static void Populate(Side side, SimSide info, CombatEffect[][] effects, CombatEffect?[] extras)
+    private static void Populate(Side side, SimSide info, CombatEffect[][] effects, ExtraHolder?[] extras)
     {
         for (var i = 0; i < info.Minions.Count; i++)
         {
@@ -199,9 +224,9 @@ public sealed partial class Fight
 
         for (var i = 0; i < info.Extras.Count; i++)
         {
-            if (extras[i] is { } effect)
+            if (extras[i] is { } holder)
             {
-                side.AddExtra(new Unit(SimMinion.Create(info.Extras[i], 0, 0), side, [effect], extra: true));
+                side.AddExtra(new Unit(holder.Spec, side, holder.Effects, extra: true));
             }
         }
     }
