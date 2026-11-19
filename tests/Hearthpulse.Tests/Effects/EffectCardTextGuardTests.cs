@@ -17,9 +17,9 @@ namespace Hearthpulse.Tests.Sim;
 public sealed class EffectCardTextGuardTests
 {
     /// <summary>
-    /// The card text each effect in Effects/attack, deaths, ongoing and spells implements, with the numbers its code uses:
-    /// the normal card and the golden card. Every registered card id of those folders has a row (a new effect adds one).
-    /// Effects/player joins with package E3.
+    /// The card text each effect in Effects/attack, deaths, ongoing, spells, timewarped, rewards and anomalies implements,
+    /// with the numbers its code uses: the normal card and the golden card. Every registered card id of those folders has
+    /// a row (a new effect adds one). Effects/player joins with package E3.
     /// </summary>
     private static readonly (string Id, string Normal, string? Golden)[] Rows =
     [
@@ -174,6 +174,37 @@ public sealed class EffectCardTextGuardTests
         ("BG36_108", "Whenever you cast a Tavern spell, give this and your Deity +1/+2.", "Whenever you cast a Tavern spell, give this and your Deity +2/+4."),
         ("BG28_888", "Give a friendly minion of each type +3/+3.", null),
         ("BG28_518", "Get a different minion of the same type.", null),
+
+        // timewarped/, rewards/, anomalies/ (and Death's Embrace in deaths/)
+        ("BG36_MidGameEffect_000t29e", "Has +2/+2 for each Deathrattle you've triggered this game.", null),
+        ("BG36_MidGameEffect_000t29te", "Has +1/+1 for each Deathrattle you've triggered this game.", null),
+        ("BG34_Giant_001", "Battlecry and Deathrattle: Gain 1 Gold next turn.", "Battlecry and Deathrattle: Gain 2 Gold next turn."),
+        ("BG34_Giant_017", "Deathrattle: Give a random minion in your hand +7/+7 and summon it for this combat only.", "Deathrattle: Give a random minion in your hand +14/+14 and summon it for this combat only."),
+        ("BG34_Giant_069", "Whenever this takes damage, your Blood Gems give an extra +1 Attack this game. (3 times per combat.)", "Whenever this takes damage, your Blood Gems give an extra +2 Attack this game. (3 times per combat.)"),
+        ("BG34_Giant_071", "Deathrattle: Summon the highest-Health minion from your hand and give it Divine Shield for this combat only.", "Deathrattle: Summon the 2 highest-Health minions from your hand and give them Divine Shield for this combat only."),
+        ("BG34_Giant_081", "Whenever this takes damage, your Undead have +1 Attack this game", "Whenever this takes damage, your Undead have +2 Attack this game"),
+        ("BG34_Giant_207", "Whenever this kills a minion, give the left-most minion in your hand +4/+4.", "Whenever this kills a minion, give the left-most minion in your hand +8/+8."),
+        ("BG34_Giant_208", "Once per combat, when this attacks and kills a minion, get a Triple Reward.", "Once per combat, when this attacks and kills a minion, get 2 Triple Rewards."),
+        ("BG34_Giant_306", "Deathrattle: Your Blood Gems give an extra +2 Health this game.", "Deathrattle: Your Blood Gems give an extra +4 Health this game."),
+        ("BG34_Giant_328", "Deathrattle: Summon and get 4 random Pirates.", "Deathrattle: Summon and get 8 random Pirates."),
+        ("BG34_Giant_331", "Deathrattle: Trigger an adjacent minion's Deathrattle (except Timewarped Warghoul).", "Deathrattle: Trigger adjacent minions' Deathrattles (except Timewarped Warghoul)."),
+        ("BG34_Giant_342", "Start of Combat: Give the Undead to the right Reborn and", "Start of Combat: Give adjacent Undead Reborn"),
+        ("BG34_Giant_581", "Whenever a friendly Beast dies, gain +2/+2 permanently.", "Whenever a friendly Beast dies, gain +4/+4 permanently."),
+        ("BG34_Giant_595", "After you summon a minion in combat, double its stats.", "After you summon a minion in combat, triple its stats."),
+        ("BG34_Giant_608", "Deathrattle: This plays 3 Blood Gems on all your Quilboar.", "Deathrattle: This plays 6 Blood Gems on all your Quilboar."),
+        ("BG34_Giant_618", "Deathrattle: Summon five 1/1 Skeletons. Any that don't fit give your Undead +1 Attack this game", "Deathrattle: Summon ten 1/1 Skeletons. Any that don't fit give your Undead +1 Attack this game"),
+        ("BG34_Giant_644", "After a friendly minion loses Divine Shield, your Blood Gems give an extra +1 Attack this game.", "After a friendly minion loses Divine Shield, your Blood Gems give an extra +2 Attack this game."),
+        ("BG34_Giant_654", "After you summon a minion, give your minions +4 Attack permanently.", "After you summon a minion, give your minions +8 Attack permanently."),
+        ("BG34_Giant_674", "Deathrattle: Summon 2 Imps with this minion's maximum stats.", "Deathrattle: Summon 4 Imps with this minion's maximum stats."),
+        ("BG34_Giant_679", "Whenever this takes damage, give a friendly minion of each type +2/+1 permanently.", "Whenever this takes damage, give a friendly minion of each type +2/+1 permanently, twice."),
+        ("BG34_Giant_680", "Also damages adjacent minions. Rally: If you control 4 Golden minions, gain Divine Shield.", "Also damages adjacent minions. Rally: If you control 4 Golden minions, gain Divine Shield."),
+        ("BG34_Giant_687", "Battlecry, Deathrattle, and Rally: Your Beetles have +2/+2 this game. Summon a 2/2 Beetle.", "Battlecry, Deathrattle, and Rally: Your Beetles have +4/+4 this game. Summon two 2/2 Beetles."),
+        ("BG34_PreMadeChamp_004", "After you summon a Beast, give it +4/+3.", "After you summon a Beast, give it +8/+6."),
+        ("BG34_PreMadeChamp_020", "Avenge (1): Give your Dragons +6/+4.", "Avenge (1): Give your Dragons +12/+8."),
+        ("BG27_Reward_802", "Your Battlecries trigger an extra time.", null),
+        ("BG27_Reward_803", "Your Deathrattles trigger an extra time.", null),
+        ("BG28_Reward_501", "Your Tavern spells cast an extra time.", null),
+        ("BG27_Anomaly_802", "Your Battlecries and Deathrattles trigger an extra time.", null),
     ];
 
     /// <summary>Tokens the effects summon with printed stats from <see cref="Tokens"/>: card id and factory.</summary>
@@ -198,6 +229,9 @@ public sealed class EffectCardTextGuardTests
         "Hearthpulse.Core.Battlegrounds.Effects.Deaths",
         "Hearthpulse.Core.Battlegrounds.Effects.Ongoing",
         "Hearthpulse.Core.Battlegrounds.Effects.Spells",
+        "Hearthpulse.Core.Battlegrounds.Effects.Timewarped",
+        "Hearthpulse.Core.Battlegrounds.Effects.Rewards",
+        "Hearthpulse.Core.Battlegrounds.Effects.Anomalies",
     ];
 
     private static readonly Lazy<Dictionary<string, CardText>> Cards = new(Load);

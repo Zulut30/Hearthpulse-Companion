@@ -308,6 +308,24 @@
     "health": 10
    }
   },
+  "BG27_Anomaly_802": {
+   "name": "Echoes of Argus",
+   "text": "Your Battlecries and Deathrattles trigger an extra time.",
+   "attack": null,
+   "health": null
+  },
+  "BG27_Reward_802": {
+   "name": "Gilnean War Horn",
+   "text": "Get a copy of '0'. Your Battlecries trigger an extra time.",
+   "attack": null,
+   "health": null
+  },
+  "BG27_Reward_803": {
+   "name": "Turbulent Tombs",
+   "text": "Get a copy of '0'. Your Deathrattles trigger an extra time.",
+   "attack": null,
+   "health": null
+  },
   "BG28_300": {
    "name": "Harmless Bonehead",
    "text": "Deathrattle: Summon two 1/1 Skeletons.",
@@ -377,6 +395,12 @@
   "BG28_888": {
    "name": "Misplaced Tea Set",
    "text": "Give a friendly minion of each type +3/+3.",
+   "attack": null,
+   "health": null
+  },
+  "BG28_Reward_501": {
+   "name": "Temporal Tampering",
+   "text": "Your Tavern spells cast an extra time.",
    "attack": null,
    "health": null
   },
@@ -854,6 +878,30 @@
     "health": 10
    }
   },
+  "BG34_Giant_001": {
+   "name": "Timewarped Busker",
+   "text": "Battlecry and Deathrattle: Gain 1 Gold next turn.",
+   "attack": 4,
+   "health": 2,
+   "golden": {
+    "id": "BG34_Giant_001_G",
+    "text": "Battlecry and Deathrattle: Gain 2 Gold next turn.",
+    "attack": 8,
+    "health": 4
+   }
+  },
+  "BG34_Giant_017": {
+   "name": "Timewarped Scourfin",
+   "text": "Taunt. Deathrattle: Give a random minion in your hand +7/+7 and summon it for this combat only.",
+   "attack": 7,
+   "health": 7,
+   "golden": {
+    "id": "BG34_Giant_017_G",
+    "text": "Taunt. Deathrattle: Give a random minion in your hand +14/+14 and summon it for this combat only.",
+    "attack": 14,
+    "health": 14
+   }
+  },
   "BG34_Giant_041": {
    "name": "Timewarped Greenskeeper",
    "text": "Rally: Trigger your right-most Battlecry and Deathrattle.",
@@ -864,6 +912,258 @@
     "text": "Rally: Trigger your right-most Battlecry and Deathrattle twice.",
     "attack": 10,
     "health": 18
+   }
+  },
+  "BG34_Giant_069": {
+   "name": "Timewarped Piper",
+   "text": "Whenever this takes damage, your Blood Gems give an extra +1 Attack this game. (3 times per combat.)",
+   "attack": 2,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_069_G",
+    "text": "Whenever this takes damage, your Blood Gems give an extra +2 Attack this game. (3 times per combat.)",
+    "attack": 4,
+    "health": 16
+   }
+  },
+  "BG34_Giant_071": {
+   "name": "Timewarped Bassgill",
+   "text": "Deathrattle: Summon the highest-Health minion from your hand and give it Divine Shield for this combat only.",
+   "attack": 7,
+   "health": 4,
+   "golden": {
+    "id": "BG34_Giant_071_G",
+    "text": "Deathrattle: Summon the 2 highest-Health minions from your hand and give them Divine Shield for this combat only.",
+    "attack": 14,
+    "health": 8
+   }
+  },
+  "BG34_Giant_081": {
+   "name": "Timewarped Deathswarmer",
+   "text": "Whenever this takes damage, your Undead have +1 Attack this game (wherever they are).",
+   "attack": 1,
+   "health": 9,
+   "golden": {
+    "id": "BG34_Giant_081_G",
+    "text": "Whenever this takes damage, your Undead have +2 Attack this game (wherever they are).",
+    "attack": 2,
+    "health": 18
+   }
+  },
+  "BG34_Giant_207": {
+   "name": "Timewarped Murcules",
+   "text": "Divine Shield Whenever this kills a minion, give the left-most minion in your hand +4/+4.",
+   "attack": 10,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_207_G",
+    "text": "Divine Shield Whenever this kills a minion, give the left-most minion in your hand +8/+8.",
+    "attack": 20,
+    "health": 10
+   }
+  },
+  "BG34_Giant_208": {
+   "name": "Timewarped Pagle",
+   "text": "Once per combat, when this attacks and kills a minion, get a Triple Reward.",
+   "attack": 8,
+   "health": 6,
+   "golden": {
+    "id": "BG34_Giant_208_G",
+    "text": "Once per combat, when this attacks and kills a minion, get 2 Triple Rewards.",
+    "attack": 16,
+    "health": 12
+   }
+  },
+  "BG34_Giant_306": {
+   "name": "Timewarped Jazzer",
+   "text": "Deathrattle: Your Blood Gems give an extra +2 Health this game.",
+   "attack": 5,
+   "health": 3,
+   "golden": {
+    "id": "BG34_Giant_306_G",
+    "text": "Deathrattle: Your Blood Gems give an extra +4 Health this game.",
+    "attack": 10,
+    "health": 6
+   }
+  },
+  "BG34_Giant_328": {
+   "name": "Timewarped Tide Razor",
+   "text": "Deathrattle: Summon and get 4 random Pirates.",
+   "attack": 12,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_328_G",
+    "text": "Deathrattle: Summon and get 8 random Pirates.",
+    "attack": 24,
+    "health": 16
+   }
+  },
+  "BG34_Giant_331": {
+   "name": "Timewarped Warghoul",
+   "text": "Taunt. Deathrattle: Trigger an adjacent minion's Deathrattle (except Timewarped Warghoul).",
+   "attack": 9,
+   "health": 3,
+   "golden": {
+    "id": "BG34_Giant_331_G",
+    "text": "Taunt. Deathrattle: Trigger adjacent minions' Deathrattles (except Timewarped Warghoul).",
+    "attack": 18,
+    "health": 6
+   }
+  },
+  "BG34_Giant_342": {
+   "name": "Timewarped Hag",
+   "text": "Start of Combat: Give the Undead to the right Reborn and \"This is Reborn with full Health and enchantments\".",
+   "attack": 6,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_342_G",
+    "text": "Start of Combat: Give adjacent Undead Reborn and \"This is Reborn with full Health and enchantments\".",
+    "attack": 12,
+    "health": 16
+   }
+  },
+  "BG34_Giant_581": {
+   "name": "Timewarped Hyena",
+   "text": "Whenever a friendly Beast dies, gain +2/+2 permanently.",
+   "attack": 3,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_581_G",
+    "text": "Whenever a friendly Beast dies, gain +4/+4 permanently.",
+    "attack": 6,
+    "health": 10
+   }
+  },
+  "BG34_Giant_595": {
+   "name": "Timewarped Tamuzo",
+   "text": "After you summon a minion in combat, double its stats.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_595_G",
+    "text": "After you summon a minion in combat, triple its stats.",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG34_Giant_608": {
+   "name": "Timewarped Lil' Quilboar",
+   "text": "Reborn Deathrattle: This plays 3 Blood Gems on all your Quilboar.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_608_G",
+    "text": "Reborn Deathrattle: This plays 6 Blood Gems on all your Quilboar.",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG34_Giant_618": {
+   "name": "Timewarped Caretaker",
+   "text": "Deathrattle: Summon five 1/1 Skeletons. Any that don't fit give your Undead +1 Attack this game (wherever they are).",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_618_G",
+    "text": "Deathrattle: Summon ten 1/1 Skeletons. Any that don't fit give your Undead +1 Attack this game (wherever they are).",
+    "attack": 10,
+    "health": 10
+   }
+  },
+  "BG34_Giant_644": {
+   "name": "Timewarped Gemsplitter",
+   "text": "Divine Shield. After a friendly minion loses Divine Shield, your Blood Gems give an extra +1 Attack this game.",
+   "attack": 5,
+   "health": 10,
+   "golden": {
+    "id": "BG34_Giant_644_G",
+    "text": "Divine Shield. After a friendly minion loses Divine Shield, your Blood Gems give an extra +2 Attack this game.",
+    "attack": 10,
+    "health": 20
+   }
+  },
+  "BG34_Giant_654": {
+   "name": "Timewarped Deadstomper",
+   "text": "After you summon a minion, give your minions +4 Attack permanently.",
+   "attack": 6,
+   "health": 12,
+   "golden": {
+    "id": "BG34_Giant_654_G",
+    "text": "After you summon a minion, give your minions +8 Attack permanently.",
+    "attack": 12,
+    "health": 24
+   }
+  },
+  "BG34_Giant_674": {
+   "name": "Timewarped Icky Imp",
+   "text": "Deathrattle: Summon 2 Imps with this minion's maximum stats.",
+   "attack": 12,
+   "health": 12,
+   "golden": {
+    "id": "BG34_Giant_674_G",
+    "text": "Deathrattle: Summon 4 Imps with this minion's maximum stats.",
+    "attack": 24,
+    "health": 24
+   }
+  },
+  "BG34_Giant_679": {
+   "name": "Timewarped Chimera",
+   "text": "Whenever this takes damage, give a friendly minion of each type +2/+1 permanently.",
+   "attack": 1,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_679_G",
+    "text": "Whenever this takes damage, give a friendly minion of each type +2/+1 permanently, twice.",
+    "attack": 2,
+    "health": 16
+   }
+  },
+  "BG34_Giant_680": {
+   "name": "Timewarped Collector",
+   "text": "Also damages adjacent minions. Rally: If you control 4 Golden minions, gain Divine Shield.",
+   "attack": 12,
+   "health": 12,
+   "golden": {
+    "id": "BG34_Giant_680_G",
+    "text": "Also damages adjacent minions. Rally: If you control 4 Golden minions, gain Divine Shield.",
+    "attack": 24,
+    "health": 24
+   }
+  },
+  "BG34_Giant_687": {
+   "name": "Timewarped Nest Swarmer",
+   "text": "Battlecry, Deathrattle, and Rally: Your Beetles have +2/+2 this game. Summon a 2/2 Beetle.",
+   "attack": 7,
+   "health": 7,
+   "golden": {
+    "id": "BG34_Giant_687_G",
+    "text": "Battlecry, Deathrattle, and Rally: Your Beetles have +4/+4 this game. Summon two 2/2 Beetles.",
+    "attack": 14,
+    "health": 14
+   }
+  },
+  "BG34_PreMadeChamp_004": {
+   "name": "Timewarped Jungle King",
+   "text": "Stealth After you summon a Beast, give it +4/+3. Improves after you cast a spell.",
+   "attack": 8,
+   "health": 12,
+   "golden": {
+    "id": "BG34_PreMadeChamp_004_G",
+    "text": "Stealth After you summon a Beast, give it +8/+6. Improves after you cast a spell.",
+    "attack": 16,
+    "health": 24
+   }
+  },
+  "BG34_PreMadeChamp_020": {
+   "name": "Timewarped Duskmaw",
+   "text": "Avenge (1): Give your Dragons +6/+4.",
+   "attack": 6,
+   "health": 14,
+   "golden": {
+    "id": "BG34_PreMadeChamp_020_G",
+    "text": "Avenge (1): Give your Dragons +12/+8.",
+    "attack": 12,
+    "health": 28
    }
   },
   "BG35_342": {
@@ -1493,6 +1793,18 @@
   "BG36_MidGameEffect_000t15e": {
    "name": "Toreth's Blessing",
    "text": "This minion's Divine Shield takes 3 hits to break.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t29e": {
+   "name": "Death's Embrace",
+   "text": "Has +2/+2 for each Deathrattle you've triggered this game. (0)",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t29te": {
+   "name": "Death's Embrace",
+   "text": "Has +1/+1 for each Deathrattle you've triggered this game. (0)",
    "attack": null,
    "health": null
   },

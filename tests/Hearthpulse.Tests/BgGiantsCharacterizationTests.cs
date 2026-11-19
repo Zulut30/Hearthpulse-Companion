@@ -125,8 +125,11 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // stats, Rot Hide Gnoll); with the old pool files (checked) the fingerprint is still A488D069E48228A5.
         // 2026-11-19 (E1 sim-spells): the spell, card-to-hand and spell-trinket effects add ids and two new trace lines
         // ("... gets a Blood Gem", "we/they get ..."); without those types and lines (checked) it is still 60958721CA247FFC.
+        // 2026-11-19 (sim-all-mechanics E4): 29 new effect ids (Death's Embrace, Turbulent Tombs, Gilnean War Horn,
+        // Temporal Tampering, Echoes of Argus, 23 Timewarped minions); without them (checked) the fingerprint is still
+        // 30FC3B58C163F3F4.
         // 2026-11-19 (FIX sim-effects-audit): effects corrected to the live card text (The Last One Standing, Eudora, Kodo,
-        // C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose; the ids are the same (fingerprint taken after E2, P0, E1 and I).
-        Assert.Equal("fights 08200623452E65C4", actual);
+        // C'Thun, Diremuck Forager, Hoarding Hyena, Nadina) change these fights on purpose; the ids are the same (fingerprint taken after E2, P0, E1, I and E4).
+        Assert.Equal("fights BFD75C7802387EFD", actual);
     }
 }
