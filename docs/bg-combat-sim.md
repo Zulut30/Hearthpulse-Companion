@@ -45,7 +45,19 @@
 заклинания, которые в бою кастуют другие карты, боевые зачарования — с одним из шести статусов (`SimCoverage`:
 `no_effect`, `resolved`, `implemented`, `missing_effect`, `missing_input`, `unknown`) и пометкой пула («да» — `in_pool`
 API данных v1, для героев и Timewarped — hsbg.cards; «вне пула»; «пул не подтверждён»). Правила те же, что помечают
-бой. После патча или нового эффекта — перегенерировать; `SimMatrixTests` сверяет файл с кодом.
+бой. После патча или нового эффекта — перегенерировать; `SimMatrixTests` сверяет файл с кодом. Кроме них матрица берёт
+все существа и заклинания, которые hsbg.cards числит в сегодняшней игре (напарники аномалии Bring in the Buddies,
+существа сил героев — Зерги, Протоссы, Battlecruiser, Fish of N'Zoth, — призы Darkmoon, Секреты), и варианты сил героя
+(дети из hsbg.cards и силы, чей id продолжает стартовую: King of …).
+
+**Аудит классификации** (AUDIT2, 19.11.2026) — `simmatrix` пишет рядом с матрицей
+`tests/Hearthpulse.Tests/Fixtures/SimAudit/matrix-cards.json.gz` (текст, золотой текст, механики каждой строки и силы
+каждого героя). `RelevanceAuditTests` читает их независимым детектором боевых признаков (`RelevanceAudit`: Deathrattle,
+Avenge, Rally, «whenever/after … attacks/dies/is summoned/takes damage/gains/loses Divine Shield», «combat», ауры «your
+… have», удвоение триггеров, урон герою, выдача Deathrattle/Rally на Start of Combat) и требует для каждой карты со
+статусом `no_effect`/`resolved` и признаком запись в `RelevanceAuditReasons`: обоснование (`ByCard`), известный пробел с
+владельцем (`KnownGaps`) или карту, чей эффект несёт боевую часть (`Via`). Лишняя запись тоже валит тест. Новый эффект
+или правка разметки — перегенерировать матрицу (фикстура обновится) и разобрать новые срабатывания.
 
 Данные текущего патча (с 19.11.2026): `python3 -I tools/effects/fetch_bg_data.py <снимок>` скачивает HearthstoneJSON enUS
 (последняя сборка) и библиотеки API данных Hearthpulse v1 (карты, герои, тринкеты, аномалии, квесты, награды, тёмные

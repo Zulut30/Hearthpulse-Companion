@@ -10,17 +10,17 @@
 
 | Вид | no_effect | resolved | implemented | missing_effect | missing_input | unknown | всего |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Существа | 284 | 9 | 146 | 13 | 0 | 0 | 452 |
-| Силы героя | 123 | 12 | 7 | 0 | 0 | 0 | 142 |
-| Тринкеты | 319 | 36 | 50 | 15 | 0 | 0 | 420 |
-| Тёмные дары | 34 | 5 | 8 | 0 | 0 | 0 | 47 |
-| Боевые зачарования | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Существа | 340 | 27 | 203 | 20 | 0 | 0 | 590 |
+| Силы героя | 134 | 12 | 7 | 1 | 0 | 0 | 154 |
+| Тринкеты | 312 | 35 | 58 | 15 | 0 | 0 | 420 |
+| Тёмные дары | 31 | 5 | 11 | 0 | 0 | 0 | 47 |
+| Боевые зачарования | 0 | 0 | 7 | 2 | 0 | 0 | 9 |
 | Квесты | 10 | 0 | 7 | 2 | 0 | 0 | 19 |
-| Награды квестов | 59 | 4 | 4 | 6 | 0 | 0 | 73 |
+| Награды квестов | 58 | 4 | 5 | 6 | 0 | 0 | 73 |
 | Аномалии | 109 | 2 | 1 | 0 | 0 | 0 | 112 |
-| Заклинания таверны | 66 | 3 | 5 | 0 | 0 | 0 | 74 |
-| Только Duos | 29 | 1 | 3 | 0 | 0 | 0 | 33 |
-| **Без «вне пула»** | 787 | 51 | 214 | 1 | 0 | 0 | 1053 |
+| Заклинания таверны | 234 | 10 | 6 | 16 | 0 | 0 | 266 |
+| Только Duos | 35 | 1 | 3 | 0 | 0 | 0 | 39 |
+| **Без «вне пула»** | 1017 | 74 | 291 | 27 | 0 | 0 | 1409 |
 
 ## Существа
 
@@ -29,50 +29,75 @@
 | BGFYM_002t | Aberrant Tentacle | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; TOKEN |
 | BG36_311 | Abyssal Envoy | no_effect | да | ACTIVATE |
 | BG26_147 | Accord-o-Tron | no_effect | да | MAGNETIC_TAVERN |
+| TB_BaconShop_HERO_35_Buddy | Acolyte of Yogg-Saron | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_181 | Air Baller | no_effect | да | SELL |
 | BG34_858 | Air Revenant | no_effect | да | PLAY_BUY_TRIGGER |
+| BG26_HERO_104_Buddy | Akali, Rock Rhino | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HP_033t | Amalgam | no_effect | да | hsbg.cards: heroPower; TOKEN |
 | BG_BOT_911 | Annoy-o-Module | no_effect | да | KEYWORDS |
-| BG31_360 | Arcane Behemoth | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; KEYWORDS |
+| TB_BaconShop_HERO_02_Buddy | Apostle of Galakrond | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG32_873 | Ashen Corruptor | no_effect | да | HERO_DAMAGE_TRIGGER |
+| TB_BaconShop_HERO_36_Buddy | Asher the Haberdasher | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG32_236 | Aureate Laureate | no_effect | да | KEYWORDS |
 | BG34_170 | Auto Accelerator | no_effect | да | BATTLECRY |
 | BG36_367 | Auto Reveille | no_effect | да | PLAY_BUY_TRIGGER |
 | BG33_830 | Azsharan Cutlassier | no_effect | да | BATTLECRY |
+| BG20_HERO_101_Buddy | Baby Elekk | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG20_HERO_242_Buddy | Baby Kodo | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_93_Buddy | Baby N'Zoth | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_72_Buddy | Barov's Apprentice | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG31_HERO_801pt | Battlecruiser | no_effect | да | hsbg.cards: heroPower; TOKEN |
+| BG28_603t | Beetle | no_effect | да | hsbg.cards: token; TOKEN |
 | BG36_520 | Bilgewater Breakout | no_effect | да | BATTLECRY |
+| TB_BaconShop_HERO_10_Buddy | Bilgewater Mogul | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG34_635t | Black Chromadrake | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; BATTLECRY |
+| BG30_MagicItem_442t | Blood Golem | no_effect | да | hsbg.cards: token; TOKEN |
 | BG34_634t | Blue Chromadrake | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; BATTLECRY |
 | BG34_170t2 | Blue Volumizer | no_effect | да | MAGNETIC_TAVERN |
-| BG33_924 | Blue Whelp | no_effect | да | RALLY_TAVERN |
+| BG28_HERO_400_Buddy | Box Cars | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_099 | Brain Rotter | no_effect | да | ACTIVATE |
 | BG26_137 | Bream Counter | no_effect | да | PLAY_BUY_TRIGGER |
+| BG31_HERO_811_Buddy | Broken Horn | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG34_637t | Bronze Chromadrake | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; BATTLECRY |
 | BGS_034 | Bronze Warden | no_effect | да | KEYWORDS |
+| TB_BaconShop_HERO_90_Buddy | Burth | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_508 | Cagey Conjurer | no_effect | да | ACTIVATE |
+| BG21_HERO_000_Buddy | Captain Fairmount | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG35_123 | Cataclysmic Harbinger | no_effect | да | END_OF_TURN |
 | BG27_016 | Champion of Sargeras | no_effect | да | DR_TAVERN |
+| TB_BaconShop_HERO_57_Buddy | Chromie | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_342 | Clever Castaway | no_effect | да | ACTIVATE |
+| TB_BaconShop_HERO_28_Buddy | Clockwork Assistant | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG22_HERO_000_Buddy | Crabby | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BGS_119 | Crackling Cyclone | no_effect | да | KEYWORDS |
 | BG31_320 | Crater Miner | no_effect | да | CHOOSE_ONE |
+| TB_BaconShop_HERO_38_Buddy | Crazy Monkey | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_60_Buddy | Crimson Hand Centurion | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_106 | Cutthroat K'Thir | no_effect | да | HAND_DISCARD_TRIGGER |
-| BG36_360t3 | Dark Paradox | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; PLAY_TRIGGER |
-| BG36_104 | Dark Puppeteer | no_effect | да | DR_TAVERN |
+| TB_BaconShop_HERO_64_Buddy | Dagwik Stickytoe | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG36_360t3 | Dark Paradox | no_effect | да | hsbg.cards: tavern; PLAY_TRIGGER |
 | BG31_920 | Darkcrest Strategist | no_effect | да | SPELLCRAFT |
 | BG36_511 | Dead Bellringer | no_effect | да | ACTIVATE |
 | BGS_131 | Deadly Spore | no_effect | да | KEYWORDS |
+| BG20_HERO_103_Buddy | Death's Head Sage | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_354 | Decoy Conjurer | no_effect | да | ACTIVATE |
 | BG23_004 | Deep-Sea Angler | no_effect | да | SPELLCRAFT |
 | BG36_621 | Deft Deserter | no_effect | да | ACTIVATE |
+| BG35_150t | Demon Fodder | no_effect | да | hsbg.cards: token; TAVERN |
 | BG36_762 | Devilish Distractor | no_effect | да | SPELL_CAST_TAVERN |
-| BG31_176 | Dr. Boom's Monster | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; STATS_THIS_GAME |
 | BG26_ICC_901 | Drakkari Enchanter | no_effect | да | AURA_TAVERN |
+| BG20_HERO_102_Buddy | Dranosh Saurfang | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_506 | Drone Duplicator | no_effect | да | ACTIVATE |
 | BG31_815 | Dune Dweller | no_effect | да | BATTLECRY |
 | BG26_175 | Elemental of Surprise | no_effect | да | KEYWORDS |
 | BG34_865 | En-Djinn Blazer | no_effect | да | BATTLECRY |
 | BG35_341 | Enchanted Sentinel | no_effect | да | AURA_TAVERN |
+| BG24_HERO_204_Buddy | Enhance-o Medico | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_523 | Enterprising Escapee | no_effect | да | PLAY_BUY_TRIGGER |
 | BG36_733 | Eredar Escapist | no_effect | да | HERO_DAMAGE_TRIGGER |
+| TB_BaconShop_HERO_74_Buddy | Evergreen Botani | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_308 | Faceless Operative | no_effect | да | SELL |
+| BG30_HERO_304_Buddy | Fantastic Bellhop | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG32_837 | Fauna Whisperer | no_effect | да | END_OF_TURN |
 | BG30_123 | Fearless Foodie | no_effect | да | CHOOSE_ONE |
 | BG28_633 | Felboar | no_effect | да | SPELL_COUNT_TAVERN |
@@ -81,8 +106,9 @@
 | BG31_816 | Fire Baller | no_effect | да | SELL |
 | BG35_882 | Firelands Fugitive | no_effect | да | BATTLECRY |
 | BG34_500 | Flaming Enforcer | no_effect | да | END_OF_TURN |
+| BG20_HERO_283_Buddy | Flight Trainer | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_200t | Foraging Bat | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; TOKEN |
-| BG32_880 | Friendly Geist | no_effect | да | DR_TAVERN |
+| BG22_HERO_002_Buddy | Frostwolf Lieutenant | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_346 | Fruit Vendor | no_effect | да | ACTIVATE |
 | BG34_145 | Futurefin | no_effect | да | END_OF_TURN |
 | BG36_764 | Gearfin | no_effect | да | END_OF_TURN |
@@ -94,82 +120,139 @@
 | BG31_035 | Groundbreaker | no_effect | да | PLAY_BUY_TRIGGER |
 | BG26_810 | Gunpowder Courier | no_effect | да | PLAY_BUY_TRIGGER |
 | BGFYM_005 | Harbinger Aph'lass | no_effect | да | HAND_DISCARD_TRIGGER |
-| BG25_010t | Helping Hand | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; TOKEN |
+| BG25_010t | Helping Hand | no_effect | да | hsbg.cards: token; TOKEN |
 | BG36_240 | Hired Mount | no_effect | да | ACTIVATE |
 | BG36_372 | Holy Vanguard | no_effect | да | AURA_STATIC |
 | BG36_344 | Hooktusk, Master Marauder | no_effect | да | DISCOVER_TRIGGER |
 | BG30_121 | Hot-Air Surveyor | no_effect | да | AURA_TAVERN |
 | BG32_341 | Humon'gozz | no_effect | да | AURA_TAVERN |
+| TB_BaconShop_HERO_50_Buddy | Hunter of Old | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG31_812 | Ichoron the Protector | no_effect | да | PLAY_TRIGGER |
 | BG26_525 | Imposing Percussionist | no_effect | да | BATTLECRY |
+| BG31_HERO_811t9 | Infestor | no_effect | да | hsbg.cards: heroPower; TAVERN |
 | BG21_004 | Insatiable Ur'zul | no_effect | да | PLAY_BUY_TRIGGER |
+| BG31_HERO_802pt1t | Interceptor | no_effect | да | hsbg.cards: token; TOKEN |
 | BG32_237 | Intrepid Botanist | no_effect | да | CHOOSE_ONE |
 | BG27_000 | Iron Groundskeeper | no_effect | да | BATTLECRY |
+| TB_BaconShop_HERO_71_Buddy | Jandice's Apprentice | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_42_Buddy | Jr. Navigator | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_15_Buddy | Karl the Lost | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_701 | Kelp Keeper | no_effect | да | ACTIVATE |
 | BG35_150 | Laboratory Assistant | no_effect | да | BATTLECRY |
+| TB_BaconShop_HERO_75_Buddy | Lantern Tender | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG31_HERO_811t | Larva | no_effect | да | hsbg.cards: heroPower; TAVERN |
 | BG23_009 | Lava Lurker | no_effect | да | SPELL_CAST_TAVERN |
+| BG20_HERO_202_Buddy | Lei Flamepaw | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_70_Buddy | Lil' K.T. | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG28_707 | Living Azerite | no_effect | да | SPELL_CAST_TAVERN |
+| BG20_HERO_280_Buddy | Living Nightmare | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_180 | Living Prison | no_effect | да | ACTIVATE |
 | BG26_814 | Lovesick Balladist | no_effect | да | BATTLECRY |
+| TB_BaconShop_HERO_11_Buddy | Lucifron | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG26_146 | Lullabot | no_effect | да | END_OF_TURN |
 | BG36_201 | Lurking Lionfish | no_effect | да | ACTIVATE |
 | BG33_890t | Magicfin Apprentice | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; BATTLECRY |
 | BG33_891 | Magicfin Mycologist | no_effect | да | PLAY_BUY_TRIGGER |
+| TB_BaconShop_HERO_49_Buddy | Magnus Manastorm | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG26_524 | Malchezaar, Prince of Dance | no_effect | да | PLAY_BUY_TRIGGER |
+| BG32_HERO_001_Buddy | Malorne | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG28_582 | Mangled Bandit | no_effect | да | ACTIVATE |
 | BG36_524 | Maritime Extortionist | no_effect | да | AURA_STATIC |
+| TB_BaconShop_HERO_40_Buddy | Maxwell, Mighty Steed | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG31_177 | Mechagnome Interpreter | no_effect | да | PLAY_BUY_TRIGGER |
 | BG23_357 | Mind Muck | no_effect | да | BATTLECRY |
 | BG36_097 | Mindbender Ghur'sha | no_effect | да | HAND_DISCARD_TRIGGER |
 | BG36_312 | Mindbending Recruiter | no_effect | да | ACTIVATE |
 | BG23_000 | Mini-Myrmidon | no_effect | да | SPELLCRAFT |
+| BG31_HERO_005_Buddy | Mini-Zerek | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_23_Buddy | Muckslinger | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_320 | Mysterious K'Thir | no_effect | да | END_OF_TURN |
 | BG36_300 | N'raqi Frostcaller | no_effect | да | ACTIVATE |
+| BG23_HERO_306_Buddy | Nathanos Blightcaller | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_58_Buddy | Nexus Lord | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_115 | Nightmare Corroder | no_effect | да | END_OF_TURN |
+| BG20_HERO_301_Buddy | Nightmare Ectoplasm | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG31_330 | Ominous Seer | no_effect | да | BATTLECRY |
+| BG22_HERO_305t | Onyxian Whelp | no_effect | да | hsbg.cards: heroPower; TOKEN |
+| BG31_HERO_003_Buddy | Outland Sunbeam | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG23_HERO_201pt | Ozumat's Tentacle | no_effect | да | hsbg.cards: heroPower; TOKEN |
+| BG23_HERO_201pt2 | Ozumat's Tentacle | no_effect | да | hsbg.cards: heroPower; KEYWORDS |
+| BG23_HERO_201pt3 | Ozumat's Tentacle | no_effect | да | hsbg.cards: heroPower; KEYWORDS |
+| BG23_HERO_201pt4 | Ozumat's Tentacle | no_effect | да | hsbg.cards: heroPower; KEYWORDS |
+| BG23_HERO_201pt5 | Ozumat's Tentacle | no_effect | да | hsbg.cards: heroPower; KEYWORDS |
+| BG23_HERO_201pt6 | Ozumat's Tentacle | no_effect | да | hsbg.cards: heroPower; KEYWORDS |
 | BG36_114 | Parasitic Fleshling | no_effect | да | END_OF_TURN |
 | BG24_715 | Patient Scout | no_effect | да | SELL |
 | BG29_813 | Persistent Poet | no_effect | да | KEEP_STATS |
+| TB_BaconShop_HERO_91_Buddy | Phyresz | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_12_Buddy | Pigeon Lord | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG26_149 | Polarizing Beatboxer | no_effect | да | MAGNETIC_TAVERN |
 | BGS_020 | Primalfin Lookout | no_effect | да | BATTLECRY |
+| BG31_HERO_802_Buddy | Probius | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG_DEEP_015 | Prosthetic Hand | no_effect | да | KEYWORDS |
 | BG33_825 | Proud Privateer | no_effect | да | AURA_TAVERN |
+| TB_BaconShop_HERO_67_Buddy | Raging Contender | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG20_100 | Razorfen Geomancer | no_effect | да | BATTLECRY |
 | BG34_638t | Red Chromadrake | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; BATTLECRY |
 | BG34_170t | Red Volumizer | no_effect | да | MAGNETIC_TAVERN |
 | BGS_116 | Refreshing Anomaly | no_effect | да | BATTLECRY |
+| BG28_HERO_800_Buddy | Reliquary Attendant | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_366 | Resourceful Robot | no_effect | да | END_OF_TURN |
 | BG33_319 | Rimescale Priestess | no_effect | да | SPELLCRAFT |
 | BG25_001 | Risen Rider | no_effect | да | KEYWORDS |
+| BG31_HERO_811t3 | Roach | no_effect | да | hsbg.cards: heroPower; TAVERN |
 | BG28_550 | Rodeo Performer | no_effect | да | BATTLECRY |
+| TB_BaconShop_HERO_01_Buddy | SI:7 Scout | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_362 | Sacrificial Wrathguard | no_effect | да | DR_TAVERN |
 | BG31_171t | Satellite | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; TOKEN |
 | BG27_514 | Sea Witch Zar'jira | no_effect | да | SPELLCRAFT |
 | BGS_115 | Sellemental | no_effect | да | SELL |
 | BG36_700 | Sewer Escapee | no_effect | да | ACTIVATE |
+| TB_BaconShop_HERO_62_Buddy | Shadow Warden | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG24_HERO_100_Buddy | Shady Aristocrat | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_68_Buddy | Sharkbait | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG23_002 | Shell Collector | no_effect | да | BATTLECRY |
+| BG26_HERO_101_Buddy | Shining Sailor | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG32_860 | Shoalfin Mystic | no_effect | да | SELL |
+| TB_BaconShop_HP_022t | Shudderling | no_effect | да | hsbg.cards: heroPower; TAVERN |
 | BG36_343 | Silent Deliverer | no_effect | да | BATTLECRY |
 | BG_ICC_026t | Skeleton | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; TOKEN |
+| TB_BaconShop_HERO_59_Buddy | Sklibb, Demon Hunter | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG33_823 | Sky Admiral Rogers | no_effect | да | PLAY_BUY_TRIGGER |
 | BG36_243 | Sky-hatch Runaway | no_effect | да | ACTIVATE |
 | BG36_330 | Sly Infiltrator | no_effect | да | CHOOSE_ONE |
+| TB_BaconShop_HERO_16_Buddy | Snack Vendor | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_332 | Snare Trapper | no_effect | да | CHOOSE_ONE |
 | BG36_206 | Snarky Shark | no_effect | да | SELL |
 | BG31_818 | Snow Baller | no_effect | да | SELL |
+| TB_BaconShop_HERO_78_Buddy | Snow Elemental | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG26_HERO_102_Buddy | Solemn Serenader | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG26_174 | Soul Rewinder | no_effect | да | HERO_DAMAGE_TRIGGER |
 | BG36_503 | Soulkeeping Jailer | no_effect | да | ACTIVATE |
+| BG21_HERO_020_Buddy | Sous Chef | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG26_135 | Southsea Busker | no_effect | да | BATTLECRY |
 | BG36_851 | Spark Snapper | no_effect | да | PLAY_BUY_TRIGGER |
+| TB_BaconShop_HERO_55_Buddy | Sparkfin Soothsayer | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG27_084 | Sprightly Scarab | no_effect | да | CHOOSE_ONE |
 | BG34_950 | Stone Age Slab | no_effect | да | PLAY_BUY_TRIGGER |
+| BG33_HERO_000_Buddy | Stoneshell Guardian | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG22_HERO_003_Buddy | Stormpike Lieutenant | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_21_Buddy | Street Magician | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG22_HERO_200_Buddy | Sub Scrubber | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG22_HERO_201_Buddy | Submersible Chef | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG32_235 | Surfing Sylvar | no_effect | да | END_OF_TURN |
 | BG36_345 | Suspicious Prisonguard | no_effect | да | ACTIVATE |
+| BG_CFM_315t | Tabbycat | no_effect | да | hsbg.cards: token; TOKEN |
 | BG22_202 | Tad | no_effect | да | SELL |
+| BG25_HERO_105_Buddy | Talent Scout | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BGS_123 | Tavern Tempest | no_effect | да | BATTLECRY |
 | BG31_924 | Thaumaturgist | no_effect | да | SPELLCRAFT |
+| TB_BaconShop_HERO_27_Buddy | Thawed Champion | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG31_HERO_006_Buddy | The Celestial Archive | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG28_HERO_801_Buddy | The Nine Frogs | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG31_327 | Thorned Trailblazer | no_effect | да | CHOOSE_ONE |
 | BG26_523 | Tichondrius | no_effect | да | HERO_DAMAGE_TRIGGER |
+| TB_BaconShop_HERO_94_Buddy | Ticket Collector | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG34_Giant_591 | Timewarped Acolyte | no_effect | да | Timewarped; TIMEWARPED_START_OF_TURN |
 | BG34_Giant_009 | Timewarped Alleycat | no_effect | да | Timewarped; TIMEWARPED_ON_SUMMON |
 | BG34_Giant_336 | Timewarped Amalgam | no_effect | вне пула | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
@@ -182,37 +265,25 @@
 | BG34_Giant_777 | Timewarped Behemoth | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_PreMadeChamp_076 | Timewarped Bloodbinder | no_effect | да | Timewarped; TIMEWARPED_START_OF_TURN |
 | BG34_Giant_201 | Timewarped Boar | no_effect | да | Timewarped; TIMEWARPED_ON_DEATH |
-| BG34_Giant_102 | Timewarped Bonker | no_effect | да | Timewarped; TIMEWARPED_RALLY |
 | BG34_Giant_594 | Timewarped Botani | no_effect | да | Timewarped; TIMEWARPED_END_OF_TURN |
-| BG34_PreMadeChamp_091 | Timewarped Calligrapher | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_PreMadeChamp_200 | Timewarped Centurion | no_effect | да | Timewarped; TIMEWARPED_SPELL_CAST_TAVERN |
-| BG34_Giant_042 | Timewarped Chameleon | no_effect | да | Timewarped; TIMEWARPED_SOC |
 | BG34_PreMadeChamp_090 | Timewarped Clefthoof | no_effect | вне пула | Timewarped; TIMEWARPED_END_OF_TURN |
 | BG34_Giant_210 | Timewarped Commander | no_effect | да | Timewarped; TIMEWARPED_SPELLCRAFT |
-| BG34_Giant_302 | Timewarped Copter | no_effect | да | Timewarped; TIMEWARPED_AVENGE |
 | BG34_Giant_012 | Timewarped Cyclone | no_effect | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_376 | Timewarped Deios | no_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_583 | Timewarped Devourer | no_effect | да | Timewarped; TIMEWARPED_START_OF_TURN |
-| BG34_Giant_029 | Timewarped Dragonling | no_effect | да | Timewarped; TIMEWARPED_SOC |
 | BG34_Giant_610 | Timewarped Electron | no_effect | вне пула | Timewarped; TIMEWARPED_SPELL_CAST_TAVERN |
 | BG34_Giant_310 | Timewarped Elegist | no_effect | вне пула | Timewarped; TIMEWARPED_END_OF_TURN |
 | BG34_Giant_038 | Timewarped Elise | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_Giant_332 | Timewarped Embalmer | no_effect | да | Timewarped; TIMEWARPED_ON_SUMMON |
 | BG34_Giant_317 | Timewarped Expeditioner | no_effect | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
-| BG34_Giant_034 | Timewarped Geist | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_305 | Timewarped Geomancer | no_effect | да | Timewarped; TIMEWARPED_AVENGE |
-| BG34_Giant_609 | Timewarped Ghoul-acabra | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_035 | Timewarped Glowscale | no_effect | да | Timewarped; TIMEWARPED_SPELL_CAST_TAVERN |
-| BG34_Giant_370 | Timewarped Hawkstrider | no_effect | да | Timewarped; TIMEWARPED_SOC |
-| BG34_Giant_593 | Timewarped Henchman | no_effect | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_015 | Timewarped Hooktail | no_effect | да | Timewarped; TIMEWARPED_SPELL_CAST_TAVERN |
 | BG34_Giant_588 | Timewarped Hunter | no_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_040 | Timewarped Ichoron | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
-| BG34_Giant_597 | Timewarped Immortal | no_effect | да | Timewarped; TIMEWARPED_SOC |
 | BG34_PreMadeChamp_013 | Timewarped Imp-filtrator | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_Giant_120 | Timewarped Interpreter | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_Giant_313 | Timewarped Kil'jaeden | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
-| BG34_Giant_584 | Timewarped Kil'rek | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_PreMadeChamp_002 | Timewarped Lab Rat | no_effect | вне пула | Timewarped; TIMEWARPED_SPELL_CAST_TAVERN |
 | BG34_Giant_678 | Timewarped Lava Lurker | no_effect | да | Timewarped; TIMEWARPED_SPELL_CAST_TAVERN |
 | BG34_Giant_602 | Timewarped Lei | no_effect | да | Timewarped; TIMEWARPED_START_OF_TURN |
@@ -220,40 +291,25 @@
 | BG34_Giant_066 | Timewarped Lubber | no_effect | да | Timewarped; TIMEWARPED_TAVERN_OTHER |
 | BG34_Giant_683 | Timewarped Lucky Egg | no_effect | да | Timewarped; TIMEWARPED_TAVERN_OTHER |
 | BG34_Giant_006 | Timewarped Molten Rock | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
-| BG34_Giant_598 | Timewarped Mothership | no_effect | да | Timewarped; TIMEWARPED_AVENGE |
-| BG34_Giant_321 | Timewarped Mrrrglr | no_effect | да | Timewarped; TIMEWARPED_SOC |
 | BG34_Giant_318 | Timewarped Murk-Eye | no_effect | да | Timewarped; TIMEWARPED_END_OF_TURN |
 | BG34_Giant_206 | Timewarped Murky | no_effect | да | Timewarped; TIMEWARPED_END_OF_TURN |
 | BG34_Giant_320 | Timewarped Mystic | no_effect | да | Timewarped; TIMEWARPED_TAVERN_OTHER |
-| BG34_Giant_684 | Timewarped Mythrax | no_effect | да | Timewarped; TIMEWARPED_SOC |
 | BG34_Giant_205 | Timewarped Nalaa | no_effect | да | Timewarped; TIMEWARPED_SPELL_CAST_TAVERN |
 | BG34_Giant_309 | Timewarped Nine Frogs | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_Giant_032 | Timewarped Nomi | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_PreMadeChamp_011 | Timewarped Overfiend | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_Giant_319 | Timewarped Painter | no_effect | да | Timewarped; TIMEWARPED_END_OF_TURN |
 | BG34_PreMadeChamp_047 | Timewarped Paleofin | no_effect | вне пула | Timewarped; TIMEWARPED_END_OF_TURN |
-| BG34_Giant_211 | Timewarped Pashmar | no_effect | да | Timewarped; TIMEWARPED_AVENGE |
-| BG34_Giant_327 | Timewarped Peggy | no_effect | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
-| BG34_Giant_204 | Timewarped Pillager | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_322 | Timewarped Pioneer | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_PreMadeChamp_067 | Timewarped Plunderer | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_314 | Timewarped Poet | no_effect | да | Timewarped; TIMEWARPED_COMBAT_OTHER |
-| BG34_PreMadeChamp_022 | Timewarped Prismscale | no_effect | да | Timewarped; TIMEWARPED_AVENGE |
 | BG34_Giant_121 | Timewarped Probius | no_effect | вне пула | Timewarped; TIMEWARPED_MAGNETIC_TAVERN |
-| BG34_Giant_088 | Timewarped Promo-Drake | no_effect | да | Timewarped; TIMEWARPED_SOC |
-| BG34_Giant_330 | Timewarped Radio Star | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_580 | Timewarped Ragnaros | no_effect | да | Timewarped; TIMEWARPED_SOC |
 | BG34_PreMadeChamp_065 | Timewarped Raider | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_Giant_082 | Timewarped Recycler | no_effect | да | Timewarped; TIMEWARPED_AVENGE |
-| BG34_Giant_091 | Timewarped Red Whelp | no_effect | да | Timewarped; TIMEWARPED_SOC |
 | BG34_Giant_002 | Timewarped Relaxer | no_effect | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_300 | Timewarped Rewinder | no_effect | да | Timewarped; TIMEWARPED_HERO_DAMAGE_TRIGGER |
-| BG34_Giant_325 | Timewarped Riplash | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_589 | Timewarped Sailor | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
-| BG34_Giant_304 | Timewarped Sapper | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_202 | Timewarped Saurolisk | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_333 | Timewarped Scout | no_effect | да | Timewarped; TIMEWARPED_SELL |
-| BG34_Giant_110 | Timewarped Sea Glass | no_effect | да | Timewarped; TIMEWARPED_RALLY |
 | BG34_Giant_323 | Timewarped Secretary | no_effect | да | Timewarped; TIMEWARPED_SPELL_CAST_TAVERN |
 | BG34_Giant_008 | Timewarped Seer | no_effect | вне пула | Timewarped; TIMEWARPED_TAVERN_OTHER |
 | BG34_Giant_067 | Timewarped Sellemental | no_effect | да | Timewarped; TIMEWARPED_END_OF_TURN |
@@ -264,12 +320,8 @@
 | BG34_PreMadeChamp_058 | Timewarped Siren | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_Giant_072 | Timewarped Skipper | no_effect | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_586 | Timewarped Snow Elemental | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
-| BG34_Giant_582 | Timewarped Sporebat | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_PreMadeChamp_049 | Timewarped Squallfin | no_effect | да | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_PreMadeChamp_038 | Timewarped Steamer | no_effect | вне пула | Timewarped; TIMEWARPED_END_OF_TURN |
-| BG34_Giant_675 | Timewarped Stone Drake | no_effect | да | Timewarped; TIMEWARPED_SOC |
-| BG34_Giant_601 | Timewarped Stoneshell | no_effect | вне пула | Timewarped; TIMEWARPED_SOC |
-| BG34_PreMadeChamp_031 | Timewarped Stormcloud | no_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_PreMadeChamp_032 | Timewarped Substrate | no_effect | да | Timewarped; TIMEWARPED_END_OF_TURN |
 | BG34_Giant_324 | Timewarped Summoner | no_effect | да | Timewarped; TIMEWARPED_SPELLCRAFT |
 | BG34_Giant_686 | Timewarped Swirler | no_effect | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
@@ -279,15 +331,11 @@
 | BG34_Giant_078 | Timewarped Thorncaller | no_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_604 | Timewarped Tipper | no_effect | да | Timewarped; TIMEWARPED_TAVERN_OTHER |
 | BG34_Giant_326 | Timewarped Tony | no_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_605 | Timewarped Traveler | no_effect | да | Timewarped; TIMEWARPED_AVENGE |
 | BG34_Giant_676 | Timewarped Trumpeter | no_effect | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_105 | Timewarped Twirler | no_effect | вне пула | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
 | BG34_Giant_361 | Timewarped Upstart | no_effect | вне пула | Timewarped; TIMEWARPED_PLAY_BUY_TRIGGER |
-| BG34_Giant_585 | Timewarped Vaelastrasz | no_effect | да | Timewarped; TIMEWARPED_RALLY |
 | BG34_Treasure_990 | Timewarped Viper | no_effect | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_677 | Timewarped Wargear | no_effect | да | Timewarped; TIMEWARPED_MAGNETIC_TAVERN |
-| BG34_Giant_064 | Timewarped Whelp Smuggler | no_effect | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
-| BG34_Giant_599 | Timewarped Whirl-O-Tron | no_effect | да | Timewarped; TIMEWARPED_SOC |
 | BG34_Giant_039 | Timewarped Winner | no_effect | да | Timewarped; TIMEWARPED_START_OF_TURN |
 | BG34_Giant_671 | Timewarped Zerus | no_effect | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG24_018 | Tortollan Blue Shell | no_effect | да | SELL |
@@ -297,52 +345,87 @@
 | BG34_684 | Trench Fighter | no_effect | да | END_OF_TURN |
 | BG31_323 | Turbo Hogrider | no_effect | да | PLAY_BUY_TRIGGER |
 | BG35_155 | Twisted Wrathguard | no_effect | да | PLAY_BUY_TRIGGER |
+| BG31_HERO_801_Buddy | Tychus Findlay | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_356 | Tyrael | no_effect | да | ACTIVATE |
 | BG36_352 | Unbound Tempest | no_effect | да | PLAY_BUY_TRIGGER |
+| TB_BaconShop_HERO_25_Buddy | Unearthed Underling | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG26_152 | Utility Drone | no_effect | да | END_OF_TURN |
+| BG22_HERO_004_Buddy | Varden's Aquarrior | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BG27_HERO_801_Buddy | Veranus, Stormlord's Mount | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG36_341 | Veteran Brigand | no_effect | да | CHOOSE_ONE |
 | BG36_370 | Victorious Geomant | no_effect | да | ACTIVATE |
 | BG36_100 | Wandering Willbreaker | no_effect | да | SELL |
+| BG21_HERO_010_Buddy | Warden Thelwater | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BGS_115t | Water Droplet | no_effect | да | на досках этого патча (статистика API), не в пуле таверны; TOKEN |
+| BG23_HERO_303_Buddy | Watfin | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BG34_856 | Waveling | no_effect | да | DR_TAVERN |
 | BG23_007 | Waverider | no_effect | да | SPELLCRAFT |
+| BG23_HERO_305_Buddy | Waxadred, the Drippy | no_effect | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_34_Buddy | Weebomination | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BGS_004 | Wrath Weaver | no_effect | да | PLAY_BUY_TRIGGER |
 | BG22_403 | Young Murk-Eye | no_effect | да | END_OF_TURN |
 | BG26_505 | Zesty Shaker | no_effect | да | SPELL_CAST_TAVERN |
 | BG36_098 | Zoatroid | no_effect | да | SELL |
+| BG33_300 | All-Seeing Elder | resolved | да | hsbg.cards: darkmoon; Start of Combat: разрешилось до снимка |
 | BG24_500 | Amber Guardian | resolved | да | Start of Combat: разрешилось до снимка |
 | BG36_620 | Boom-in-a-Box | resolved | да | Start of Combat: разрешилось до снимка |
 | BG26_354 | Choral Mrrrglr | resolved | да | Start of Combat: разрешилось до снимка |
 | BG34_142 | Costume Enthusiast | resolved | да | Start of Combat: разрешилось до снимка |
+| TB_BaconShop_HERO_14_Buddy | Elder Taggawag | resolved | да | hsbg.cards: buddy; Start of Combat: разрешилось до снимка |
 | BG26_963 | Electric Synthesizer | resolved | да | Start of Combat: разрешилось до снимка |
 | BG32_330 | Flighty Scout | resolved | да | Start of Combat: разрешилось до снимка |
 | BG36_364 | Hopebringer | resolved | да | Start of Combat: разрешилось до снимка |
+| BG31_HERO_802pt4 | Immortal | resolved | да | hsbg.cards: heroPower; Start of Combat: разрешилось до снимка |
+| BG20_HERO_201_Buddy | Master Gadrin | resolved | да | hsbg.cards: buddy; Start of Combat: разрешилось до снимка |
+| BG21_HERO_030_Buddy | Piloted Whirl-O-Tron | resolved | да | hsbg.cards: buddy; Start of Combat: разрешилось до снимка |
 | BG36_245 | Runic Arcanist | resolved | да | Start of Combat: разрешилось до снимка |
+| BG34_Giant_042 | Timewarped Chameleon | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_029 | Timewarped Dragonling | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_370 | Timewarped Hawkstrider | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_597 | Timewarped Immortal | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_321 | Timewarped Mrrrglr | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_684 | Timewarped Mythrax | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_088 | Timewarped Promo-Drake | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_580 | Timewarped Ragnaros | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_091 | Timewarped Red Whelp | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_675 | Timewarped Stone Drake | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_601 | Timewarped Stoneshell | resolved | вне пула | Timewarped; Start of Combat: разрешилось до снимка |
+| BG34_Giant_599 | Timewarped Whirl-O-Tron | resolved | да | Timewarped; Start of Combat: разрешилось до снимка |
 | BG31_810 | Ultraviolet Ascendant | resolved | да | Start of Combat: разрешилось до снимка |
+| BG31_HERO_811t2 | Zergling | resolved | да | hsbg.cards: heroPower; Start of Combat: разрешилось до снимка |
 | BG35_921 | Abyssal Bruiser | implemented | да | AURA_STATIC |
+| TB_BaconShop_HERO_22_Buddy | Arfus | implemented | да | hsbg.cards: buddy; REBORN_BUFF |
+| TB_BaconShop_HERO_92_Buddy | Baby Y'Shaarj | implemented | да | hsbg.cards: buddy; SUMMON_BUFF |
 | BG35_883 | Balinda Stonehearth | implemented | да | MULTIPLIER |
 | BG26_802 | Banana Slamma | implemented | да | ON_SUMMON |
+| BG31_HERO_811t5 | Baneling | implemented | да | hsbg.cards: heroPower; DR_DAMAGE |
 | BG36_514 | Barrier Banshee | implemented | да | ON_REBORN |
 | BG33_822 | Bigwig Bandit | implemented | да | RALLY_TAVERN |
 | BG33_318 | Bile Spitter | implemented | да | RALLY_KEYWORD |
 | BG26_817 | Blade Collector | implemented | да | CLEAVE |
+| BG33_924 | Blue Whelp | implemented | да | RALLY_TAVERN |
 | BG20_104 | Bonker | implemented | да | RALLY_BUFF |
 | BG36_331 | Bramble Tunneler | implemented | да | RALLY_TAVERN |
 | BG_LOE_077 | Brann Bronzebeard | implemented | да | MULTIPLIER |
 | BG36_242 | Bronze Timewalker | implemented | да | RALLY_TAVERN |
 | BG31_149 | Bubble Gunner | implemented | да | BATTLECRY |
 | BG31_803 | Buzzing Vermin | implemented | да | DR_SUMMON |
+| BGFYM_000 | C'Thun | implemented | да | hsbg.cards: tavern; TOKEN |
 | BG30_125 | Cadaver Caretaker | implemented | да | DR_SUMMON |
 | BG36_211 | Cage Gnawer | implemented | да | ON_FRIENDLY_ATTACK |
 | BG25_034 | Captain Sanders | implemented | да | BATTLECRY |
+| BG31_HERO_802pt1 | Carrier | implemented | да | hsbg.cards: heroPower; AVENGE_SUMMON; величина: размер Interceptor (TAG_SCRIPT_DATA_NUM_1/2 Carrier); прирост за срабатывание в бою не известен, без неё missing_input |
 | BG28_741 | Charging Czarina | implemented | да | SPELL_TRIGGER |
+| BG31_HERO_802pt | Colossus | implemented | да | hsbg.cards: heroPower; RALLY_DAMAGE |
 | BG34_171 | Conveyor Construct | implemented | да | DR_TAVERN |
 | BG29_611 | Cord Puller | implemented | да | DR_SUMMON |
 | BG36_241 | Crimson Vindicator | implemented | да | RALLY_SPELL |
 | BG36_360 | Dark Paradox | implemented | да | DARK_PARADOX |
-| BG36_360t5 | Dark Paradox | implemented | да | на досках этого патча (статистика API), не в пуле таверны; RALLY_GET |
-| BG36_360t6 | Dark Paradox | implemented | да | на досках этого патча (статистика API), не в пуле таверны; STATS_THIS_GAME |
-| BG36_360t9 | Dark Paradox | implemented | да | на досках этого патча (статистика API), не в пуле таверны; DR_SUMMON |
+| BG36_360t4 | Dark Paradox | implemented | да | hsbg.cards: tavern; нет в таблице релевантности |
+| BG36_360t5 | Dark Paradox | implemented | да | hsbg.cards: tavern; RALLY_GET |
+| BG36_360t6 | Dark Paradox | implemented | да | hsbg.cards: tavern; STATS_THIS_GAME |
+| BG36_360t9 | Dark Paradox | implemented | да | hsbg.cards: tavern; DR_SUMMON |
+| BG36_104 | Dark Puppeteer | implemented | да | DR_TAVERN |
 | BG36_102 | De-volition-ist | implemented | да | AFTER_ATTACK |
 | BG31_835 | Deathly Striker | implemented | да | AVENGE_COMBAT; у соперника missing_input (рука скрыта) |
 | BG36_208 | Deathstrider | implemented | да | ON_FRIENDLY_ATTACK |
@@ -359,11 +442,13 @@
 | BG36_318 | Faceless Converter | implemented | да | DR_DEITY |
 | BG35_342 | Falling Sky Golem | implemented | да | AURA_DYNAMIC |
 | BG32_820 | Firescale Hoarder | implemented | да | DR_TAVERN |
-| BG36_205 | Fishbait | implemented | да | на досках этого патча (статистика API), не в пуле таверны; DR_BUFF_KILLER |
+| TB_BaconShop_HP_105t | Fish of N'Zoth | implemented | да | hsbg.cards: heroPower; TOKEN |
+| BG36_205 | Fishbait | implemented | да | hsbg.cards: tavern; DR_BUFF_KILLER |
 | BG36_921 | Fleeing Fugitive | implemented | да | SPELL_TRIGGER |
 | BG36_200 | Flittering Bat | implemented | да | RALLY_SUMMON |
 | BG31_801 | Forest Rover | implemented | да | DR_SUMMON |
 | BG34_692 | Forsaken Weaver | implemented | да | SPELL_TRIGGER |
+| BG32_880 | Friendly Geist | implemented | да | DR_TAVERN |
 | BG36_640 | Gatekeeper Amalgam | implemented | да | SPELL_TRIGGER |
 | BG28_583 | Geomagus Roogug | implemented | да | ON_BLOOD_GEM |
 | BGS_008 | Ghastcoiler | implemented | да | DR_SUMMON |
@@ -380,19 +465,27 @@
 | BG34_319 | Highkeeper Ra | implemented | да | RALLY_TAVERN |
 | BG36_210 | Hoarding Hyena | implemented | да | RALLY_SUMMON |
 | BG26_805 | Humming Bird | implemented | да | SOC_PERSISTENT |
+| BG31_HERO_811t4 | Hydralisk | implemented | да | hsbg.cards: heroPower; RALLY_BUFF |
+| BG20_HERO_100_Buddy | Icesnarl the Mighty | implemented | да | hsbg.cards: buddy; KILL_BUFF |
 | BG36_731 | Imp-lusionist | implemented | да | DR_TAVERN |
 | BG36_333 | Jailbird Juggernaut | implemented | да | RALLY_SUMMON |
 | BG36_110 | Joyous | implemented | да | BATTLECRY |
 | BGS_041 | Kalecgos, Arcane Aspect | implemented | да | BATTLECRY_TRIGGER |
+| TB_BaconShop_HERO_37_Buddy | Kil'rek | implemented | да | hsbg.cards: buddy; TAVERN |
 | BG23_318 | Leeroy the Reckless | implemented | да | DR_DESTROY |
 | BG35_881 | Leyline Surfacer | implemented | да | DR_TAVERN |
 | BG36_848 | Lichling Hoarder | implemented | да | AVENGE_TAVERN |
 | BG36_521 | Locked-up Mutineer | implemented | да | DR_TAVERN |
+| TB_BaconShop_HERO_45_Buddy | Loyal Henchman | implemented | да | hsbg.cards: buddy; TAVERN |
+| BG31_HERO_811t7 | Lurker | implemented | да | hsbg.cards: heroPower; AVENGE_BUFF |
 | BG35_602 | Lurking Leviathan | implemented | да | ON_SUMMON |
+| BG22_HERO_305_Buddy | Many Whelps | implemented | да | hsbg.cards: buddy; SUMMON_BUFF |
 | BG32_340 | Maw Caster | implemented | да | BATTLECRY |
 | TB_BaconShop_HERO_33_Buddy | Mishmash | implemented | да | на досках этого патча (статистика API), не в пуле таверны; AMALGAM_MIRROR |
+| BG20_HERO_282_Buddy | Monstrosity | implemented | да | hsbg.cards: buddy; DEATH_BUFF |
 | BG28_309 | Mummifier | implemented | да | DR_KEYWORD |
 | BG27_023 | Murcules | implemented | да | KILL_HAND_BUFF; у соперника missing_input (рука скрыта) |
+| BG31_HERO_811t6 | Mutalisk | implemented | да | hsbg.cards: heroPower; KILL_BUFF |
 | BG36_103 | N'raqi Sapper | implemented | да | DR_TAVERN |
 | BGS_040 | Nadina the Red | implemented | да | DR_KEYWORD |
 | BG25_011 | Nerubian Deathswarmer | implemented | да | BATTLECRY |
@@ -415,56 +508,101 @@
 | BG34_925 | Seafloor Recruiter | implemented | да | RALLY_SPELL |
 | BG35_604 | Sewer Lord | implemented | да | DR_SUMMON |
 | BG36_111 | Sha of Fear | implemented | да | SPELL_TRIGGER |
+| BG25_HERO_103_Buddy | Shadowy Construct | implemented | да | hsbg.cards: buddy; DEATH_BUFF |
 | BG36_704 | Shamanic Tidecaller | implemented | да | SPELL_TRIGGER |
 | BG33_828 | Ship Master Eudora | implemented | да | DR_BUFF |
 | BG33_821 | Shipwrecked Rascal | implemented | да | DR_TAVERN |
 | BG31_925 | Showy Cyclist | implemented | да | DR_BUFF |
 | BG25_016 | Sin'dorei Straight Shot | implemented | да | RALLY_KEYWORD |
+| TB_BaconShop_HERO_52_Buddy | Sinestra | implemented | да | hsbg.cards: buddy; STATS_GAINED_BUFF |
 | BG36_515 | Snazzy Phantom | implemented | да | ON_REBORN |
+| BG21_HERO_030t | Sneed's New Shredder | implemented | да | hsbg.cards: heroPower; TOKEN; у соперника missing_input (рука скрыта) |
+| TB_BaconShop_HERO_76_Buddy | Spirit of Air | implemented | да | hsbg.cards: buddy; DR_KEYWORDS |
 | BG34_322 | Stalwart Kodo | implemented | да | ON_SUMMON |
 | BG31_999 | Stitched Salvager | implemented | да | DR_SUMMON |
+| BG23_HERO_201_Buddy | Tamuzo | implemented | да | hsbg.cards: buddy; SUMMON_BUFF |
 | BG21_015 | Tarecgosa | implemented | да | KEEP_STATS |
 | BG36_202 | Tasty Lobster | implemented | да | DR_BUFF |
+| TB_BaconShop_HERO_29_Buddy | Tentacle of C'Thun | implemented | да | hsbg.cards: buddy; STATS_GAINED_BUFF |
 | BG34_320 | The Last One Standing | implemented | да | RALLY_BUFF |
 | BG36_109 | The Shadow of Doubt | implemented | да | CARD_TO_HAND_TRIGGER |
-| BG27_513 | Tide Oracle Morgl | implemented | да | на досках этого патча (статистика API), не в пуле таверны; KILL_HAND_BUFF; у соперника missing_input (рука скрыта) |
 | BG27_005 | Timecap'n Hooktail | implemented | да | SPELL_TRIGGER |
 | BG34_Giant_071 | Timewarped Bassgill | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE; у соперника missing_input (рука скрыта) |
+| BG34_Giant_102 | Timewarped Bonker | implemented | да | Timewarped; RALLY_BUFF |
 | BG34_Giant_001 | Timewarped Busker | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_PreMadeChamp_091 | Timewarped Calligrapher | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_618 | Timewarped Caretaker | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_679 | Timewarped Chimera | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_680 | Timewarped Collector | implemented | да | Timewarped; TIMEWARPED_RALLY |
+| BG34_Giant_302 | Timewarped Copter | implemented | да | Timewarped; TIMEWARPED_AVENGE |
 | BG34_Giant_654 | Timewarped Deadstomper | implemented | да | Timewarped; TIMEWARPED_ON_SUMMON |
 | BG34_Giant_081 | Timewarped Deathswarmer | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_PreMadeChamp_020 | Timewarped Duskmaw | implemented | да | Timewarped; TIMEWARPED_AVENGE |
+| BG34_Giant_034 | Timewarped Geist | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_644 | Timewarped Gemsplitter | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
+| BG34_Giant_305 | Timewarped Geomancer | implemented | да | Timewarped; TIMEWARPED_AVENGE |
+| BG34_Giant_609 | Timewarped Ghoul-acabra | implemented | да | Timewarped; DR_TRIGGER_BUFF |
 | BG34_Giant_041 | Timewarped Greenskeeper | implemented | да | Timewarped; TIMEWARPED_RALLY |
 | BG34_Giant_342 | Timewarped Hag | implemented | да | Timewarped; TIMEWARPED_SOC |
+| BG34_Giant_593 | Timewarped Henchman | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_581 | Timewarped Hyena | implemented | да | Timewarped; TIMEWARPED_ON_DEATH |
 | BG34_Giant_674 | Timewarped Icky Imp | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_306 | Timewarped Jazzer | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_PreMadeChamp_004 | Timewarped Jungle King | implemented | да | Timewarped; TIMEWARPED_ON_SUMMON |
+| BG34_Giant_584 | Timewarped Kil'rek | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_608 | Timewarped Lil' Quilboar | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_598 | Timewarped Mothership | implemented | да | Timewarped; TIMEWARPED_AVENGE |
 | BG34_Giant_207 | Timewarped Murcules | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER; у соперника missing_input (рука скрыта) |
 | BG34_Giant_074t | Timewarped Nellie's Ship | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_687 | Timewarped Nest Swarmer | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_208 | Timewarped Pagle | implemented | да | Timewarped; TIMEWARPED_ON_ATTACK |
+| BG34_Giant_211 | Timewarped Pashmar | implemented | да | Timewarped; TIMEWARPED_AVENGE |
+| BG34_Giant_327 | Timewarped Peggy | implemented | да | Timewarped; CARD_TO_HAND_TRIGGER |
+| BG34_Giant_204 | Timewarped Pillager | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_069 | Timewarped Piper | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
+| BG34_PreMadeChamp_022 | Timewarped Prismscale | implemented | да | Timewarped; TIMEWARPED_AVENGE |
+| BG34_Giant_330 | Timewarped Radio Star | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_325 | Timewarped Riplash | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_304 | Timewarped Sapper | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_202 | Timewarped Saurolisk | implemented | да | Timewarped; DR_TRIGGER_BUFF |
 | BG34_Giant_017 | Timewarped Scourfin | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE; у соперника missing_input (рука скрыта) |
+| BG34_Giant_110 | Timewarped Sea Glass | implemented | да | Timewarped; RALLY_BUFF |
+| BG34_Giant_582 | Timewarped Sporebat | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_PreMadeChamp_031 | Timewarped Stormcloud | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_595 | Timewarped Tamuzo | implemented | да | Timewarped; TIMEWARPED_ON_SUMMON |
 | BG34_Giant_328 | Timewarped Tide Razor | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_605 | Timewarped Traveler | implemented | да | Timewarped; TIMEWARPED_AVENGE |
+| BG34_Giant_585 | Timewarped Vaelastrasz | implemented | да | Timewarped; TIMEWARPED_RALLY |
 | BG34_Giant_331 | Timewarped Warghoul | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_064 | Timewarped Whelp Smuggler | implemented | да | Timewarped; STATS_GAINED_BUFF |
+| TB_BaconShop_HERO_39_Buddy | Titanic Guardian | implemented | да | hsbg.cards: buddy; STATS_GAINED_BUFF |
 | BG25_354 | Titus Rivendare | implemented | да | MULTIPLIER |
 | BG36_622 | Torrential Ruiner | implemented | да | SPELL_TRIGGER |
 | BG31_809 | Turquoise Skitterer | implemented | да | DR_SUMMON |
+| TB_BaconShop_HERO_18_Buddy | Tuskarr Raider | implemented | да | hsbg.cards: buddy; TAVERN |
 | BG33_886 | Tusked Camper | implemented | да | RALLY_BUFF |
 | BG36_703 | Twilight Tidehunter | implemented | да | SPELL_CAST_TAVERN |
+| BG31_HERO_811t10 | Ultralisk | implemented | да | hsbg.cards: heroPower; CLEAVE |
 | BG36_116 | Underrot Spawn | implemented | да | DR_SUMMON |
 | BG36_101 | Unwilling Slacker | implemented | да | DR_TAVERN |
+| TB_BaconShop_HERO_56_Buddy | Vaelastrasz | implemented | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_53_Buddy | Valithria Dreamwalker | implemented | да | hsbg.cards: buddy; SUMMON_BUFF |
 | BG29_300 | Very Hungry Winterfinner | implemented | да | ON_DAMAGE_TAKEN; у соперника missing_input (рука скрыта) |
 | BG36_108 | Vicious Mindslasher | implemented | да | SPELL_TRIGGER |
+| BG31_HERO_811t8 | Viper | implemented | да | hsbg.cards: heroPower; IMMUNE_ATTACKING |
+| BG31_HERO_802pt5 | Void Ray | implemented | да | hsbg.cards: heroPower; ATTACK_BUFF |
+| TB_BaconShop_HERO_95_Buddy | Wandering Treant | implemented | да | hsbg.cards: buddy; ATTACKED_BUFF |
 | BGS_126 | Wildfire Elemental | implemented | да | AFTER_ATTACK |
 | BG36_207 | Wolf Pup | implemented | да | RALLY_BUFF |
+| BGFYM_011 | Y'Shaarj | implemented | да | hsbg.cards: tavern; TOKEN |
+| BG32_HERO_002_Buddy | Zippers | implemented | да | hsbg.cards: buddy; TAVERN |
+| TB_BaconShop_HERO_43_Buddy | Brann's Epic Egg | missing_effect | да | hsbg.cards: buddy; DR_SUMMON |
+| TB_BaconShop_HERO_08_Buddy | Eclipsion Illidari | missing_effect | да | hsbg.cards: buddy; ATTACK_IMMUNE |
+| TB_BaconShop_HERO_17_Buddy | Elementium Squirrel Bomb | missing_effect | да | hsbg.cards: buddy; DR_DAMAGE |
+| BG25_HERO_100_Buddy | Festergut | missing_effect | да | hsbg.cards: buddy; DR_SUMMON |
+| TB_BaconShop_HERO_702_Buddy | Mawsworn Soulkeeper | missing_effect | да | hsbg.cards: buddy; DR_SUMMON |
+| BG22_HERO_001_Buddy | Spirit Raptor | missing_effect | да | hsbg.cards: buddy; DR_SUMMON |
+| TB_BaconShop_HERO_41_Buddy | Sr. Tomb Diver | missing_effect | да | hsbg.cards: buddy; DR_GOLDEN |
 | BG34_Giant_027 | Timewarped Arm | missing_effect | вне пула | Timewarped; TIMEWARPED_ON_ATTACK |
 | BG34_Giant_104 | Timewarped Bristler | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_590 | Timewarped Festergut | missing_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
@@ -517,11 +655,11 @@
 | BGDUO_HERO_223p | Double Trouble | no_effect | да | Duos; Gall; HP_NONE |
 | TB_BaconShop_HP_062 | Dream Portal | no_effect | да | Ysera; HP_NONE |
 | BG20_HERO_283p | Dungar's Gryphon | no_effect | да | Galewing; HP_NONE |
-| BG20_HERO_283p_t3 | Eastern Plaguelands | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| BG20_HERO_283p_t3 | Eastern Plaguelands | no_effect | да | Galewing, вариант силы BG20_HERO_283p; HP_NONE |
 | BGDUO_HERO_104p | Efficient Exchange | no_effect | да | Duos; Madam Goya; HP_NONE |
 | BG24_HERO_204p | Enhancification | no_effect | да | Enhance-o Mechano; HP_NONE |
 | TB_BaconShop_HP_082 | Everbloom | no_effect | да | Forest Warden Omu; HP_NONE |
-| BG31_HERO_811p2 | Evolution Chamber | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| BG31_HERO_811p2 | Evolution Chamber | no_effect | да | Kerrigan, Queen of Blades, вариант силы BG31_HERO_811p; HP_NONE |
 | BG22_HERO_201p | Expedition Plans | no_effect | да | Ambassador Faelin; HP_NONE |
 | BG30_HERO_304p | Fantastic Treasure | no_effect | да | Marin the Manager; HP_NONE |
 | BG36_HERO_105p | Feel Devastation | no_effect | да | Nightmare Lord Xavius; HP_NONE |
@@ -541,24 +679,35 @@
 | BG26_HERO_101p | I'm the Cap'n Now | no_effect | да | Cap'n Hoggarr; HP_NONE |
 | TB_BaconShop_HP_068 | Imprison | no_effect | да | Maiev Shadowsong; HP_NONE |
 | BG36_HERO_000p | Incubate | no_effect | да | Drest'agath; HP_NONE |
-| BG20_HERO_283p_t2 | Ironforge | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| BG20_HERO_283p_t2 | Ironforge | no_effect | да | Galewing, вариант силы BG20_HERO_283p; HP_NONE |
 | TB_BaconShop_HP_080 | Kel'Thuzad's Kitty | no_effect | да | Mr. Bigglesworth; HP_NONE |
+| TB_BaconShop_HP_041l | King of Aberrations | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
+| TB_BaconShop_HP_041a | King of Beasts | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
+| TB_BaconShop_HP_041d | King of Demons | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
+| TB_BaconShop_HP_041f | King of Dragons | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
 | BG35_HERO_001p | King of Duality | no_effect | да | Genn, Worgen King; HP_NONE |
+| TB_BaconShop_HP_041h | King of Elementals | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
+| TB_BaconShop_HP_041b | King of Mechs | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
+| TB_BaconShop_HP_041c | King of Murlocs | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
+| TB_BaconShop_HP_041j | King of Naga | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
+| TB_BaconShop_HP_041g | King of Pirates | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
+| TB_BaconShop_HP_041i | King of Quilboar | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
+| TB_BaconShop_HP_041k | King of Undead | no_effect | да | The Rat King, вариант силы TB_BaconShop_HP_041; HP_NONE |
 | TB_BaconShop_HP_047 | Lead Explorer | no_effect | да | Elise Starseeker; HP_NONE |
 | BG35_Anomaly_007t | Lesser Crystal Ball | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
 | BG31_HERO_801p | Lift Off | no_effect | да | Jim Raynor; HP_NONE |
-| BG22_HERO_000p_Alt | Lock and Load | no_effect | да | Tavish Stormpike; HP_NONE |
 | BG28_HERO_400p | Lucky Roll | no_effect | да | Snake Eyes; HP_NONE |
-| BG28_HERO_400p2 | Lucky Roll | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| BG28_HERO_400p2 | Lucky Roll | no_effect | да | Snake Eyes, вариант силы BG28_HERO_400p; HP_NONE |
 | BG26_HERO_102p | Major Hymn | no_effect | да | Inge, the Iron Hymn; HP_NONE |
 | BG34_HERO_001p | Mana Per Minute | no_effect | да | Time Twister Chromie; HP_NONE |
 | TB_BaconShop_HP_054 | Manastorm | no_effect | да | Millhouse Manastorm; HP_NONE |
 | BG22_HERO_200p | MechGyver | no_effect | да | Ini Stormcoil; HP_NONE |
 | TB_BaconShop_HP_033 | Menagerist | no_effect | да | The Curator; HP_NONE |
-| BG26_HERO_102p2 | Minor Hymn | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| BG26_HERO_102p2 | Minor Hymn | no_effect | да | Inge, the Iron Hymn, вариант силы BG26_HERO_102p; HP_NONE |
 | BG35_Anomaly_002t | Mystery Cube | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| BG22_HERO_007p2 | Naga Conquest | no_effect | вне пула | Queen Azshara, вариант силы BG22_HERO_007p; HP_NONE |
 | BG20_HERO_242p | Natural Balance | no_effect | да | Guff Runetotem; HP_NONE |
-| TB_BaconShop_HP_036t | Nether Portal | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| TB_BaconShop_HP_036t | Nether Portal | no_effect | да | Lord Jaraxxus, вариант силы TB_BaconShop_HP_036; HP_NONE |
 | TB_BaconShop_HP_076 | Piggy Bank | no_effect | да | Skycap'n Kragg; HP_NONE |
 | BG21_HERO_030p | Pilot the Shredder | no_effect | да | Sneed; HP_NONE |
 | TB_BaconShop_HP_072 | Pirate Parrrrty! | no_effect | да | Patches the Pirate; HP_NONE |
@@ -581,12 +730,12 @@
 | TB_BaconShop_HP_008 | Smart Savings | no_effect | да | Trade Prince Gallywix; HP_NONE |
 | TB_BaconShop_HP_022 | Snicker-snack | no_effect | да | Shudderwock; HP_NONE |
 | BG31_HERO_811p | Spawning Pool | no_effect | да | Kerrigan, Queen of Blades; HP_NONE |
-| TB_BaconShop_HP_065t2 | Spectral Sight | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| TB_BaconShop_HP_065t2 | Spectral Sight | no_effect | да | Aranna Starseeker, вариант силы TB_BaconShop_HP_065; HP_NONE |
 | BG20_HERO_201p | Spirit Swap | no_effect | да | Vol'jin; HP_NONE |
-| BG20_HERO_201p2 | Spirit Swap | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| BG20_HERO_201p2 | Spirit Swap | no_effect | да | Vol'jin, вариант силы BG20_HERO_201p; HP_NONE |
 | TB_BaconShop_HP_014 | Stay Frosty | no_effect | да | Sindragosa; HP_NONE |
 | BG21_HERO_020p | Stir the Pot | no_effect | да | Cookie the Cook; HP_NONE |
-| TB_BaconShop_HP_087t | Sulfuras | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| TB_BaconShop_HP_087t | Sulfuras | no_effect | да | Ragnaros the Firelord, вариант силы TB_BaconShop_HP_087; HP_NONE |
 | TB_BaconShop_HP_084 | Swap, Lock, & Shop It | no_effect | да | Jandice Barov; HP_NONE |
 | TB_BaconShop_HP_085t | Tavern Lighting | no_effect | да | Rakanishu; HP_NONE |
 | TB_BaconShop_HP_028 | Temporal Tavern | no_effect | да | Infinite Toki; HP_NONE |
@@ -596,26 +745,26 @@
 | TB_BaconShop_HP_015 | Tinker | no_effect | да | Millificent Manastorm; HP_NONE |
 | TB_BaconShop_HP_075 | Trash for Treasure | no_effect | да | Captain Hooktusk; HP_NONE |
 | BG22_HERO_004p | Twice as Nice | no_effect | да | Varden Dawngrasp; HP_NONE |
-| BG31_HERO_811p3 | Ultralisk Cavern | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| BG31_HERO_811p3 | Ultralisk Cavern | no_effect | да | Kerrigan, Queen of Blades, вариант силы BG31_HERO_811p; HP_NONE |
 | BG26_HERO_104p | Upbeat Harmony | no_effect | да | Rock Master Voone; HP_NONE |
 | TB_BaconShop_HP_066 | Verdant Spheres | no_effect | да | Kael'thas Sunstrider; HP_NONE |
 | BG36_HERO_101p | Void Power | no_effect | да | Tras'tath, Soul Parasite; HP_NONE |
 | BG31_HERO_802p | Warp Gate | no_effect | да | Artanis; HP_NONE |
 | BG34_HERO_004p | Warped Conflux | no_effect | да | Morchie; HP_NONE |
-| BG20_HERO_283p_t1 | Westfall | no_effect | да | сила героя из пула hsbg.cards (не стартовая); HP_NONE |
+| BG20_HERO_283p_t1 | Westfall | no_effect | да | Galewing, вариант силы BG20_HERO_283p; HP_NONE |
 | BG24_HERO_100p | Whodunit? | no_effect | да | Sire Denathrius; HP_NONE |
 | BG32_HERO_001p | Wisdom of Ancients | no_effect | да | Forest Lord Cenarius; HP_NONE |
 | BGDUO_HERO_100p | [x] | no_effect | да | Duos; The Nameless One; HP_NONE |
 | TB_BaconShop_HP_061 | ALL Will Burn! | resolved | да | Deathwing; Start of Combat: разрешилось до снимка |
-| BG22_HERO_001p_t1 | Earth Invocation | resolved | да | сила героя из пула hsbg.cards (не стартовая); Start of Combat: разрешилось до снимка |
+| BG22_HERO_001p_t1 | Earth Invocation | resolved | да | Bru'kan, вариант силы BG22_HERO_001p; Start of Combat: разрешилось до снимка |
 | TB_BaconShop_HP_103 | Embrace Your Rage | resolved | да | Y'Shaarj; Start of Combat: разрешилось до снимка |
 | BG22_HERO_001p | Embrace the Elements | resolved | да | Bru'kan; Start of Combat: разрешилось до снимка |
-| BG22_HERO_001p_t2 | Fire Invocation | resolved | да | сила героя из пула hsbg.cards (не стартовая); Start of Combat: разрешилось до снимка |
+| BG22_HERO_001p_t2 | Fire Invocation | resolved | да | Bru'kan, вариант силы BG22_HERO_001p; Start of Combat: разрешилось до снимка |
 | BG20_HERO_282p | Fragrant Phylactery | resolved | да | Tamsin Roame; Start of Combat: разрешилось до снимка |
 | BGDUO_HERO_101p | Glorious Gloop | resolved | да | Duos; Flobbidinous Floop; Start of Combat: разрешилось до снимка |
-| BG22_HERO_001p_t4 | Lightning Invocation | resolved | да | сила героя из пула hsbg.cards (не стартовая); Start of Combat: разрешилось до снимка |
+| BG22_HERO_001p_t4 | Lightning Invocation | resolved | да | Bru'kan, вариант силы BG22_HERO_001p; Start of Combat: разрешилось до снимка |
 | TB_BaconShop_HP_086 | Swatting Insects | resolved | да | Al'Akir; Start of Combat: разрешилось до снимка |
-| BG22_HERO_001p_t3 | Water Invocation | resolved | да | сила героя из пула hsbg.cards (не стартовая); Start of Combat: разрешилось до снимка |
+| BG22_HERO_001p_t3 | Water Invocation | resolved | да | Bru'kan, вариант силы BG22_HERO_001p; Start of Combat: разрешилось до снимка |
 | TB_BaconShop_HP_037a | Wax Warband | resolved | да | Queen Wagtoggle; Start of Combat: разрешилось до снимка |
 | TB_BaconShop_HP_069 | Wingmen | resolved | да | Illidan Stormrage; Start of Combat: разрешилось до снимка |
 | BG22_HERO_305p | Broodmother | implemented | да | Onyxia; HP_AVENGE_SUMMON; величина: размер Whelp — TAG_SCRIPT_DATA_NUM_1 = NUM_2 своей силы героя (иначе 1/1); Avenge — SCORE_VALUE_1/2, без неё missing_input |
@@ -625,6 +774,7 @@
 | TB_BaconShop_HP_107 | Sprout It Out! | implemented | да | Greybough; HP_SUMMON_BUFF |
 | BG22_HERO_003p | Stormpike Strength | implemented | да | Vanndar Stormpike; HP_SPACE_SUMMON |
 | BG23_HERO_201p | Tentacular | implemented | да | Ozumat; HP_SPACE_SUMMON; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
+| BG22_HERO_000p_Alt | Lock and Load | missing_effect | да | Tavish Stormpike; HP_SPACE_FIRE |
 
 ## Тринкеты
 
@@ -637,7 +787,6 @@
 | BG32_MagicItem_930 | Archaic Scroll | no_effect | да | TR_NONE |
 | BG32_MagicItem_906 | Artanis Sticker | no_effect | вне пула | TR_NONE |
 | BG30_MagicItem_989 | Artisanal Urn | no_effect | вне пула | TR_NONE |
-| BG30_MagicItem_989t | Artisanal Urn | no_effect | да | TR_NONE |
 | BG32_MagicItem_954 | Auric Offering | no_effect | вне пула | TR_NONE |
 | BG35_MagicItem_863 | Avalanche Sticker | no_effect | да | TR_NONE |
 | BG30_MagicItem_431 | Azerite Portrait | no_effect | да | TR_NONE |
@@ -744,9 +893,7 @@
 | BG36_MagicItem_208 | Floating Candle Set | no_effect | да | TR_NONE |
 | BG32_MagicItem_802 | Fountain Pen | no_effect | вне пула | TR_NONE |
 | BG32_MagicItem_802t | Fountain Pen | no_effect | вне пула | TR_NONE |
-| BG30_MagicItem_545 | Fridge Magnet | no_effect | да | TR_NONE |
 | BG36_MagicItem_300 | Frigid Blossom | no_effect | да | TR_NONE |
-| BG36_MagicItem_217 | Funeral Wreath | no_effect | да | TR_NONE |
 | BG30_MagicItem_710 | Fungalmancer Sticker | no_effect | вне пула | TR_NONE |
 | BG32_MagicItem_809 | Gem Donation | no_effect | вне пула | TR_NONE |
 | BG32_MagicItem_367 | Ghastly Sticker | no_effect | да | TR_NONE |
@@ -856,8 +1003,6 @@
 | BG35_MagicItem_712 | Privateer Portrait | no_effect | да | TR_NONE |
 | BG32_MagicItem_300 | Putricide Sticker | no_effect | да | TR_NONE |
 | BG36_MagicItem_408 | Quartermaster's Hook | no_effect | да | TR_NONE |
-| BG30_MagicItem_410 | Quilligraphy Set | no_effect | да | TR_NONE |
-| BG30_MagicItem_410t2 | Quilligraphy Set | no_effect | да | TR_NONE |
 | BG35_MagicItem_310 | Radio Star Portrait | no_effect | вне пула | TR_NONE |
 | BG36_MagicItem_424 | Rascal Sticker | no_effect | да | TR_NONE |
 | BG32_MagicItem_888 | Recycling Sticker | no_effect | да | TR_NONE |
@@ -903,7 +1048,6 @@
 | BG36_MagicItem_611 | Tableware Portrait | no_effect | да | TR_NONE |
 | BG32_MagicItem_417 | Tarecgosa Sticker | no_effect | вне пула | TR_NONE |
 | BG32_MagicItem_920 | Thaumaturgist Portrait | no_effect | да | TR_NONE |
-| BG30_MagicItem_981 | The Eye of Dalaran | no_effect | да | TR_NONE |
 | BG30_MagicItem_701 | The Eye of Sargeras | no_effect | да | TR_NONE |
 | BG35_MagicItem_431t | Thornspike Pauldron | no_effect | вне пула | TR_NONE |
 | BG30_MagicItem_707 | Tickatus Sticker | no_effect | да | TR_NONE |
@@ -937,7 +1081,6 @@
 | BG32_MagicItem_933 | Weary Portrait | no_effect | вне пула | TR_NONE |
 | BG36_MagicItem_414 | Weighted Gauntlet | no_effect | да | TR_NONE |
 | BG32_MagicItem_270 | Wicked Tome | no_effect | вне пула | TR_NONE |
-| BG32_MagicItem_270t | Wicked Tome | no_effect | да | TR_NONE |
 | BG35_MagicItem_700 | Wildfeather Duster | no_effect | да | TR_NONE |
 | BG36_MagicItem_852 | Willbreaker Sticker | no_effect | да | TR_NONE |
 | BG32_MagicItem_832 | Windfall Portrait | no_effect | вне пула | TR_NONE |
@@ -950,7 +1093,6 @@
 | BG30_MagicItem_994 | Yogg-Tastic Pastry | no_effect | да | TR_NONE |
 | BG35_MagicItem_752 | Young Murk-Eye Sticker | no_effect | да | TR_NONE |
 | BG36_MagicItem_841 | Assembler Portrait | resolved | да | Start of Combat: разрешилось до снимка |
-| BG30_MagicItem_303 | Automaton Portrait | resolved | да | Start of Combat: разрешилось до снимка |
 | BG32_MagicItem_360 | Baleful Incense | resolved | да | Start of Combat: разрешилось до снимка |
 | BG30_MagicItem_995 | Bronze Timepiece | resolved | да | Start of Combat: разрешилось до снимка |
 | BG36_MagicItem_600 | Converter Portrait | resolved | да | Start of Combat: разрешилось до снимка |
@@ -988,6 +1130,8 @@
 | BG32_MagicItem_200 | All-Purpose Kibble | implemented | да | TR_ATTACK_BUFF; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
 | BG30_MagicItem_433 | Alliance Keychain | implemented | да | TR_DEATH_BUFF |
 | BG30_MagicItem_433t | Alliance Keychain | implemented | вне пула | TR_DEATH_BUFF |
+| BG30_MagicItem_989t | Artisanal Urn | implemented | да | TR_AURA |
+| BG30_MagicItem_303 | Automaton Portrait | implemented | да | TR_SPACE_SUMMON; величина: число Ancestral Automaton этой игры (зачарование игрока BG_TTN_401pe, NUM_1), без неё missing_input |
 | BG32_MagicItem_301 | Bassgill Portrait | implemented | да | TR_SUMMON_KEYWORD |
 | BG32_MagicItem_860 | Beetle Band | implemented | да | TR_AVENGE_SUMMON |
 | BG32_MagicItem_860t | Beetle Band | implemented | да | TR_AVENGE_SUMMON |
@@ -1016,6 +1160,8 @@
 | BG30_MagicItem_880 | Feral Talisman | implemented | вне пула | TR_AURA |
 | BG30_MagicItem_880t | Feral Talisman | implemented | вне пула | TR_AURA |
 | BG36_MagicItem_820 | Flighty Portrait | implemented | да | TR_NONE |
+| BG30_MagicItem_545 | Fridge Magnet | implemented | да | TR_NONE |
+| BG36_MagicItem_217 | Funeral Wreath | implemented | да | TR_NONE |
 | BG30_MagicItem_864 | Gilnean Thorned Rose | implemented | вне пула | TR_AVENGE_BUFF |
 | BG36_MagicItem_403 | Hammer of Twilight | implemented | да | TR_AURA; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
 | BG36_MagicItem_403t | Hammer of Twilight | implemented | да | TR_AURA; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
@@ -1026,6 +1172,8 @@
 | BG35_MagicItem_871 | Mama Bear Sticker | implemented | да | TR_RELEVANT |
 | BG30_MagicItem_910 | Mechagon Adapter | implemented | вне пула | TR_SHIELD |
 | BG35_MagicItem_710 | Miniature Ship | implemented | да | TR_NONE |
+| BG30_MagicItem_410 | Quilligraphy Set | implemented | да | TR_NONE |
+| BG30_MagicItem_410t2 | Quilligraphy Set | implemented | да | TR_NONE |
 | BG30_MagicItem_886 | Reinforced Shield | implemented | да | TR_SUMMON_KEYWORD |
 | BG30_MagicItem_434 | Replica Cathedral | implemented | да | TR_NONE |
 | BG32_MagicItem_907 | S'Thara Sticker | implemented | вне пула | TR_LAST_DEATH_SUMMON |
@@ -1033,8 +1181,10 @@
 | BG36_MagicItem_450 | Snarky Portrait | implemented | да | TR_RELEVANT; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
 | BG35_MagicItem_732 | Soul Fermenter | implemented | да | TR_LAST_DEATH_SUMMON; величина: существа, уничтоженные тринкетом в начале боя (SimSide.RemovedByExtras), без неё missing_input |
 | BG30_MagicItem_437 | Staff of the Scourge | implemented | да | TR_AVENGE_KEYWORD |
+| BG30_MagicItem_981 | The Eye of Dalaran | implemented | да | TR_NONE |
 | BG32_MagicItem_862 | Unholy Sanctum | implemented | вне пула | TR_DEATHRATTLE_BUFF |
 | BG32_MagicItem_862t | Unholy Sanctum | implemented | вне пула | TR_DEATHRATTLE_BUFF |
+| BG32_MagicItem_270t | Wicked Tome | implemented | да | TR_NONE |
 | BG32_MagicItem_415 | Battle Horn | missing_effect | вне пула | TR_AVENGE_BATTLECRY |
 | BG30_MagicItem_432 | Belcher Portrait | missing_effect | вне пула | TR_VENOM_BUFF |
 | BG30_MagicItem_432t | Belcher Portrait | missing_effect | вне пула | TR_VENOM_BUFF |
@@ -1060,8 +1210,6 @@
 | BG36_MidGameEffect_000t22 | Amalgamation | no_effect | да | BG36_MidGameEffect_000t22e; нет в таблице; по тексту |
 | BG36_MidGameEffect_000t28 | Battle Scars | no_effect | да | BG36_MidGameEffect_000t28e; нет в таблице; по тексту |
 | BG36_MidGameEffect_000t28t | Battle Scars | no_effect | да | BG36_MidGameEffect_000t28te; нет в таблице; по тексту |
-| BG36_MidGameEffect_000t3 | Charisma | no_effect | да | BG36_MidGameEffect_000t3e2; GIFT_RALLY_TAVERN |
-| BG36_MidGameEffect_000t80 | Consanguinity | no_effect | да | BG36_MidGameEffect_000t80e; GIFT_RALLY_TAVERN |
 | BG36_MidGameEffect_000t66 | Demonology | no_effect | да | BG36_MidGameEffect_000t66e; GIFT_RALLY_TAVERN |
 | BG36_MidGameEffect_000t88 | Desecration | no_effect | да | BG36_MidGameEffect_000t88e; нет в таблице; по тексту |
 | BG36_MidGameEffect_000t64 | Dexterity | no_effect | да | BG36_MidGameEffect_000t64e; нет в таблице; по тексту |
@@ -1075,7 +1223,6 @@
 | BG36_MidGameEffect_000t14 | Gilding | no_effect | да | BG36_MidGameEffect_000t14e; нет в таблице; по тексту |
 | BG36_MidGameEffect_000t13 | Harpy's Talons | no_effect | да | BG36_MidGameEffect_000t13e; нет в таблице; по тексту |
 | BG36_MidGameEffect_000t4 | Incubation | no_effect | да | BG36_MidGameEffect_000t4e; нет в таблице; по тексту |
-| BG36_MidGameEffect_000t5 | Mystic Essence | no_effect | да | BG36_MidGameEffect_000t5e2; GIFT_DR_TAVERN |
 | BG36_MidGameEffect_000t65 | Polarization | no_effect | да | BG36_MidGameEffect_000t65e; нет в таблице; по тексту |
 | BG36_MidGameEffect_000t18 | Replication | no_effect | да | BG36_MidGameEffect_000t18e; нет в таблице; по тексту |
 | BG36_MidGameEffect_000t7 | Resistance | no_effect | да | BG36_MidGameEffect_000t7e; нет в таблице; по тексту |
@@ -1094,11 +1241,14 @@
 | BG36_MidGameEffect_000t16 | Jaws of Death | resolved | да | BG36_MidGameEffect_000t16e; нет в таблице; по тексту Start of Combat |
 | BG36_MidGameEffect_000t81 | Transcendence | resolved | да | BG36_MidGameEffect_000t81e; нет в таблице; по тексту Start of Combat |
 | BG36_MidGameEffect_000t89 | Worship | resolved | да | BG36_MidGameEffect_000t89e; нет в таблице; по тексту Start of Combat |
+| BG36_MidGameEffect_000t3 | Charisma | implemented | да | BG36_MidGameEffect_000t3e2; GIFT_RALLY_TAVERN |
+| BG36_MidGameEffect_000t80 | Consanguinity | implemented | да | BG36_MidGameEffect_000t80e; GIFT_RALLY_TAVERN |
 | BG36_MidGameEffect_000t29 | Death's Embrace | implemented | да | BG36_MidGameEffect_000t29e; нет в таблице релевантности |
 | BG36_MidGameEffect_000t29t | Death's Embrace | implemented | да | BG36_MidGameEffect_000t29te; нет в таблице релевантности |
 | BG36_MidGameEffect_000t2 | Defensive Sacrifice | implemented | да | BG36_MidGameEffect_000t2e2; GIFT_DR_BUFF |
 | BG36_MidGameEffect_000t61 | Golemancy | implemented | да | BG36_MidGameEffect_000t61e; GIFT_DR_SUMMON |
 | BG36_MidGameEffect_000t60 | Invulnerability | implemented | да | BG36_MidGameEffect_000t60e; GIFT_IMMUNE_ATTACKING |
+| BG36_MidGameEffect_000t5 | Mystic Essence | implemented | да | BG36_MidGameEffect_000t5e2; GIFT_DR_TAVERN |
 | BG36_MidGameEffect_000t | Offensive Sacrifice | implemented | да | BG36_MidGameEffect_000te2; GIFT_DR_BUFF |
 | BG36_MidGameEffect_000t12 | Persisting Horror | implemented | да | BG36_MidGameEffect_000t12e; GIFT_REBORN |
 | BG36_MidGameEffect_000t15 | Toreth's Blessing | implemented | да | BG36_MidGameEffect_000t15e; GIFT_SHIELD |
@@ -1107,6 +1257,15 @@
 
 | Id | Название | Статус | Пул | Примечание |
 |---|---|---|---|---|
+| BG22_HERO_001p_t1e | Element: Earth | implemented | пул не подтверждён | нет в таблице релевантности |
+| BG20_HERO_282pe | Fragrant | implemented | пул не подтверждён | нет в таблице релевантности |
+| BG30_MagicItem_952e | Frosty Globe | implemented | пул не подтверждён | нет в таблице релевантности; величина: Elementals разыграно за игру (зачарование игрока BG26_537pe, NUM_1), без неё missing_input |
+| BG30_MagicItem_411e | Gem in the Bank | implemented | пул не подтверждён | нет в таблице релевантности |
+| BG35_MagicItem_740e2 | Skyward | implemented | пул не подтверждён | нет в таблице релевантности |
+| BG30_MagicItem_917e | Trident's Treasure | implemented | пул не подтверждён | нет в таблице релевантности |
+| BG31_HERO_801ptje | Ultra-Capacitor | implemented | пул не подтверждён | BC_REBORN_FULL |
+| BG31_HERO_801ptde | Advanced Ballistics | missing_effect | пул не подтверждён | BC_RALLY_BUFF |
+| BG31_HERO_801ptee | Caduceus Reactor | missing_effect | пул не подтверждён | BC_DR_BUFF |
 
 ## Квесты
 
@@ -1145,7 +1304,6 @@
 | BG27_Reward_811 | Bloodsoaked Tome | no_effect | да | QR_NONE |
 | BG24_Reward_306 | Cooked Book | no_effect | да | QR_NONE |
 | BG33_Reward_017 | Cosmic Reward | no_effect | вне пула | QR_NONE |
-| BG28_Reward_504 | Cycle of Energy | no_effect | да | QR_NONE |
 | BG24_Reward_309 | Devils in the Details | no_effect | вне пула | QR_NONE |
 | BG27_Reward_806 | Doppelganger's Locket | no_effect | да | QR_NONE |
 | BG28_Reward_506 | Double-Headed Reward | no_effect | да | QR_NONE |
@@ -1199,6 +1357,7 @@
 | BG33_Reward_003 | Righteous Charge | resolved | вне пула | Start of Combat: разрешилось до снимка |
 | BG24_Reward_312 | Staff of Origination | resolved | вне пула | Start of Combat: разрешилось до снимка |
 | BG24_Reward_109 | Stolen Gold | resolved | да | Start of Combat: разрешилось до снимка |
+| BG28_Reward_504 | Cycle of Energy | implemented | да | QR_NONE |
 | BG27_Reward_802 | Gilnean War Horn | implemented | да | QR_NONE |
 | BG33_Reward_021 | Rallying Cry | implemented | вне пула | QR_RELEVANT |
 | BG28_Reward_501 | Temporal Tampering | implemented | да | QR_NONE |
@@ -1332,48 +1491,163 @@
 | Id | Название | Статус | Пул | Примечание |
 |---|---|---|---|---|
 | BG33_101 | A New Sprout | no_effect | да | SP_NONE |
+| BG27_Reward_504t | Accelerator | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG31_HERO_801ptd | Advanced Ballistics | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptd2 | Advanced Ballistics | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptd3 | Advanced Ballistics | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptd4 | Advanced Ballistics | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptd5 | Advanced Ballistics | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptd6 | Advanced Ballistics | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptd7 | Advanced Ballistics | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptf | Advanced Construction | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptf2 | Advanced Construction | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptf3 | Advanced Construction | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptf4 | Advanced Construction | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_886t | All For One | no_effect | да | hsbg.cards: other; SP_NONE |
+| BGS_Treasures_037 | All That Glitters | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | BG31_880 | Alliance Flag | no_effect | да | SP_NONE |
+| BG31_880t2 | Allied Buckler | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG31_880t | Allied Mace | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG31_326t | Arm Day | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG28_500 | Armor Stash | no_effect | да | SP_NONE |
 | BG28_169 | Azerite Empowerment | no_effect | да | SP_NONE |
+| BGS_Treasures_019 | B.A.N.A.N.A.S. | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BGS_Treasures_040 | Banana Bunch | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG_EX1_014t | Bananas | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG_TB_006 | Big Banana | no_effect | да | hsbg.cards: other; SP_NONE |
+| BGS_Treasures_032 | Big Winner! | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG20_GEM_DivineShield | Blood Gem | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG20_GEM_Reborn | Blood Gem | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG34_689 | Blood Gem Barrage | no_effect | да | SP_NONE |
 | BG31_890 | Boundless Potential | no_effect | да | SP_NONE |
+| BG36_341t | Brandish the Flail | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG28_604 | Butchering | no_effect | да | SP_NONE |
+| BGS_Treasures_015 | Buy the Holy Light | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG31_HERO_801pte | Caduceus Reactor | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pte2 | Caduceus Reactor | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pte3 | Caduceus Reactor | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pte4 | Caduceus Reactor | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pte5 | Caduceus Reactor | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pte6 | Caduceus Reactor | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pte7 | Caduceus Reactor | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
 | BG28_800 | Careful Investment | no_effect | да | SP_NONE |
 | EBG_Spell_032 | Channel the Devourer | no_effect | да | SP_NONE |
+| BG35_MagicItem_755t | Chillmere Mosaic | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
 | BG28_601 | Cloning Conch | no_effect | да | SP_NONE |
+| BG24_HERO_100_Buddyt | Coin Pouch | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG32_MagicItem_205t | Coin Pouch | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG33_Reward_012t | Coin Pouch | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG36_332t2 | Collect the Bounty | no_effect | да | hsbg.cards: other; SP_NONE |
+| TB_Bacon_Secrets_13 | Competitive Spirit | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG28_521t | Consolation Coin | no_effect | да | hsbg.cards: other; SP_NONE |
+| TB_BaconShop_HP_080t | Consolation Coin | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG28_882 | Contracted Corpse | no_effect | да | SP_NONE |
 | BG36_303 | Corrupted Coin | no_effect | да | SP_NONE |
 | BG28_607 | Corrupted Cupcakes | no_effect | да | SP_NONE |
+| BGS_Treasures_110 | Crystallization | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | BG28_825 | Defender's Rites | no_effect | да | SP_NONE |
+| BG21_HERO_000_Buddyt2 | Defensive Stance | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG21_HERO_000_Buddyt4 | Defensive Stance | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG30_123t | Dig In | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG31_881t2 | Do It Later | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG35_MagicItem_817t | Duplicating Lens | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG34_444 | Easterly Winds | no_effect | да | SP_NONE |
 | BG28_512 | Enchanted Lasso | no_effect | да | SP_NONE |
 | BG36_371 | Energizing Chamber | no_effect | да | SP_NONE |
+| BG36_332t | Ensnare the Target | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG35_912 | Eonar's Favor | no_effect | да | SP_NONE |
+| BG31_Anomaly_102t | Evolving Scroll | no_effect | да | hsbg.cards: other; SP_NONE |
+| BGS_Treasures_006 | Evolving Tavern | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | EBG_Spell_017 | Eyes of the Earth Mother | no_effect | да | SP_NONE |
 | BG31_892 | Fandral's Fortune | no_effect | да | SP_NONE |
+| BG30_123t2 | Fill Your Plate | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG36_MagicItem_208t | Floating Candle Set | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
+| BG35_Anomaly_001t | Fly the Flag | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG31_886 | Forest's Bounty | no_effect | да | SP_NONE |
+| BG31_HERO_801pth | Fortified Bunker | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pth2 | Fortified Bunker | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pth3 | Fortified Bunker | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
 | BG28_503 | Fortify | no_effect | да | SP_NONE |
+| BGS_Treasures_025 | Fresh Tab | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | BG33_814 | Friendly Bounty | no_effect | да | SP_NONE |
+| BGS_Treasures_022 | Friends and Family Discount | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG36_341t2 | Full-on Barrage | no_effect | да | hsbg.cards: other; SP_NONE |
+| BGS_Treasures_004 | Gacha Gift | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | BG28_698 | Gem Confiscation | no_effect | да | SP_NONE |
+| BG31_893 | Gem Day | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG32_237t2 | Giant Dewdrop | no_effect | да | hsbg.cards: other; SP_NONE |
+| BGS_Treasures_028 | Give a Dog a Bone | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| TB_BaconShop_HP_008a | Gold Coin | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG31_Anomaly_124t4 | Golden Arrow | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG28_830 | Golden Touch | no_effect | да | SP_NONE |
+| BGS_Treasures_106 | Gorgeous Goblet | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BGS_Treasures_009 | Gruul Rules | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | BG31_896 | Hallowed Ritual | no_effect | да | SP_NONE |
 | BG28_571 | Hasty Excavation | no_effect | да | SP_NONE |
 | BG33_811 | Healthy Bounty | no_effect | да | SP_NONE |
 | BG28_GIL_836 | Hired Headhunter | no_effect | да | SP_NONE |
 | BG33_812 | Hostile Bounty | no_effect | да | SP_NONE |
+| BG36_330t | Hug the Wall | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG31_881t | Hurry Up | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG31_HERO_801pta | Hyperflight Rotors | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pta2 | Hyperflight Rotors | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pta3 | Hyperflight Rotors | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pta4 | Hyperflight Rotors | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pta5 | Hyperflight Rotors | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pta6 | Hyperflight Rotors | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pta7 | Hyperflight Rotors | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BGS_Treasures_018 | I'm Still Just a Rat in a Cage | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG35_MagicItem_306t | Jailer Sticker | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
+| BG35_MagicItem_733t | Jailer Sticker | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
+| BG24_Reward_718t | Kidnap Sack | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
 | BG28_827 | Leaf Through the Pages | no_effect | да | SP_NONE |
+| BG31_326t2 | Leg Day | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG36_520t | Lockbox | no_effect | да | hsbg.cards: other; SP_NONE |
 | EBG_Spell_038 | Lost Staff of Hamuul | no_effect | да | SP_NONE |
+| BGS_Treasures_101 | Mageroyal Blossom | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG31_Anomaly_115t | Magic Prize | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG36_MagicItem_417t | Makeshift Master | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
 | BG34_272 | Menagerie Tableware | no_effect | да | SP_NONE |
 | BG36_880 | Methodical Madness | no_effect | да | SP_NONE |
 | BG35_951 | Might of Stormwind | no_effect | да | SP_NONE |
+| BGS_Treasures_039 | Mindflayer Goggles | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG31_320t2 | Mine Deeper | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG31_HERO_801pti | Missile Pod | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801pti2 | Missile Pod | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
 | BG28_845 | Natural Blessing | no_effect | да | SP_NONE |
+| BGS_Treasures_033 | New Recruit | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG36_330t2 | Nick the Gems | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG21_HERO_000_Buddyt | Offensive Stance | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG21_HERO_000_Buddyt3 | Offensive Stance | no_effect | да | hsbg.cards: other; SP_NONE |
+| BGS_Treasures_012 | On the House | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG31_886t2 | One For All | no_effect | да | hsbg.cards: other; SP_NONE |
+| BGS_Treasures_023 | Open Bar | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG35_MagicItem_872t | Ophidian Staff | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
 | BG28_884 | Overconfidence | no_effect | да | SP_NONE |
 | BG28_838 | Perfect Vision | no_effect | да | SP_NONE |
+| BG27_Anomaly_302t | Piggy Bank | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG28_521 | Planar Telescope | no_effect | да | SP_NONE |
+| BG34_HeroPowerSpell_003 | Power of Al'Akir | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_HeroPowerSpell_005 | Power of Elise | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_HeroPowerSpell_016 | Power of Flurgl | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_HeroPowerSpell_006 | Power of George | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_HeroPowerSpell_015 | Power of Guff | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_HeroPowerSpell_008 | Power of Shudderwock | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_HeroPowerSpell_017 | Power of Sylvanas | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_HeroPowerSpell_009 | Power of Teron | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_HeroPowerSpell_012 | Power of Zephrys | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_HeroPowerSpell_010 | Power of the Lich King | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG32_237t | Pristine Lilies | no_effect | да | hsbg.cards: other; SP_NONE |
+| TB_BaconShop_HP_101t2 | Prize | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG35_922 | Queen's Command | no_effect | да | SP_NONE |
+| BGS_Treasures_016 | Raise the Stakes | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | BG28_504 | Recruit a Trainee | no_effect | да | SP_NONE |
+| TB_BaconShop_HP_047t | Recruitment Map | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG36_624 | Repair Job | no_effect | да | SP_NONE |
+| BGS_Treasures_034 | Repeat Customer | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BGS_Treasures_104 | Reserve Prices | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | BG30_804 | Robust Evolution | no_effect | да | SP_NONE |
+| BGS_Treasures_029 | Rocking and Rolling | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | BG28_507 | Sacred Gift | no_effect | да | SP_NONE |
 | BG28_849 | Saloon's Finest | no_effect | да | SP_NONE |
 | BG32_337 | Seafood Stew | no_effect | да | SP_NONE |
@@ -1382,29 +1656,106 @@
 | BG32_815 | Shifting Tide | no_effect | да | SP_NONE |
 | BG28_168 | Shiny Ring | no_effect | да | SP_NONE |
 | BG36_301t | Sludge Corrosion | no_effect | да | SP_NONE |
+| BG31_HERO_801ptb | Smart Servos | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptb2 | Smart Servos | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptb3 | Smart Servos | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptb4 | Smart Servos | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptb5 | Smart Servos | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptb6 | Smart Servos | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptb7 | Smart Servos | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
 | BG28_606 | Spitescale Special | no_effect | да | SP_NONE |
+| BG27_084t | Sprightly Sprucing | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG27_084t2 | Sprightly Support | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG28_886 | Staff of Enrichment | no_effect | да | SP_NONE |
 | BG28_805 | Strike Oil | no_effect | да | SP_NONE |
+| BG31_320t | Take the Gems | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG28_810 | Tavern Coin | no_effect | да | SP_NONE |
 | BG28_897 | Tavern Dish Banana | no_effect | да | SP_NONE |
 | BG31_819 | Temperature Shift | no_effect | да | SP_NONE |
+| BGS_Treasures_026 | The Bouncer | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG24_Reward_719t | The Golden Hammer | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
+| BG26_813t | The Goldenizer | no_effect | да | hsbg.cards: other; SP_NONE |
+| BGS_Treasures_013 | The Good Stuff | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BGS_Treasures_014 | The Unlimited Coin | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | BG28_966 | Them Apples | no_effect | да | SP_NONE |
 | BG31_881 | Time Management | no_effect | да | SP_NONE |
+| BGS_Treasures_010 | Time Thief | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BG34_Treasure_934 | Timewarped Armor Stash | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_912 | Timewarped B.A.N.A.N.A.S. | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_301 | Timewarped Beanstalk | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_606 | Timewarped Big Winner! | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_940 | Timewarped Chef's Choice | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_302 | Timewarped Cloning Device | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_951 | Timewarped Conch | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_937 | Timewarped Corpse | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_933 | Timewarped Evolution | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_900 | Timewarped Evolving Tavern | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_955 | Timewarped Goldenizer | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_609 | Timewarped Lasso | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_917 | Timewarped New Recruit | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_903 | Timewarped On the House | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_905 | Timewarped Rat in a Cage | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_953 | Timewarped Revelation | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_608 | Timewarped Ring | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_919 | Timewarped Ritual | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_610 | Timewarped Scroll | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_950 | Timewarped Special | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_932 | Timewarped Strike Oil | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_966 | Timewarped Thief | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG34_Treasure_607 | Timewarped Trainee | no_effect | да | hsbg.cards: timewarped; SP_NONE |
+| BG30_MagicItem_416t | Token of the Old Gods | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
 | BG34_888 | Tomb Turning | no_effect | да | SP_NONE |
+| BGS_Treasures_020 | Top Shelf | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
+| BGS_Treasures_011 | Training Session | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | BG28_520 | Tricky Trousers | no_effect | да | SP_NONE |
+| BG35_MagicItem_812t | Triple Prize | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG27_Anomaly_101t | Triple Reward | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG27_Anomaly_755t | Triple Reward | no_effect | да | hsbg.cards: other; SP_NONE |
+| TB_BaconShop_Triples_01 | Triple Reward | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG31_HERO_801ptj | Ultra-Capacitor | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BG31_HERO_801ptj2 | Ultra-Capacitor | no_effect | да | hsbg.cards: battlecruiser; SP_NONE |
+| BGS_Treasures_100 | Unfurled Codex | no_effect | да | hsbg.cards: darkmoon; SP_NONE |
 | EBG_Spell_037 | Unmasked Identity | no_effect | да | SP_NONE |
+| BG32_MagicItem_892t | Vibrant Bubble | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
 | BG34_990 | Wave of Gold | no_effect | да | SP_NONE |
+| BG31_890t | Way of the Mage | no_effect | да | hsbg.cards: other; SP_NONE |
+| BG31_890t2 | Way of the Warrior | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG33_815 | Wealthy Bounty | no_effect | да | SP_NONE |
 | BG36_884 | Weapons Forge | no_effect | да | SP_NONE |
+| TB_BaconShop_HP_038t | Wild Banana | no_effect | да | hsbg.cards: other; SP_NONE |
 | BG36_883 | Winner's Bread | no_effect | да | SP_NONE |
 | BG34_889 | Brood of Nozdormu | resolved | да | Start of Combat: разрешилось до снимка |
 | BG31_889 | Sharing is Caring | resolved | да | Start of Combat: разрешилось до снимка |
 | BG28_573 | Upper Hand | resolved | да | Start of Combat: разрешилось до снимка |
+| BG31_HERO_801ptc | Yamato Cannon | resolved | да | hsbg.cards: battlecruiser; Start of Combat: разрешилось до снимка |
+| BG31_HERO_801ptc2 | Yamato Cannon | resolved | да | hsbg.cards: battlecruiser; Start of Combat: разрешилось до снимка |
+| BG31_HERO_801ptc3 | Yamato Cannon | resolved | да | hsbg.cards: battlecruiser; Start of Combat: разрешилось до снимка |
+| BG31_HERO_801ptc4 | Yamato Cannon | resolved | да | hsbg.cards: battlecruiser; Start of Combat: разрешилось до снимка |
+| BG31_HERO_801ptc5 | Yamato Cannon | resolved | да | hsbg.cards: battlecruiser; Start of Combat: разрешилось до снимка |
+| BG31_HERO_801ptc6 | Yamato Cannon | resolved | да | hsbg.cards: battlecruiser; Start of Combat: разрешилось до снимка |
+| BG31_HERO_801ptc7 | Yamato Cannon | resolved | да | hsbg.cards: battlecruiser; Start of Combat: разрешилось до снимка |
+| BGS_Treasures_030 | Big Brann Play | implemented | да | hsbg.cards: darkmoon; SP_NONE |
 | BG20_GEM | Blood Gem | implemented | да | кастуется в бою; разыгрывается в эффектах существ (Fight.PlayBloodGem): не заклинание (в логе BG20_GEM_No_Impact), его видит Geomagus Roogug |
 | BG28_603 | Boon of Beetles | implemented | да | SP_RELEVANT |
 | BG28_518 | Chef's Choice | implemented | да | разрешается в TavernSpells через CastSpell: каст Seafloor Recruiter (BG34_925) |
 | BG36_246 | Mighty Dragonbreath | implemented | да | разрешается в TavernSpells через CastSpell: каст Crimson Vindicator (BG36_241) |
 | BG28_888 | Misplaced Tea Set | implemented | да | разрешается в TavernSpells через CastSpell: каст Gatekeeper Amalgam (BG36_640) |
+| TB_Bacon_Secrets_07 | Autodefense Matrix | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_08 | Avenge | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_07b | Better Autodefense Matrix | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_15b | Better Pack Tactics | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_10b | Better Redemption | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_01b | Better Venomstrike Trap | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_05 | Effigy | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| BG27_Anomaly_575t | Eleventh Hour | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_11 | Hand of Salvation | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_12 | Ice Block | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_15 | Pack Tactics | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_14 | Reckoning | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_10 | Redemption | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_02 | Snake Trap | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_04 | Splitting Image | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
+| TB_Bacon_Secrets_01 | Venomstrike Trap | missing_effect | да | hsbg.cards: other; SP_RELEVANT |
 
 ## Только Duos
 
@@ -1414,15 +1765,20 @@
 | BGDUO33_140 | Bottom Feeder | no_effect | да | END_OF_TURN |
 | BGDUO33_150 | Dark Dazzler | no_effect | да | SELL |
 | BGDUO_107 | Doting Dracthyr | no_effect | да | END_OF_TURN |
+| BGDUO_HERO_100_Buddy | Faceless One | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BGDUO_110 | Feisty Freshwater | no_effect | да | DR_TAVERN |
 | BGDUO_104 | Friendly Saloonkeeper | no_effect | да | BATTLECRY |
 | BGDUO31_201 | Gathering Stormer | no_effect | да | SELL |
+| BGDUO_HERO_101_Buddy | Glorious Gloopling | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BGDUO_112 | Grave Narrator | no_effect | да | AVENGE_TAVERN |
+| BGDUO_HERO_222_Buddy | Halfus the Mighty | no_effect | да | hsbg.cards: buddy; TAVERN |
+| BGDUO_HERO_223_Buddy | Halfus the Wise | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BGDUO_115 | Jumping Jack | no_effect | да | SELL |
 | BGDUO31_202 | Loyal Mobster | no_effect | да | END_OF_TURN |
 | BGDUO_121 | Man'ari Messenger | no_effect | да | BATTLECRY |
 | BGDUO31_212 | Mantid King | no_effect | да | PASS_DUOS |
 | BGDUO_108 | Mirror Monster | no_effect | да | PASS_DUOS |
+| BGDUO_HERO_104_Buddy | Mister Chu | no_effect | да | hsbg.cards: buddy; TAVERN |
 | BGDUO_119 | Orc-estra Conductor | no_effect | да | BATTLECRY |
 | BGDUO_114 | Passenger | no_effect | да | PASS_DUOS |
 | BGDUO_118 | Plunder Pal | no_effect | да | START_OF_TURN |
@@ -1438,6 +1794,7 @@
 | BGDUO_700 | Voidpriest Cloner | no_effect | да | PASS_DUOS |
 | BGDUO_100 | Wanderer Cho | no_effect | да | PASS_DUOS |
 | BGDUO_120 | Well Wisher | no_effect | да | SPELLCRAFT |
+| BGDUO_120t | Well Wishes | no_effect | да | hsbg.cards: spellcraft; SP_NONE |
 | BGDUO31_207 | Wheeled Crewmate | no_effect | да | DR_TAVERN |
 | BGDUO_125 | Sandy | resolved | да | Start of Combat: разрешилось до снимка |
 | BGDUO_701 | C'Thrax Wrecker | implemented | да | RALLY_DEITY |

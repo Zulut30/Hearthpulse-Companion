@@ -54,6 +54,7 @@ TAVERN_QUEST = re.compile(r"^Quest: (Buy|Spend|Sell|Add|Play|End your turn|Have 
                           re.IGNORECASE)
 CAST = re.compile(r"\b[Cc]asts? ((?:[A-Z][A-Za-z'-]*)(?: (?:[A-Z][A-Za-z'-]*|of|the|a|in))*)")
 PLAYS_GEM = re.compile(r"\bplays? (\d+ |a |an |two |three )?(extra )?Blood Gems?\b", re.IGNORECASE)
+SECRET_IN_COMBAT = re.compile(r"\b(is attacked|dies|deals \d+ or more damage|fatal damage)\b", re.IGNORECASE)
 SPELL_ON_THIS = re.compile(r"^Whenever you cast a spell on (this|a [A-Za-z]+), it casts", re.IGNORECASE)
 
 
@@ -72,6 +73,10 @@ def acts_in_combat(sentence):
 
 def label(card):
     text = normalize(card.get('text', ''))
+    if text.startswith('Secret:'):
+        # A Secret waits in the SECRET zone and fires in the fight (a minion attacked or dying, damage dealt, fatal damage to
+        # the hero); "When your turn starts" is the Tavern's (relevance audit, 2026-11-19).
+        return 'Relevant' if SECRET_IN_COMBAT.search(text) else 'None'
     # a sentence about Start of Combat effects acts before the boards are captured
     after_capture = [s for s in sentences(text) if 'Start of Combat' not in s]
     if any(acts_in_combat(s) for s in after_capture):
@@ -133,6 +138,10 @@ def player_cards(cards):
         kind = TYPES.get(card.get('type'))
         if card.get('type') == 'SPELL' and card.get('set') == 'BATTLEGROUNDS' and 'QUEST' in (card.get('mechanics') or []):
             kind = 'QU'
+        elif card.get('type') == 'SPELL' and card.get('set') == 'BATTLEGROUNDS' and not card.get('isBattlegroundsDarkGift'):
+            # Spells of type SPELL hsbg.cards puts in today's game (Darkmoon prizes, Battlecruiser upgrades, a Discover's
+            # spells...; relevance audit 2026-11-19): labelled like Tavern spells, so the matrix can judge them.
+            kind = 'SP'
         if kind and (card.get('set') == 'BATTLEGROUNDS' or kind not in ('HP', 'SP')):
             yield kind, card
 

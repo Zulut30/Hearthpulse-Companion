@@ -33,6 +33,13 @@ internal static class PlayerCardTable
         Tavern("BG36_MidGameEffect_000t66e", "GIFT_RALLY_TAVERN", "Demonology"),
         Tavern("BG36_MidGameEffect_000t80e", "GIFT_RALLY_TAVERN", "Consanguinity"),
 
+        // ---- Jim Raynor's Battlecruiser upgrades (relevance audit 2026-11-19): the enchantment an upgrade leaves on the
+        // Battlecruiser. The Rally's and the Deathrattle's number is the enchantment's script data, which the capture does not
+        // keep (SimMinion.Enchantments holds ids): no effect yet, the granted marker flags the fight.
+        Relevant("BG31_HERO_801ptde", "BC_RALLY_BUFF", "Advanced Ballistics"),
+        Relevant("BG31_HERO_801ptee", "BC_DR_BUFF", "Caduceus Reactor"),
+        Relevant("BG31_HERO_801ptje", "BC_REBORN_FULL", "Ultra-Capacitor"),
+
         // ---- Hero powers acting in combat.
         Relevant("BG22_HERO_003p", "HP_SPACE_SUMMON", "Stormpike Strength"),
         Relevant("BG22_HERO_002p", "HP_SPACE_SUMMON", "Frostwolf Fervor"),
@@ -40,6 +47,9 @@ internal static class PlayerCardTable
         Relevant("BG22_HERO_305p", "HP_AVENGE_SUMMON", "Broodmother"),
         Relevant("BG23_HERO_201p", "HP_SPACE_SUMMON", "Tentacular"),
         Relevant("BG20_HERO_100p", "HP_KILL_BUFF", "Glory of Combat"),
+        // Relevance audit 2026-11-19: "When you have space next combat, fire it at a random enemy minion" acts after the
+        // capture when the board is full at Start of Combat; what "fire it" does is not established (no log), no effect yet.
+        Relevant("BG22_HERO_000p_Alt", "HP_SPACE_FIRE", "Lock and Load"),
 
         // ---- Trinkets with a combat trigger or an aura that reaches minions summoned in combat.
         Relevant("BG30_MagicItem_427", "TR_DAMAGE_BUFF", "Tiger Carving"),
@@ -84,5 +94,8 @@ internal static class PlayerCardTable
         Relevant("BG36_MagicItem_403", "TR_AURA", "Hammer of Twilight"),
         Relevant("BG36_MagicItem_403t", "TR_AURA", "Hammer of Twilight"),
         Relevant("BG36_MagicItem_416", "TR_DEITY_KEYWORD", "Evil Experiment"),
+        // Relevance audit 2026-11-19: an aura that reaches Undead summoned in combat; a summon when there is space.
+        Relevant("BG30_MagicItem_989t", "TR_AURA", "Artisanal Urn"),
+        Relevant("BG30_MagicItem_303", "TR_SPACE_SUMMON", "Automaton Portrait"),
     ];
 }

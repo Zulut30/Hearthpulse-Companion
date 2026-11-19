@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using Hearthpulse.Core.Battlegrounds.Effects;
@@ -26,7 +27,10 @@ internal static class SimMatrix
     private const string OutOfPool = "вне пула";
     private const string CombatCast = "SP_COMBAT_CAST(";
 
-    private sealed record Row(CoverageKind Kind, string Id, string Name, Coverage Coverage, string Pool);
+    private sealed record Row(CoverageKind Kind, string Id, string Name, Coverage Coverage, string Pool, string ClassifyId, Card Card);
+
+    /// <summary>A hero of today's game and every hero power it can have (the starting one and its variants).</summary>
+    private sealed record HeroPowers(string HeroId, string Name, bool InPool, IReadOnlyList<string> Powers);
 
     /// <summary>One item of an API v1 library: card id, pool flag (null when the library has none), Duos-only, type slug.</summary>
     private sealed record Item(string Id, bool? InPool, bool DuosOnly, string Type);
@@ -79,8 +83,10 @@ internal static class SimMatrix
             }
 
             note = IsDuos(card.Id) && kind != CoverageKind.DuosOnly ? note is null ? "Duos" : $"Duos; {note}" : note;
-            var coverage = SimCoverage.Classify(classifyId ?? card.Id, kind, cards.Get(classifyId ?? card.Id)?.Text ?? card.Text);
-            rows.Add(new Row(kind, card.Id, card.Name, note is null ? coverage : coverage with { Note = $"{note}; {coverage.Note}" }, pool));
+            var target = cards.Get(classifyId ?? card.Id) ?? card;
+            var coverage = SimCoverage.Classify(classifyId ?? card.Id, kind, target.Text);
+            rows.Add(new Row(kind, card.Id, card.Name, note is null ? coverage : coverage with { Note = $"{note}; {coverage.Note}" }, pool,
+                target.Id, target));
         }
 
         void AddLibrary(CoverageKind kind, string library)
@@ -147,12 +153,32 @@ internal static class SimMatrix
             heroIds = cards.All.Where(c => c.IsBattlegroundsHero && c.BattlegroundsSkinParentId == 0).Select(c => c.Id).ToList();
         }
 
+        // A hero's variants: hero powers hsbg.cards gives the hero as parent (a second hero power, a hero power it swaps to),
+        // and HearthstoneJSON hero powers whose id extends the starting one's (King of Beasts, King of Mechs...).
+        var bgHeroPowers = cards.All.Where(c => c.Type == "HERO_POWER" && c.Set == "BATTLEGROUNDS").ToList();
+        var heroes = new List<HeroPowers>();
         foreach (var hero in heroIds.Select(cards.Get).OfType<Card>())
         {
-            if (heroPowerDbf.TryGetValue(hero.Id, out var dbf) && cards.Get(dbf) is { } power)
+            if (!heroPowerDbf.TryGetValue(hero.Id, out var dbf) || cards.Get(dbf) is not { } power)
             {
-                Add(CoverageKind.HeroPower, power, HsbgPool(hero.Id), note: hero.Name);
+                continue;
             }
+
+            Add(CoverageKind.HeroPower, power, HsbgPool(hero.Id), note: hero.Name);
+            var powers = new List<string> { power.Id };
+            var parent = hsbg.Get(hero.Id)?.Id ?? -1;
+            var variants = hsbg.Cards.Where(c => c.CardType == "hero_power" && c.ParentId == parent).Select(c => cards.Get(c.ExternalId)).OfType<Card>()
+                .Concat(bgHeroPowers.Where(c => c.Id.Length > power.Id.Length && c.Id.StartsWith(power.Id, StringComparison.Ordinal)))
+                .Where(c => c.Id != power.Id)
+                .DistinctBy(c => c.Id)
+                .OrderBy(c => c.Id, StringComparer.Ordinal);
+            foreach (var variant in variants)
+            {
+                Add(CoverageKind.HeroPower, variant, HsbgPool(hero.Id), note: $"{hero.Name}, вариант силы {power.Id}");
+                powers.Add(variant.Id);
+            }
+
+            heroes.Add(new HeroPowers(hero.Id, hero.Name, HsbgPool(hero.Id) == Yes, powers));
         }
 
         foreach (var power in hsbg.Cards.Where(c => c.CardType == "hero_power").Select(c => cards.Get(c.ExternalId)).OfType<Card>())
@@ -214,8 +240,21 @@ internal static class SimMatrix
             Add(CoverageKind.Spell, card, inGame ? Yes : OutOfPool, note: "кастуется в бою");
         }
 
+        // Cards of today's game (hsbg.cards lists the current pool only) that no list above names: buddies (the anomaly Bring
+        // in the Buddies puts them in the Tavern), minions hero powers make (Zerg, Protoss, the Battlecruiser, Fish of
+        // N'Zoth...), tokens, Darkmoon prizes, Battlecruiser upgrades, Spellcraft and Timewarped spells. Skins are left out.
+        foreach (var bg in hsbg.Cards.Where(c => c.CardType is "minion" or "spell" && !c.ExternalId.Contains("_SKIN_", StringComparison.Ordinal))
+                     .OrderBy(c => c.ExternalId, StringComparer.Ordinal))
+        {
+            if (cards.Get(bg.ExternalId) is { } card && !card.Id.EndsWith("_G", StringComparison.Ordinal))
+            {
+                var kind = bg.IsDuosOnly ? CoverageKind.DuosOnly : bg.CardType == "minion" ? CoverageKind.Minion : CoverageKind.Spell;
+                Add(kind, card, Yes, note: $"hsbg.cards: {string.Join(',', bg.Categories)}");
+            }
+        }
+
         // Other combat enchantments: table rows and registered effects on enchantments.
-        var enchantmentIds = CombatRelevance.Table.Where(r => r.Origin == Origin.Player).Select(r => r.CardId)
+        var enchantmentIds = CombatRelevance.Table.Concat(PlayerCardTable.Entries).Where(r => r.Origin == Origin.Player).Select(r => r.CardId)
             .Concat(EffectRegistry.Default.NormalCardIds)
             .Distinct(StringComparer.OrdinalIgnoreCase);
         foreach (var card in enchantmentIds.Select(cards.Get).OfType<Card>().Where(c => c.Type == "ENCHANTMENT"))
@@ -226,10 +265,76 @@ internal static class SimMatrix
         var path = Path.Combine(RepoRoot(), "docs", "bg-sim-matrix.md");
         File.WriteAllText(path, Markdown(rows, cards, meta, hsbg.Count > 0), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         Console.WriteLine($"[matrix] {rows.Count} rows -> {path}");
+        var audit = Path.Combine(RepoRoot(), "tests", "Hearthpulse.Tests", "Fixtures", "SimAudit", "matrix-cards.json.gz");
+        WriteAuditFixture(audit, rows, heroes, cards, meta);
+        Console.WriteLine($"[matrix] audit fixture -> {audit}");
         foreach (var group in rows.GroupBy(r => r.Coverage.Status).OrderBy(g => g.Key))
         {
             Console.WriteLine($"[matrix]   {SimCoverage.Code(group.Key),-15} {group.Count()}");
         }
+    }
+
+    /// <summary>
+    /// The texts behind every matrix row, for the relevance audit (tests/Hearthpulse.Tests/Sim/RelevanceAuditTests.cs): the
+    /// card the row is classified by, its golden text and mechanics, and every hero of the data with all its hero powers.
+    /// Gzipped JSON, written deterministically so an unchanged snapshot gives the same bytes.
+    /// </summary>
+    private static void WriteAuditFixture(string path, List<Row> rows, List<HeroPowers> heroes, CardDb cards, Meta meta)
+    {
+        using var buffer = new MemoryStream();
+        using (var json = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true }))
+        {
+            json.WriteStartObject();
+            json.WriteString("source", $"Hearthpulse.Bench simmatrix; HearthstoneJSON enUS build {meta.Build} ({meta.CardsDate}), API v1 snapshot {meta.FetchedAt}");
+            json.WriteStartArray("rows");
+            foreach (var row in rows)
+            {
+                json.WriteStartObject();
+                json.WriteString("kind", row.Kind.ToString());
+                json.WriteString("id", row.Id);
+                json.WriteString("classifyId", row.ClassifyId);
+                json.WriteString("name", row.Name);
+                json.WriteBoolean("inPool", row.Pool != OutOfPool);
+                json.WriteString("status", SimCoverage.Code(row.Coverage.Status));
+                json.WriteString("text", row.Card.Text);
+                json.WriteString("goldenText", row.Card.BattlegroundsPremiumDbfId > 0 ? cards.Get(row.Card.BattlegroundsPremiumDbfId)?.Text ?? string.Empty : string.Empty);
+                json.WriteStartArray("mechanics");
+                foreach (var mechanic in row.Card.Mechanics.Order(StringComparer.Ordinal))
+                {
+                    json.WriteStringValue(mechanic);
+                }
+
+                json.WriteEndArray();
+                json.WriteEndObject();
+            }
+
+            json.WriteEndArray();
+            json.WriteStartArray("heroes");
+            foreach (var hero in heroes)
+            {
+                json.WriteStartObject();
+                json.WriteString("id", hero.HeroId);
+                json.WriteString("name", hero.Name);
+                json.WriteBoolean("inPool", hero.InPool);
+                json.WriteStartArray("powers");
+                foreach (var power in hero.Powers)
+                {
+                    json.WriteStringValue(power);
+                }
+
+                json.WriteEndArray();
+                json.WriteEndObject();
+            }
+
+            json.WriteEndArray();
+            json.WriteEndObject();
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        using var file = File.Create(path);
+        using var gz = new GZipStream(file, CompressionLevel.SmallestSize);
+        buffer.Position = 0;
+        buffer.CopyTo(gz);
     }
 
     /// <summary>The caster ids a "SP_COMBAT_CAST(a,b,+3)" category names (the count of the cut ones is skipped).</summary>
