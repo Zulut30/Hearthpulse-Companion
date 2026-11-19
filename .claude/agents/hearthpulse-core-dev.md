@@ -39,7 +39,7 @@ the branch.
 
 ## Finish
 
-- Commit to your `claude/*` branch only: message in a file, UTF-8 without BOM, `git commit -F`, ending with the
-  Co-Authored-By line. Never push, never merge.
+- Commit to your `claude/*` branch only: message in a file, UTF-8 without BOM, `git commit -F`, with no
+  `Co-Authored-By` or other Claude attribution (owner, 2026-11-19). Never push, never merge.
 - Write `$task\handover-P<n>.md` (format: `hearthpulse-parallel-work` §5).
 - Reply: commits (sha + line), build and test counts, AC closed, shared-file touches, what was not checked.

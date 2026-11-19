@@ -92,7 +92,7 @@ powershell -File tools/dev/check.ps1 -All -Configuration Release  # once on the 
   Conflicts: keep both sides' intent; a combination fix is its own commit.
 - 0 errors and all tests green, else fix (or send back to the session) - never push red.
 - Commit messages: write to a file as UTF-8 **without BOM** (`[IO.File]::WriteAllText($f, $msg,
-  (New-Object Text.UTF8Encoding($false)))`), then `git commit -F $f`; end with the Co-Authored-By line.
+  (New-Object Text.UTF8Encoding($false)))`), then `git commit -F $f`; no `Co-Authored-By` or other Claude attribution (owner, 2026-11-19).
 
 ## 4. Push and check CI
 

@@ -101,8 +101,6 @@ $Owned = @(
     'tests/BGSim.Tests/Shims/*'
 )
 
-$TrailerLine = 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'
-
 # --- Helpers ------------------------------------------------------------------------------------------------------
 
 function Assert-Exit([string]$what) {
@@ -307,7 +305,7 @@ try {
         Write-Host "BGSim already matches Hearthpulse $short; no commit." -ForegroundColor Green
     } else {
         $message = Join-Path $work 'message.txt'
-        [IO.File]::WriteAllText($message, "Sync from Hearthpulse $short`n`n$TrailerLine`n", $utf8)
+        [IO.File]::WriteAllText($message, "Sync from Hearthpulse $short`n", $utf8)
         git -C $Target commit -q -F $message
         Assert-Exit 'git commit in BGSim'
         Write-Host "Committed in BGSim: $(git -C $Target log -1 --format='%h %s')" -ForegroundColor Green

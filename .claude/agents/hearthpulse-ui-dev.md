@@ -48,8 +48,8 @@ You implement one package of a task card in both UIs. The brief gives the card `
 ## Finish
 
 - Self-check the diff with `interface-review` (the reviewer runs the same pass) and fix what it finds.
-- Commit to your `claude/*` branch only: message in a file, UTF-8 without BOM, `git commit -F`, ending with the
-  Co-Authored-By line. Never push, never merge.
+- Commit to your `claude/*` branch only: message in a file, UTF-8 without BOM, `git commit -F`, with no
+  `Co-Authored-By` or other Claude attribution (owner, 2026-11-19). Never push, never merge.
 - Write `$task\handover-P<n>.md` (format: `hearthpulse-parallel-work` §5).
 - Reply: commits (sha + line), build and test counts for both suites, AC closed, shared-file touches, what was not
   checked (no render, no live game).
