@@ -63,8 +63,13 @@ TASK-2026-11-19-sim-all-mechanics, package U). Same switch as the rest of the jo
   BACON_RALLY`).
 - **Never.** Either hand (the player's own included), the opponent's card values, other player tags (ratings, ids),
   names, BattleTags, account ids, paths or text. Entity ids are fight-scoped references 1.. in Power.log order (the
-  simulator only compares them), not the game's ids. Both boards are visible during the combat; the opponent's player
-  counters and minion script values are the same inputs the in-game odds already use.
+  simulator only compares them), not the game's ids.
+- **Caveat to "only what the player saw" (owner's decision, 2026-11-19).** The fights are uploaded to measure the
+  simulator. Simulator inputs the client may not show (the opponent's player counters such as Blood Gem values, the
+  `script1/2` values of his minions and the card that created them, `creator`) are sent after the game, only for this
+  measurement, and never published. Both boards themselves are visible during the combat. `creator` stays on the
+  opponent's side because the simulator needs it there: his hero powers that copy or summon (Vanndar, Drek'Thar, the
+  Tentacle power) check which minion they already made, and it is part of the simulation seed.
 - **Limits** (client, decoder and pool alike): 64 fights a game, 7 minions a side, 7 remembered per minion (none
   nested), 32 enchantments a minion, 16 player-level cards and values a side, 14 facts, references up to 1000, stats
   0–1 000 000, data at most 56 KiB (inside the 64 KiB line limit). A fight outside them is left out whole and counted
@@ -81,13 +86,36 @@ TASK-2026-11-19-sim-all-mechanics, package U). Same switch as the rest of the jo
   transaction, or the commit answers 503 to retry under storage pressure. They leave with their capture: expiry (the
   archive retention, 180 days), forget of the generation, deletion. Nothing is published from them; `/healthz` shows a
   count (`bgCombats`).
-- **Export (owner only).** `POOL_OPERATOR_TOKEN=… node server/pool/node/export-combats.mjs --out fights.jsonl` on the
-  pool host (loopback route `POST /v1/captures/combats/export`, operator token like reprocess; nginx refuses it). One
+- **Export (owner only).** On the pool host, with the token from the service's env file, never typed on a command line
+  (it would stay in the shell history):
+
+  ```sh
+  set -a; . /etc/hearthpulse-pool/pool.env; set +a   # or: read -rs POOL_OPERATOR_TOKEN; export POOL_OPERATOR_TOKEN
+  node server/pool/node/export-combats.mjs --out fights.jsonl
+  ```
+
+  The loopback route `POST /v1/captures/combats/export` takes the operator token like reprocess; nginx refuses it. One
   line per fight: `{"v":1,"game":"<16 hex of a hash of the capture key>","day","build","mode","fight"}`, no
   installation, generation or capture key. Read with `Hearthpulse.Bench simcover --pool fights.jsonl`.
-- **Order of deployment.** A pool without v3 refuses a v3 journal (`400`), and the app then retries it and holds the
-  journals behind it until the pool is updated or 14 days pass: deploy `server/pool` before releasing an app that
-  writes v3.
+- **Rule for an export file** (legal review L-M2). Pool retention, forget and deletion do not reach a copy, so:
+  - it is a working copy only on the pool host or the owner's PC, moved between them over SSH (`scp`/`sftp`);
+  - never committed, never put on a cloud drive, never given to anyone else or to an outside service;
+  - deleted after the measurement and no later than 180 days from the `day` of its rows; a new measurement takes a
+    fresh export;
+  - `simcover --pool` leaves out any row older than 180 days (`PoolFights.MaxAgeDays`), so a stale copy gives nothing.
+- **Order of deployment.** Deploy `server/pool` before releasing an app that writes v3. A pool without v3 refuses a v3
+  journal as an unknown record (`400 invalid_record`); the app then sends that journal and the following ones as v2
+  without their fights until it restarts (`SourceCaptureQueue.Downgrade.cs`, log line `Source capture: the pool does
+  not take source v3 yet...`), so the queue never waits on it, but those fights are lost.
+- **Before releasing v3: update the site's privacy policy, section 9** (legal review L-M1; the site is another
+  repository). The ready paragraph from the review, with the card that created a minion added, for the owner to paste:
+
+  > «После игры в Полях сражений журнал содержит и каждый бой так, как его получил симулятор боёв приложения: оба
+  > стола на момент первой атаки (карты, статы, ключевые слова, усиления, карта, создавшая существо), героев, силы
+  > героя, аксессуары и награды, уровень таверны, здоровье, счётчики игроков обеих сторон (например, усиление Кровавых
+  > самоцветов — в том числе соперника, даже если игра их не показывает), показанные шансы, исход и урон. Никогда —
+  > руки, имена, BattleTag, аккаунты. Цель — проверять точность симулятора. Бои не публикуются, хранятся и удаляются
+  > вместе с журналом (до 180 дней, при выключении отправки).»
 
 ## Delivery and lifecycle
 

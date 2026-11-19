@@ -12,14 +12,19 @@ namespace Hearthpulse.Bench;
 /// per fight: <c>{"v":1,"game","day","build","mode","fight"}</c>, docs/source-capture.md): each fight is checked with the
 /// app's own <c>bg_combat</c> rules, read back as simulator input and scored like a fight of the local capture file, with
 /// "not simulated" decided again by today's card data and effects. The records carry no hand, so an effect that reads
-/// the player's hand plays without one.
+/// the player's hand plays without one. A fight older than the pool keeps it (<see cref="MaxAgeDays"/> from its day) is
+/// not read: an export is a working copy, deleted after the measurement (docs/source-capture.md, "Export").
 /// </summary>
 internal static class PoolFights
 {
-    public static IReadOnlyList<SimGame> Read(string path, CardDb cards)
+    /// <summary>The pool's retention: a fight past it is gone from the pool, so a copy of it is not used either.</summary>
+    public const int MaxAgeDays = 180;
+
+    public static IReadOnlyList<SimGame> Read(string path, CardDb cards, DateOnly? today = null)
     {
+        var oldest = (today ?? DateOnly.FromDateTime(DateTime.UtcNow)).DayNumber - DateOnly.FromDateTime(DateTime.UnixEpoch).DayNumber - MaxAgeDays;
         var games = new Dictionary<string, (int Day, int Build, bool Duos, List<SavedFight> Fights)>(StringComparer.Ordinal);
-        int lines = 0, skipped = 0;
+        int lines = 0, skipped = 0, expired = 0;
         foreach (var line in File.ReadLines(path))
         {
             if (line.Length == 0)
@@ -34,6 +39,12 @@ internal static class PoolFights
                 continue;
             }
 
+            if (read.Day < oldest)
+            {
+                expired++;
+                continue;
+            }
+
             if (!games.TryGetValue(read.Game, out var game))
             {
                 game = games[read.Game] = (read.Day, read.Build, read.Duos, []);
@@ -43,7 +54,7 @@ internal static class PoolFights
         }
 
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"[sim] pool {Path.GetFileName(path)}: {lines - skipped} fights of {games.Count} games read, {skipped} lines not read"));
+            $"[sim] pool {Path.GetFileName(path)}: {lines - skipped - expired} fights of {games.Count} games read, {skipped} lines not read, {expired} older than {MaxAgeDays} days left out (delete the export)"));
         return games.Select(g => SimSample.From(
                 new SavedCaptures
                 {

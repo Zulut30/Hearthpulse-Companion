@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -361,13 +363,16 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Directory.CreateDirectory(_dir);
         var file = Path.Combine(_dir, "fights.jsonl");
         var fight = Wire(Project(Fight(), index: 0));
-        string Line(string game, string mode, string data) =>
-            $$"""{"v":1,"game":"{{game}}","day":20776,"build":4321,"mode":"{{mode}}","fight":{{data}}}""";
+        string Line(string game, string mode, string data, int day = 20776) =>
+            $$"""{"v":1,"game":"{{game}}","day":{{day}},"build":4321,"mode":"{{mode}}","fight":{{data}}}""";
         File.WriteAllLines(file,
         [
             Line("0123456789abcdef", "bg", fight),
             Line("0123456789abcdef", "bg", fight.Replace("\"fight\":0", "\"fight\":1", StringComparison.Ordinal)),
             Line("fedcba9876543210", "duos", fight),
+            // Past the pool's 180 days (from 20776 = 2026-11-19): a stale export gives nothing of it.
+            Line("1111111111111111", "bg", fight, day: 20776 - PoolFights.MaxAgeDays - 1),
+            Line("0123456789abcdef", "bg", fight.Replace("\"fight\":0", "\"fight\":2", StringComparison.Ordinal), day: 20776 - PoolFights.MaxAgeDays),
             // A line the app's rules refuse, a line that is no export line, an empty line: not read.
             Line("0123456789abcdef", "bg", fight.Replace("\"transcript\":null", "\"transcript\":1", StringComparison.Ordinal)),
             """{"v":1,"game":"0123456789abcdef","day":20776,"build":4321,"mode":"ranked","fight":{}}""",
@@ -375,9 +380,11 @@ public sealed class SourceCaptureCombatTests : IDisposable
             string.Empty,
         ]);
 
-        var games = PoolFights.Read(file, CardDb.Empty);
+        var today = DateOnly.FromDateTime(DateTime.UnixEpoch).AddDays(20776);
+        var games = PoolFights.Read(file, CardDb.Empty, today);
 
-        Assert.Equal([2, 1], games.Select(g => g.Fights.Count));
+        Assert.Equal([3, 1], games.Select(g => g.Fights.Count));
+        Assert.Empty(PoolFights.Read(file, CardDb.Empty, today.AddDays(PoolFights.MaxAgeDays + 1)));
         Assert.Equal([false, true], games.Select(g => g.Duos));
         Assert.Equal([4321, 4321], games.Select(g => g.Build));
         Assert.Equal(DateTime.UnixEpoch.AddDays(20776), games[0].StartedAt);
@@ -385,5 +392,105 @@ public sealed class SourceCaptureCombatTests : IDisposable
         Assert.Equal(("Win", 5, 3), (first.Result, first.DamageDealt, first.Turn));
         Assert.Empty(first.Capture!.Ours.Hand);
         Assert.NotNull(SimSample.Score(first, SimBudget.Quick));
+    }
+
+    // --------------------------------------------------------------------------------- a pool without source v3
+
+    /// <summary>A pool from before source v3: every v3 line is an unknown record (400 invalid_record), v2 is taken.</summary>
+    private sealed class OldPool(List<(string Route, int Version, string Source)> seen, string refusal = "invalid_record") : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+            var root = body.RootElement;
+            if (request.RequestUri!.AbsolutePath.EndsWith("chunks", StringComparison.Ordinal))
+            {
+                using var gzip = new GZipStream(new MemoryStream(Convert.FromBase64String(root.GetProperty("data").GetString()!)), CompressionMode.Decompress);
+                using var reader = new StreamReader(gzip);
+                var source = await reader.ReadToEndAsync(cancellationToken);
+                var version = source.Contains("\"v\":3", StringComparison.Ordinal) ? 3 : 2;
+                seen.Add(("chunks", version, source));
+                return version == 3
+                    ? new(HttpStatusCode.BadRequest) { Content = new StringContent($$"""{"ok":false,"error":"{{refusal}}"}""") }
+                    : Ok(new { ok = true, stored = true, duplicate = false, index = root.GetProperty("index").GetInt32(), sha256 = root.GetProperty("sha256").GetString() });
+            }
+
+            seen.Add(("complete", root.GetProperty("sourceVersion").GetInt32(), string.Empty));
+            return Ok(new { ok = true, status = "stored", captureId = root.GetProperty("captureId").GetString() });
+        }
+
+        private static HttpResponseMessage Ok(object body) => new(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(body)) };
+    }
+
+    private static void SpoolBattlegroundsGame(SourceCaptureQueue queue, char id)
+    {
+        var capture = new string(id, 32);
+        SourceCaptureFrame Frame(int seq, string kind, object data, int turn = 0) =>
+            new(capture, "game", "bg", 20776, new SourceCaptureRecord(seq, kind, turn, "none", 0, null, 0, data, 3));
+        Assert.True(queue.TryAppend(Frame(0, "start", new { captureKind = "game", mode = "bg", day = 20776, build = (int?)4321, format = (string?)null, arena = (string?)null })));
+        Assert.True(queue.TryAppend(Frame(1, "gap", new { reason = "combat_view", count = 1 })));
+        Assert.True(queue.TryAppend(Frame(2, "tag", new { tag = "TURN", value = 9 }, turn: 9)));
+        Assert.True(queue.TryAppend(Frame(3, "bg_combat", Project(Fight(), index: 0), turn: 9)));
+        Assert.True(queue.TryAppend(Frame(4, "bg_combat", Project(Fight(), index: 1), turn: 9)));
+        Assert.True(queue.TryAppend(Frame(5, "end", new { status = "incomplete", result = "L", placement = (int?)4, reason = "normal" }, turn: 9)));
+    }
+
+    [Fact]
+    public async Task A_pool_without_source_v3_gets_the_journal_as_v2_without_fights_until_the_app_restarts()
+    {
+        using var scratch = new SourceScratch();
+        var seen = new List<(string Route, int Version, string Source)>();
+        using var http = new HttpClient(new OldPool(seen));
+        await using (var queue = await scratch.Open())
+        {
+            SpoolBattlegroundsGame(queue, 'a');
+            SpoolBattlegroundsGame(queue, 'b');
+            await queue.FlushAsync();
+            await queue.SendPendingAsync(new(http));
+
+            // One refused v3 attempt, then both journals as v2: nothing waits behind the first one.
+            Assert.Single(seen, x => x.Version == 3);
+            Assert.Equal(2, seen.Count(x => x is { Route: "complete", Version: 2 }));
+            Assert.Equal(0, queue.State.PendingCaptures);
+            foreach (var (_, _, source) in seen.Where(x => x is { Route: "chunks", Version: 2 }))
+            {
+                Assert.DoesNotContain("bg_combat", source, StringComparison.Ordinal);
+                var lines = source.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                Assert.Equal(4, lines.Length);
+                Assert.All(lines.Select((line, i) => (line, i)), x => Assert.StartsWith($"{{\"v\":2,\"seq\":{x.i},", x.line, StringComparison.Ordinal));
+                // It is a valid v2 source for the decoder, with the same game in it.
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+                var result = await new SourceCaptureParser().ParseAsync(stream);
+                Assert.Equal((2, 4), (result.SourceVersion, result.Facts.Outcome?.Placement ?? 0));
+            }
+        }
+
+        // After a restart the pool is asked with v3 again: it may have been updated meanwhile.
+        await using (var restarted = await scratch.Open())
+        {
+            SpoolBattlegroundsGame(restarted, 'c');
+            await restarted.FlushAsync();
+            await restarted.SendPendingAsync(new(http));
+            Assert.Equal(2, seen.Count(x => x.Version == 3));
+            Assert.Equal(0, restarted.State.PendingCaptures);
+        }
+    }
+
+    [Fact]
+    public async Task Another_refusal_of_a_v3_journal_keeps_it_waiting_as_before()
+    {
+        using var scratch = new SourceScratch();
+        var seen = new List<(string Route, int Version, string Source)>();
+        using var http = new HttpClient(new OldPool(seen, refusal: "invalid_sequence"));
+        await using var queue = await scratch.Open();
+        SpoolBattlegroundsGame(queue, 'a');
+        await queue.FlushAsync();
+
+        await queue.SendPendingAsync(new(http));
+
+        Assert.Equal([3], seen.Select(x => x.Version));
+        Assert.Equal(1, queue.State.PendingCaptures);
+        Assert.Equal("rejected", queue.State.Status);
+        Assert.Contains("bg_combat", await File.ReadAllTextAsync(Directory.GetFiles(scratch.Path, "*.jsonl", SearchOption.AllDirectories).Single()), StringComparison.Ordinal);
     }
 }

@@ -2,7 +2,11 @@
 // `Hearthpulse.Bench simcover --pool <file>`. Runs on the pool host against the loopback service with the operator
 // token, the same gate as reprocess; the token is read from POOL_OPERATOR_TOKEN, never from the command line.
 //
-//   POOL_OPERATOR_TOKEN=... node server/pool/node/export-combats.mjs --out fights.jsonl [--url http://127.0.0.1:3181]
+//   set -a; . /etc/hearthpulse-pool/pool.env; set +a    (or: read -rs POOL_OPERATOR_TOKEN; export POOL_OPERATOR_TOKEN)
+//   node server/pool/node/export-combats.mjs --out fights.jsonl [--url http://127.0.0.1:3181]
+//
+// The file is a working copy only on the host or the owner's PC (moved over SSH), never committed or shared, deleted
+// after the measurement and no later than 180 days from the `day` of its rows (docs/source-capture.md).
 //
 // Each line: {"v":1,"game":"<16 hex>","day":<days since 1970>,"build":<client build|null>,"mode":"bg|duos","fight":{...}}
 // with the fight exactly as validated on upload (docs/source-capture.md). Prints counts only.

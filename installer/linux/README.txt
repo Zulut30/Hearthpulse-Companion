@@ -49,8 +49,10 @@ GAME STATISTICS
   marked separately. Stored journals can be reprocessed as the parser improves.
 - After a Battlegrounds game the journal also holds each of its fights as the
   combat simulator saw it at the first attack: both boards (cards, stats,
-  keywords, enchantments), heroes, hero powers and trinkets, the odds shown,
-  the result and damage. Never your hand. It is used to measure the simulator.
+  keywords, enchantments, the card that created each minion), heroes, hero
+  powers and trinkets, tavern tier, health and player counters such as Blood
+  Gem values of both sides, the odds shown, the result and damage. Never your
+  hand. It is used to measure the simulator and is not published.
 - No name, BattleTag, account, deck name, exact rating, private network log or
   hidden opponent cards. Source identities are random per installation and
   generation, separate from the website account; only aggregate statistics
