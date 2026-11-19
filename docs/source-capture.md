@@ -49,6 +49,9 @@ step by step after the game (`simreplay --pool`). Same switch as the rest of the
   same ones the local `combat-captures/` file keeps; that file itself is not read or sent.
 - **What (the allowlist).** Envelope `side:"none"`, `entity:0`, `card:null`, `target:0`; data, every field always
   present: `fight` (the combat's number in the game, 0–63, growing), `turn`, `oursFirst` (true/false/null),
+  `oursEnteredFirst` (true/false/null, the order of the sides: whether the player's side entered play first, i.e. its
+  hero has the lower lobby `PLAYER_ID`; read only by the death order, `Fight.EnteredFirst`, rules-evidence 4a: the side
+  that entered first loses its starting minions first in a death phase; null when either number is unknown),
   `firstAttacker`, `damageCap`, `countDamage` (false in Duos), `ours`/`theirs`, `facts`, `result` (`W|T|L`),
   `damageTaken`, `damageDealt`, `odds` (null or `win, tie, loss, lethalTaken, lethalDealt` rounded to 4 decimals,
   `unsimulated`, `runs`: what the app showed when the game ended) and `transcript`.
@@ -79,14 +82,22 @@ step by step after the game (`simreplay --pool`). Same switch as the rest of the
   board: `[steps before it,[[minion,card,attack,health,keyword bits],..ours],[..theirs]]`, before each regular attack and
   at the end. Every step names a board minion: one of the capture or one an earlier step summoned. Entity ids are the
   record's references (one numbering with the boards).
+- **The order of the sides, not a seat number (U2 decision, legal review LEGAL-sim-pool-combats-v3 L-M1).** The
+  simulator compares the two heroes' lobby `PLAYER_ID`s and reads nothing else of them (`Fight.cs`, `EnteredFirst`), so
+  the record carries only that order (`oursEnteredFirst`); the reader gives the sides the numbers 1 and 2 in that order.
+  The numbers themselves never leave: no seat, nothing next to it in Power.log (`GameAccountId=[hi=… lo=…]`, the
+  Battle.net account). `oursFirst`/`firstAttacker` cannot stand in for it: who attacks first is a different rule.
 - **Never.** Either hand (the player's own included; in the transcript no card into the hand, no hand card's stats or
-  triggered effect), the opponent's card values or player enchantments, other player tags (ratings, ids), the player's
-  secrets, names, BattleTags, account ids, paths or text. Entity ids are fight-scoped references 1.. in Power.log order
+  triggered effect), the opponent's card values or player enchantments, other player tags (ratings, ids), lobby
+  `PLAYER_ID` numbers, `GameAccountId` (`hi`/`lo`), the player's own secrets (the capture keeps them for Ice Block; the
+  record does not), names, BattleTags, account ids, paths or text. Entity ids are fight-scoped references 1.. in Power.log order
   (the simulator only compares them), not the game's ids.
 - **Caveat to "only what the player saw" (owner's decision, 2026-11-19).** The fights are uploaded to measure the
   simulator. Simulator inputs the client may not show (the opponent's player counters such as Blood Gem values, the
-  `script1/2` values of his minions, the numbers on their enchantments (`enchantmentValues`) and the card that created
-  them, `creator`) are sent after the game, only for this measurement, and never published. Both boards and the course
+  `script1/2` values of his minions, the numbers on their enchantments (`enchantmentValues`), their Blood Gem buffs
+  (`bloodGemAttack`/`bloodGemHealth`, tags 4235/4236), the friendly deaths they saw before the capture
+  (`friendlyDeaths`) and the card that created them, `creator`) are sent after the game, only for this measurement, and
+  never published. Both boards and the course
   of the combat (the transcript) are on the player's screen during the combat. `creator` stays on the opponent's side
   because the simulator needs it there: his hero powers that copy or summon (Vanndar, Drek'Thar, the Tentacle power)
   check which minion they already made, and it is part of the simulation seed.
@@ -109,6 +120,9 @@ step by step after the game (`simreplay --pool`). Same switch as the rest of the
   transaction, or the commit answers 503 to retry under storage pressure. They leave with their capture: expiry (the
   archive retention, 180 days), forget of the generation, deletion. Nothing is published from them; `/healthz` shows a
   count (`bgCombats`).
+- **Use.** Fights are used only to measure the simulator: never joined with hearthpulse.net profiles, with other
+  installations' captures of the same lobby, or with any outside replay or video (legal review
+  LEGAL-sim-pool-combats-v3, L-m3).
 - **Export (owner only).** On the pool host, with the token from the service's env file, never typed on a command line
   (it would stay in the shell history):
 
@@ -135,17 +149,20 @@ step by step after the game (`simreplay --pool`). Same switch as the rest of the
   not take source v3 yet...`), so the queue never waits on it, but those fights are lost.
 - **Before releasing v3: update the site's privacy policy, section 9** (legal review L-M1; the site is another
   repository). The ready paragraph from the review, with the card that created a minion, the numbers on enchantments,
-  the deaths before the first attack, the lobby's tribes and the course of the fight added (U2), for the owner to paste:
+  the deaths before the first attack, the lobby's tribes, the order of the sides and the course of the fight added (U2,
+  legal review LEGAL-sim-pool-combats-v3), for the owner to paste:
 
   > «После игры в Полях сражений журнал содержит и каждый бой так, как его получил симулятор боёв приложения: оба
   > стола на момент первой атаки (карты, статы, ключевые слова, усиления и их значения, усиления от Кровавых самоцветов,
   > карта, создавшая существо), существа, погибшие до первой атаки, героев, силы героя, аксессуары и награды и их
-  > значения, ваши усиления игрока, племена лобби, уровень таверны, здоровье, счётчики игроков обеих сторон (например,
-  > усиление Кровавых самоцветов — в том числе соперника, даже если игра их не показывает), ход боя по шагам (атаки,
-  > урон, гибель и призыв существ, изменения их характеристик и сработавшие эффекты на столах), показанные шансы, исход
-  > и урон. Никогда — руки (ни карт, полученных в бою, ни их характеристик), имена, BattleTag, аккаунты. Цель —
-  > проверять точность симулятора. Бои не публикуются, хранятся и удаляются вместе с журналом (до 180 дней, при
-  > выключении отправки).»
+  > значения, ваши усиления игрока, племена лобби, порядок сторон (чья сторона вошла в игру первой — без номеров мест
+  > в матче), уровень таверны, здоровье, счётчики игроков обеих сторон (например, усиление Кровавых самоцветов), ход
+  > боя по шагам (атаки, урон, гибель и призыв существ, изменения их характеристик и сработавшие эффекты на столах),
+  > показанные шансы, исход и урон. У соперника это и то, что игра может не показывать: карта, создавшая существо,
+  > его усиления и их значения, его счётчики. Никогда — руки (ни карт, полученных в бою, ни их характеристик), имена,
+  > BattleTag, аккаунты. Цель — проверять точность симулятора: бои не публикуются и не сопоставляются с профилями
+  > hearthpulse.net, с боями других установок из того же лобби или с чужими записями и видео. Хранятся и удаляются
+  > вместе с журналом (до 180 дней, при выключении отправки).»
 
 ## Delivery and lifecycle
 
