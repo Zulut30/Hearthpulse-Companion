@@ -38,6 +38,7 @@
   "Library.Empty.Saved": "Нажмите на звезду у игры, чтобы сохранить её реплей: сохранённые не удаляются при очистке.",
   "Library.Empty.Imported": "Импортируйте реплей .hpr или Power.log кнопкой «Импорт» или вставьте файл: Ctrl+V.",
   "Library.Empty.Filter": "Нет игр этого режима.",
+  "Library.Loading": "Загружаем реплеи…",
   "Library.Site.UploadTip": "Загрузить на сайт: публичная ссылка на эту игру (сначала спросим)",
   "Library.Site.RemoveTip": "На сайте: {0}. Нажмите, чтобы удалить с сайта",
   "Library.Site.ConfirmUpload": "Загрузить игру на hearthpulse.net? Ссылка будет публичной.",

@@ -42,6 +42,13 @@ public sealed partial class ReplayLibraryViewModel : Observable
     private bool _importing;
     private bool _loading;
 
+    /// <summary>The tab whose cards <see cref="_all"/> holds: a tab's cards never stand in for another's.</summary>
+    private string _cardsTab = "Recent";
+
+    /// <summary>Each tab's cards as last shown, for the moment its folder is read again.</summary>
+    private readonly Dictionary<string, IReadOnlyList<LibraryCard>> _tabCards = new(StringComparer.Ordinal);
+    private int _cardsTurn;
+
     internal ReplayLibraryViewModel(MainViewModel owner, ReplayLibrary library)
     {
         _owner = owner;
@@ -209,6 +216,7 @@ public sealed partial class ReplayLibraryViewModel : Observable
             if (Set(ref _cards, value))
             {
                 Raise(nameof(IsEmpty));
+                Raise(nameof(IsLoadingEmpty));
                 Raise(nameof(IsSearchEmpty));
                 Raise(nameof(EmptyText));
                 Raise(nameof(EmptyGlyph));
@@ -220,6 +228,15 @@ public sealed partial class ReplayLibraryViewModel : Observable
     public LibraryCard? SelectedCard { get => _selected; private set => Set(ref _selected, value); }
 
     public bool IsEmpty => _cards.Count == 0 && !_loading;
+
+    /// <summary>The tab's folder is being read and it has no cards from an earlier visit to show meanwhile.</summary>
+    public bool IsLoadingEmpty => _cards.Count == 0 && _loading;
+
+    /// <summary>
+    /// Counts the times another set of cards took the list: another tab's, or the first ones after its loading state.
+    /// Not a search, not the same tab read again. The view fades the new set in when it changes.
+    /// </summary>
+    public int CardsTurn { get => _cardsTurn; private set => Set(ref _cardsTurn, value); }
 
     /// <summary>
     /// The search box (docs/replay-library.md): cards whose hero or class, opponent, its archetype, caption (mode, format,
@@ -443,8 +460,11 @@ public sealed partial class ReplayLibraryViewModel : Observable
 
     internal void SetCards(IReadOnlyList<LibraryCard> cards, LibraryCard? select = null)
     {
+        var another = _cardsTab != _tab || (_all.Count == 0 && cards.Count > 0);
         _loading = false;
+        _cardsTab = _tab;
         _all = cards;
+        _tabCards[_tab] = cards;
         if (select is not null && !Matches(select, _search, _resultFilter))
         {
             // A card chosen for the player (an import, a game sent from a deck page) must show.
@@ -458,6 +478,11 @@ public sealed partial class ReplayLibraryViewModel : Observable
         SelectedCard = select;
         Raise(nameof(IsEmpty));
         Raise(nameof(IsSearchEmpty));
+        Raise(nameof(IsLoadingEmpty));
+        if (another)
+        {
+            CardsTurn++;
+        }
     }
 
     /// <summary>The tab's cards before the search (a game sent here from a deck page is looked for among them).</summary>
@@ -507,11 +532,31 @@ public sealed partial class ReplayLibraryViewModel : Observable
         Raise(nameof(EmptyGlyph));
     }
 
+    /// <summary>
+    /// The open tab's folder is being read. The same tab keeps its cards until the new ones come; another tab's cards
+    /// go at once, and this tab's from its last visit stand in, or none (<see cref="IsLoadingEmpty"/>).
+    /// </summary>
     internal void BeginLoading()
     {
         _loading = true;
+        if (_cardsTab != _tab)
+        {
+            _cardsTab = _tab;
+            _all = _tabCards.GetValueOrDefault(_tab) ?? [];
+            Cards = Filtered();
+            if (SelectedCard is { } selected && !_cards.Contains(selected))
+            {
+                SelectedCard = null;
+            }
+
+            CardsTurn++;
+        }
+
         Raise(nameof(IsEmpty));
         Raise(nameof(IsSearchEmpty));
+        Raise(nameof(IsLoadingEmpty));
+        Raise(nameof(EmptyText));
+        Raise(nameof(EmptyGlyph));
     }
 
     internal void Select(LibraryCard? card)
@@ -527,6 +572,7 @@ public sealed partial class ReplayLibraryViewModel : Observable
     internal void Remove(LibraryCard card)
     {
         _all = _all.Where(c => c != card).ToList();
+        _tabCards[_cardsTab] = _all;
         Cards = _cards.Where(c => c != card).ToList();
     }
 

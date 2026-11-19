@@ -38,6 +38,7 @@
   "Library.Empty.Saved": "Click the star on a game to keep its replay: saved replays are never cleaned up.",
   "Library.Empty.Imported": "Import a .hpr replay or a Power.log with Import, or paste the file: Ctrl+V.",
   "Library.Empty.Filter": "No games of this mode.",
+  "Library.Loading": "Loading replays…",
   "Library.Site.UploadTip": "Upload to the site: a public link to this game (asks first)",
   "Library.Site.RemoveTip": "On the site: {0}. Click to delete it from the site",
   "Library.Site.ConfirmUpload": "Upload this game to hearthpulse.net? The link will be public.",

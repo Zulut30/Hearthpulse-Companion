@@ -388,7 +388,9 @@
 
         <Border Grid.Row="3" Classes="card" Padding="16,12">
             <Panel>
-                <StackPanel IsVisible="{Binding IsEmpty}">
+                <!-- One cell: the empty state, the tab's loading state and the cards. The one that comes in fades in once laid
+                     out; another tab's cards never stand in while a folder is read. -->
+                <StackPanel i:ContentMotion.Shown="{Binding IsEmpty}">
                     <ContentControl Classes="emptyState" Tag="{Binding EmptyGlyph}" Content="{Binding EmptyText}" />
                     <Button Classes="ghost" Content="{i:Loc Setup.Open}" ToolTip.Tip="{i:Loc Setup.OpenTip}" HorizontalAlignment="Center" Margin="0,4,0,8"
                             Command="{Binding $parent[m:MainView].((m:MainViewModel)DataContext).OpenSetup}"
@@ -397,7 +399,8 @@
                     <Button Classes="ghost" Padding="12,4" Margin="0,4,0,8" HorizontalAlignment="Center" Content="{i:Loc Library.Search.Clear}"
                             Click="OnClearSearch" IsVisible="{Binding IsSearchEmpty}" />
                 </StackPanel>
-                <ListBox Name="List" Classes="plain history" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}"
+                <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Library.Loading}" i:ContentMotion.Shown="{Binding IsLoadingEmpty}" />
+                <ListBox Name="List" Classes="plain history" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}" i:ContentMotion.Refresh="{Binding CardsTurn}"
                          SelectedItem="{Binding SelectedCard, Mode=OneWay}" SelectionChanged="OnSelectionChanged"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
             </Panel>

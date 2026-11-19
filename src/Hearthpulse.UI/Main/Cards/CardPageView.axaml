@@ -137,12 +137,16 @@
                 </ItemsControl>
                 <TextBlock Name="CardText" Text="{Binding Text}" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" Margin="0,4,0,0"
                            IsVisible="{Binding Text, Converter={StaticResource Truthy}}" />
-                <TextBlock Text="{i:Loc Card.Loading}" Classes="caption" Margin="0,12,0,0" IsVisible="{Binding Loading}" />
+                <!-- Keeps its room when off, so the name and text beside the card do not move when it goes. Compact stacks the
+                     header over the sections: there the room would stand as a gap, so the line goes and the dimmed sections tell. -->
+                <TextBlock Text="{i:Loc Card.Loading}" Classes="caption wide" Margin="0,12,0,0" i:ContentMotion.Lit="{Binding Loading}" />
             </StackPanel>
         </Grid>
 
         <!-- The card in ranked games: what the source gives, with its slice and date -->
-        <Border Name="StatsCard" Classes="card" Margin="0,0,0,24">
+        <!-- While the card's numbers load, each section keeps the height it had (at least its reserve, the first time) and
+             waits dimmed; the numbers then come in place, so the page does not grow in jumps under the reader. -->
+        <Border Name="StatsCard" Classes="card" Margin="0,0,0,24" i:ContentMotion.Pending="{Binding Loading}" i:ContentMotion.Reserve="180">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Card.Stats.Title}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,12" />
                 <ItemsControl ItemsSource="{Binding Tiles}" ItemTemplate="{StaticResource CardTile}" ItemsPanel="{StaticResource CardTilesPanel}" Margin="0,0,-12,0" />
@@ -157,7 +161,7 @@
         </Border>
 
         <!-- Archetypes of the loaded meta whose lists run the card -->
-        <Border Name="ArchetypesCard" Classes="card" Margin="0,0,0,24">
+        <Border Name="ArchetypesCard" Classes="card" Margin="0,0,0,24" i:ContentMotion.Pending="{Binding Loading}" i:ContentMotion.Reserve="200">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Card.Archetypes.Title}" Icon="&#xF0639;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,12" />
                 <StackPanel IsVisible="{Binding Archetypes, Converter={StaticResource Truthy}}">
@@ -205,7 +209,7 @@
         </Border>
 
         <!-- The card in each archetype's opening hand -->
-        <Border Name="MulliganCard" Classes="card" Margin="0,0,0,24">
+        <Border Name="MulliganCard" Classes="card" Margin="0,0,0,24" i:ContentMotion.Pending="{Binding Loading}" i:ContentMotion.Reserve="200">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Card.Mulligan.Title}" Icon="&#xF012C;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,12" />
                 <StackPanel IsVisible="{Binding Mulligan, Converter={StaticResource Truthy}}">
@@ -250,7 +254,7 @@
         </Border>
 
         <!-- The player's own games with the card: local history only -->
-        <Border Name="MineCard" Classes="card">
+        <Border Name="MineCard" Classes="card" i:ContentMotion.Pending="{Binding Loading}" i:ContentMotion.Reserve="180">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Card.Mine.Title}" Icon="&#xF02DA;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,12" />
                 <ItemsControl ItemsSource="{Binding MineTiles}" ItemTemplate="{StaticResource CardTile}" ItemsPanel="{StaticResource CardTilesPanel}" Margin="0,0,-12,0" />

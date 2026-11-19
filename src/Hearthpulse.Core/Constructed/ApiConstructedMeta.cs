@@ -127,13 +127,18 @@ public static class ApiConstructedMeta
         var decks = built.SelectMany(b => b.Lists.Select(d => new MetaDeck(d.Deck.Code, b.Archetype.Id, b.Archetype.Name, b.Archetype.Class, d.Deck.Games,
             (int)Math.Round(d.Deck.Games * d.Deck.WinRate), d.Deck.WinRate, d.Deck.Updated))).OrderByDescending(d => d.Games).ToList();
         var matchups = MetaMatchups.Empty;
-        ConstructedMeta Meta(IEnumerable<MetaArchetype> archetypes)
+        ConstructedMeta Meta(IEnumerable<MetaArchetype> archetypes, bool early = false)
         {
             var ordered = archetypes.OrderByDescending(a => a.Games).ToList();
-            return new ConstructedMeta(format, rank, period, slice.FetchedAt, ordered.Sum(a => a.Games), ordered, decks) { Source = Attribution, Matchups = matchups };
+            return new ConstructedMeta(format, rank, period, slice.FetchedAt, ordered.Sum(a => a.Games), ordered, decks)
+            {
+                Source = Attribution,
+                Matchups = matchups,
+                IsEarly = early,
+            };
         }
 
-        tierList?.Report(Meta(built.Select(b => b.Archetype)));
+        tierList?.Report(Meta(built.Select(b => b.Archetype), early: true));
 
         // The matchup matrix (one request) loads beside the mulligan numbers.
         var matrix = LoadMatchupsAsync(data, format, rank, apiPeriod, labels, names, cancellationToken);

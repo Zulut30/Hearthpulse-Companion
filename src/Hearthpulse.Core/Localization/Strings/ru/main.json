@@ -211,6 +211,7 @@
   "Main.Meta.DecksEmpty": "В этой выборке пока нет списка с достаточным числом игр.",
   "Main.Meta.Loading": "Статистика меты загружается…",
   "Main.Meta.LoadingShort": "Загрузка…",
+  "Main.Meta.Refreshing": "Обновляем…",
   "Main.Meta.Unavailable": "Статистика меты сейчас недоступна. Hearthpulse попробует позже.",
   "Main.Meta.Copied": "{0}: код скопирован. В Hearthstone создайте новую колоду — игра предложит вставить её.",
   "Main.Meta.ClipboardBusy": "Буфер обмена занят. Попробуйте ещё раз.",

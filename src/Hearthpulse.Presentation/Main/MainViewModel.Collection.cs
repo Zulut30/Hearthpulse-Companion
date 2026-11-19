@@ -35,6 +35,8 @@ public sealed partial class MainViewModel
     private bool _collectionReadable = HearthstoneMemory.IsSupported;
     private bool _canBuildWanted;
     private bool _deckCostsPending;
+    private bool _metaDecksHeld;
+    private bool _metaDecksPriced;
     private string _metaDeckSort = "WinRate";
     private IReadOnlyDictionary<string, DeckCost> _deckCosts = NoDeckCosts;
     private (ConstructedMeta? Meta, CardCollection? Collection, CardDb? Cards) _deckCostsOf;
@@ -124,7 +126,7 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>"Can build" is on and no list passes it: its own empty state, not "not enough games".</summary>
-    public bool MetaCanBuildEmpty => MetaStatusShown && CanBuildOnly && !_deckCostsPending && !_deckCostsFailed && _metaDecks.Count == 0;
+    public bool MetaCanBuildEmpty => MetaStatusShown && CanBuildOnly && !_deckCostsPending && !_deckCostsFailed && MetaDecks.Count == 0;
 
     /// <summary>
     /// A long list is being priced on a pool thread: the labels are not in yet. With "can build" on the list is empty
@@ -135,8 +137,11 @@ public sealed partial class MainViewModel
     /// <summary>Pricing the lists failed: there are no labels, and <see cref="RetryDeckCosts"/> prices them again.</summary>
     public bool DeckCostsFailed { get => _deckCostsFailed; private set { if (Set(ref _deckCostsFailed, value)) RaisePricing(); } }
 
-    /// <summary>"Working out which decks you can build": shown in place of the rows the filter waits for.</summary>
-    public bool MetaPricingShown => MetaStatusShown && CanBuildOnly && _deckCostsPending;
+    /// <summary>
+    /// "Working out which decks you can build": shown in place of the rows the filter waits for, when there are none to
+    /// keep meanwhile (the filter has just been turned on, or the lists were never priced).
+    /// </summary>
+    public bool MetaPricingShown => MetaStatusShown && CanBuildOnly && _deckCostsPending && MetaDecks.Count == 0;
 
     /// <summary>Prices the page's lists again after a failure.</summary>
     public RelayCommand RetryDeckCosts => _retryDeckCosts ??= new RelayCommand(_ =>
@@ -157,6 +162,17 @@ public sealed partial class MainViewModel
     {
         Raise(nameof(MetaPricingShown));
         Raise(nameof(MetaCanBuildEmpty));
+    }
+
+    /// <summary>The rows shown wait for the prices of new lists (<see cref="MetaDecksRefreshing"/>).</summary>
+    private void HoldMetaDecks(bool held)
+    {
+        if (_metaDecksHeld != held)
+        {
+            _metaDecksHeld = held;
+            Raise(nameof(MetaDecksRefreshing));
+            Raise(nameof(MetaPricingShown));
+        }
     }
 
     /// <summary>The order of the top decks: by win rate, or by the dust the player lacks for each (with a collection).</summary>
@@ -267,9 +283,20 @@ public sealed partial class MainViewModel
         var priced = EnsureDeckCosts();
         if (PageMeta is not { } meta)
         {
-            MetaDecks = [];
+            HoldMetaDecks(false);
+            ShowDeckRows([], priced: false);
             return;
         }
+
+        // "Can build" rows shown, and new lists (stats, collection or card data) are being priced: the rows stay,
+        // dimmed, and the new ones replace them in one step when the prices are in, never an empty card in between.
+        if (CanBuildOnly && _deckCostsPending && _metaDecksPriced && MetaDecks.Count > 0)
+        {
+            HoldMetaDecks(true);
+            return;
+        }
+
+        HoldMetaDecks(false);
 
         // Prefer lists with 200+ games; a thin slice (high rank, few days) falls back to every list.
         var minGames = meta.Decks.Count(d => d.Games >= 200) >= 20 ? 200 : 0;
@@ -287,13 +314,34 @@ public sealed partial class MainViewModel
         IEnumerable<MetaDeck> shown = !SortsByDust ? byWinRate.Take(MetaDeckLimit)
             : CollectionSaved ? ByDust(byWinRate.Take(MetaDeckLimit))
             : ByDust(decks).Take(MetaDeckLimit);
-        MetaDecks = shown.Select(DeckRowOf).ToList();
-        Raise(nameof(MetaCanBuildEmpty));
-        Raise(nameof(MetaDecksEmpty));
+        ShowDeckRows(shown.Select(DeckRowOf).ToList(), CanBuildOnly && !_deckCostsPending);
         if (priced)
         {
             ShowArchetypeDeckBuilds();
         }
+    }
+
+    /// <summary>Puts the rows into the top decks in place; <paramref name="priced"/>: they passed "can build" by real prices.</summary>
+    private void ShowDeckRows(IReadOnlyList<MetaDeckRow> rows, bool priced)
+    {
+        _metaDecksPriced = priced;
+
+        // The rows' panel gives every row the height of the tallest it built (a row with a collection label is taller):
+        // when the labels go, the list is built again, so the rows lose the label's room too.
+        var rebuilt = MetaDecks.Any(r => r.HasBuild) && !rows.Any(r => r.HasBuild);
+        if (rebuilt)
+        {
+            MetaDecks.Clear();
+        }
+
+        if (MetaDecks.Sync(rows) || rebuilt)
+        {
+            Raise(nameof(MetaDecks));
+        }
+
+        Raise(nameof(MetaCanBuildEmpty));
+        Raise(nameof(MetaDecksEmpty));
+        Raise(nameof(MetaPricingShown));
     }
 
     /// <summary>

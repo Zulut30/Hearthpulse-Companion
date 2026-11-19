@@ -353,7 +353,9 @@
 
         <Border Grid.Row="3" Style="{StaticResource Card}" Padding="16,12">
             <Grid>
-                <StackPanel Visibility="{Binding IsEmpty, Converter={StaticResource Vis}}">
+                <!-- One cell: the empty state, the tab's loading state and the cards. The one that comes in fades in once laid
+                     out; another tab's cards never stand in while a folder is read. -->
+                <StackPanel i:ContentMotion.Shown="{Binding IsEmpty}">
                     <ContentControl Style="{StaticResource EmptyState}" Tag="{Binding EmptyGlyph}" Content="{Binding EmptyText}" />
                     <Button Style="{StaticResource GhostButton}" Content="{i:Loc Setup.Open}" ToolTip="{i:Loc Setup.OpenTip}" HorizontalAlignment="Center" Margin="0,4,0,8"
                             Command="{Binding DataContext.OpenSetup, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -362,7 +364,9 @@
                     <Button Style="{StaticResource GhostButton}" Padding="12,4" Margin="0,4,0,8" HorizontalAlignment="Center" Content="{i:Loc Library.Search.Clear}"
                             Click="OnClearSearch" Visibility="{Binding IsSearchEmpty, Converter={StaticResource Vis}}" />
                 </StackPanel>
+                <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Library.Loading}" i:ContentMotion.Shown="{Binding IsLoadingEmpty}" />
                 <ListBox x:Name="List" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}" SelectedItem="{Binding SelectedCard, Mode=OneWay}"
+                         i:ContentMotion.Refresh="{Binding CardsTurn}"
                          SelectionChanged="OnSelectionChanged" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" HorizontalContentAlignment="Stretch">
                     <ListBox.ItemContainerStyle>

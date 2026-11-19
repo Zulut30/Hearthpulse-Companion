@@ -80,7 +80,8 @@ public sealed partial class MainViewModel
 
         var cancel = _mulliganLoad = new CancellationTokenSource();
         var format = Settings.MetaFormat;
-        Mulligan = [];
+        // The rows shown stay, dimmed, until the slice replaces them: the card does not collapse to "loading" and back.
+        MulliganLoading = true;
         MulliganSource = Loc.T("Main.Meta.LoadingShort");
         LoadRankMulliganAsync(load, archetype, format, rank, cancel.Token).Forget("Mulligan at a rank");
         return true;
@@ -111,6 +112,7 @@ public sealed partial class MainViewModel
     internal void ShowRankSlice(RankSlice? found, string rank)
     {
         var label = Loc.T("Core.MulliganRankSource." + rank);
+        MulliganLoading = false;
         if (found is null)
         {
             Mulligan = [];

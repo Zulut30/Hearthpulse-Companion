@@ -138,6 +138,12 @@ public sealed class ConstructedMeta
     /// <summary>The most played archetypes against each other; empty until the matrix is in (or when the source has none).</summary>
     public MetaMatchups Matchups { get; internal init; } = MetaMatchups.Empty;
 
+    /// <summary>
+    /// The tier list sent ahead of the full stats (<see cref="LoadAsync"/>'s <c>tierList</c>): archetypes and lists are
+    /// in, the mulligan numbers and the matchups are still loading. Their empty lists here mean "not yet", not "none".
+    /// </summary>
+    public bool IsEarly { get; internal init; }
+
     public static string Key(IReadOnlyList<MetaOption> options, string? key) => Option(options, key).Key;
 
     public static string Label(IReadOnlyList<MetaOption> options, string? key) => Option(options, key).Label;
