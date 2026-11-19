@@ -40,8 +40,9 @@ internal static class Program
                     the .hpr replays hold, Duos fights with both tables)
           simreplay real fights replayed step by step through the combat engine, every decision answered from the fight's
                     transcript: fights replayed to the end without divergence, first divergences by engine rule, per fight
-                    (--captures <dir>: the app's capture files join the logs; --out <file>: the report; --cost <n>: what
-                    recording transcripts costs the log thread, n rounds)
+                    (--captures <dir>: the app's capture files join the logs; --pool <file>: players' fights of the stats
+                    pool's owner export with their transcripts (no hand in them); --out <file>: the report; --cost <n>:
+                    what recording transcripts costs the log thread, n rounds)
           simperf   combat simulator speed: a fixed corpus (the logs' and --captures' fights plus synthetic worst cases):
                     fights/s, ns and bytes per fight, the app's quick and background passes (time p50/p95, runs inside the
                     budget, 95 % half-width of win/tie/loss); --rounds n repeats the timed part
@@ -191,7 +192,7 @@ internal sealed record Options(string Logs, int Rounds, int Games)
     /// <summary>simcover: a folder of the app's combat capture files (&lt;data&gt;/combat-captures) to add to the fights.</summary>
     public string Captures { get; init; } = string.Empty;
 
-    /// <summary>simcover: the stats pool's export of players' fights (JSONL, server/pool/node/export-combats.mjs).</summary>
+    /// <summary>simcover, simreplay: the stats pool's export of players' fights (JSONL, server/pool/node/export-combats.mjs).</summary>
     public string Pool { get; init; } = string.Empty;
 
     /// <summary>simreplay: rounds of measuring what recording transcripts costs; 0 = not measured.</summary>

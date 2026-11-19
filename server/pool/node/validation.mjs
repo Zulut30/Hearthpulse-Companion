@@ -86,44 +86,59 @@ export function validRecord(r) {
 }
 
 /**
- * One Battlegrounds fight as the app's combat simulator got it at the first attack, with the real result and the odds
- * shown (docs/source-capture.md, "Battlegrounds fights"). The same allowlist as the app's SourceCaptureCombat.Validate:
- * card ids, fight-scoped references, stats, keyword/tribe/mechanic flags and the numeric tags effects read. Never a
- * hand, the opponent's card values, a name, account, rating, path or text.
+ * One Battlegrounds fight as the app's combat simulator got it at the first attack, with the real result, the odds
+ * shown and the fight step by step (docs/source-capture.md, "Battlegrounds fights"). The same allowlist as the app's
+ * SourceCaptureCombat.Validate: card ids, fight-scoped references, stats, keyword/tribe/mechanic flags, the numeric tags
+ * and the other inputs effects read (enchantment values, deaths before the capture, the lobby's tribes) and the
+ * transcript's steps. Never a hand, the opponent's card values or player enchantments, a name, account, rating, path or
+ * text.
  */
 export const COMBAT = Object.freeze({
-  maxFights: 64, maxMinions: 7, maxRemembered: 7, maxEnchantments: 32, maxExtras: 16, maxFacts: 14, maxRef: 1000,
+  maxFights: 64, maxMinions: 7, maxRemembered: 7, maxEnchantments: 32, maxDeaths: 32, maxExtras: 16, maxFacts: 14, maxRef: 1000,
   maxStat: 1_000_000, maxDataBytes: 56 * 1024,
-  // Reserved transcript (the fight step by step): null until its allowlist exists, then within these bounds.
+  // The transcript (the fight step by step): null, or version 1 within these bounds (compact JSON bytes).
   transcriptVersion: 1, maxTranscriptSteps: 512, maxTranscriptBytes: 16 * 1024,
 });
 const PLAYER_TAGS = new Set(['BACON_BLOODGEMBUFFATKVALUE', 'BACON_BLOODGEMBUFFHEALTHVALUE', 'TAVERN_SPELL_ATTACK_INCREASE',
   'TAVERN_SPELL_HEALTH_INCREASE', 'BACON_OLD_GOD_ATTACK', 'BACON_OLD_GOD_HEALTH', '4914', '4915']);
-const CARD_TAGS = new Set(['TAG_SCRIPT_DATA_NUM_1', 'TAG_SCRIPT_DATA_NUM_2']);
+// Script numbers of the local player's hero powers, trinkets and other player-level cards; Avenge (X) and its progress.
+const CARD_TAGS = new Set(['TAG_SCRIPT_DATA_NUM_1', 'TAG_SCRIPT_DATA_NUM_2', 'SCORE_VALUE_1', 'SCORE_VALUE_2']);
 const MARKERS = new Set(['DEATHRATTLE', 'TRIGGER_VISUAL', 'AURA', 'AVENGE', 'OVERKILL', 'BACON_RALLY']);
 // Taunt, Divine Shield, Poisonous, Venomous, Reborn, Stealth; Windfury travels as `attacks`.
 const KEYWORDS = 1 | 2 | 4 | 8 | 16 | 128;
 const bool = x => typeof x === 'boolean';
 const share = x => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= 1;
 const value = x => int(x, -COMBAT.maxStat, COMBAT.maxStat);
-const MINION = 'entity card golden attack health maxHealth baseHealth rebornAttack keywords attacks baseKeywords tribes mechanics tier script1 script2 creator enchantments remembered unsimulated';
+const MINION = 'entity card golden attack health maxHealth baseHealth rebornAttack keywords attacks baseKeywords tribes mechanics tier script1 script2 creator enchantments enchantmentValues friendlyDeaths bloodGemAttack bloodGemHealth remembered unsimulated';
+// An enchantment with the numbers it carries; creatorEntity is a reference of the record, or 0.
+const enchantment = e => fields(e, 'card script1 script2 attack health creatorEntity') && card(e.card)
+  && ['script1', 'script2', 'attack', 'health'].every(k => value(e[k])) && int(e.creatorEntity, 0, COMBAT.maxRef);
+const enchantments = (x, max) => Array.isArray(x) && x.length <= max && x.every(enchantment);
 function combatMinion(m, onBoard) {
   return fields(m, MINION) && int(m.entity, onBoard ? 1 : 0, COMBAT.maxRef) && nullable(m.card, card) && bool(m.golden)
-    && ['attack', 'health', 'maxHealth', 'baseHealth', 'rebornAttack'].every(k => int(m[k], 0, COMBAT.maxStat))
+    // A minion that died before the capture (a death, a remembered one) can have its damage past its health.
+    && ['attack', 'health', 'maxHealth', 'baseHealth', 'rebornAttack'].every(k => int(m[k], onBoard ? 0 : -COMBAT.maxStat, COMBAT.maxStat))
     && int(m.keywords, 0, KEYWORDS) && (m.keywords & ~KEYWORDS) === 0 && int(m.attacks, 0, 8) && int(m.baseKeywords, 0, 255)
     && int(m.tribes, 0, 2047) && int(m.mechanics, 0, 63) && int(m.tier, 0, 10) && value(m.script1) && value(m.script2)
     && nullable(m.creator, card) && cards(m.enchantments, COMBAT.maxEnchantments)
+    && enchantments(m.enchantmentValues, COMBAT.maxEnchantments) && int(m.friendlyDeaths, 0, 1000)
+    && int(m.bloodGemAttack, 0, COMBAT.maxStat) && int(m.bloodGemHealth, 0, COMBAT.maxStat)
     && Array.isArray(m.remembered) && m.remembered.length <= (onBoard ? COMBAT.maxRemembered : 0) && m.remembered.every(x => combatMinion(x, false))
     && bool(m.unsimulated);
 }
 function combatSide(s, opponent, board) {
-  if (!fields(s, 'hero heroPower extras tier health turn tags cardTags minions') || !nullable(s.hero, card) || !nullable(s.heroPower, card)
+  if (!fields(s, 'hero heroPower extras tier health turn tags cardTags playerEnchantments lobbyTribes deaths minions')
+    || !nullable(s.hero, card) || !nullable(s.heroPower, card)
     || !cards(s.extras, COMBAT.maxExtras) || new Set(s.extras).size !== s.extras.length
-    || !int(s.tier, 0, 10) || !int(s.health, 0, 10_000) || !int(s.turn, 0, 1000)
+    // Below 0 when the capture saw a hero already beaten (a lethal fight).
+    || !int(s.tier, 0, 10) || !int(s.health, -10_000, 10_000) || !int(s.turn, 0, 1000)
     || !object(s.tags) || !Object.entries(s.tags).every(([k, v]) => PLAYER_TAGS.has(k) && value(v))
     // The opponent's card values are not shown by the client, so a record never holds them.
     || !object(s.cardTags) || Object.keys(s.cardTags).length > (opponent ? 0 : COMBAT.maxExtras)
     || !Object.entries(s.cardTags).every(([k, v]) => card(k) && object(v) && Object.entries(v).every(([t, n]) => CARD_TAGS.has(t) && value(n)))
+    // Nor his player enchantments (whether the client shows them is not established).
+    || !enchantments(s.playerEnchantments, opponent ? 0 : COMBAT.maxEnchantments) || !int(s.lobbyTribes, 0, 2047)
+    || !Array.isArray(s.deaths) || s.deaths.length > COMBAT.maxDeaths || !s.deaths.every(m => combatMinion(m, false))
     || !Array.isArray(s.minions) || s.minions.length > COMBAT.maxMinions || !s.minions.every(m => combatMinion(m, true))) return false;
   for (const m of s.minions) {
     if (board.has(m.entity)) return false;
@@ -131,10 +146,61 @@ function combatSide(s, opponent, board) {
   }
   return true;
 }
+// A tag step changes what a replay compares: stats and keywords of a board minion.
+const TRANSCRIPT_TAGS = new Set(['ATK', 'HEALTH', 'TAUNT', 'DIVINE_SHIELD', 'POISONOUS', 'VENOMOUS', 'REBORN', 'WINDFURY', 'MEGA_WINDFURY', 'STEALTH']);
+const ENDINGS = ['hero', 'restore', 'cleanup', 'end', 'cut'];
+const playerCards = s => new Set([...s.extras, ...(s.heroPower === null ? [] : [s.heroPower])]);
+/**
+ * The fight step by step (SourceCaptureCombat.Transcript.cs is the same): every step names a board minion (one of the
+ * capture, or one an earlier step summoned) except a summon (the minion it puts on a board) and a trigger, whose source
+ * is a board minion, an enchantment on one (host) or a player-level card of its side; each end closes a trigger; boards
+ * name board minions only. No step for a card into the hand or a hand card exists.
+ */
+export function validTranscript(t, captured, ours, theirs) {
+  if (!fields(t, 'version complete ending events boards') || Buffer.byteLength(JSON.stringify(t)) > COMBAT.maxTranscriptBytes
+    || t.version !== COMBAT.transcriptVersion || !bool(t.complete) || !ENDINGS.includes(t.ending)
+    || !Array.isArray(t.events) || t.events.length > COMBAT.maxTranscriptSteps
+    || !Array.isArray(t.boards) || t.boards.length > COMBAT.maxTranscriptSteps + 1) return false;
+  const board = new Set(captured);
+  const onBoard = x => int(x, 1, COMBAT.maxRef) && board.has(x);
+  let open = 0;
+  for (const s of t.events) {
+    if (!Array.isArray(s)) return false;
+    const [kind, entity, a, b, c, d] = s;
+    const ok = kind === 'attack' ? s.length === 4 && onBoard(entity) && (a === 0 || onBoard(a)) && int(b, 0, 1)
+      : kind === 'damage' ? s.length === 3 && onBoard(entity) && value(a)
+      : kind === 'death' ? s.length === 2 && onBoard(entity)
+      : kind === 'summon' ? s.length === 6 && int(entity, 1, COMBAT.maxRef) && nullable(a, card) && int(b, 0, 10) && bool(c) && bool(d)
+      : kind === 'tag' ? s.length === 4 && onBoard(entity) && TRANSCRIPT_TAGS.has(a) && int(b, 0, COMBAT.maxStat)
+      : kind === 'trigger' ? s.length === 5 && int(entity, 1, COMBAT.maxRef) && (a === 0 || onBoard(a)) && nullable(b, card) && bool(c)
+        && (board.has(entity) || a !== 0 || (b !== null && (c ? theirs : ours).has(b)))
+      : kind === 'end' && s.length === 1 && open > 0;
+    if (!ok) return false;
+    if (kind === 'summon') board.add(entity);
+    if (kind === 'trigger') open++;
+    if (kind === 'end') open--;
+  }
+  let last = 0;
+  for (const s of t.boards) {
+    if (!Array.isArray(s) || s.length !== 3 || !int(s[0], last, t.events.length)) return false;
+    last = s[0];
+    const seen = new Set();
+    for (const side of [s[1], s[2]]) {
+      if (!Array.isArray(side) || side.length > COMBAT.maxMinions) return false;
+      for (const m of side) {
+        if (!Array.isArray(m) || m.length !== 5 || !onBoard(m[0]) || seen.has(m[0]) || !nullable(m[1], card)
+          || !int(m[2], 0, COMBAT.maxStat) || !value(m[3]) || !int(m[4], 0, 255)) return false;
+        seen.add(m[0]);
+      }
+    }
+  }
+  return true;
+}
 export function validCombat(d) {
-  if (!fields(d, 'fight turn oursFirst firstAttacker damageCap countDamage ours theirs facts result damageTaken damageDealt odds transcript')
+  if (!fields(d, 'fight turn oursFirst oursEnteredFirst firstAttacker damageCap countDamage ours theirs facts result damageTaken damageDealt odds transcript')
     || Buffer.byteLength(JSON.stringify(d)) > COMBAT.maxDataBytes
-    || !int(d.fight, 0, COMBAT.maxFights - 1) || !int(d.turn, 0, 1000) || !nullable(d.oursFirst, bool)
+    // oursEnteredFirst: which side entered play first (lower lobby PLAYER_ID), the only use of those numbers; never the numbers.
+    || !int(d.fight, 0, COMBAT.maxFights - 1) || !int(d.turn, 0, 1000) || !nullable(d.oursFirst, bool) || !nullable(d.oursEnteredFirst, bool)
     || !int(d.firstAttacker, 0, COMBAT.maxRef) || !int(d.damageCap, 0, 1000) || !bool(d.countDamage)) return false;
   const board = new Set();
   if (!combatSide(d.ours, false, board) || !combatSide(d.theirs, true, board) || (d.firstAttacker !== 0 && !board.has(d.firstAttacker))
@@ -149,7 +215,7 @@ export function validCombat(d) {
   return ['W', 'T', 'L'].includes(d.result) && int(d.damageTaken, 0, 1000) && int(d.damageDealt, 0, 1000)
     && nullable(d.odds, o => fields(o, 'win tie loss lethalTaken lethalDealt unsimulated runs') && share(o.win) && share(o.tie) && share(o.loss)
       && nullable(o.lethalTaken, share) && nullable(o.lethalDealt, share) && int(o.unsimulated, 0, 1000) && int(o.runs, 0, 10_000_000))
-    && d.transcript === null;
+    && nullable(d.transcript, t => validTranscript(t, board, playerCards(d.ours), playerCards(d.theirs)));
 }
 function multisetSubset(picked, options) {
   const remaining = [...options];
