@@ -182,6 +182,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _enteredAfterDeaths.Clear();
         _hiddenOpponentTags.Clear();
         _gameEnded = false;
+        _transcript = null;
         ResetRounds();
     }
 
@@ -256,6 +257,8 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         {
             NoteEnteredBeforeCapture(entity);
         }
+
+        TranscriptCreated(game, entity);
     }
 
     public void OnEntityRevealed(GameState game, Entity entity) => NoteShopCard(game, entity);
@@ -265,6 +268,11 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         if (!game.IsBattlegrounds)
         {
             return;
+        }
+
+        if (_transcript is not null)
+        {
+            TranscriptTag(game, entity, tag, previous, value);
         }
 
         switch (tag)
@@ -343,6 +351,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
                     // known: it is no result (not a tie).
                     if (_inCombat && value == "CONCEDED" && _heroHit is null && _heroBlow is null)
                     {
+                        FinishTranscript(game, complete: false, "cut");
                         _inCombat = false;
                         _combatOpponent = 0;
                     }
@@ -364,6 +373,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         }
 
         _combatActivityAt = Environment.TickCount64;
+        TranscriptBlockStart(game, blockType, source);
         if (blockType == "ATTACK" && source is { IsHero: true } attacker)
         {
             var ours = attacker.Controller == game.LocalPlayerId;
@@ -409,6 +419,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         }
 
         _combatActivityAt = Environment.TickCount64;
+        TranscriptBlockEnd(game);
         if (_heroHit is { } hit && game.OpenBlocks.Count <= hit.Depth)
         {
             FinishHeroHit();

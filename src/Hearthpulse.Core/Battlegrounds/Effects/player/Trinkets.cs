@@ -122,7 +122,7 @@ internal sealed class BlingtronsSunglasses : CombatEffect
 {
     public override void AfterFriendlySummoned(Fight fight, Unit self, Unit summoned)
     {
-        if (summoned.Is(Tribe.Mech) && fight.RandomOf(fight.Alive(self.Side, Tribe.Mech)) is { } mech)
+        if (summoned.Is(Tribe.Mech) && fight.RandomOf(fight.Alive(self.Side, Tribe.Mech), self) is { } mech)
         {
             fight.GiveKeywords(mech, Keyword.DivineShield);
         }
@@ -162,7 +162,7 @@ internal sealed class AllianceKeychain : CombatEffect
         }
 
         self.Counter = 1;
-        foreach (var target in fight.RandomDistinct(fight.Alive(self.Side), self.CardId.EndsWith('t') ? 2 : 1))
+        foreach (var target in fight.RandomDistinct(fight.Alive(self.Side), self.CardId.EndsWith('t') ? 2 : 1, self))
         {
             fight.Buff(target, dead.Attack, Math.Max(dead.MaxHealth, 0));
         }
@@ -317,7 +317,7 @@ internal sealed class StaffOfTheScourge : PlayerAvengeEffect
 
     protected override void Avenge(Fight fight, Unit self)
     {
-        if (fight.RandomOf(fight.Alive(self.Side, Tribe.Undead)) is { } undead)
+        if (fight.RandomOf(fight.Alive(self.Side, Tribe.Undead), self) is { } undead)
         {
             fight.GiveKeywords(undead, Keyword.Reborn);
         }
@@ -366,7 +366,7 @@ internal sealed class CloudSerpentHorn : PlayerAvengeEffect
         }
 
         var rightMost = alive[^1];
-        if (fight.RandomOf(fight.Alive(self.Side, Tribe.Dragon, except: rightMost)) is { } dragon)
+        if (fight.RandomOf(fight.Alive(self.Side, Tribe.Dragon, except: rightMost), self) is { } dragon)
         {
             fight.Buff(dragon, rightMost.Attack, 0);
         }

@@ -33,8 +33,9 @@ internal static class SimEstimates
     private static readonly string[] GrowingPlayerCards =
         ["BG32_MagicItem_200", "BG36_MagicItem_403", "BG36_MagicItem_403t", "BG36_MagicItem_450", "BG35_MagicItem_701", "BG22_HERO_305p"];
 
-    // Cards whose text shows the player's Beetle ("{0}/{1} Beetle") and Beetle Band, which summons the player's Beetle.
-    private static readonly string[] BeetleSummoners = ["BG31_803", "BG31_801", "BG31_809", "BG36_209"];
+    // Cards whose text shows the player's Beetle ("{0}/{1} Beetle"), Timewarped Nest Swarmer (same Beetle, printed 2/2) and
+    // Beetle Band, which summon the player's Beetle.
+    private static readonly string[] BeetleSummoners = ["BG31_803", "BG31_801", "BG31_809", "BG36_209", "BG34_Giant_687"];
     private static readonly string[] BeetleBand = ["BG32_MagicItem_860", "BG32_MagicItem_860t"];
 
     /// <summary>

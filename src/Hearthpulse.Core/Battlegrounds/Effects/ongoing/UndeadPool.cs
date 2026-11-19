@@ -14,13 +14,13 @@ internal static partial class UndeadPool
     public static int IndexOf(string cardId, int tavernTier = 0) => Candidates(tavernTier).FindIndex(m => m.CardId == cardId);
 
     /// <summary>
-    /// A random Undead up to the player's Tavern tier (every tier when the tier is unknown), as a fresh copy so each card
-    /// is its own instance in the hand.
+    /// A random Undead up to the player's Tavern tier (every tier when the tier is unknown), picked for
+    /// <paramref name="source"/>, as a fresh copy so each card is its own instance in the hand.
     /// </summary>
-    public static SimMinion? Random(Fight fight, int tavernTier)
+    public static SimMinion? Draw(Fight fight, Unit source, int tavernTier)
     {
         var candidates = Candidates(tavernTier);
-        return candidates.Count == 0 ? null : candidates[fight.Random.Next(candidates.Count)] with { };
+        return candidates.Count == 0 ? null : candidates[fight.Choose(ChoiceKind.RandomCard, source, candidates)] with { };
     }
 
     private static List<SimMinion> Candidates(int tavernTier) =>

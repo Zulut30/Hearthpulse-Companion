@@ -42,6 +42,21 @@ internal sealed record SavedFight
     /// <summary>The odds the app had for the fight when the game was saved.</summary>
     public CombatOdds? Odds { get; init; }
 
+    /// <summary>
+    /// The fight's course as the log showed it (format 2 on; null in older files, for fights recorded without one, and for
+    /// a transcript of a version this build does not know).
+    /// </summary>
+    public BattlegroundsTracker.CombatTranscript? Transcript { get; init; }
+
+    /// <summary>
+    /// What <see cref="Ours"/> and <see cref="Theirs"/> keep out of their own JSON (exact inputs and estimates), saved
+    /// beside them (format 2 on; null in older files and when there is nothing) and put back on the sides when the file is
+    /// read (<see cref="CombatCaptureStore.Read"/>).
+    /// </summary>
+    public SavedInputs? OursInputs { get; init; }
+
+    public SavedInputs? TheirsInputs { get; init; }
+
     /// <summary>The fight as it was simulated: the saved "not simulated" flags and the app's own options.</summary>
     public (BattlegroundsTracker.CombatCapture Capture, SimOptions Options) AsSaved() =>
         (new BattlegroundsTracker.CombatCapture(Ours, Theirs, OursFirst, FirstAttackerEntityId), Options(null));
@@ -71,7 +86,72 @@ internal sealed record SavedFight
         FirstAttackerEntityId = FirstAttackerEntityId,
         DamageCap = DamageCap,
         CountDamage = CountDamage,
+        // A saved fight is read after its game: the opponent's values the player could not see are used (HiddenTags).
+        PostGame = true,
     };
+}
+
+/// <summary>
+/// A side's inputs its records leave out of their JSON (<c>[JsonIgnore]</c> in <c>CombatSimulator.Inputs.cs</c>): the
+/// player's enchantments, the deaths before the capture, the lobby's tribes, the estimates, and per minion of the board
+/// and hand (by entity id) its enchantment values and the friendly deaths it saw before the capture. Minions inside
+/// these lists (<see cref="DeathsBeforeCapture"/>) keep only what their own JSON holds.
+/// </summary>
+internal sealed record SavedInputs
+{
+    public IReadOnlyList<SimEnchantment>? PlayerEnchantments { get; init; }
+
+    public IReadOnlyList<SimMinion>? DeathsBeforeCapture { get; init; }
+
+    public Tribe LobbyTribes { get; init; }
+
+    public IReadOnlyList<SimEstimate>? Estimates { get; init; }
+
+    public IReadOnlyList<SavedMinionInputs>? Minions { get; init; }
+
+    /// <summary>The inputs of <paramref name="side"/>, or null when it has none.</summary>
+    public static SavedInputs? Of(SimSide side)
+    {
+        var minions = side.Minions.Concat(side.Hand)
+            .Where(m => m.EnchantmentValues.Count > 0 || m.FriendlyDeathsBeforeCapture != 0)
+            .Select(m => new SavedMinionInputs(m.EntityId) { EnchantmentValues = m.EnchantmentValues, FriendlyDeathsBeforeCapture = m.FriendlyDeathsBeforeCapture })
+            .ToList();
+        var inputs = new SavedInputs
+        {
+            PlayerEnchantments = side.PlayerEnchantments.Count > 0 ? side.PlayerEnchantments : null,
+            DeathsBeforeCapture = side.DeathsBeforeCapture.Count > 0 ? side.DeathsBeforeCapture : null,
+            LobbyTribes = side.LobbyTribes,
+            Estimates = side.Estimates.Count > 0 ? side.Estimates : null,
+            Minions = minions.Count > 0 ? minions : null,
+        };
+        return inputs is { PlayerEnchantments: null, DeathsBeforeCapture: null, LobbyTribes: Tribe.None, Estimates: null, Minions: null } ? null : inputs;
+    }
+
+    /// <summary><paramref name="side"/> with these inputs put back.</summary>
+    public SimSide ApplyTo(SimSide side)
+    {
+        var byEntity = (Minions ?? []).GroupBy(m => m.EntityId).ToDictionary(g => g.Key, g => g.First());
+        SimMinion Apply(SimMinion m) => m.EntityId != 0 && byEntity.TryGetValue(m.EntityId, out var saved)
+            ? m with { EnchantmentValues = saved.EnchantmentValues ?? [], FriendlyDeathsBeforeCapture = saved.FriendlyDeathsBeforeCapture }
+            : m;
+        return side with
+        {
+            Minions = side.Minions.Select(Apply).ToList(),
+            Hand = side.Hand.Select(Apply).ToList(),
+            PlayerEnchantments = PlayerEnchantments ?? [],
+            DeathsBeforeCapture = DeathsBeforeCapture ?? [],
+            LobbyTribes = LobbyTribes,
+            Estimates = Estimates ?? [],
+        };
+    }
+}
+
+/// <summary>A minion's inputs of <see cref="SavedInputs"/>, by its entity id.</summary>
+internal sealed record SavedMinionInputs(int EntityId)
+{
+    public IReadOnlyList<SimEnchantment>? EnchantmentValues { get; init; }
+
+    public int FriendlyDeathsBeforeCapture { get; init; }
 }
 
 /// <summary>The fights of one Battlegrounds game. No names, account ids or ratings: cards by card id only.</summary>
@@ -115,6 +195,9 @@ internal sealed record SavedCaptures
                 DamageTaken = combat.DamageTaken,
                 DamageDealt = combat.DamageDealt,
                 Odds = combat.Odds,
+                Transcript = f.Transcript,
+                OursInputs = SavedInputs.Of(f.Capture.Ours),
+                TheirsInputs = SavedInputs.Of(f.Capture.Theirs),
             };
         }).ToList(),
     };
@@ -139,8 +222,12 @@ internal sealed class CombatCaptureStore(string directory)
         "BACON_OLD_GOD_ATTACK", "BACON_OLD_GOD_HEALTH", "4914", "4915",
     };
 
-    /// <summary>The version of the file's content; a file of another version is not read.</summary>
-    public const int FormatVersion = 1;
+    /// <summary>
+    /// The version of the file's content: 2 adds each fight's <see cref="SavedFight.Transcript"/> and the sides' inputs
+    /// their records keep out of JSON (<see cref="SavedFight.OursInputs"/>). Files of versions 1 to this one are read; a
+    /// newer one is not.
+    /// </summary>
+    public const int FormatVersion = 2;
 
     public const string Extension = ".hpc";
 
@@ -180,9 +267,18 @@ internal sealed class CombatCaptureStore(string directory)
             Hand = opponent ? [] : side.Hand,
             ExtraTags = opponent ? SimSide.EmptyExtraTags : side.ExtraTags,
         };
+        // The player's enchantments are the local player's only (whether the client shows the opponent's is not established).
+        static SavedInputs? MinimizeInputs(SavedInputs? inputs, bool opponent) =>
+            opponent && inputs is not null ? inputs with { PlayerEnchantments = null } : inputs;
         captures = captures with
         {
-            Fights = captures.Fights.Select(f => f with { Ours = Minimize(f.Ours, false), Theirs = Minimize(f.Theirs, true) }).ToList(),
+            Fights = captures.Fights.Select(f => f with
+            {
+                Ours = Minimize(f.Ours, false),
+                Theirs = Minimize(f.Theirs, true),
+                OursInputs = MinimizeInputs(f.OursInputs, opponent: false),
+                TheirsInputs = MinimizeInputs(f.TheirsInputs, opponent: true),
+            }).ToList(),
         };
 
         var name = FileNameFor(gameKey);
@@ -250,11 +346,23 @@ internal sealed class CombatCaptureStore(string directory)
             }
 
             var captures = JsonSerializer.Deserialize<SavedCaptures>(unpacked.GetBuffer().AsSpan(0, (int)unpacked.Length), Json);
-            return captures is { Version: FormatVersion, Fights: not null } && captures.Fights.All(f =>
+            return captures is { Version: >= 1 and <= FormatVersion, Fights: not null } && captures.Fights.All(f =>
                 f is { Facts: not null } && ValidSide(f.Ours) && ValidSide(f.Theirs)
                 && f.Facts.All(fact => fact is { CardId: not null, Markers: not null } && fact.Markers.All(m => m is not null))
-                && f.Facts.Select(fact => fact.EntityId).Distinct().Count() == f.Facts.Count)
-                ? captures
+                && f.Facts.Select(fact => fact.EntityId).Distinct().Count() == f.Facts.Count
+                && (f.Transcript is null || f.Transcript.Version != BattlegroundsTracker.CombatTranscript.CurrentVersion || ValidTranscript(f.Transcript))
+                && ValidInputs(f.OursInputs) && ValidInputs(f.TheirsInputs))
+                ? captures with
+                {
+                    // A transcript of another version is not understood: the fight stays, without it. The inputs saved
+                    // beside the sides go back on them; a side of an older file keeps its defaults.
+                    Fights = captures.Fights.Select(f => f with
+                    {
+                        Transcript = f.Transcript is { Version: not BattlegroundsTracker.CombatTranscript.CurrentVersion } ? null : f.Transcript,
+                        Ours = Restore(f.Ours, f.OursInputs),
+                        Theirs = Restore(f.Theirs, f.TheirsInputs),
+                    }).ToList(),
+                }
                 : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or JsonException or NotSupportedException
@@ -263,6 +371,26 @@ internal sealed class CombatCaptureStore(string directory)
             return null;
         }
     }
+
+    private static SimSide Restore(SimSide side, SavedInputs? inputs)
+    {
+        // A side written without the post-game values (older files, or a JSON null) has none.
+        side = side.HiddenTags is null ? side with { HiddenTags = SimSide.EmptyTags } : side;
+        return inputs?.ApplyTo(side) ?? side;
+    }
+
+    private static bool ValidInputs(SavedInputs? inputs) =>
+        inputs is null
+        || ((inputs.PlayerEnchantments ?? []).All(e => e is { CardId: not null })
+            && (inputs.DeathsBeforeCapture ?? []).All(ValidMinion)
+            && (inputs.Estimates ?? []).All(e => e is { Input: not null, Basis: not null, Tags: not null } && e.Tags.All(t => t is not null))
+            && (inputs.Minions ?? []).All(m => m is not null && (m.EnchantmentValues ?? []).All(e => e is { CardId: not null })));
+
+    private static bool ValidTranscript(BattlegroundsTracker.CombatTranscript transcript) =>
+        transcript is { Events: not null, Boards: not null, Ending: not null }
+        && transcript.Events.All(e => e is not null && Enum.IsDefined(e.Kind))
+        && transcript.Boards.All(b => b is { Ours: not null, Theirs: not null } && b.Event >= 0 && b.Event <= transcript.Events.Count
+                                      && b.Ours.Concat(b.Theirs).All(m => m is { Card: not null }));
 
     private static bool ValidSide(SimSide? side) =>
         side is { Minions: not null, Hand: not null, Tags: not null, ExtraTags: not null, Extras: not null, HeroCardId: not null, HeroPowerCardId: not null }

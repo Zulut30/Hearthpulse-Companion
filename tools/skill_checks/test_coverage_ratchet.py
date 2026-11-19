@@ -134,6 +134,7 @@ class NothingHidesCodeFromCoverageTests(unittest.TestCase):
         "src/Hearthpulse.Core/Battlegrounds/Effects/PlayerCardRelevance.g.cs",
         "src/Hearthpulse.Core/Battlegrounds/Effects/deaths/GhastcoilerPool.g.cs",
         "src/Hearthpulse.Core/Battlegrounds/Effects/ongoing/UndeadPool.g.cs",
+        "src/Hearthpulse.Core/Battlegrounds/Effects/timewarped/PiratePool.g.cs",
         "src/Hearthpulse.Core/CardPool/CardPoolTables.g.cs",
         "src/Hearthpulse.Core/Tracking/Counters/CounterCards.g.cs",
     }

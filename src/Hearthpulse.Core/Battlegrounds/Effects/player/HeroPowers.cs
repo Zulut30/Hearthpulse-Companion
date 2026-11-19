@@ -77,7 +77,7 @@ internal sealed class SpaceCopyHeroPower : CombatEffect
         }
 
         var byHealth = self.CardId == "BG22_HERO_003p";
-        if (fight.Best(fight.Alive(self.Side), u => byHealth ? u.Health : u.Attack) is not { } best)
+        if (fight.Best(fight.Alive(self.Side), u => byHealth ? u.Health : u.Attack, self) is not { } best)
         {
             return;
         }
