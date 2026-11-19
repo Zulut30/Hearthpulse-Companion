@@ -40,7 +40,7 @@
       "origin": "token",
       "text": "Poisonous. When this attacks and kills a minion, give its maximum stats to a minion in your hand.",
       "added": "2026-11-19",
-      "why": "seen on boards this patch (API minion stats), not a pool card; kills in combat feed cards that summon from the hand, as Murcules"
+      "why": "seen on boards this patch (API minion stats), not a pool card; kills in combat feed cards that summon from the hand, as Murcules (Bassgill, Expert Aviator, Diremuck Forager)"
     },
     {
       "id": "BG36_205",
@@ -95,7 +95,7 @@
       "origin": "token",
       "text": "",
       "added": "2026-11-19",
-      "why": "seen on boards this patch (API minion stats), not a pool card; no text"
+      "why": "seen on boards this patch (API minion stats), not a pool card; Sellemental's Elemental token, no text"
     },
     {
       "id": "BG31_171t",

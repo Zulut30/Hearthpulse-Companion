@@ -237,7 +237,7 @@ public static partial class CombatRelevance
     [GeneratedRegex("Avenge" + ClauseTail)]
     private static partial Regex AvengeClauseRegex();
 
-    [GeneratedRegex(@"(Summon|summon|Give|give|Gain|gain|Deal|deal|Destroy|destroy|Remove|remove|Cast|cast|plays? \d* ?(a )?Blood Gem|Reborn|Divine Shield|Attack|have \+|Blood \|4)")]
+    [GeneratedRegex(@"(Summon|summon|Trigger|trigger|Give|give|Gain|gain|Deal|deal|Destroy|destroy|Remove|remove|Cast|cast|plays? \d* ?(a )?Blood Gem|Reborn|Divine Shield|Attack|have \+|Blood \|4)")]
     private static partial Regex CombatVerbRegex();
 
     [GeneratedRegex(@"^(Get|get|Add|You and your teammate|Your teammate|Reduce|Your Tavern spells|Gain \d+ free|Gain .*Refresh|Give minions in the Tavern|After the Tavern)")]

@@ -38,7 +38,7 @@ import pathlib
 import re
 import sys
 
-COMBAT_VERB = (r"(Summon|summon|Give|give|Gain|gain|Deal|deal|Destroy|destroy|Remove|remove|Cast|cast|"
+COMBAT_VERB = (r"(Summon|summon|Trigger|trigger|Give|give|Gain|gain|Deal|deal|Destroy|destroy|Remove|remove|Cast|cast|"
                r"plays? \d* ?(a )?Blood Gem|Reborn|Divine Shield|Attack|have \+|Blood \|4)")
 NOT_COMBAT = (r"^(Get|get|Add|You and your teammate|Your teammate|Reduce|Your Tavern spells|Gain \d+ free|"
               r"Gain .*Refresh|Give minions in the Tavern|After the Tavern)")

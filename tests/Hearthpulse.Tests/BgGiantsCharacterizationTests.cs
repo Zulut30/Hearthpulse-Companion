@@ -117,8 +117,12 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         output.WriteLine(actual);
         // 2026-11-09 (S1): four new effect ids change the random boards; without them the fingerprint is still 6C3E80D601C5A873.
         // 2026-11-15 (S2): Murcules and Bassgill add two ids; without them (checked) the fingerprint is still 4B6145B26A89595C.
+        // 2026-11-19 (sim-minions): sixteen new effect ids (Sanguine Champion/Refiner, Fishbait, Tide Oracle Morgl, Brann,
+        // Balinda, Timewarped Greenskeeper, Kalecgos, Dark Paradox and its t6 form, Rot Hide Gnoll, Mishmash, Joyous,
+        // Hackerfin, Nerubian Deathswarmer, Electric Synthesizer); without them (checked) the fingerprint is still
+        // FECFFCB0BDD005AE.
         // 2026-11-19 (sim-all-mechanics P0): Ghastcoiler and Undead pools regenerated from patch 37.0.2 card data (new
-        // stats, Rot Hide Gnoll); with the old pool files (checked) the fingerprint is still FECFFCB0BDD005AE.
-        Assert.Equal("fights F23DF3956364F87B", actual);
+        // stats, Rot Hide Gnoll); with the old pool files (checked) the fingerprint is still A488D069E48228A5.
+        Assert.Equal("fights 60958721CA247FFC", actual);
     }
 }
