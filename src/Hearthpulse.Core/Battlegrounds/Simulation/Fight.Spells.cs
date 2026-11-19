@@ -49,9 +49,9 @@ public sealed partial class Fight
         CastSpell(new SpellCast(caster, spellCardId, target, null, resolve is null ? null : (Fight f, in SpellCast _) => resolve(f)));
 
     /// <summary>
-    /// Casts a spell for <see cref="SpellCast.Caster"/>: 1 + <see cref="CombatEffect.ExtraSpellCasts"/> times, each time
-    /// "whenever you cast" hooks, the spell's effect, then "after you cast" hooks. A spell on a minion that is no longer
-    /// alive is not cast (nor its remaining extra casts).
+    /// Casts a spell for <see cref="SpellCast.Caster"/>: <see cref="SpellCasts"/> times (1 + the largest
+    /// <see cref="CombatEffect.ExtraSpellCasts"/>, e.g. Balinda), each time "whenever you cast" hooks, the spell's effect,
+    /// then "after you cast" hooks. A spell on a minion that is no longer alive is not cast (nor its remaining extra casts).
     /// </summary>
     public void CastSpell(in SpellCast spell)
     {
@@ -60,7 +60,7 @@ public sealed partial class Fight
             return;
         }
 
-        var times = 1 + ExtraSpellCasts(spell);
+        var times = SpellCasts(spell.Caster, spell.CardId, spell.Target);
         for (var i = 0; i < times; i++)
         {
             if (spell.Target is { IsAlive: false })
@@ -113,44 +113,6 @@ public sealed partial class Fight
             _spell = outer;
             _casting = outerCasting;
         }
-    }
-
-    private int ExtraSpellCasts(in SpellCast spell)
-    {
-        var caster = spell.Caster;
-        if ((caster.Hooks & Hook.ExtraSpellCasts) == 0)
-        {
-            return 0;
-        }
-
-        var extra = 0;
-        _depth++;
-        try
-        {
-            var observers = Snapshot(caster, out var count);
-            for (var i = 0; i < count; i++)
-            {
-                var unit = observers[i];
-                if ((unit.Hooks & Hook.ExtraSpellCasts) == 0 || (!unit.IsAlive && !unit.IsExtra))
-                {
-                    continue;
-                }
-
-                foreach (var effect in unit.Effects)
-                {
-                    if ((effect.Hooks & Hook.ExtraSpellCasts) != 0)
-                    {
-                        extra += Math.Max(0, effect.ExtraSpellCasts(this, unit, spell));
-                    }
-                }
-            }
-        }
-        finally
-        {
-            _depth--;
-        }
-
-        return extra;
     }
 
     // ================================================================================================ hand

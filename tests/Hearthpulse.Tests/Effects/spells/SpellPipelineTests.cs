@@ -1,6 +1,7 @@
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Battlegrounds.Effects.Attack;
+using Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 using Hearthpulse.Core.Battlegrounds.Effects.Spells;
 using static Hearthpulse.Tests.Sim.SimTestKit;
 using static Hearthpulse.Tests.Sim.Spells.SpellTestKit;
@@ -78,17 +79,30 @@ public sealed class SpellPipelineTests
     }
 
     [Fact]
-    public void Extra_casts_repeat_the_whole_cast()
+    public void Balinda_extra_casts_repeat_the_whole_cast()
     {
-        // A test-only "your spells on friendly minions cast twice": Chef's Choice on the Fugitive is cast twice, so the
-        // Fugitive 5/2 gains +1 Health twice (5/4) and two random cards come.
-        var result = Fight(
-            Side(RecruiterMinion(), Minion(5, 2, cardId: "BG36_921", tribes: Tribe.Naga), Minion(0, 1, cardId: "TWICE")),
-            Wall(3), true, Effects(typeof(SeafloorRecruiter), typeof(FleeingFugitive), typeof(TwiceOnFriendly)));
+        // Balinda Stonehearth (E2): "Your spells that target friendly minions cast twice." Chef's Choice on the Fugitive is
+        // cast twice through the pipeline: the Fugitive 5/2 gains +1 Health each time (5/4), two random cards come.
+        // Golden Balinda: "three times" → 5/5.
+        SimSide Board(bool golden) => Side(RecruiterMinion(), Minion(5, 2, cardId: "BG36_921", tribes: Tribe.Naga),
+            Minion(golden ? 2 : 1, golden ? 2 : 1, cardId: "BG35_883", golden: golden));
+        var normal = Fight(Board(false), Wall(3), true, Effects(typeof(SeafloorRecruiter), typeof(FleeingFugitive), typeof(BalindaStonehearth)));
+        var golden = Fight(Board(true), Wall(3), true, Effects(typeof(SeafloorRecruiter), typeof(FleeingFugitive), typeof(BalindaStonehearth)));
 
-        Assert.Equal(2, result.Lines("we cast BG28_518").Count);
-        Assert.Equal((5, 4), (result.Ours[1].Attack, result.Ours[1].Health));
-        Assert.Equal(2, result.Lines("we get a random card").Count);
+        Assert.Equal(2, normal.Lines("we cast BG28_518").Count);
+        Assert.Equal((5, 4), (normal.Ours[1].Attack, normal.Ours[1].Health));
+        Assert.Equal(2, normal.Lines("we get a random card").Count);
+        Assert.Equal(3, golden.Lines("we cast BG28_518").Count);
+        Assert.Equal((5, 5), (golden.Ours[1].Attack, golden.Ours[1].Health));
+    }
+
+    [Fact]
+    public void Balinda_does_not_repeat_a_spell_without_a_target()
+    {
+        var result = Fight(Side(VindicatorMinion(), Minion(1, 1, cardId: "BG35_883")), Wall(17), true,
+            Effects(typeof(CrimsonVindicator), typeof(BalindaStonehearth)));
+
+        Assert.Single(result.Lines("we cast BG36_246"));
     }
 
     [Fact]
@@ -115,13 +129,6 @@ public sealed class SpellPipelineTests
 
         Assert.Empty(result.Lines("we cast"));
         Assert.Equal((6, 3), (result.Ours[1].Attack, result.Ours[1].Health));
-    }
-
-    [CardEffect("TWICE")]
-    private sealed class TwiceOnFriendly : CombatEffect
-    {
-        public override int ExtraSpellCasts(Fight fight, Unit self, in SpellCast spell) =>
-            spell.Target is { } target && target.Side == self.Side ? 1 : 0;
     }
 
     [CardEffect("OLD")]
