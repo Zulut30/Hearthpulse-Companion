@@ -22,7 +22,7 @@ public sealed class SourceCaptureV2Tests : IDisposable
     {
         var (frames, game) = RecordFixture(end: true);
         var capture = frames.GroupBy(f => f.CaptureId).Single(g => g.Any(f => f.Record.Kind == "end" && Data(f).GetProperty("reason").GetString() == "normal")).ToArray();
-        Assert.All(capture, f => Assert.Equal(2, f.Record.V));
+        Assert.All(capture, f => Assert.Equal(SourceCaptureRecord.CurrentVersion, f.Record.V));
         var start = Data(capture[0]);
         Assert.Equal("bg", start.GetProperty("mode").GetString());
         Assert.True(game.BuildNumber > 0);
@@ -38,7 +38,7 @@ public sealed class SourceCaptureV2Tests : IDisposable
 
         var result = await Decode(capture);
         Assert.Equal(2, result.V);
-        Assert.Equal(2, result.SourceVersion);
+        Assert.Equal(SourceCaptureRecord.CurrentVersion, result.SourceVersion);
         Assert.Equal("source-v2.0", result.ParserVersion);
         Assert.Equal(new SourceCaptureContext("bg", start.GetProperty("day").GetInt32(), game.BuildNumber, null, null), result.Context);
         Assert.True(result.Eligibility.Outcome);
@@ -236,7 +236,7 @@ public sealed class SourceCaptureV2Tests : IDisposable
         recorder.OnEntityCreated(game, SourceCaptureRecorderTests.Entity(game, 49, "LOCAL_SEED", "HAND", 1, "MINION"));
         var start = Data(frames[0]);
         Assert.Equal("start", frames[0].Record.Kind);
-        Assert.Equal(2, frames[0].Record.V);
+        Assert.Equal(SourceCaptureRecord.CurrentVersion, frames[0].Record.V);
         Assert.Equal(mode, start.GetProperty("mode").GetString());
         Assert.Equal(format, start.GetProperty("format").GetString());
         Assert.Equal(arena, start.GetProperty("arena").GetString());
@@ -295,16 +295,16 @@ public sealed class SourceCaptureV2Tests : IDisposable
     }
 
     [Fact]
-    public async Task New_captures_are_spooled_and_completed_as_v2_and_a_version_switch_mid_capture_is_dropped()
+    public async Task New_captures_are_spooled_and_completed_in_the_current_version_and_a_version_switch_mid_capture_is_dropped()
     {
         using var scratch = new SourceScratch();
         await using var queue = await scratch.Open();
         SourceScratch.Complete(queue); await queue.FlushAsync();
-        using (var manifest = scratch.Manifest()) Assert.Equal(2, manifest.RootElement.GetProperty("sourceVersion").GetInt32());
+        using (var manifest = scratch.Manifest()) Assert.Equal(SourceCaptureRecord.CurrentVersion, manifest.RootElement.GetProperty("sourceVersion").GetInt32());
         var versions = new List<int>();
         using var http = new HttpClient(new Capture(versions));
         await queue.SendPendingAsync(new(http));
-        Assert.Equal(new[] { 2 }, versions);
+        Assert.Equal(new[] { SourceCaptureRecord.CurrentVersion }, versions);
 
         using var mixed = new SourceScratch();
         await using var second = await mixed.Open();

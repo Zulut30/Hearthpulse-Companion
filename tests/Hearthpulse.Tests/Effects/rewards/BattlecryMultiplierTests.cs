@@ -67,4 +67,19 @@ public sealed class BattlecryMultiplierTests
     {
         public override void Battlecry(Fight fight, Unit self) => fight.Buff(self, 1, 0);
     }
+    [Theory]
+    [InlineData(false, 1, "BG36_241 18/13 DivineShield, Windfury")]
+    [InlineData(true, 2, "BG36_241 27/19 DivineShield, Windfury")]
+    public void Temporal_tampering_casts_a_tavern_spell_an_extra_time(bool tampering, int casts, string vindicator)
+    {
+        // Crimson Vindicator 9/7 (Dragon, Divine Shield, Windfury) attacks E 0/1: its Rally casts Mighty Dragonbreath,
+        // +3/+2 three times over for a Divine Shield Dragon (+9/+6); with the reward it is cast twice (+18/+12). E dies
+        // to the first swing, so there is no second.
+        var ours = Side(Minion(9, 7, Keyword.DivineShield | Keyword.Windfury, "BG36_241", Tribe.Dragon, mechanics: CardMechanic.Rally))
+            with { Extras = tampering ? new[] { "BG28_Reward_501" } : Array.Empty<string>() };
+        var result = Fight(ours, Enemy, oursFirst: true, Only(typeof(CrimsonVindicator), typeof(TemporalTampering)));
+
+        Assert.Equal(casts, result.Lines("we cast BG36_246").Count);
+        Assert.Equal([vindicator], Board(result.Ours));
+    }
 }

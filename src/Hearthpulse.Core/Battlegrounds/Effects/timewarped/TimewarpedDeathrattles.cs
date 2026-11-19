@@ -148,10 +148,11 @@ internal sealed class TimewarpedWarghoul : CombatEffect
 /// Timewarped Tide Razor (BG34_Giant_328): "Deathrattle: Summon and get 4 random Pirates." Golden: 8.
 /// </summary>
 /// <remarks>
-/// The Pirates come from the public pool (<see cref="PiratePool"/>, printed stats, their own effects) and are summoned in
-/// its slot left to right until the board is full; the copies it gets go to the hand for the Tavern. Assumption (no log
-/// with this card): "random Pirates" are drawn from the pool up to the player's Tavern tier (every tier when the tier is
-/// unknown), with repeats, as the simulator does for "a random Undead".
+/// The Pirates come from the public pool (<see cref="PiratePool"/>, printed stats, their own effects). Each one is summoned
+/// in its slot, left to right, while there is room, and a copy goes to the hand (<see cref="Fight.AddToHand"/>: "a card is
+/// added to your hand" effects react, and a later summon from the hand can take it). Assumption (no log with this card):
+/// "random Pirates" are drawn from the pool up to the player's Tavern tier (every tier when the tier is unknown), with
+/// repeats, as the simulator does for "a random Undead"; the same Pirate is summoned and got.
 /// </remarks>
 [CardEffect("BG34_Giant_328")]
 internal sealed class TimewarpedTideRazor : CombatEffect
@@ -162,12 +163,17 @@ internal sealed class TimewarpedTideRazor : CombatEffect
         var anchor = self;
         for (var i = 0; i < self.Pick(4, 8); i++)
         {
-            if (PiratePool.Random(fight, tier) is not { } pirate || fight.SummonAt(self.IsOnBoard ? anchor : self, pirate) is not { } summoned)
+            if (PiratePool.Random(fight, tier) is not { } pirate)
             {
                 return;
             }
 
-            anchor = summoned;
+            if (fight.SummonAt(self.IsOnBoard ? anchor : self, pirate) is { } summoned)
+            {
+                anchor = summoned;
+            }
+
+            fight.AddToHand(self.Side, pirate.CardId, pirate);
         }
     }
 }

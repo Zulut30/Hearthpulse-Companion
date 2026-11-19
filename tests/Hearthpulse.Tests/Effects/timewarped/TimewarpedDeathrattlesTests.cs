@@ -164,17 +164,19 @@ public sealed class TimewarpedDeathrattlesTests
                            Only(typeof(TimewarpedTideRazor)), 0, busker, laureate, laureate, busker);
 
         Assert.Equal(["BG26_135 3/1", "BG32_236 2/2 DivineShield", "BG32_236 2/2 DivineShield", "BG26_135 3/1"], Board(result.Ours));
+        Assert.Equal(["we get BG26_135", "we get BG32_236", "we get BG32_236", "we get BG26_135"], result.Lines("we get "));
         Assert.Equal(2, PiratePool.Minions.Count(m => m.TechLevel <= 1));
     }
 
     [Fact]
     public void Golden_tide_razor_fills_the_board()
     {
-        // Eight Pirates, seven fit.
+        // Eight Pirates, seven fit; all eight are got.
         var result = Fight(Side(Dr(24, 16, "BG34_Giant_328", Tribe.None, golden: true)), Side(Killer(24, 1), Wall), oursFirst: false,
                            Only(typeof(TimewarpedTideRazor)));
 
         Assert.Equal(7, result.Ours.Count);
+        Assert.Equal(8, result.Lines("we get ").Count);
         Assert.All(result.Ours, m => Assert.True((m.Tribes & Tribe.Pirate) != 0));
     }
 

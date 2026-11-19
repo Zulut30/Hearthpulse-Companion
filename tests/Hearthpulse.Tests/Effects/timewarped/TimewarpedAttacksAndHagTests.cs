@@ -121,4 +121,29 @@ public sealed class TimewarpedAttacksAndHagTests
 
         Assert.Empty(EffectRegistry.Default.Problems);
     }
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(true, 2)]
+    public void Pagle_gets_a_triple_reward_once_per_combat_when_it_attacks_and_kills(bool golden, int rewards)
+    {
+        // Our Pagle kills E1 1/1 in its attack (pick 0): a Triple Reward (golden: two). Their E2 0/1 cannot attack; our
+        // Pagle's next attack kills it too, but once per combat is used up.
+        var pagle = Minion(golden ? 16 : 8, golden ? 12 : 6, cardId: "BG34_Giant_208", tribes: Tribe.Pirate, golden: golden);
+        var result = Fight(Side(pagle), Side(Minion(1, 1, cardId: "E1"), Minion(0, 1, cardId: "E2")), oursFirst: true,
+                           Only(typeof(TimewarpedPagle)));
+
+        Assert.Equal(1, result.Outcome);
+        Assert.Equal(Enumerable.Repeat("we get TB_BaconShop_Triples_01", rewards), result.Lines("we get "));
+    }
+
+    [Fact]
+    public void Pagle_gets_nothing_for_a_kill_while_defending()
+    {
+        // Their E 1/1 attacks our Pagle 8/6 and dies to it: not "when this attacks".
+        var result = Fight(Side(Minion(8, 6, cardId: "BG34_Giant_208", tribes: Tribe.Pirate)), Side(Minion(1, 1, cardId: "E")), oursFirst: false,
+                           Only(typeof(TimewarpedPagle)));
+
+        Assert.Equal(1, result.Outcome);
+        Assert.Empty(result.Lines("we get "));
+    }
 }

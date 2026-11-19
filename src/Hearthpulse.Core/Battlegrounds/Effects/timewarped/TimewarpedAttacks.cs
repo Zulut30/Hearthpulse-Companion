@@ -82,9 +82,29 @@ internal sealed class TimewarpedNestSwarmer : CombatEffect
 
 /// <summary>
 /// Timewarped Pagle (BG34_Giant_208): "Once per combat, when this attacks and kills a minion, get a Triple Reward."
-/// Golden: 2 Triple Rewards. The reward is a card for the Tavern: nothing changes in the fight.
+/// Golden: 2 Triple Rewards.
 /// </summary>
+/// <remarks>
+/// The reward (TB_BaconShop_Triples_01, a spell) is for the Tavern; in the fight it is a card added to the hand
+/// (<see cref="Fight.AddToHand"/>), which "a card is added to your hand" effects see. Once per combat from the start of
+/// the simulated fight (<see cref="Unit.Counter"/>, reset there); a kill by an attack made against it does not count.
+/// </remarks>
 [CardEffect("BG34_Giant_208")]
 internal sealed class TimewarpedPagle : CombatEffect
 {
+    private const string TripleRewardId = "TB_BaconShop_Triples_01";
+
+    public override void OnFightStart(Fight fight, Unit self) => self.Counter = 0;
+
+    public override void AfterAttack(Fight fight, Unit self, Unit target, AttackOutcome outcome)
+    {
+        if (outcome.Killed && self.Counter == 0)
+        {
+            self.Counter = 1;
+            for (var i = 0; i < self.Pick(1, 2); i++)
+            {
+                fight.AddToHand(self.Side, TripleRewardId);
+            }
+        }
+    }
 }

@@ -196,6 +196,10 @@ Bassgill (S2, с обновлением таблицы релевантност�
 Приложение сохраняет бои каждой законченной BG-игры в `<данные>/combat-captures/<начало игры>-<хэш>.hpc` (gzip JSON,
 `Tracking/CombatCaptureStore.cs`). Файл **никуда не отправляется**: его не читает ни загрузка в профиль, ни общий пул,
 ни запись источника, ни реплей (и ссылка на него), ни отчёт о сбое; выключателя нет, потому что отправлять нечего.
+С 19.11.2026 (источник v3) журнал игры несёт свою копию тех же боёв из памяти — без руки, по белому списку, под
+переключателем записей игр ([source-capture.md](source-capture.md), «Battlegrounds fights»); это вход для замера на
+≥ 500 отложенных боёв: выгрузка владельца `server/pool/node/export-combats.mjs` → `simcover --pool <файл>` (те же
+оценки, что у `--captures`; эффекты, читающие руку игрока, играют без неё).
 `CombatCaptureStoreTests` падает, если о файле узнаёт ещё один исходный файл или если файл, который что-то отправляет
 по HTTP, оказывается среди знающих.
 
@@ -288,6 +292,43 @@ simulated».
 таблицу перегенерировать из свежего `cards.enUS.json`. Замер `simcover` после этого (2026-11-02): по-прежнему 21 / 22 =
 95 %. Первый прогон дал 77 %: трекер считал тринкетом зачарование тринкета (`BG32_MagicItem_362e`, по `_MagicItem_` в
 id) — теперь зачарования, заклинания и существа с таким id тринкетами не считаются (`IsTrinket`).
+
+### Заклинания в бою (E1, 19.11.2026)
+
+Конвейер `Simulation/Fight.Spells.cs`: `CastSpell(SpellCast)` — `SpellCasts` раз (1 + наибольший `ExtraSpellCasts`: Balinda), каждый:
+«whenever you cast» (`OnFriendlySpellCast`) → эффект заклинания → «after you cast» (`AfterFriendlySpellCast`,
+`Fight.CurrentSpell`). Порядок и «чьё это заклинание» сверены с логом владельца (15.11.2026): в таверне Shamanic
+Tidecaller срабатывает до блока POWER заклинания, слева направо; после каждого заклинания — из руки или кастованного
+существом в бою (Mighty Dragonbreath от Crimson Vindicator, Shiny Ring от Runic Arcanist) — у игрока срабатывает один и
+тот же триггер учёта заклинаний (`TB_BaconShop_8P_PlayerE`, EffectIndex 40), значит каст существа — каст игрока.
+Бонус Tavern-заклинаний (`TAVERN_SPELL_ATTACK/HEALTH_INCREASE`) у соперника выставляется на его игрока в начале боя
+(10/10 в логе) и прибавляется к каждой части: Dragonbreath дал Дракону без щита +13/+12 дважды.
+
+**Blood Gem в бою — не заклинание.** Камни, которые играют существа (Bonker, Prodigious Tusker, Gem Confiscation), в
+логе — отдельная карта `BG20_GEM_No_Impact`, и после них триггера учёта заклинаний нет (после Blood Gem, сыгранного из
+руки, — есть). Поэтому камни идут через `Fight.PlayBloodGem` (их видит Geomagus Roogug), а не через `CastSpell`.
+
+Эффекты (`Effects/spells/`): Seafloor Recruiter (Rally: Chef's Choice на соседа справа), Gatekeeper Amalgam (Misplaced
+Tea Set; выбор «по существу каждого типа» — как в логе: каждое существо один раз, сначала тип с наименьшим числом
+кандидатов), Fleeing Fugitive, Glambot, Shamanic Tidecaller, Torrential Ruiner, Twilight Tidehunter (заклинание на
+существо), Timecap'n Hooktail, Charging Czarina, Sha of Fear, Vicious Mindslasher, Forsaken Weaver, Abyssal Bruiser
+(Tavern-заклинание), The Shadow of Doubt (карта в руку; в логе срабатывает в бою после хрипа N'raqi Sapper) и
+источники карт в руку в бою (хрипы, Rally и Avenge «Get ...»: 21 существо, `CardToHand.cs`; Deathly Striker тоже через
+`Fight.AddToHand`), Geomagus Roogug; Crimson Vindicator переведён на конвейер. Тринкеты, реагирующие на заклинания в
+бою: Lovely Locket, Corrupted Baton, Miniature Ship, Comfy Coffin, Bluegill Flippers, Flighty Portrait. Chef's Choice и Misplaced Tea Set в матрице — `implemented` через кастеров
+(`SimCoverage.ResolvedInline`). Числа берутся из
+захваченных `TAG_SCRIPT_DATA_NUM_1/2` (в логах они есть у Hooktail, Czarina, Sha, Mindslasher, Shadow, Tidecaller,
+Glambot, Tidehunter; баланс меняется на сервере), константы — запасной вариант по тексту LATEST.
+
+Допущения заклинаний (не сверены с логом): Seafloor Recruiter без живого соседа справа не кастует; Chef's Choice на
+существо без типа ничего не даёт, полученная случайная карта в список руки не кладётся (только событие «карта в руку»);
+рука считается не полной (заклинания своей руки в снимок не попадают, рука соперника скрыта); Lovely Locket не
+реагирует на свой же каст; два Roogug передают камни до предела глубины движка; Bluegill Flippers — только доска (левая
+карта руки может быть заклинанием, его нет в снимке). Не моделируются: Locked-up Mutineer (есть ли уже Lockbox — не
+видно), Replica Cathedral (считается ли бой новым ходом — неизвестно), Honeycomb Ring, Bloodbound Earrings, Heart of the
+Forest (входит ли бонус в теги игрока — неизвестно), рост Faceless Converter и Showy Cyclist от кастов в бою, Boon of
+Beetles (заклинание таверны с действием в бою, не каст в бою). Balinda Stonehearth (E2) работает через конвейер;
+Temporal Tampering (E4) ляжет на тот же хук `ExtraSpellCasts`.
 
 ## Допущения (не сверены с логами)
 

@@ -152,6 +152,15 @@ offer_shape`, in that order, without repeats.
 
 The server re-checks every fact against the source rows before storing it (task contract C2).
 
+## Source v3
+
+Source `v:3` is v2 plus the record kind `bg_combat`: one Battlegrounds fight as the app's combat simulator got it, with
+the result and the odds shown ([source-capture.md](../../docs/source-capture.md), "Battlegrounds fights", for the
+field allowlist and limits). It is valid only in a `v:3` `bg`/`duos` game capture, with `side:"none"`, `entity:0`,
+`card:null`, `target:0`, `data.fight` growing; a v1/v2 line of that kind fails closed. It adds no fact, no gap and no
+eligibility reason; its event keeps `kind:"bg_combat"` with empty `data`. The result reports `sourceVersion:3`;
+`parserVersion` stays `source-v2.0` (v1/v2 sources decode exactly as before).
+
 ## Budgets and validation
 
 Hard ceilings: source 256 MiB, line 64 KiB before LF, JSON depth 16, 100,000 records/references,

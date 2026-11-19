@@ -10,9 +10,8 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Attack;
 /// <item>The player tags <c>BACON_BLOODGEMBUFFATKVALUE</c> / <c>BACON_BLOODGEMBUFFHEALTHVALUE</c> hold the bonus on top of the
 /// printed +1/+1 (a gem gives +(1 + bonus)/+(1 + bonus)). The opponent's player entity may not carry them; a missing tag
 /// reads as 0, so the opponent's gems default to +1/+1.</item>
-/// <item>Each gem is applied as its own buff (one <see cref="Fight.Buff"/> per gem). Gems are not routed through
-/// <see cref="Fight.CastSpell"/>: whether a Blood Gem played by a minion counts as "you cast a spell" for spell triggers
-/// is not known, so "whenever a Blood Gem is played on this" (Geomagus Roogug, conditional) does not react to them.</item>
+/// <item>Each gem is played on its own (<see cref="Fight.PlayBloodGem"/> per gem), so "whenever a Blood Gem is played on
+/// this" (Geomagus Roogug) reacts to each. A gem a minion plays is not a spell cast (real-log evidence there).</item>
 /// </list>
 /// </remarks>
 internal static class BloodGems
@@ -30,7 +29,7 @@ internal static class BloodGems
         var (attack, health) = Value(owner.Side);
         for (var i = 0; i < count && target.IsOnBoard; i++)
         {
-            fight.Buff(target, attack, health);
+            fight.PlayBloodGem(owner, target, attack, health);
         }
     }
 }
