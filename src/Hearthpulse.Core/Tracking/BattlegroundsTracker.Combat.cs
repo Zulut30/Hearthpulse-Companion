@@ -53,6 +53,7 @@ public sealed partial class BattlegroundsTracker
     {
         FinishTranscript(game, complete: false, "cut");
         _inCombat = true;
+        _combatBlockBase = game.OpenBlocks.Count;
         _combatTurn = game.BattlegroundsTurn;
         _combatActivityAt = Environment.TickCount64;
         _boardCaptured = false;

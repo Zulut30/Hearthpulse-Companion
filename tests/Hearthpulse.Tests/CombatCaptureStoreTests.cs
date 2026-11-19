@@ -261,14 +261,17 @@ public sealed class CombatCaptureStoreTests : IDisposable
         Assert.Single(fight.Ours.Minions);
     }
 
-    /// <summary>A side carrying every input its records keep out of their JSON (package I).</summary>
+    /// <summary>A side carrying every input its records keep out of their JSON (packages I and R).</summary>
     private static SimSide WithInputs(SimSide side, bool opponent) => side with
     {
         Minions = side.Minions.Select((m, i) => m with
         {
             EnchantmentValues = [new SimEnchantment("BG_ENCH_" + i) { ScriptData1 = 3 + i, Attack = 1, Health = 2, CreatorEntityId = 77 }],
             FriendlyDeathsBeforeCapture = 1 + i,
+            SummonedInCombat = i == 0,
         }).ToList(),
+        PlayerId = opponent ? 6 : 1,
+        Secrets = opponent ? [] : [DamageRules.IceBlock],
         PlayerEnchantments = opponent ? [] : [new SimEnchantment("BG_PLAYER_ENCH") { ScriptData1 = 2, CreatorEntityId = 101 }],
         DeathsBeforeCapture = [SimMinion.Create("BG_DIED_EARLY", 2, 3) with { EntityId = 999 }],
         LobbyTribes = Tribe.Beast | Tribe.Murloc,
@@ -293,7 +296,9 @@ public sealed class CombatCaptureStoreTests : IDisposable
 
         foreach (var (before, after) in new[] { (ours, read.Ours), (theirs, read.Theirs) })
         {
-            Assert.Equal(before.Minions.Select(m => (m.EntityId, m.FriendlyDeathsBeforeCapture)), after.Minions.Select(m => (m.EntityId, m.FriendlyDeathsBeforeCapture)));
+            Assert.Equal(before.Minions.Select(m => (m.EntityId, m.FriendlyDeathsBeforeCapture, m.SummonedInCombat)),
+                         after.Minions.Select(m => (m.EntityId, m.FriendlyDeathsBeforeCapture, m.SummonedInCombat)));
+            Assert.Equal(before.PlayerId, after.PlayerId);
             Assert.Equal(before.Minions.SelectMany(m => m.EnchantmentValues), after.Minions.SelectMany(m => m.EnchantmentValues));
             Assert.Equal(before.LobbyTribes, after.LobbyTribes);
             Assert.Equal(before.DeathsBeforeCapture.Select(m => (m.CardId, m.EntityId, m.Attack, m.Health)), after.DeathsBeforeCapture.Select(m => (m.CardId, m.EntityId, m.Attack, m.Health)));
@@ -302,9 +307,26 @@ public sealed class CombatCaptureStoreTests : IDisposable
         }
 
         Assert.Equal(ours.PlayerEnchantments, read.Ours.PlayerEnchantments);
+        Assert.Equal([DamageRules.IceBlock], read.Ours.Secrets);
         // A saved fight is read after its game: its options use the opponent's post-game values.
         Assert.True(read.AsSaved().Options.PostGame);
         Assert.True(read.Today(CardDb.Empty, EffectRegistry.Default).Options.PostGame);
+    }
+
+    [Fact]
+    public void The_opponents_secrets_never_reach_the_file()
+    {
+        // The opponent's secrets are hidden: the tracker never reads them, and the file drops any that a side carried.
+        var saved = Captured(out _);
+        var fight = Assert.Single(saved.Fights);
+        var theirs = fight.Theirs with { Secrets = ["BG_THEIR_SECRET"] };
+        saved = saved with { Fights = [fight with { Theirs = theirs, TheirsInputs = SavedInputs.Of(theirs) }] };
+        var store = new CombatCaptureStore(_dir);
+
+        var name = store.Save("20261023123000|their-secrets", saved)!;
+
+        Assert.DoesNotContain("BG_THEIR_SECRET", ReadJson(Path.Combine(_dir, name)), StringComparison.Ordinal);
+        Assert.Empty(Assert.Single(store.Load(name)!.Fights).Theirs.Secrets);
     }
 
     [Fact]

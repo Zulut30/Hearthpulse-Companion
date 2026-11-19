@@ -92,9 +92,10 @@ internal sealed record SavedFight
 }
 
 /// <summary>
-/// A side's inputs its records leave out of their JSON (<c>[JsonIgnore]</c> in <c>CombatSimulator.Inputs.cs</c>): the
-/// player's enchantments, the deaths before the capture, the lobby's tribes, the estimates, and per minion of the board
-/// and hand (by entity id) its enchantment values and the friendly deaths it saw before the capture. Minions inside
+/// A side's inputs its records leave out of their JSON (<c>[JsonIgnore]</c> in <c>CombatSimulator.Inputs.cs</c> and
+/// <c>CombatSimulator.Rules.cs</c>): the player's enchantments, the deaths before the capture, the lobby's tribes, the
+/// estimates, the hero's lobby PLAYER_ID and the local player's own secrets, and per minion of the board and hand (by
+/// entity id) its enchantment values, the friendly deaths it saw before the capture and whether Start of Combat summoned it. Minions inside
 /// these lists (<see cref="DeathsBeforeCapture"/>) keep only what their own JSON holds.
 /// </summary>
 internal sealed record SavedInputs
@@ -109,12 +110,23 @@ internal sealed record SavedInputs
 
     public IReadOnlyList<SavedMinionInputs>? Minions { get; init; }
 
+    /// <summary>The hero's lobby PLAYER_ID (death order); 0 when unknown.</summary>
+    public int PlayerId { get; init; }
+
+    /// <summary>The local player's own secrets (Ice Block); never the opponent's (<see cref="CombatCaptureStore.Save"/>).</summary>
+    public IReadOnlyList<string>? Secrets { get; init; }
+
     /// <summary>The inputs of <paramref name="side"/>, or null when it has none.</summary>
     public static SavedInputs? Of(SimSide side)
     {
         var minions = side.Minions.Concat(side.Hand)
-            .Where(m => m.EnchantmentValues.Count > 0 || m.FriendlyDeathsBeforeCapture != 0)
-            .Select(m => new SavedMinionInputs(m.EntityId) { EnchantmentValues = m.EnchantmentValues, FriendlyDeathsBeforeCapture = m.FriendlyDeathsBeforeCapture })
+            .Where(m => m.EnchantmentValues.Count > 0 || m.FriendlyDeathsBeforeCapture != 0 || m.SummonedInCombat)
+            .Select(m => new SavedMinionInputs(m.EntityId)
+            {
+                EnchantmentValues = m.EnchantmentValues,
+                FriendlyDeathsBeforeCapture = m.FriendlyDeathsBeforeCapture,
+                SummonedInCombat = m.SummonedInCombat,
+            })
             .ToList();
         var inputs = new SavedInputs
         {
@@ -123,8 +135,12 @@ internal sealed record SavedInputs
             LobbyTribes = side.LobbyTribes,
             Estimates = side.Estimates.Count > 0 ? side.Estimates : null,
             Minions = minions.Count > 0 ? minions : null,
+            PlayerId = side.PlayerId,
+            Secrets = side.Secrets.Count > 0 ? side.Secrets : null,
         };
-        return inputs is { PlayerEnchantments: null, DeathsBeforeCapture: null, LobbyTribes: Tribe.None, Estimates: null, Minions: null } ? null : inputs;
+        return inputs is { PlayerEnchantments: null, DeathsBeforeCapture: null, LobbyTribes: Tribe.None, Estimates: null, Minions: null, PlayerId: 0, Secrets: null }
+            ? null
+            : inputs;
     }
 
     /// <summary><paramref name="side"/> with these inputs put back.</summary>
@@ -132,7 +148,12 @@ internal sealed record SavedInputs
     {
         var byEntity = (Minions ?? []).GroupBy(m => m.EntityId).ToDictionary(g => g.Key, g => g.First());
         SimMinion Apply(SimMinion m) => m.EntityId != 0 && byEntity.TryGetValue(m.EntityId, out var saved)
-            ? m with { EnchantmentValues = saved.EnchantmentValues ?? [], FriendlyDeathsBeforeCapture = saved.FriendlyDeathsBeforeCapture }
+            ? m with
+            {
+                EnchantmentValues = saved.EnchantmentValues ?? [],
+                FriendlyDeathsBeforeCapture = saved.FriendlyDeathsBeforeCapture,
+                SummonedInCombat = saved.SummonedInCombat,
+            }
             : m;
         return side with
         {
@@ -142,6 +163,8 @@ internal sealed record SavedInputs
             DeathsBeforeCapture = DeathsBeforeCapture ?? [],
             LobbyTribes = LobbyTribes,
             Estimates = Estimates ?? [],
+            PlayerId = PlayerId,
+            Secrets = Secrets ?? [],
         };
     }
 }
@@ -152,6 +175,9 @@ internal sealed record SavedMinionInputs(int EntityId)
     public IReadOnlyList<SimEnchantment>? EnchantmentValues { get; init; }
 
     public int FriendlyDeathsBeforeCapture { get; init; }
+
+    /// <summary>Summoned during Start of Combat (<see cref="SimMinion.SummonedInCombat"/>).</summary>
+    public bool SummonedInCombat { get; init; }
 }
 
 /// <summary>The fights of one Battlegrounds game. No names, account ids or ratings: cards by card id only.</summary>
@@ -267,9 +293,10 @@ internal sealed class CombatCaptureStore(string directory)
             Hand = opponent ? [] : side.Hand,
             ExtraTags = opponent ? SimSide.EmptyExtraTags : side.ExtraTags,
         };
-        // The player's enchantments are the local player's only (whether the client shows the opponent's is not established).
+        // The player's enchantments are the local player's only (whether the client shows the opponent's is not established);
+        // so are secrets, which the opponent's side never carries.
         static SavedInputs? MinimizeInputs(SavedInputs? inputs, bool opponent) =>
-            opponent && inputs is not null ? inputs with { PlayerEnchantments = null } : inputs;
+            opponent && inputs is not null ? inputs with { PlayerEnchantments = null, Secrets = null } : inputs;
         captures = captures with
         {
             Fights = captures.Fights.Select(f => f with
@@ -384,7 +411,8 @@ internal sealed class CombatCaptureStore(string directory)
         || ((inputs.PlayerEnchantments ?? []).All(e => e is { CardId: not null })
             && (inputs.DeathsBeforeCapture ?? []).All(ValidMinion)
             && (inputs.Estimates ?? []).All(e => e is { Input: not null, Basis: not null, Tags: not null } && e.Tags.All(t => t is not null))
-            && (inputs.Minions ?? []).All(m => m is not null && (m.EnchantmentValues ?? []).All(e => e is { CardId: not null })));
+            && (inputs.Minions ?? []).All(m => m is not null && (m.EnchantmentValues ?? []).All(e => e is { CardId: not null }))
+            && (inputs.Secrets ?? []).All(s => s is not null));
 
     private static bool ValidTranscript(BattlegroundsTracker.CombatTranscript transcript) =>
         transcript is { Events: not null, Boards: not null, Ending: not null }

@@ -82,6 +82,27 @@ public sealed class CaptureTests
     }
 
     [Fact]
+    public void A_tavern_block_left_open_does_not_hide_the_first_regular_attack()
+    {
+        // Real logs leave tavern PLAY blocks (and what they opened) without BLOCK_END (package P1, 15.11: 61 missing).
+        // A minion's TRIGGER still open from the tavern is not around the combat's attacks: the first one captures.
+        var log = new PowerLog()
+            .BattlegroundsGame()
+            .Minion(30, "BG25_001", Me, 1, 4, 4)
+            .Minion(40, "BG36_854", Them, 1, 2, 1)
+            .Block("PLAY", Ref(30, "Risen Rider", "BG25_001", Me))
+            .Block("TRIGGER", Ref(30, "Risen Rider", "BG25_001", Me))
+            .CombatStarts()
+            .Block("ATTACK", Ref(40, "Rescue Bot", "BG36_854", Them));
+
+        var (_, tracker) = log.Replay(Cards);
+
+        var capture = tracker.LastCapture!;
+        Assert.False(capture.OursFirst);
+        Assert.Equal(40, capture.FirstAttackerEntityId);
+    }
+
+    [Fact]
     public void Attacks_inside_game_level_blocks_still_capture()
     {
         var log = new PowerLog()
