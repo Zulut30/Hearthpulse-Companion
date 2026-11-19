@@ -146,4 +146,14 @@ public sealed class TimewarpedAttacksAndHagTests
         Assert.Equal(1, result.Outcome);
         Assert.Empty(result.Lines("we get "));
     }
+    [Fact]
+    public void The_opponents_beetle_behind_a_nest_swarmer_is_an_explicit_estimate()
+    {
+        // Their Beetle bonus is hidden from the player; a Timewarped Nest Swarmer summons their Beetle, so the capture
+        // marks the Beetle's stats as estimated (our own Beetle, else the printed 2/2) instead of a silent 2/2.
+        var theirs = Side(Minion(7, 7, cardId: Swarmer, tribes: Tribe.Beast));
+        var estimates = Hearthpulse.Core.Tracking.SimEstimates.For(theirs, isOpponent: true, new Dictionary<string, int>(), local: null);
+
+        Assert.Contains(estimates, e => e.Input == SimInputs.BeetleStats && (e.Value1, e.Value2) == (2, 2));
+    }
 }
