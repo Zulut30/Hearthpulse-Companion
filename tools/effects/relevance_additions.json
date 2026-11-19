@@ -1,5 +1,5 @@
 {
-  "source": "tools/effects/relevance_additions.json (pool minions the patch's research files lack; labelled by hand from HearthstoneJSON enUS card text)",
+  "source": "tools/effects/relevance_additions.json (minions the carried hand-labelled rows lack: pool minions, and tokens or generated minions seen on boards (origin \"token\"); labelled by hand from HearthstoneJSON enUS card text)",
   "minions": [
     {
       "id": "BG27_023",
@@ -20,6 +20,203 @@
       "text": "Deathrattle: Summon the highest-Health Murloc from your hand for this combat only.",
       "added": "2026-11-15",
       "why": "deathrattle summon"
+    },
+    {
+      "id": "BG25_013",
+      "golden_id": "BG25_013_G",
+      "name": "Rot Hide Gnoll",
+      "category": "DYNAMIC_DEATHS_ATTACK",
+      "combat_relevant": "y",
+      "text": "Has +1 Attack for each friendly minion that died this combat.",
+      "added": "2026-11-19",
+      "why": "back in the pool in patch 37.0.2 (HearthstoneJSON 256589, API in_pool); its Attack grows with each friendly death during the fight"
+    },
+    {
+      "id": "BG27_513",
+      "golden_id": "BG27_513_G",
+      "name": "Tide Oracle Morgl",
+      "category": "KILL_HAND_BUFF",
+      "combat_relevant": "y",
+      "origin": "token",
+      "text": "Poisonous. When this attacks and kills a minion, give its maximum stats to a minion in your hand.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; kills in combat feed cards that summon from the hand, as Murcules"
+    },
+    {
+      "id": "BG36_205",
+      "golden_id": "BG36_205_G",
+      "name": "Fishbait",
+      "category": "DR_BUFF_KILLER",
+      "combat_relevant": "y",
+      "origin": "token",
+      "text": "This can't gain stats. Deathrattle: Give the minion that killed this +5/+5.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; deathrattle buffs the enemy minion that killed it; it can't gain stats in combat either"
+    },
+    {
+      "id": "BG36_360t9",
+      "golden_id": "BG36_360_Gt9",
+      "name": "Dark Paradox",
+      "category": "DR_SUMMON",
+      "combat_relevant": "y",
+      "origin": "token",
+      "text": "Deathrattle: Summon a Golem with this minion's stats.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Dark Paradox's deathrattle form: summons a Golem with its stats"
+    },
+    {
+      "id": "TB_BaconShop_HERO_33_Buddy",
+      "golden_id": "TB_BaconShop_HERO_33_Buddy_G",
+      "name": "Mishmash",
+      "category": "AMALGAM_MIRROR",
+      "combat_relevant": "conditional",
+      "origin": "token",
+      "text": "Whenever your Amalgam gains stats, this gains them too.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; grows only when the Amalgam gains stats in combat"
+    },
+    {
+      "id": "BG31_360",
+      "golden_id": "BG31_360_G",
+      "name": "Arcane Behemoth",
+      "category": "KEYWORDS",
+      "combat_relevant": "simulated",
+      "origin": "token",
+      "text": "Taunt After you sell an Elemental, gain its stats.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Taunt; its other text is Tavern only"
+    },
+    {
+      "id": "BGS_115t",
+      "golden_id": "BGS_115t_G",
+      "name": "Water Droplet",
+      "category": "TOKEN",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; no text"
+    },
+    {
+      "id": "BG31_171t",
+      "golden_id": "BG31_171_Gt",
+      "name": "Satellite",
+      "category": "TOKEN",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Magnetic",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Magnetic only"
+    },
+    {
+      "id": "BG31_176",
+      "golden_id": "BG31_176_G",
+      "name": "Dr. Boom's Monster",
+      "category": "STATS_THIS_GAME",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Magnetic Has +2/+2 for each time you've Magnetized this game (wherever this is).",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; its bonus is already in the captured stats"
+    },
+    {
+      "id": "BG33_890t",
+      "golden_id": "",
+      "name": "Magicfin Apprentice",
+      "category": "BATTLECRY",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Battlecry: This casts 0. (This minion can't be tripled.)",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Battlecry"
+    },
+    {
+      "id": "BG34_634t",
+      "golden_id": "BG34_634_Gt",
+      "name": "Blue Chromadrake",
+      "category": "BATTLECRY",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Battlecry: Get a random 2-Cost Tavern spell.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Battlecry"
+    },
+    {
+      "id": "BG34_635t",
+      "golden_id": "BG34_635_Gt",
+      "name": "Black Chromadrake",
+      "category": "BATTLECRY",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Battlecry: Your Tavern spells give an extra +1 Health this game.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Battlecry"
+    },
+    {
+      "id": "BG34_636t",
+      "golden_id": "BG34_636_Gt",
+      "name": "Green Chromadrake",
+      "category": "BATTLECRY",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Battlecry: Give your other Dragons +1/+3.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Battlecry"
+    },
+    {
+      "id": "BG34_637t",
+      "golden_id": "BG34_637_Gt",
+      "name": "Bronze Chromadrake",
+      "category": "BATTLECRY",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Battlecry: Give your other Dragons +3/+1.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Battlecry"
+    },
+    {
+      "id": "BG34_638t",
+      "golden_id": "BG34_638_Gt",
+      "name": "Red Chromadrake",
+      "category": "BATTLECRY",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Battlecry: Your Tavern spells give an extra +1 Attack this game.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Battlecry"
+    },
+    {
+      "id": "BG36_360t3",
+      "golden_id": "BG36_360_Gt3",
+      "name": "Dark Paradox",
+      "category": "PLAY_TRIGGER",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Whenever you play a card, gain +2 Health.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Dark Paradox's form: grows when you play a card (Tavern)"
+    },
+    {
+      "id": "BG36_360t5",
+      "golden_id": "BG36_360_Gt5",
+      "name": "Dark Paradox",
+      "category": "RALLY_GET",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Rally: Get a random minion of your most common type.",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Dark Paradox's form: its Rally gets a card"
+    },
+    {
+      "id": "BG36_360t6",
+      "golden_id": "BG36_360_Gt6",
+      "name": "Dark Paradox",
+      "category": "STATS_THIS_GAME",
+      "combat_relevant": "n",
+      "origin": "token",
+      "text": "Has +4/+4 for each Battlecry you've triggered this game (wherever this is).",
+      "added": "2026-11-19",
+      "why": "seen on boards this patch (API minion stats), not a pool card; Dark Paradox's form: its bonus is already in the captured stats"
     }
   ]
 }

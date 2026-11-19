@@ -163,8 +163,8 @@ public static partial class CombatRelevance
 
     /// <summary>
     /// Text heuristic for "needs combat simulation" (English card text). Mirrors needs_sim() in
-    /// tools/effects/gen_combat_relevance.py; on the hand-labelled pool it finds 64 of the 65 combat-relevant cards with 5
-    /// false alarms. Tuned on that pool, so expect it to be weaker on a new patch.
+    /// tools/effects/gen_combat_relevance.py; on the hand-labelled pool of patch 37.0.2 it finds 64 of the 66
+    /// combat-relevant cards with 5 false alarms. Tuned on that pool, so expect it to be weaker on a new patch.
     /// </summary>
     public static bool TextSuggestsCombatEffect(string? text)
     {
@@ -252,7 +252,7 @@ public static partial class CombatRelevance
     [GeneratedRegex(@"(Whenever|After) you summon|summon a (Beast|minion) in combat")]
     private static partial Regex OnSummonRegex();
 
-    [GeneratedRegex(@"is Reborn|deals damage, gain|that died this game|Deathrattle you've triggered|Deathrattles trigger|while this has Divine Shield|Once this reaches")]
+    [GeneratedRegex(@"is Reborn|deals damage, gain|that died this (game|combat)|Deathrattle you've triggered|Deathrattles trigger|while this has Divine Shield|Once this reaches")]
     private static partial Regex DynamicRegex();
 
     [GeneratedRegex(@"rest of this combat|When you have space|attack immediately")]
