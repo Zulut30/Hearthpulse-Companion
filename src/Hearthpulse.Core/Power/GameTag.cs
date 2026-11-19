@@ -60,6 +60,13 @@ public static class GameTag
     public const string BaconDummyPlayer = "BACON_DUMMY_PLAYER";
     public const string BaconAnomaly = "BACON_GLOBAL_ANOMALY_DBID";
     public const string BaconDeity = "BACON_GLOBAL_OLD_GOD_DBID";
+
+    /// <summary>Player: the stats of the player's sleeping Deity (the opponent's arrive when its Deity is revealed in combat).</summary>
+    public const string BaconOldGodAttack = "BACON_OLD_GOD_ATTACK";
+    public const string BaconOldGodHealth = "BACON_OLD_GOD_HEALTH";
+
+    /// <summary>The Deity objective: the client shows its Deity card with the owner's <see cref="BaconOldGodAttack"/>.</summary>
+    public const string BaconEvolutionOverwriteAttack = "BACON_EVOLUTION_CARD_OVERWRITE_ATK";
     public const string BaconMaxTechLevel = "BACON_MAX_PLAYER_TECH_LEVEL";
     public const string BaconDuoTeamId = "BACON_DUO_TEAM_ID";
 

@@ -90,6 +90,8 @@ public sealed class EffectCardTextGuardTests
         ("BG26_802", "After you summon a Beast in combat, double its Attack.", "After you summon a Beast in combat, triple its Attack."),
         ("BG26_805", "For the rest of this combat, your Beasts have +1 Attack.", "For the rest of this combat, your Beasts have +2 Attack."),
         ("BG27_023", "Whenever this kills a minion, give a minion in your hand +3/+3.", "Whenever this kills a minion, give a minion in your hand +6/+6."),
+        ("BG29_300", "Whenever this takes damage, give a minion in your hand +2/+1.", "Whenever this takes damage, give a minion in your hand +4/+2."),
+        ("BG21_015", "This permanently keeps Bonus Keywords and stats gained in combat.", "This permanently keeps Bonus Keywords and double stats gained in combat."),
         ("BG27_556", "When you have space, summon the highest-Attack Murloc from your hand for this combat only.", "When you have space, summon the two highest-Attack Murlocs from your hand for this combat only."),
         ("BG31_835", "Avenge (4): Get a random Undead. Deathrattle: Summon it from your hand for this combat only.", "Avenge (4): Get 2 random Undead. Deathrattle: Summon them from your hand for this combat only."),
         ("BG33_155", "After another friendly Demon deals damage, gain +2/+2 permanently.", "After another friendly Demon deals damage, gain +4/+4 permanently."),

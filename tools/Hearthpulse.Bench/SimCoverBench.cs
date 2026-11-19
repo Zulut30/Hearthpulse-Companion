@@ -119,6 +119,11 @@ internal static class SimCoverBench
             Console.WriteLine($"[sim]   {Summary(scores[budget])}");
         }
 
+        foreach (var line in SimMisses.Lines(fights, scores[SimBudget.App]))
+        {
+            Console.WriteLine($"[miss] {line}");
+        }
+
         var reasons = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var reason in fights.SelectMany(f => Reasons(f.Capture!, cards)))
         {

@@ -93,6 +93,9 @@ internal static class SimSample
         var captured = new Dictionary<int, (BattlegroundsTracker.CombatCapture Capture, SimOptions Options)>();
         BattlegroundsTracker.CombatCapture? lastCapture = null;
         (BattlegroundsTracker.CombatCapture Capture, SimOptions Options)? pending = null;
+        // The opponent's values the log had and the player did not see, per combat: the tracker hands them out once the
+        // game is over (its post-game captures), for the "exact inputs" odds of simcover's misses (SimMisses).
+        var hidden = new Dictionary<int, IReadOnlyDictionary<string, int>>();
 
         void Close()
         {
@@ -103,6 +106,11 @@ internal static class SimSample
                 {
                     // A capture counts only with the odds the app saved for that combat.
                     var taken = c.Odds is not null && captured.TryGetValue(i, out var at) ? at : ((BattlegroundsTracker.CombatCapture, SimOptions)?)null;
+                    if (taken is { } t && hidden.TryGetValue(i, out var revealed))
+                    {
+                        taken = (t.Item1 with { Theirs = t.Item1.Theirs with { HiddenTags = revealed } }, t.Item2);
+                    }
+
                     return new SimFight(string.Create(CultureInfo.InvariantCulture, $"{key}/{i + 1}"), c.Turn, c.Result, c.DamageTaken, c.DamageDealt,
                         taken?.Item1, taken?.Item2);
                 }).ToList();
@@ -111,6 +119,7 @@ internal static class SimSample
 
             combats = [];
             captured.Clear();
+            hidden.Clear();
             pending = null;
         }
 
@@ -144,6 +153,14 @@ internal static class SimSample
             {
                 // Copied every time: a combat's damage is filled in after it was added.
                 combats = tracker.Combats.ToList();
+            }
+
+            if (hidden.Count == 0 && tracker.Captures is { Count: > 0 } all && all[0].Options.PostGame)
+            {
+                foreach (var fight in all)
+                {
+                    hidden[fight.CombatIndex] = fight.Capture.Theirs.HiddenTags;
+                }
             }
         }
 

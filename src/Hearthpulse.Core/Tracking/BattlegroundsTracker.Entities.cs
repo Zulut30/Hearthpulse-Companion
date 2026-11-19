@@ -214,6 +214,23 @@ public sealed partial class BattlegroundsTracker
             .Where(e => e.CardId.Length > 0 && (e.CardType == "BATTLEGROUND_SPELL" || e.Has("QUEST")))
             .OrderBy(e => e.Id);
 
+    /// <summary>
+    /// The player's "Secret Deity" objective in their SECRET zone (<see cref="SimInputs.DeityObjective"/>), or null. The
+    /// opponent's is a copy the server reveals at the combat's start (SHOW_ENTITY with its card id, Power.log 2026-11-15
+    /// L746400) and removes after it (L752070).
+    /// </summary>
+    private static Entity? DeityObjective(GameState game, int controller) =>
+        game.Controlled(controller, GameTag.Secret).FirstOrDefault(e => e.CardId == SimInputs.DeityObjective);
+
+    /// <summary>
+    /// Whether the client draws <paramref name="objective"/>'s Deity with the owner's own stats: BACON_EVOLUTION_CARD_OVERWRITE_ATK
+    /// on a revealed objective tells it to show the Deity card (BACON_EVOLUTION_CARD_ID) with the player's
+    /// BACON_OLD_GOD_ATTACK/HEALTH, which arrive in the same block, before the first attack (L746501-746504; 2026-11-15
+    /// L387546/L387630, 722/788; L1277814, 123/107).
+    /// </summary>
+    private static bool DeityStatsShown(Entity? objective) =>
+        objective is not null && objective.GetInt(GameTag.BaconEvolutionOverwriteAttack) > 0;
+
     /// <summary>A local Discover offer opened: remember it when it is a Timewarped Nellie's Ship crewing itself.</summary>
     private void NoteCrewOffer(Entity? source) =>
         _crewShip = source is { CardId.Length: > 0 } ship && CombatRelevance.Normalize(ship.CardId, Cards).CardId == SimInputs.NelliesShip ? source.Id : 0;
@@ -297,15 +314,23 @@ public sealed partial class BattlegroundsTracker
                 .OrderBy(e => e.ZonePosition)
                 .Select(e => ToSim(e, isOpponent: false, enchantments) with { HasUnsimulatedEffect = false })
                 .ToArray();
-        // The opponent's player tags (Blood Gem and tavern spell values, Deity stats...) are not on the player's screen: the
-        // live side gets none of them, only estimates; the values the log had wait for the end of the game.
+        // The opponent's player tags (Blood Gem and tavern spell values...) are not on the player's screen: the live side gets
+        // none of them, only estimates; the values the log had wait for the end of the game. The one exception is the Deity's
+        // stats while the client shows its revealed objective (DeityStatsShown).
         var playerTags = NumericTags(player);
         var tags = isOpponent ? new Dictionary<string, int>(StringComparer.Ordinal) : playerTags;
+        var deity = DeityObjective(game, controller);
         if (isOpponent)
         {
             _hiddenOpponentTags[_combats.Count] = playerTags
                 .Where(t => SimInputs.HiddenPlayerTags.Contains(t.Key))
                 .ToDictionary(t => t.Key, t => t.Value, StringComparer.Ordinal);
+            if (DeityStatsShown(deity) && playerTags.GetValueOrDefault(GameTag.BaconOldGodAttack) > 0)
+            {
+                // The client draws the opponent's revealed Deity with these stats: on the player's screen, so exact.
+                tags[GameTag.BaconOldGodAttack] = playerTags[GameTag.BaconOldGodAttack];
+                tags[GameTag.BaconOldGodHealth] = Math.Max(1, playerTags.GetValueOrDefault(GameTag.BaconOldGodHealth));
+            }
         }
 
         var side = new SimSide(minions)
@@ -328,6 +353,7 @@ public sealed partial class BattlegroundsTracker
             PlayerEnchantments = isOpponent || player is null ? Array.Empty<SimEnchantment>() : enchantments[player.Id].Select(ToEnchantment).ToArray(),
             DeathsBeforeCapture = _deathsBeforeCapture.Where(d => d.Controller == controller).Select(d => d.Dead).ToArray(),
             LobbyTribes = LobbyTribes(),
+            DeityAwakening = deity?.GetInt(SimInputs.QuestTotal) is > 0 and var total ? new DeityAwakening(deity.GetInt(SimInputs.QuestProgress), total) : null,
         };
         return side with { Estimates = SimEstimates.For(side, isOpponent, tags, LocalPlayerSide(game, enchantments, isOpponent)) };
     }

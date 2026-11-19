@@ -35,6 +35,13 @@ public static class SimInputs
     /// <summary>Timewarped Nellie's Ship, whose crew the tracker records for the local player (<see cref="SimMinion.Crew"/>).</summary>
     public const string NelliesShip = "BG34_Giant_074t";
 
+    /// <summary>
+    /// "Secret Deity [DNT]": the objective in each player's SECRET zone that counts Aberration deaths for the lobby's Deity
+    /// (QUEST_PROGRESS / QUEST_PROGRESS_TOTAL, TAG_SCRIPT_DATA_NUM_1 = deaths still needed, BACON_DEITY_SIGIL = 1 marks it;
+    /// Power.log 2026-11-15 L746400, the opponent's copy revealed at the combat's start).
+    /// </summary>
+    public const string DeityObjective = "BG_OldGod";
+
     /// <summary>A quest's progress so far (its QUEST_PROGRESS tag).</summary>
     public const string QuestProgress = "QUEST_PROGRESS";
 
@@ -70,6 +77,8 @@ public static class SimInputs
     /// The player tags effects read (<see cref="Side.Counter"/>) that the client does not show for the opponent: Blood Gem
     /// and tavern spell values, the Deity's stats (by name and by the number the log prints without one). During the game
     /// the opponent's never reach <see cref="SimSide.Tags"/>; they are kept in <see cref="SimSide.HiddenTags"/> for after it.
+    /// The exception is the Deity's stats while the client draws the opponent's revealed Deity with them (the tracker's
+    /// DeityStatsShown, docs/bg-combat-sim.md "Входы симулятора").
     /// </summary>
     public static IReadOnlyCollection<string> HiddenPlayerTags { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -158,12 +167,18 @@ public static class SimInputs
         side.ExtraTag(heroPowerCardId, "TAG_SCRIPT_DATA_NUM_1") is { } flag ? flag > 0 : null;
 
     /// <summary>
-    /// Friendly Aberration deaths still needed to awaken the Deity <paramref name="deityCardId"/> in this fight: the
-    /// Aberrations of this side that died during Start of Combat count already. <see cref="int.MaxValue"/> when it awakened
-    /// before the capture (once per combat).
+    /// Friendly Aberration deaths still needed to awaken the Deity <paramref name="deityCardId"/> in this fight: from the
+    /// side's objective when the capture has it (<see cref="SimSide.DeityAwakening"/>: its target and what it counted,
+    /// Start of Combat included), else <paramref name="deathsToAwaken"/> less the Aberrations of this side that died during
+    /// Start of Combat. <see cref="int.MaxValue"/> when it awakened before the capture (once per combat).
     /// </summary>
     public static int DeityDeathsStillNeeded(SimSide side, string deityCardId, int deathsToAwaken)
     {
+        if (side.DeityAwakening is { Total: > 0 } awakening)
+        {
+            return DeityAwake(side, deityCardId) ? int.MaxValue : Math.Max(1, awakening.Total - Math.Max(0, awakening.Progress));
+        }
+
         var died = 0;
         foreach (var dead in side.DeathsBeforeCapture)
         {
@@ -207,4 +222,27 @@ public static class SimInputs
     }
 
     private static bool IsDeity(string cardId) => cardId == Tokens.CThunId || cardId == Tokens.YShaarjId;
+
+    /// <summary>The Deity <paramref name="deityCardId"/> is on the board or died during Start of Combat: it awoke already.</summary>
+    private static bool DeityAwake(SimSide side, string deityCardId)
+    {
+        // Loops, not LINQ: read on every Aberration death of a simulated fight.
+        foreach (var minion in side.Minions)
+        {
+            if (minion.CardId == deityCardId)
+            {
+                return true;
+            }
+        }
+
+        foreach (var dead in side.DeathsBeforeCapture)
+        {
+            if (dead.CardId == deityCardId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

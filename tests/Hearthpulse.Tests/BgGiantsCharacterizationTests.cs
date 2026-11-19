@@ -148,6 +148,8 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // Graverobber, Maw Caster, Locked-up Mutineer, Dark Paradox t5, Nellie's Ship, Boon of Beetles, three spell trinkets,
         // Rallying Cry, seven quests) change the boards and, through the Pirate/Undead pools, the summons; with a registry
         // without those classes (checked) the fingerprint is still 686C34B3497F4560 (sim-rules).
-        Assert.Equal("fights 5887EA944D5F7F33", actual);
+        // 2026-11-19 (ACC sim-replay-residuals): Very Hungry Winterfinner and golden Tarecgosa get effects (real fights
+        // #2/9, #2/12, #5/8 of the 15.11 log); before them (main at ef122f83) the fingerprint is 5887EA944D5F7F33.
+        Assert.Equal("fights 489D3D39263EF5AB", actual);
     }
 }
