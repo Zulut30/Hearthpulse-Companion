@@ -243,15 +243,16 @@ public sealed class MainWindowLookTests
 
     /// <summary>
     /// "Page background" (Settings > Appearance: by page, one hero, none) writes AppSettings.PageHeroes and BackgroundHero,
-    /// and the page hero's art sits in a layer shown only with a hero, at the chosen strength, in both UIs.
+    /// and the page hero sits in a layer shown only with a hero, its pictures at the chosen strength, in both UIs: two
+    /// slots of wash and picture that the code-behind's HeroSwap cross-fades when the page changes the hero.
     /// </summary>
     [Fact]
     public void Background_characters_switch_and_backdrop_are_bound_in_both_UIs()
     {
-        foreach (var (settings, window) in new[]
+        foreach (var (settings, window, code) in new[]
                  {
-                     ("src/Hearthpulse.App/Main/SettingsTabs/AppearanceSettings.xaml", "src/Hearthpulse.App/Main/MainWindow.xaml"),
-                     ("src/Hearthpulse.UI/Main/SettingsTabs/AppearanceSettings.axaml", "src/Hearthpulse.UI/Main/MainView.axaml"),
+                     ("src/Hearthpulse.App/Main/SettingsTabs/AppearanceSettings.xaml", "src/Hearthpulse.App/Main/MainWindow.xaml", "src/Hearthpulse.App/Main/MainWindow.PageHero.cs"),
+                     ("src/Hearthpulse.UI/Main/SettingsTabs/AppearanceSettings.axaml", "src/Hearthpulse.UI/Main/MainView.axaml", "src/Hearthpulse.UI/Main/MainView.PageHero.cs"),
                  })
         {
             foreach (var choice in new[] { "BackgroundAuto", "BackgroundChosen", "BackgroundOff" })
@@ -259,9 +260,19 @@ public sealed class MainWindowLookTests
                 Assert.Contains(Load(settings).Descendants(), e => e.Name.LocalName == "RadioButton" && ((string?)e.Attribute("IsChecked"))?.StartsWith("{Binding " + choice, StringComparison.Ordinal) == true);
             }
 
-            var art = Load(window).Descendants().Single(e => e.Attributes().Any(a => a.Name.LocalName == "CardArt.Splash" && a.Value == "{Binding PageHero}"));
-            Assert.Equal("{Binding BackgroundIntensity}", (string?)art.Attribute("Opacity"));
-            Assert.Contains(art.Ancestors(), a => a.Attributes().Any(x => x.Name.LocalName is "Visibility" or "IsVisible" && x.Value.Contains("Binding PageHero", StringComparison.Ordinal)));
+            var view = Load(window);
+            XElement Named(string name) => view.Descendants().Single(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == name));
+            foreach (var slot in new[] { "A", "B" })
+            {
+                var art = Named("PageHeroArt" + slot);
+                Assert.Equal("{Binding BackgroundIntensity}", (string?)art.Parent!.Attribute("Opacity"));
+                Assert.Contains(art.Ancestors(), a => a.Attributes().Any(x => x.Name.LocalName is "Visibility" or "IsVisible" && x.Value.Contains("Binding PageHero", StringComparison.Ordinal)));
+                Assert.Equal("0.6", (string?)Named("PageHeroGlow" + slot).Parent!.Attribute("Opacity"));
+            }
+
+            Assert.DoesNotContain(view.Descendants(), e => e.Attributes().Any(a => a.Name.LocalName is "CardArt.Splash" or "CardArt.Glow" && a.Value == "{Binding PageHero}"));
+            Assert.Contains("new HeroSwap(PageHeroGlowA, PageHeroArtA, PageHeroGlowB, PageHeroArtB)).Show(_viewModel.PageHero)",
+                File.ReadAllText(Path.Combine(RepoFiles.Root, code)), StringComparison.Ordinal);
         }
     }
 

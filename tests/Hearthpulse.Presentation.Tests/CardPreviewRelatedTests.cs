@@ -73,7 +73,8 @@ public sealed class CardPreviewRelatedTests
         var tracker = new StackPanel { Width = 240, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 300, 20, 0) };
         var row = new Border { Height = 24, Background = Brushes.Transparent };
         tracker.Children.Add(row);
-        var host = new CardPreviewHost();
+        // Shown on the call: this test reads the layout, not the wait for art (ArtMotionTests).
+        var host = new CardPreviewHost { ArtWait = TimeSpan.Zero };
         var root = new Grid();
         root.Children.Add(tracker);
         root.Children.Add(host);

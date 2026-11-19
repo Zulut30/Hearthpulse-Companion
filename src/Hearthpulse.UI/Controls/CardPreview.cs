@@ -5,7 +5,9 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Hearthpulse.Core;
 using Hearthpulse.Core.CardPool;
+using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.UI.Infrastructure;
 
@@ -125,6 +127,12 @@ public sealed class CardPreviewHost : Canvas
     private IReadOnlyList<MatchListRow> _relatedRows = [];
     private Control? _target;
 
+    /// <summary>Every show and hide has a turn: a wait for art or a fade-out that a later one overtook does nothing.</summary>
+    private int _turn;
+
+    /// <summary>The show or hide fade running on the preview, if any.</summary>
+    private CancellationTokenSource? _fade;
+
     public CardPreviewHost()
     {
         IsHitTestVisible = false;
@@ -162,7 +170,7 @@ public sealed class CardPreviewHost : Canvas
 
         // A short grace period: the pointer crossing the gap between two rows must not close and reopen the preview.
         _hide = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(140) };
-        _hide.Tick += (_, _) => Hide();
+        _hide.Tick += (_, _) => HideAfterGrace();
         AttachedToVisualTree += (_, _) => Register(this);
         DetachedFromVisualTree += (_, _) => Unregister(this);
     }
@@ -195,11 +203,61 @@ public sealed class CardPreviewHost : Canvas
         return visual;
     }
 
-    /// <summary>Shows the preview for a control carrying <see cref="CardPreview"/> properties.</summary>
+    /// <summary>
+    /// How long a preview whose card art is not in memory waits for it before it shows with whatever is there
+    /// (<see cref="ArtMotion.PreviewWait"/>; zero shows at once).
+    /// </summary>
+    internal TimeSpan ArtWait { get; set; } = ArtMotion.PreviewWait;
+
+    /// <summary>True while the preview waits for its card's art before it shows.</summary>
+    internal bool Waiting { get; private set; }
+
+    /// <summary>The big card's art on screen now (null while hidden or loading).</summary>
+    internal IImage? CardShown => !_frame.IsVisible ? null
+        : _image.IsVisible ? _image.Source
+        : _bgImage.IsVisible ? _bgImage.Source
+        : null;
+
+    /// <summary>
+    /// Shows the preview for a control carrying <see cref="CardPreview"/> properties. Art in memory shows at once;
+    /// other art is waited for (<see cref="ArtWait"/>), the preview where it was meanwhile, so it never opens on an empty
+    /// frame. Moving from row to row swaps the card in place; a preview that was hidden fades in over
+    /// <see cref="Motion.Fast"/> (at once with motion off and in the overlay).
+    /// </summary>
     public void Show(Control control)
     {
         _hide.Stop();
         _target = control;
+        var turn = ++_turn;
+        var cardId = CardPreview.GetCardId(control);
+        var kind = CardPreview.GetBattlegrounds(control) ? ArtKind.BattlegroundsCard : ArtKind.Card;
+        if (ArtWait > TimeSpan.Zero && !string.IsNullOrEmpty(cardId) && !CardArt.TryGetCached(kind, cardId, out _))
+        {
+            Waiting = true;
+            ShowWhenReadyAsync(control, kind, cardId, turn).Forget("Card preview");
+            return;
+        }
+
+        Present(control);
+    }
+
+    private async Task ShowWhenReadyAsync(Control control, ArtKind kind, string cardId, int turn)
+    {
+        await Task.WhenAny(CardArt.GetAsync(kind, cardId), Task.Delay(ArtWait));
+        // Back on the UI thread; a later hover or a hide took over meanwhile.
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (turn == _turn)
+            {
+                Present(control);
+            }
+        });
+    }
+
+    private void Present(Control control)
+    {
+        Waiting = false;
+        var swap = _frame.IsVisible;
         var cardId = CardPreview.GetCardId(control);
         var caption = CardPreview.GetCaption(control);
         _caption.Text = caption ?? string.Empty;
@@ -212,6 +270,47 @@ public sealed class CardPreviewHost : Canvas
         _frame.IsVisible = true;
         ShowRelated(battlegrounds || string.IsNullOrEmpty(cardId) || !CardPreview.GetShowRelated(control) ? null : cardId);
         Place(control);
+        // From row to row (or back while it fades out) the card swaps in place at full strength; a new preview fades in.
+        StopFade();
+        if (!swap && CardArt.Moves(this))
+        {
+            Fade(0, 1);
+        }
+    }
+
+    /// <summary>True while the preview fades in or out.</summary>
+    internal bool Fading => _fade is not null;
+
+    /// <summary>
+    /// Fades the preview from <paramref name="from"/> to <paramref name="to"/> over <see cref="Motion.Fast"/>, the end value
+    /// set under the motion; <paramref name="done"/> runs when it ends unless another fade or a stop took over.
+    /// </summary>
+    private void Fade(double from, double to, Action? done = null)
+    {
+        StopFade();
+        var cancel = _fade = new CancellationTokenSource();
+        Opacity = to;
+        EndFadeAsync(Motion.FadeAsync(this, from, to, Motion.Fast, cancel.Token), cancel, done).Forget("Card preview fade");
+    }
+
+    private async Task EndFadeAsync(Task fade, CancellationTokenSource cancel, Action? done)
+    {
+        await fade;
+        if (ReferenceEquals(_fade, cancel))
+        {
+            _fade = null;
+            cancel.Dispose();
+            done?.Invoke();
+        }
+    }
+
+    /// <summary>Stops the show or hide fade: the preview at full strength.</summary>
+    private void StopFade()
+    {
+        _fade?.Cancel();
+        _fade?.Dispose();
+        _fade = null;
+        Opacity = 1;
     }
 
     /// <summary>The card ids in the related grid now (empty when it is hidden).</summary>
@@ -283,9 +382,37 @@ public sealed class CardPreviewHost : Canvas
     public void Hide()
     {
         _hide.Stop();
+        _turn++;
         _target = null;
+        Waiting = false;
         _frame.IsVisible = false;
         _related.IsVisible = false;
+        StopFade();
+    }
+
+    /// <summary>
+    /// The pointer left the rows for good (after the grace period): the preview fades out over <see cref="Motion.Fast"/>,
+    /// or goes at once with motion off. It takes no clicks, and a hover meanwhile takes it back at once.
+    /// </summary>
+    private void HideAfterGrace()
+    {
+        _hide.Stop();
+        if (!_frame.IsVisible || !CardArt.Moves(this))
+        {
+            Hide();
+            return;
+        }
+
+        var turn = ++_turn;
+        _target = null;
+        Waiting = false;
+        Fade(1, 0, () =>
+        {
+            if (turn == _turn)
+            {
+                Hide();
+            }
+        });
     }
 
     /// <summary>

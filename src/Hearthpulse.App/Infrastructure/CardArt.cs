@@ -1,11 +1,13 @@
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
@@ -14,7 +16,8 @@ namespace Hearthpulse.App.Infrastructure;
 
 /// <summary>
 /// Card images from HearthstoneJSON, cached on disk and in memory as frozen bitmaps so list
-/// refreshes never flicker. Images set through the attached properties load asynchronously.
+/// refreshes never flicker. Images set through the attached properties load asynchronously; art the memory cache
+/// holds is drawn at once and art that arrives later fades in (<see cref="ArtMotion"/>).
 /// </summary>
 public static class CardArt
 {
@@ -115,8 +118,14 @@ public static class CardArt
             return;
         }
 
-        var image = string.IsNullOrEmpty(cardId) ? null
-            : Memory.TryGetValue(Key(ArtKind.Splash, cardId), out var cached) ? cached : await GetAsync(ArtKind.Splash, cardId);
+        var late = false;
+        ImageSource? image = null;
+        if (!string.IsNullOrEmpty(cardId) && !Memory.TryGetValue(Key(ArtKind.Splash, cardId), out image))
+        {
+            late = true;
+            image = await GetAsync(ArtKind.Splash, cardId);
+        }
+
         if (!Equals(border.GetValue(GlowProperty), cardId))
         {
             return;
@@ -130,8 +139,12 @@ public static class CardArt
 
         var brush = new ImageBrush(image) { Viewbox = GlowPatch, Stretch = Stretch.Fill };
         RenderOptions.SetBitmapScalingMode(brush, BitmapScalingMode.Linear);
-        brush.Freeze();
-        border.Background = brush;
+        // A late wash fades in like any late art; one the cache held is drawn at once, frozen.
+        if (!late || !FadeIn(border, brush))
+        {
+            brush.Freeze();
+            border.Background = brush;
+        }
     }
 
     private static DependencyProperty Register(string name, ArtKind kind) =>
@@ -143,6 +156,8 @@ public static class CardArt
 
     private static async Task ApplyAsync(DependencyObject target, ArtKind kind, string? cardId)
     {
+        // A new card for the element: a fade of the card before it (a recycled row) stops where it is.
+        Settle(target);
         if (string.IsNullOrEmpty(cardId))
         {
             SetSource(target, null);
@@ -152,6 +167,7 @@ public static class CardArt
         var key = Key(kind, cardId);
         if (Memory.TryGetValue(key, out var cached))
         {
+            // Seen before: drawn at once, never animated, so a list shown again does not flicker.
             SetSource(target, cached);
             return;
         }
@@ -162,6 +178,82 @@ public static class CardArt
         if (Equals(target.GetValue(PropertyFor(kind)), cardId))
         {
             SetSource(target, image);
+            if (image is not null)
+            {
+                FadeIn(target);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether art that arrives late fades in: <see cref="Motion.On"/>, unless a test says otherwise. Read on the UI
+    /// thread when art arrives.
+    /// </summary>
+    internal static Func<bool> Animate { get; set; } = static () => Motion.On;
+
+    /// <summary>
+    /// Whether art shown in <paramref name="element"/> may move (<see cref="ArtMotion"/>): motion is on, the element is
+    /// on screen and its window is not the transparent overlay drawn over the game.
+    /// </summary>
+    internal static bool Moves(FrameworkElement element) =>
+        Animate() && element.IsVisible && Window.GetWindow(element) is { AllowsTransparency: false };
+
+    /// <summary>The art the memory cache holds for the card, if it does (shown at once by the attached properties).</summary>
+    internal static bool TryGetCached(ArtKind kind, string cardId, [NotNullWhen(true)] out ImageSource? image) =>
+        Memory.TryGetValue(Key(kind, cardId), out image);
+
+    /// <summary>The fade running on an image element's opacity, so a new card for the element can stop it.</summary>
+    private static readonly DependencyProperty FadeProperty =
+        DependencyProperty.RegisterAttached("Fade", typeof(AnimationClock), typeof(CardArt), new PropertyMetadata(null));
+
+    /// <summary>
+    /// Fades art that has just arrived in over <see cref="Motion.Fast"/>: an image element from transparent to its own
+    /// opacity, a border's art brush from 0 to 1. Opacity only, so nothing is laid out again. False when the art does
+    /// not move here.
+    /// </summary>
+    private static bool FadeIn(DependencyObject target, ImageBrush? glow = null)
+    {
+        if (target is not FrameworkElement element || !Moves(element))
+        {
+            return false;
+        }
+
+        switch (element)
+        {
+            case Border border when (glow ?? border.Background) is ImageBrush { IsFrozen: false } brush:
+                brush.BeginAnimation(Brush.OpacityProperty, new DoubleAnimation(0, 1, Motion.Fast) { EasingFunction = Motion.Ease });
+                border.Background = brush;
+                return true;
+            case Image image:
+                // No To: the fade ends at the element's own opacity (a dimmed tile stays dimmed). Stop: once done it
+                // leaves the value alone.
+                var clock = new DoubleAnimation { From = 0, Duration = Motion.Fast, EasingFunction = Motion.Ease, FillBehavior = FillBehavior.Stop }.CreateClock();
+                clock.Completed += (_, _) =>
+                {
+                    if (ReferenceEquals(image.GetValue(FadeProperty), clock))
+                    {
+                        Settle(image);
+                    }
+                };
+                image.SetValue(FadeProperty, clock);
+                image.ApplyAnimationClock(UIElement.OpacityProperty, clock);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Stops the arrival fade on <paramref name="target"/>, if one runs: the element is at its own opacity again on this
+    /// frame (a clock's own removal waits for the next tick). Art elements carry no other opacity animation.
+    /// </summary>
+    private static void Settle(DependencyObject target)
+    {
+        if (target.ReadLocalValue(FadeProperty) is AnimationClock clock && target is UIElement element)
+        {
+            element.ClearValue(FadeProperty);
+            element.BeginAnimation(UIElement.OpacityProperty, null);
+            clock.Controller?.Remove();
         }
     }
 

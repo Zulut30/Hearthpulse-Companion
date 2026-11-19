@@ -47,6 +47,7 @@ public partial class MainWindow : Window
         _viewModel = viewModel;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelChanged;
+        ShowPageHero(null);
         viewModel.HistoryRequested += ShowHistoryGame;
         viewModel.PanelToggled += OnPanelToggled;
         InitSettingsTools(viewModel);
@@ -179,6 +180,7 @@ public partial class MainWindow : Window
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
+        ShowPageHero(e.PropertyName);
         switch (e.PropertyName)
         {
             case nameof(MainViewModel.HearthstoneRunning):

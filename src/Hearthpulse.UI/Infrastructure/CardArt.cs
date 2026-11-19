@@ -1,10 +1,14 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
@@ -14,6 +18,7 @@ namespace Hearthpulse.UI.Infrastructure;
 /// <summary>
 /// Card images from HearthstoneJSON, cached on disk and in memory so list refreshes never flicker. Set through the
 /// attached properties on an <see cref="Image"/> (source) or a <see cref="Border"/> (background); loads asynchronously.
+/// Art the memory cache holds is drawn at once and art that arrives later fades in (<see cref="ArtMotion"/>).
 /// </summary>
 public static class CardArt
 {
@@ -118,6 +123,8 @@ public static class CardArt
 
     private static async Task ApplyAsync(Control target, ArtKind kind, string? cardId)
     {
+        // A new card for the element: a fade of the card before it (a recycled row) stops where it is.
+        Settle(target);
         if (string.IsNullOrEmpty(cardId))
         {
             SetSource(target, null);
@@ -127,6 +134,7 @@ public static class CardArt
         var key = Key(kind, cardId);
         if (Memory.TryGetValue(key, out var cached))
         {
+            // Seen before: drawn at once, never animated, so a list shown again does not flicker.
             SetSource(target, cached);
             return;
         }
@@ -139,6 +147,10 @@ public static class CardArt
             if (Equals(target.GetValue(PropertyFor(kind)), cardId))
             {
                 SetSource(target, image);
+                if (image is not null)
+                {
+                    FadeIn(target);
+                }
             }
         });
     }
@@ -150,15 +162,127 @@ public static class CardArt
             return;
         }
 
-        var image = string.IsNullOrEmpty(cardId) ? null
-            : Memory.TryGetValue(Key(ArtKind.Splash, cardId), out var cached) ? cached : await GetAsync(ArtKind.Splash, cardId);
+        // No card, or the cache holds its art: the wash is drawn at once, on this thread, as any cached art.
+        Bitmap? cached = null;
+        if (string.IsNullOrEmpty(cardId) || Memory.TryGetValue(Key(ArtKind.Splash, cardId), out cached))
+        {
+            DrawGlow(border, cardId, cached);
+            return;
+        }
+
+        var image = await GetAsync(ArtKind.Splash, cardId);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            if (Equals(border.GetValue(GlowProperty), cardId))
+            if (DrawGlow(border, cardId, image))
             {
-                border.Background = image is null ? null : new ImageBrush(image) { SourceRect = GlowPatch, Stretch = Stretch.Fill };
+                FadeIn(border);
             }
         });
+    }
+
+    /// <summary>The wash of <paramref name="image"/> on the border, if it still asks for that card; true when drawn.</summary>
+    private static bool DrawGlow(Border border, string? cardId, Bitmap? image)
+    {
+        if (!Equals(border.GetValue(GlowProperty), cardId))
+        {
+            return false;
+        }
+
+        border.Background = image is null ? null : new ImageBrush(image) { SourceRect = GlowPatch, Stretch = Stretch.Fill };
+        return image is not null;
+    }
+
+    /// <summary>
+    /// Whether art that arrives late fades in: <see cref="Motion.On"/>, unless a test says otherwise. Read on the UI
+    /// thread when art arrives.
+    /// </summary>
+    internal static Func<bool> Animate { get; set; } = static () => Motion.On;
+
+    /// <summary>
+    /// Whether art shown in <paramref name="control"/> may move (<see cref="ArtMotion"/>): motion is on, the control is
+    /// on screen and its window is not a transparent one (the overlay, drawn over the game).
+    /// </summary>
+    internal static bool Moves(Control control) =>
+        Animate() && control.IsEffectivelyVisible
+        && TopLevel.GetTopLevel(control) is { IsVisible: true } top && top.ActualTransparencyLevel == WindowTransparencyLevel.None;
+
+    /// <summary>The art the memory cache holds for the card, if it does (shown at once by the attached properties).</summary>
+    internal static bool TryGetCached(ArtKind kind, string cardId, [NotNullWhen(true)] out Bitmap? image) =>
+        Memory.TryGetValue(Key(kind, cardId), out image);
+
+    /// <summary>The fade running on a control's art, so a new card for the control can stop it.</summary>
+    private static readonly AttachedProperty<CancellationTokenSource?> FadeProperty =
+        AvaloniaProperty.RegisterAttached<Control, CancellationTokenSource?>("Fade", typeof(CardArt));
+
+    /// <summary>
+    /// Fades art that has just arrived in over <see cref="Motion.Fast"/>: an image from transparent to its own opacity,
+    /// a border's art brush from 0 to 1. Opacity only, so nothing is laid out again; nothing when the art does not move
+    /// here.
+    /// </summary>
+    private static void FadeIn(Control target)
+    {
+        if (!Moves(target))
+        {
+            return;
+        }
+
+        var cancel = new CancellationTokenSource();
+        Task fade;
+        switch (target)
+        {
+            case Border { Background: ImageBrush brush }:
+                fade = new Animation
+                {
+                    Duration = Motion.Fast,
+                    Easing = new CubicEaseOut(),
+                    Children =
+                    {
+                        new KeyFrame { Cue = new Cue(0), Setters = { new Setter(Brush.OpacityProperty, 0d) } },
+                        new KeyFrame { Cue = new Cue(1), Setters = { new Setter(Brush.OpacityProperty, 1d) } },
+                    },
+                }.RunAsync(brush, cancel.Token);
+                break;
+            case Image image:
+                // To the image's own opacity (a dimmed tile stays dimmed); once done the value is its own again.
+                fade = Motion.FadeAsync(image, 0, image.Opacity, Motion.Fast, cancel.Token);
+                break;
+            default:
+                cancel.Dispose();
+                return;
+        }
+
+        target.SetValue(FadeProperty, cancel);
+        EndAsync(target, fade, cancel).Forget("Card art fade");
+    }
+
+    private static async Task EndAsync(Control target, Task fade, CancellationTokenSource cancel)
+    {
+        try
+        {
+            await fade;
+        }
+        finally
+        {
+            if (ReferenceEquals(target.GetValue(FadeProperty), cancel))
+            {
+                target.ClearValue(FadeProperty);
+            }
+
+            cancel.Dispose();
+        }
+    }
+
+    /// <summary>True while art that arrived late fades in on <paramref name="control"/>.</summary>
+    internal static bool Fading(Control control) => control.GetValue(FadeProperty) is not null;
+
+    /// <summary>Stops the arrival fade on <paramref name="target"/>, if one runs: its art is at full strength again.</summary>
+    private static void Settle(Control target)
+    {
+        if (target.GetValue(FadeProperty) is { } cancel)
+        {
+            target.ClearValue(FadeProperty);
+            cancel.Cancel();
+        }
     }
 
     private static AttachedProperty<string?> PropertyFor(ArtKind kind) => kind switch

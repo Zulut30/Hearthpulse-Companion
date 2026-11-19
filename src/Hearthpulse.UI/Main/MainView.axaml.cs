@@ -222,6 +222,7 @@ public partial class MainView : UserControl
         }
 
         _viewModel.PropertyChanged += OnViewModelChanged;
+        ShowPageHero(null);
         _viewModel.HistoryRequested += ShowHistoryGame;
         _viewModel.ThemeChanged += OnThemeChanged;
         _viewModel.PanelToggled += OnPanelToggled;
@@ -303,6 +304,7 @@ public partial class MainView : UserControl
             return;
         }
 
+        ShowPageHero(e.PropertyName);
         switch (e.PropertyName)
         {
             case nameof(MainViewModel.HearthstoneRunning):

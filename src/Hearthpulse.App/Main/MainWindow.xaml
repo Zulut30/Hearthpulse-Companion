@@ -275,8 +275,10 @@
 
 
                     <!-- The page's material and hero (V3 direction A): stone, the page's hero dissolving towards the text, a vignette
-                         and a floor in the plate's colour, then a thin gold frame. Nothing moves; the hero follows the page
-                         (MainViewModel.PageHero) and is gone while "Background characters" is off. Same as the Avalonia MainView. -->
+                         and a floor in the plate's colour, then a thin gold frame. The hero follows the page (MainViewModel.PageHero)
+                         and is gone while "Background characters" is off; when the page changes it, the old hero cross-fades to the
+                         new one (HeroSwap, from the code-behind: two slots, A and B, each a wash and a picture). Same as the
+                         Avalonia MainView. -->
                     <Grid Grid.RowSpan="2" IsHitTestVisible="False">
                         <!-- Static while a page scrolls over it: cached as a bitmap instead of re-blending its masks on every frame -->
                         <Grid.CacheMode>
@@ -286,7 +288,10 @@
                         <Grid Visibility="{Binding PageHero, Converter={StaticResource Vis}}">
                             <!-- The hero's colours light the whole page; the art itself is square, top right, half the plate wide and
                                  at most 640: HearthstoneJSON's largest art is 512, so 1.25 at most, smoothed (the columns), so at the narrowest window it still clears the titles on the left -->
-                            <Border Style="{StaticResource PageLayer}" i:CardArt.Glow="{Binding PageHero}" Opacity="0.6" OpacityMask="{StaticResource PageGlowMask}" />
+                            <Grid Opacity="0.6" OpacityMask="{StaticResource PageGlowMask}">
+                                <Border x:Name="PageHeroGlowA" Style="{StaticResource PageLayer}" />
+                                <Border x:Name="PageHeroGlowB" Style="{StaticResource PageLayer}" />
+                            </Grid>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -294,8 +299,10 @@
                                 </Grid.ColumnDefinitions>
                                 <Border x:Name="PageHeroArt" Grid.Column="1" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" VerticalAlignment="Top"
                                         Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
-                                    <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapScalingMode="HighQuality"
-                                            Opacity="{Binding BackgroundIntensity}" />
+                                    <Grid Opacity="{Binding BackgroundIntensity}">
+                                        <Border x:Name="PageHeroArtA" Style="{StaticResource PageLayer}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapScalingMode="HighQuality" />
+                                        <Border x:Name="PageHeroArtB" Style="{StaticResource PageLayer}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapScalingMode="HighQuality" />
+                                    </Grid>
                                 </Border>
                             </Grid>
                             <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageVignette}" />
