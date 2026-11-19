@@ -36,7 +36,7 @@ internal sealed class WildfireElemental : CombatEffect
                 fight.DealDamage(self, unit, outcome.Excess);
             }
         }
-        else if (fight.RandomOf(adjacent) is { } unit)
+        else if (fight.RandomOf(adjacent, self) is { } unit)
         {
             fight.DealDamage(self, unit, outcome.Excess);
         }

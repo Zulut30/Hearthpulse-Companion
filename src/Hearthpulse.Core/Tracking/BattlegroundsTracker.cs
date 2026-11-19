@@ -33,6 +33,16 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     // Minions removed by another minion's trigger after combat started and before the boards were captured
     // (e.g. Stitched Salvager's start-of-combat destroy), as they were when removed, by the trigger's source.
     private readonly Dictionary<int, List<SimMinion>> _removedBy = new();
+
+    // Minions that died after combat started and before the boards were captured (Start of Combat), in order, with
+    // their controller; and for minions that entered the board in that time, how many of those deaths came before.
+    private readonly List<(int Controller, SimMinion Dead)> _deathsBeforeCapture = new();
+    private readonly Dictionary<int, int> _enteredAfterDeaths = new();
+
+    // The opponent's player values the client does not show, as the log had them at each capture, by combat index: kept
+    // out of the live simulation and handed out only after the game (Captures).
+    private readonly Dictionary<int, IReadOnlyDictionary<string, int>> _hiddenOpponentTags = new();
+    private bool _gameEnded;
     private readonly List<CombatRecord> _combats = new();
 
     // The fights of this game as the simulator got them, and what the log said about the minions of the fight being captured.
@@ -170,8 +180,15 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         LocalFinished = false;
         FinalPlaceKnown = false;
         _pendingDamage = -1;
+        _deathsBeforeCapture.Clear();
+        _enteredAfterDeaths.Clear();
+        _hiddenOpponentTags.Clear();
+        _gameEnded = false;
+        _transcript = null;
         ResetRounds();
     }
+
+    public void OnGameEnded(GameState game) => _gameEnded = true;
 
     public void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options)
     {
@@ -235,7 +252,16 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _openOptions = options.ToArray();
     }
 
-    public void OnEntityCreated(GameState game, Entity entity) => NoteShopCard(game, entity);
+    public void OnEntityCreated(GameState game, Entity entity)
+    {
+        NoteShopCard(game, entity);
+        if (_inCombat && !_boardCaptured && entity.IsMinion && entity.InPlay)
+        {
+            NoteEnteredBeforeCapture(entity);
+        }
+
+        TranscriptCreated(game, entity);
+    }
 
     public void OnEntityRevealed(GameState game, Entity entity) => NoteShopCard(game, entity);
 
@@ -244,6 +270,11 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         if (!game.IsBattlegrounds)
         {
             return;
+        }
+
+        if (_transcript is not null)
+        {
+            TranscriptTag(game, entity, tag, previous, value);
         }
 
         switch (tag)
@@ -257,6 +288,8 @@ public sealed partial class BattlegroundsTracker : IPowerListener
                     }
 
                     game.CombatOnScreen = true;
+                    _deathsBeforeCapture.Clear();
+                    _enteredAfterDeaths.Clear();
                     BeginCombat(game);
                     break;
                 }
@@ -291,6 +324,15 @@ public sealed partial class BattlegroundsTracker : IPowerListener
 
             case GameTag.Zone when _inCombat && !_boardCaptured && entity.IsMinion && previous == "PLAY" && value != "PLAY":
                 RememberRemoval(game, entity);
+                if (value == "GRAVEYARD")
+                {
+                    _deathsBeforeCapture.Add((entity.Controller, DeadMinion(entity)));
+                }
+
+                break;
+
+            case GameTag.Zone when _inCombat && !_boardCaptured && entity.IsMinion && value == "PLAY":
+                NoteEnteredBeforeCapture(entity);
                 break;
 
             case GameTag.Zone when !_inCombat && previous == "HAND" && value == "PLAY" && entity.CardId.Length > 0 && entity.Controller == game.LocalPlayerId
@@ -311,6 +353,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
                     // known: it is no result (not a tie).
                     if (_inCombat && value == "CONCEDED" && _heroHit is null && _heroBlow is null)
                     {
+                        FinishTranscript(game, complete: false, "cut");
                         _inCombat = false;
                         _combatOpponent = 0;
                     }
@@ -332,6 +375,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         }
 
         _combatActivityAt = Environment.TickCount64;
+        TranscriptBlockStart(game, blockType, source);
         if (blockType == "ATTACK" && source is { IsHero: true } attacker)
         {
             var ours = attacker.Controller == game.LocalPlayerId;
@@ -377,6 +421,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         }
 
         _combatActivityAt = Environment.TickCount64;
+        TranscriptBlockEnd(game);
         if (_heroHit is { } hit && game.OpenBlocks.Count <= hit.Depth)
         {
             FinishHeroHit();

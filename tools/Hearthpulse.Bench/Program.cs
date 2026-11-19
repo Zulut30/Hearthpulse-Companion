@@ -11,7 +11,8 @@ internal static class Program
 {
     private const string Usage = """
         Hearthpulse.Bench <command> [--logs <dir>] [--rounds <n>] [--games <n>]
-                                   [--captures <dir>] [--replays <dir>] [--out <file>] [--before <file> --after <file>]
+                                   [--captures <dir>] [--pool <file>] [--replays <dir>] [--out <file>] [--before <file> --after <file>]
+                                   [--cost <n>]
 
           cards     load the card database: time, allocations, live heap, LOH
           replay    replay kept Power logs through GameSession: parse and publish timings, allocations
@@ -34,7 +35,13 @@ internal static class Program
                     pass, full), what was not simulated; popular minions without an effect
                     (--out <file>: per-fight scores; --before <file> --after <file>: two such files of the same fights
                     compared pair by pair; --captures <dir>: the fights of the app's capture files (<data>/combat-captures)
-                    join those of the logs; --replays <dir>: fights the .hpr replays hold, Duos fights with both tables)
+                    join those of the logs; --pool <file>: players' fights from the stats pool's owner export, JSONL of
+                    server/pool/node/export-combats.mjs, scored the same way (no hand in them); --replays <dir>: fights
+                    the .hpr replays hold, Duos fights with both tables)
+          simreplay real fights replayed step by step through the combat engine, every decision answered from the fight's
+                    transcript: fights replayed to the end without divergence, first divergences by engine rule, per fight
+                    (--captures <dir>: the app's capture files join the logs; --out <file>: the report; --cost <n>: what
+                    recording transcripts costs the log thread, n rounds)
           simperf   combat simulator speed: a fixed corpus (the logs' and --captures' fights plus synthetic worst cases):
                     fights/s, ns and bytes per fight, the app's quick and background passes (time p50/p95, runs inside the
                     budget, 95 % half-width of win/tie/loss); --rounds n repeats the timed part
@@ -130,6 +137,8 @@ internal static class Program
                 break;
             case "simcover":
                 return SimCoverBench.Run(options);
+            case "simreplay":
+                return SimReplayBench.Run(options);
             case "simperf":
                 return SimPerfBench.Run(options);
             case "simmatrix":
@@ -182,12 +191,19 @@ internal sealed record Options(string Logs, int Rounds, int Games)
     /// <summary>simcover: a folder of the app's combat capture files (&lt;data&gt;/combat-captures) to add to the fights.</summary>
     public string Captures { get; init; } = string.Empty;
 
+    /// <summary>simcover: the stats pool's export of players' fights (JSONL, server/pool/node/export-combats.mjs).</summary>
+    public string Pool { get; init; } = string.Empty;
+
+    /// <summary>simreplay: rounds of measuring what recording transcripts costs; 0 = not measured.</summary>
+    public int Cost { get; init; }
+
     public static Options Parse(string[] args)
     {
         var logs = @"D:\Hearthstone\Logs";
         var rounds = 1;
         var games = 0;
-        string replays = string.Empty, output = string.Empty, before = string.Empty, after = string.Empty, captures = string.Empty;
+        string replays = string.Empty, output = string.Empty, before = string.Empty, after = string.Empty, captures = string.Empty, pool = string.Empty;
+        var cost = 0;
         for (var i = 0; i + 1 < args.Length; i += 2)
         {
             switch (args[i])
@@ -216,9 +232,15 @@ internal sealed record Options(string Logs, int Rounds, int Games)
                 case "--captures":
                     captures = args[i + 1];
                     break;
+                case "--pool":
+                    pool = args[i + 1];
+                    break;
+                case "--cost":
+                    cost = int.Parse(args[i + 1], CultureInfo.InvariantCulture);
+                    break;
             }
         }
 
-        return new Options(logs, rounds, games) { Replays = replays, Out = output, Before = before, After = after, Captures = captures };
+        return new Options(logs, rounds, games) { Replays = replays, Out = output, Before = before, After = after, Captures = captures, Pool = pool, Cost = cost };
     }
 }

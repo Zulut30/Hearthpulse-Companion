@@ -8,6 +8,7 @@ export function openDatabase(file) {
   sqlite.exec(readFileSync(new URL('../schema.sql', import.meta.url), 'utf8'));
   sqlite.exec(readFileSync(new URL('../migrations/0008_captures.sql', import.meta.url), 'utf8'));
   sqlite.exec(readFileSync(new URL('../migrations/0009_analytics.sql', import.meta.url), 'utf8'));
+  sqlite.exec(readFileSync(new URL('../migrations/0010_bg_combats.sql', import.meta.url), 'utf8'));
   function statement(sql, args = []) {
     const execute = () => {
       const s = sqlite.prepare(sql);

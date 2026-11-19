@@ -19,17 +19,17 @@ internal sealed class Ghastcoiler : CombatEffect
 {
     public override void Deathrattle(Fight fight, Unit self)
     {
-        var pool = GhastcoilerPool.Minions;
+        var pool = SimInputs.InLobby(GhastcoilerPool.Minions, self.Side.Info.LobbyTribes);
         var count = DeathKit.Shown1(self, 2, 4);
-        DeathKit.SummonInOrder(fight, self, Draw(fight, self.Side, pool, count));
+        DeathKit.SummonInOrder(fight, self, Draw(fight, self, pool, count));
     }
 
     // Lazy: the next draw is made only after the previous minion was summoned, and only while there is room.
-    private static IEnumerable<SimMinion> Draw(Fight fight, Side side, IReadOnlyList<SimMinion> pool, int count)
+    private static IEnumerable<SimMinion> Draw(Fight fight, Unit self, IReadOnlyList<SimMinion> pool, int count)
     {
-        for (var i = 0; i < count && !side.IsFull; i++)
+        for (var i = 0; i < count && !self.Side.IsFull; i++)
         {
-            yield return pool[fight.Random.Next(pool.Count)];
+            yield return pool[fight.Choose(ChoiceKind.RandomSummon, self, pool)];
         }
     }
 }

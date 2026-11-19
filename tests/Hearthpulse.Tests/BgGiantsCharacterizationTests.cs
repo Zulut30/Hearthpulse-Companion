@@ -123,6 +123,15 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // FECFFCB0BDD005AE.
         // 2026-11-19 (sim-all-mechanics P0): Ghastcoiler and Undead pools regenerated from patch 37.0.2 card data (new
         // stats, Rot Hide Gnoll); with the old pool files (checked) the fingerprint is still A488D069E48228A5.
-        Assert.Equal("fights 60958721CA247FFC", actual);
+        // 2026-11-19 (E1 sim-spells): the spell, card-to-hand and spell-trinket effects add ids and two new trace lines
+        // ("... gets a Blood Gem", "we/they get ..."); without those types and lines (checked) it is still 60958721CA247FFC.
+        // 2026-11-19 (sim-all-mechanics E4): 29 new effect ids (Death's Embrace, Turbulent Tombs, Gilnean War Horn,
+        // Temporal Tampering, Echoes of Argus, 23 Timewarped minions); without them (checked) the fingerprint is still
+        // 30FC3B58C163F3F4.
+        // 2026-11-19 (P1, decisions through ICombatChooser): Best's tie-break no longer draws for a tie a higher value later
+        // beats. Such ties occur on these boards: with those draws put back (checked) the fingerprint is still E4's
+        // D257E5976B8595DA. The picks of E1 (Lichling Hoarder, Lovely Locket, Misplaced Tea Set) and E4 (Timewarped Tide
+        // Razor, Warghoul, Chimera, Scourfin) moved to the chooser draw as before.
+        Assert.Equal("fights 95522083F5E8B9A8", actual);
     }
 }

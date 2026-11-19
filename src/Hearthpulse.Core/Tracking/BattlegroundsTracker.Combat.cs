@@ -20,6 +20,7 @@ public sealed partial class BattlegroundsTracker
         if (_inCombat && _combatActivityAt > 0 && Environment.TickCount64 - _combatActivityAt > CombatLatchTimeoutMs)
         {
             game.CombatOnScreen = false;
+            FinishTranscript(game, complete: false, "cut");
             EndCombat(game);
         }
     }
@@ -50,6 +51,7 @@ public sealed partial class BattlegroundsTracker
 
     private void BeginCombat(GameState game)
     {
+        FinishTranscript(game, complete: false, "cut");
         _inCombat = true;
         _combatTurn = game.BattlegroundsTurn;
         _combatActivityAt = Environment.TickCount64;
@@ -146,6 +148,10 @@ public sealed partial class BattlegroundsTracker
         var board = ours.Minions.Concat(theirs.Minions).Select(m => m.EntityId).ToHashSet();
         _captures.Add(new CapturedFight(_combats.Count, LastCapture, options, _minionFacts.Values.Where(f => board.Contains(f.EntityId)).OrderBy(f => f.EntityId).ToList()));
         StartSimulation(ours, theirs, oursFirst, options);
+        if (attacker is not null && RecordsTranscripts)
+        {
+            StartTranscript(game, attacker);
+        }
     }
 
     /// <summary>
@@ -278,6 +284,7 @@ public sealed partial class BattlegroundsTracker
 
     private void EndCombat(GameState game)
     {
+        FinishTranscript(game, complete: true, "end");
         _inCombat = false;
         if (_combatOpponent == 0)
         {

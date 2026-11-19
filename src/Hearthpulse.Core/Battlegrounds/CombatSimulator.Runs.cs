@@ -258,10 +258,11 @@ public static partial class CombatSimulator
         {
             while (Claim() is var (chunk, runs, tally))
             {
-                var random = new Random(ChunkSeed(seed, chunk));
+                // One chooser per chunk, seeded for that chunk only: a chunk's fights never depend on another chunk's.
+                var chooser = new RandomChooser(new Random(ChunkSeed(seed, chunk)));
                 for (var r = 0; r < runs; r++)
                 {
-                    var fight = new Fight(ours, theirs, effects, random, trace: false, _prepared);
+                    var fight = new Fight(ours, theirs, effects, chooser, trace: false, _prepared);
                     var outcome = fight.Run(firstAttackerIsOurs, options.FirstAttackerEntityId);
                     rules.Add(tally, outcome, rules.Count ? SurvivorTiers(fight.Ours) : 0, rules.Count ? SurvivorTiers(fight.Theirs) : 0);
                 }

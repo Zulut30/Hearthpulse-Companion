@@ -22,7 +22,7 @@ internal sealed class ExpertAviator : CombatEffect
         var place = self;
         for (var n = 0; n < self.Pick(1, 2) && !self.Side.IsFull; n++)
         {
-            var index = HighestAttackMurloc(fight, hand);
+            var index = fight.BestCard(hand, IsMurloc, m => m.Attack, self);
             if (index < 0)
             {
                 return;
@@ -39,27 +39,5 @@ internal sealed class ExpertAviator : CombatEffect
         }
     }
 
-    private static int HighestAttackMurloc(Fight fight, List<SimMinion> hand)
-    {
-        int best = -1, ties = 0;
-        for (var i = 0; i < hand.Count; i++)
-        {
-            if ((hand[i].Tribes & Tribe.Murloc) == 0)
-            {
-                continue;
-            }
-
-            if (best < 0 || hand[i].Attack > hand[best].Attack)
-            {
-                best = i;
-                ties = 1;
-            }
-            else if (hand[i].Attack == hand[best].Attack && fight.Random.Next(++ties) == 0)
-            {
-                best = i;
-            }
-        }
-
-        return best;
-    }
+    private static bool IsMurloc(SimMinion minion) => (minion.Tribes & Tribe.Murloc) != 0;
 }

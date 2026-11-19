@@ -30,6 +30,24 @@ public sealed partial class GameSession
         }
     }
 
+    /// <summary>
+    /// The game's finished fights for its journal (<c>bg_combat</c>, docs/source-capture.md): an allowlisted copy of the
+    /// tracker's fights in memory, made on the log thread when the game ends. The local capture file is not read. A
+    /// failure costs the journal its fights, never the game's end.
+    /// </summary>
+    private IReadOnlyList<SourceCombat> SourceCombats()
+    {
+        try
+        {
+            return SourceCaptureCombat.FromGame(_battlegrounds.Captures, _battlegrounds.Combats);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Diag.Error("Source capture: the game's fights were left out of the journal", ex);
+            return [];
+        }
+    }
+
     /// <summary>Known lost/rotated source from the host watcher. Arbitrary text is never copied into the source.</summary>
     public void SourceCaptureGap(string reason)
     {

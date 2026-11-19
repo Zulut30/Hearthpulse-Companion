@@ -2,7 +2,7 @@ using Hearthpulse.Core.Battlegrounds.Effects;
 
 namespace Hearthpulse.Core.Battlegrounds;
 
-/// <summary>What effects pick from (alive units, random, best, neighbours) and the hooks they are raised on.</summary>
+/// <summary>What effects pick from (alive units, decisions, best, neighbours) and the hooks they are raised on.</summary>
 public sealed partial class Fight
 {
     /// <summary>Living minions of a side (left to right), optionally of a tribe and without one minion.</summary>
@@ -20,22 +20,50 @@ public sealed partial class Fight
         return result;
     }
 
-    public Unit? RandomOf(IReadOnlyList<Unit> candidates) => candidates.Count == 0 ? null : candidates[Random.Next(candidates.Count)];
+    // ================================================================================================ decisions
+
+    /// <summary>
+    /// Asks the fight's <see cref="ICombatChooser"/> to pick one of <paramref name="candidates"/> (at least one) for a
+    /// decision of <paramref name="kind"/> made by <paramref name="source"/>; returns its index.
+    /// </summary>
+    public int Choose(ChoiceKind kind, Unit? source, IReadOnlyList<Unit> candidates) =>
+        Pick(new CombatChoice(kind, source, candidates.Count, candidates, null));
+
+    /// <summary>Picks one of the cards <paramref name="cards"/> (a pool or a hand; at least one); returns its index.</summary>
+    public int Choose(ChoiceKind kind, Unit? source, IReadOnlyList<SimMinion> cards) =>
+        Pick(new CombatChoice(kind, source, cards.Count, null, cards));
+
+    private int Pick(in CombatChoice choice)
+    {
+        if (choice.Count <= 0)
+        {
+            throw new ArgumentException("A decision needs at least one candidate.", nameof(choice));
+        }
+
+        var index = _chooser.Choose(this, choice);
+        return (uint)index < (uint)choice.Count
+            ? index
+            : throw new InvalidOperationException($"The chooser picked {index} of {choice.Count} for {choice.Kind}.");
+    }
+
+    /// <summary>A random one of <paramref name="candidates"/> (null when there are none), picked for <paramref name="source"/>.</summary>
+    public Unit? RandomOf(IReadOnlyList<Unit> candidates, Unit? source = null, ChoiceKind kind = ChoiceKind.RandomTarget) =>
+        candidates.Count == 0 ? null : candidates[Choose(kind, source, candidates)];
 
     /// <summary>A random living friendly minion of <paramref name="tribe"/>, by default not <paramref name="self"/>.</summary>
     public Unit? RandomFriendly(Unit self, Tribe tribe = Tribe.All, bool includeSelf = false) =>
-        RandomOf(Alive(self.Side, tribe, includeSelf ? null : self));
+        RandomOf(Alive(self.Side, tribe, includeSelf ? null : self), self);
 
-    public Unit? RandomEnemy(Unit self, Tribe tribe = Tribe.All) => RandomOf(Alive(self.Enemy, tribe));
+    public Unit? RandomEnemy(Unit self, Tribe tribe = Tribe.All) => RandomOf(Alive(self.Enemy, tribe), self);
 
-    /// <summary>Up to <paramref name="count"/> different random picks, returned in board order.</summary>
-    public List<Unit> RandomDistinct(IReadOnlyList<Unit> candidates, int count)
+    /// <summary>Up to <paramref name="count"/> different random picks (one decision each), returned in board order.</summary>
+    public List<Unit> RandomDistinct(IReadOnlyList<Unit> candidates, int count, Unit? source = null)
     {
         var pool = candidates.ToList();
         var picked = new List<Unit>(Math.Min(count, pool.Count));
         while (picked.Count < count && pool.Count > 0)
         {
-            var index = Random.Next(pool.Count);
+            var index = Choose(ChoiceKind.RandomTarget, source, pool);
             picked.Add(pool[index]);
             pool.RemoveAt(index);
         }
@@ -44,11 +72,12 @@ public sealed partial class Fight
         return picked;
     }
 
-    /// <summary>The candidate with the highest <paramref name="key"/>; ties are broken at random.</summary>
-    public Unit? Best(IReadOnlyList<Unit> candidates, Func<Unit, int> key)
+    /// <summary>The candidate with the highest <paramref name="key"/>; ties are a <see cref="ChoiceKind.TieBreak"/> decision.</summary>
+    public Unit? Best(IReadOnlyList<Unit> candidates, Func<Unit, int> key, Unit? source = null)
     {
         Unit? best = null;
-        int bestKey = int.MinValue, ties = 0;
+        List<Unit>? ties = null;
+        var bestKey = int.MinValue;
         foreach (var unit in candidates)
         {
             var value = key(unit);
@@ -56,15 +85,59 @@ public sealed partial class Fight
             {
                 best = unit;
                 bestKey = value;
-                ties = 1;
+                ties?.Clear();
             }
-            else if (value == bestKey && Random.Next(++ties) == 0)
+            else if (value == bestKey)
             {
-                best = unit;
+                (ties ??= new List<Unit>()).Add(unit);
             }
         }
 
-        return best;
+        if (best is null || ties is not { Count: > 0 })
+        {
+            return best;
+        }
+
+        ties.Insert(0, best);
+        return ties[Choose(ChoiceKind.TieBreak, source, ties)];
+    }
+
+    /// <summary>
+    /// Index of the card in <paramref name="cards"/> with the highest <paramref name="key"/> among those
+    /// <paramref name="eligible"/> (ties are a <see cref="ChoiceKind.HandTieBreak"/> decision), or -1 when none is.
+    /// </summary>
+    public int BestCard(IReadOnlyList<SimMinion> cards, Func<SimMinion, bool> eligible, Func<SimMinion, int> key, Unit? source = null)
+    {
+        int best = -1, bestKey = int.MinValue;
+        List<int>? ties = null;
+        for (var i = 0; i < cards.Count; i++)
+        {
+            if (!eligible(cards[i]))
+            {
+                continue;
+            }
+
+            var value = key(cards[i]);
+            if (best < 0 || value > bestKey)
+            {
+                best = i;
+                bestKey = value;
+                ties?.Clear();
+            }
+            else if (value == bestKey)
+            {
+                (ties ??= new List<int>()).Add(i);
+            }
+        }
+
+        if (best < 0 || ties is not { Count: > 0 })
+        {
+            return best;
+        }
+
+        ties.Insert(0, best);
+        var tied = ties.Select(i => cards[i]).ToList();
+        return ties[Choose(ChoiceKind.HandTieBreak, source, tied)];
     }
 
     /// <summary>The minions next to <paramref name="unit"/> on its board (dying ones included), or null at the edges.</summary>
