@@ -8,33 +8,57 @@ public sealed partial class Side
     public const int MaxMinions = 7;
 
     private readonly List<Unit> _board = new(MaxMinions);
-    private readonly List<Unit> _extras;
+    private readonly List<Unit> _extras = new();
     private readonly List<Unit> _dead = new(MaxMinions);
     private Dictionary<string, int>? _counters;
     private List<(Func<Unit, bool> Applies, int Attack, int Health)>? _summonBuffs;
     private List<SimMinion>? _hand;
     private Hook _hooks;
-    private bool _hooksDirty = true;
+    private bool _hooksDirty;
 
-    internal Side(Fight fight, int index, SimSide info)
+    internal Side(Fight fight, int index, SimSide info) => Init(fight, index, info);
+
+    /// <summary>
+    /// Sets every field as a new side has it: the constructor, and a side a thread's <see cref="Fight.Scratch"/> reuses
+    /// for its next fight (its three lists are kept and emptied). <c>SimPoolResetTests</c> checks that no field is left out.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(Fight), nameof(Info), nameof(Enemy))]
+    internal void Init(Fight fight, int index, SimSide info)
     {
         Fight = fight;
         Index = index;
         Info = info;
-        _extras = new List<Unit>(info.Extras.Count);
+        Enemy = null!;
+        _board.Clear();
+        _extras.Clear();
+        _dead.Clear();
+        _counters = null;
+        _summonBuffs = null;
+        _hand = null;
+        // Empty board and no holders: no hooks, exactly (units entering add theirs).
+        _hooks = Hook.None;
+        _hooksDirty = false;
+        DeathrattlesTriggered = 0;
+        ExtraDeathrattles = 0;
+        Gap = 0;
+        LastAttacker = null;
+        HasAppliedAuras = false;
+        AuraDirty = true;
+        MayHaveDying = false;
+        TeammateEntered = false;
     }
 
-    public Fight Fight { get; }
+    public Fight Fight { get; private set; }
 
     /// <summary>0 = the local player ("ours"), 1 = the opponent.</summary>
-    public int Index { get; }
+    public int Index { get; private set; }
 
     public bool IsOpponent => Index == 1;
 
     /// <summary>What was captured for this player (hero, hero power, tags, the local player's hand).</summary>
     public SimSide Info { get; private set; }
 
-    public Side Enemy { get; internal set; } = null!;
+    public Side Enemy { get; internal set; }
 
     /// <summary>Minions on the board, left to right (dying ones included until the death phase).</summary>
     public UnitList Minions => new(_board);
@@ -73,26 +97,34 @@ public sealed partial class Side
     /// </summary>
     internal Unit? LastAttacker { get; set; }
 
-    internal Hook Hooks
-    {
-        get
-        {
-            if (_hooksDirty)
-            {
-                _hooks = Hook.None;
-                foreach (var unit in _board) _hooks |= unit.Hooks;
-                foreach (var unit in _extras) _hooks |= unit.Hooks;
-                _hooksDirty = false;
-            }
+    /// <summary>
+    /// Every hook of the board and the player-level holders. Read before each dispatch, so the read is a field (inlined);
+    /// a unit entering adds its hooks, and only a unit leaving or gaining an effect makes it recount.
+    /// </summary>
+    internal Hook Hooks => _hooksDirty ? RecountHooks() : _hooks;
 
-            return _hooks;
-        }
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private Hook RecountHooks()
+    {
+        var hooks = Hook.None;
+        foreach (var unit in _board) hooks |= unit.Hooks;
+        foreach (var unit in _extras) hooks |= unit.Hooks;
+        _hooks = hooks;
+        _hooksDirty = false;
+        return hooks;
     }
 
     internal bool HasAppliedAuras { get; set; }
 
+    /// <summary>
+    /// False only when no minion on the board is dying: set when a unit of this side drops to 0 Health, is destroyed or
+    /// enters the board dying, cleared by a look at the board that finds none (<c>Fight.AnyDying</c>). Saves that look
+    /// after every attack and summon of a fight in which nothing died.
+    /// </summary>
+    internal bool MayHaveDying { get; set; }
+
     /// <summary>Minions entered or left since auras were last recomputed.</summary>
-    internal bool AuraDirty { get; set; } = true;
+    internal bool AuraDirty { get; set; }
 
     public int IndexOf(Unit unit)
     {
@@ -172,14 +204,15 @@ public sealed partial class Side
     {
         _board.Add(unit);
         unit.IsOnBoard = true;
-        _hooksDirty = true;
+        MayHaveDying |= unit.IsDying;
+        _hooks |= unit.Hooks;
         AuraDirty = true;
     }
 
     internal void AddExtra(Unit unit)
     {
         _extras.Add(unit);
-        _hooksDirty = true;
+        _hooks |= unit.Hooks;
     }
 
     internal void Insert(int index, Unit unit, bool leftOfGap)
@@ -187,12 +220,13 @@ public sealed partial class Side
         index = Math.Clamp(index, 0, _board.Count);
         _board.Insert(index, unit);
         unit.IsOnBoard = true;
+        MayHaveDying |= unit.IsDying;
         if (index < Gap || (index == Gap && leftOfGap))
         {
             Gap++;
         }
 
-        _hooksDirty = true;
+        _hooks |= unit.Hooks;
         AuraDirty = true;
     }
 

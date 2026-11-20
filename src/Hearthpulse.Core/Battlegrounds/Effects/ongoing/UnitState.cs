@@ -4,8 +4,8 @@ namespace Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 /// Per-minion state that does not fit in <see cref="Unit.Counter"/>/<see cref="Unit.Counter2"/> (a list, a reference to
 /// another minion, or a counter on a minion whose own card already uses them). Effects are shared singletons, so the
 /// state lives on the <see cref="Unit"/> of one fight (<see cref="Unit.EffectStates"/>, one object per state type): it is
-/// never shared between fights, and it is freed with the unit. A unit belongs to one fight on one thread, so no lock is
-/// needed (a ConditionalWeakTable took a lock and a GC handle per unit).
+/// never shared between fights (a unit reused for the next fight drops it in <c>Unit.Init</c>). A unit belongs to one
+/// fight on one thread, so no lock is needed (a ConditionalWeakTable took a lock and a GC handle per unit).
 /// </summary>
 internal static class UnitState<T> where T : class, new()
 {

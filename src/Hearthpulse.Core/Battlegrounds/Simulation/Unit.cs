@@ -6,19 +6,33 @@ namespace Hearthpulse.Core.Battlegrounds;
 public sealed class Unit
 {
     private CombatEffect[] _effects;
+    private int _health;
+    private bool _markedForDeath;
 
-    internal Unit(SimMinion spec, Side side, CombatEffect[] effects, bool extra = false)
+    internal Unit(SimMinion spec, Side side, CombatEffect[] effects, bool extra = false) => Init(spec, side, effects, extra);
+
+    /// <summary>
+    /// Sets every field as a new unit of <paramref name="spec"/> has it: the constructor, and a unit a thread's
+    /// <see cref="Fight.Scratch"/> reuses for its next fight. Assigns each field, defaults included (a reused unit carries
+    /// the last fight's values); <c>SimPoolResetTests</c> checks that no field is left out.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_effects), nameof(Spec), nameof(Side))]
+    internal void Init(SimMinion spec, Side side, CombatEffect[] effects, bool extra)
     {
         Spec = spec;
         Side = side;
         _effects = effects;
         IsExtra = extra;
+        var hooks = Hook.None;
+        var immune = false;
         foreach (var effect in effects)
         {
-            Hooks |= effect.Hooks;
-            ImmuneWhileAttacking |= effect.ImmuneWhileAttacking;
+            hooks |= effect.Hooks;
+            immune |= effect.ImmuneWhileAttacking;
         }
 
+        Hooks = hooks;
+        ImmuneWhileAttacking = immune;
         Tribes = spec.Tribes;
         Attack = spec.Attack;
         Health = spec.Health;
@@ -32,8 +46,20 @@ public sealed class Unit
         Stealth = spec.Stealth;
         Counter = spec.ScriptData1;
         Counter2 = spec.ScriptData2;
+        AvengeCount = 0;
         BloodGemAttack = spec.BloodGemAttack;
         BloodGemHealth = spec.BloodGemHealth;
+        IsOnBoard = false;
+        MarkedForDeath = false;
+        Killer = null;
+        RebornFrom = null;
+        EffectStates = null;
+        AttackDepth = 0;
+        DeathAnchor = null;
+        DiedLeftOfGap = false;
+        DeathIndex = 0;
+        Entry = 0;
+        AppliedAura = default;
     }
 
     /// <summary>
@@ -50,7 +76,7 @@ public sealed class Unit
 
     public CardMechanic Mechanics => Spec.Mechanics;
 
-    public Side Side { get; }
+    public Side Side { get; private set; }
 
     public Side Enemy => Side.Enemy;
 
@@ -58,7 +84,19 @@ public sealed class Unit
 
     public int Attack { get; set; }
 
-    public int Health { get; set; }
+    /// <summary>Current Health; at 0 or below the unit is dying (its side then looks for deaths, <see cref="Side.MayHaveDying"/>).</summary>
+    public int Health
+    {
+        get => _health;
+        set
+        {
+            _health = value;
+            if (value <= 0)
+            {
+                Side.MayHaveDying = true;
+            }
+        }
+    }
 
     public int MaxHealth { get; set; }
 
@@ -95,10 +133,21 @@ public sealed class Unit
     public bool IsOnBoard { get; internal set; }
 
     /// <summary>A player-level effect holder (hero power, trinket, Deity...), never on the board.</summary>
-    public bool IsExtra { get; }
+    public bool IsExtra { get; private set; }
 
     /// <summary>Destroyed by an effect; removed at the next death phase.</summary>
-    public bool MarkedForDeath { get; internal set; }
+    public bool MarkedForDeath
+    {
+        get => _markedForDeath;
+        internal set
+        {
+            _markedForDeath = value;
+            if (value)
+            {
+                Side.MayHaveDying = true;
+            }
+        }
+    }
 
     /// <summary>Mortally wounded or destroyed, waiting for the death phase.</summary>
     public bool IsDying => Health <= 0 || MarkedForDeath;
@@ -152,7 +201,7 @@ public sealed class Unit
     internal int DeathIndex { get; set; }
 
     /// <summary>Order of play: when it entered the fight (see <see cref="Fight"/>); simultaneous deaths resolve by it.</summary>
-    internal int Entry { get; init; }
+    internal int Entry { get; set; }
 
     // Aura stats currently applied to this unit (captured stats already include the auras present at capture).
     internal StatDelta AppliedAura { get; set; }
