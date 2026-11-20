@@ -99,6 +99,24 @@ public sealed partial class Fight
             _attacksInProgress--;
             Attacking = previous;
             attacker.AttackDepth--;
+            if (attacker.ImmuneAttackDepth > attacker.AttackDepth)
+            {
+                // "For one attack only": the attack it was given in is over.
+                attacker.ImmuneAttackDepth = 0;
+            }
+        }
+    }
+
+    /// <summary>
+    /// "Immune while Attacking" for the attack <paramref name="attacker"/> is making now only (Eclipsion Illidari); nothing
+    /// when it is not attacking. Its Divine Shield stays and Poisonous/Venomous do not reach it, as for Invulnerability.
+    /// </summary>
+    public void GiveImmuneForThisAttack(Unit attacker)
+    {
+        if (attacker.AttackDepth > 0 && attacker.ImmuneAttackDepth == 0)
+        {
+            attacker.ImmuneAttackDepth = attacker.AttackDepth;
+            if (Tracing) Trace($"{Name(attacker)} is immune while attacking (this attack)");
         }
     }
 

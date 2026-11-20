@@ -7,7 +7,8 @@ namespace Hearthpulse.Core.Battlegrounds;
 /// "Your Battlecries trigger twice" (Brann Bronzebeard; golden: three times) and "Your spells that target friendly
 /// minions cast twice" (Balinda Stonehearth; golden: three times) say how many times in total, so copies do not add up:
 /// the largest multiplier among the living minions wins (two Branns still trigger twice, a golden one three times).
-/// Titus Rivendare's "an extra time" is different and adds up (<see cref="DeathrattleTriggers"/>).
+/// Titus Rivendare's "an extra time" is different and adds up (<see cref="DeathrattleTriggers"/>), as Dragon's Eye's "Your
+/// Dragons' Battlecries trigger an extra time" does for a Dragon's Battlecry (<see cref="BattlecryTriggers(Unit)"/>).
 /// </remarks>
 public sealed partial class Fight
 {
@@ -16,6 +17,12 @@ public sealed partial class Fight
 
     /// <summary>How many times a Battlecry of this side triggers: 1 + the largest extra from its living minions (Brann).</summary>
     public int BattlecryTriggers(Side side) => 1 + LargestExtra(side, Hook.ExtraBattlecries, string.Empty, null);
+
+    /// <summary>
+    /// How many times <paramref name="source"/>'s Battlecry triggers: <see cref="BattlecryTriggers(Side)"/> plus the extra
+    /// triggers that add up and depend on the source (Dragon's Eye: one more for a Dragon).
+    /// </summary>
+    public int BattlecryTriggers(Unit source) => BattlecryTriggers(source.Side) + AddedBattlecries(source);
 
     /// <summary>
     /// How many times a spell <paramref name="caster"/> casts on <paramref name="target"/> (null: no target) is cast:
@@ -41,7 +48,7 @@ public sealed partial class Fight
             return;
         }
 
-        var total = times * (withMultiplier ? BattlecryTriggers(unit.Side) : 1);
+        var total = times * (withMultiplier ? BattlecryTriggers(unit) : 1);
         _depth++;
         try
         {
@@ -117,6 +124,45 @@ public sealed partial class Fight
         {
             _depth--;
         }
+    }
+
+    /// <summary>The sum of <see cref="CombatEffect.AddedBattlecries"/> over the living minions and extras of the source's side.</summary>
+    private int AddedBattlecries(Unit source)
+    {
+        var side = source.Side;
+        if ((side.Hooks & Hook.AddedBattlecries) == 0)
+        {
+            return 0;
+        }
+
+        var added = 0;
+        _depth++;
+        try
+        {
+            var observers = Snapshot(side, out var count);
+            for (var i = 0; i < count; i++)
+            {
+                var unit = observers[i];
+                if ((unit.Hooks & Hook.AddedBattlecries) == 0 || (!unit.IsAlive && !unit.IsExtra))
+                {
+                    continue;
+                }
+
+                foreach (var effect in unit.Effects)
+                {
+                    if ((effect.Hooks & Hook.AddedBattlecries) != 0)
+                    {
+                        added += Math.Max(0, effect.AddedBattlecries(this, unit, source));
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _depth--;
+        }
+
+        return added;
     }
 
     /// <summary>The largest extra count among the living minions and extras of a side that override <paramref name="hook"/>.</summary>

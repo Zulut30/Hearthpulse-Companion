@@ -137,6 +137,12 @@ public sealed class Unit
     /// <summary>Attacks of this unit being resolved right now (more than one only for nested attacks); 0 = not attacking.</summary>
     internal int AttackDepth { get; set; }
 
+    /// <summary>
+    /// "Immune while Attacking" for one attack only (Eclipsion Illidari): the <see cref="AttackDepth"/> of the attack it
+    /// was given in, 0 = none. Ends with that attack (<see cref="Fight.GiveImmuneForThisAttack"/>).
+    /// </summary>
+    internal int ImmuneAttackDepth { get; set; }
+
     public bool Is(Tribe tribe) => tribe == Tribe.All || (Tribes & tribe) != 0;
 
     /// <summary><paramref name="golden"/> for a golden minion, else <paramref name="normal"/> (read the golden card's own text).</summary>

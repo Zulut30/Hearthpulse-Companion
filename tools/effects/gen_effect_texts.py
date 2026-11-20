@@ -22,9 +22,11 @@ import re
 import sys
 
 EFFECT_DIRS = ["attack", "deaths", "ongoing", "spells", "timewarped", "rewards", "anomalies", "player", "quests"]
-# Cards an effect uses without registering them: the Blood Gem and the Tavern spells cast in combat (Mighty Dragonbreath,
-# Misplaced Tea Set, Chef's Choice).
-EXTRA_IDS = ["BG20_GEM", "BG36_246", "BG28_888", "BG28_518"]
+# Cards an effect uses without registering them: the Blood Gem, the Tavern spells cast in combat (Mighty Dragonbreath,
+# Misplaced Tea Set, Chef's Choice), the first ranks of the Battlecruiser upgrades whose enchantment shows "+0" (Advanced
+# Ballistics, Caduceus Reactor: their numbers are the effects' fallback) and the Elements Spirit Raptor calls upon.
+EXTRA_IDS = ["BG20_GEM", "BG36_246", "BG28_888", "BG28_518", "BG31_HERO_801ptd", "BG31_HERO_801pte",
+             "BG22_HERO_001p_t1", "BG22_HERO_001p_t2", "BG22_HERO_001p_t3", "BG22_HERO_001p_t4"]
 OUTPUT = os.path.join("tests", "Hearthpulse.Tests", "Fixtures", "Effects", "effect-card-texts.json")
 EFFECTS = os.path.join("src", "Hearthpulse.Core", "Battlegrounds", "Effects")
 

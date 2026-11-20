@@ -38,6 +38,15 @@ public static class SimInputs
     /// <summary>The crew of the opponent's Timewarped Nellie's Ship: a Discover pick the player does not see.</summary>
     public const string ShipCrew = "ship_crew";
 
+    /// <summary>
+    /// What is left of an "after N …, get a random X" count (Lucky Tabby, MechGyver, Timewarped Boar…) of the opponent's,
+    /// hidden from the player: N left, as if no progress was made. Basis "&lt;card id&gt;: …".
+    /// </summary>
+    public const string ProgressLeft = "progress_left";
+
+    /// <summary>Whether a "next combat" hero power (I'll Take That!) was used this turn: not in the capture, assumed used.</summary>
+    public const string HeroPowerUsed = "hero_power_used";
+
     /// <summary>Timewarped Nellie's Ship, whose crew the tracker records for the local player (<see cref="SimMinion.Crew"/>).</summary>
     public const string NelliesShip = "BG34_Giant_074t";
 
@@ -74,8 +83,48 @@ public static class SimInputs
     /// <summary>"Beetle Army Player Enchant": TAG_SCRIPT_DATA_NUM_1/2 = the Beetle bonus over 2/2.</summary>
     public const string BeetleArmyEnchantment = "BG31_808pe";
 
+    /// <summary>
+    /// "Undead Bonus Attack Player Enchant [DNT]" (BG25_011pe, "Give Attack to Undead."): the player's "Your Undead have +X
+    /// Attack this game" (Nerubian Deathswarmer, Anub'arak, Butchering, Champion of the Primus...), X in its ATK tag or
+    /// TAG_SCRIPT_DATA_NUM_1 (no log has it yet: either is read).
+    /// </summary>
+    public const string UndeadArmyPlayerEnchantment = "BG25_011pe";
+
+    /// <summary>"Undead Army" (BG25_011e2, "+0/+0."): the same bonus as the enchantment each Undead minion carries.</summary>
+    public const string UndeadArmyEnchantment = "BG25_011e2";
+
     /// <summary>The printed Beetle.</summary>
     private const int BeetleBase = 2;
+
+    /// <summary>
+    /// The player's "Your Undead have +X Attack this game" at capture, which Undead summoned in the fight get as well (a
+    /// captured Undead already shows it in its Attack): the local player's enchantment <see cref="UndeadArmyPlayerEnchantment"/>,
+    /// else the largest "Undead Army" enchantment on the side's Undead (<see cref="UndeadArmyEnchantment"/>, on the board, so
+    /// visible for the opponent too), else 0 (no Undead with the bonus on the board).
+    /// </summary>
+    public static int UndeadAttackBonus(SimSide side)
+    {
+        if (side.PlayerEnchantment(UndeadArmyPlayerEnchantment) is { } player && Number(player) > 0)
+        {
+            return Number(player);
+        }
+
+        var best = 0;
+        foreach (var minion in side.Minions)
+        {
+            foreach (var enchantment in minion.EnchantmentValues)
+            {
+                if (enchantment.CardId == UndeadArmyEnchantment)
+                {
+                    best = Math.Max(best, Number(enchantment));
+                }
+            }
+        }
+
+        return best;
+
+        static int Number(SimEnchantment e) => Math.Max(0, e.Attack > 0 ? e.Attack : e.ScriptData1);
+    }
 
     private static readonly ConditionalWeakTable<IReadOnlyList<SimMinion>, ConcurrentDictionary<Tribe, IReadOnlyList<SimMinion>>> LobbyPools = new();
 

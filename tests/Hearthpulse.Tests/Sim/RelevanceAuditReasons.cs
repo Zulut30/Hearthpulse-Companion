@@ -19,8 +19,8 @@ internal static class RelevanceAuditReasons
     private const string Teammate = "Duos: карта или ресурс напарнику в таверну; доска боя не меняется";
     private const string NotThisCombat = "улучшение для следующих боёв: в этом бою Start of Combat уже разрешился, снимок его показывает";
     private const string GoldenTavern = "«Get»: карта в руку из таверны или по итогам: в бою карта не добавляется";
-    private const string Ballistics = "заклинание таверны: даёт Battlecruiser зачарование Advanced Ballistics (BG31_HERO_801ptde) — его строка в «Боевых зачарованиях» (missing_effect: число в данных зачарования, снимок их не хранит)";
-    private const string Caduceus = "заклинание таверны: даёт Battlecruiser зачарование Caduceus Reactor (BG31_HERO_801ptee) — его строка в «Боевых зачарованиях» (missing_effect: число в данных зачарования, снимок их не хранит)";
+    private const string Ballistics = "заклинание таверны: даёт Battlecruiser зачарование Advanced Ballistics (BG31_HERO_801ptde) — его строка в «Боевых зачарованиях» (эффект читает число зачарования из снимка, формат 2)";
+    private const string Caduceus = "заклинание таверны: даёт Battlecruiser зачарование Caduceus Reactor (BG31_HERO_801ptee) — его строка в «Боевых зачарованиях» (эффект читает число зачарования из снимка, формат 2)";
     private const string ProgressReplace = "прогресс на всю игру, награда — замена тринкета или ресурс таверны: в бою не действует";
 
     /// <summary>Card id → why the combat sign does not change a fight.</summary>
@@ -153,7 +153,7 @@ internal static class RelevanceAuditReasons
         ["BG36_883"] = AfterCombat,
         ["BG28_884"] = AfterCombat,
         ["BG28_604"] = "аура «Undead have +8 Attack this game» — игровое зачарование игрока; живые Undead в снимке её уже показывают. " +
-                       "Undead, призванные в бою, её не получают: пробел входа движка (зачарование BG25_011pe не переносится в Side.AddSummonBuff) — передано ACC2",
+                       "Undead, призванные в бою, получают её от движка (SimInputs.UndeadAttackBonus: BG25_011pe / BG25_011e2 → Side.AddSummonBuff, E7b)",
     };
 
     /// <summary>Cards that change a fight and are not simulated yet: why, and who owns the gap.</summary>
@@ -172,25 +172,6 @@ internal static class RelevanceAuditReasons
         ["BG33_112"] = "вне пула; заклинание Haunted Carapace: «Your minions have +3/+1 until next turn» — аура и на призванных в бою; ни за кем",
         ["BG33_112t"] = "вне пула; Haunted Carapace (вариант): та же аура; ни за кем",
         ["BG27_Anomaly_575"] ="вне пула; «first time your hero takes fatal damage in combat, prevent it» — меняет летальность; аномалии вне пула ни за кем",
-
-        // In today's pool: progress counters a capture does not show (no tag found in logs), the reward is a random card,
-        // which matters only to "whenever a card is added to your hand" (The Shadow of Doubt, Timewarped Peggy).
-        ["BG30_MagicItem_931"] = "«After 6 friendly minions die, get a Beast»: прогресс на всю игру не в снимке; фидер второго порядка",
-        ["BG30_MagicItem_713"] = "«After 8 friendly minions die, get an Undead»: прогресс не в снимке; фидер второго порядка",
-        ["BG35_MagicItem_302"] = "«After 5 friendly minions die, get a Mech»: прогресс не в снимке; фидер второго порядка",
-        ["BG35_MagicItem_700"] = "«After you summon 6 Beasts, get a Beast»: прогресс не в снимке; фидер второго порядка",
-        ["BG22_HERO_200p"] = "MechGyver «After 9 friendly minions die, get a Mech»: прогресс не в снимке; фидер второго порядка",
-        ["BG34_Giant_201"] = "Timewarped Boar «every third friendly Boar dies»: счётчик на всю игру не в снимке; фидер второго порядка",
-        ["TB_BaconShop_HP_053"] = "«Next combat, get a copy of the first minion you kill»: использована ли сила, снимок не говорит; фидер второго порядка",
-
-        // In today's pool: needs an engine change outside this package.
-        ["BG36_MagicItem_215"] = "Dragon's Eye «Your Dragons' Battlecries trigger an extra time»: в бою Battlecry запускает Timewarped " +
-                                 "Greenskeeper (Rally), и у дракона (Electric Synthesizer) она сработает лишний раз; множитель Battlecry в " +
-                                 "движке общий на сторону, без источника (Fight.Battlecries.cs: зона ACC2/PERF3)",
-
-        // In today's pool: what the card does in combat is not established.
-        ["BG22_HERO_000p_Alt"] = "Lock and Load: «When you have space next combat, fire it at a random enemy minion» — что делает «fire it», " +
-                                 "по тексту и логам не установлено (в логе 15.11 только у соперника, без выстрела); missing_effect",
     };
 
     /// <summary>A card whose combat part is another card's registered effect: card id → that card.</summary>

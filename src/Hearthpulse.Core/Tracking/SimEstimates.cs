@@ -1,9 +1,11 @@
+using System.Globalization;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Battlegrounds.Effects.Attack;
 using Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
 using Hearthpulse.Core.Battlegrounds.Effects.Player;
 using Hearthpulse.Core.Battlegrounds.Effects.Spells;
+using Hearthpulse.Core.Battlegrounds.Effects.Timewarped;
 
 namespace Hearthpulse.Core.Tracking;
 
@@ -42,6 +44,11 @@ internal static class SimEstimates
     private static readonly string[] BeetleSummoners = ["BG31_803", "BG31_801", "BG31_809", "BG36_209", "BG34_Giant_687"];
     private static readonly string[] BeetleBand = ["BG32_MagicItem_860", "BG32_MagicItem_860t"];
 
+    // "After N …, get a random X. (N left!)" cards (Effects/player/ProgressCards) and their N: Lucky Tabby, Bleeding Heart,
+    // Stormcoil Sticker, Wildfeather Duster, MechGyver.
+    private static readonly (string Id, int Total)[] ProgressCards =
+        [("BG30_MagicItem_931", 6), ("BG30_MagicItem_713", 8), ("BG35_MagicItem_302", 5), ("BG35_MagicItem_700", 6), ("BG22_HERO_200p", 9)];
+
     /// <summary>
     /// The estimates of <paramref name="side"/>. Values an effect reads through <see cref="Side.Counter"/> are also written
     /// into <paramref name="tags"/> (the side's <see cref="SimSide.Tags"/>, empty for the opponent). <paramref name="local"/>
@@ -55,10 +62,30 @@ internal static class SimEstimates
             estimates.Add(new SimEstimate(SimInputs.LobbyTribes, 0, 0, "lobby tribes not read from the client: every tribe of the pool"));
         }
 
+        if (side.Extras.Contains(IllTakeThat.Id))
+        {
+            // Not in the capture for either player (no tag read): whether the power was used this turn.
+            estimates.Add(new SimEstimate(SimInputs.HeroPowerUsed, 1, 0, IllTakeThat.Id + ": its use this turn is not read: assumed used"));
+        }
+
         if (!isOpponent)
         {
             // Our own values are on our screen and our player entity carries every one (a tag never set is 0).
             return estimates;
+        }
+
+        foreach (var (card, total) in ProgressCards)
+        {
+            if (side.Extras.Contains(card))
+            {
+                estimates.Add(new SimEstimate(SimInputs.ProgressLeft, total, 0, card + ": its progress is hidden from the player: " + total.ToString(CultureInfo.InvariantCulture) + " left"));
+            }
+        }
+
+        if (side.Minions.Any(m => m.CardId == TimewarpedBoar.Id) && !TimewarpedBoar.Shown(side))
+        {
+            estimates.Add(new SimEstimate(SimInputs.ProgressLeft, TimewarpedBoar.Every, 0,
+                                          TimewarpedBoar.Id + ": the dead Boars count is hidden from the player: 3 left"));
         }
 
         DeityStats(side, tags, local, estimates);

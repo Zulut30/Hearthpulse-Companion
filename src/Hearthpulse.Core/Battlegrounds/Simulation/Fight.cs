@@ -236,6 +236,8 @@ public sealed partial class Fight
 
     private void StartFight()
     {
+        UndeadArmy(Ours);
+        UndeadArmy(Theirs);
         StartSide(Ours);
         StartSide(Theirs);
         BaselineAuras(Ours);
@@ -244,6 +246,18 @@ public sealed partial class Fight
         RefreshAuras();
         ResolveDeaths();
         RunQueuedAttacks();
+    }
+
+    /// <summary>
+    /// "Your Undead have +X Attack this game (wherever they are)", made in the Tavern: Undead summoned in this fight get it
+    /// too (a captured Undead already shows it). <see cref="SimInputs.UndeadAttackBonus"/>.
+    /// </summary>
+    private static void UndeadArmy(Side side)
+    {
+        if (SimInputs.UndeadAttackBonus(side.Info) is > 0 and var bonus)
+        {
+            side.AddSummonBuff(Tribe.Undead, bonus, 0);
+        }
     }
 
     private void StartSide(Side side)
