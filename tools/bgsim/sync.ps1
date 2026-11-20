@@ -75,6 +75,8 @@ $ExcludedTests = [ordered]@{
     'tests/Hearthpulse.Tests/Sim/RelevanceAudit.cs'                 = 'Fixtures/SimAudit/matrix-cards.json.gz (written by Hearthpulse.Bench simmatrix)'
     'tests/Hearthpulse.Tests/Sim/RelevanceAuditReasons.cs'          = 'the relevance audit of Fixtures/SimAudit (RelevanceAuditTests)'
     'tests/Hearthpulse.Tests/Sim/RelevanceAuditTests.cs'            = 'Fixtures/SimAudit/matrix-cards.json.gz (written by Hearthpulse.Bench simmatrix)'
+    'tests/Hearthpulse.Tests/Sim/SecretCaptureTests.cs'             = 'Power.log replay through BattlegroundsTracker (Secrets in the capture)'
+    'tests/Hearthpulse.Tests/Sim/CombatWarmupTests.cs'              = 'GameSession starts the warm-up (HistoryStore, HearthstoneMemory)'
     'tests/Hearthpulse.Tests/Sim/ParallelRunsTests.cs'              ='Hearthpulse.Bench SimStats.Wilson and BattlegroundsTracker in two of its cases'
 }
 
