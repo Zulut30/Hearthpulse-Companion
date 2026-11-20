@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.UI.Controls;
@@ -34,10 +35,10 @@ public sealed class ArtMotionTests
             var late = Add(panel, new Image());
             CardArt.SetCard(late, id);
             Assert.Null(late.Source);
-            Arrive(ArtKind.Card, id);
+            Arrive(ArtKind.Card, id, () => late.Source is not null, late);
             Assert.NotNull(late.Source);
             Assert.True(CardArt.Fading(late));
-            Wait(Motion.Fast + TimeSpan.FromMilliseconds(300));
+            Until(() => !CardArt.Fading(late) && late.Opacity == 1, late);
             Assert.False(CardArt.Fading(late));
             Assert.Equal(1, late.Opacity);
 
@@ -52,11 +53,11 @@ public sealed class ArtMotionTests
             var other = Card();
             var border = Add(panel, new Border { Background = Brushes.Gray });
             CardArt.SetCard(border, other);
-            Arrive(ArtKind.Card, other);
+            Arrive(ArtKind.Card, other, () => border.Background is ImageBrush, border);
             var brush = Assert.IsType<ImageBrush>(border.Background);
             Assert.True(CardArt.Fading(border));
             Assert.Equal(1, border.Opacity);
-            Wait(Motion.Fast + TimeSpan.FromMilliseconds(300));
+            Until(() => !CardArt.Fading(border) && brush.Opacity == 1, border, brush);
             Assert.False(CardArt.Fading(border));
             Assert.Equal(1, brush.Opacity);
         }
@@ -90,7 +91,7 @@ public sealed class ArtMotionTests
             // Mid-fade, the control is given a card in memory: the fade stops, the card is whole at once.
             var next = Card();
             CardArt.SetCard(row, next);
-            Arrive(ArtKind.Card, next);
+            Arrive(ArtKind.Card, next, () => CardArt.Fading(row), row);
             Assert.True(CardArt.Fading(row));
             CardArt.SetCard(row, current);
             Assert.Same(shown, row.Source);
@@ -115,7 +116,7 @@ public sealed class ArtMotionTests
             var id = Card();
             var image = Add(panel, new Image());
             CardArt.SetCard(image, id);
-            Arrive(ArtKind.Card, id);
+            Arrive(ArtKind.Card, id, () => image.Source is not null, image);
             Assert.NotNull(image.Source);
             Assert.False(CardArt.Fading(image));
 
@@ -126,7 +127,7 @@ public sealed class ArtMotionTests
             Assert.NotNull(host.CardShown);
             Assert.False(host.Fading);
             host.HideSoon(row);
-            Wait(TimeSpan.FromMilliseconds(140) + TimeSpan.FromMilliseconds(200));
+            WaitUntilHidden(host);
             Assert.Null(host.CardShown);
             Assert.False(host.Fading);
         }
@@ -173,7 +174,7 @@ public sealed class ArtMotionTests
             host.Show(rows[2]);
             Assert.True(host.Waiting);
             Assert.Same(shown, host.CardShown);
-            Arrive(ArtKind.Card, late);
+            Arrive(ArtKind.Card, late, () => !host.Waiting && Shows(host, late), [host, .. host.GetVisualDescendants()]);
             Assert.False(host.Waiting);
             CardArt.TryGetCached(ArtKind.Card, late, out var lateArt);
             Assert.Same(lateArt, host.CardShown);
@@ -210,9 +211,9 @@ public sealed class ArtMotionTests
             var hero = new HeroSwap(layers[0], layers[1], layers[2], layers[3], motion: () => true);
             var (first, second) = (Card(ArtKind.Splash), Card(ArtKind.Splash));
             hero.Show(first);
-            Arrive(ArtKind.Splash, first);
+            Arrive(ArtKind.Splash, first, () => hero.Front == first, layers);
             Assert.Equal(first, hero.Front);
-            Settle();
+            Settle(hero, first, layers);
             AssertSettled(hero, first);
 
             // A hero in memory: the cross-fade starts after the layout.
@@ -221,16 +222,16 @@ public sealed class ArtMotionTests
             Assert.Equal(first, hero.Front);
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(second, hero.Front);
-            Settle();
+            Settle(hero, second, layers);
             AssertSettled(hero, second);
 
             // Back and forth mid-fade: the slots settle on the last hero, whole, the other slot empty.
             hero.Show(first);
-            Wait(TimeSpan.FromMilliseconds(60));
+            MidFade(hero, first, layers);
             hero.Show(second);
-            Wait(TimeSpan.FromMilliseconds(40));
+            MidFade(hero, second, layers);
             hero.Show(first);
-            Settle();
+            Settle(hero, first, layers);
             AssertSettled(hero, first);
 
             // With motion off the hero changes on the call.
@@ -253,6 +254,16 @@ public sealed class ArtMotionTests
         Assert.Single(slots, s => s.Hero is null && s.Opacity == 0);
     }
 
+    /// <summary>Whether the hero is shown whole in one slot and the other slot is transparent and empty.</summary>
+    private static bool Settled(HeroSwap hero, string shown) =>
+        hero.Front == shown
+        && hero.Slots.Count(s => s.Hero == shown && s.Opacity == 1) == 1
+        && hero.Slots.Count(s => s.Hero is null && s.Opacity == 0) == 1;
+
+    /// <summary>Whether the hover card shows the art the memory cache holds for <paramref name="cardId"/>.</summary>
+    private static bool Shows(CardPreviewHost host, string cardId) =>
+        CardArt.TryGetCached(ArtKind.Card, cardId, out var art) && ReferenceEquals(art, host.CardShown);
+
     /// <summary>A new card id with art on disk (not in memory yet).</summary>
     private static string Card(ArtKind kind = ArtKind.Card)
     {
@@ -263,8 +274,14 @@ public sealed class ArtMotionTests
         return id;
     }
 
-    /// <summary>Lets the card's art load and the UI take it (the continuations of every control waiting for it).</summary>
-    private static void Arrive(ArtKind kind, string cardId)
+    /// <summary>
+    /// Lets the card's art load and the UI take it: the load's end, then <paramref name="taken"/> (what the control
+    /// waiting for it shows once it has), checked on every property change of <paramref name="watched"/>. The shared load
+    /// leaves the memory cache holding the art a moment before its task ends on a pool thread, and the controls'
+    /// continuations come only then: a load asked for in that moment ends at once, and the end of the load alone ran
+    /// ahead of them under load.
+    /// </summary>
+    private static void Arrive(ArtKind kind, string cardId, Func<bool>? taken = null, params AvaloniaObject[] watched)
     {
         var load = CardArt.GetAsync(kind, cardId);
         using var stop = new CancellationTokenSource();
@@ -275,6 +292,10 @@ public sealed class ArtMotionTests
         Dispatcher.UIThread.RunJobs();
         Assert.True(load.IsCompletedSuccessfully);
         Assert.NotNull(load.Result);
+        if (taken is not null)
+        {
+            Until(taken, watched);
+        }
     }
 
     private static T Add<T>(StackPanel panel, T control)
@@ -300,15 +321,57 @@ public sealed class ArtMotionTests
         return (window, panel);
     }
 
-    /// <summary>Lets a cross-fade finish: its layout, its fades (Motion.Enter) and their completions.</summary>
-    private static void Settle() => Wait(Motion.Enter + TimeSpan.FromMilliseconds(400));
+    /// <summary>Lets a cross-fade finish (its layout, its fades and their completions) on <paramref name="shown"/>.</summary>
+    private static void Settle(HeroSwap hero, string shown, Border[] layers) => Until(() => Settled(hero, shown), layers);
 
-    /// <summary>Runs the dispatcher, its timers and the animation clock with it, for <paramref name="time"/>.</summary>
-    private static void Wait(TimeSpan time)
+    /// <summary>
+    /// Lets the cross-fade to <paramref name="hero"/> start and take its first step, so the next change lands mid-fade:
+    /// its slot partly in. A machine too slow to show a step settles first, and the next change starts from there.
+    /// </summary>
+    private static void MidFade(HeroSwap swap, string hero, Border[] layers) =>
+        Until(() => swap.Slots.Any(s => s.Hero == hero && s.Opacity is > 0 and < 1) || Settled(swap, hero), layers);
+
+    /// <summary>
+    /// Runs the dispatcher, its timers and the animation clock with it until <paramref name="done"/> holds, checked on
+    /// every property change of <paramref name="watched"/> (each step of a fade, its end). The fades run on the wall
+    /// clock: a fixed wait ran out under load while a fade was still on, so the state ends the wait; 10 s only bounds a
+    /// hang, and the state is asserted after it.
+    /// </summary>
+    private static void Until(Func<bool> done, params AvaloniaObject[] watched)
     {
+        if (done())
+        {
+            return;
+        }
+
         using var stop = new CancellationTokenSource();
-        DispatcherTimer.RunOnce(stop.Cancel, time);
-        Dispatcher.UIThread.MainLoop(stop.Token);
+        void Changed(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (done())
+            {
+                stop.Cancel();
+            }
+        }
+
+        foreach (var item in watched)
+        {
+            item.PropertyChanged += Changed;
+        }
+
+        try
+        {
+            using var backstop = DispatcherTimer.RunOnce(stop.Cancel, TimeSpan.FromSeconds(10));
+            Dispatcher.UIThread.MainLoop(stop.Token);
+        }
+        finally
+        {
+            foreach (var item in watched)
+            {
+                item.PropertyChanged -= Changed;
+            }
+        }
+
+        Assert.True(done(), "The awaited state did not come within 10 s.");
     }
 
     /// <summary>
