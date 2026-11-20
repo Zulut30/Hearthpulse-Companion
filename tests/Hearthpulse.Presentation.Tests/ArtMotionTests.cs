@@ -35,10 +35,10 @@ public sealed class ArtMotionTests
             var late = Add(panel, new Image());
             CardArt.SetCard(late, id);
             Assert.Null(late.Source);
-            Arrive(ArtKind.Card, id);
+            Arrive(ArtKind.Card, id, () => late.Source is not null);
             Assert.NotNull(late.Source);
             Assert.True(late.HasAnimatedProperties);
-            Wait(Motion.Fast + TimeSpan.FromMilliseconds(300));
+            Until(() => !late.HasAnimatedProperties && late.Opacity == 1);
             Assert.False(late.HasAnimatedProperties);
             Assert.Equal(1, late.Opacity);
 
@@ -53,11 +53,11 @@ public sealed class ArtMotionTests
             var other = Card();
             var border = Add(panel, new Border { Background = Brushes.Gray });
             CardArt.SetCard(border, other);
-            Arrive(ArtKind.Card, other);
+            Arrive(ArtKind.Card, other, () => border.Background is ImageBrush);
             var brush = Assert.IsType<ImageBrush>(border.Background);
             Assert.True(brush.HasAnimatedProperties);
             Assert.False(border.HasAnimatedProperties);
-            Wait(Motion.Fast + TimeSpan.FromMilliseconds(300));
+            Until(() => brush.Opacity == 1);
             Assert.Equal(1, brush.Opacity);
         }
         finally
@@ -90,7 +90,7 @@ public sealed class ArtMotionTests
             // Mid-fade, the element is given a card in memory: the fade stops, the card is whole at once.
             var next = Card();
             CardArt.SetCard(row, next);
-            Arrive(ArtKind.Card, next);
+            Arrive(ArtKind.Card, next, () => row.HasAnimatedProperties);
             Assert.True(row.HasAnimatedProperties);
             CardArt.SetCard(row, current);
             Assert.Same(shown, row.Source);
@@ -115,7 +115,7 @@ public sealed class ArtMotionTests
                 var id = Card();
                 var image = Add(panel, new Image());
                 CardArt.SetCard(image, id);
-                Arrive(ArtKind.Card, id);
+                Arrive(ArtKind.Card, id, () => image.Source is not null);
                 Assert.NotNull(image.Source);
                 Assert.False(image.HasAnimatedProperties);
             }
@@ -125,7 +125,7 @@ public sealed class ArtMotionTests
                 var id = Card();
                 var image = Add(overlayPanel, new Image());
                 CardArt.SetCard(image, id);
-                Arrive(ArtKind.Card, id);
+                Arrive(ArtKind.Card, id, () => image.Source is not null);
                 Assert.NotNull(image.Source);
                 Assert.False(image.HasAnimatedProperties);
             }
@@ -174,7 +174,7 @@ public sealed class ArtMotionTests
             host.Show(rows[2]);
             Assert.True(host.Waiting);
             Assert.Same(shown, host.CardShown);
-            Arrive(ArtKind.Card, late);
+            Arrive(ArtKind.Card, late, () => !host.Waiting && Shows(host, late));
             Assert.False(host.Waiting);
             CardArt.TryGetCached(ArtKind.Card, late, out var lateArt);
             Assert.Same(lateArt, host.CardShown);
@@ -216,7 +216,7 @@ public sealed class ArtMotionTests
             Assert.NotNull(host.CardShown);
             Assert.False(host.HasAnimatedProperties);
             host.HideSoon(row);
-            Wait(TimeSpan.FromMilliseconds(140) + TimeSpan.FromMilliseconds(200));
+            WaitUntilHidden(host);
             Assert.Null(host.CardShown);
             Assert.False(host.HasAnimatedProperties);
         }
@@ -242,10 +242,10 @@ public sealed class ArtMotionTests
             var hero = new HeroSwap(layers[0], layers[1], layers[2], layers[3], motion: () => true);
             var (first, second) = (Card(ArtKind.Splash), Card(ArtKind.Splash));
             hero.Show(first);
-            Arrive(ArtKind.Splash, first);
+            Arrive(ArtKind.Splash, first, () => hero.Front == first);
             Pump(DispatcherPriority.Background);
             Assert.Equal(first, hero.Front);
-            Settle();
+            Settle(hero, first);
             AssertSettled(hero, first);
 
             // A hero in memory: the cross-fade starts after the layout, both slots moving.
@@ -255,19 +255,19 @@ public sealed class ArtMotionTests
             Pump(DispatcherPriority.Background);
             Assert.Equal(second, hero.Front);
             Assert.All(layers, l => Assert.True(l.HasAnimatedProperties));
-            Settle();
+            Settle(hero, second);
             AssertSettled(hero, second);
 
             // Back and forth mid-fade: the slots settle on the last hero, whole, the other slot empty.
             hero.Show(first);
             Pump(DispatcherPriority.Background);
-            Wait(TimeSpan.FromMilliseconds(60));
+            MidFade(hero, first);
             hero.Show(second);
             Pump(DispatcherPriority.Background);
-            Wait(TimeSpan.FromMilliseconds(40));
+            MidFade(hero, second);
             hero.Show(first);
             Pump(DispatcherPriority.Background);
-            Settle();
+            Settle(hero, first);
             AssertSettled(hero, first);
 
             // With motion off the hero changes on the call.
@@ -301,6 +301,16 @@ public sealed class ArtMotionTests
         Assert.Single(slots, s => s.Hero is null && s.Opacity == 0);
     }
 
+    /// <summary>Whether the hero is shown whole in one slot and the other slot is transparent and empty.</summary>
+    private static bool Settled(HeroSwap hero, string shown) =>
+        hero.Front == shown
+        && hero.Slots.Count(s => s.Hero == shown && s.Opacity == 1) == 1
+        && hero.Slots.Count(s => s.Hero is null && s.Opacity == 0) == 1;
+
+    /// <summary>Whether the hover card shows the art the memory cache holds for <paramref name="cardId"/>.</summary>
+    private static bool Shows(CardPreviewHost host, string cardId) =>
+        CardArt.TryGetCached(ArtKind.Card, cardId, out var art) && ReferenceEquals(art, host.CardShown);
+
     /// <summary>A new card id with art on disk (not in memory yet).</summary>
     private static string Card(ArtKind kind = ArtKind.Card)
     {
@@ -311,8 +321,13 @@ public sealed class ArtMotionTests
         return id;
     }
 
-    /// <summary>Lets the card's art load and the UI take it (the continuations of every element waiting for it).</summary>
-    private static void Arrive(ArtKind kind, string cardId)
+    /// <summary>
+    /// Lets the card's art load and the UI take it: the load's end, then <paramref name="taken"/> (what the element waiting
+    /// for it shows once it has). The shared load leaves the memory cache holding the art a moment before its task ends on
+    /// a pool thread, and the elements' continuations come only then: a load asked for in that moment ends at once, and
+    /// the end of the load alone ran ahead of them under load.
+    /// </summary>
+    private static void Arrive(ArtKind kind, string cardId, Func<bool>? taken = null)
     {
         var load = CardArt.GetAsync(kind, cardId);
         var dispatcher = Dispatcher.CurrentDispatcher;
@@ -325,6 +340,10 @@ public sealed class ArtMotionTests
         Assert.True(load.IsCompletedSuccessfully);
         Assert.NotNull(load.Result);
         Pump(DispatcherPriority.Background);
+        if (taken is not null)
+        {
+            Until(taken);
+        }
     }
 
     private static T Add<T>(Panel panel, T element)
@@ -363,21 +382,52 @@ public sealed class ArtMotionTests
         return (window, panel);
     }
 
-    /// <summary>Lets a cross-fade finish: its layout, its fades (Motion.Enter) and their completions.</summary>
-    private static void Settle()
-    {
-        Pump(DispatcherPriority.ApplicationIdle);
-        Wait(Motion.Enter + TimeSpan.FromMilliseconds(400));
-        Pump(DispatcherPriority.ApplicationIdle);
-    }
+    /// <summary>Lets a cross-fade finish (its layout, its fades and their completions) on <paramref name="shown"/>.</summary>
+    private static void Settle(HeroSwap hero, string shown) => Until(() => Settled(hero, shown));
 
-    /// <summary>Runs the dispatcher (layout, render, animation ticks, timers) for <paramref name="time"/>.</summary>
-    private static void Wait(TimeSpan time)
+    /// <summary>
+    /// Lets the cross-fade to <paramref name="hero"/> take its first step, so the next change lands mid-fade: its slot
+    /// partly in. A machine too slow to show a step settles first, and the next change starts from there.
+    /// </summary>
+    private static void MidFade(HeroSwap swap, string hero) =>
+        Until(() => swap.Slots.Any(s => s.Hero == hero && s.Opacity is > 0 and < 1) || Settled(swap, hero));
+
+    /// <summary>
+    /// Runs the dispatcher (layout, render, animation ticks, timers) until <paramref name="done"/> holds, checked on every
+    /// frame: animation clocks, their values and their Completed handlers move only on a frame, and while the handler is
+    /// attached WPF keeps rendering frames. The fades run on the wall clock: a fixed wait ran out under load while a fade
+    /// was still on, so the state ends the wait; 10 s only bounds a hang, and the state is asserted after it.
+    /// </summary>
+    private static void Until(Func<bool> done)
     {
-        var frame = new DispatcherFrame();
-        var timer = new DispatcherTimer(time, DispatcherPriority.Background, (_, _) => frame.Continue = false, Dispatcher.CurrentDispatcher);
-        Dispatcher.PushFrame(frame);
-        timer.Stop();
+        Pump(DispatcherPriority.ApplicationIdle);
+        if (done())
+        {
+            return;
+        }
+
+        var pump = new DispatcherFrame();
+        void Rendered(object? sender, EventArgs e)
+        {
+            if (done())
+            {
+                pump.Continue = false;
+            }
+        }
+
+        CompositionTarget.Rendering += Rendered;
+        var backstop = new DispatcherTimer(TimeSpan.FromSeconds(10), DispatcherPriority.Background, (_, _) => pump.Continue = false, Dispatcher.CurrentDispatcher);
+        try
+        {
+            Dispatcher.PushFrame(pump);
+        }
+        finally
+        {
+            backstop.Stop();
+            CompositionTarget.Rendering -= Rendered;
+        }
+
+        Assert.True(done(), "The awaited state did not come within 10 s.");
     }
 
     /// <summary>
