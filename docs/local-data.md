@@ -9,6 +9,8 @@ do yet.
 | `history.db` | Not a database (SQLite 26, or 11 "corrupt" on open): put aside as `history.db.broken-<UTC time>` with its journals, and a new history starts. | `HistoryStore` constructor |
 | `combat-captures/*.hpc` | Damaged, cut short, too large (16 MB unpacked) or of another version: passed over, never deleted or repaired; the measurement says which file it did not read. A save that fails (folder not writable, disk full) is logged and the game is recorded as usual. | `CombatCaptureStore.Read`, `Save` |
 | `collection.json` | Missing, cut short, not JSON, of another format version, out of bounds, or with a key that is not a card id or a card that is not three counts: "no collection yet"; the file is left as it is and replaced by the next read of the game client. A save that fails is logged and tried again a minute later; its temp file `collection.json.tmp` is removed after every save and at start-up. | `CollectionStore.Load`, `Save`, `CollectionWatch` |
+| `cosmetics.json` | Missing, cut short, not JSON, of another format version, out of bounds (an id below 0, a repeated catalog id, a text over 2 000 characters, an unknown group name): "no card backs or coins yet"; left as it is and replaced by the next read of the game client. Saves as `collection.json` (temp file `cosmetics.json.tmp`, retried a minute later). | `CosmeticsStore.Load`, `Save`, `CosmeticsWatch` |
+| `achievements.json` | The same, with texts up to 4 000 characters, and inconsistent (a record pointing at a category, subcategory, section or achievement the file does not hold, a status by another name, a date outside 2000..2100): "no achievements yet"; left as it is and replaced by the next read. Saves as above (`achievements.json.tmp`). | `AchievementsStore.Load`, `Save`, `AchievementsWatch` |
 | `cache/api/*.json` | Younger than 6 hours but not JSON: deleted and asked for again once; when offline, an older readable answer stands in. | `HearthpulseData.FetchAsync` |
 
 ## Known limits
@@ -56,3 +58,14 @@ Besides settings, history, replays, the log and the cache, the data folder holds
   reads no log, so that line does not travel with one. There is no name, BattleTag, account id
   or region in it, so a loaded file is shown as unconfirmed until the running client was read
   ([collection.md](collection.md)). Deleting the file loses nothing: the next start of the game client writes it again.
+- `cosmetics.json` - the client's card backs and coins and the ones the player owns and marked as favourite, as last
+  read on Windows (`CosmeticsStore`, [collection-cosmetics.md](collection-cosmetics.md)): ids, the names and
+  descriptions in the client's language, the read time. Local in the same way as `collection.json` and checked the
+  same way (the static check names its types and file; `CollectionPrivacyTests` holds a card back with a marker name
+  in the session); the log names a read by its counts only. No name, BattleTag, account id or region.
+- `achievements.json` - the client's achievements (categories, sections, names, descriptions, quotas, points) with
+  the player's progress and completion dates and each chain's last gain, as last read on Windows (`AchievementsStore`,
+  [collection-cosmetics.md](collection-cosmetics.md)). The catalog exists nowhere but in the client, so without this
+  file the achievements page is empty while the game is closed. Local and checked as `cosmetics.json` (an achievement
+  with a marker name); deleting it loses the saved gains and the book they count from: the next read shows the
+  achievements again but gains nothing until the read after it.

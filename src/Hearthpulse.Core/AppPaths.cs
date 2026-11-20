@@ -44,6 +44,18 @@ public static class AppPaths
     public static string Collection => Path.Combine(Root, "collection.json");
 
     /// <summary>
+    /// The player's card backs and coins as last read from the game client (<c>Collection/CosmeticsStore</c>,
+    /// docs/collection-cosmetics.md); local only, never sent; created on the first read.
+    /// </summary>
+    public static string Cosmetics => Path.Combine(Root, "cosmetics.json");
+
+    /// <summary>
+    /// The client's achievements with the player's progress as last read (<c>Progression/AchievementsStore</c>,
+    /// docs/collection-cosmetics.md); local only, never sent; created on the first read.
+    /// </summary>
+    public static string Achievements => Path.Combine(Root, "achievements.json");
+
+    /// <summary>
     /// Saved and imported replays (<c>Replay/ReplayLibrary</c>, <c>docs/replay-library.md</c>): Documents\Hearthpulse\Replays,
     /// outside the data folder so that its clean-up, updates and uninstalling never touch them. With HEARTHPULSE_DATA,
     /// in a portable copy or without a Documents folder: <c>&lt;data&gt;\library</c>. Created on the first save.

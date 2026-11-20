@@ -3,6 +3,7 @@
 Roadmap `docs/roadmaps/2026-11-15-hsreplay-remediation.md` 2.3. This document covers the Core part (package L1): what
 is read from the game client, how it is kept, and how a deck is priced; and the UI part (package L2, "In the
 interface" below): the labels in the meta deck lists, the "can build" filter, the missing cards on the own deck page.
+Card backs, coins, hero skins, achievements and set completion: [collection-cosmetics.md](collection-cosmetics.md).
 
 ## Clean-room statement
 

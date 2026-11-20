@@ -41,6 +41,11 @@ public sealed partial class CollectionPrivacyTests
     /// <summary>How many different cards the made-up collection holds: the one number of it the log writes down.</summary>
     private const int MarkerCount = 7391;
 
+    /// <summary>A card back's name and an achievement's name only the session's cosmetics and achievements hold.</summary>
+    private const string MarkerBack = "HPMARKERBACK_3K7Z";
+
+    private const string MarkerAchievement = "HPMARKERACHV_5V2P";
+
     private const string Pool = "https://pool.test";
     private const string Site = "https://site.test/api/v1/";
 
@@ -85,6 +90,24 @@ public sealed partial class CollectionPrivacyTests
                     action();
                 }
             }
+
+            // ---- The card backs and the achievements, read from the "client" and held by the session, saved in their files.
+            var cosmeticsFile = Path.Combine(root, "cosmetics.json");
+            var achievementsFile = Path.Combine(root, "achievements.json");
+            var cosmeticsWatch = new CosmeticsWatch(new CosmeticsStore(cosmeticsFile));
+            var achievementsWatch = new Hearthpulse.Core.Progression.AchievementsWatch(new Hearthpulse.Core.Progression.AchievementsStore(achievementsFile));
+            session.CosmeticsWatch = cosmeticsWatch;
+            session.AchievementsWatch = achievementsWatch;
+            cosmeticsWatch.ClientStarted();
+            achievementsWatch.ClientStarted();
+            var readAt = session.Clock();
+            cosmeticsWatch.Apply(MarkedCosmetics(readAt), cosmeticsWatch.Ticket(readAt, inGame: false), readAt);
+            achievementsWatch.Apply(MarkedAchievements(readAt), achievementsWatch.Ticket(readAt, inGame: false), readAt);
+            await cosmeticsWatch.Saved.WaitAsync(TimeSpan.FromSeconds(30));
+            await achievementsWatch.Saved.WaitAsync(TimeSpan.FromSeconds(30));
+            Assert.Equal(MarkerBack, session.Cosmetics!.CardBacks[0].Name);
+            Assert.True(session.Achievements!.Confirmed);
+            Assert.Equal(MarkerAchievement, session.Achievements.Achievements[1].Name);
 
             model.SetCards(cards);
             model.ShowConstructedFormat("FT_STANDARD");
@@ -181,6 +204,10 @@ public sealed partial class CollectionPrivacyTests
             // alone (CrashReport.Build reads no log), so that line is not in it: checked here on the report as sent.
             var counted = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Collection read from the client: {MarkerCount} cards");
             Assert.Contains(counted, TestDataFolder.ReadLog(), StringComparison.Ordinal);
+            // The cosmetics' and the achievements' reads are logged as numbers only.
+            Assert.Contains("Cosmetics read from the client: 1 card backs (1 owned), 0 coins (0 owned)", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+            Assert.Contains("Achievements read from the client: 1 achievements, 1 states, 1 completed", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+            Assert.DoesNotContain(Markers(TestDataFolder.ReadLog()), m => m.Contains("name", StringComparison.Ordinal));
             var crash = Assert.Single(sent, r => r.Url == Site + "crash-reports");
             Assert.DoesNotContain("Collection read", crash.Body, StringComparison.Ordinal);
             Assert.DoesNotContain(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{MarkerCount} cards"), crash.Body, StringComparison.Ordinal);
@@ -192,7 +219,8 @@ public sealed partial class CollectionPrivacyTests
 
             // What waits on disk to be sent (queues, spools, the crash folder) holds none either; the collection's own
             // file is the one place it is kept.
-            foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Where(p => !string.Equals(p, file, StringComparison.OrdinalIgnoreCase)))
+            foreach (var path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+                         .Where(p => !new[] { file, cosmeticsFile, achievementsFile }.Contains(p, StringComparer.OrdinalIgnoreCase)))
             {
                 if (path.EndsWith(".db", StringComparison.OrdinalIgnoreCase) || path.Contains(".db-", StringComparison.OrdinalIgnoreCase))
                 {
@@ -273,6 +301,27 @@ public sealed partial class CollectionPrivacyTests
         return new CardCollection(cards, MarkerDust, new DateTime(2026, 11, 14, 9, 30, 0, DateTimeKind.Utc));
     }
 
+    /// <summary>One card back named <see cref="MarkerBack"/>, owned and favourite.</summary>
+    private static CosmeticsCollection MarkedCosmetics(DateTime readAt) => new(
+        [new CosmeticCardBack(3, MarkerBack, "Описание " + MarkerBack, CardBackCategory.Seasonal, 0)],
+        new HashSet<int> { 3 }, new HashSet<int> { 3 }, [], new HashSet<int>(), new HashSet<int>(), readAt);
+
+    /// <summary>One completed achievement named <see cref="MarkerAchievement"/>.</summary>
+    private static Hearthpulse.Core.Progression.AchievementBook MarkedAchievements(DateTime readAt) => new(
+        [new Hearthpulse.Core.Progression.AchievementCategory(1, "Общие", "general", 1)],
+        [new Hearthpulse.Core.Progression.AchievementSubcategory(10, 1, "Прогресс", 1)],
+        [new Hearthpulse.Core.Progression.AchievementSection(100, 10, string.Empty, 1)],
+        new Dictionary<int, Hearthpulse.Core.Progression.AchievementDef>
+        {
+            [1] = new(1, 100, 1, MarkerAchievement, "Описание " + MarkerAchievement, false, 1, 10, 0),
+        },
+        new Dictionary<int, Hearthpulse.Core.Progression.AchievementState>
+        {
+            [1] = new(1, Hearthpulse.Core.Progression.AchievementStatus.Completed, 1, readAt),
+        },
+        new Dictionary<int, Hearthpulse.Core.Progression.AchievementGain>(),
+        readAt);
+
     private static GameRecord Ranked() => new()
     {
         Key = "20261114120000|Player#1234|GT_RANKED",
@@ -345,10 +394,20 @@ public sealed partial class CollectionPrivacyTests
     /// <summary>The markers found in a text: the card id in any case, the dust number plain or with digit grouping.</summary>
     private static List<string> Markers(string text)
     {
-        var found = new List<string>(2);
+        var found = new List<string>(4);
         if (text.Contains(MarkerCard, StringComparison.OrdinalIgnoreCase))
         {
             found.Add("the marker card id");
+        }
+
+        if (text.Contains(MarkerBack, StringComparison.OrdinalIgnoreCase))
+        {
+            found.Add("the marker card back name");
+        }
+
+        if (text.Contains(MarkerAchievement, StringComparison.OrdinalIgnoreCase))
+        {
+            found.Add("the marker achievement name");
         }
 
         // "918,273,645", "918 273 645" (plain, no-break and narrow no-break spaces), "918.273.645" and "918273645".

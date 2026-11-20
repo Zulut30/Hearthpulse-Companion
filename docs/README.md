@@ -49,6 +49,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [analytics-metrics.md](analytics-metrics.md) | Catalog of statistics metrics and the field matrix ([JSON](analytics-metrics.json)); per-metric eligibility |
 | [local-data.md](local-data.md) | Broken or busy settings, history and API cache files; known limits; files that never leave the machine (combat captures, the collection) |
 | [collection.md](collection.md) | The player's collection read from the client, `collection.json`, what a deck costs in dust (Core; no UI yet) |
+| [collection-cosmetics.md](collection-cosmetics.md) | Card backs, coins and achievements read from the client, `cosmetics.json`, `achievements.json`, when they are read; set completion, hero skins, chains and gains, "Wrapped" counts |
 
 ## Project records
 

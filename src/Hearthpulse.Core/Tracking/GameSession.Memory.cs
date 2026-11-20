@@ -14,7 +14,8 @@ namespace Hearthpulse.Core.Tracking;
 
 public sealed partial class GameSession
 {
-    private MemoryRequest BuildMemoryRequest()
+    /// <summary>What the next memory scan should read (internal for the tests of when long reads are asked for).</summary>
+    internal MemoryRequest BuildMemoryRequest()
     {
         var game = _parser?.Game;
         var inGame = game is { IsComplete: false };
@@ -30,7 +31,10 @@ public sealed partial class GameSession
             _awaitingRatingKey,
             WantDraftChoices: WantDraftChoices,
             WantLobbyNames: battlegrounds && WantLobbyNames,
-            CollectionTicket: CollectionTicket(inGame));
+            CollectionTicket: CollectionTicket(inGame),
+            CosmeticsTicket: CosmeticsTicket(inGame),
+            AchievementsTicket: AchievementsTicket(inGame),
+            AchievementsCatalog: _achievementsWatch.SessionCatalog);
     }
 
     /// <summary>Applies a memory reading on the tracking thread. Values read for an earlier game are dropped.</summary>
@@ -38,6 +42,8 @@ public sealed partial class GameSession
     {
         ApplyArenaMemory(reading);
         ApplyCollectionMemory(reading);
+        ApplyCosmeticsMemory(reading);
+        ApplyAchievementsMemory(reading);
         var request = reading.Request;
         if (_awaitingRatingKey is not null && request.AwaitingRatingKey == _awaitingRatingKey)
         {

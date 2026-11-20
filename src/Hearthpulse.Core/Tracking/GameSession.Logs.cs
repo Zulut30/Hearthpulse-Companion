@@ -65,6 +65,8 @@ public sealed partial class GameSession
         _scene = "UNKNOWN";
         // A new log folder is a new run of the client: what is known of the collection is of the run before.
         _collectionWatch.ClientStarted();
+        _cosmeticsWatch.ClientStarted();
+        _achievementsWatch.ClientStarted();
         _arenaDraft.Reset();
         _dirty = true;
         Diag.Info($"Log session {Path.GetFileName(sessionDir)} (mid-session: {attachedMidSession})");
@@ -233,10 +235,14 @@ public sealed partial class GameSession
                 if (running)
                 {
                     _collectionWatch.ClientStarted();
+                    _cosmeticsWatch.ClientStarted();
+                    _achievementsWatch.ClientStarted();
                 }
                 else
                 {
                     _collectionWatch.ClientStopped();
+                    _cosmeticsWatch.ClientStopped();
+                    _achievementsWatch.ClientStopped();
                 }
 
                 _hearthstoneStoppedAt = running ? DateTime.MinValue : now;
@@ -263,7 +269,11 @@ public sealed partial class GameSession
         }
 
         _collectionWatch.Start();
+        _cosmeticsWatch.Start();
+        _achievementsWatch.Start();
         _collectionWatch.Tick(now);
+        _cosmeticsWatch.Tick(now);
+        _achievementsWatch.Tick(now);
         // The memory is read on its own thread; this thread only says what it needs and applies what came back.
         _memoryPoller.Post(_hearthstoneRunning && ReadsMemory ? BuildMemoryRequest() : null);
         if (_memoryPoller.Take() is { } reading)
@@ -317,7 +327,13 @@ public sealed partial class GameSession
         {
             if (_scene == "DRAFT" && match.Groups["mode"].Value != "DRAFT") CaptureUnpickedDraftOffer();
             // Old lines replayed at start-up are no visit to the collection now.
-            if (!_catchingUp) _collectionWatch.SceneChanged(_scene, match.Groups["mode"].Value);
+            if (!_catchingUp)
+            {
+                _collectionWatch.SceneChanged(_scene, match.Groups["mode"].Value);
+                // A game that ended (the scene left GAMEPLAY) or a closed collection or pack screen: rewards may have come.
+                _cosmeticsWatch.SceneChanged(_scene, match.Groups["mode"].Value);
+                _achievementsWatch.SceneChanged(_scene, match.Groups["mode"].Value);
+            }
             _scene = match.Groups["mode"].Value;
         }
     }
