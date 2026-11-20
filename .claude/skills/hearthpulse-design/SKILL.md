@@ -106,6 +106,9 @@ with the motif), `Motif<Name>` geometries.
   offsets). `DesignTokenTests` counts literal font sizes and off-scale radii (`CornerRadius`, `RoundClip.Radius`) and
   spacing per UI, outside control templates, and fails when a count grows; `python -I tools/design/migrate_tokens.py
   <files>` moves a file onto the scale with the same rules (ties go down, templates untouched, circles kept).
+- **WPF trap: large text with a gradient brush.** The main window sets `TextOptions.TextFormattingMode="Display"`;
+  in that mode a 64 px `TextBlock` filled with a gradient brush (the Recap hero number, `FontSizeHero`) is not drawn
+  at all. Give such a number `TextOptions.TextFormattingMode="Ideal"` locally; `WrappedContractTests` pins it.
 - Section headings use the `Ornament` control (gold icon in a scallop cookie + title + rule), e.g.
   `<c:Ornament Text="Rating" Icon="&#xF012A;" Size="13" />`. Mixed-case text is kept; ALL CAPS is sentence-cased.
 - The logo (flame with a pulse) is the brand mark: `{StaticResource HearthpulseLogo}`, a `DrawingImage` from
