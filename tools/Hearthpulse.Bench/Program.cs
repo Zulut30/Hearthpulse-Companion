@@ -47,6 +47,8 @@ internal static class Program
           simperf   combat simulator speed: a fixed corpus (the logs' and --captures' fights plus synthetic worst cases):
                     fights/s, ns and bytes per fight, the app's quick and background passes (time p50/p95, runs inside the
                     budget, 95 % half-width of win/tie/loss); --rounds n repeats the timed part
+          simcold   combat simulator in a cold process: the --captures fights in game order, quick and background pass,
+                    then the same fights warm (one process per measurement; HP_BENCH_WARMUP=1: the warm-up first)
           simmatrix combat simulator coverage matrix of the current pool (six statuses) -> docs/bg-sim-matrix.md
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
           art       decode the cached portraits and deck tiles at once (--games caps the count): time, allocations, GCs
@@ -143,6 +145,8 @@ internal static class Program
                 return SimReplayBench.Run(options);
             case "simperf":
                 return SimPerfBench.Run(options);
+            case "simcold":
+                return SimColdBench.Run(options);
             case "simmatrix":
                 SimMatrix.Run();
                 break;

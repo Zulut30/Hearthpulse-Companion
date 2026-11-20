@@ -153,6 +153,9 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     /// <summary>False in tests: a client running on the developer's machine must not leak its memory into them.</summary>
     internal bool ReadsMemory { get; set; } = true;
 
+    /// <summary>Warms the combat simulator up when a live Battlegrounds game is seen; tests pass one with a counter.</summary>
+    internal Action WarmUpSimulator { get; set; } = CombatWarmup.EnsureStarted;
+
     /// <summary>Collects the garbage of a catch-up or a game once the log is quiet; tests pass one with a counter.</summary>
     internal MemoryTrimmer Trimmer { get; set; } = new();
 
@@ -379,6 +382,9 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         {
             if (inGame && game!.IsBattlegrounds)
             {
+                // A live Battlegrounds game: the simulator is warmed up once per process before the first fight
+                // (CombatWarmup); nothing runs for a player who never plays Battlegrounds.
+                WarmUpSimulator();
                 battlegrounds = _battlegrounds.BuildView(game);
                 if (battlegrounds.IsHeroSelection && battlegrounds.HeroOptions.Count > 1)
                 {
