@@ -11,6 +11,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [arena-draft.md](arena-draft.md) | Arena draft helper on the overlay, card scores, community Arena numbers |
 | [arena-rewards.md](arena-rewards.md) | Arena run rewards: entered on each run in My Stats, the period's total tile |
 | [card-page.md](card-page.md) | Card page: a Constructed card's numbers, the archetypes that run it, its mulligan by archetype, your own games with it |
+| [collection-page.md](collection-page.md) | Collection page: expansion completion and dust, hero skins by class, coins and card backs read from the game, its states |
 | [brawl.md](brawl.md) | Tavern Brawl page: this week's class win rates by everyone's games, your classes in the Brawl played last |
 | [counters-constructed.md](counters-constructed.md) | In-game counters for Constructed and Arena |
 | [counters-battlegrounds.md](counters-battlegrounds.md) | Battlegrounds counter chips (`bg-counters` panel) |

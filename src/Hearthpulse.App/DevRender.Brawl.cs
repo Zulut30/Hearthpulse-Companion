@@ -37,6 +37,7 @@ public partial class App
         if (RenderOnly("bgtabs")) await RenderBgTabsAsync(folder);
         if (RenderOnly("bgown")) await RenderBgOwnAsync(folder);
         if (RenderOnly("collection")) await RenderCollectionAsync(folder);
+        if (RenderOnly("collectionpage")) await RenderCollectionPageAsync(folder);
         if (RenderOnly("sourcecapture"))
         {
             _main.ShowPage("Settings");
