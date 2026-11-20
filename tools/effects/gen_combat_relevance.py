@@ -153,9 +153,13 @@ def main():
     relabelled = []
     for card in sorted(data.timewarped_minions(), key=lambda c: c["id"]):
         reasons = needs_sim(card.get("text"))
-        relevance = "Relevant" if reasons else "None"
+        # A Start of Combat text without a later combat trigger resolved before the capture (relevance audit, 2026-11-19:
+        # 13 such Timewarped minions were "None").
+        start_of_combat = not reasons and "Start of Combat" in normalize(card.get("text"))
+        relevance = "Relevant" if reasons else "Resolved" if start_of_combat else "None"
         old = heuristic.get(card["id"])
-        category = old[3] if old and old[2] == relevance else "TIMEWARPED_" + (reasons[0].upper() if reasons else "OTHER")
+        category = old[3] if old and old[2] == relevance else "TIMEWARPED_" + (
+            reasons[0].upper() if reasons else "START_OF_COMBAT" if start_of_combat else "OTHER")
         if old and old[2] != relevance:
             relabelled.append((card["id"], card.get("name", ""), old[2], relevance))
         add(card["id"], data.golden_id(card["id"]) or (old[1] if old else ""), relevance, category, card.get("name", ""), "heuristic")
