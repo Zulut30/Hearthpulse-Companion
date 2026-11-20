@@ -88,9 +88,11 @@ public sealed class DarkGiftsTests
     [Fact]
     public void Relevant_player_cards_without_an_effect_count_as_not_simulated()
     {
-        // Tiger Carving (a relevant trinket) has no effect: the fight is an estimate. Ceremonial Sword (trinket) is simulated.
+        // Tiger Carving (a relevant trinket) without its effect (a registry that lacks it; E6b gave it one): the fight is an
+        // estimate. Ceremonial Sword (trinket) is simulated.
         var ours = Side(Minion(1, 1)) with { Extras = ["BG30_MagicItem_427", "BG30_MagicItem_925"] };
-        var odds = CombatSimulator.Run(ours, Side(Minion(1, 1)), true, new SimOptions { Runs = 10 });
+        var registry = EffectRegistry.FromTypes([typeof(Hearthpulse.Core.Battlegrounds.Effects.Player.CeremonialSword)]);
+        var odds = CombatSimulator.Run(ours, Side(Minion(1, 1)), true, new SimOptions { Runs = 10, Effects = registry });
 
         Assert.Equal(1, odds.Unsimulated);
         Assert.Equal(Origin.Player, CombatRelevance.Find("BG30_MagicItem_925")!.Origin);
@@ -99,8 +101,8 @@ public sealed class DarkGiftsTests
     [Theory]
     // a player card no table knows (newer than the card data): its effect cannot be known
     [InlineData("BG99_MagicItem_999", 1)]
-    // generated from the text: Boom Controller summons in combat and has no effect yet
-    [InlineData("BG30_MagicItem_440", 1)]
+    // generated from the text: Boom Controller summons in combat and has an effect (E6b)
+    [InlineData("BG30_MagicItem_440", 0)]
     // generated: a Tavern-only hero power and a trinket whose Avenge only gives a card
     [InlineData("TB_BaconShop_HP_101", 0)]
     [InlineData("BG30_MagicItem_545", 0)]

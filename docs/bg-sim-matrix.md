@@ -1035,21 +1035,21 @@
 | BG30_MagicItem_437 | Staff of the Scourge | implemented | да | TR_AVENGE_KEYWORD |
 | BG32_MagicItem_862 | Unholy Sanctum | implemented | вне пула | TR_DEATHRATTLE_BUFF |
 | BG32_MagicItem_862t | Unholy Sanctum | implemented | вне пула | TR_DEATHRATTLE_BUFF |
-| BG32_MagicItem_415 | Battle Horn | missing_effect | вне пула | TR_AVENGE_BATTLECRY |
-| BG30_MagicItem_432 | Belcher Portrait | missing_effect | вне пула | TR_VENOM_BUFF |
-| BG30_MagicItem_432t | Belcher Portrait | missing_effect | вне пула | TR_VENOM_BUFF |
-| BG35_MagicItem_432 | Blood Amulet | missing_effect | вне пула | TR_DEATHRATTLE_GEM |
-| BG30_MagicItem_440 | Boom Controller | missing_effect | вне пула | TR_RELEVANT |
-| BG32_MagicItem_960 | Crocheted Sungill | missing_effect | вне пула | TR_RELEVANT |
-| BG32_MagicItem_934 | Dazzling Dagger | missing_effect | вне пула | TR_AURA |
-| BG32_MagicItem_820 | Impulsive Portrait | missing_effect | вне пула | TR_RELEVANT |
-| BG30_MagicItem_803 | Kaboom Bot Portrait | missing_effect | вне пула | TR_RELEVANT |
-| BG30_MagicItem_438t | Mug of the Sire | missing_effect | вне пула | TR_RELEVANT |
-| BG35_MagicItem_430 | Scrapsmith Portrait | missing_effect | вне пула | TR_DEATH_GEM |
-| BG30_MagicItem_427 | Tiger Carving | missing_effect | вне пула | TR_DAMAGE_BUFF |
-| BG30_MagicItem_427t | Tiger Carving | missing_effect | вне пула | TR_DAMAGE_BUFF |
-| BG30_MagicItem_822 | Twin Sky Lanterns | missing_effect | вне пула | TR_RELEVANT |
-| BG30_MagicItem_822t2 | Twin Sky Lanterns | missing_effect | вне пула | TR_RELEVANT |
+| BG32_MagicItem_415 | Battle Horn | implemented | вне пула | TR_AVENGE_BATTLECRY |
+| BG30_MagicItem_432 | Belcher Portrait | implemented | вне пула | TR_VENOM_BUFF |
+| BG30_MagicItem_432t | Belcher Portrait | implemented | вне пула | TR_VENOM_BUFF |
+| BG35_MagicItem_432 | Blood Amulet | implemented | вне пула | TR_DEATHRATTLE_GEM |
+| BG30_MagicItem_440 | Boom Controller | implemented | вне пула | TR_RELEVANT |
+| BG32_MagicItem_960 | Crocheted Sungill | implemented | вне пула | TR_RELEVANT |
+| BG32_MagicItem_934 | Dazzling Dagger | implemented | вне пула | TR_AURA; величина: TAG_SCRIPT_DATA_NUM_1/2 своей карты — число из её текста сейчас (допущение по логам других карт; у соперника не читается, тогда напечатанное), без неё missing_input |
+| BG32_MagicItem_820 | Impulsive Portrait | implemented | вне пула | TR_RELEVANT |
+| BG30_MagicItem_803 | Kaboom Bot Portrait | implemented | вне пула | TR_RELEVANT |
+| BG30_MagicItem_438t | Mug of the Sire | implemented | вне пула | TR_RELEVANT |
+| BG35_MagicItem_430 | Scrapsmith Portrait | implemented | вне пула | TR_DEATH_GEM |
+| BG30_MagicItem_427 | Tiger Carving | implemented | вне пула | TR_DAMAGE_BUFF |
+| BG30_MagicItem_427t | Tiger Carving | implemented | вне пула | TR_DAMAGE_BUFF |
+| BG30_MagicItem_822 | Twin Sky Lanterns | implemented | вне пула | TR_RELEVANT |
+| BG30_MagicItem_822t2 | Twin Sky Lanterns | implemented | вне пула | TR_RELEVANT |
 
 ## Тёмные дары
 

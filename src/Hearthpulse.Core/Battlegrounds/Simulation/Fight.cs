@@ -44,7 +44,7 @@ public sealed partial class Fight
     private const int CapturedSummonEntry = 16;
     private const int SimSummonEntry = 1 << 30;
 
-    private const Hook DamageHooks = Hook.Damaged | Hook.FriendlyDealtDamage | Hook.Kill | Hook.ShieldLost;
+    private const Hook DamageHooks = Hook.Damaged | Hook.FriendlyDealtDamage | Hook.Kill | Hook.ShieldLost | Hook.FriendlyDamaged | Hook.VenomLost;
 
     private readonly EffectRegistry _registry;
     private readonly List<string>? _log;

@@ -62,6 +62,18 @@
    "attack": null,
    "health": null
   },
+  "BG21_006": {
+   "name": "Impulsive Trickster",
+   "text": "Deathrattle: Give this minion's maximum Health to another friendly minion.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG21_006_G",
+    "text": "Deathrattle: Give this minion's maximum Health to another friendly minion, twice.",
+    "attack": 10,
+    "health": 10
+   }
+  },
   "BG21_015": {
    "name": "Tarecgosa",
    "text": "This permanently keeps Bonus Keywords and stats gained in combat.",
@@ -554,6 +566,30 @@
     "health": 6
    }
   },
+  "BG30_MagicItem_427": {
+   "name": "Tiger Carving",
+   "text": "Whenever a friendly minion takes damage, give another friendly minion +3/+1 permanently.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_427t": {
+   "name": "Tiger Carving",
+   "text": "Whenever a friendly minion takes damage, give another friendly minion +6/+2 permanently.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_432": {
+   "name": "Belcher Portrait",
+   "text": "Get an Operatic Belcher. Whenever a friendly minion loses Venomous, it gains +4/+4 permanently.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_432t": {
+   "name": "Belcher Portrait",
+   "text": "Get an Operatic Belcher. Whenever a friendly minion loses Venomous, it gains +14/+14 permanently.",
+   "attack": null,
+   "health": null
+  },
   "BG30_MagicItem_433": {
    "name": "Alliance Keychain",
    "text": "The first time a friendly minion dies each combat, give its maximum stats to a random friendly minion.",
@@ -575,6 +611,18 @@
   "BG30_MagicItem_437": {
    "name": "Staff of the Scourge",
    "text": "Avenge (5): Give a random friendly Undead Reborn.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_438t": {
+   "name": "Mug of the Sire",
+   "text": "Whenever you would summon a minion that doesn't fit in your warband, give your minions +5 Attack.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_440": {
+   "name": "Boom Controller",
+   "text": "When you have space, summon an exact copy of your first Mech that died each combat.",
    "attack": null,
    "health": null
   },
@@ -611,6 +659,24 @@
   "BG30_MagicItem_700": {
    "name": "Deathly Phylactery",
    "text": "Discover a Deathrattle minion. Your first Deathrattle each combat triggers an extra time.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_803": {
+   "name": "Kaboom Bot Portrait",
+   "text": "Get a Kaboom Bot. Your Kaboom Bots' Deathrattles deal 10 extra damage.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_822": {
+   "name": "Twin Sky Lanterns",
+   "text": "When you have space, summon a copy of the first minion you summon each combat.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_822t2": {
+   "name": "Twin Sky Lanterns",
+   "text": "When you have space, summon 2 copies of the first minion you summon each combat.",
    "attack": null,
    "health": null
   },
@@ -842,6 +908,12 @@
    "attack": null,
    "health": null
   },
+  "BG32_MagicItem_415": {
+   "name": "Battle Horn",
+   "text": "Discover a Battlecry minion. Avenge (2): Trigger a friendly Battlecry.",
+   "attack": null,
+   "health": null
+  },
   "BG32_MagicItem_808": {
    "name": "Bloodbound Earrings",
    "text": "After you cast 4 spells, this plays a Blood Gem on all your minions. (4 left!)",
@@ -851,6 +923,12 @@
   "BG32_MagicItem_808t": {
    "name": "Bloodbound Earrings",
    "text": "After you cast 5 spells, this plays two Blood Gems on all your minions. (5 left!)",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_820": {
+   "name": "Impulsive Portrait",
+   "text": "Get a 6/6 Impulsive Trickster. Your Impulsive Tricksters' Deathrattles target adjacent minions.",
    "attack": null,
    "health": null
   },
@@ -899,6 +977,18 @@
   "BG32_MagicItem_907": {
    "name": "S'Thara Sticker",
    "text": "After your last minion dies each combat, summon your first Demon that died with its maximum stats.",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_934": {
+   "name": "Dazzling Dagger",
+   "text": "Your minions have +1 Attack. (Improved by every 4 spells you've cast this game!)",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_960": {
+   "name": "Crocheted Sungill",
+   "text": "Start of Combat: Give the highest-Health minion from your hand +4/+4. When you have space, summon it for this combat only.",
    "attack": null,
    "health": null
   },
@@ -1555,6 +1645,18 @@
     "attack": 4,
     "health": 2
    }
+  },
+  "BG35_MagicItem_430": {
+   "name": "Scrapsmith Portrait",
+   "text": "Get a Bristlemane Scrapsmith. After a friendly minion with Taunt dies, play a permanent Blood Gem on your Scrapsmiths.",
+   "attack": null,
+   "health": null
+  },
+  "BG35_MagicItem_432": {
+   "name": "Blood Amulet",
+   "text": "After you trigger a Deathrattle, this plays a permanent Blood Gem on 3 random friendly minions.",
+   "attack": null,
+   "health": null
   },
   "BG35_MagicItem_701": {
    "name": "Fang Anklet",
@@ -2394,6 +2496,18 @@
     "text": "",
     "attack": 2,
     "health": 2
+   }
+  },
+  "BG_BOT_606": {
+   "name": "Kaboom Bot",
+   "text": "Deathrattle: Deal 4 damage to a random enemy minion.",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "TB_BaconUps_028",
+    "text": "Deathrattle: Deal 4 damage to a random enemy minion, twice.",
+    "attack": 4,
+    "health": 4
    }
   },
   "BG_ICC_026t": {

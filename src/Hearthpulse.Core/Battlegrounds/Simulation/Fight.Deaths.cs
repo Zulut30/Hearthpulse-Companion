@@ -312,6 +312,12 @@ public sealed partial class Fight
         if (side.IsFull || TooDeep())
         {
             if (Tracing) Trace($"no room to summon {minion.CardId} for {(side.IsOpponent ? "them" : "us")}");
+            if (side.IsFull)
+            {
+                // "Whenever you would summon a minion that doesn't fit in your warband" (Mug of the Sire).
+                Raise(side, Hook.SummonDidNotFit, null);
+            }
+
             return null;
         }
 

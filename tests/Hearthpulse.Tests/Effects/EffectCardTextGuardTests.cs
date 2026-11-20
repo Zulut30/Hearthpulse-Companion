@@ -78,6 +78,8 @@ public sealed class EffectCardTextGuardTests
         ("BG36_MidGameEffect_000t12e", "Reborn. Is Reborn with full stats and Bonus Keywords.", null),
         ("BG36_MidGameEffect_000t2e2", "Deathrattle: Give this minion's max Health to another friendly minion.", null),
         ("BG36_MidGameEffect_000te2", "Deathrattle: Give this minion's Attack to another friendly minion.", null),
+        ("BG_BOT_606", "Deathrattle: Deal 4 damage to a random enemy minion.", "Deathrattle: Deal 4 damage to a random enemy minion, twice."),
+        ("BG21_006", "Deathrattle: Give this minion's maximum Health to another friendly minion.", "Deathrattle: Give this minion's maximum Health to another friendly minion, twice."),
         ("BGS_008", "Deathrattle: Summon 2 random Deathrattle minions.", "Deathrattle: Summon 4 random Deathrattle minions."),
         ("BGS_018", "Deathrattle: Your Beasts have +7/+7 until next turn.", "Deathrattle: Your Beasts have +14/+14 until next turn."),
         ("BGS_040", "Deathrattle: Give 3 friendly Dragons Divine Shield.", "Deathrattle: Give 6 friendly Dragons Divine Shield."),
@@ -268,6 +270,22 @@ public sealed class EffectCardTextGuardTests
         ("BG36_MagicItem_403t", "Your minions have +2/+1.", null),
         ("BG36_MagicItem_416", "After your Deity awakens, give it Reborn.", null),
         ("BG36_MagicItem_450", "Whenever a Fishbait dies, give your Beasts +4/+4 and improve this.", null),
+        // Out-of-pool trinkets back with a rotation (E6b).
+        ("BG32_MagicItem_415", "Avenge (2): Trigger a friendly Battlecry.", null),
+        ("BG30_MagicItem_432", "Whenever a friendly minion loses Venomous, it gains +4/+4 permanently.", null),
+        ("BG30_MagicItem_432t", "Whenever a friendly minion loses Venomous, it gains +14/+14 permanently.", null),
+        ("BG35_MagicItem_432", "After you trigger a Deathrattle, this plays a permanent Blood Gem on 3 random friendly minions.", null),
+        ("BG30_MagicItem_440", "When you have space, summon an exact copy of your first Mech that died each combat.", null),
+        ("BG32_MagicItem_960", "When you have space, summon it for this combat only.", null),
+        ("BG32_MagicItem_934", "Your minions have +1 Attack.", null),
+        ("BG32_MagicItem_820", "Your Impulsive Tricksters' Deathrattles target adjacent minions.", null),
+        ("BG30_MagicItem_803", "Your Kaboom Bots' Deathrattles deal 10 extra damage.", null),
+        ("BG30_MagicItem_438t", "Whenever you would summon a minion that doesn't fit in your warband, give your minions +5 Attack.", null),
+        ("BG35_MagicItem_430", "After a friendly minion with Taunt dies, play a permanent Blood Gem on your Scrapsmiths.", null),
+        ("BG30_MagicItem_427", "Whenever a friendly minion takes damage, give another friendly minion +3/+1 permanently.", null),
+        ("BG30_MagicItem_427t", "Whenever a friendly minion takes damage, give another friendly minion +6/+2 permanently.", null),
+        ("BG30_MagicItem_822", "When you have space, summon a copy of the first minion you summon each combat.", null),
+        ("BG30_MagicItem_822t2", "When you have space, summon 2 copies of the first minion you summon each combat.", null),
     ];
 
     /// <summary>Tokens the effects summon with printed stats from <see cref="Tokens"/>: card id and factory.</summary>

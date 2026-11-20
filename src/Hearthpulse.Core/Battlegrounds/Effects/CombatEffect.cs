@@ -248,6 +248,21 @@ public abstract class CombatEffect
     /// <summary>A Blood Gem was played on a friendly minion (possibly self) by <paramref name="source"/> (see <see cref="Fight.PlayBloodGem"/>).</summary>
     public virtual void AfterFriendlyBloodGem(Fight fight, Unit self, Unit target, Unit? source) { }
 
+    // ---- Out-of-pool trinkets (package E6b) -------------------------------------------------------------------------
+
+    /// <summary>"Whenever a friendly minion loses Venomous": <paramref name="unit"/> just used its Venomous up on a minion it damaged.</summary>
+    public virtual void AfterFriendlyVenomLost(Fight fight, Unit self, Unit unit) { }
+
+    /// <summary>
+    /// "Whenever a friendly minion takes damage": <paramref name="damaged"/> (possibly self, possibly now dying) took
+    /// <paramref name="amount"/> &gt; 0 damage from <paramref name="source"/> (null: no source). Runs with the damage hooks,
+    /// after <see cref="OnDamaged"/>.
+    /// </summary>
+    public virtual void AfterFriendlyDamaged(Fight fight, Unit self, Unit damaged, Unit? source, int amount) { }
+
+    /// <summary>"Whenever you would summon a minion that doesn't fit in your warband": a summon failed on a full board.</summary>
+    public virtual void OnSummonDidNotFit(Fight fight, Unit self) { }
+
     private static Hook ScanHooks(Type type)
     {
         var hooks = Hook.None;
@@ -297,6 +312,9 @@ public abstract class CombatEffect
         (nameof(OnFriendlySpellCast), Hook.SpellCasting),
         (nameof(AfterCardAddedToHand), Hook.CardToHand),
         (nameof(AfterFriendlyBloodGem), Hook.BloodGem),
+        (nameof(AfterFriendlyVenomLost), Hook.VenomLost),
+        (nameof(AfterFriendlyDamaged), Hook.FriendlyDamaged),
+        (nameof(OnSummonDidNotFit), Hook.SummonDidNotFit),
     ];
 }
 
@@ -360,4 +378,8 @@ internal enum Hook : long
     SpellCasting = 1L << 28,
     CardToHand = 1L << 29,
     BloodGem = 1L << 30,
+    // Package E6b's bits are 37-42.
+    VenomLost = 1L << 37,
+    FriendlyDamaged = 1L << 38,
+    SummonDidNotFit = 1L << 39,
 }

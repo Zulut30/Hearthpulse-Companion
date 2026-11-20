@@ -53,9 +53,11 @@ public sealed partial class Fight
 
         var wasAlive = !target.IsDying;
         target.Health = (int)Math.Clamp((long)target.Health - amount, -1_000_000_000, int.MaxValue);
+        var venomLost = false;
         if (source is not null && (source.Poisonous || source.Venomous))
         {
             target.Health = Math.Min(target.Health, 0);
+            venomLost = source.Venomous;
             source.Venomous = false;
         }
 
@@ -66,7 +68,7 @@ public sealed partial class Fight
         }
 
         if (Tracing) Trace($"{Name(target)} takes {amount}{(source is null ? string.Empty : " from " + Name(source))}");
-        Emit(new DamageEvent(source, target, amount, killed, ShieldLost: false));
+        Emit(new DamageEvent(source, target, amount, killed, ShieldLost: false, venomLost));
         return amount;
     }
 
@@ -126,9 +128,19 @@ public sealed partial class Fight
             }
         }
 
+        if (e.Amount > 0)
+        {
+            Raise(e.Target.Side, Hook.FriendlyDamaged, e.Target, e.Source, e.Amount);
+        }
+
         if (e.Source is not { } source)
         {
             return;
+        }
+
+        if (e.VenomLost)
+        {
+            Raise(source.Side, Hook.VenomLost, source);
         }
 
         if (e.Amount > 0)
@@ -148,5 +160,5 @@ public sealed partial class Fight
         }
     }
 
-    private readonly record struct DamageEvent(Unit? Source, Unit Target, int Amount, bool Killed, bool ShieldLost);
+    private readonly record struct DamageEvent(Unit? Source, Unit Target, int Amount, bool Killed, bool ShieldLost, bool VenomLost = false);
 }

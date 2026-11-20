@@ -197,6 +197,9 @@ public sealed partial class Fight
                         case Hook.AfterSummon: effect.AfterFriendlySummoned(this, observer, a!); break;
                         case Hook.Reborn: effect.AfterFriendlyReborn(this, observer, a!); break;
                         case Hook.SpellCast: effect.AfterFriendlySpellCast(this, observer, text ?? string.Empty, a); break;
+                        case Hook.VenomLost: effect.AfterFriendlyVenomLost(this, observer, a!); break;
+                        case Hook.FriendlyDamaged: effect.AfterFriendlyDamaged(this, observer, a!, b, amount); break;
+                        case Hook.SummonDidNotFit: effect.OnSummonDidNotFit(this, observer); break;
                     }
                 }
             }
