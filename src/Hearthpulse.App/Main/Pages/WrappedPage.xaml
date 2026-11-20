@@ -45,7 +45,8 @@
                         <Border x:Name="Bar" Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="2,2,1,1" Background="{StaticResource AccentContainer}" />
                     </Grid>
                     <Border Height="1" Background="{StaticResource Outline}" />
-                    <TextBlock Text="{Binding Label}" Style="{StaticResource Caption}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                    <!-- The label may run past its narrow bar -->
+                    <TextBlock Text="{Binding Label}" Style="{StaticResource Caption}" HorizontalAlignment="Center" Margin="-8,4,-8,0" TextAlignment="Center" />
                 </StackPanel>
                 <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding Top}" Value="True">
@@ -119,8 +120,9 @@
                             <Grid HorizontalAlignment="Left">
                                 <Ellipse Width="360" Height="240" Fill="{StaticResource Glow}" Margin="-120,-80,-120,-80" IsHitTestVisible="False" />
                                 <StackPanel>
+                                    <!-- Ideal formatting: the window's Display mode draws no glyph this large with a gradient brush -->
                                     <TextBlock x:Name="HeroNumber" Text="{Binding Recap.Number}" FontFamily="{StaticResource DisplayFont}" FontWeight="ExtraBold" FontSize="{StaticResource FontSizeHero}"
-                                               Foreground="{StaticResource GildedText}" Margin="0,16,0,0" />
+                                               Foreground="{StaticResource GildedText}" Margin="0,16,0,0" TextOptions.TextFormattingMode="Ideal" />
                                     <TextBlock Text="{Binding Recap.Caption}" FontSize="{StaticResource FontSizeSubhead}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Background="Transparent" ToolTip="{Binding Recap.DeltaTip}"
                                                 Visibility="{Binding Recap.HasDelta, Converter={StaticResource Vis}}">

@@ -18,8 +18,8 @@ internal static partial class OffscreenRenderer
     /// <c>HEARTHPULSE_RENDER_ONLY=wrapped</c>: the page on the data copy's history and achievement book (the session's
     /// book, else <c>achievements.json</c>): this month (<c>main-wrapped-month</c>, the whole page <c>-month-page</c>),
     /// this year (<c>-year</c>, <c>-year-page</c>), English (<c>-en</c>), the compact layout at 420 (<c>-compact</c>), a
-    /// period with nothing in it (<c>-empty</c>) and the month without an achievement book (<c>-noach</c>). The window's
-    /// size, the language and the session's book are put back.
+    /// period with nothing in it (<c>-empty</c>) and the month without an achievement book (<c>-noach</c>, the whole
+    /// page <c>-noach-page</c>). The window's size, the language and the session's book are put back.
     /// </summary>
     private static async Task RenderWrappedAsync(Window main, MainView view, AppHost host, string folder)
     {
@@ -67,6 +67,7 @@ internal static partial class OffscreenRenderer
         host.Main.SetAchievements(null);
         host.Main.ShowWrappedPeriod(WrappedPeriod.MonthOf(DateTime.Now));
         await Shot("noach");
+        await Shot("noach-page", 3200);
 
         host.Main.SetAchievements(host.Session.Achievements);
     }

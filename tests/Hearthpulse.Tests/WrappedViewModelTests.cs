@@ -348,6 +348,29 @@ public sealed class WrappedViewModelTests : IDisposable
         Assert.False(vm.WrappedComputing);
     }
 
+    [Fact]
+    public async Task A_history_refresh_repeats_the_newest_request_and_keeps_the_period_asked_for()
+    {
+        var games = History();
+        var history = HistoryStore.InMemory();
+        games.ForEach(g => history.Add(g));
+        var vm = new MainViewModel(history, new AppSettings(), TestDataFolder.App) { WrappedToday = () => Today };
+        vm.PageShown("Wrapped");
+        Wait(vm);
+
+        // A period outside the range, asked for outright, then a new game while it may still be on its way: the recap
+        // is worked out again for that period, not for the one shown before it, nor pulled into the range.
+        var asked = new WrappedPeriod(WrappedSpan.Month, 2001, 1);
+        vm.ShowWrappedPeriod(asked, clamp: false);
+        history.Add(Game(new DateTime(2026, 11, 18, 20, 0, 0, DateTimeKind.Local)));
+        await vm.RefreshAsync();
+        await vm.WrappedWork;
+
+        Assert.Equal(asked, vm.ShownWrappedPeriod);
+        Assert.Null(vm.Recap);
+        Assert.Equal(Loc.T("Wrapped.Empty.Period"), vm.WrappedEmpty);
+    }
+
     // ------------------------------------------------------------------------------------------ language
 
     [Fact]

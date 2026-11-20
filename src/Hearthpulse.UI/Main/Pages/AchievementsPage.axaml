@@ -37,7 +37,7 @@
                             <TextBlock Text="{Binding Description}" Classes="caption" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
                             <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
                         </StackPanel>
-                        <StackPanel Grid.Column="4" Classes="trackedRight" VerticalAlignment="Center" Width="176">
+                        <StackPanel Classes="trackedRight" VerticalAlignment="Center">
                             <ProgressBar Classes="shareBar fill" Height="8" MinHeight="8" Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" IsVisible="{Binding ShowsBar}" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" IsVisible="{Binding Done}">
                                 <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Accent}" Opacity="{Binding GraphicsOpacity}"
@@ -92,8 +92,9 @@
         </ResourceDictionary>
     </UserControl.Resources>
     <UserControl.Styles>
-        <StyleInclude Source="avares://Hearthpulse.UI/Main/Pages/LibraryLook.axaml" />
+        <!-- LibraryLook after StatsStyles: its accent bar (shareBar.fill) overrides the stats' red one -->
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Pages/LibraryLook.axaml" />
         <!-- A chain's name: one line; the stand-in "Hidden achievement" is muted -->
         <Style Selector="TextBlock.chainName">
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -117,6 +118,12 @@
             <Setter Property="Background" Value="{StaticResource SelectedFill}" />
             <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
         </Style>
+        <!-- A tracked row's bar, progress and gain: a column of 176 on the right; in compact under the text, the row's width.
+             Size and place are style values, so compact can change them (a local value would win). -->
+        <Style Selector="Grid.trackedRow > StackPanel.trackedRight">
+            <Setter Property="Grid.Column" Value="4" />
+            <Setter Property="Width" Value="176" />
+        </Style>
         <!-- Compact: a tracked row's bar, progress and gain go under its text; the browse rows take the whole width -->
         <Style Selector="m|MainView.compact Grid.trackedRow > StackPanel.trackedRight">
             <Setter Property="Grid.Column" Value="2" />
@@ -124,6 +131,9 @@
             <Setter Property="Grid.Row" Value="1" />
             <Setter Property="Width" Value="NaN" />
             <Setter Property="Margin" Value="0,8,0,0" />
+        </Style>
+        <Style Selector="Grid.browse > :is(Control).browseRows">
+            <Setter Property="Grid.Column" Value="2" />
         </Style>
         <Style Selector="m|MainView.compact Grid.browse > :is(Control).browseRows">
             <Setter Property="Grid.Column" Value="0" />
@@ -166,7 +176,7 @@
                             <ProgressBar Classes="shareBar fill" Margin="0,12,0,8" Value="{Binding AchievementSummary.Share}" Opacity="{Binding AchievementSummary.GraphicsOpacity}" />
                             <TextBlock Text="{Binding AchievementSummary.Completed}" TextWrapping="Wrap" />
                         </StackPanel>
-                        <ItemsControl Grid.Column="2" Classes="statsRight" ItemsSource="{Binding AchievementSummary.Categories}">
+                        <ItemsControl Classes="statsRight" ItemsSource="{Binding AchievementSummary.Categories}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="m:AchievementCategoryRow">
                                     <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
@@ -181,7 +191,7 @@
                                                 </Panel>
                                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Text="{Binding Line}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Line}" Classes="caption" TextWrapping="Wrap" />
                                                 </StackPanel>
                                                 <ProgressBar Grid.Column="4" Classes="shareBar fill wide" Width="96" Height="6" MinHeight="6" VerticalAlignment="Center"
                                                              Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" />
@@ -223,7 +233,7 @@
                             <ContentControl Classes="emptyState" Tag="&#xF012A;" Content="{i:Loc Achievements.Near.Empty}" IsVisible="{Binding NearlyDoneEmpty}" />
                         </StackPanel>
                     </Border>
-                    <Border Grid.Column="2" Classes="card statsRight" VerticalAlignment="Top">
+                    <Border Classes="card statsRight" VerticalAlignment="Top">
                         <StackPanel>
                             <c:Ornament Text="{i:Loc Achievements.Recent.Title}" Icon="&#xF05E0;" Size="13" Margin="0,0,0,12" />
                             <ItemsControl ItemsSource="{Binding RecentAchievementRows}" ItemTemplate="{StaticResource RecentRow}" />
@@ -292,7 +302,7 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <StackPanel Grid.Column="2" Classes="browseRows">
+                            <StackPanel Classes="browseRows">
                                 <ItemsControl Name="BrowseRows" ItemsSource="{Binding AchievementBrowseRows}" ItemsPanel="{StaticResource PageRows}">
                                     <ItemsControl.DataTemplates>
                                         <!-- A section's heading: its name and a gold rule to the edge, at the bottom of a row's height -->

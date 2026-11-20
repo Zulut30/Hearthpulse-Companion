@@ -213,7 +213,7 @@
                                             </Grid>
                                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding Line}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Line}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
                                             </StackPanel>
                                             <ProgressBar Grid.Column="4" Style="{StaticResource ShareBar}" Foreground="{StaticResource Accent}" Height="6" VerticalAlignment="Center"
                                                          Value="{Binding Share, Mode=OneWay}" Opacity="{Binding GraphicsOpacity}" />

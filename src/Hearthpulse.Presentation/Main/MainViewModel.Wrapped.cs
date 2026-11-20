@@ -33,6 +33,11 @@ public sealed partial class MainViewModel
 
     private WrappedSpan _wrappedSpan = WrappedSpan.Month;
     private WrappedPeriod? _wrappedPeriod;
+    /// <summary>
+    /// The newest request: the one being worked out, or, once it is in, the shown period as it was asked for. Working
+    /// the recap out again (a new game, a new book, a retry) repeats it, so a request still on its way is not replaced by
+    /// the period shown before it.
+    /// </summary>
     private RecapRequest _wrappedRequest = RecapRequest.Default;
     private IReadOnlyList<GameRecord>? _wrappedGames;
     private bool _wrappedWanted;
@@ -161,7 +166,7 @@ public sealed partial class MainViewModel
     public RelayCommand RetryWrapped => _retryWrapped ??= new RelayCommand(() =>
     {
         _wrappedGames = null;
-        RequestWrapped(_wrappedPeriod is { } period ? RecapRequest.Of(period) : _wrappedRequest);
+        RequestWrapped(_wrappedRequest);
     });
 
     /// <summary>Shows <paramref name="period"/> (its span too); <paramref name="clamp"/> false takes it even outside the range (render scenes).</summary>
@@ -180,7 +185,7 @@ public sealed partial class MainViewModel
         _wrappedWanted = true;
         if (_wrappedDirty)
         {
-            RequestWrapped(_wrappedPeriod is { } period ? RecapRequest.Of(period) : RecapRequest.Default);
+            RequestWrapped(_wrappedRequest);
         }
     }
 
@@ -210,7 +215,7 @@ public sealed partial class MainViewModel
         _wrappedDirty = true;
         if (_wrappedWanted && _shownPage == "Wrapped")
         {
-            RequestWrapped(_wrappedPeriod is { } period ? RecapRequest.Of(period) : RecapRequest.Default);
+            RequestWrapped(_wrappedRequest);
         }
     }
 
@@ -247,6 +252,7 @@ public sealed partial class MainViewModel
                 return;
             }
 
+            _wrappedRequest = RecapRequest.Of(report.Period) with { Exact = request.Exact };
             _wrappedGames = games;
             _wrappedNothing = nothing;
             _wrappedRange = range;

@@ -66,6 +66,17 @@ public sealed class WrappedLayoutTests
         PageRowsPanelAvaloniaTests.Settle(window);
     }
 
+    /// <summary>As in <see cref="CollectionLayoutTests"/>: the headless platform gives every character its font size as width.</summary>
+    private const double GlyphScale = 0.6;
+
+    /// <summary>The width a text takes on one line with nothing to stop it, in a real font's proportions.</summary>
+    private static double Natural(TextBlock text)
+    {
+        var probe = new TextBlock { Text = text.Text, FontSize = text.FontSize, FontFamily = text.FontFamily, FontWeight = text.FontWeight };
+        probe.Measure(Avalonia.Size.Infinity);
+        return probe.DesiredSize.Width * GlyphScale;
+    }
+
     private static T Named<T>(Control root, string name) where T : Control => root.GetVisualDescendants().OfType<T>().Single(c => c.Name == name);
 
     [Theory]
@@ -93,6 +104,27 @@ public sealed class WrappedLayoutTests
             Assert.True(number.Bounds.Width <= card.Bounds.Width, $"{number.Bounds.Width} > {card.Bounds.Width}");
             Assert.Equal(model.WrappedTitle, Named<TextBlock>(page, "PeriodTitle").Text);
             Assert.True(Named<StackPanel>(page, "Slides").IsEffectivelyVisible);
+
+            // Three numbers in one row and each chart in one row, compact too (the window's two-column rule skips "fixed").
+            foreach (var grid in page.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.UniformGrid>().Where(g => g.Rows == 1 && g.IsEffectivelyVisible && !g.Classes.Contains("kpis")))
+            {
+                Assert.Contains("fixed", grid.Classes);
+                Assert.Single(grid.Children.Where(c => c.IsVisible).Select(c => c.Bounds.Y).Distinct());
+            }
+
+            // The three numbers fit their thirds, and an hour's label ("21") is whole under its narrow bar.
+            foreach (var value in page.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("trioValue") && t.IsEffectivelyVisible))
+            {
+                Assert.True(Natural(value) <= ((Control)value.Parent!).Bounds.Width + 0.5, $"{value.Text}: {Natural(value)} > {((Control)value.Parent!).Bounds.Width}");
+            }
+
+            foreach (var label in page.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Text is "12" or "21" && t.IsEffectivelyVisible))
+            {
+                Assert.True(Natural(label) <= label.Bounds.Width + 0.5, $"{label.Text}: {Natural(label)} > {label.Bounds.Width}");
+            }
+
+            var favourites = page.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.UniformGrid>().Single(g => g.Classes.Contains("favTiles"));
+            Assert.Equal(width < 900 ? 1 : 3, favourites.Columns);
         }
         finally
         {

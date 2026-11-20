@@ -24,14 +24,16 @@
                         <Border Classes="recapBar" Classes.top="{Binding Top}" Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="2,2,1,1" />
                     </Panel>
                     <Border Height="1" Background="{StaticResource Outline}" />
-                    <TextBlock Text="{Binding Label}" Classes="caption" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                    <!-- The label may run past its narrow bar ("21" under an hour's bar in compact) -->
+                    <TextBlock Text="{Binding Label}" Classes="caption" HorizontalAlignment="Center" Margin="-8,4,-8,0" TextAlignment="Center" />
                 </StackPanel>
             </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
     <UserControl.Styles>
-        <StyleInclude Source="avares://Hearthpulse.UI/Main/Pages/LibraryLook.axaml" />
+        <!-- LibraryLook after StatsStyles: its accent bar (shareBar.fill) overrides the stats' red one -->
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Pages/LibraryLook.axaml" />
         <!-- A slide's leading line: a label over a large value ("Your day" / "Saturday") -->
         <Style Selector="TextBlock.slideValue">
             <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
@@ -47,6 +49,9 @@
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="FontSize" Value="{StaticResource FontSizeDisplay}" />
             <Setter Property="Foreground" Value="{StaticResource StatText}" />
+        </Style>
+        <Style Selector="m|MainView.compact TextBlock.trioValue">
+            <Setter Property="FontSize" Value="{StaticResource FontSizeHeadline}" />
         </Style>
         <Style Selector="TextBlock.trioLabel">
             <Setter Property="FontSize" Value="{StaticResource FontSizeLead}" />
@@ -146,7 +151,7 @@
                             </Panel>
                             <StackPanel IsVisible="{Binding Recap.HasGames}">
                                 <c:Wave Width="168" HorizontalAlignment="Left" Margin="0,24" IsHitTestVisible="False" />
-                                <UniformGrid Rows="1">
+                                <UniformGrid Classes="fixed" Rows="1">
                                     <StackPanel Background="Transparent" ToolTip.Tip="{Binding Recap.HoursTip}">
                                         <TextBlock Text="{Binding Recap.Hours}" Classes="trioValue" />
                                         <TextBlock Text="{i:Loc Wrapped.Hours.Label}" Classes="caption trioLabel" />
@@ -176,7 +181,7 @@
                             <ItemsControl ItemsSource="{Binding Recap.Favourites}" Margin="0,0,-12,0">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <UniformGrid Classes="favTiles" />
+                                        <UniformGrid Classes="favTiles fixed" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
@@ -236,18 +241,18 @@
                                     <ItemsControl ItemsSource="{Binding Recap.Days}" ItemTemplate="{StaticResource RecapBarTemplate}" AutomationProperties.Name="{Binding Recap.DaysName}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
-                                                <UniformGrid Rows="1" />
+                                                <UniformGrid Classes="fixed" Rows="1" />
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                     </ItemsControl>
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" Classes="statsRight">
+                                <StackPanel Classes="statsRight">
                                     <TextBlock Text="{i:Loc Wrapped.When.Hour}" Classes="label" />
                                     <TextBlock Text="{Binding Recap.Hour}" Classes="slideValue" />
                                     <ItemsControl ItemsSource="{Binding Recap.HoursOfDay}" ItemTemplate="{StaticResource RecapBarTemplate}" AutomationProperties.Name="{Binding Recap.HoursName}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
-                                                <UniformGrid Rows="1" />
+                                                <UniformGrid Classes="fixed" Rows="1" />
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                     </ItemsControl>

@@ -11,13 +11,13 @@ namespace Hearthpulse.App;
 public partial class App
 {
     /// <summary>
-    /// <c>HEARTHPULSE_RENDER_ONLY=achievements</c>: the page on the data copy's <c>achievements.json</c> (the session's book,
-    /// else the file itself) with three chains tracked (<c>main-achievements</c>, the whole page <c>-page</c>), one
-    /// subcategory with named sections and a secret chain in the journal (<c>-browse</c>), and English
-    /// (<c>-en</c>); then the states on the made-up book of <see cref="AchievementsScene"/>: none (<c>-none</c>), a saved
-    /// book (<c>-saved</c>), a system without the read (<c>-unsupported</c>) and ten chains tracked with the other stars
-    /// off (<c>-full</c>, the whole page <c>-full-page</c>). Without a book in the copy the first frames show the made-up one. The tracked chains, the
-    /// language and the session's book are put back afterwards.
+    /// <c>HEARTHPULSE_RENDER_ONLY=achievements</c>: the page on the data copy's <c>achievements.json</c> (the session's
+    /// book, else the file itself) with three chains tracked (<c>main-achievements</c>, the whole page <c>-page</c>), one
+    /// subcategory with named sections and a secret chain in the journal (<c>-browse</c>), and English (<c>-en</c>);
+    /// then the states on the made-up book of <see cref="AchievementsScene"/>: none (<c>-none</c>), a saved book
+    /// (<c>-saved</c>), a system without the read (<c>-unsupported</c>) and ten chains tracked with the other stars off
+    /// (<c>-full</c>, the whole page <c>-full-page</c>). Without a book in the copy the first frames show the made-up
+    /// one. The tracked chains, the language and the session's book are put back afterwards.
     /// </summary>
     private async Task RenderAchievementsAsync(string folder)
     {

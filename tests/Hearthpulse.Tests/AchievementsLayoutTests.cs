@@ -69,6 +69,19 @@ public sealed class AchievementsLayoutTests
             var tracked = Page(view).TrackedList;
             Assert.Equal(1, tracked.ItemCount);
             Assert.Contains(tracked.GetVisualDescendants().OfType<Button>(), b => b.Classes.Contains("star") && b.DataContext is AchievementRow { Tracked: true });
+
+            // The bars are the theme's accent (LibraryLook's shareBar.fill over the stats' red bar).
+            var bar = view.GetVisualDescendants().OfType<ProgressBar>().First(b => b.Classes.Contains("fill") && b.IsEffectivelyVisible);
+            Assert.Equal(((ISolidColorBrush)bar.FindResource("Accent")!).Color, ((ISolidColorBrush)bar.Foreground!).Color);
+
+            // Compact: the categories go under the points, a tracked row's bar and gain under its text.
+            var compact = width < 900;
+            var categories = Page(view).SummaryCard.GetVisualDescendants().OfType<ItemsControl>().Single(c => c.Classes.Contains("statsRight"));
+            Assert.Equal((compact ? 1 : 0, compact ? 0 : 2), (Grid.GetRow(categories), Grid.GetColumn(categories)));
+            var right = tracked.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Classes.Contains("trackedRight"));
+            Assert.Equal((compact ? 1 : 0, compact ? 2 : 4), (Grid.GetRow(right), Grid.GetColumn(right)));
+            var name = tracked.GetVisualDescendants().OfType<TextBlock>().First(t => t.Classes.Contains("chainName"));
+            Assert.True(name.Bounds.Width > 100, $"name {name.Bounds.Width}");
         }
         finally
         {

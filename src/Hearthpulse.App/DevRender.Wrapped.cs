@@ -13,8 +13,9 @@ public partial class App
     /// <summary>
     /// <c>HEARTHPULSE_RENDER_ONLY=wrapped</c>: the page on the data copy's history and achievement book (the session's
     /// book, else <c>achievements.json</c>): this month (<c>main-wrapped-month</c>, the whole page <c>-month-page</c>),
-    /// this year (<c>-year</c>, <c>-year-page</c>), English (<c>-en</c>), a period with nothing in it (<c>-empty</c>) and the
-    /// month without an achievement book (<c>-noach</c>). The span, the period and the session's book are put back.
+    /// this year (<c>-year</c>, <c>-year-page</c>), English (<c>-en</c>), a period with nothing in it (<c>-empty</c>)
+    /// and the month without an achievement book (<c>-noach</c>, the whole page <c>-noach-page</c>). The span, the
+    /// period and the session's book are put back.
     /// </summary>
     private async Task RenderWrappedAsync(string folder)
     {
@@ -59,7 +60,7 @@ public partial class App
 
         _mainViewModel.SetAchievements(null);
         _mainViewModel.ShowWrappedPeriod(Core.Stats.WrappedPeriod.MonthOf(DateTime.Now));
-        await Shot("noach");
+        await Shot("noach", whole: true);
 
         _mainViewModel.SetAchievements(_session.Achievements);
     }
