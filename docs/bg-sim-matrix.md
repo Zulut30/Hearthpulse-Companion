@@ -10,13 +10,13 @@
 
 | Вид | no_effect | resolved | implemented | missing_effect | missing_input | unknown | всего |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Существа | 339 | 27 | 210 | 14 | 0 | 0 | 590 |
+| Существа | 339 | 27 | 222 | 2 | 0 | 0 | 590 |
 | Силы героя | 132 | 12 | 10 | 0 | 0 | 0 | 154 |
 | Тринкеты | 307 | 35 | 78 | 0 | 0 | 0 | 420 |
 | Тёмные дары | 31 | 5 | 11 | 0 | 0 | 0 | 47 |
 | Боевые зачарования | 0 | 0 | 9 | 0 | 0 | 0 | 9 |
-| Квесты | 10 | 0 | 7 | 2 | 0 | 0 | 19 |
-| Награды квестов | 58 | 4 | 5 | 6 | 0 | 0 | 73 |
+| Квесты | 10 | 0 | 9 | 0 | 0 | 0 | 19 |
+| Награды квестов | 58 | 4 | 11 | 0 | 0 | 0 | 73 |
 | Аномалии | 109 | 2 | 1 | 0 | 0 | 0 | 112 |
 | Заклинания таверны | 234 | 10 | 6 | 16 | 0 | 0 | 266 |
 | Только Duos | 35 | 1 | 3 | 0 | 0 | 0 | 39 |
@@ -532,9 +532,11 @@
 | BG34_320 | The Last One Standing | implemented | да | RALLY_BUFF |
 | BG36_109 | The Shadow of Doubt | implemented | да | CARD_TO_HAND_TRIGGER |
 | BG27_005 | Timecap'n Hooktail | implemented | да | SPELL_TRIGGER |
+| BG34_Giant_027 | Timewarped Arm | implemented | вне пула | Timewarped; TIMEWARPED_ON_ATTACK |
 | BG34_Giant_071 | Timewarped Bassgill | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE; у соперника missing_input (рука скрыта) |
 | BG34_Giant_201 | Timewarped Boar | implemented | да | Timewarped; ON_DEATH_GET |
 | BG34_Giant_102 | Timewarped Bonker | implemented | да | Timewarped; RALLY_BUFF |
+| BG34_Giant_104 | Timewarped Bristler | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_001 | Timewarped Busker | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_PreMadeChamp_091 | Timewarped Calligrapher | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_618 | Timewarped Caretaker | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
@@ -548,15 +550,22 @@
 | BG34_Giant_644 | Timewarped Gemsplitter | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_305 | Timewarped Geomancer | implemented | да | Timewarped; TIMEWARPED_AVENGE |
 | BG34_Giant_609 | Timewarped Ghoul-acabra | implemented | да | Timewarped; DR_TRIGGER_BUFF |
+| BG34_Giant_362 | Timewarped Goldrinn | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_656 | Timewarped Grease Bot | implemented | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_041 | Timewarped Greenskeeper | implemented | да | Timewarped; TIMEWARPED_RALLY |
+| BG34_Giant_068 | Timewarped Guard | implemented | вне пула | Timewarped; TIMEWARPED_RALLY |
 | BG34_Giant_342 | Timewarped Hag | implemented | да | Timewarped; TIMEWARPED_SOC |
 | BG34_Giant_593 | Timewarped Henchman | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_Giant_581 | Timewarped Hyena | implemented | да | Timewarped; TIMEWARPED_ON_DEATH |
 | BG34_Giant_674 | Timewarped Icky Imp | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_306 | Timewarped Jazzer | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_024 | Timewarped Jelly Belly | implemented | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
 | BG34_PreMadeChamp_004 | Timewarped Jungle King | implemented | да | Timewarped; TIMEWARPED_ON_SUMMON |
+| BG34_PreMadeChamp_056 | Timewarped Karathress | implemented | вне пула | Timewarped; TIMEWARPED_ON_SUMMON |
 | BG34_Giant_584 | Timewarped Kil'rek | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_031 | Timewarped Leapfrogger | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_608 | Timewarped Lil' Quilboar | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Giant_619 | Timewarped Magnanimoose | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_598 | Timewarped Mothership | implemented | да | Timewarped; TIMEWARPED_AVENGE |
 | BG34_Giant_207 | Timewarped Murcules | implemented | да | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER; у соперника missing_input (рука скрыта) |
 | BG34_Giant_074t | Timewarped Nellie's Ship | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
@@ -573,11 +582,14 @@
 | BG34_Giant_202 | Timewarped Saurolisk | implemented | да | Timewarped; DR_TRIGGER_BUFF |
 | BG34_Giant_017 | Timewarped Scourfin | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE; у соперника missing_input (рука скрыта) |
 | BG34_Giant_110 | Timewarped Sea Glass | implemented | да | Timewarped; RALLY_BUFF |
+| BG34_Giant_592 | Timewarped Spirit of Air | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_582 | Timewarped Sporebat | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_PreMadeChamp_031 | Timewarped Stormcloud | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_595 | Timewarped Tamuzo | implemented | да | Timewarped; TIMEWARPED_ON_SUMMON |
 | BG34_Giant_328 | Timewarped Tide Razor | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_605 | Timewarped Traveler | implemented | да | Timewarped; TIMEWARPED_AVENGE |
+| BG34_Giant_010 | Timewarped Trickster | implemented | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
+| BG34_Treasure_994 | Timewarped Ultralisk | implemented | вне пула | Timewarped; TIMEWARPED_SOC |
 | BG34_Giant_585 | Timewarped Vaelastrasz | implemented | да | Timewarped; TIMEWARPED_RALLY |
 | BG34_Giant_331 | Timewarped Warghoul | implemented | да | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_064 | Timewarped Whelp Smuggler | implemented | да | Timewarped; STATS_GAINED_BUFF |
@@ -603,19 +615,7 @@
 | BGFYM_011 | Y'Shaarj | implemented | да | hsbg.cards: tavern; TOKEN |
 | BG32_HERO_002_Buddy | Zippers | implemented | да | hsbg.cards: buddy; TAVERN |
 | BG25_HERO_100_Buddy | Festergut | missing_effect | да | hsbg.cards: buddy; DR_SUMMON |
-| BG34_Giant_027 | Timewarped Arm | missing_effect | вне пула | Timewarped; TIMEWARPED_ON_ATTACK |
-| BG34_Giant_104 | Timewarped Bristler | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
 | BG34_Giant_590 | Timewarped Festergut | missing_effect | да | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_362 | Timewarped Goldrinn | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_656 | Timewarped Grease Bot | missing_effect | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
-| BG34_Giant_068 | Timewarped Guard | missing_effect | вне пула | Timewarped; TIMEWARPED_RALLY |
-| BG34_Giant_024 | Timewarped Jelly Belly | missing_effect | вне пула | Timewarped; TIMEWARPED_KEYWORDS_OR_OTHER |
-| BG34_PreMadeChamp_056 | Timewarped Karathress | missing_effect | вне пула | Timewarped; TIMEWARPED_ON_SUMMON |
-| BG34_Giant_031 | Timewarped Leapfrogger | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_619 | Timewarped Magnanimoose | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_592 | Timewarped Spirit of Air | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Giant_010 | Timewarped Trickster | missing_effect | вне пула | Timewarped; TIMEWARPED_DEATHRATTLE |
-| BG34_Treasure_994 | Timewarped Ultralisk | missing_effect | вне пула | Timewarped; TIMEWARPED_SOC |
 
 ## Силы героя
 
@@ -1283,13 +1283,13 @@
 | BG24_Quest_120 | Unmask the Culprit | no_effect | вне пула | QU_TAVERN |
 | BG24_Quest_114 | Assemble a Lineup | implemented | да | QU_COMBAT_PROGRESS |
 | BG24_Quest_352 | Crack the Case | implemented | да | QU_COMBAT_PROGRESS |
+| BG24_Quest_320 | Exhume the Bones | implemented | вне пула | QU_COMBAT_PROGRESS |
 | BG28_Quest_500 | Fill the Cauldron | implemented | да | QU_COMBAT_PROGRESS |
 | BG24_Quest_123 | Find the Murder Weapon | implemented | да | QU_COMBAT_PROGRESS |
 | BG27_Quest_801 | Pressure the Authorities | implemented | да | QU_COMBAT_PROGRESS |
 | BG24_Quest_124 | Reenact the Murder | implemented | да | QU_COMBAT_PROGRESS |
 | BG27_Quest_802 | Round Up the Suspects | implemented | да | QU_COMBAT_PROGRESS |
-| BG24_Quest_320 | Exhume the Bones | missing_effect | вне пула | условный (QU_COMBAT_PROGRESS): бой не помечается |
-| BG24_Quest_318 | Witness Protection | missing_effect | вне пула | условный (QU_COMBAT_PROGRESS): бой не помечается |
+| BG24_Quest_318 | Witness Protection | implemented | вне пула | QU_COMBAT_PROGRESS |
 
 ## Награды квестов
 
@@ -1357,17 +1357,17 @@
 | BG33_Reward_003 | Righteous Charge | resolved | вне пула | Start of Combat: разрешилось до снимка |
 | BG24_Reward_312 | Staff of Origination | resolved | вне пула | Start of Combat: разрешилось до снимка |
 | BG24_Reward_109 | Stolen Gold | resolved | да | Start of Combat: разрешилось до снимка |
+| BG27_Reward_502 | Boom Squad | implemented | вне пула | QR_RELEVANT |
 | BG28_Reward_504 | Cycle of Energy | implemented | да | QR_NONE |
 | BG27_Reward_802 | Gilnean War Horn | implemented | да | QR_NONE |
 | BG33_Reward_021 | Rallying Cry | implemented | вне пула | QR_RELEVANT |
+| BG24_Reward_113 | Ritual Dagger | implemented | вне пула | QR_RELEVANT |
+| BG28_Reward_518 | Stable Amalgamation | implemented | вне пула | QR_RELEVANT |
 | BG28_Reward_501 | Temporal Tampering | implemented | да | QR_NONE |
+| BG24_Reward_125 | The Smoking Gun | implemented | вне пула | QR_RELEVANT |
+| BG28_Reward_505 | Tumbling Disaster | implemented | вне пула | QR_RELEVANT |
 | BG27_Reward_803 | Turbulent Tombs | implemented | да | QR_RELEVANT |
-| BG27_Reward_502 | Boom Squad | missing_effect | вне пула | QR_RELEVANT |
-| BG24_Reward_113 | Ritual Dagger | missing_effect | вне пула | QR_RELEVANT |
-| BG28_Reward_518 | Stable Amalgamation | missing_effect | вне пула | QR_RELEVANT |
-| BG24_Reward_125 | The Smoking Gun | missing_effect | вне пула | QR_RELEVANT |
-| BG28_Reward_505 | Tumbling Disaster | missing_effect | вне пула | QR_RELEVANT |
-| BG24_Reward_364 | Volatile Venom | missing_effect | вне пула | QR_RELEVANT |
+| BG24_Reward_364 | Volatile Venom | implemented | вне пула | QR_RELEVANT |
 
 ## Аномалии
 
