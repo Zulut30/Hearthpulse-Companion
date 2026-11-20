@@ -224,9 +224,39 @@
    "attack": null,
    "health": null
   },
+  "BG24_Quest_318": {
+   "name": "Witness Protection",
+   "text": "Quest: Have a friendly Taunt minion attacked 0 times.",
+   "attack": null,
+   "health": null
+  },
+  "BG24_Quest_320": {
+   "name": "Exhume the Bones",
+   "text": "Quest: Trigger 0 friendly Deathrattles.",
+   "attack": null,
+   "health": null
+  },
   "BG24_Quest_352": {
    "name": "Crack the Case",
    "text": "Quest: Have friendly minions attack 0 times.",
+   "attack": null,
+   "health": null
+  },
+  "BG24_Reward_113": {
+   "name": "Ritual Dagger",
+   "text": "After a friendly Deathrattle minion dies, give it +5/+5 permanently.",
+   "attack": null,
+   "health": null
+  },
+  "BG24_Reward_125": {
+   "name": "The Smoking Gun",
+   "text": "Your minions have +4 Attack.",
+   "attack": null,
+   "health": null
+  },
+  "BG24_Reward_364": {
+   "name": "Volatile Venom",
+   "text": "Your minions have +7/+7. After they attack, they die. Horribly.",
    "attack": null,
    "health": null
   },
@@ -512,6 +542,12 @@
    "attack": null,
    "health": null
   },
+  "BG27_Reward_502": {
+   "name": "Boom Squad",
+   "text": "Avenge (3): Deal 10 damage to the highest-Health enemy minion.",
+   "attack": null,
+   "health": null
+  },
   "BG27_Reward_802": {
    "name": "Gilnean War Horn",
    "text": "Get a copy of '0'. Your Battlecries trigger an extra time.",
@@ -629,6 +665,18 @@
   "BG28_Reward_504": {
    "name": "Cycle of Energy",
    "text": "Avenge (3): Get a random Tavern spell.",
+   "attack": null,
+   "health": null
+  },
+  "BG28_Reward_505": {
+   "name": "Tumbling Disaster",
+   "text": "Whenever you summon a minion in combat, give it +4/+4. Avenge (4): Improve this permanently.",
+   "attack": null,
+   "health": null
+  },
+  "BG28_Reward_518": {
+   "name": "Stable Amalgamation",
+   "text": "Avenge (7): When you have space, summon a 50/50 Amalgam.",
    "attack": null,
    "health": null
   },
@@ -1622,6 +1670,18 @@
     "health": 4
    }
   },
+  "BG34_Giant_010": {
+   "name": "Timewarped Trickster",
+   "text": "Deathrattle: Give this minion's maximum stats to another friendly minion.",
+   "attack": 8,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_010_G",
+    "text": "Deathrattle: Give this minion's maximum stats to another friendly minion, twice.",
+    "attack": 16,
+    "health": 16
+   }
+  },
   "BG34_Giant_017": {
    "name": "Timewarped Scourfin",
    "text": "Taunt. Deathrattle: Give a random minion in your hand +7/+7 and summon it for this combat only.",
@@ -1632,6 +1692,42 @@
     "text": "Taunt. Deathrattle: Give a random minion in your hand +14/+14 and summon it for this combat only.",
     "attack": 14,
     "health": 14
+   }
+  },
+  "BG34_Giant_024": {
+   "name": "Timewarped Jelly Belly",
+   "text": "After a friendly minion is Reborn, give your minions +2/+2 permanently.",
+   "attack": 5,
+   "health": 6,
+   "golden": {
+    "id": "BG34_Giant_024_G",
+    "text": "After a friendly minion is Reborn, give your minions +4/+4 permanently.",
+    "attack": 10,
+    "health": 12
+   }
+  },
+  "BG34_Giant_027": {
+   "name": "Timewarped Arm",
+   "text": "Whenever a friendly minion is attacked, give it +8 Attack permanently.",
+   "attack": 8,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_027_G",
+    "text": "Whenever a friendly minion is attacked, give it +16 Attack permanently.",
+    "attack": 16,
+    "health": 16
+   }
+  },
+  "BG34_Giant_031": {
+   "name": "Timewarped Leapfrogger",
+   "text": "Taunt, Reborn Deathrattle: Give a friendly Beast +1/+1 and this Deathrattle.",
+   "attack": 3,
+   "health": 3,
+   "golden": {
+    "id": "BG34_Giant_031_G",
+    "text": "Taunt, Reborn Deathrattle: Give a friendly Beast +2/+2 and this Deathrattle.",
+    "attack": 6,
+    "health": 6
    }
   },
   "BG34_Giant_034": {
@@ -1668,6 +1764,18 @@
     "text": "Whenever a friendly minion gains Attack, give it +6 Health.",
     "attack": 6,
     "health": 16
+   }
+  },
+  "BG34_Giant_068": {
+   "name": "Timewarped Guard",
+   "text": "Divine Shield Rally: Give a different friendly minion Divine Shield permanently.",
+   "attack": 5,
+   "health": 10,
+   "golden": {
+    "id": "BG34_Giant_068_G",
+    "text": "Divine Shield Rally: Give 2 different friendly minions Divine Shield permanently.",
+    "attack": 10,
+    "health": 20
    }
   },
   "BG34_Giant_069": {
@@ -1728,6 +1836,18 @@
     "text": "Windfury Rally: This plays 4 permanent Blood Gems on all your other minions.",
     "attack": 14,
     "health": 28
+   }
+  },
+  "BG34_Giant_104": {
+   "name": "Timewarped Bristler",
+   "text": "Deathrattle: Give this minion's Blood Gems to 2 different friendly Quilboar.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "BG34_Giant_104_G",
+    "text": "Deathrattle: Give this minion's Blood Gems to 2 different friendly Quilboar, twice.",
+    "attack": 12,
+    "health": 12
    }
   },
   "BG34_Giant_110": {
@@ -1922,6 +2042,18 @@
     "health": 16
    }
   },
+  "BG34_Giant_362": {
+   "name": "Timewarped Goldrinn",
+   "text": "Deathrattle: Your Beasts have +4/+4 this game (wherever they are).",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "BG34_Giant_362_G",
+    "text": "Deathrattle: Your Beasts have +8/+8 this game (wherever they are).",
+    "attack": 12,
+    "health": 12
+   }
+  },
   "BG34_Giant_581": {
    "name": "Timewarped Hyena",
    "text": "Whenever a friendly Beast dies, gain +2/+2 permanently.",
@@ -1968,6 +2100,18 @@
     "text": "Rally: Get 2 random Dragons.",
     "attack": 12,
     "health": 12
+   }
+  },
+  "BG34_Giant_592": {
+   "name": "Timewarped Spirit of Air",
+   "text": "Deathrattle: Give a random friendly minion Windfury, Divine Shield, and Taunt.",
+   "attack": 5,
+   "health": 3,
+   "golden": {
+    "id": "BG34_Giant_592_G",
+    "text": "Deathrattle: Give 2 random friendly minions Windfury, Divine Shield, and Taunt.",
+    "attack": 10,
+    "health": 6
    }
   },
   "BG34_Giant_593": {
@@ -2054,6 +2198,18 @@
     "health": 10
    }
   },
+  "BG34_Giant_619": {
+   "name": "Timewarped Magnanimoose",
+   "text": "Deathrattle: Summon and get a minion from a random opponent's warband.",
+   "attack": 8,
+   "health": 2,
+   "golden": {
+    "id": "BG34_Giant_619_G",
+    "text": "Deathrattle: Summon and get a minion from a random opponent's warband, twice.",
+    "attack": 16,
+    "health": 4
+   }
+  },
   "BG34_Giant_644": {
    "name": "Timewarped Gemsplitter",
    "text": "Divine Shield. After a friendly minion loses Divine Shield, your Blood Gems give an extra +1 Attack this game.",
@@ -2074,6 +2230,18 @@
    "golden": {
     "id": "BG34_Giant_654_G",
     "text": "After you summon a minion, give your minions +8 Attack permanently.",
+    "attack": 12,
+    "health": 24
+   }
+  },
+  "BG34_Giant_656": {
+   "name": "Timewarped Grease Bot",
+   "text": "Divine Shield. After a friendly minion loses Divine Shield, give your minions +3/+3 permanently.",
+   "attack": 6,
+   "health": 12,
+   "golden": {
+    "id": "BG34_Giant_656_G",
+    "text": "Divine Shield. After a friendly minion loses Divine Shield, give your minions +6/+6 permanently.",
     "attack": 12,
     "health": 24
    }
@@ -2174,6 +2342,18 @@
     "health": 18
    }
   },
+  "BG34_PreMadeChamp_056": {
+   "name": "Timewarped Karathress",
+   "text": "After you summon a minion in combat, get a copy of Deep Blues.",
+   "attack": 14,
+   "health": 6,
+   "golden": {
+    "id": "BG34_PreMadeChamp_056_G",
+    "text": "After you summon a minion in combat, get 2 copies of Deep Blues.",
+    "attack": 28,
+    "health": 12
+   }
+  },
   "BG34_PreMadeChamp_091": {
    "name": "Timewarped Calligrapher",
    "text": "Battlecry, Deathrattle, and Rally: Get a random Tavern spell.",
@@ -2184,6 +2364,18 @@
     "text": "Battlecry, Deathrattle, and Rally: Get 2 random Tavern spells.",
     "attack": 24,
     "health": 28
+   }
+  },
+  "BG34_Treasure_994": {
+   "name": "Timewarped Ultralisk",
+   "text": "Also damages adjacent minions. Start of Combat: Double this minion's stats.",
+   "attack": 8,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Treasure_994_G",
+    "text": "Also damages adjacent minions. Start of Combat: Triple this minion's stats.",
+    "attack": 16,
+    "health": 16
    }
   },
   "BG35_342": {
