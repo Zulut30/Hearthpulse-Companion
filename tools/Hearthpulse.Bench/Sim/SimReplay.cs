@@ -66,6 +66,26 @@ internal sealed record ReplayableGame(string Key, DateTime StartedAt, int Build,
 /// </summary>
 internal sealed record ReplayedFight(string Key, int Turn, string Result, int LogAttacks, int Attacks, bool Complete, string Ending, Divergence? First)
 {
+    /// <summary>
+    /// The replayed fight's result (Win, Tie, Loss from the player's side) and the hero damage it gives by
+    /// <see cref="DamageRules"/>; empty when the replay stopped early. A clean replay whose result and damage are the
+    /// log's shows that the rules and inputs give the real outcome once the random decisions are the log's: a missed
+    /// forecast of such a fight comes from chance, not from the engine.
+    /// </summary>
+    public string SimResult { get; init; } = string.Empty;
+
+    /// <summary>Hero damage of the replayed fight (to the loser), -1 when unknown.</summary>
+    public int SimDamage { get; init; } = -1;
+
+    /// <summary>Hero damage the log recorded for the fight (to the loser).</summary>
+    public int LogDamage { get; init; }
+
+    /// <summary>The random decisions the log made in this fight: kind, number of candidates, index picked.</summary>
+    public IReadOnlyList<(ChoiceKind Kind, int Count, int Pick)> Decisions { get; init; } = [];
+
+    /// <summary>The replay gave the log's result and, for a decided fight, its hero damage.</summary>
+    public bool OutcomeMatches => SimResult == Result && (Result == "Tie" || SimDamage == LogDamage);
+
     /// <summary>Replayed to the end of a complete transcript without a divergence.</summary>
     public bool Clean => Complete && First is null;
 }
@@ -161,10 +181,14 @@ internal static class SimReplay
         }
 
         var chooser = new TranscriptChooser(transcript, cards);
+        var recorder = new RecordingChooser(chooser);
         Divergence? first;
+        FightResult? result = null;
+        var ours = SimInputs.PostGame(fight.Ours);
+        var theirs = SimInputs.PostGame(fight.Theirs);
         try
         {
-            CombatSimulator.RunSingle(SimInputs.PostGame(fight.Ours), SimInputs.PostGame(fight.Theirs), fight.OursFirst, chooser, effects ?? EffectRegistry.Default, trace: false,
+            result = CombatSimulator.RunSingle(ours, theirs, fight.OursFirst, recorder, effects ?? EffectRegistry.Default, trace: false,
                 fight.FirstAttackerEntityId);
             first = chooser.Finish();
         }
@@ -178,7 +202,25 @@ internal static class SimReplay
             first = new Divergence(chooser.Attacks, 0, string.Empty, "engine", "no error", $"{ex.GetType().Name}: {ex.Message}", ReplayCategory.Other, []);
         }
 
-        return new ReplayedFight(key, fight.Turn, fight.Result, transcript.RegularAttacks, chooser.Attacks, transcript.Complete, transcript.Ending, first);
+        var replayed = new ReplayedFight(key, fight.Turn, fight.Result, transcript.RegularAttacks, chooser.Attacks, transcript.Complete, transcript.Ending, first)
+        {
+            LogDamage = fight.Result switch { "Win" => fight.DamageDealt, "Loss" => fight.DamageTaken, _ => 0 },
+            Decisions = recorder.Decisions,
+        };
+        if (result is null)
+        {
+            return replayed;
+        }
+
+        var (simResult, simDamage) = result.Outcome switch
+        {
+            > 0 => ("Win", DamageRules.Taken(DamageRules.Damage(ours.TavernTier, result.Ours.Select(m => m.TechLevel), fight.DamageCap), theirs.Health,
+                DamageRules.HasIceBlock(theirs))),
+            < 0 => ("Loss", DamageRules.Taken(DamageRules.Damage(theirs.TavernTier, result.Theirs.Select(m => m.TechLevel), fight.DamageCap), ours.Health,
+                DamageRules.HasIceBlock(ours))),
+            _ => ("Tie", 0),
+        };
+        return replayed with { SimResult = simResult, SimDamage = simDamage };
     }
 
     /// <summary>A fight's transcript, boards and the engine's trace of its replay, for a developer chasing a divergence.</summary>
@@ -266,16 +308,88 @@ internal static class SimReplay
             yield return string.Create(CultureInfo.InvariantCulture, $"  {group.Key,-15} {group.Count(),3}  {Percent(group.Count(), complete.Count)}");
         }
 
-        yield return "per fight (key, turn, result, attacks replayed / in the log, ending, first divergence):";
+        // The result and hero damage of the clean replays against the log's: with the log's decisions the engine gives
+        // the real outcome, so what is left of a missed forecast is chance (or a damage rule when only damage differs).
+        var outcome = complete.Where(f => f.Clean && f.SimResult.Length > 0).ToList();
+        yield return string.Create(CultureInfo.InvariantCulture,
+            $"clean replays with the log's result and hero damage: {outcome.Count(f => f.OutcomeMatches)} / {outcome.Count}");
+        foreach (var line in DecisionCheck(outcome))
+        {
+            yield return line;
+        }
+
+        yield return "per fight (key, turn, result, attacks replayed / in the log, ending, first divergence; replayed result and damage when not the log's):";
         foreach (var f in fights)
         {
+            var differs = f.SimResult.Length > 0 && !f.OutcomeMatches
+                ? string.Create(CultureInfo.InvariantCulture, $"; replay {f.SimResult} {f.SimDamage} vs log {f.Result} {f.LogDamage}")
+                : string.Empty;
             yield return string.Create(CultureInfo.InvariantCulture,
-                $"  {f.Key} t{f.Turn} {f.Result,-4} {f.Attacks}/{f.LogAttacks} {f.Ending,-7} {(f.First is null ? (f.Complete ? "ok" : "incomplete") : f.First.ToString())}");
+                $"  {f.Key} t{f.Turn} {f.Result,-4} {f.Attacks}/{f.LogAttacks} {f.Ending,-7} {(f.First is null ? (f.Complete ? "ok" : "incomplete") : f.First.ToString())}{differs}");
+        }
+    }
+
+    /// <summary>
+    /// Are the log's random picks uniform over the candidates the engine offers, as the engine draws them? Per kind of
+    /// decision with at least two candidates: the number of decisions, the mean relative position of the pick
+    /// ((index + 1/2) / candidates; 0.5 when uniform) as a z-score, and Pearson's chi-square over candidate count and
+    /// index (Wilson-Hilferty z). |z| above 2 would point at a bias the engine does not model (calibration of the odds).
+    /// </summary>
+    internal static IEnumerable<string> DecisionCheck(IEnumerable<ReplayedFight> fights)
+    {
+        var decisions = fights.SelectMany(f => f.Decisions).Where(d => d.Count >= 2).ToList();
+        yield return string.Create(CultureInfo.InvariantCulture, $"random decisions of the clean replays (2+ candidates): {decisions.Count}");
+        foreach (var kind in decisions.GroupBy(d => d.Kind).OrderBy(g => g.Key))
+        {
+            double shift = 0, variance = 0, chi = 0;
+            var dof = 0;
+            foreach (var d in kind)
+            {
+                shift += ((d.Pick + 0.5) / d.Count) - 0.5;
+                variance += ((double)d.Count * d.Count - 1) / (12.0 * d.Count * d.Count);
+            }
+
+            foreach (var byCount in kind.GroupBy(d => d.Count))
+            {
+                var n = byCount.Count();
+                var expected = n / (double)byCount.Key;
+                for (var i = 0; i < byCount.Key; i++)
+                {
+                    var seen = byCount.Count(d => d.Pick == i);
+                    chi += (seen - expected) * (seen - expected) / expected;
+                }
+
+                dof += byCount.Key - 1;
+            }
+
+            // Wilson-Hilferty: (chi/dof)^(1/3) is close to normal with mean 1 - 2/(9 dof) and variance 2/(9 dof).
+            var chiZ = dof > 0 ? (Math.Cbrt(chi / dof) - (1 - (2.0 / (9 * dof)))) / Math.Sqrt(2.0 / (9 * dof)) : 0;
+            yield return string.Create(CultureInfo.InvariantCulture,
+                $"  {kind.Key,-15} {kind.Count(),4}  position z {(variance > 0 ? shift / Math.Sqrt(variance) : 0),5:0.00}  chi-square {chi:0.0} on {dof} df (z {chiZ:0.00})");
         }
     }
 
     private static string Percent(int k, int n) =>
         n == 0 ? "-" : (k * 100.0 / n).ToString("0.0", CultureInfo.InvariantCulture) + " %";
+}
+
+/// <summary>Passes every decision to the transcript's chooser and keeps what it picked, for <see cref="SimReplay.DecisionCheck"/>.</summary>
+internal sealed class RecordingChooser(ICombatChooser inner) : ICombatChooser
+{
+    private readonly List<(ChoiceKind Kind, int Count, int Pick)> _decisions = [];
+
+    public IReadOnlyList<(ChoiceKind Kind, int Count, int Pick)> Decisions => _decisions;
+
+    public int Choose(Fight fight, in CombatChoice choice)
+    {
+        var pick = inner.Choose(fight, choice);
+        _decisions.Add((choice.Kind, choice.Count, pick));
+        return pick;
+    }
+
+    public void OnAttack(Fight fight, Unit attacker, Unit target, bool nested) => inner.OnAttack(fight, attacker, target, nested);
+
+    public void OnSummon(Fight fight, Unit unit) => inner.OnSummon(fight, unit);
 }
 
 /// <summary>Stops a replay at its first divergence, or (null) where an incomplete transcript ends.</summary>

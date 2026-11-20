@@ -117,16 +117,26 @@ public static partial class CombatSimulator
         }
     }
 
-    /// <summary>Hero damage per finished fight, by who won (<see cref="DamageRules"/>), and the fights that were lethal.</summary>
+    /// <summary>
+    /// Hero damage per finished fight, by who won (<see cref="DamageRules"/>), and the fights that were lethal. In Duos the
+    /// damage goes to the losing team's shared health and its tier is that of the winning board left standing
+    /// (<see cref="DamageRules.TeamHealth"/>; not checked against a Duos log).
+    /// </summary>
     private sealed class DamageRule(SimSide ours, SimSide theirs, int cap, bool count)
     {
-        private readonly bool _ourIceBlock = DamageRules.HasIceBlock(ours);
-        private readonly bool _theirIceBlock = DamageRules.HasIceBlock(theirs);
+        private readonly bool _ourIceBlock = DamageRules.TeamHasIceBlock(ours);
+        private readonly bool _theirIceBlock = DamageRules.TeamHasIceBlock(theirs);
+        private readonly int _ourHealth = DamageRules.TeamHealth(ours);
+        private readonly int _theirHealth = DamageRules.TeamHealth(theirs);
 
-        /// <summary>Damage is estimated (off for Duos).</summary>
+        /// <summary>Damage is estimated.</summary>
         public bool Count => count;
 
-        public void Add(Tally tally, int outcome, int ourSurvivorTiers, int theirSurvivorTiers)
+        /// <summary>
+        /// Counts one fight. <paramref name="ourTier"/> and <paramref name="theirTier"/> are the tavern tiers of the boards
+        /// standing at the end: the starting boards' in a solo fight, a Duos teammate's once it entered.
+        /// </summary>
+        public void Add(Tally tally, int outcome, int ourSurvivorTiers, int theirSurvivorTiers, int ourTier, int theirTier)
         {
             tally.Done++;
             if (outcome > 0)
@@ -145,15 +155,15 @@ public static partial class CombatSimulator
 
             if (outcome > 0)
             {
-                var dealt = DamageRules.Taken(DamageRules.DamageOfTiers(ours.TavernTier, ourSurvivorTiers, cap), theirs.Health, _theirIceBlock);
+                var dealt = DamageRules.Taken(DamageRules.DamageOfTiers(ourTier, ourSurvivorTiers, cap), _theirHealth, _theirIceBlock);
                 tally.Dealt[Math.Min(dealt, Tally.MaxDamage)]++;
-                tally.LethalDealt += DamageRules.IsLethal(dealt, theirs.Health) ? 1 : 0;
+                tally.LethalDealt += DamageRules.IsLethal(dealt, _theirHealth) ? 1 : 0;
             }
             else if (outcome < 0)
             {
-                var taken = DamageRules.Taken(DamageRules.DamageOfTiers(theirs.TavernTier, theirSurvivorTiers, cap), ours.Health, _ourIceBlock);
+                var taken = DamageRules.Taken(DamageRules.DamageOfTiers(theirTier, theirSurvivorTiers, cap), _ourHealth, _ourIceBlock);
                 tally.Taken[Math.Min(taken, Tally.MaxDamage)]++;
-                tally.LethalTaken += DamageRules.IsLethal(taken, ours.Health) ? 1 : 0;
+                tally.LethalTaken += DamageRules.IsLethal(taken, _ourHealth) ? 1 : 0;
             }
         }
 
@@ -163,8 +173,8 @@ public static partial class CombatSimulator
             {
                 DamageTaken = DamageSpread.From(tally.Taken),
                 DamageDealt = DamageSpread.From(tally.Dealt),
-                LethalTaken = ours.Health > 0 ? tally.LethalTaken / (double)tally.Done : null,
-                LethalDealt = theirs.Health > 0 ? tally.LethalDealt / (double)tally.Done : null,
+                LethalTaken = _ourHealth > 0 ? tally.LethalTaken / (double)tally.Done : null,
+                LethalDealt = _theirHealth > 0 ? tally.LethalDealt / (double)tally.Done : null,
                 DamageCap = cap,
             };
     }
@@ -275,7 +285,8 @@ public static partial class CombatSimulator
                     // runs alternate between the two orders: an even mix, not the attacking side first (right in 47 of 89).
                     fight.EnteredFirst ??= r % 2 == 0 ? fight.Ours : fight.Theirs;
                     var outcome = fight.Run(firstAttackerIsOurs, options.FirstAttackerEntityId);
-                    rules.Add(tally, outcome, rules.Count ? SurvivorTiers(fight.Ours) : 0, rules.Count ? SurvivorTiers(fight.Theirs) : 0);
+                    rules.Add(tally, outcome, rules.Count ? SurvivorTiers(fight.Ours) : 0, rules.Count ? SurvivorTiers(fight.Theirs) : 0,
+                        fight.Ours.Info.TavernTier, fight.Theirs.Info.TavernTier);
                     tally.Truncated += fight.Truncated ? 1 : 0;
                 }
 
