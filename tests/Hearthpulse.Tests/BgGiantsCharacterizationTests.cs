@@ -157,6 +157,9 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // 2026-11-20 (E6a sim-rotation-minions-quests): 20 new effect ids (12 Timewarped minions, Exhume the Bones, Witness
         // Protection, six quest rewards) change the boards; with a registry without those classes (checked) the fingerprint is
         // still 489D3D39263EF5AB.
-        Assert.Equal("fights 43FD0B665D26A503", actual);
+        // 2026-11-20 (E7b sim-buddies-and-gaps): 17 new effect ids (six buddies, two Battlecruiser upgrades, Dragon's Eye, five
+        // "after N" cards, I'll Take That!, Lock and Load, Timewarped Boar) change the boards; with a registry without those
+        // classes (checked) the fingerprint is still 43FD0B665D26A503.
+        Assert.Equal("fights 29D6B80D5E588330", actual);
     }
 }
