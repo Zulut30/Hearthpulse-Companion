@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -179,7 +180,8 @@ public sealed class ArtMotionTests
 
             // The pointer leaves for good: after the grace period the preview fades out and is gone.
             host.HideSoon(rows[2]);
-            Wait(TimeSpan.FromMilliseconds(140) + Motion.Fast + TimeSpan.FromMilliseconds(400));
+            Assert.NotNull(host.CardShown);
+            WaitUntilHidden(host);
             Assert.Null(host.CardShown);
             Assert.False(host.Fading);
             Assert.Equal(1, host.Opacity);
@@ -307,6 +309,35 @@ public sealed class ArtMotionTests
         using var stop = new CancellationTokenSource();
         DispatcherTimer.RunOnce(stop.Cancel, time);
         Dispatcher.UIThread.MainLoop(stop.Token);
+    }
+
+    /// <summary>
+    /// Runs the dispatcher until the hover card hides its frame at the end of the fade-out. The grace timer and the fade
+    /// run on the wall clock: a fixed wait from <see cref="CardPreviewHost.HideSoon"/> ran out under load while the fade
+    /// was still on (the stop and the grace came due together), so the frame's change ends the wait; 10 s only bounds a hang.
+    /// </summary>
+    private static void WaitUntilHidden(CardPreviewHost host)
+    {
+        var frame = (Control)host.Children[0];
+        using var stop = new CancellationTokenSource();
+        void Changed(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == Visual.IsVisibleProperty && host.CardShown is null)
+            {
+                stop.Cancel();
+            }
+        }
+
+        frame.PropertyChanged += Changed;
+        try
+        {
+            using var backstop = DispatcherTimer.RunOnce(stop.Cancel, TimeSpan.FromSeconds(10));
+            Dispatcher.UIThread.MainLoop(stop.Token);
+        }
+        finally
+        {
+            frame.PropertyChanged -= Changed;
+        }
     }
 
     /// <summary>Card art motion switched on or off for the test, whatever the platform's animation setting.</summary>
