@@ -107,7 +107,7 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
   combat damage cap is on (`DamageRules`, `CombatDamage.cs`). The cap changes by season (15 until the first death in
   2022; a 5/10/15 ramp until Top 4 in patch 31.2; 2 then 5 on the first turns in build 254477), so it is read from the
   game entity: `BACON_COMBAT_DAMAGE_CAP` (value), `BACON_COMBAT_DAMAGE_CAP_ENABLED` (newer builds; 0 = lifted; older
-  builds set the cap itself to 0). Duos damage is not modelled (the loser of one board is not the one who takes it).
+  builds set the cap itself to 0). Duos: one health pool per team, the damage is the tier of the winning board left standing plus its survivors (`DamageRules.TeamHealth`; general rules, not yet checked on a Duos log).
 - Odds: `CombatOdds(Win, Tie, Loss, Unsimulated)` plus `DamageTaken`/`DamageDealt` (`DamageSpread`: mean, 10th-90th
   percentile, max, histogram over the fights lost/won) and `LethalTaken`/`LethalDealt` (share of fights whose damage
   reaches the hero's health + armor, `SimSide.Health`); minions with combat-relevant text but no registered effect make

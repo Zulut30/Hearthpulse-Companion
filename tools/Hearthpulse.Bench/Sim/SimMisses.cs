@@ -30,10 +30,16 @@ internal static class SimMisses
                 "Loss" => (odds.DamageTaken, fight.DamageTaken),
                 _ => (null, 0),
             };
-            var range = spread is null ? "-" : string.Create(CultureInfo.InvariantCulture, $"{spread.Low}-{spread.High} (mean {spread.Mean:0.0}, max {spread.Max})");
+            // How likely the forecast found what happened: the real result, and damage at least as far out as the real one
+            // on its side of the mean (a small share is a real surprise; a fair share is chance the interval left out).
+            var real = fight.Result switch { "Win" => odds.Win, "Tie" => odds.Tie, "Loss" => odds.Loss, _ => 0 };
+            var tail = spread is null || spread.Runs == 0 ? (double?)null
+                : (damage >= spread.Mean ? spread.Counts.Skip(damage).Sum() : spread.Counts.Take(damage + 1).Sum()) / (double)spread.Runs;
+            var range = spread is null ? "-" : string.Create(CultureInfo.InvariantCulture,
+                $"{spread.Low}-{spread.High} (mean {spread.Mean:0.0}, max {spread.Max}, p(as far) {tail:P0})");
             var what = (score.Hit ? string.Empty : "result ") + (score.DamageSeen && !score.DamageHit ? "damage" : string.Empty);
             yield return string.Create(CultureInfo.InvariantCulture,
-                $"{fight.Key} t{fight.Turn} {fight.Result,-4} [{what.Trim()}] full W/T/L {odds.Win:P0}/{odds.Tie:P0}/{odds.Loss:P0}; exact inputs {exact.Win:P0}/{exact.Tie:P0}/{exact.Loss:P0} ({estimated} estimated); damage {damage} vs {range}; first {capture.OursFirst switch { true => "ours", false => "theirs", null => "coin" }}, boards {capture.Ours.Minions.Count} v {capture.Theirs.Minions.Count}");
+                $"{fight.Key} t{fight.Turn} {fight.Result,-4} [{what.Trim()}] p(real) {real:P0}; full W/T/L {odds.Win:P0}/{odds.Tie:P0}/{odds.Loss:P0}; exact inputs {exact.Win:P0}/{exact.Tie:P0}/{exact.Loss:P0} ({estimated} estimated); damage {damage} vs {range}; first {capture.OursFirst switch { true => "ours", false => "theirs", null => "coin" }}, boards {capture.Ours.Minions.Count} v {capture.Theirs.Minions.Count}");
         }
     }
 }
