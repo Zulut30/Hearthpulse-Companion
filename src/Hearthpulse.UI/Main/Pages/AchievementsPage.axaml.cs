@@ -23,11 +23,24 @@ public partial class AchievementsPage : UserControl
     /// <summary>
     /// A star pressed in "Tracked" takes its row away: the focus goes to the star of the row that takes its place, else
     /// of the row before it, else to the block's heading, so the keyboard does not fall back to the window's start.
+    /// Elsewhere a secret chain's star goes with its tracking (<see cref="AchievementRow.CanStar"/>): the focus moves on
+    /// to the next stop first.
     /// </summary>
     private void OnStar(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Button { DataContext: AchievementRow { Tracked: true } row } star || !TrackedList.IsVisualAncestorOf(star))
+        if (sender is not Button { DataContext: AchievementRow { Tracked: true } row } star)
         {
+            return;
+        }
+
+        if (!TrackedList.IsVisualAncestorOf(star))
+        {
+            // The click comes before the command: the star still has the focus to hand on.
+            if (row.Secret && star.IsFocused)
+            {
+                TopLevel.GetTopLevel(star)?.FocusManager?.TryMoveFocus(NavigationDirection.Next);
+            }
+
             return;
         }
 

@@ -16,8 +16,8 @@ internal static partial class OffscreenRenderer
     /// <summary>
     /// <c>HEARTHPULSE_RENDER_ONLY=achievements</c>: the page on the data copy's <c>achievements.json</c> (the session's book,
     /// else the file itself) with three chains tracked (<c>main-achievements</c>, the whole page <c>-page</c>), one
-    /// subcategory with named sections and a secret chain in the journal (<c>-browse</c>), English (<c>-en</c>) and the
-    /// compact layout at 420 (<c>-compact</c>); then the states on the made-up book of <see cref="AchievementsScene"/>:
+    /// subcategory with named sections and a secret chain in the journal (<c>-browse</c>), English (<c>-en</c>), the
+    /// compact layout at 420 (<c>-compact</c>) and its journal on a chain done to its end (<c>-browse-compact</c>); then the states on the made-up book of <see cref="AchievementsScene"/>:
     /// none (<c>-none</c>), a system without the read (<c>-unsupported</c>), a saved book (<c>-saved</c>) and ten chains
     /// tracked with the other stars off (<c>-full</c>). Without a book in the copy the first frames show the made-up one.
     /// The tracked chains, the language, the window's size and the session's book are put back afterwards.
@@ -85,6 +85,17 @@ internal static partial class OffscreenRenderer
         main.Height = 1500;
         Top();
         await Shot("-compact");
+
+        // The journal in compact, on a subcategory with a chain done to its end ("Completed" in the narrow column).
+        if (AchievementDoneSample(own) is { } done)
+        {
+            host.Main.ShowAchievementCategory.Execute(done.Category.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            host.Main.ShowAchievementSubcategory.Execute(done.Subcategory.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        Dispatcher.UIThread.RunJobs();
+        Page().ShowBrowse();
+        await Shot("-browse-compact");
         main.Width = width;
         main.Height = height;
 
@@ -110,6 +121,10 @@ internal static partial class OffscreenRenderer
         host.Settings.TrackedAchievements = tracked;
         host.Main.SetAchievements(host.Session.Achievements);
     }
+
+    /// <summary>The subcategory of the first chain of more than one tier done to its end, else none.</summary>
+    private static (int Category, int Subcategory)? AchievementDoneSample(AchievementBook book) =>
+        book.Chains.FirstOrDefault(c => c.Completed && c.Tiers.Count > 1) is { } chain ? (chain.CategoryId, chain.SubcategoryId) : null;
 
     /// <summary>The first subcategory with a named section and a secret chain, else one with a named section, else none.</summary>
     private static (int Category, int Subcategory)? AchievementBrowseSample(AchievementBook book)

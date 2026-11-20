@@ -17,7 +17,8 @@
             </ResourceDictionary.MergedDictionaries>
 
             <!-- The star of a chain: lit (accent) while tracked; off at the limit with the reason in its tip. A secret chain
-                 not done yet has none, and its place stays empty so the names line up. -->
+                 not done yet has none (its place stays empty so the names line up), unless it is tracked: then the star
+                 stays, so the chain can be let go (AchievementRow.CanStar). -->
             <DataTemplate x:Key="AchievementStar" DataType="{x:Type m:AchievementRow}">
                 <Button x:Name="Star" Style="{StaticResource IconButton}" Content="{Binding StarGlyph}" VerticalAlignment="Top"
                         Command="{Binding DataContext.ToggleAchievementStar, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}"

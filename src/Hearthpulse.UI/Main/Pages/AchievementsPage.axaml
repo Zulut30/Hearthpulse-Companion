@@ -19,7 +19,8 @@
             </ResourceDictionary.MergedDictionaries>
 
             <!-- The star of a chain: lit (accent) while tracked; off at the limit with the reason in its tip. A secret chain
-                 not done yet has none, and its place stays empty so the names line up. -->
+                 not done yet has none (its place stays empty so the names line up), unless it is tracked: then the star
+                 stays, so the chain can be let go (AchievementRow.CanStar). -->
             <DataTemplate x:Key="AchievementStar" x:DataType="m:AchievementRow">
                 <Button Name="Star" Classes="icon star" Classes.tracked="{Binding Tracked}" Content="{Binding StarGlyph}" VerticalAlignment="Top"
                         Command="{Binding $parent[pg:AchievementsPage].((m:MainViewModel)DataContext).ToggleAchievementStar}" CommandParameter="{Binding Key}"
@@ -103,6 +104,10 @@
         <Style Selector="TextBlock.chainName.muted">
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
         </Style>
+        <Style Selector="m|MainView.compact TextBlock.chainName.browseName">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MaxLines" Value="2" />
+        </Style>
         <!-- The star of a tracked chain stays lit, under the mouse too -->
         <Style Selector="Button.star.tracked, Button.star.tracked:pointerover">
             <Setter Property="Foreground" Value="{StaticResource Accent}" />
@@ -130,7 +135,7 @@
             <Setter Property="Width" Value="176" />
         </Style>
         <Style Selector="m|MainView.compact StackPanel.browseProgress">
-            <Setter Property="Width" Value="112" />
+            <Setter Property="Width" Value="120" />
         </Style>
         <Style Selector="TextBlock.catFraction">
             <Setter Property="MinWidth" Value="104" />
@@ -331,9 +336,10 @@
                                             <Border Classes="row" Height="56" ToolTip.Tip="{Binding Tip}">
                                                 <Grid ColumnDefinitions="32,12,*,12,Auto,12,Auto">
                                                     <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AchievementStar}" Focusable="False" VerticalAlignment="Center" />
+                                                    <!-- Compact: the name takes two lines and the description goes to the row's tip -->
                                                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Title}" Classes="chainName" Classes.muted="{Binding Muted}" />
-                                                        <TextBlock Text="{Binding Description}" Classes="caption" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                                                        <TextBlock Text="{Binding Title}" Classes="chainName browseName" Classes.muted="{Binding Muted}" />
+                                                        <TextBlock Text="{Binding Description}" Classes="caption wide" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
                                                     </StackPanel>
                                                     <!-- Fixed widths (styles, narrower in compact): the bars and dates line up from row to row -->
                                                     <StackPanel Grid.Column="4" Classes="browseProgress" VerticalAlignment="Center" IsVisible="{Binding !Secret}">
@@ -344,7 +350,9 @@
                                                             </Panel>
                                                             <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
                                                                        VerticalAlignment="Center" Opacity="{Binding GraphicsOpacity}" IsVisible="{Binding Done}" />
-                                                            <TextBlock Text="{Binding ProgressText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                            <!-- Compact's column is 120: "All levels completed" would not fit, "Completed" does (the level is under it) -->
+                                                            <TextBlock Text="{Binding ProgressText}" Classes="wide" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding ProgressShort}" Classes="narrow" FontWeight="SemiBold" VerticalAlignment="Center" />
                                                         </StackPanel>
                                                         <TextBlock Text="{Binding Level}" Classes="caption" HorizontalAlignment="Right" Margin="0,2,0,0" />
                                                     </StackPanel>

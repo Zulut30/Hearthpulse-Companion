@@ -94,6 +94,7 @@ public sealed class AchievementRow : Observable
             : Done ? Loc.T(chain.Tiers.Count > 1 ? "Achievements.AllDone" : "Achievements.Done")
             : Binary ? Loc.T("Achievements.NotDone")
             : Loc.F("Achievements.Progress", chain.Progress, chain.Quota);
+        ProgressShort = Done ? Loc.T("Achievements.Done") : ProgressText;
         Points = Secret ? string.Empty : Loc.P("Achievements.PointsCount", Done ? chain.PointsEarned : chain.Current.Points);
         // The row shows the current tier: a date belongs only to a chain done to its end (an earlier tier's date would
         // read as this tier's).
@@ -170,6 +171,12 @@ public sealed class AchievementRow : Observable
 
     /// <summary>"34 of 50", "Completed", "All levels completed" or "Not completed"; empty for a secret tier.</summary>
     public string ProgressText { get; }
+
+    /// <summary>
+    /// <see cref="ProgressText"/> for a narrow column (the Avalonia compact journal): a chain done to its end says
+    /// "Completed" instead of "All levels completed"; its level stays on the line under it.
+    /// </summary>
+    public string ProgressShort { get; }
 
     /// <summary>"10 points": the current tier's, or the earned ones of a completed chain; empty for a secret tier.</summary>
     public string Points { get; }

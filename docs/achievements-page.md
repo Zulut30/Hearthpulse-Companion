@@ -35,13 +35,18 @@ dispatched to the UI thread, `MainViewModel.SetAchievements`).
 - **All achievements**: the categories as tabs (client's names), the chosen category's subcategories as a table of
   contents (completed tiers of each), and the chosen subcategory's rows on `PageRows` (one height, 56): a heading row
   for each named section, then its chains - star, name, description, progress or "Completed" / "All levels completed" /
-  "Not completed", level, points, completion date. A secret chain not done shows "Hidden achievement" and "Revealed once
-  you complete it", without star, progress or points. Only one subcategory's rows are built at a time.
+  "Not completed", level, points, and the completion date only for a chain done to its end (else "—": the row shows
+  the current tier, and an earlier tier's date would read as its date). The share of a chain not done is cut down to a
+  whole percent, never "100 %". A secret chain not done shows "Hidden achievement" and "Revealed once you complete
+  it", without progress or points, and without a star unless it is tracked. Only one subcategory's rows are built at a
+  time; the progress (176) and date (104) columns have one width for every row (Avalonia compact: 120, no bar or date,
+  "Completed" for a chain done to its end, the name on up to two lines and the description in the row's tip).
 
 ## The star
 
 A 32 px round icon button on tracked, nearly done and journal rows (not on recent completions, not on secret chains not
-done). Its accessible name is its tip: "Track “Name”" / "Stop tracking “Name”". A press saves the settings at once
+done unless they are tracked: a tracked chain whose current tier turned secret keeps its star, so its place can be
+freed). The command never adds a chain whose current tier is secret. Its accessible name is its tip: "Track “Name”" / "Stop tracking “Name”". A press saves the settings at once
 (`Settings.Save`). At 10 tracked chains the other stars are disabled with "You can track up to 10 chains…" in their tip
 (shown on the disabled button) and a visible line under the block's heading. Removing a star in the tracked block moves
 the focus to the next row's star, else the previous one, else the block's heading. Every row that shows the same chain

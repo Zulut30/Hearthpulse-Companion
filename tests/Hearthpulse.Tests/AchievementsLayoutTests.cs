@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -121,7 +122,7 @@ public sealed class AchievementsLayoutTests
             var progress = rows.GetVisualDescendants().OfType<StackPanel>().Where(p => p.Classes.Contains("browseProgress") && p.IsEffectivelyVisible).ToList();
             Assert.NotEmpty(progress);
             Assert.Single(progress.Select(p => Math.Round(p.TranslatePoint(default, rows)!.Value.X)).Distinct());
-            Assert.All(progress, p => Assert.Equal(compact ? 112 : 176, p.Bounds.Width));
+            Assert.All(progress, p => Assert.Equal(compact ? 120 : 176, p.Bounds.Width));
 
             // A category's name wraps instead of being cut to a few letters in compact (review m4).
             var names = page.SummaryCard.GetVisualDescendants().OfType<TextBlock>().Where(t => model.AchievementSummary.Categories.Any(c => c.Title == t.Text)).ToList();
@@ -139,6 +140,107 @@ public sealed class AchievementsLayoutTests
             Avalonia.Application.Current!.Styles.Remove(theme);
         }
     });
+
+    /// <summary>As in <see cref="CollectionLayoutTests"/>: the headless platform gives every character its font size as width.</summary>
+    private const double GlyphScale = 0.6;
+
+    /// <summary>
+    /// One subcategory: a chain done to its end ("All levels completed"), a long count in progress, and a tracked chain
+    /// whose current tier turned secret (tier 1 seen and done, tier 2 secret).
+    /// </summary>
+    private static AchievementBook Edges(DateTime now) => new(
+        [new AchievementCategory(1, "Общие", "general", 1)],
+        [new AchievementSubcategory(11, 1, "Прогресс", 1)],
+        [new AchievementSection(111, 11, "Путь героя", 1)],
+        new Dictionary<int, AchievementDef>
+        {
+            [1] = new(1, 111, 1, "Мастер I", "Сыграйте $q игр.", false, 10, 5, 2),
+            [2] = new(2, 111, 2, "Мастер II", "Сыграйте $q игр.", false, 20, 10, 0),
+            [3] = new(3, 111, 3, "Великая победа", "Победите $q раз.", false, 10_000, 10, 0),
+            [10] = new(10, 111, 4, "Видимый", "Пройдите путь.", false, 1, 5, 11),
+            [11] = new(11, 111, 5, string.Empty, string.Empty, true, 1, 5, 0),
+        },
+        new Dictionary<int, AchievementState>
+        {
+            [1] = new(1, AchievementStatus.Completed, 10, now.AddDays(-9)),
+            [2] = new(2, AchievementStatus.Completed, 20, now.AddDays(-3)),
+            [3] = new(3, AchievementStatus.InProgress, 8_601, null),
+            [10] = new(10, AchievementStatus.Completed, 1, now.AddDays(-2)),
+        },
+        new Dictionary<int, AchievementGain>(),
+        now)
+    {
+        Confirmed = true,
+    };
+
+    [Theory]
+    [InlineData(420)]
+    [InlineData(1280)]
+    public void A_journal_rows_progress_fits_its_column_and_a_secret_chains_star_hands_the_focus_on(double width) => LocBindingTests.Headless.Run(() =>
+    {
+        Loc.Instance.SetLanguage(Loc.Russian);
+        var (window, view, model, theme) = Open(width, Edges(DateTime.UtcNow));
+        try
+        {
+            model.Settings.TrackedAchievements = [10];
+            model.SetAchievements(null);
+            model.SetAchievements(Edges(DateTime.UtcNow));
+            Assert.True(SpinWait.SpinUntil(() =>
+            {
+                Dispatcher.UIThread.RunJobs();
+                return model.AchievementsWork.IsCompleted;
+            }, TimeSpan.FromSeconds(30)));
+            var page = Page(view);
+            page.ShowBrowse();
+            PageRowsPanelAvaloniaTests.Settle(window);
+
+            // Each row's first line - the check, "All levels completed" (compact: "Completed") or "8,601 of 10,000" - fits
+            // the column (176, compact 120) instead of running past the row (review m7).
+            var columns = page.BrowseRows.GetVisualDescendants().OfType<StackPanel>().Where(p => p.Classes.Contains("browseProgress") && p.IsEffectivelyVisible).ToList();
+            Assert.Equal(2, columns.Count); // the secret chain has no progress column
+            foreach (var column in columns)
+            {
+                var line = column.Children.OfType<StackPanel>().First();
+                var texts = line.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text)).ToList();
+                var needed = texts.Sum(t => Natural(t) + t.Margin.Left + t.Margin.Right);
+                Assert.True(needed <= column.Bounds.Width + 0.5, $"{string.Join(" ", texts.Select(t => t.Text))}: {needed} > {column.Bounds.Width}");
+            }
+
+            // Compact: a name takes two lines (its description is in the row's tip), else one line and the description.
+            var name = page.BrowseRows.GetVisualDescendants().OfType<TextBlock>().First(t => t.Classes.Contains("browseName"));
+            Assert.Equal(width < 900 ? (TextWrapping.Wrap, 2) : (TextWrapping.NoWrap, 0), (name.TextWrapping, name.MaxLines));
+
+            var done = model.AchievementBrowseRows.OfType<AchievementRow>().Single(r => r.HeadId == 1);
+            Assert.Contains(page.BrowseRows.GetVisualDescendants().OfType<TextBlock>(),
+                t => t.IsEffectivelyVisible && t.Text == (width < 900 ? done.ProgressShort : done.ProgressText));
+
+            // The tracked secret chain's star in the journal: pressed from the keyboard it goes with its tracking, and the
+            // focus moves on instead of falling out of the page (review n9).
+            var star = page.BrowseRows.GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("star") && b.DataContext is AchievementRow { HeadId: 10 });
+            Assert.True(star.IsEffectivelyVisible);
+            Assert.True(star.Focus(NavigationMethod.Tab));
+            star.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            star.Command!.Execute(star.CommandParameter);
+            PageRowsPanelAvaloniaTests.Settle(window);
+            Assert.Empty(model.Settings.TrackedAchievements);
+            Assert.False(star.IsEffectivelyVisible);
+            var focused = TopLevel.GetTopLevel(view)!.FocusManager!.GetFocusedElement();
+            Assert.NotNull(focused);
+            Assert.NotSame(star, focused);
+        }
+        finally
+        {
+            window.Close();
+            Avalonia.Application.Current!.Styles.Remove(theme);
+        }
+    });
+
+    private static double Natural(TextBlock text)
+    {
+        var probe = new TextBlock { Text = text.Text, FontSize = text.FontSize, FontFamily = text.FontFamily, FontWeight = text.FontWeight };
+        probe.Measure(Size.Infinity);
+        return probe.DesiredSize.Width * GlyphScale;
+    }
 
     [Fact]
     public void The_status_line_is_read_out_and_without_a_book_the_empty_state_says_why() => LocBindingTests.Headless.Run(() =>
