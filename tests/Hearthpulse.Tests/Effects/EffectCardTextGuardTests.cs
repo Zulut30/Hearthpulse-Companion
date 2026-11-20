@@ -222,6 +222,25 @@ public sealed class EffectCardTextGuardTests
         ("BG27_Reward_802", "Your Battlecries trigger an extra time.", null),
         ("BG27_Reward_803", "Your Deathrattles trigger an extra time.", null),
         ("BG28_Reward_501", "Your Tavern spells cast an extra time.", null),
+        // E6a: Timewarped minions and rewards out of today's pool.
+        ("BG34_Giant_027", "Whenever a friendly minion is attacked, give it +8 Attack permanently.", "Whenever a friendly minion is attacked, give it +16 Attack permanently."),
+        ("BG34_Giant_104", "Deathrattle: Give this minion's Blood Gems to 2 different friendly Quilboar.", "Deathrattle: Give this minion's Blood Gems to 2 different friendly Quilboar, twice."),
+        ("BG34_Giant_362", "Deathrattle: Your Beasts have +4/+4 this game", "Deathrattle: Your Beasts have +8/+8 this game"),
+        ("BG34_Giant_656", "After a friendly minion loses Divine Shield, give your minions +3/+3 permanently.", "After a friendly minion loses Divine Shield, give your minions +6/+6 permanently."),
+        ("BG34_Giant_068", "Rally: Give a different friendly minion Divine Shield permanently.", "Rally: Give 2 different friendly minions Divine Shield permanently."),
+        ("BG34_Giant_024", "After a friendly minion is Reborn, give your minions +2/+2 permanently.", "After a friendly minion is Reborn, give your minions +4/+4 permanently."),
+        ("BG34_PreMadeChamp_056", "After you summon a minion in combat, get a copy of Deep Blues.", "After you summon a minion in combat, get 2 copies of Deep Blues."),
+        ("BG34_Giant_031", "Deathrattle: Give a friendly Beast +1/+1 and this Deathrattle.", "Deathrattle: Give a friendly Beast +2/+2 and this Deathrattle."),
+        ("BG34_Giant_619", "Deathrattle: Summon and get a minion from a random opponent's warband.", "Deathrattle: Summon and get a minion from a random opponent's warband, twice."),
+        ("BG34_Giant_592", "Deathrattle: Give a random friendly minion Windfury, Divine Shield, and Taunt.", "Deathrattle: Give 2 random friendly minions Windfury, Divine Shield, and Taunt."),
+        ("BG34_Giant_010", "Deathrattle: Give this minion's maximum stats to another friendly minion.", "Deathrattle: Give this minion's maximum stats to another friendly minion, twice."),
+        ("BG34_Treasure_994", "Also damages adjacent minions.", "Also damages adjacent minions."),
+        ("BG27_Reward_502", "Avenge (3): Deal 10 damage to the highest-Health enemy minion.", null),
+        ("BG24_Reward_113", "After a friendly Deathrattle minion dies, give it +5/+5 permanently.", null),
+        ("BG28_Reward_518", "Avenge (7): When you have space, summon a 50/50 Amalgam.", null),
+        ("BG24_Reward_125", "Your minions have +4 Attack.", null),
+        ("BG28_Reward_505", "Whenever you summon a minion in combat, give it +4/+4. Avenge (4): Improve this permanently.", null),
+        ("BG24_Reward_364", "Your minions have +7/+7. After they attack, they die.", null),
         ("BG27_Anomaly_802", "Your Battlecries and Deathrattles trigger an extra time.", null),
 
         // player/: hero powers and trinkets (no golden version). Text with a number the code uses, or the rule it follows.
@@ -296,6 +315,8 @@ public sealed class EffectCardTextGuardTests
         ("BG27_Quest_801", "total Attack.", null),
         ("BG27_Quest_802", "enemy minions.", null),
         ("BG28_Quest_500", "Quest: Cast", null),
+        ("BG24_Quest_318", "Quest: Have a friendly Taunt minion attacked", null),
+        ("BG24_Quest_320", "Quest: Trigger", null),
 
         // Relevance audit (AUDIT2, 2026-11-19): Timewarped minions, buddies, hero-power minions, trinkets and the enchantments
         // Start of Combat cards give (TimewarpedAudit.cs, AuditPlayerCards.cs, Buddies.cs, HeroPowerUnits.cs and others).

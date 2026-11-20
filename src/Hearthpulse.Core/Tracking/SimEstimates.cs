@@ -31,11 +31,11 @@ internal static class SimEstimates
          "BG32_MagicItem_808", "BG32_MagicItem_808t"];
 
     // Player cards whose number grows over the game and an effect reads (Effects/player/GrowingValues and E3 trinkets): All-
-    // Purpose Kibble, Hammer of Twilight, Snarky Portrait, Fang Anklet, Broodmother, Dazzling Dagger; Tentacular only when a
-    // Tentacle is owed.
+    // Purpose Kibble, Hammer of Twilight, Snarky Portrait, Fang Anklet, Broodmother, Dazzling Dagger, the reward Tumbling
+    // Disaster; Tentacular only when a Tentacle is owed.
     private static readonly string[] GrowingPlayerCards =
         ["BG32_MagicItem_200", "BG36_MagicItem_403", "BG36_MagicItem_403t", "BG36_MagicItem_450", "BG35_MagicItem_701", "BG22_HERO_305p",
-         "BG32_MagicItem_934"];
+         "BG32_MagicItem_934", "BG28_Reward_505"];
 
     // Cards whose text shows the player's Beetle ("{0}/{1} Beetle"), Timewarped Nest Swarmer (same Beetle, printed 2/2) and
     // Beetle Band, which summon the player's Beetle.
@@ -53,6 +53,12 @@ internal static class SimEstimates
         if (side.LobbyTribes == Tribe.None && side.Minions.Any(m => m.CardId == Ghastcoiler))
         {
             estimates.Add(new SimEstimate(SimInputs.LobbyTribes, 0, 0, "lobby tribes not read from the client: every tribe of the pool"));
+        }
+
+        if (side.Minions.Any(m => m.CardId == SimInputs.Magnanimoose))
+        {
+            estimates.Add(new SimEstimate(SimInputs.OpponentWarband, 0, 0,
+                                          "a random opponent's warband: this fight's opponent's board at the start of combat"));
         }
 
         if (!isOpponent)
