@@ -167,6 +167,8 @@
   "Overlay.Odds.Estimated.DuosOpponentTeammate": "Борт напарника соперника (последний увиденный)",
   "Overlay.Odds.Estimated.DuosPartnerBoard": "Второй борт вашей команды (последний увиденный)",
   "Overlay.Odds.Estimated.OpponentSecrets": "Секреты соперника (известно только, сколько их)",
+  "Overlay.Odds.Estimated.ProgressLeft": "Прогресс соперника на карте «после N…»",
+  "Overlay.Odds.Estimated.HeroPowerUsed": "Использована ли сила героя «в следующем бою»",
   "Overlay.Odds.Estimated.Other": "Другие значения",
   "Overlay.Odds.Cap": "{0} · урон по герою ограничен: {1}",
   "Overlay.Odds.DamageWinTip": "При победе сопернику в среднем {0:0.#} урона: {1}–{2} в 8 боях из 10, максимум {3}",

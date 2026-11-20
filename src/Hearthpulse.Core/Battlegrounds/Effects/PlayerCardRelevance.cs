@@ -34,8 +34,8 @@ internal static class PlayerCardTable
         Tavern("BG36_MidGameEffect_000t80e", "GIFT_RALLY_TAVERN", "Consanguinity"),
 
         // ---- Jim Raynor's Battlecruiser upgrades (relevance audit 2026-11-19): the enchantment an upgrade leaves on the
-        // Battlecruiser. The Rally's and the Deathrattle's number is the enchantment's script data, which the capture does not
-        // keep (SimMinion.Enchantments holds ids): no effect yet, the granted marker flags the fight.
+        // Battlecruiser. The Rally's and the Deathrattle's number is the enchantment's, kept in the capture
+        // (SimMinion.EnchantmentValues, format 2; Effects/ongoing/BattlecruiserUpgrades).
         Relevant("BG31_HERO_801ptde", "BC_RALLY_BUFF", "Advanced Ballistics"),
         Relevant("BG31_HERO_801ptee", "BC_DR_BUFF", "Caduceus Reactor"),
         Relevant("BG31_HERO_801ptje", "BC_REBORN_FULL", "Ultra-Capacitor"),
@@ -48,8 +48,19 @@ internal static class PlayerCardTable
         Relevant("BG23_HERO_201p", "HP_SPACE_SUMMON", "Tentacular"),
         Relevant("BG20_HERO_100p", "HP_KILL_BUFF", "Glory of Combat"),
         // Relevance audit 2026-11-19: "When you have space next combat, fire it at a random enemy minion" acts after the
-        // capture when the board is full at Start of Combat; what "fire it" does is not established (no log), no effect yet.
+        // capture when the board is full at Start of Combat; what "fire it" does is not established (no log): the effect
+        // reports missing_input then (Effects/player/ProgressCards, LockAndLoad).
         Relevant("BG22_HERO_000p_Alt", "HP_SPACE_FIRE", "Lock and Load"),
+        // E7b: "After N friendly minions die / you summon N Beasts, get a random X" and "Next combat, get a copy of the first
+        // minion you kill": the card got in combat feeds "whenever a card is added to your hand" (Effects/player/ProgressCards).
+        Relevant("BG22_HERO_200p", "HP_PROGRESS_GET", "MechGyver"),
+        Relevant("TB_BaconShop_HP_053", "HP_KILL_GET", "I'll Take That!"),
+        Relevant("BG30_MagicItem_931", "TR_PROGRESS_GET", "Lucky Tabby"),
+        Relevant("BG30_MagicItem_713", "TR_PROGRESS_GET", "Bleeding Heart"),
+        Relevant("BG35_MagicItem_302", "TR_PROGRESS_GET", "Stormcoil Sticker"),
+        Relevant("BG35_MagicItem_700", "TR_PROGRESS_GET", "Wildfeather Duster"),
+        // E7b: "Your Dragons' Battlecries trigger an extra time": a Battlecry triggered in combat (Timewarped Greenskeeper).
+        Relevant("BG36_MagicItem_215", "TR_BATTLECRY_EXTRA", "Dragon's Eye"),
 
         // ---- Trinkets with a combat trigger or an aura that reaches minions summoned in combat.
         Relevant("BG30_MagicItem_427", "TR_DAMAGE_BUFF", "Tiger Carving"),

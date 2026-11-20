@@ -414,6 +414,32 @@ public sealed class EffectCardTextGuardTests
         ("TB_BaconShop_HERO_92_Buddy", "After you summon a minion of your Tier, give your minions +1/+1.", "After you summon a minion of your Tier, give your minions +2/+2."),
         ("TB_BaconShop_HERO_95_Buddy", "Whenever a friendly Taunt minion is attacked, give your minions +1/+1 permanently.", "Whenever a friendly Taunt minion is attacked, give your minions +2/+2 permanently."),
         ("TB_BaconShop_HP_105t", "After a different friendly Deathrattle minion dies in combat, gain its Deathrattle.", "After a different friendly Deathrattle minion dies in combat, gain its Deathrattle twice."),
+
+        // E7b (2026-11-20): buddies, Battlecruiser upgrades with the enchantment's number, "after N …" cards, Dragon's Eye, Lock
+        // and Load (CombatBuddies.cs, BattlecruiserUpgrades.cs, ProgressCards.cs, TimewarpedBoar.cs).
+        ("TB_BaconShop_HERO_08_Buddy", "Your first minion that attacks has \"Immune while Attacking\" for one attack only.", "Your first two minions that attack have \"Immune while Attacking\" for one attack only."),
+        ("TB_BaconShop_HERO_17_Buddy", "Deathrattle: Deal 4 damage to a random enemy minion for each of your Mechs that died this combat.", "Deathrattle: Deal 8 damage to a random enemy minion for each of your Mechs that died this combat."),
+        ("TB_BaconShop_HERO_702_Buddy", "Deathrattle: Summon 2 random Undead.", "Deathrattle: Summon 4 random Undead."),
+        ("TB_BaconShop_HERO_43_Buddy", "Deathrattle: Summon and get a random Battlecry minion.", "Deathrattle: Summon and get 2 random Battlecry minions."),
+        ("TB_BaconShop_HERO_41_Buddy", "Deathrattle: Make your right-most minion Golden.", "Deathrattle: Make your two right-most minions Golden."),
+        ("BG22_HERO_001_Buddy", "After you call upon a new Element, this remembers it. Deathrattle: Call upon those Elements.", "Deathrattle: Call upon those Elements twice."),
+        ("BG22_HERO_001p_t1", "Give 4 random friendly minions \"Deathrattle: Summon a 1/1 Elemental.\"", null),
+        ("BG22_HERO_001p_t2", "Double your left-most minion's Attack.", null),
+        ("BG22_HERO_001p_t3", "Give your right-most minion Divine Shield and Taunt.", null),
+        ("BG22_HERO_001p_t4", "Deal 1 damage to 5 random enemy minions.", null),
+        ("BG31_HERO_801ptde", "Rally: Give your other minions +0 Attack.", null),
+        ("BG31_HERO_801ptd", "Rally: Give your other minions +2 Attack.", null),
+        ("BG31_HERO_801ptee", "Deathrattle: Give your left-most minion +0/+0.", null),
+        ("BG31_HERO_801pte", "Deathrattle: Give your left-most minion +1/+1.", null),
+        ("BG30_MagicItem_931", "After 6 friendly minions die, get a random Beast. (6 left!)", null),
+        ("BG30_MagicItem_713", "After 8 friendly minions die, get a random Undead. (8 left!)", null),
+        ("BG35_MagicItem_302", "After 5 friendly minions die, get a random Mech. (5 left!)", null),
+        ("BG35_MagicItem_700", "After you summon 6 Beasts, get a random Beast. (6 left!)", null),
+        ("BG22_HERO_200p", "After 9 friendly minions die, get a random Mech.", null),
+        ("BG36_MagicItem_215", "Your Dragons' Battlecries trigger an extra time.", null),
+        ("TB_BaconShop_HP_053", "Next combat, get a plain copy of the first minion you kill.", null),
+        ("BG22_HERO_000p_Alt", "When you have space next combat, fire it at a random enemy minion.", null),
+        ("BG34_Giant_201", "Whenever every third friendly Timewarped Boar dies, get a random Golden Beast.", "Whenever every third friendly Timewarped Boar dies, get 2 random Golden Beasts."),
     ];
 
     /// <summary>Tokens the effects summon with printed stats from <see cref="Tokens"/>: card id and factory.</summary>

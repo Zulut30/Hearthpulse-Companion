@@ -67,6 +67,7 @@ internal sealed class HarmlessBonehead : CombatEffect
 | `Refresh(f, self)` | re-check state-dependent keywords/thresholds ("Taunt while it has Divine Shield", "once this reaches 6 Attack") after stat changes and board changes |
 | `Battlecry(f, self)` | self's Battlecry when an effect triggers it in combat (`Fight.TriggerBattlecry`); once per trigger |
 | `ExtraBattlecries(f, self)` | "Your Battlecries trigger twice" while self is alive (Brann: 1, golden 2); copies do not add up, the largest wins |
+| `AddedBattlecries(f, self, source)` | extra triggers of `source`'s Battlecry that add up on top of the largest `ExtraBattlecries` (Dragon's Eye: 1 for a Dragon) |
 | `AfterFriendlyBattlecry(f, self, source)` | after each friendly Battlecry trigger in combat, multipliers included ("after you trigger a Battlecry") |
 | `ExtraSpellCasts(f, self, spellId, target)` | extra casts of a spell the owner casts in combat while self is alive (Balinda: 1 for a friendly target, golden 2); the largest wins |
 | `AfterFriendlyGainedStats(f, self, unit, atk, hp)` | a friendly minion gained stats from `Fight.Buff` (the positive part; auras and summon buffs are not reported): Mishmash |
@@ -105,7 +106,8 @@ returns to 0 when Avenge fires).
   (including ones summoned later this combat)" also call `side.AddSummonBuff(tribe, atk, hp)`.
 - Damage: `DealDamage(source, target, amount)` (Divine Shield, Poisonous and Venomous apply; the target dies at the
   next death phase), `Destroy(target, source)`, `unit.Killer`.
-- Attacks: `AttackNow(attacker, target)` (synchronous, out of turn: "summon X to attack the target first"),
+- Attacks: `GiveImmuneForThisAttack(attacker)` ("Immune while Attacking" for one attack only: Eclipsion Illidari),
+  `AttackNow(attacker, target)` (synchronous, out of turn: "summon X to attack the target first"),
   `AttackSoon(attacker)` ("attacks immediately": right after the current attack).
 - Deathrattles: `TriggerDeathrattles(unit, times, withMultiplier)`; `DeathrattleTriggers(side)`;
   `unit.HasDeathrattle`, `unit.IsRally`, `unit.AddEffect(effect)` (gain another minion's deathrattle).

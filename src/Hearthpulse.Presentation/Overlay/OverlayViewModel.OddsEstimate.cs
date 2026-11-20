@@ -51,6 +51,8 @@ public sealed partial class OverlayViewModel
         SimInputs.DuosOpponentTeammate => Loc.T("Overlay.Odds.Estimated.DuosOpponentTeammate"),
         SimInputs.DuosPartnerBoard => Loc.T("Overlay.Odds.Estimated.DuosPartnerBoard"),
         SimInputs.OpponentSecrets => Loc.T("Overlay.Odds.Estimated.OpponentSecrets"),
+        SimInputs.ProgressLeft => Loc.T("Overlay.Odds.Estimated.ProgressLeft"),
+        SimInputs.HeroPowerUsed => Loc.T("Overlay.Odds.Estimated.HeroPowerUsed"),
         _ => Loc.T("Overlay.Odds.Estimated.Other"),
     };
 }

@@ -1790,6 +1790,17 @@
       "added": "2026-11-19",
       "why": "relevance audit (AUDIT2), hsbg.cards buddy: Tavern only (buy, sell, play, end or start of turn, Hero Power, hand)",
       "origin": "token"
+    },
+    {
+      "id": "BG34_Giant_201",
+      "golden_id": "BG34_Giant_201_G",
+      "name": "Timewarped Boar",
+      "category": "ON_DEATH_GET",
+      "combat_relevant": "y",
+      "text": "Whenever every third friendly Timewarped Boar dies, get a random Golden Beast. (0 left!)",
+      "added": "2026-11-20",
+      "why": "E7b: the reward is got in combat, so it feeds \"whenever a card is added to your hand\" (The Shadow of Doubt, Timewarped Peggy); the count is the player's (BG34_Giant_201pe)",
+      "origin": "heuristic"
     }
   ]
 }

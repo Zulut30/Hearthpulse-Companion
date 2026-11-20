@@ -159,6 +159,9 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // still 489D3D39263EF5AB.
         // 2026-11-20 (E7a sim-secrets): 16 new effect ids (Battlegrounds Secrets, Effigy's minion pool) change the boards; with
         // a registry without the Effects.Secrets classes (checked) the fingerprint is still 43FD0B665D26A503.
-        Assert.Equal("fights BBF525D8BC9D5EA9", actual);
+        // 2026-11-20 (E7b sim-buddies-and-gaps): 17 new effect ids (six buddies, two Battlecruiser upgrades, Dragon's Eye, five
+        // "after N" cards, I'll Take That!, Lock and Load, Timewarped Boar) change the boards; with a registry without those
+        // classes (checked) the fingerprint is still 43FD0B665D26A503.
+        Assert.Equal("fights B02ADDE88B459D12", actual);
     }
 }

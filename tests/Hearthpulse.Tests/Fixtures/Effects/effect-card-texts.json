@@ -128,9 +128,51 @@
     "health": 2
    }
   },
+  "BG22_HERO_000p_Alt": {
+   "name": "Lock and Load",
+   "text": "Remove a minion in the Tavern. When you have space next combat, fire it at a random enemy minion.",
+   "attack": null,
+   "health": null
+  },
+  "BG22_HERO_001_Buddy": {
+   "name": "Spirit Raptor",
+   "text": "After you call upon a new Element, this remembers it. Deathrattle: Call upon those Elements.",
+   "attack": 3,
+   "health": 2,
+   "golden": {
+    "id": "BG22_HERO_001_Buddy_G",
+    "text": "After you call upon a new Element, this remembers it. Deathrattle: Call upon those Elements twice.",
+    "attack": 6,
+    "health": 4
+   }
+  },
+  "BG22_HERO_001p_t1": {
+   "name": "Earth Invocation",
+   "text": "Start of Combat: Give 4 random friendly minions \"Deathrattle: Summon a 1/1 Elemental.\"",
+   "attack": null,
+   "health": null
+  },
   "BG22_HERO_001p_t1e": {
    "name": "Element: Earth",
    "text": "Deathrattle: Summon a 1/1 Elemental.",
+   "attack": null,
+   "health": null
+  },
+  "BG22_HERO_001p_t2": {
+   "name": "Fire Invocation",
+   "text": "Start of Combat: Double your left-most minion's Attack.",
+   "attack": null,
+   "health": null
+  },
+  "BG22_HERO_001p_t3": {
+   "name": "Water Invocation",
+   "text": "Start of Combat: Give your right-most minion Divine Shield and Taunt.",
+   "attack": null,
+   "health": null
+  },
+  "BG22_HERO_001p_t4": {
+   "name": "Lightning Invocation",
+   "text": "Start of Combat: Deal 1 damage to 5 random enemy minions.",
    "attack": null,
    "health": null
   },
@@ -143,6 +185,12 @@
   "BG22_HERO_003p": {
    "name": "Stormpike Strength",
    "text": "When you have space in combat, summon a copy of your highest-Health minion. (Unlocks on Turn 7.)",
+   "attack": null,
+   "health": null
+  },
+  "BG22_HERO_200p": {
+   "name": "MechGyver",
+   "text": "After 9 friendly minions die, get a random Mech.",
    "attack": null,
    "health": null
   },
@@ -878,6 +926,12 @@
    "attack": null,
    "health": null
   },
+  "BG30_MagicItem_713": {
+   "name": "Bleeding Heart",
+   "text": "After 8 friendly minions die, get a random Undead. (8 left!)",
+   "attack": null,
+   "health": null
+  },
   "BG30_MagicItem_803": {
    "name": "Kaboom Bot Portrait",
    "text": "Get a Kaboom Bot. Your Kaboom Bots' Deathrattles deal 10 extra damage.",
@@ -935,6 +989,12 @@
   "BG30_MagicItem_925": {
    "name": "Ceremonial Sword",
    "text": "Whenever a friendly minion attacks, give it +4 Attack.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_931": {
+   "name": "Lucky Tabby",
+   "text": "After 6 friendly minions die, get a random Beast. (6 left!)",
    "attack": null,
    "health": null
   },
@@ -1057,6 +1117,30 @@
     "attack": 32,
     "health": 8
    }
+  },
+  "BG31_HERO_801ptd": {
+   "name": "Advanced Ballistics",
+   "text": "Give your Battlecruiser \"Rally: Give your other minions +2 Attack.\"",
+   "attack": null,
+   "health": null
+  },
+  "BG31_HERO_801ptde": {
+   "name": "Advanced Ballistics",
+   "text": "Rally: Give your other minions +0 Attack.",
+   "attack": null,
+   "health": null
+  },
+  "BG31_HERO_801pte": {
+   "name": "Caduceus Reactor",
+   "text": "Give your Battlecruiser \"Deathrattle: Give your left-most minion +1/+1.\"",
+   "attack": null,
+   "health": null
+  },
+  "BG31_HERO_801ptee": {
+   "name": "Caduceus Reactor",
+   "text": "Deathrattle: Give your left-most minion +0/+0.",
+   "attack": null,
+   "health": null
   },
   "BG31_HERO_801ptje": {
    "name": "Ultra-Capacitor",
@@ -1862,6 +1946,18 @@
     "health": 16
    }
   },
+  "BG34_Giant_201": {
+   "name": "Timewarped Boar",
+   "text": "Whenever every third friendly Timewarped Boar dies, get a random Golden Beast. (0 left!)",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BG34_Giant_201_G",
+    "text": "Whenever every third friendly Timewarped Boar dies, get 2 random Golden Beasts. (0 left!)",
+    "attack": 2,
+    "health": 2
+   }
+  },
   "BG34_Giant_202": {
    "name": "Timewarped Saurolisk",
    "text": "After you trigger a Deathrattle, gain +3/+2 permanently.",
@@ -2462,6 +2558,12 @@
     "health": 2
    }
   },
+  "BG35_MagicItem_302": {
+   "name": "Stormcoil Sticker",
+   "text": "After 5 friendly minions die, get a random Mech. (5 left!)",
+   "attack": null,
+   "health": null
+  },
   "BG35_MagicItem_430": {
    "name": "Scrapsmith Portrait",
    "text": "Get a Bristlemane Scrapsmith. After a friendly minion with Taunt dies, play a permanent Blood Gem on your Scrapsmiths.",
@@ -2471,6 +2573,12 @@
   "BG35_MagicItem_432": {
    "name": "Blood Amulet",
    "text": "After you trigger a Deathrattle, this plays a permanent Blood Gem on 3 random friendly minions.",
+   "attack": null,
+   "health": null
+  },
+  "BG35_MagicItem_700": {
+   "name": "Wildfeather Duster",
+   "text": "After you summon 6 Beasts, get a random Beast. (6 left!)",
    "attack": null,
    "health": null
   },
@@ -3080,6 +3188,12 @@
    "attack": null,
    "health": null
   },
+  "BG36_MagicItem_215": {
+   "name": "Dragon's Eye",
+   "text": "Your Dragons' Battlecries trigger an extra time.",
+   "attack": null,
+   "health": null
+  },
   "BG36_MagicItem_216": {
    "name": "Eternal Portrait",
    "text": "Get a Golden Eternal Knight. After a friendly Undead dies, your Eternal Knights have +4/+2 this game.",
@@ -3398,6 +3512,30 @@
     "health": 8
    }
   },
+  "TB_BaconShop_HERO_08_Buddy": {
+   "name": "Eclipsion Illidari",
+   "text": "Your first minion that attacks has \"Immune while Attacking\" for one attack only.",
+   "attack": 6,
+   "health": 3,
+   "golden": {
+    "id": "TB_BaconShop_HERO_08_Buddy_G",
+    "text": "Your first two minions that attack have \"Immune while Attacking\" for one attack only.",
+    "attack": 12,
+    "health": 6
+   }
+  },
+  "TB_BaconShop_HERO_17_Buddy": {
+   "name": "Elementium Squirrel Bomb",
+   "text": "Deathrattle: Deal 4 damage to a random enemy minion for each of your Mechs that died this combat.",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "TB_BaconShop_HERO_17_Buddy_G",
+    "text": "Deathrattle: Deal 8 damage to a random enemy minion for each of your Mechs that died this combat.",
+    "attack": 8,
+    "health": 8
+   }
+  },
   "TB_BaconShop_HERO_18_Buddy": {
    "name": "Tuskarr Raider",
    "text": "Battlecry, Deathrattle, and Rally: Get a random Bounty.",
@@ -3470,6 +3608,30 @@
     "health": 4
    }
   },
+  "TB_BaconShop_HERO_41_Buddy": {
+   "name": "Sr. Tomb Diver",
+   "text": "Taunt Deathrattle: Make your right-most minion Golden.",
+   "attack": 5,
+   "health": 1,
+   "golden": {
+    "id": "TB_BaconShop_HERO_41_Buddy_G",
+    "text": "Taunt Deathrattle: Make your two right-most minions Golden.",
+    "attack": 10,
+    "health": 2
+   }
+  },
+  "TB_BaconShop_HERO_43_Buddy": {
+   "name": "Brann's Epic Egg",
+   "text": "Taunt Deathrattle: Summon and get a random Battlecry minion.",
+   "attack": 0,
+   "health": 3,
+   "golden": {
+    "id": "TB_BaconShop_HERO_43_Buddy_G",
+    "text": "Taunt Deathrattle: Summon and get 2 random Battlecry minions.",
+    "attack": 0,
+    "health": 6
+   }
+  },
   "TB_BaconShop_HERO_45_Buddy": {
    "name": "Loyal Henchman",
    "text": "After you kill a second minion each combat, get a plain copy of it.",
@@ -3516,6 +3678,18 @@
     "text": "Rally: Get 2 random Dragons.",
     "attack": 12,
     "health": 12
+   }
+  },
+  "TB_BaconShop_HERO_702_Buddy": {
+   "name": "Mawsworn Soulkeeper",
+   "text": "Deathrattle: Summon 2 random Undead.",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "TB_BaconShop_HERO_702_Buddy_G",
+    "text": "Deathrattle: Summon 4 random Undead.",
+    "attack": 4,
+    "health": 4
    }
   },
   "TB_BaconShop_HERO_76_Buddy": {
@@ -3565,6 +3739,12 @@
     "attack": 4,
     "health": 4
    }
+  },
+  "TB_BaconShop_HP_053": {
+   "name": "I'll Take That!",
+   "text": "Next combat, get a plain copy of the first minion you kill.",
+   "attack": null,
+   "health": null
   },
   "TB_BaconShop_HP_105t": {
    "name": "Fish of N'Zoth",

@@ -219,6 +219,12 @@ public abstract class CombatEffect
     /// <summary>Extra times friendly Battlecries trigger while this minion is alive (Brann Bronzebeard: 1, golden 2).</summary>
     public virtual int ExtraBattlecries(Fight fight, Unit self) => 0;
 
+    /// <summary>
+    /// Extra triggers of <paramref name="source"/>'s Battlecry that add up, on top of the largest
+    /// <see cref="ExtraBattlecries"/> ("Your Dragons' Battlecries trigger an extra time": Dragon's Eye gives 1 for a Dragon).
+    /// </summary>
+    public virtual int AddedBattlecries(Fight fight, Unit self, Unit source) => 0;
+
     /// <summary>After one friendly Battlecry trigger in combat (per trigger, multipliers included): "after you trigger a Battlecry".</summary>
     public virtual void AfterFriendlyBattlecry(Fight fight, Unit self, Unit source) { }
 
@@ -306,6 +312,7 @@ public abstract class CombatEffect
         (nameof(Refresh), Hook.Refresh),
         (nameof(Battlecry), Hook.Battlecry),
         (nameof(ExtraBattlecries), Hook.ExtraBattlecries),
+        (nameof(AddedBattlecries), Hook.AddedBattlecries),
         (nameof(AfterFriendlyBattlecry), Hook.FriendlyBattlecry),
         (nameof(ExtraSpellCasts), Hook.ExtraSpellCasts),
         (nameof(AfterFriendlyGainedStats), Hook.FriendlyGainedStats),
@@ -382,4 +389,6 @@ internal enum Hook : long
     VenomLost = 1L << 37,
     FriendlyDamaged = 1L << 38,
     SummonDidNotFit = 1L << 39,
+    // Package E7b's bits are 56-60.
+    AddedBattlecries = 1L << 56,
 }
