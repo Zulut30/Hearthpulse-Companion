@@ -104,22 +104,6 @@ public sealed partial record SimMinion(
             BaseKeywords = keywords,
             Mechanics = mechanics,
         };
-
-    /// <summary>
-    /// What Reborn brings back: a fresh copy of the card with its printed Attack, 1 Health and its printed keywords
-    /// (not buffs, not enchantments), golden if the minion was golden, without Reborn. Its maximum Health is the printed
-    /// Health, so it is a damaged minion (Power.log: HEALTH = printed, DAMAGE = printed - 1; rules-evidence 4e, 12 copies).
-    /// </summary>
-    public SimMinion RebornCopy() =>
-        Create(CardId, RebornAttack, 1, Tribes, BaseKeywords & ~Keyword.Reborn, Golden, Mechanics) with
-        {
-            MaxHealth = Math.Max(1, BaseHealth),
-            BaseHealth = BaseHealth,
-            TechLevel = TechLevel,
-            // A fresh copy shows the card's base script data: the captured one where it never changes (FixedScriptDataCards).
-            ScriptData1 = FixedScriptDataCards.Contains(CardId) ? ScriptData1 : 0,
-            ScriptData2 = FixedScriptDataCards.Contains(CardId) ? ScriptData2 : 0,
-        };
 }
 
 /// <summary>

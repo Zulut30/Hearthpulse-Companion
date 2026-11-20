@@ -46,35 +46,98 @@ public sealed partial class Fight
 
     private const Hook DamageHooks = Hook.Damaged | Hook.FriendlyDealtDamage | Hook.Kill | Hook.ShieldLost | Hook.FriendlyDamaged | Hook.VenomLost;
 
-    private readonly EffectRegistry _registry;
-    private readonly List<string>? _log;
-    private readonly List<Unit> _dead;
+    private EffectRegistry _registry;
+    private List<string>? _log;
+    private List<Unit> _dead;
     // One observer buffer per nesting depth, so hooks can be dispatched without allocating.
-    private readonly Unit[]?[] _buffers;
-    private readonly ICombatChooser _chooser;
+    private Unit[]?[] _buffers;
+    private ICombatChooser _chooser;
+    private PreparedEffects _prepared;
+    // The thread's reusable objects when this fight is one of many on it (Batch.Work), else null.
+    private Scratch? _scratch;
     private Queue<Unit>? _queuedAttacks;
     private List<DamageEvent>? _batch;
     private int _batchDepth;
     private bool _inDeathPhase;
     private int _depth;
     private int _attacks;
-    private int _nextEntry = SimSummonEntry;
+    private int _nextEntry;
     private int _attacksInProgress;
 
     internal Fight(SimSide ours, SimSide theirs, EffectRegistry registry, ICombatChooser chooser, bool trace, PreparedEffects? prepared = null,
-                   Scratch? scratch = null)
+                   Scratch? scratch = null) =>
+        Init(ours, theirs, registry, chooser, trace, prepared, scratch);
+
+    /// <summary>
+    /// The thread's next fight of <paramref name="ours"/> against <paramref name="theirs"/>: the fight object, its two sides
+    /// and its units are the ones <paramref name="scratch"/> kept from the previous fight, set up again (<see cref="Init"/>),
+    /// so a run of many fights does not allocate them again. The previous fight of the scratch is gone after this call.
+    /// </summary>
+    internal static Fight Next(Scratch scratch, SimSide ours, SimSide theirs, EffectRegistry registry, ICombatChooser chooser, PreparedEffects prepared)
+    {
+        if (scratch.Fight is { } fight)
+        {
+            fight.Init(ours, theirs, registry, chooser, trace: false, prepared, scratch);
+            return fight;
+        }
+
+        return scratch.Fight = new Fight(ours, theirs, registry, chooser, trace: false, prepared, scratch);
+    }
+
+    /// <summary>
+    /// Sets every field as a new fight has it, reusing its sides and (with a scratch) the scratch's units. Assigns each
+    /// field, defaults included: <c>SimPoolResetTests</c> checks that no field of the fight, its sides or its units is
+    /// left out.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_registry), nameof(_dead), nameof(_buffers), nameof(_chooser), nameof(_prepared), nameof(Ours),
+        nameof(Theirs), nameof(Attacking))]
+    private void Init(SimSide ours, SimSide theirs, EffectRegistry registry, ICombatChooser chooser, bool trace, PreparedEffects? prepared,
+                      Scratch? scratch)
     {
         _registry = registry;
+        _scratch = scratch;
         _dead = scratch?.Dead ?? new List<Unit>();
+        _dead.Clear();
         _buffers = scratch?.Buffers ?? new Unit[MaxDepth + 8][];
+        _targets = scratch?.Targets;
+        _targets?.Clear();
+        if (scratch is not null)
+        {
+            scratch.UnitsUsed = 0;
+        }
+
         _chooser = chooser;
         _log = trace ? new List<string>() : null;
-        Ours = new Side(this, 0, ours);
-        Theirs = new Side(this, 1, theirs);
+        _queuedAttacks = null;
+        _batch = null;
+        _batchDepth = 0;
+        _inDeathPhase = false;
+        _depth = 0;
+        _attacks = 0;
+        _nextEntry = SimSummonEntry;
+        _attacksInProgress = 0;
+        _spell = default;
+        _casting = false;
+        Truncated = false;
+        EnteredFirst = null;
+
+        // A new fight has no sides yet (null here despite the type); a reused one sets its own up again.
+        if (Ours is null || Theirs is null)
+        {
+            Ours = new Side(this, 0, ours);
+            Theirs = new Side(this, 1, theirs);
+        }
+        else
+        {
+            Ours.Init(this, 0, ours);
+            Theirs.Init(this, 1, theirs);
+        }
+
         Ours.Enemy = Theirs;
         Theirs.Enemy = Ours;
         Attacking = Ours;
         prepared ??= PreparedEffects.For(ours, theirs, registry);
+        _prepared = prepared;
         Populate(Ours, ours, prepared.Ours, prepared.OurExtras);
         Populate(Theirs, theirs, prepared.Theirs, prepared.TheirExtras);
         if (ours.PlayerId > 0 && theirs.PlayerId > 0 && ours.PlayerId != theirs.PlayerId)
@@ -96,15 +159,33 @@ public sealed partial class Fight
     /// <summary>
     /// Effects of the captured minions and player-level cards, looked up once for many fights. A player-level card with an
     /// effect gets its holder's spec and effect array here too (both immutable: <see cref="Unit.AddEffect"/> replaces the
-    /// array), so a fight does not build them again; null for a card without an effect.
+    /// array), so a fight does not build them again; null for a card without an effect. For many fights
+    /// (<paramref name="RebornCopies"/>) also the <see cref="SimMinion.RebornCopy"/> of every captured minion, teammates
+    /// included, by spec reference: specs are immutable, so the fights share them.
     /// </summary>
-    internal sealed record PreparedEffects(CombatEffect[][] Ours, CombatEffect[][] Theirs, ExtraHolder?[] OurExtras, ExtraHolder?[] TheirExtras)
+    internal sealed record PreparedEffects(CombatEffect[][] Ours, CombatEffect[][] Theirs, ExtraHolder?[] OurExtras, ExtraHolder?[] TheirExtras,
+                                           IReadOnlyDictionary<SimMinion, SimMinion>? RebornCopies = null)
     {
-        public static PreparedEffects For(SimSide ours, SimSide theirs, EffectRegistry registry) => new(
+        public static PreparedEffects For(SimSide ours, SimSide theirs, EffectRegistry registry, bool manyFights = false) => new(
             ours.Minions.Select(registry.EffectsFor).ToArray(),
             theirs.Minions.Select(registry.EffectsFor).ToArray(),
             ours.Extras.Select(id => ExtraHolder.For(id, registry)).ToArray(),
-            theirs.Extras.Select(id => ExtraHolder.For(id, registry)).ToArray());
+            theirs.Extras.Select(id => ExtraHolder.For(id, registry)).ToArray(),
+            manyFights ? RebornCopiesOf(ours, theirs) : null);
+
+        private static Dictionary<SimMinion, SimMinion> RebornCopiesOf(SimSide ours, SimSide theirs)
+        {
+            var copies = new Dictionary<SimMinion, SimMinion>(ReferenceEqualityComparer.Instance);
+            foreach (var side in new[] { ours, ours.Teammate, theirs, theirs.Teammate })
+            {
+                foreach (var spec in side?.Minions ?? [])
+                {
+                    copies.TryAdd(spec, spec.RebornCopy());
+                }
+            }
+
+            return copies;
+        }
     }
 
     /// <summary>What a player-level effect holder is made from: a 0/0 spec of the card and its one effect.</summary>
@@ -123,13 +204,24 @@ public sealed partial class Fight
         internal List<Unit> Dead { get; } = new();
 
         internal Unit[]?[] Buffers { get; } = new Unit[MaxDepth + 8][];
+
+        /// <summary>The candidates of one attack's target pick (<c>PickTarget</c>), empty between picks.</summary>
+        internal List<Unit> Targets { get; } = new(Side.MaxMinions);
+
+        /// <summary>The thread's fight object, set up again for each fight (<see cref="Next"/>).</summary>
+        internal Fight? Fight { get; set; }
+
+        /// <summary>Units made by this thread's fights; the first <see cref="UnitsUsed"/> belong to the current fight.</summary>
+        internal List<Unit> Units { get; } = new();
+
+        internal int UnitsUsed { get; set; }
     }
 
     /// <summary>The local player's side.</summary>
-    public Side Ours { get; }
+    public Side Ours { get; private set; }
 
     /// <summary>The opponent's side.</summary>
-    public Side Theirs { get; }
+    public Side Theirs { get; private set; }
 
     /// <summary>
     /// Attacks being resolved right now: 0 between attacks, 1 during an attack, more for an attack started inside another
@@ -209,30 +301,56 @@ public sealed partial class Fight
         return outcome;
     }
 
-    private static void Populate(Side side, SimSide info, CombatEffect[][] effects, ExtraHolder?[] extras)
+    private void Populate(Side side, SimSide info, CombatEffect[][] effects, ExtraHolder?[] extras)
     {
         for (var i = 0; i < info.Minions.Count; i++)
         {
             var spec = info.Minions[i];
+            var unit = NewUnit(spec, side, effects[i], extra: false);
             // Order of play: starting minions left to right; Start of Combat summons after them, in creation order.
-            side.AddInitial(new Unit(spec, side, effects[i])
-            {
-                Entry = spec.SummonedInCombat ? CapturedSummonEntry + Math.Clamp(spec.EntityId, 0, 1 << 29) : i,
-                // Avenge progress brought from Start of Combat; a copy summoned later starts from 0.
-                AvengeCount = Math.Max(0, spec.FriendlyDeathsBeforeCapture),
-            });
+            unit.Entry = spec.SummonedInCombat ? CapturedSummonEntry + Math.Clamp(spec.EntityId, 0, 1 << 29) : i;
+            // Avenge progress brought from Start of Combat; a copy summoned later starts from 0.
+            unit.AvengeCount = Math.Max(0, spec.FriendlyDeathsBeforeCapture);
+            side.AddInitial(unit);
         }
 
         for (var i = 0; i < info.Extras.Count; i++)
         {
             if (extras[i] is { } holder)
             {
-                side.AddExtra(new Unit(holder.Spec, side, holder.Effects, extra: true));
+                side.AddExtra(NewUnit(holder.Spec, side, holder.Effects, extra: true));
             }
         }
     }
 
-    private Unit CreateUnit(SimMinion spec, Side side) => new(spec, side, _registry.EffectsFor(spec)) { Entry = _nextEntry++ };
+    /// <summary>A unit set up from <paramref name="spec"/>: one the scratch kept from an earlier fight when it has one, else new.</summary>
+    private Unit NewUnit(SimMinion spec, Side side, CombatEffect[] effects, bool extra)
+    {
+        if (_scratch is not { } scratch)
+        {
+            return new Unit(spec, side, effects, extra);
+        }
+
+        var units = scratch.Units;
+        if (scratch.UnitsUsed < units.Count)
+        {
+            var unit = units[scratch.UnitsUsed++];
+            unit.Init(spec, side, effects, extra);
+            return unit;
+        }
+
+        var made = new Unit(spec, side, effects, extra);
+        units.Add(made);
+        scratch.UnitsUsed++;
+        return made;
+    }
+
+    private Unit CreateUnit(SimMinion spec, Side side)
+    {
+        var unit = NewUnit(spec, side, _registry.EffectsFor(spec), extra: false);
+        unit.Entry = _nextEntry++;
+        return unit;
+    }
 
     private void StartFight()
     {
