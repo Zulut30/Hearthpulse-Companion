@@ -60,12 +60,11 @@ public sealed record RecapModeRow(string Title, double Share, string Games, stri
 
 /// <summary>
 /// A bar of "When you play": its label under it ("Mon", "21"; empty for most hours), the count over it (days only, not
-/// zero), its height out of <see cref="MaxHeight"/>, the busiest one marked, and the line its tooltip says.
+/// zero; the views keep the count's line either way, so every bar stands on the same base), its height out of
+/// <see cref="MaxHeight"/>, the busiest one marked, and the line its tooltip says.
 /// </summary>
 public sealed record RecapBar(string Label, string Count, double Height, bool Top, string Tip) : IImmutableView
 {
     /// <summary>The tallest bar's height in DIP: the chart's bar area.</summary>
     public const double MaxHeight = 96;
-
-    public bool HasCount => Count.Length > 0;
 }

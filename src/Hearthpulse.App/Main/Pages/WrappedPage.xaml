@@ -39,8 +39,8 @@
             <!-- A bar of "When you play": the count over it (days only), the bar on a 96 high base, the label under the line -->
             <DataTemplate x:Key="RecapBarTemplate" DataType="{x:Type m:RecapBar}">
                 <StackPanel Margin="2,0" Background="Transparent" ToolTip="{Binding Tip}">
-                    <TextBlock Text="{Binding Count}" Style="{StaticResource Caption}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,2"
-                               Visibility="{Binding HasCount, Converter={StaticResource Vis}}" />
+                    <!-- The count's line keeps its height with no count (a day without games, every hour): the bases line up -->
+                    <TextBlock Text="{Binding Count}" Style="{StaticResource Caption}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,2" MinHeight="16" />
                     <Grid Height="96">
                         <Border x:Name="Bar" Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="2,2,1,1" Background="{StaticResource AccentContainer}" />
                     </Grid>
@@ -229,7 +229,7 @@
                                 <StackPanel>
                                     <TextBlock Text="{i:Loc Wrapped.When.Day}" Style="{StaticResource Label}" />
                                     <TextBlock Text="{Binding Recap.Day}" Style="{StaticResource SlideValue}" />
-                                    <ItemsControl ItemsSource="{Binding Recap.Days}" ItemTemplate="{StaticResource RecapBarTemplate}" ItemsPanel="{StaticResource BarRow}" Focusable="False"
+                                    <ItemsControl x:Name="DaysChart" ItemsSource="{Binding Recap.Days}" ItemTemplate="{StaticResource RecapBarTemplate}" ItemsPanel="{StaticResource BarRow}" Focusable="False"
                                                   AutomationProperties.Name="{Binding Recap.DaysName}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">

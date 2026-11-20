@@ -124,6 +124,20 @@
             <Setter Property="Grid.Column" Value="4" />
             <Setter Property="Width" Value="176" />
         </Style>
+        <!-- A journal row's progress column, and a summary category's points: one width for every row, narrower in compact
+             (the journal's bar and dates go; the category's name takes what the points leave and wraps) -->
+        <Style Selector="StackPanel.browseProgress">
+            <Setter Property="Width" Value="176" />
+        </Style>
+        <Style Selector="m|MainView.compact StackPanel.browseProgress">
+            <Setter Property="Width" Value="112" />
+        </Style>
+        <Style Selector="TextBlock.catFraction">
+            <Setter Property="MinWidth" Value="104" />
+        </Style>
+        <Style Selector="m|MainView.compact TextBlock.catFraction">
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
         <!-- Compact: a tracked row's bar, progress and gain go under its text; the browse rows take the whole width -->
         <Style Selector="m|MainView.compact Grid.trackedRow > StackPanel.trackedRight">
             <Setter Property="Grid.Column" Value="2" />
@@ -190,12 +204,12 @@
                                                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 </Panel>
                                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                     <TextBlock Text="{Binding Line}" Classes="caption" TextWrapping="Wrap" />
                                                 </StackPanel>
                                                 <ProgressBar Grid.Column="4" Classes="shareBar fill wide" Width="96" Height="6" MinHeight="6" VerticalAlignment="Center"
                                                              Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" />
-                                                <TextBlock Grid.Column="6" Text="{Binding Fraction}" FontWeight="SemiBold" MinWidth="104" TextAlignment="Right" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="6" Text="{Binding Fraction}" Classes="catFraction" FontWeight="SemiBold" TextAlignment="Right" VerticalAlignment="Center" />
                                             </Grid>
                                         </Border>
                                     </Button>
@@ -321,17 +335,20 @@
                                                         <TextBlock Text="{Binding Title}" Classes="chainName" Classes.muted="{Binding Muted}" />
                                                         <TextBlock Text="{Binding Description}" Classes="caption" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
                                                     </StackPanel>
-                                                    <StackPanel Grid.Column="4" MinWidth="120" VerticalAlignment="Center" IsVisible="{Binding !Secret}">
+                                                    <!-- Fixed widths (styles, narrower in compact): the bars and dates line up from row to row -->
+                                                    <StackPanel Grid.Column="4" Classes="browseProgress" VerticalAlignment="Center" IsVisible="{Binding !Secret}">
                                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                                            <ProgressBar Classes="shareBar fill" Width="56" Height="6" MinHeight="6" Margin="0,0,8,0" VerticalAlignment="Center"
-                                                                         Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" IsVisible="{Binding ShowsBar}" />
+                                                            <Panel Classes="wide" VerticalAlignment="Center">
+                                                                <ProgressBar Classes="shareBar fill" Width="56" Height="6" MinHeight="6" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                                             Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" IsVisible="{Binding ShowsBar}" />
+                                                            </Panel>
                                                             <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
                                                                        VerticalAlignment="Center" Opacity="{Binding GraphicsOpacity}" IsVisible="{Binding Done}" />
                                                             <TextBlock Text="{Binding ProgressText}" FontWeight="SemiBold" VerticalAlignment="Center" />
                                                         </StackPanel>
                                                         <TextBlock Text="{Binding Level}" Classes="caption" HorizontalAlignment="Right" Margin="0,2,0,0" />
                                                     </StackPanel>
-                                                    <Panel Grid.Column="6" Classes="wide" MinWidth="88" VerticalAlignment="Center">
+                                                    <Panel Grid.Column="6" Classes="wide" Width="104" VerticalAlignment="Center">
                                                         <StackPanel IsVisible="{Binding !Secret}">
                                                             <TextBlock Text="{Binding Points}" Classes="label" HorizontalAlignment="Right" />
                                                             <TextBlock Text="{Binding Date}" Classes="caption" HorizontalAlignment="Right" Margin="0,2,0,0" />

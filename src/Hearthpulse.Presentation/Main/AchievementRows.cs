@@ -87,13 +87,17 @@ public sealed class AchievementRow : Observable
         Binary = chain.Current.Quota <= 0;
         ShowsBar = !Secret && !Done && !Binary;
         Share = chain.Quota > 0 ? Math.Clamp((double)chain.Progress / chain.Quota, 0, 1) : 0;
-        Percent = Share.ToString("P0", CultureInfo.CurrentCulture);
+        // Not done is never "100 %": the share is cut down to a whole percent (499 of 500 is 99 %), not rounded.
+        Percent = (Done ? 1 : chain.Quota > 0 ? Math.Clamp((long)chain.Progress * 100 / chain.Quota, 0, 99) / 100.0 : 0)
+            .ToString("P0", CultureInfo.CurrentCulture);
         ProgressText = Secret ? string.Empty
             : Done ? Loc.T(chain.Tiers.Count > 1 ? "Achievements.AllDone" : "Achievements.Done")
             : Binary ? Loc.T("Achievements.NotDone")
             : Loc.F("Achievements.Progress", chain.Progress, chain.Quota);
         Points = Secret ? string.Empty : Loc.P("Achievements.PointsCount", Done ? chain.PointsEarned : chain.Current.Points);
-        Date = chain.CompletedAt is { } at ? Loc.F("Achievements.CompletedOn", at.ToLocalTime()) : "—";
+        // The row shows the current tier: a date belongs only to a chain done to its end (an earlier tier's date would
+        // read as this tier's).
+        Date = Done && chain.CompletedAt is { } at ? Loc.F("Achievements.CompletedOn", at.ToLocalTime()) : "—";
         GraphicsOpacity = graphicsOpacity;
 
         if (gain is not null)
@@ -112,7 +116,7 @@ public sealed class AchievementRow : Observable
 
         Detail = Level.Length > 0 ? Loc.F("Achievements.Detail", Level, Path) : Path;
         NearDetail = Level.Length > 0 ? Loc.F("Achievements.Detail", Level, Category) : Category;
-        Tip = string.Join(Environment.NewLine, new[] { Title, Description, Level, ProgressText, Points, chain.CompletedAt is null ? string.Empty : Date }
+        Tip = string.Join(Environment.NewLine, new[] { Title, Description, Level, ProgressText, Points, Done ? Date : string.Empty }
             .Where(line => line.Length > 0));
     }
 
@@ -190,8 +194,11 @@ public sealed class AchievementRow : Observable
     /// <summary>The row's help text: name, description, level, progress, points and date in full.</summary>
     public string Tip { get; }
 
-    /// <summary>A star is shown: every chain but a secret one not done yet.</summary>
-    public bool CanStar => !Secret;
+    /// <summary>
+    /// A star is shown: every chain but a secret one not done yet, unless it is tracked (a tracked chain whose current
+    /// tier turned secret keeps its star, so its place can be freed).
+    /// </summary>
+    public bool CanStar => !Secret || _tracked;
 
     /// <summary>The chain is tracked (its star is lit).</summary>
     public bool Tracked
@@ -202,6 +209,7 @@ public sealed class AchievementRow : Observable
             if (Set(ref _tracked, value))
             {
                 Raise(nameof(StarGlyph));
+                Raise(nameof(CanStar));
                 Raise(nameof(StarName));
                 Raise(nameof(StarTip));
             }

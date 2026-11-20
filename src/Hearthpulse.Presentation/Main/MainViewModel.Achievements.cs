@@ -231,7 +231,10 @@ public sealed partial class MainViewModel
     /// <summary>The chosen subcategory's id (0 before the page was built).</summary>
     internal int ShownAchievementSubcategory => _achievementSubcategory;
 
-    /// <summary>Tracks <paramref name="headId"/> or stops tracking it, keeping the limit, and saves the settings at once.</summary>
+    /// <summary>
+    /// Tracks <paramref name="headId"/> or stops tracking it and saves the settings at once. A chain is added only while
+    /// fewer than the limit are tracked and when its current tier is not a secret one (the game shows nothing of it).
+    /// </summary>
     internal void ToggleAchievement(int headId)
     {
         var tracked = Settings.TrackedAchievements;
@@ -239,7 +242,8 @@ public sealed partial class MainViewModel
         {
             Settings.TrackedAchievements = [.. tracked.Where(id => id != headId)];
         }
-        else if (tracked.Count < AppSettings.MaxTrackedAchievements && _achievementBook?.Chain(headId) is not null)
+        else if (tracked.Count < AppSettings.MaxTrackedAchievements && _achievementBook?.Chain(headId) is { } chain
+                 && chain is not { Hidden: true, Completed: false })
         {
             Settings.TrackedAchievements = [.. tracked, headId];
         }

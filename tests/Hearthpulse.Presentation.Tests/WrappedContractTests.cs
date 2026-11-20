@@ -174,6 +174,14 @@ public sealed class WrappedContractTests
             page.UpdateLayout();
 
             Assert.Equal(model.Recap!.Number, page.HeroNumber.Text);
+            // The window's Display text formatting draws no 64 px glyph with a gradient brush: the hero number stays Ideal (review m6).
+            Assert.Equal(System.Windows.Media.TextFormattingMode.Ideal, System.Windows.Media.TextOptions.GetTextFormattingMode(page.HeroNumber));
+            Assert.True(page.HeroNumber.ActualHeight > 40);
+
+            // Days without games keep the count's line: every day's bar stands on one base (review m2).
+            var bases = VisualChildren(page.DaysChart).OfType<Border>().Where(b => b.Height == 1).ToList();
+            Assert.Equal(7, bases.Count);
+            Assert.Single(bases.Select(b => Math.Round(b.TranslatePoint(new Point(0, 0), page.DaysChart).Y)).Distinct());
             Assert.True(page.HeroNumbers.IsVisible);
             Assert.True(page.Slides.IsVisible);
             Assert.Equal(model.WrappedTitle, page.PeriodTitle.Text);

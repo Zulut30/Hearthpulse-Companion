@@ -212,7 +212,7 @@
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Grid>
                                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                 <TextBlock Text="{Binding Line}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
                                             </StackPanel>
                                             <ProgressBar Grid.Column="4" Style="{StaticResource ShareBar}" Foreground="{StaticResource Accent}" Height="6" VerticalAlignment="Center"
@@ -315,9 +315,10 @@
                                                         <ColumnDefinition Width="12" />
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="12" />
-                                                        <ColumnDefinition Width="Auto" MinWidth="120" />
+                                                        <!-- Fixed widths: the bars and dates line up from row to row -->
+                                                        <ColumnDefinition Width="176" />
                                                         <ColumnDefinition Width="12" />
-                                                        <ColumnDefinition Width="Auto" MinWidth="88" />
+                                                        <ColumnDefinition Width="104" />
                                                     </Grid.ColumnDefinitions>
                                                     <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource AchievementStar}" VerticalAlignment="Center" />
                                                     <StackPanel Grid.Column="2" VerticalAlignment="Center">

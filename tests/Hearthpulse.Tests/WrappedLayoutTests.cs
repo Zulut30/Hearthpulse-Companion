@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -125,6 +126,19 @@ public sealed class WrappedLayoutTests
 
             var favourites = page.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.UniformGrid>().Single(g => g.Classes.Contains("favTiles"));
             Assert.Equal(width < 900 ? 1 : 3, favourites.Columns);
+
+            // Days without games (Wednesday, the weekend) keep the count's line: every bar stands on one base (review m2).
+            var days = Named<ItemsControl>(page, "DaysChart");
+            var bases = days.GetVisualDescendants().OfType<Border>().Where(b => b.Height == 1).ToList();
+            Assert.Equal(7, bases.Count);
+            Assert.Single(bases.Select(b => Math.Round(b.TranslatePoint(default, days)!.Value.Y)).Distinct());
+
+            // The period's achievements: in compact the date and points go under the name (review m4).
+            model.SetAchievements(Core.Progression.AchievementsScene.Build(Today.ToUniversalTime(), confirmed: true));
+            Settle(window, model);
+            var meta = page.GetVisualDescendants().OfType<StackPanel>().Where(p => p.Classes.Contains("recapMeta") && p.IsEffectivelyVisible).ToList();
+            Assert.NotEmpty(meta);
+            Assert.All(meta, p => Assert.Equal(width < 900 ? 1 : 0, Grid.GetRow(p)));
         }
         finally
         {

@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -100,6 +101,9 @@ public sealed class AchievementsLayoutTests
         try
         {
             var page = Page(view);
+            // The journal's rows are built near the page's viewport only: scroll to it.
+            page.ShowBrowse();
+            PageRowsPanelAvaloniaTests.Settle(window);
             var rows = page.BrowseRows;
             Assert.Equal(model.AchievementBrowseRows.Count, rows.ItemCount);
             Assert.True(rows.ItemCount < book.Chains.Count);
@@ -112,6 +116,17 @@ public sealed class AchievementsLayoutTests
             var compact = width < 900;
             Assert.Equal(!compact, page.Subcategories.IsEffectivelyVisible);
             Assert.Equal(compact, page.SubcategoryChips.IsEffectivelyVisible);
+
+            // The progress columns line up from row to row (one width for all), narrower in compact (review m3).
+            var progress = rows.GetVisualDescendants().OfType<StackPanel>().Where(p => p.Classes.Contains("browseProgress") && p.IsEffectivelyVisible).ToList();
+            Assert.NotEmpty(progress);
+            Assert.Single(progress.Select(p => Math.Round(p.TranslatePoint(default, rows)!.Value.X)).Distinct());
+            Assert.All(progress, p => Assert.Equal(compact ? 112 : 176, p.Bounds.Width));
+
+            // A category's name wraps instead of being cut to a few letters in compact (review m4).
+            var names = page.SummaryCard.GetVisualDescendants().OfType<TextBlock>().Where(t => model.AchievementSummary.Categories.Any(c => c.Title == t.Text)).ToList();
+            Assert.Equal(model.AchievementSummary.Categories.Count, names.Count);
+            Assert.All(names, t => Assert.Equal(TextWrapping.Wrap, t.TextWrapping));
 
             // Another subcategory replaces the rows.
             model.ShowAchievementSubcategory.Execute(model.AchievementSubcategories[1].Key);

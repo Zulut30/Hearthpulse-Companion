@@ -181,6 +181,67 @@ public sealed class AchievementsViewModelTests : IDisposable
         Assert.Equal(Loc.P("Wrapped.Ach.Points", 15), secret.Points);
     }
 
+    /// <summary>One category, subcategory and section with the given tiers and states (made up, for the edge cases).</summary>
+    private static AchievementBook Small(AchievementDef[] tiers, AchievementState[] states) => new(
+        [new AchievementCategory(1, "Общие", "general", 1)],
+        [new AchievementSubcategory(11, 1, "Прогресс", 1)],
+        [new AchievementSection(111, 11, "Путь героя", 1)],
+        tiers.ToDictionary(t => t.Id),
+        states.ToDictionary(t => t.Id),
+        new Dictionary<int, AchievementGain>(),
+        Now)
+    {
+        Confirmed = true,
+    };
+
+    [Fact]
+    public void A_chain_not_done_never_shows_a_hundred_percent()
+    {
+        var done = Now.AddDays(-3);
+        var vm = Shown(Small(
+            [new AchievementDef(1, 111, 1, "Почти", "Сыграйте $q игр.", false, 500, 10, 0), new AchievementDef(2, 111, 2, "Готово", "Победите.", false, 3, 5, 0)],
+            [new AchievementState(1, AchievementStatus.InProgress, 499, null), new AchievementState(2, AchievementStatus.Completed, 3, done)]));
+
+        var near = Assert.Single(vm.NearlyDoneRows);
+        Assert.Equal(0.99.ToString("P0", CultureInfo.CurrentCulture), near.Percent);
+        Assert.Equal(Loc.F("Achievements.Progress", 499, 500), near.ProgressText);
+        var completed = vm.AchievementBrowseRows.OfType<AchievementRow>().Single(r => r.HeadId == 2);
+        Assert.Equal(1.0.ToString("P0", CultureInfo.CurrentCulture), completed.Percent);
+        Assert.Equal(Loc.F("Achievements.CompletedOn", done.ToLocalTime()), completed.Date);
+        Assert.Contains(completed.Date, completed.Tip, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_tracked_chain_whose_current_tier_turned_secret_keeps_its_star_and_a_secret_chain_cannot_be_added()
+    {
+        // Tier 1 is seen and done, tier 2 is secret and not done: the chain's current tier is secret.
+        var book = Small(
+            [new AchievementDef(10, 111, 1, "Видимый", "Пройдите путь.", false, 1, 5, 11), new AchievementDef(11, 111, 2, string.Empty, string.Empty, true, 1, 5, 0)],
+            [new AchievementState(10, AchievementStatus.Completed, 1, Now.AddDays(-2))]);
+        var settings = new AppSettings { TrackedAchievements = [10] };
+        var vm = Shown(book, settings);
+
+        var row = Assert.Single(vm.TrackedAchievementRows);
+        Assert.True(row.Secret);
+        Assert.True(row.CanStar);
+        Assert.True(row.StarEnabled);
+        Assert.True(vm.AchievementBrowseRows.OfType<AchievementRow>().Single(r => r.HeadId == 10).CanStar);
+
+        vm.ToggleAchievementStar.Execute("10");
+        Assert.Empty(settings.TrackedAchievements);
+        Assert.Empty(vm.TrackedAchievementRows);
+        var browse = vm.AchievementBrowseRows.OfType<AchievementRow>().Single(r => r.HeadId == 10);
+        Assert.False(browse.CanStar);
+
+        // Neither this chain nor the scene's secret one is added by the command.
+        vm.ToggleAchievementStar.Execute("10");
+        Assert.Empty(settings.TrackedAchievements);
+        var scene = Shown(Book(), settings);
+        scene.ToggleAchievementStar.Execute("1004");
+        Assert.Empty(settings.TrackedAchievements);
+        Assert.Empty(scene.TrackedAchievementRows);
+    }
+
     // ------------------------------------------------------------------------------------------ AC26 the journal
 
     [Fact]
@@ -203,6 +264,11 @@ public sealed class AchievementsViewModelTests : IDisposable
         Assert.Equal("Уровень 2 из 3", tiered.Level);
         Assert.Equal(Loc.P("Achievements.PointsCount", 20), tiered.Points);
         Assert.Equal("Соберите 50 разных карт.", tiered.Description);
+
+        // The row shows tier 2, not done: tier 1's date is not its date, in the row or in the tip (review M1).
+        var tierOneDone = vm.AchievementBookShown!.States[AchievementsScene.TieredHead].CompletedAt!.Value.ToLocalTime();
+        Assert.Equal("—", tiered.Date);
+        Assert.DoesNotContain(Loc.F("Achievements.CompletedOn", tierOneDone), tiered.Tip, StringComparison.Ordinal);
 
         var secret = chains[1];
         Assert.True(secret.Secret);
