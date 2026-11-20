@@ -150,6 +150,9 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         // without those classes (checked) the fingerprint is still 686C34B3497F4560 (sim-rules).
         // 2026-11-19 (ACC sim-replay-residuals): Very Hungry Winterfinner and golden Tarecgosa get effects (real fights
         // #2/9, #2/12, #5/8 of the 15.11 log); before them (main at ef122f83) the fingerprint is 5887EA944D5F7F33.
-        Assert.Equal("fights 489D3D39263EF5AB", actual);
+        // 2026-11-19 (AUDIT2 sim-relevance-audit): 75 new effect ids (Timewarped minions, buddies, hero-power minions,
+        // trinkets, granted Deathrattle enchantments) change the random boards; without those classes (checked: the seven
+        // new effect files moved out) the fingerprint is still 489D3D39263EF5AB.
+        Assert.Equal("fights AA994A45D9AF670F", actual);
     }
 }

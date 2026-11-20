@@ -56,9 +56,39 @@
    "attack": null,
    "health": null
   },
+  "BG20_HERO_100_Buddy": {
+   "name": "Icesnarl the Mighty",
+   "text": "After a friendly minion kills an enemy, gain +3 Health permanently.",
+   "attack": 6,
+   "health": 2,
+   "golden": {
+    "id": "BG20_HERO_100_Buddy_G",
+    "text": "After a friendly minion kills an enemy, gain +6 Health permanently.",
+    "attack": 12,
+    "health": 4
+   }
+  },
   "BG20_HERO_100p": {
    "name": "Glory of Combat",
    "text": "After a friendly minion kills an enemy, give it +1 Attack permanently.",
+   "attack": null,
+   "health": null
+  },
+  "BG20_HERO_282_Buddy": {
+   "name": "Monstrosity",
+   "text": "After a friendly minion dies, gain its Attack.",
+   "attack": 5,
+   "health": 10,
+   "golden": {
+    "id": "BG20_HERO_282_Buddy_G",
+    "text": "After a friendly minion dies, gain its Attack twice.",
+    "attack": 10,
+    "health": 20
+   }
+  },
+  "BG20_HERO_282pe": {
+   "name": "Fragrant",
+   "text": "+0/+0.",
    "attack": null,
    "health": null
   },
@@ -74,6 +104,24 @@
     "health": 8
    }
   },
+  "BG21_HERO_030t": {
+   "name": "Sneed's New Shredder",
+   "text": "Deathrattle: Summon the highest-Health minion from your hand and give it Divine Shield for this combat.",
+   "attack": 2,
+   "health": 1,
+   "golden": {
+    "id": "BG21_HERO_030t_G",
+    "text": "Deathrattle: Summon the 2 highest-Health minions from your hand and give them Divine Shield for this combat.",
+    "attack": 4,
+    "health": 2
+   }
+  },
+  "BG22_HERO_001p_t1e": {
+   "name": "Element: Earth",
+   "text": "Deathrattle: Summon a 1/1 Elemental.",
+   "attack": null,
+   "health": null
+  },
   "BG22_HERO_002p": {
    "name": "Frostwolf Fervor",
    "text": "When you have space in combat, summon a copy of your highest-Attack minion. (Unlocks on Turn 7.)",
@@ -85,6 +133,18 @@
    "text": "When you have space in combat, summon a copy of your highest-Health minion. (Unlocks on Turn 7.)",
    "attack": null,
    "health": null
+  },
+  "BG22_HERO_305_Buddy": {
+   "name": "Many Whelps",
+   "text": "Whenever you summon a Whelp, gain +2/+2 permanently.",
+   "attack": 4,
+   "health": 2,
+   "golden": {
+    "id": "BG22_HERO_305_Buddy_G",
+    "text": "Whenever you summon a Whelp, gain +4/+4 permanently.",
+    "attack": 8,
+    "health": 4
+   }
   },
   "BG22_HERO_305p": {
    "name": "Broodmother",
@@ -114,6 +174,18 @@
     "text": "Deathrattle: Destroy the minion that killed this.",
     "attack": 12,
     "health": 4
+   }
+  },
+  "BG23_HERO_201_Buddy": {
+   "name": "Tamuzo",
+   "text": "After you summon a minion in combat, double its stats.",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "BG23_HERO_201_Buddy_G",
+    "text": "After you summon a minion in combat, triple its stats.",
+    "attack": 8,
+    "health": 8
    }
   },
   "BG23_HERO_201p": {
@@ -240,6 +312,18 @@
     "text": "Your Deathrattles trigger 2 extra times.",
     "attack": 2,
     "health": 14
+   }
+  },
+  "BG25_HERO_103_Buddy": {
+   "name": "Shadowy Construct",
+   "text": "Whenever a friendly minion dies, gain its maximum stats. (Once per combat.)",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "BG25_HERO_103_Buddy_G",
+    "text": "Whenever a friendly minion dies, gain its maximum stats. (Twice per combat.)",
+    "attack": 8,
+    "health": 8
    }
   },
   "BG25_HERO_103p": {
@@ -482,6 +566,12 @@
    "attack": null,
    "health": null
   },
+  "BG28_Reward_504": {
+   "name": "Cycle of Energy",
+   "text": "Avenge (3): Get a random Tavern spell.",
+   "attack": null,
+   "health": null
+  },
   "BG29_300": {
    "name": "Very Hungry Winterfinner",
    "text": "Taunt Whenever this takes damage, give a minion in your hand +2/+1.",
@@ -554,6 +644,30 @@
     "health": 6
    }
   },
+  "BG30_MagicItem_303": {
+   "name": "Automaton Portrait",
+   "text": "Start of Combat: When you have space, summon an Ancestral Automaton.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_410": {
+   "name": "Quilligraphy Set",
+   "text": "Avenge (3): Your Blood Gems give an extra +1 Health this game.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_410t2": {
+   "name": "Quilligraphy Set",
+   "text": "Avenge (4): Your Blood Gems give an extra +1/+1 this game.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_411e": {
+   "name": "Gem in the Bank",
+   "text": "Deathrattle: Get 2 Blood Gems.",
+   "attack": null,
+   "health": null
+  },
   "BG30_MagicItem_433": {
    "name": "Alliance Keychain",
    "text": "The first time a friendly minion dies each combat, give its maximum stats to a random friendly minion.",
@@ -587,6 +701,12 @@
   "BG30_MagicItem_540": {
    "name": "Slamma Sticker",
    "text": "After you summon a Beast in combat, double its Attack.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_545": {
+   "name": "Fridge Magnet",
+   "text": "Avenge (3): Get a random Magnetic minion.",
    "attack": null,
    "health": null
   },
@@ -644,15 +764,39 @@
    "attack": null,
    "health": null
   },
+  "BG30_MagicItem_917e": {
+   "name": "Trident's Treasure",
+   "text": "Deathrattle: Get a random Spellcraft spell.",
+   "attack": null,
+   "health": null
+  },
   "BG30_MagicItem_925": {
    "name": "Ceremonial Sword",
    "text": "Whenever a friendly minion attacks, give it +4 Attack.",
    "attack": null,
    "health": null
   },
+  "BG30_MagicItem_952e": {
+   "name": "Frosty Globe",
+   "text": "Deathrattle: Summon a Flourishing Frostling.",
+   "attack": null,
+   "health": null
+  },
   "BG30_MagicItem_978": {
    "name": "Blingtron's Sunglasses",
    "text": "After you summon a Mech in combat, give a friendly Mech Divine Shield.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_981": {
+   "name": "The Eye of Dalaran",
+   "text": "Whenever a friendly minion with no type dies, get a random Tavern spell.",
+   "attack": null,
+   "health": null
+  },
+  "BG30_MagicItem_989t": {
+   "name": "Artisanal Urn",
+   "text": "Your Undead have +20 Attack.",
    "attack": null,
    "health": null
   },
@@ -752,6 +896,120 @@
     "health": 8
    }
   },
+  "BG31_HERO_801ptje": {
+   "name": "Ultra-Capacitor",
+   "text": "Reborn with full health and enchantments.",
+   "attack": null,
+   "health": null
+  },
+  "BG31_HERO_802pt": {
+   "name": "Colossus",
+   "text": "Rally: Deal 2 damage to the target's neighbors. (Improves when you spend Gold!)",
+   "attack": 6,
+   "health": 12,
+   "golden": {
+    "id": "BG31_HERO_802pt_G",
+    "text": "Rally: Deal 4 damage to the target's neighbors. (Improves when you spend Gold!)",
+    "attack": 12,
+    "health": 24
+   }
+  },
+  "BG31_HERO_802pt1": {
+   "name": "Carrier",
+   "text": "Avenge (4): Summon a 7/7 Interceptor. Then improve this permanently.",
+   "attack": 4,
+   "health": 12,
+   "golden": {
+    "id": "BG31_HERO_802pt1_G",
+    "text": "Avenge (4): Summon a 14/14 Interceptor. Then improve this permanently.",
+    "attack": 8,
+    "health": 24
+   }
+  },
+  "BG31_HERO_802pt5": {
+   "name": "Void Ray",
+   "text": "Divine Shield. Whenever a friendly minion attacks, give it and this minion +5 Attack permanently.",
+   "attack": 7,
+   "health": 1,
+   "golden": {
+    "id": "BG31_HERO_802pt5_G",
+    "text": "Divine Shield. Whenever a friendly minion attacks, give it and this minion +10 Attack permanently.",
+    "attack": 14,
+    "health": 2
+   }
+  },
+  "BG31_HERO_811t10": {
+   "name": "Ultralisk",
+   "text": "Also damages adjacent minions. Start of Combat: Double this minion's stats. (Morphs each turn!)",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "BG31_HERO_811t10_G",
+    "text": "Also damages adjacent minions. Start of Combat: Triple this minion's stats. (Morphs each turn!)",
+    "attack": 4,
+    "health": 4
+   }
+  },
+  "BG31_HERO_811t4": {
+   "name": "Hydralisk",
+   "text": "Windfury Rally: Gain Attack equal to your Tier permanently. (Morphs each turn!)",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "BG31_HERO_811t4_G",
+    "text": "Windfury Rally: Gain Attack equal to twice your Tier permanently. (Morphs each turn!)",
+    "attack": 4,
+    "health": 4
+   }
+  },
+  "BG31_HERO_811t5": {
+   "name": "Baneling",
+   "text": "Deathrattle: Deal damage equal to this minion's Attack to a random enemy minion. (Morphs each turn!)",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "BG31_HERO_811t5_G",
+    "text": "Deathrattle: Deal damage equal to this minion's Attack to a random enemy minion, twice. (Morphs each turn!)",
+    "attack": 4,
+    "health": 4
+   }
+  },
+  "BG31_HERO_811t6": {
+   "name": "Mutalisk",
+   "text": "After a friendly minion kills an enemy, gain +3 Attack permanently. (Morphs each turn!)",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "BG31_HERO_811t6_G",
+    "text": "After a friendly minion kills an enemy, gain +6 Attack permanently. (Morphs each turn!)",
+    "attack": 4,
+    "health": 4
+   }
+  },
+  "BG31_HERO_811t7": {
+   "name": "Lurker",
+   "text": "Stealth. Avenge (1): Gain +1/+1 permanently. (Morphs each turn!)",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "BG31_HERO_811t7_G",
+    "text": "Stealth. Avenge (1): Gain +2/+2 permanently. (Morphs each turn!)",
+    "attack": 4,
+    "health": 4
+   }
+  },
+  "BG31_HERO_811t8": {
+   "name": "Viper",
+   "text": "Venomous Immune while attacking. (Morphs each turn!)",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "BG31_HERO_811t8_G",
+    "text": "Venomous Immune while attacking. (Morphs each turn!)",
+    "attack": 4,
+    "health": 4
+   }
+  },
   "BG32_111": {
    "name": "Nightmare Par-tea Guest",
    "text": "Battlecry and Deathrattle: Get a Misplaced Tea Set.",
@@ -824,9 +1082,39 @@
     "health": 10
    }
   },
+  "BG32_880": {
+   "name": "Friendly Geist",
+   "text": "Deathrattle: Your Tavern spells give an extra +1 Attack this game.",
+   "attack": 6,
+   "health": 3,
+   "golden": {
+    "id": "BG32_880_G",
+    "text": "Deathrattle: Your Tavern spells give an extra +2 Attack this game.",
+    "attack": 12,
+    "health": 6
+   }
+  },
+  "BG32_HERO_002_Buddy": {
+   "name": "Zippers",
+   "text": "Deathrattle: Get a helpful card.",
+   "attack": 5,
+   "health": 5,
+   "golden": {
+    "id": "BG32_HERO_002_Buddy_G",
+    "text": "Deathrattle: Get 2 helpful cards.",
+    "attack": 10,
+    "health": 10
+   }
+  },
   "BG32_MagicItem_200": {
    "name": "All-Purpose Kibble",
    "text": "Whenever a friendly Beast attacks, give it +4 Attack and permanently improve this.",
+   "attack": null,
+   "health": null
+  },
+  "BG32_MagicItem_270t": {
+   "name": "Wicked Tome",
+   "text": "Avenge (4): Your Tavern spells give an extra +1/+1 this game.",
    "attack": null,
    "health": null
   },
@@ -1008,6 +1296,18 @@
     "text": "Rally: This plays 2 Blood Gems on itself.",
     "attack": 4,
     "health": 6
+   }
+  },
+  "BG33_924": {
+   "name": "Blue Whelp",
+   "text": "Rally: Your Tavern spells give an extra +1 Health this game.",
+   "attack": 1,
+   "health": 5,
+   "golden": {
+    "id": "BG33_924_G",
+    "text": "Rally: Your Tavern spells give an extra +2 Health this game.",
+    "attack": 2,
+    "health": 10
    }
   },
   "BG33_Reward_021": {
@@ -1196,6 +1496,18 @@
     "health": 14
    }
   },
+  "BG34_Giant_034": {
+   "name": "Timewarped Geist",
+   "text": "Deathrattle: Your Tavern spells give an extra +2/+2 this game.",
+   "attack": 10,
+   "health": 6,
+   "golden": {
+    "id": "BG34_Giant_034_G",
+    "text": "Deathrattle: Your Tavern spells give an extra +4/+4 this game.",
+    "attack": 20,
+    "health": 12
+   }
+  },
   "BG34_Giant_041": {
    "name": "Timewarped Greenskeeper",
    "text": "Rally: Trigger your right-most Battlecry and Deathrattle.",
@@ -1206,6 +1518,18 @@
     "text": "Rally: Trigger your right-most Battlecry and Deathrattle twice.",
     "attack": 10,
     "health": 18
+   }
+  },
+  "BG34_Giant_064": {
+   "name": "Timewarped Whelp Smuggler",
+   "text": "Whenever a friendly minion gains Attack, give it +3 Health.",
+   "attack": 3,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_064_G",
+    "text": "Whenever a friendly minion gains Attack, give it +6 Health.",
+    "attack": 6,
+    "health": 16
    }
   },
   "BG34_Giant_069": {
@@ -1256,6 +1580,54 @@
     "health": 18
    }
   },
+  "BG34_Giant_102": {
+   "name": "Timewarped Bonker",
+   "text": "Windfury Rally: This plays 2 permanent Blood Gems on all your other minions.",
+   "attack": 7,
+   "health": 14,
+   "golden": {
+    "id": "BG34_Giant_102_G",
+    "text": "Windfury Rally: This plays 4 permanent Blood Gems on all your other minions.",
+    "attack": 14,
+    "health": 28
+   }
+  },
+  "BG34_Giant_110": {
+   "name": "Timewarped Sea Glass",
+   "text": "Divine Shield Rally: Double this minion's stats. (2 times per combat.)",
+   "attack": 10,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_110_G",
+    "text": "Divine Shield Rally: Triple this minion's stats. (2 times per combat.)",
+    "attack": 20,
+    "health": 16
+   }
+  },
+  "BG34_Giant_202": {
+   "name": "Timewarped Saurolisk",
+   "text": "After you trigger a Deathrattle, gain +3/+2 permanently.",
+   "attack": 4,
+   "health": 4,
+   "golden": {
+    "id": "BG34_Giant_202_G",
+    "text": "After you trigger a Deathrattle, gain +6/+4 permanently.",
+    "attack": 8,
+    "health": 8
+   }
+  },
+  "BG34_Giant_204": {
+   "name": "Timewarped Pillager",
+   "text": "Taunt, Reborn Deathrattle: Get a Tavern Coin.",
+   "attack": 4,
+   "health": 3,
+   "golden": {
+    "id": "BG34_Giant_204_G",
+    "text": "Taunt, Reborn Deathrattle: Get 2 Tavern Coins.",
+    "attack": 8,
+    "health": 6
+   }
+  },
   "BG34_Giant_207": {
    "name": "Timewarped Murcules",
    "text": "Divine Shield Whenever this kills a minion, give the left-most minion in your hand +4/+4.",
@@ -1280,6 +1652,54 @@
     "health": 12
    }
   },
+  "BG34_Giant_211": {
+   "name": "Timewarped Pashmar",
+   "text": "Avenge (3): Get a random Spellcraft spell and Tavern spell.",
+   "attack": 9,
+   "health": 10,
+   "golden": {
+    "id": "BG34_Giant_211_G",
+    "text": "Avenge (3): Get 2 random Spellcraft spells and Tavern spells.",
+    "attack": 18,
+    "health": 20
+   }
+  },
+  "BG34_Giant_302": {
+   "name": "Timewarped Copter",
+   "text": "Divine Shield Avenge (3): Get a random Mech.",
+   "attack": 4,
+   "health": 6,
+   "golden": {
+    "id": "BG34_Giant_302_G",
+    "text": "Divine Shield Avenge (3): Get 2 random Mechs.",
+    "attack": 8,
+    "health": 12
+   }
+  },
+  "BG34_Giant_304": {
+   "name": "Timewarped Sapper",
+   "text": "Taunt Deathrattle: Get a Spitescale Special.",
+   "attack": 10,
+   "health": 6,
+   "golden": {
+    "id": "BG34_Giant_304_G",
+    "text": "Taunt Deathrattle: Get 2 Spitescale Specials.",
+    "attack": 20,
+    "health": 12
+   }
+  },
+  "BG34_Giant_305": {
+   "name": "Timewarped Geomancer",
+   "text": "Avenge (5): Get a Blood Gem. Your Blood Gems give an extra +1/+1 this game.",
+   "attack": 2,
+   "health": 9,
+   "golden": {
+    "id": "BG34_Giant_305_G",
+    "text": "Avenge (5): Get a Blood Gem. Your Blood Gems give an extra +2/+2 this game.",
+    "attack": 4,
+    "health": 18
+   }
+  },
   "BG34_Giant_306": {
    "name": "Timewarped Jazzer",
    "text": "Deathrattle: Your Blood Gems give an extra +2 Health this game.",
@@ -1292,6 +1712,30 @@
     "health": 6
    }
   },
+  "BG34_Giant_325": {
+   "name": "Timewarped Riplash",
+   "text": "Deathrattle: Get a copy of the last Tavern spell you cast.",
+   "attack": 13,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_325_G",
+    "text": "Deathrattle: Get 2 copies of the last Tavern spell you cast.",
+    "attack": 26,
+    "health": 10
+   }
+  },
+  "BG34_Giant_327": {
+   "name": "Timewarped Peggy",
+   "text": "Whenever a card is added to your hand, give your Pirates +1/+1.",
+   "attack": 9,
+   "health": 5,
+   "golden": {
+    "id": "BG34_Giant_327_G",
+    "text": "Whenever a card is added to your hand, give your Pirates +1/+1 twice.",
+    "attack": 18,
+    "health": 10
+   }
+  },
   "BG34_Giant_328": {
    "name": "Timewarped Tide Razor",
    "text": "Deathrattle: Summon and get 4 random Pirates.",
@@ -1302,6 +1746,18 @@
     "text": "Deathrattle: Summon and get 8 random Pirates.",
     "attack": 24,
     "health": 16
+   }
+  },
+  "BG34_Giant_330": {
+   "name": "Timewarped Radio Star",
+   "text": "Deathrattle: Get a copy of the enemy minion that killed this with full Health and enchantments.",
+   "attack": 1,
+   "health": 1,
+   "golden": {
+    "id": "BG34_Giant_330_G",
+    "text": "Deathrattle: Get 2 copies of the enemy minion that killed this with full Health and enchantments.",
+    "attack": 2,
+    "health": 2
    }
   },
   "BG34_Giant_331": {
@@ -1340,6 +1796,54 @@
     "health": 10
    }
   },
+  "BG34_Giant_582": {
+   "name": "Timewarped Sporebat",
+   "text": "Taunt Deathrattle: Get a random Tavern spell that costs (2) or more.",
+   "attack": 9,
+   "health": 2,
+   "golden": {
+    "id": "BG34_Giant_582_G",
+    "text": "Taunt Deathrattle: Get 2 random Tavern spells that cost (2) or more.",
+    "attack": 18,
+    "health": 4
+   }
+  },
+  "BG34_Giant_584": {
+   "name": "Timewarped Kil'rek",
+   "text": "Taunt Deathrattle: Get a random Demon.",
+   "attack": 4,
+   "health": 7,
+   "golden": {
+    "id": "BG34_Giant_584_G",
+    "text": "Taunt Deathrattle: Get 2 random Demons.",
+    "attack": 8,
+    "health": 14
+   }
+  },
+  "BG34_Giant_585": {
+   "name": "Timewarped Vaelastrasz",
+   "text": "Rally: Get a random Dragon.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "BG34_Giant_585_G",
+    "text": "Rally: Get 2 random Dragons.",
+    "attack": 12,
+    "health": 12
+   }
+  },
+  "BG34_Giant_593": {
+   "name": "Timewarped Henchman",
+   "text": "After you kill a second minion each combat, get a plain copy of it.",
+   "attack": 5,
+   "health": 7,
+   "golden": {
+    "id": "BG34_Giant_593_G",
+    "text": "After you kill a second minion each combat, get 2 plain copies of it.",
+    "attack": 10,
+    "health": 14
+   }
+  },
   "BG34_Giant_595": {
    "name": "Timewarped Tamuzo",
    "text": "After you summon a minion in combat, double its stats.",
@@ -1352,6 +1856,30 @@
     "health": 10
    }
   },
+  "BG34_Giant_598": {
+   "name": "Timewarped Mothership",
+   "text": "Avenge (4): Get a random Protoss minion.",
+   "attack": 5,
+   "health": 7,
+   "golden": {
+    "id": "BG34_Giant_598_G",
+    "text": "Avenge (4): Get 2 random Protoss minions.",
+    "attack": 10,
+    "health": 14
+   }
+  },
+  "BG34_Giant_605": {
+   "name": "Timewarped Traveler",
+   "text": "Avenge (4): Get a random 1-Cost card from the Minor Timewarp.",
+   "attack": 4,
+   "health": 8,
+   "golden": {
+    "id": "BG34_Giant_605_G",
+    "text": "Avenge (4): Get two random 1-Cost cards from the Minor Timewarp.",
+    "attack": 8,
+    "health": 16
+   }
+  },
   "BG34_Giant_608": {
    "name": "Timewarped Lil' Quilboar",
    "text": "Reborn Deathrattle: This plays 3 Blood Gems on all your Quilboar.",
@@ -1362,6 +1890,18 @@
     "text": "Reborn Deathrattle: This plays 6 Blood Gems on all your Quilboar.",
     "attack": 10,
     "health": 10
+   }
+  },
+  "BG34_Giant_609": {
+   "name": "Timewarped Ghoul-acabra",
+   "text": "After you trigger a Deathrattle, give your minions +3/+2 permanently.",
+   "attack": 6,
+   "health": 15,
+   "golden": {
+    "id": "BG34_Giant_609_G",
+    "text": "After you trigger a Deathrattle, give your minions +6/+4 permanently.",
+    "attack": 12,
+    "health": 30
    }
   },
   "BG34_Giant_618": {
@@ -1469,6 +2009,42 @@
     "id": "BG34_PreMadeChamp_020_G",
     "text": "Avenge (1): Give your Dragons +12/+8.",
     "attack": 12,
+    "health": 28
+   }
+  },
+  "BG34_PreMadeChamp_022": {
+   "name": "Timewarped Prismscale",
+   "text": "Avenge (2): Get an Azerite Empowerment.",
+   "attack": 8,
+   "health": 12,
+   "golden": {
+    "id": "BG34_PreMadeChamp_022_G",
+    "text": "Avenge (2): Get 2 Azerite Empowerments.",
+    "attack": 16,
+    "health": 24
+   }
+  },
+  "BG34_PreMadeChamp_031": {
+   "name": "Timewarped Stormcloud",
+   "text": "Deathrattle and Avenge (3): Get a Tavern Tempest.",
+   "attack": 11,
+   "health": 9,
+   "golden": {
+    "id": "BG34_PreMadeChamp_031_G",
+    "text": "Deathrattle and Avenge (3): Get 2 Tavern Tempests.",
+    "attack": 22,
+    "health": 18
+   }
+  },
+  "BG34_PreMadeChamp_091": {
+   "name": "Timewarped Calligrapher",
+   "text": "Battlecry, Deathrattle, and Rally: Get a random Tavern spell.",
+   "attack": 12,
+   "health": 14,
+   "golden": {
+    "id": "BG34_PreMadeChamp_091_G",
+    "text": "Battlecry, Deathrattle, and Rally: Get 2 random Tavern spells.",
+    "attack": 24,
     "health": 28
    }
   },
@@ -1580,6 +2156,12 @@
    "attack": null,
    "health": null
   },
+  "BG35_MagicItem_740e2": {
+   "name": "Skyward",
+   "text": "Deathrattle: Give your minions +3/+3 permanently.",
+   "attack": null,
+   "health": null
+  },
   "BG35_MagicItem_849": {
    "name": "Cloud Serpent Horn",
    "text": "Avenge (3): Give the Attack of your right-most minion to another friendly Dragon.",
@@ -1632,6 +2214,18 @@
     "text": "Battlecry and Deathrattle: Get 2 Energizing Chambers.",
     "attack": 12,
     "health": 6
+   }
+  },
+  "BG36_104": {
+   "name": "Dark Puppeteer",
+   "text": "Deathrattle: Your Tavern spells give an extra +4 Health this game.",
+   "attack": 8,
+   "health": 4,
+   "golden": {
+    "id": "BG36_104_G",
+    "text": "Deathrattle: Your Tavern spells give an extra +8 Health this game.",
+    "attack": 16,
+    "health": 8
    }
   },
   "BG36_108": {
@@ -2150,6 +2744,12 @@
    "attack": null,
    "health": null
   },
+  "BG36_MagicItem_217": {
+   "name": "Funeral Wreath",
+   "text": "After a friendly minion is Reborn, get a plain copy of it. (3 times per combat.)",
+   "attack": null,
+   "health": null
+  },
   "BG36_MagicItem_362": {
    "name": "Cyclist Portrait",
    "text": "Get a Showy Cyclist. Your Showy Cyclists' Deathrattles give permanent stats.",
@@ -2234,6 +2834,18 @@
    "attack": null,
    "health": null
   },
+  "BG36_MidGameEffect_000t3e2": {
+   "name": "Charisma",
+   "text": "Rally: Get a random minion of your most common type.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t5e2": {
+   "name": "Mystic Essence",
+   "text": "Deathrattle: Get a random Tavern spell.",
+   "attack": null,
+   "health": null
+  },
   "BG36_MidGameEffect_000t60e": {
    "name": "Invulnerability",
    "text": "Immune while attacking.",
@@ -2243,6 +2855,12 @@
   "BG36_MidGameEffect_000t61e": {
    "name": "Golemancy",
    "text": "Deathrattle: Summon a Golem with this minion's stats.",
+   "attack": null,
+   "health": null
+  },
+  "BG36_MidGameEffect_000t80e": {
+   "name": "Consanguinity",
+   "text": "Rally: Get 2 Blood Gems.",
    "attack": null,
    "health": null
   },
@@ -2384,6 +3002,12 @@
     "health": 6
    }
   },
+  "BGS_Treasures_030": {
+   "name": "Big Brann Play",
+   "text": "Your Battlecries trigger an extra time this turn.",
+   "attack": null,
+   "health": null
+  },
   "BG_BOT_312t": {
    "name": "Microbot",
    "text": "",
@@ -2420,6 +3044,42 @@
     "health": 8
    }
   },
+  "TB_BaconShop_HERO_18_Buddy": {
+   "name": "Tuskarr Raider",
+   "text": "Battlecry, Deathrattle, and Rally: Get a random Bounty.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "TB_BaconShop_HERO_18_Buddy_G",
+    "text": "Battlecry, Deathrattle, and Rally: Get 2 random Bounties.",
+    "attack": 12,
+    "health": 12
+   }
+  },
+  "TB_BaconShop_HERO_22_Buddy": {
+   "name": "Arfus",
+   "text": "After a friendly minion is Reborn, give it this minion's Attack.",
+   "attack": 8,
+   "health": 4,
+   "golden": {
+    "id": "TB_BaconShop_HERO_22_Buddy_G",
+    "text": "After a friendly minion is Reborn, give it this minion's Attack twice.",
+    "attack": 16,
+    "health": 8
+   }
+  },
+  "TB_BaconShop_HERO_29_Buddy": {
+   "name": "Tentacle of C'Thun",
+   "text": "After a different friendly minion gains stats, gain +1/+1 until next turn.",
+   "attack": 3,
+   "health": 3,
+   "golden": {
+    "id": "TB_BaconShop_HERO_29_Buddy_G",
+    "text": "After a different friendly minion gains stats, gain +2/+2 until next turn.",
+    "attack": 6,
+    "health": 6
+   }
+  },
   "TB_BaconShop_HERO_33_Buddy": {
    "name": "Mishmash",
    "text": "Whenever your Amalgam gains stats, this gains them too.",
@@ -2432,6 +3092,114 @@
     "health": 8
    }
   },
+  "TB_BaconShop_HERO_37_Buddy": {
+   "name": "Kil'rek",
+   "text": "Taunt Deathrattle: Get a random Demon.",
+   "attack": 3,
+   "health": 6,
+   "golden": {
+    "id": "TB_BaconShop_HERO_37_Buddy_G",
+    "text": "Taunt Deathrattle: Get 2 random Demons.",
+    "attack": 6,
+    "health": 12
+   }
+  },
+  "TB_BaconShop_HERO_39_Buddy": {
+   "name": "Titanic Guardian",
+   "text": "Whenever a different minion in your hand or board gains Health, this also gains it.",
+   "attack": 5,
+   "health": 2,
+   "golden": {
+    "id": "TB_BaconShop_HERO_39_Buddy_G",
+    "text": "Whenever a different minion in your hand or board gains Health, this also gains twice that amount.",
+    "attack": 10,
+    "health": 4
+   }
+  },
+  "TB_BaconShop_HERO_45_Buddy": {
+   "name": "Loyal Henchman",
+   "text": "After you kill a second minion each combat, get a plain copy of it.",
+   "attack": 4,
+   "health": 6,
+   "golden": {
+    "id": "TB_BaconShop_HERO_45_Buddy_G",
+    "text": "After you kill a second minion each combat, get 2 plain copies of it.",
+    "attack": 8,
+    "health": 12
+   }
+  },
+  "TB_BaconShop_HERO_52_Buddy": {
+   "name": "Sinestra",
+   "text": "Whenever a friendly minion gains Attack during combat, give it +1 Health permanently.",
+   "attack": 2,
+   "health": 6,
+   "golden": {
+    "id": "TB_BaconShop_HERO_52_Buddy_G",
+    "text": "Whenever a friendly minion gains Attack during combat, give it +2 Health permanently.",
+    "attack": 4,
+    "health": 12
+   }
+  },
+  "TB_BaconShop_HERO_53_Buddy": {
+   "name": "Valithria Dreamwalker",
+   "text": "Whenever a Dragon enters your warband or the Tavern, gain +1/+1.",
+   "attack": 6,
+   "health": 4,
+   "golden": {
+    "id": "TB_BaconShop_HERO_53_Buddy_G",
+    "text": "Whenever a Dragon enters your warband or the Tavern, gain +2/+2.",
+    "attack": 12,
+    "health": 8
+   }
+  },
+  "TB_BaconShop_HERO_56_Buddy": {
+   "name": "Vaelastrasz",
+   "text": "Rally: Get a random Dragon.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "TB_BaconShop_HERO_56_Buddy_G",
+    "text": "Rally: Get 2 random Dragons.",
+    "attack": 12,
+    "health": 12
+   }
+  },
+  "TB_BaconShop_HERO_76_Buddy": {
+   "name": "Spirit of Air",
+   "text": "Deathrattle: Give a random friendly minion Windfury, Divine Shield, and Taunt.",
+   "attack": 5,
+   "health": 2,
+   "golden": {
+    "id": "TB_BaconShop_HERO_76_Buddy_G",
+    "text": "Deathrattle: Give 2 random friendly minions Windfury, Divine Shield, and Taunt.",
+    "attack": 10,
+    "health": 4
+   }
+  },
+  "TB_BaconShop_HERO_92_Buddy": {
+   "name": "Baby Y'Shaarj",
+   "text": "After you summon a minion of your Tier, give your minions +1/+1.",
+   "attack": 6,
+   "health": 6,
+   "golden": {
+    "id": "TB_BaconShop_HERO_92_Buddy_G",
+    "text": "After you summon a minion of your Tier, give your minions +2/+2.",
+    "attack": 12,
+    "health": 12
+   }
+  },
+  "TB_BaconShop_HERO_95_Buddy": {
+   "name": "Wandering Treant",
+   "text": "Whenever a friendly Taunt minion is attacked, give your minions +1/+1 permanently.",
+   "attack": 3,
+   "health": 9,
+   "golden": {
+    "id": "TB_BaconShop_HERO_95_Buddy_G",
+    "text": "Whenever a friendly Taunt minion is attacked, give your minions +2/+2 permanently.",
+    "attack": 6,
+    "health": 18
+   }
+  },
   "TB_BaconShop_HP_033t": {
    "name": "Amalgam",
    "text": "Venomous",
@@ -2440,6 +3208,18 @@
    "golden": {
     "id": "TB_BaconShop_HP_033t_G",
     "text": "Venomous",
+    "attack": 4,
+    "health": 4
+   }
+  },
+  "TB_BaconShop_HP_105t": {
+   "name": "Fish of N'Zoth",
+   "text": "After a different friendly Deathrattle minion dies in combat, gain its Deathrattle.",
+   "attack": 2,
+   "health": 2,
+   "golden": {
+    "id": "TB_BaconUps_307",
+    "text": "After a different friendly Deathrattle minion dies in combat, gain its Deathrattle twice.",
     "attack": 4,
     "health": 4
    }
