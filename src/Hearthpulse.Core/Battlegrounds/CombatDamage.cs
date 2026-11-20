@@ -61,6 +61,24 @@ public static class DamageRules
     }
 
     /// <summary>
+    /// Duos (TASK-2026-11-19 ACC2): the losing team's shared health, the health plus armor of the board that started the
+    /// fight (both heroes of a team show the team's pool), else its teammate's when only that one is known; 0 = unknown.
+    /// </summary>
+    /// <remarks>
+    /// Duos damage follows the general Duos rules, <b>not checked against a Duos Power.log</b> (the owner had none on
+    /// 2026-11-19): one health pool per team; the winning team deals the tavern tier of its board left standing (the
+    /// teammate's once that board entered) plus the tiers of that board's surviving minions, under the lobby's damage cap.
+    /// A solo side (no teammate) is unchanged: its own <see cref="SimSide.Health"/>.
+    /// </remarks>
+    public static int TeamHealth(SimSide side) => side.Health > 0 ? side.Health : side.Teammate?.Health ?? 0;
+
+    /// <summary>
+    /// Ice Block on the team: the side's own secrets, and in Duos its teammate's (only the local player's are ever known;
+    /// that Ice Block also guards the shared pool is the Duos assumption of <see cref="TeamHealth"/>).
+    /// </summary>
+    public static bool TeamHasIceBlock(SimSide side) => HasIceBlock(side) || (side.Teammate is { } teammate && HasIceBlock(teammate));
+
+    /// <summary>
     /// Damage the hero actually takes: none when the hit would be fatal and the hero has Ice Block, else
     /// <paramref name="damage"/>. Unknown health (0) is never fatal, so the damage stands.
     /// </summary>

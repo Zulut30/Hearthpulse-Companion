@@ -47,6 +47,20 @@ public sealed class DuosCaptureTests
     }
 
     [Fact]
+    public void A_duos_fight_counts_hero_damage()
+    {
+        // TASK-2026-11-19 ACC2: Duos damage goes to the team's shared health (DamageRules.TeamHealth), so it is counted.
+        var tracker = Game(duos: true).Turn(1)
+            .Minion(40, "BG32_236", Me, 1, 2, 2)
+            .Minion(50, "BG25_001", Them, 1, 2, 1)
+            .CombatStarts(30, FirstOpponentId)
+            .Attack(40, Me)
+            .Replay();
+
+        Assert.True(tracker.LastCaptureOptions!.CountDamage);
+    }
+
+    [Fact]
     public void The_first_fight_marks_the_unseen_opponent_teammate_as_an_estimate()
     {
         var log = Game(duos: true).Turn(1)

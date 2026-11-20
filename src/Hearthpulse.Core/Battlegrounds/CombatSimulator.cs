@@ -226,7 +226,8 @@ public sealed record SimOptions
     public int DamageCap { get; init; }
 
     /// <summary>
-    /// Estimate hero damage and lethal. Off for Duos, where the loser of one board is not the one who takes the damage.
+    /// Estimate hero damage and lethal. Duos counts them too, against the losing team's shared health
+    /// (<see cref="DamageRules.TeamHealth"/>); captures saved before that have it off for Duos.
     /// </summary>
     public bool CountDamage { get; init; } = true;
 
@@ -366,7 +367,7 @@ public static partial class CombatSimulator
             }
 
             var tally = new Tally();
-            rules.Add(tally, win > 0 ? 1 : loss > 0 ? -1 : 0, Tiers(ours.Minions), Tiers(theirs.Minions));
+            rules.Add(tally, win > 0 ? 1 : loss > 0 ? -1 : 0, Tiers(ours.Minions), Tiers(theirs.Minions), ours.TavernTier, theirs.TavernTier);
             return rules.With(certain, tally);
         }
 
