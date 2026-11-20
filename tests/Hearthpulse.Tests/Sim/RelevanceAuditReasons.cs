@@ -154,6 +154,8 @@ internal static class RelevanceAuditReasons
         ["BG28_884"] = AfterCombat,
         ["BG28_604"] = "аура «Undead have +8 Attack this game» — игровое зачарование игрока; живые Undead в снимке её уже показывают. " +
                        "Undead, призванные в бою, её не получают: пробел входа движка (зачарование BG25_011pe не переносится в Side.AddSummonBuff) — передано ACC2",
+        ["BG27_Anomaly_575"] = "аномалия выдаёт каждому Секрет Eleventh Hour (BG27_Anomaly_575t): «prevent fatal damage in combat» делает он, " +
+                               "в правиле урона героя (DamageRules.HasIceBlock, E7a)",
     };
 
     /// <summary>Cards that change a fight and are not simulated yet: why, and who owns the gap.</summary>
@@ -171,7 +173,6 @@ internal static class RelevanceAuditReasons
         ["BG28_843"] = "вне пула; заклинание Titus' Tribute: «Deathrattles trigger twice until next turn» (зачарование игрока BG28_843e) — в бою удваивает Deathrattle; ни за кем",
         ["BG33_112"] = "вне пула; заклинание Haunted Carapace: «Your minions have +3/+1 until next turn» — аура и на призванных в бою; ни за кем",
         ["BG33_112t"] = "вне пула; Haunted Carapace (вариант): та же аура; ни за кем",
-        ["BG27_Anomaly_575"] ="вне пула; «first time your hero takes fatal damage in combat, prevent it» — меняет летальность; аномалии вне пула ни за кем",
 
         // In today's pool: progress counters a capture does not show (no tag found in logs), the reward is a random card,
         // which matters only to "whenever a card is added to your hand" (The Shadow of Doubt, Timewarped Peggy).
@@ -196,6 +197,7 @@ internal static class RelevanceAuditReasons
     /// <summary>A card whose combat part is another card's registered effect: card id → that card.</summary>
     internal static readonly Dictionary<string, string> Via = new(StringComparer.Ordinal)
     {
+        ["BG27_Anomaly_575"] = "BG27_Anomaly_575t",
         ["BG22_HERO_001p_t1"] = "BG22_HERO_001p_t1e",
         ["BG20_HERO_282p"] = "BG20_HERO_282pe",
         ["BG30_MagicItem_411"] = "BG30_MagicItem_411e",

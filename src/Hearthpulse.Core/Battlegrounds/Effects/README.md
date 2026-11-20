@@ -127,6 +127,11 @@ returns to 0 when Avenge fires).
   Combat, by its card id (Rapid Reanimation, Soul Fermenter). `ScriptData3/4`: a second pair the text shows
   (Skitterer/Scorpid's "+X/+Y"). `Crew`: Timewarped Nellie's Ship's crew, the local player's own Discover pick (the
   opponent's is estimated, `SimInputs.ShipCrew`).
+- Secrets (`secrets/`): The Great Akazamzarak's TB_Bacon_Secrets_* and the Eleventh Hour anomaly's Secret come from
+  `SimSide.Secrets` (the local player's own) as player-level holders after the extras; each triggers once (`SecretEffect`,
+  assumptions in its remarks). Ice Block and Eleventh Hour act only in the hero damage rule (`DamageRules.HasIceBlock`). The
+  opponent's Secrets: during the game only how many (estimate `SimInputs.OpponentSecrets`), after it the ids the log
+  showed (`SimSide.HiddenSecrets`, `SimOptions.PostGame`).
 - Quests and waiting Tavern spells: the local player's cards in the SECRET zone (a quest, Boon of Beetles) are extras
   with `SimInputs.ObjectiveTags` in `ExtraTags` (script numbers, `QUEST_PROGRESS`, `QUEST_PROGRESS_TOTAL`,
   `QUEST_REWARD_DATABASE_ID`); quests in `quests/` count progress in the fight and attach their reward's effect when done.

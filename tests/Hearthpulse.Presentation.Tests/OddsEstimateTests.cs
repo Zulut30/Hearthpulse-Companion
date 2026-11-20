@@ -80,13 +80,11 @@ public sealed class OddsEstimateTests : IDisposable
         // E7a: the player sees how many Secrets the opponent has, not which; the line names the estimate, not the count.
         Loc.Instance.SetLanguage(Loc.Russian);
         var model = Model(wpf, View(Odds(estimated: 1), [Item(SimInputs.OpponentSecrets)]));
-        Assert.Equal("Шансы с оценкой — эти значения неизвестны точно:
-• Секреты соперника (известно только, сколько их)", (string)model.OddsEstimatedTip);
+        Assert.Equal("Шансы с оценкой — эти значения неизвестны точно:\n• Секреты соперника (известно только, сколько их)", (string)model.OddsEstimatedTip);
 
         Loc.Instance.SetLanguage(Loc.English);
         model = Model(wpf, View(Odds(estimated: 1), [Item(SimInputs.OpponentSecrets)]));
-        Assert.Equal("Odds include estimates — these values aren't known exactly:
-• The opponent's Secrets (only how many is known)", (string)model.OddsEstimatedTip);
+        Assert.Equal("Odds include estimates — these values aren't known exactly:\n• The opponent's Secrets (only how many is known)", (string)model.OddsEstimatedTip);
     }
 
     [Theory]

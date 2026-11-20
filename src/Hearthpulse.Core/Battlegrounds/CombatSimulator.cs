@@ -580,14 +580,9 @@ public static partial class CombatSimulator
 
             AddText(side.HeroCardId);
             AddText(side.HeroPowerCardId);
-            foreach (var extra in side.Extras)
+            foreach (var extra in side.Extras.Concat(side.Secrets))
             {
                 AddText(extra);
-            }
-
-            foreach (var secret in side.Secrets)
-            {
-                AddText(secret);
             }
 
             Add(side.Hand.Count);
