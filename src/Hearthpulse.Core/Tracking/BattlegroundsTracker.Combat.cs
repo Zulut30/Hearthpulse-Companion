@@ -146,7 +146,6 @@ public sealed partial class BattlegroundsTracker
             Effects = Effects,
             FirstAttackerEntityId = attacker?.Id ?? 0,
             DamageCap = DamageCap(game),
-            CountDamage = !game.IsDuos,
         };
         LastCapture = new CombatCapture(ours, theirs, oursFirst, options.FirstAttackerEntityId);
         LastCaptureOptions = options;

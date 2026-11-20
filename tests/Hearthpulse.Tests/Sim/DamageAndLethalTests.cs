@@ -127,7 +127,7 @@ public sealed class DamageAndLethalTests
     }
 
     [Fact]
-    public void Duos_fights_count_no_damage()
+    public void Fights_with_damage_off_count_none()
     {
         var odds = CombatSimulator.Run(Winner(health: 30), Loser(health: 5), true, new SimOptions { Runs = 50, CountDamage = false });
 
