@@ -96,7 +96,13 @@ public sealed class CollectionPageLayoutTests
             Assert.True(backs.IsEffectivelyVisible);
             var backTiles = backs.GetVisualDescendants().OfType<StackPanel>().Where(p => p.DataContext is CardBackView && p.Width == 112).ToList();
             Assert.Equal(model.CollectionBacks.Select(b => b.A11y), backTiles.Select(AutomationProperties.GetName));
-            Assert.All(backTiles, t => Assert.Single(t.GetVisualDescendants().OfType<Hearthpulse.UI.Controls.Scallop>()));
+            // The medallion and its gold edge of the same shape; the badge is not under the dimmed frame.
+            Assert.All(backTiles, t => Assert.Equal(2, t.GetVisualDescendants().OfType<Hearthpulse.UI.Controls.Scallop>().Count()));
+            Assert.All(backTiles.Where(t => ((CardBackView)t.DataContext!).HasBadge), t =>
+            {
+                var badge = t.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("tileBadge"));
+                Assert.All(badge.GetVisualAncestors().OfType<Control>().TakeWhile(c => c != t), c => Assert.Equal(1, c.Opacity));
+            });
 
             // No data at all: the empty state, no status line, nothing else.
             model.SetCosmetics(null);

@@ -20,6 +20,9 @@ namespace Hearthpulse.UI.Main;
 /// </summary>
 public sealed partial class MainViewModel
 {
+    /// <summary>The medallion shapes of the card back tiles, picked by the id: six, so a row of six shows each once.</summary>
+    private static readonly int[] MedallionLobes = [9, 4, 12, 6, 5, 8];
+
     private CosmeticsCollection? _cosmetics;
     private CardBackCategory? _backGroup;
     private RelayCommand? _setCollectionBackGroup;
@@ -161,7 +164,7 @@ public sealed partial class MainViewModel
             var a11y = b.Description.Length > 0 ? Loc.F("CollectionPage.Item.A11yDescribed", b.Name, state, b.Description) : Loc.F("CollectionPage.Item.A11y", b.Name, state);
             // The medallion's shape and turn come from the id: many tiles without art still look different.
             var id = Math.Abs(b.Id);
-            return new CardBackView(b.Id, b.Name, b.Description, glyph, (id % 3) switch { 0 => 9, 1 => 4, _ => 12 }, id % 8 * 11.25,
+            return new CardBackView(b.Id, b.Name, b.Description, glyph, MedallionLobes[id % MedallionLobes.Length], id % 8 * 11.25,
                 have, favourite, have ? string.Empty : Loc.T("CollectionPage.Item.Out"), state, a11y, (have ? 1 : NotOwnedOpacity) * dim);
         }).ToList();
     }

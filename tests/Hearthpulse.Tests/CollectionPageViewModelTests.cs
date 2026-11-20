@@ -5,6 +5,7 @@ using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Collection;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Tracking;
 using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 
@@ -72,6 +73,9 @@ public sealed class CollectionPageViewModelTests
         vm.CollectionGoldenShown = true;
         Assert.True(vm.CollectionSets.All(s => s.HasGolden));
         Assert.Equal(4, vm.CollectionSum.Count);
+        // Every sum tile has a tip: the golden one too, never an empty frame.
+        Assert.All(vm.CollectionSum, t => Assert.NotEmpty(t.Tip));
+        Assert.Equal(Loc.T("CollectionPage.Sum.GoldenTip"), vm.CollectionSum[3].Tip);
     });
 
     [Fact]
@@ -166,11 +170,11 @@ public sealed class CollectionPageViewModelTests
         // Base: the first group, in the game's order; the id 0 back is the classic one.
         Assert.Equal([0, 4], vm.CollectionBacks.Select(b => b.Id));
         var classic = vm.CollectionBacks[0];
-        Assert.Equal((9, 0.0), (classic.Lobes, classic.Angle));
+        Assert.Equal((9, 0.0, 0.0), (classic.Lobes, classic.Angle, classic.MotifAngle));
         Assert.True(classic.Favourite);
         Assert.Contains(classic.Description, classic.A11y, StringComparison.Ordinal);
         var other = vm.CollectionBacks[1];
-        Assert.Equal((4, 45.0), (other.Lobes, other.Angle));
+        Assert.Equal((5, 45.0, 180.0), (other.Lobes, other.Angle, other.MotifAngle));
         Assert.Equal(Loc.T("CollectionPage.Item.Out"), other.State);
 
         vm.SetCollectionBackGroup.Execute("Unknown");
@@ -203,6 +207,23 @@ public sealed class CollectionPageViewModelTests
         vm.CollectionReadable = false;
         Assert.Equal(Loc.F("CollectionPage.Status.SavedUnsupported", Loc.F("Collection.When.Date", CollectionPageFixture.ReadAt.ToLocalTime())), vm.CollectionPageStatus!.Text);
         vm.CollectionReadable = true;
+
+        // Hearthstone running, the collection not read from it yet: the saved line names the next step for the collection,
+        // the coins' line the one for the cosmetics; without data the empty states say the same.
+        var date = Loc.F("Collection.When.Date", CollectionPageFixture.ReadAt.ToLocalTime());
+        vm.Apply(LiveSnapshot.Empty with { HearthstoneRunning = true });
+        Assert.Equal(Loc.F("CollectionPage.Status.SavedNotRead", date), vm.CollectionPageStatus!.Text);
+        vm.CollectionTabCoins = true;
+        Assert.Equal(Loc.T("CollectionPage.Empty.CosmeticsNotRead"), vm.CollectionPageEmpty);
+        vm.SetCosmetics(CollectionPageFixture.Cosmetics(confirmed: false));
+        Assert.Equal(Loc.F("CollectionPage.Status.CosmeticsSavedNotRead", date), vm.CollectionPageStatus!.Text);
+        Assert.True(vm.CollectionPageStatus.Saved);
+        vm.SetCosmetics(null);
+        vm.CollectionTabSets = true;
+        vm.SetCollection(null);
+        Assert.Equal(Loc.T("CollectionPage.Empty.NotRead"), vm.CollectionPageEmpty);
+        vm.Apply(LiveSnapshot.Empty);
+        Assert.Equal(Loc.T("CollectionPage.Empty.None"), vm.CollectionPageEmpty);
 
         // Confirmed: read from the game, no mark, full strength.
         vm.SetCollection(CollectionPageFixture.Collection(confirmed: true));
@@ -262,6 +283,34 @@ public sealed class CollectionPageViewModelTests
     });
 
     [Fact]
+    public void A_failed_count_says_so_and_a_new_collection_counts_again() => LocBindingTests.Headless.Run(() =>
+    {
+        var work = new FailingWork { Fail = true };
+        var vm = new MainViewModel(History(), new AppSettings(), TestDataFolder.App) { Background = work, CollectionReadable = true };
+        vm.SetCards(CollectionPageFixture.Cards);
+        vm.SetCollection(CollectionPageFixture.Collection());
+        vm.PageShown("Collection");
+
+        // The count threw (logged): the tab says it could not count, not "loading" for ever and not a zero.
+        Assert.Equal(Loc.T("CollectionPage.Failed"), vm.CollectionPageEmpty);
+        Assert.Empty(vm.CollectionSets);
+        Assert.False(vm.CollectionSetsShown);
+        Assert.NotNull(vm.CollectionPageStatus);
+
+        // Showing the page again with the same data counts again; so does a new collection.
+        work.Fail = false;
+        vm.PageShown("Collection");
+        Assert.False(vm.HasCollectionPageEmpty);
+        Assert.Single(vm.CollectionSets);
+        work.Fail = true;
+        vm.SetCollection(CollectionPageFixture.Collection(confirmed: false));
+        Assert.Equal(Loc.T("CollectionPage.Failed"), vm.CollectionPageEmpty);
+        work.Fail = false;
+        vm.SetCollection(CollectionPageFixture.Collection(full: true));
+        Assert.True(vm.CollectionSets[0].Complete);
+    });
+
+    [Fact]
     public void A_language_switch_rebuilds_names_groups_and_states() => LocBindingTests.Headless.Run(() =>
     {
         var vm = Model();
@@ -297,6 +346,15 @@ public sealed class CollectionPageViewModelTests
         var vm = new MainViewModel(History(), new AppSettings(), TestDataFolder.App) { Background = BackgroundWork.Inline, CollectionReadable = true };
         vm.SetCards(cards ?? CollectionPageFixture.Cards);
         return vm;
+    }
+
+    /// <summary>The page's count throws while <see cref="Fail"/> is set; the view model's other work runs at once.</summary>
+    private sealed class FailingWork : BackgroundWork
+    {
+        public bool Fail { get; set; }
+
+        public override Task<T> RunAsync<T>(Func<T> work) =>
+            Fail && typeof(T).Name == "CollectionPageData" ? Task.FromException<T>(new InvalidOperationException("made-up failure")) : Inline.RunAsync(work);
     }
 
     /// <summary>

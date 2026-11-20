@@ -64,7 +64,7 @@ public sealed record CollectionItemView(
 /// A card back drawn without art (no open source has the pictures): a framed tile with the theme's motif and a medallion
 /// whose shape and turn come from its id, the group's glyph in it; owned or not and favourite as on the other tiles.
 /// </summary>
-/// <param name="Lobes">The medallion's lobes: 9, 4 or 12 by the id.</param>
+/// <param name="Lobes">The medallion's lobes: 9, 4, 12, 6, 5 or 8 by the id.</param>
 /// <param name="Angle">The medallion's turn in degrees: a step of 11.25 by the id.</param>
 /// <param name="State">"Not owned" under the name; empty for an owned one.</param>
 /// <param name="Standing">Owned, not owned or favourite in words, for the tip under the name and description.</param>
@@ -76,6 +76,9 @@ public sealed record CardBackView(
     public bool HasState => State.Length > 0;
 
     public bool HasDescription => Description.Length > 0;
+
+    /// <summary>The turn of the theme's motif behind the medallion: four times the medallion's, so neighbours differ.</summary>
+    public double MotifAngle => Angle * 4;
 
     public string Badge => Favourite ? CollectionGlyphs.Heart : Owned ? string.Empty : CollectionGlyphs.Lock;
 

@@ -301,11 +301,9 @@ public sealed partial class MainViewModel
         }
 
         CollectionPageCounts++;
+        // A failed count leaves no numbers: the old ones belong to other data, and the tab says it could not count.
         _collectionPageFailed = data is null;
-        if (data is not null)
-        {
-            _collectionPageData = data;
-        }
+        _collectionPageData = data;
 
         ShowCollectionPage();
     }
@@ -440,7 +438,8 @@ public sealed partial class MainViewModel
         };
         if (_collectionGoldenShown)
         {
-            tiles.Add(new(Loc.T("CollectionPage.Sum.Golden"), Loc.F("CollectionPage.OfTotal", sum.GoldenOwned, sum.PlayableTotal), string.Empty, string.Empty));
+            tiles.Add(new(Loc.T("CollectionPage.Sum.Golden"), Loc.F("CollectionPage.OfTotal", sum.GoldenOwned, sum.PlayableTotal), string.Empty,
+                Loc.T("CollectionPage.Sum.GoldenTip")));
         }
 
         CollectionSum = tiles;

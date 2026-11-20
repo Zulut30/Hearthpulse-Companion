@@ -183,13 +183,25 @@
                             <TextBlock Text="{Binding Standing}" Style="{StaticResource Caption}" Margin="0,4,0,0" />
                         </StackPanel>
                     </StackPanel.ToolTip>
-                    <Grid Width="96" Height="128" Opacity="{Binding Opacity}">
-                        <Border CornerRadius="{StaticResource RadiusMedium}" Background="{StaticResource Surface2}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" />
-                        <Border Margin="8" CornerRadius="{StaticResource RadiusSmall}" Background="{StaticResource MotifBrush}" Opacity="0.5" IsHitTestVisible="False" />
-                        <Border Margin="8" CornerRadius="{StaticResource RadiusSmall}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" />
-                        <Grid Width="48" Height="48">
-                            <c:Scallop Fill="{StaticResource AccentContainer}" Depth="0.12" Lobes="{Binding Lobes}" Angle="{Binding Angle}" />
-                            <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSubhead}" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <!-- The frame dims (not owned, saved data); the badge on it keeps its strength, as on the skins and coins -->
+                    <Grid Width="96" Height="128">
+                        <Grid Opacity="{Binding Opacity}">
+                            <Border CornerRadius="{StaticResource RadiusMedium}" Background="{StaticResource Surface2}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" />
+                            <!-- The theme's motif, turned by the back's id: no two neighbours show it the same way -->
+                            <Border Margin="8" CornerRadius="{StaticResource RadiusSmall}" ClipToBounds="True" Opacity="0.5" IsHitTestVisible="False">
+                                <Rectangle Margin="-32,-16" Fill="{StaticResource MotifBrush}" RenderTransformOrigin="0.5,0.5">
+                                    <Rectangle.RenderTransform>
+                                        <RotateTransform Angle="{Binding MotifAngle}" />
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Border>
+                            <Border Margin="8" CornerRadius="{StaticResource RadiusSmall}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" />
+                            <!-- The medallion: its shape and turn by the id, a gold edge of the same shape under it -->
+                            <Grid Width="64" Height="64">
+                                <c:Scallop Fill="{StaticResource AccentLine}" Depth="0.24" Lobes="{Binding Lobes}" Angle="{Binding Angle}" />
+                                <c:Scallop Margin="2" Fill="{StaticResource AccentContainer}" Depth="0.24" Lobes="{Binding Lobes}" Angle="{Binding Angle}" />
+                                <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSubhead}" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
                         </Grid>
                         <Border Style="{StaticResource TileBadge}" Visibility="{Binding HasBadge, Converter={StaticResource Vis}}">
                             <TextBlock x:Name="Badge" Text="{Binding Badge}" Style="{StaticResource TileBadgeGlyph}" Foreground="{StaticResource Muted}" />

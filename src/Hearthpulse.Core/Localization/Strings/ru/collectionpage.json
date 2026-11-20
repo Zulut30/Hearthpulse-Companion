@@ -40,6 +40,7 @@
   "CollectionPage.Sum.DustTip": "Сколько пыли нужно, чтобы создать все недостающие копии для игры",
   "CollectionPage.Sum.Done": "Всё собрано",
   "CollectionPage.Sum.Golden": "Золотые",
+  "CollectionPage.Sum.GoldenTip": "Золотые копии для игры: до двух каждой карты, легендарные — по одной",
   "CollectionPage.OfTotal": "{0:N0} из {1:N0}",
   "CollectionPage.Fraction": "{0:N0}/{1:N0}",
   "CollectionPage.Owned": "Получено: {0:N0} из {1:N0}",

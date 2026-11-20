@@ -40,6 +40,7 @@
   "CollectionPage.Sum.DustTip": "Dust needed to craft every missing playable copy",
   "CollectionPage.Sum.Done": "All collected",
   "CollectionPage.Sum.Golden": "Golden",
+  "CollectionPage.Sum.GoldenTip": "Golden playable copies: up to two of each card, one of a legendary",
   "CollectionPage.OfTotal": "{0:N0} of {1:N0}",
   "CollectionPage.Fraction": "{0:N0}/{1:N0}",
   "CollectionPage.Owned": "Owned: {0:N0} of {1:N0}",
