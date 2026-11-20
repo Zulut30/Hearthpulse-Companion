@@ -17,8 +17,8 @@ namespace Hearthpulse.Tests.Sim;
 public sealed class EffectCardTextGuardTests
 {
     /// <summary>
-    /// The card text each effect in Effects/attack, deaths, ongoing, spells, timewarped, rewards, anomalies, player and
-    /// quests implements, with the numbers its code uses: the normal card and the golden card (hero powers and trinkets have
+    /// The card text each effect in Effects/attack, deaths, ongoing, spells, timewarped, rewards, anomalies, player,
+    /// quests and secrets implements, with the numbers its code uses: the normal card and the golden card (hero powers and trinkets have
     /// none). Every registered card id of those folders has a row (a new effect adds one).
     /// </summary>
     private static readonly (string Id, string Normal, string? Golden)[] Rows =
@@ -297,6 +297,25 @@ public sealed class EffectCardTextGuardTests
         ("BG27_Quest_802", "enemy minions.", null),
         ("BG28_Quest_500", "Quest: Cast", null),
 
+        // secrets/: Battlegrounds Secrets (Akazamzarak, the Eleventh Hour anomaly), no golden version. The trigger and numbers
+        // the code uses.
+        ("TB_Bacon_Secrets_01", "When one of your minions is attacked, summon a 2/3 Poisonous Cobra.", null),
+        ("TB_Bacon_Secrets_01b", "When one of your minions is attacked, summon a 2/3 Poisonous Cobra and give it Reborn.", null),
+        ("TB_Bacon_Secrets_02", "When one of your minions is attacked, summon three 1/1 Snakes.", null),
+        ("TB_Bacon_Secrets_04", "When one of your minions is attacked, summon a copy of it.", null),
+        ("TB_Bacon_Secrets_05", "When a friendly minion dies, summon a random minion with the same Cost.", null),
+        ("TB_Bacon_Secrets_07", "When one of your minions is attacked, give it Divine Shield.", null),
+        ("TB_Bacon_Secrets_07b", "give it Divine Shield. It takes 2 hits to break this combat.", null),
+        ("TB_Bacon_Secrets_08", "When one of your minions dies, give a random friendly minion +3/+2.", null),
+        ("TB_Bacon_Secrets_10", "When a friendly minion dies, return it to life with 1 Health.", null),
+        ("TB_Bacon_Secrets_10b", "When a friendly minion dies, return it to life with full Health and enchantments.", null),
+        ("TB_Bacon_Secrets_11", "When your second minion dies in a turn, return it to life.", null),
+        ("TB_Bacon_Secrets_12", "When your hero takes fatal damage, prevent it", null),
+        ("TB_Bacon_Secrets_14", "After an enemy minion deals 3 or more damage, destroy it.", null),
+        ("TB_Bacon_Secrets_15", "When a friendly minion is attacked, summon a 3/3 copy.", null),
+        ("TB_Bacon_Secrets_15b", "When a friendly minion is attacked, summon a copy of it.", null),
+        ("BG27_Anomaly_575t", "When your hero takes fatal damage in combat, prevent it", null),
+
         // Relevance audit (AUDIT2, 2026-11-19): Timewarped minions, buddies, hero-power minions, trinkets and the enchantments
         // Start of Combat cards give (TimewarpedAudit.cs, AuditPlayerCards.cs, Buddies.cs, HeroPowerUnits.cs and others).
         ("BG20_HERO_100_Buddy", "After a friendly minion kills an enemy, gain +3 Health permanently.", "After a friendly minion kills an enemy, gain +6 Health permanently."),
@@ -403,6 +422,7 @@ public sealed class EffectCardTextGuardTests
         "Hearthpulse.Core.Battlegrounds.Effects.Anomalies",
         "Hearthpulse.Core.Battlegrounds.Effects.Player",
         "Hearthpulse.Core.Battlegrounds.Effects.Quests",
+        "Hearthpulse.Core.Battlegrounds.Effects.Secrets",
     ];
 
     private static readonly Lazy<Dictionary<string, CardText>> Cards = new(Load);

@@ -93,6 +93,37 @@ internal static class SimEstimates
         return estimates;
     }
 
+    /// <summary>Prestidigitation, The Great Akazamzarak's hero power: "Choose a Secret. Put it into the battlefield."</summary>
+    internal const string Prestidigitation = "TB_BaconShop_HP_020";
+
+    /// <summary>The Eleventh Hour anomaly, which gives every player its Secret (<see cref="DamageRules.EleventhHour"/>).</summary>
+    internal const string EleventhHourAnomaly = "BG27_Anomaly_575";
+
+    /// <summary>A Battlegrounds Secret: Akazamzarak's (TB_Bacon_Secrets_*) or the Eleventh Hour anomaly's.</summary>
+    internal static bool IsBattlegroundsSecret(string cardId) =>
+        cardId.StartsWith("TB_Bacon_Secrets_", StringComparison.Ordinal) || cardId == DamageRules.EleventhHour;
+
+    /// <summary>
+    /// The opponent's Secrets during the game (<see cref="SimInputs.OpponentSecrets"/>): the player sees <paramref name="count"/>
+    /// of them, not which. Null when they hold none, or cannot hold any (no Akazamzarak hero power, no Eleventh Hour anomaly:
+    /// a hidden card in their SECRET zone is then something else). Without Akazamzarak in an Eleventh Hour lobby the one Secret
+    /// they can hold is Eleventh Hour, so their fatal hero damage is prevented (<see cref="SimEstimate.Value2"/> = 1); with
+    /// Akazamzarak which Secrets they chose is hidden and they are left out of the fight.
+    /// </summary>
+    internal static SimEstimate? OpponentSecrets(SimSide side, int count)
+    {
+        var akazamzarak = side.HeroPowerCardId == Prestidigitation;
+        var eleventhHour = side.Extras.Contains(EleventhHourAnomaly, StringComparer.Ordinal);
+        if (count <= 0 || (!akazamzarak && !eleventhHour))
+        {
+            return null;
+        }
+
+        return akazamzarak
+            ? new SimEstimate(SimInputs.OpponentSecrets, count, 0, $"{count} Secret(s) of the opponent, which ones is hidden from the player: left out of the fight")
+            : new SimEstimate(SimInputs.OpponentSecrets, count, 1, "the opponent's hidden Secret can only be Eleventh Hour (the anomaly's): their fatal hero damage is prevented");
+    }
+
     /// <summary>A hidden player bonus of the opponent: our own bonus as the prior (0 = the printed card), written into the tags.</summary>
     private static SimEstimate OurValueAsPrior(string input, string attackTag, string healthTag, Dictionary<string, int> tags, SimSide? local, string printed)
     {

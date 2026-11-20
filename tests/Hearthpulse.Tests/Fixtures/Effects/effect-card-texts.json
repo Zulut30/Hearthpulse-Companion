@@ -488,6 +488,12 @@
     "health": 10
    }
   },
+  "BG27_Anomaly_575t": {
+   "name": "Eleventh Hour",
+   "text": "Secret: When your hero takes fatal damage in combat, prevent it and gain 11 Gold next turn instead.",
+   "attack": null,
+   "health": null
+  },
   "BG27_Anomaly_802": {
    "name": "Echoes of Argus",
    "text": "Your Battlecries and Deathrattles trigger an extra time.",
@@ -3383,6 +3389,96 @@
   "TB_BaconShop_HP_107": {
    "name": "Sprout It Out!",
    "text": "Give +1/+2 and Taunt to minions you summon during combat.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_01": {
+   "name": "Venomstrike Trap",
+   "text": "Secret: When one of your minions is attacked, summon a 2/3 Poisonous Cobra.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_01b": {
+   "name": "Better Venomstrike Trap",
+   "text": "Secret: When one of your minions is attacked, summon a 2/3 Poisonous Cobra and give it Reborn.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_02": {
+   "name": "Snake Trap",
+   "text": "Secret: When one of your minions is attacked, summon three 1/1 Snakes.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_04": {
+   "name": "Splitting Image",
+   "text": "Secret: When one of your minions is attacked, summon a copy of it.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_05": {
+   "name": "Effigy",
+   "text": "Secret: When a friendly minion dies, summon a random minion with the same Cost.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_07": {
+   "name": "Autodefense Matrix",
+   "text": "Secret: When one of your minions is attacked, give it Divine Shield.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_07b": {
+   "name": "Better Autodefense Matrix",
+   "text": "Secret: When one of your minions is attacked, give it Divine Shield. It takes 2 hits to break this combat.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_08": {
+   "name": "Avenge",
+   "text": "Secret: When one of your minions dies, give a random friendly minion +3/+2.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_10": {
+   "name": "Redemption",
+   "text": "Secret: When a friendly minion dies, return it to life with 1 Health.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_10b": {
+   "name": "Better Redemption",
+   "text": "Secret: When a friendly minion dies, return it to life with full Health and enchantments.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_11": {
+   "name": "Hand of Salvation",
+   "text": "Secret: When your second minion dies in a turn, return it to life.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_12": {
+   "name": "Ice Block",
+   "text": "Secret: When your hero takes fatal damage, prevent it and become Immune this turn.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_14": {
+   "name": "Reckoning",
+   "text": "Secret: After an enemy minion deals 3 or more damage, destroy it.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_15": {
+   "name": "Pack Tactics",
+   "text": "Secret: When a friendly minion is attacked, summon a 3/3 copy.",
+   "attack": null,
+   "health": null
+  },
+  "TB_Bacon_Secrets_15b": {
+   "name": "Better Pack Tactics",
+   "text": "Secret: When a friendly minion is attacked, summon a copy of it.",
    "attack": null,
    "health": null
   }

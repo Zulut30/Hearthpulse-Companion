@@ -60,7 +60,7 @@ public sealed partial class Fight
             side.AddInitial(CreateUnit(spec, side));
         }
 
-        foreach (var id in teammate.Extras)
+        foreach (var id in teammate.Extras.Concat(teammate.Secrets))
         {
             if (_registry.Get(id, golden: false) is { } effect)
             {

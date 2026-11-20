@@ -38,6 +38,15 @@ public static class SimInputs
     /// <summary>The crew of the opponent's Timewarped Nellie's Ship: a Discover pick the player does not see.</summary>
     public const string ShipCrew = "ship_crew";
 
+    /// <summary>
+    /// The opponent's Secrets (The Great Akazamzarak, the Eleventh Hour anomaly): the player sees how many there are, not
+    /// which. <see cref="SimEstimate.Value1"/> = how many; <see cref="SimEstimate.Value2"/> = 1 when the only Secret the
+    /// opponent can hold is Eleventh Hour (the anomaly's, and no Akazamzarak), so their fatal hero damage is prevented
+    /// (<see cref="DamageRules.HasIceBlock"/>); otherwise their Secrets are left out of the fight. After the game the Secrets
+    /// the log showed replace the estimate (<see cref="SimSide.HiddenSecrets"/>).
+    /// </summary>
+    public const string OpponentSecrets = "opponent_secrets";
+
     /// <summary>Timewarped Nellie's Ship, whose crew the tracker records for the local player (<see cref="SimMinion.Crew"/>).</summary>
     public const string NelliesShip = "BG34_Giant_074t";
 
@@ -100,6 +109,16 @@ public static class SimInputs
     /// </summary>
     public static SimSide PostGame(SimSide side)
     {
+        if (side.HiddenSecrets.Count > 0)
+        {
+            // The opponent's Secrets as the log showed them by the end of the game: exact, in place of the estimate.
+            side = side with
+            {
+                Secrets = side.HiddenSecrets,
+                Estimates = side.Estimates.Where(e => e.Input != OpponentSecrets).ToArray(),
+            };
+        }
+
         if (side.HiddenTags.Count == 0)
         {
             return side;

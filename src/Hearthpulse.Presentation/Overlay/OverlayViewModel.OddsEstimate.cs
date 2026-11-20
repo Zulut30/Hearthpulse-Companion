@@ -50,6 +50,7 @@ public sealed partial class OverlayViewModel
         SimInputs.LobbyTribes => Loc.T("Overlay.Odds.Estimated.LobbyTribes"),
         SimInputs.DuosOpponentTeammate => Loc.T("Overlay.Odds.Estimated.DuosOpponentTeammate"),
         SimInputs.DuosPartnerBoard => Loc.T("Overlay.Odds.Estimated.DuosPartnerBoard"),
+        SimInputs.OpponentSecrets => Loc.T("Overlay.Odds.Estimated.OpponentSecrets"),
         _ => Loc.T("Overlay.Odds.Estimated.Other"),
     };
 }

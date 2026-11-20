@@ -355,8 +355,37 @@ public sealed partial class BattlegroundsTracker
             LobbyTribes = LobbyTribes(),
             DeityAwakening = deity?.GetInt(SimInputs.QuestTotal) is > 0 and var total ? new DeityAwakening(deity.GetInt(SimInputs.QuestProgress), total) : null,
         };
-        return side with { Estimates = SimEstimates.For(side, isOpponent, tags, LocalPlayerSide(game, enchantments, isOpponent)) };
+        var estimates = SimEstimates.For(side, isOpponent, tags, LocalPlayerSide(game, enchantments, isOpponent));
+        if (isOpponent)
+        {
+            // The opponent's Secrets: how many is on the player's screen, which ones is not (an estimate); the entities are kept
+            // so that the ids the log showed by the end of the game reach the post-game captures.
+            var secrets = OpponentSecretEntities(game, controller);
+            _opponentSecrets[_combats.Count] = secrets;
+            if (SimEstimates.OpponentSecrets(side, secrets.Count) is { } estimate)
+            {
+                estimates = [.. estimates, estimate];
+            }
+        }
+
+        return side with { Estimates = estimates };
     }
+
+    /// <summary>
+    /// The opponent's Battlegrounds Secrets in their SECRET zone: hidden cards (no id) and revealed ones, without the Deity
+    /// objective and the quests and lasting Tavern spells the client shows (<see cref="Objectives"/>).
+    /// </summary>
+    private static List<Entity> OpponentSecretEntities(GameState game, int controller) =>
+        game.Controlled(controller, GameTag.Secret)
+            .Where(e => e.CardId.Length == 0 || SimEstimates.IsBattlegroundsSecret(e.CardId))
+            .OrderBy(e => e.Id)
+            .ToList();
+
+    /// <summary>Post-game: the ids the log showed for the opponent's Secrets of a capture (<see cref="SimSide.HiddenSecrets"/>).</summary>
+    private IReadOnlyList<string> RevealedOpponentSecrets(int combatIndex) =>
+        _opponentSecrets.TryGetValue(combatIndex, out var secrets)
+            ? secrets.Where(e => SimEstimates.IsBattlegroundsSecret(e.CardId)).Select(e => e.CardId).ToArray()
+            : Array.Empty<string>();
 
     /// <summary>
     /// What the opponent's estimates may lean on from our own side (our player tags and enchantments: on our screen);
@@ -525,12 +554,24 @@ public sealed partial class BattlegroundsTracker
     internal IReadOnlyList<CapturedFight> Captures => LocalFinished || _gameEnded ? PostGameCaptures() : _captures;
 
     private List<CapturedFight> PostGameCaptures() =>
-        _captures.Select(c => _hiddenOpponentTags.TryGetValue(c.CombatIndex, out var hidden)
-                ? c with
+        _captures.Select(c =>
+            {
+                var hasTags = _hiddenOpponentTags.TryGetValue(c.CombatIndex, out var hidden);
+                var secrets = RevealedOpponentSecrets(c.CombatIndex);
+                if (!hasTags && secrets.Count == 0)
                 {
-                    Capture = c.Capture with { Theirs = c.Capture.Theirs with { HiddenTags = hidden } },
-                    Options = c.Options with { PostGame = true },
+                    return c;
                 }
-                : c)
+
+                var theirs = c.Capture.Theirs;
+                return c with
+                {
+                    Capture = c.Capture with
+                    {
+                        Theirs = theirs with { HiddenTags = hasTags ? hidden! : theirs.HiddenTags, HiddenSecrets = secrets.Count > 0 ? secrets : theirs.HiddenSecrets },
+                    },
+                    Options = c.Options with { PostGame = true },
+                };
+            })
             .ToList();
 }

@@ -21,7 +21,7 @@ import os
 import re
 import sys
 
-EFFECT_DIRS = ["attack", "deaths", "ongoing", "spells", "timewarped", "rewards", "anomalies", "player", "quests"]
+EFFECT_DIRS = ["attack", "deaths", "ongoing", "spells", "timewarped", "rewards", "anomalies", "player", "quests", "secrets"]
 # Cards an effect uses without registering them: the Blood Gem and the Tavern spells cast in combat (Mighty Dragonbreath,
 # Misplaced Tea Set, Chef's Choice).
 EXTRA_IDS = ["BG20_GEM", "BG36_246", "BG28_888", "BG28_518"]

@@ -103,8 +103,12 @@ public sealed partial class Fight
         public static PreparedEffects For(SimSide ours, SimSide theirs, EffectRegistry registry) => new(
             ours.Minions.Select(registry.EffectsFor).ToArray(),
             theirs.Minions.Select(registry.EffectsFor).ToArray(),
-            ours.Extras.Select(id => ExtraHolder.For(id, registry)).ToArray(),
-            theirs.Extras.Select(id => ExtraHolder.For(id, registry)).ToArray());
+            HoldersOf(ours, registry),
+            HoldersOf(theirs, registry));
+
+        /// <summary>The side's player-level cards, then its Secrets (in the order they were put into play).</summary>
+        private static ExtraHolder?[] HoldersOf(SimSide side, EffectRegistry registry) =>
+            side.Extras.Concat(side.Secrets).Select(id => ExtraHolder.For(id, registry)).ToArray();
     }
 
     /// <summary>What a player-level effect holder is made from: a 0/0 spec of the card and its one effect.</summary>
@@ -223,7 +227,8 @@ public sealed partial class Fight
             });
         }
 
-        for (var i = 0; i < info.Extras.Count; i++)
+        // Player-level cards, then Secrets (PreparedEffects.HoldersOf).
+        for (var i = 0; i < extras.Length; i++)
         {
             if (extras[i] is { } holder)
             {

@@ -45,4 +45,14 @@ public sealed partial record SimSide
     /// </summary>
     [JsonIgnore]
     public IReadOnlyList<string> Secrets { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Post-game only: the opponent's Secrets (card ids) as the log showed them by the end of the game, for
+    /// <see cref="SimOptions.PostGame"/> (<see cref="SimInputs.PostGame"/> puts them into <see cref="Secrets"/>). During the
+    /// game this is empty and the opponent's Secrets are an estimate (<see cref="SimInputs.OpponentSecrets"/>): the player sees
+    /// how many there are, not which (docs/adr/0005-hidden-information.md). Kept in the local capture file only, never in the
+    /// pool's records.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<string> HiddenSecrets { get; init; } = Array.Empty<string>();
 }

@@ -116,6 +116,12 @@ internal sealed record SavedInputs
     /// <summary>The local player's own secrets (Ice Block); never the opponent's (<see cref="CombatCaptureStore.Save"/>).</summary>
     public IReadOnlyList<string>? Secrets { get; init; }
 
+    /// <summary>
+    /// Post-game: the opponent's Secrets the log showed by the end of the game (<see cref="SimSide.HiddenSecrets"/>), like
+    /// <see cref="SimSide.HiddenTags"/> in the side's JSON; never the live <see cref="Secrets"/> of the opponent.
+    /// </summary>
+    public IReadOnlyList<string>? HiddenSecrets { get; init; }
+
     /// <summary>The Deity's awakening progress at capture (<see cref="SimSide.DeityAwakening"/>); null when not read.</summary>
     public DeityAwakening? DeityAwakening { get; init; }
 
@@ -141,10 +147,11 @@ internal sealed record SavedInputs
             Minions = minions.Count > 0 ? minions : null,
             PlayerId = side.PlayerId,
             Secrets = side.Secrets.Count > 0 ? side.Secrets : null,
+            HiddenSecrets = side.HiddenSecrets.Count > 0 ? side.HiddenSecrets : null,
             DeityAwakening = side.DeityAwakening,
         };
         return inputs is { PlayerEnchantments: null, DeathsBeforeCapture: null, LobbyTribes: Tribe.None, Estimates: null, Minions: null, PlayerId: 0, Secrets: null,
-                           DeityAwakening: null }
+                           HiddenSecrets: null, DeityAwakening: null }
             ? null
             : inputs;
     }
@@ -172,6 +179,7 @@ internal sealed record SavedInputs
             Estimates = Estimates ?? [],
             PlayerId = PlayerId,
             Secrets = Secrets ?? [],
+            HiddenSecrets = HiddenSecrets ?? [],
             DeityAwakening = DeityAwakening,
         };
     }
@@ -305,7 +313,8 @@ internal sealed class CombatCaptureStore(string directory)
             ExtraTags = opponent ? SimSide.EmptyExtraTags : side.ExtraTags,
         };
         // The player's enchantments are the local player's only (whether the client shows the opponent's is not established);
-        // so are secrets, which the opponent's side never carries.
+        // so are live secrets, which the opponent's side never carries (its Secrets the log showed by the end of the game are
+        // post-game values, HiddenSecrets, like HiddenTags).
         static SavedInputs? MinimizeInputs(SavedInputs? inputs, bool opponent) =>
             opponent && inputs is not null ? inputs with { PlayerEnchantments = null, Secrets = null } : inputs;
         captures = captures with
@@ -426,7 +435,8 @@ internal sealed class CombatCaptureStore(string directory)
             && (inputs.Estimates ?? []).All(e => e is { Input: not null, Basis: not null, Tags: not null } && e.Tags.All(t => t is not null))
             && (inputs.Minions ?? []).All(m => m is not null && (m.EnchantmentValues ?? []).All(e => e is { CardId: not null })
                                                && (m.Crew ?? []).All(ValidMinion))
-            && (inputs.Secrets ?? []).All(s => s is not null));
+            && (inputs.Secrets ?? []).All(s => s is not null)
+            && (inputs.HiddenSecrets ?? []).All(s => s is not null));
 
     private static bool ValidTranscript(BattlegroundsTracker.CombatTranscript transcript) =>
         transcript is { Events: not null, Boards: not null, Ending: not null }

@@ -161,10 +161,16 @@ public sealed partial class BattlegroundsTracker
     private SimSide BuildSideKeepingHidden(GameState game, int controller, bool isOpponent, ILookup<int, Entity> enchantments)
     {
         var had = _hiddenOpponentTags.TryGetValue(_combats.Count, out var hidden);
+        var hadSecrets = _opponentSecrets.TryGetValue(_combats.Count, out var secrets);
         var side = BuildSide(game, controller, isOpponent, enchantments);
         if (had)
         {
             _hiddenOpponentTags[_combats.Count] = hidden!;
+        }
+
+        if (hadSecrets)
+        {
+            _opponentSecrets[_combats.Count] = secrets!;
         }
 
         return side;

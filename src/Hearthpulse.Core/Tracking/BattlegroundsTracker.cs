@@ -47,6 +47,10 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     // The opponent's player values the client does not show, as the log had them at each capture, by combat index: kept
     // out of the live simulation and handed out only after the game (Captures).
     private readonly Dictionary<int, IReadOnlyDictionary<string, int>> _hiddenOpponentTags = new();
+
+    // The opponent's Secret entities at each capture, by combat index: only how many reaches the live simulation (an
+    // estimate); the ids the log showed by the end of the game go to the post-game captures (HiddenSecrets).
+    private readonly Dictionary<int, List<Entity>> _opponentSecrets = new();
     private bool _gameEnded;
     private readonly List<CombatRecord> _combats = new();
 
@@ -201,6 +205,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _deathsBeforeCapture.Clear();
         _enteredAfterDeaths.Clear();
         _hiddenOpponentTags.Clear();
+        _opponentSecrets.Clear();
         _crew.Clear();
         _crewShip = 0;
         _gameEnded = false;

@@ -424,6 +424,7 @@ public static partial class CombatSimulator
     /// </summary>
     private static int Unsimulated(SimSide side, bool isOpponent, EffectRegistry effects) =>
         side.Minions.Count(m => m.HasUnsimulatedEffect) + side.Extras.Count(id => ExtraReason(side, id, isOpponent, effects) is not null)
+        + side.Secrets.Count(id => ExtraReason(side, id, isOpponent, effects) is not null)
         + (side.Teammate is { } teammate ? Unsimulated(teammate, isOpponent, effects) : 0);
 
     /// <summary>
@@ -439,7 +440,7 @@ public static partial class CombatSimulator
             items.Add(new UnsimulatedItem(m.CardId, m.Golden, isOpponent, MinionReason(m, isOpponent, effects), Extra: false));
         }
 
-        foreach (var id in side.Extras)
+        foreach (var id in side.Extras.Concat(side.Secrets))
         {
             if (ExtraReason(side, id, isOpponent, effects) is { } reason)
             {
@@ -582,6 +583,11 @@ public static partial class CombatSimulator
             foreach (var extra in side.Extras)
             {
                 AddText(extra);
+            }
+
+            foreach (var secret in side.Secrets)
+            {
+                AddText(secret);
             }
 
             Add(side.Hand.Count);

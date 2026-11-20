@@ -46,18 +46,30 @@ public static class DamageRules
     /// </summary>
     public const string IceBlock = "TB_Bacon_Secrets_12";
 
-    /// <summary>The side has Ice Block among its known secrets (only the local player's own are ever known).</summary>
+    /// <summary>
+    /// Eleventh Hour, the Secret the Eleventh Hour anomaly (BG27_Anomaly_575) gives every player: "When your hero takes fatal
+    /// damage in combat, prevent it and gain 11 Gold next turn instead" — for the fight's hero damage the same rule as
+    /// <see cref="IceBlock"/>.
+    /// </summary>
+    public const string EleventhHour = "BG27_Anomaly_575t";
+
+    /// <summary>
+    /// The side has a Secret that prevents fatal hero damage (<see cref="IceBlock"/>, <see cref="EleventhHour"/>): among its
+    /// secrets (the local player's own; the opponent's only after the game, when the log showed them), or, for the opponent
+    /// during the game, the estimate that their hidden Secret can only be Eleventh Hour (<see cref="SimInputs.OpponentSecrets"/>).
+    /// A yes or no: two such Secrets prevent the one fatal hit, never more.
+    /// </summary>
     public static bool HasIceBlock(SimSide side)
     {
         foreach (var secret in side.Secrets)
         {
-            if (string.Equals(secret, IceBlock, StringComparison.Ordinal))
+            if (string.Equals(secret, IceBlock, StringComparison.Ordinal) || string.Equals(secret, EleventhHour, StringComparison.Ordinal))
             {
                 return true;
             }
         }
 
-        return false;
+        return SimInputs.Estimate(side, SimInputs.OpponentSecrets) is { Value2: > 0 };
     }
 
     /// <summary>
