@@ -29,6 +29,10 @@ internal static class CollectionPageFixture
     /// <summary>A Standard set (CATACLYSM), a Wild one (TITANS), Classic (VANILLA), three hero skins of two classes, four coin cards.</summary>
     public static readonly CardDb Cards = Parse(CardJson);
 
+    /// <summary>As <see cref="Cards"/>, with the Standard set's legendary also handed out by the game (<c>howToEarn</c>).</summary>
+    public static readonly CardDb HandedOutCards = Parse(CardJson.Replace(
+        "\"name\":\"Cataclysm Legend\",", "\"name\":\"Cataclysm Legend\",\"howToEarn\":\"Given at the start.\",", StringComparison.Ordinal));
+
     /// <summary>Wild and Classic sets only: the Standard filter is empty.</summary>
     public static readonly CardDb WildOnlyCards = Parse(string.Join(",\n", CardJson.Split('\n').Where(l => !l.Contains("CATACLYSM", StringComparison.Ordinal)).Select(l => l.TrimEnd().TrimEnd(','))));
 

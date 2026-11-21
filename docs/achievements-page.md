@@ -39,8 +39,9 @@ dispatched to the UI thread, `MainViewModel.SetAchievements`).
   the current tier, and an earlier tier's date would read as its date). The share of a chain not done is cut down to a
   whole percent, never "100 %". A secret chain not done shows "Hidden achievement" and "Revealed once you complete
   it", without progress or points, and without a star unless it is tracked. Only one subcategory's rows are built at a
-  time; the progress (176) and date (104) columns have one width for every row (Avalonia compact: 120, no bar or date,
-  "Completed" for a chain done to its end, the name on up to two lines and the description in the row's tip).
+  time; the progress (176) and date (104) columns have one width for every row. Avalonia compact: the name on one line
+  across the row (trimmed, whole in the row's tip), under it the progress - "Completed" for a chain done to its end -
+  then the level, trimmed; no bar, and the description, points and date only in the row's tip.
 
 ## The star
 
@@ -54,18 +55,19 @@ changes in place: rows are kept, so the focus stays where it was.
 
 ## Work and threads
 
-The book's chains and sums are worked out off the UI thread (`AchievementBook.Chains` is lazy and thread-safe), only
-once the page has been shown, with a build number: a newer book replaces an older one still being worked out, and the
-page keeps its rows until the new ones are in. A language switch rebuilds the texts from the worked-out data
-(`RebuildAchievementsPage`); the client's names stay in the client's language. Hearthstone starting or closing changes
-the status line and the empty state at once (`HearthstoneRunningChanged`).
+The book's chains and sums are worked out off the UI thread (`MainViewModel.Background`; `AchievementBook.Chains` is
+lazy and thread-safe), only once the page has been shown, with a build number: a newer book replaces an older one still
+being worked out, and the page keeps its rows until the new ones are in. A language switch rebuilds the texts from the
+worked-out data (`RebuildAchievementsPage`); the client's names stay in the client's language. Hearthstone starting or
+closing changes the status line and the empty state at once (`HearthstoneRunningChanged`).
 
 ## Checks
 
-- `tests/Hearthpulse.Tests/AchievementsViewModelTests.cs`: the summary (AC23), the star, limit, missing chain and gains
-  (AC24), the two lists (AC25), the journal (AC26), every state (AC27), the language switch.
+- `tests/Hearthpulse.Tests/AchievementsViewModelTests.cs`: the summary (AC23), the star, the settings file it writes,
+  limit, missing chain and gains (AC24), the two lists and the edges of "nearly done" (AC25), the journal (AC26), every
+  state and an older book worked out last (AC27), the language switch.
 - `tests/Hearthpulse.Tests/AchievementsLayoutTests.cs` (Avalonia Headless): the star's name and Tab stop, one subcategory
-  built, compact chips, the status line read out.
+  built, compact chips and the progress under a chain's name, the status line read out.
 - `tests/Hearthpulse.Presentation.Tests/AchievementsContractTests.cs`: both view models show the same blocks and states,
   and the WPF page loads with its names.
 - Render group `achievements` (`DevRender.Achievements.cs`, `OffscreenRenderer.Achievements.cs`): the page on the data

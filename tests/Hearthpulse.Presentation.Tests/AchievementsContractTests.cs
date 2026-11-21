@@ -20,8 +20,8 @@ namespace Hearthpulse.Presentation.Tests;
 /// <summary>
 /// The Achievements page in both hosts (docs/achievements-page.md, AC23-AC27): the WPF and the Avalonia view model show
 /// the same blocks, rows and status line for the same book in every state, a star press changes both alike, and the
-/// WPF page builds every block with the model's texts and named stars. The Avalonia page alone:
-/// <c>Hearthpulse.Tests/AchievementsLayoutTests</c>.
+/// WPF page builds every block with the model's texts and named stars. The page is built on the caller
+/// (<c>BackgroundWork.Inline</c>). The Avalonia page alone: <c>Hearthpulse.Tests/AchievementsLayoutTests</c>.
 /// </summary>
 public sealed class AchievementsContractTests
 {
@@ -82,37 +82,19 @@ public sealed class AchievementsContractTests
         }
     }
 
-    private static void Built(Task work)
-    {
-        // A WPF model resumes on its dispatcher: run it until the work is in.
-        for (var i = 0; i < 3000 && !work.IsCompleted; i++)
-        {
-            if (Dispatcher.FromThread(Thread.CurrentThread) is not null)
-            {
-                Pump();
-            }
-
-            Thread.Sleep(1);
-        }
-
-        Assert.True(work.IsCompletedSuccessfully);
-    }
-
     [Fact]
     public void Both_view_models_show_the_same_page_for_the_same_book_in_every_state()
     {
         Loc.Instance.SetLanguage(Loc.Russian);
         try
         {
-            var wpf = new WpfMain(History(), new AppSettings(), TestApp.Data) { AchievementsReadable = true };
-            var ava = new AvaMain(History(), new AppSettings(), TestApp.Data) { AchievementsReadable = true };
+            var wpf = new WpfMain(History(), new AppSettings(), TestApp.Data) { Background = Hearthpulse.App.Infrastructure.BackgroundWork.Inline, AchievementsReadable = true };
+            var ava = new AvaMain(History(), new AppSettings(), TestApp.Data) { Background = Hearthpulse.UI.Infrastructure.BackgroundWork.Inline, AchievementsReadable = true };
             wpf.PageShown("Achievements");
             ava.PageShown("Achievements");
 
             void Same(string what)
             {
-                Built(wpf.AchievementsWork);
-                Built(ava.AchievementsWork);
                 var (w, a) = (State(wpf), State(ava));
                 Assert.True(w.SequenceEqual(a), what + ": " + string.Join(" | ", w.Except(a).Take(5)));
             }
@@ -164,7 +146,7 @@ public sealed class AchievementsContractTests
     [Fact]
     public void The_WPF_page_builds_every_block_with_the_models_texts_and_named_stars() => WpfThread.RunFresh(() =>
     {
-        var model = new WpfMain(History(), new AppSettings(), TestApp.Data) { AchievementsReadable = true };
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data) { Background = Hearthpulse.App.Infrastructure.BackgroundWork.Inline, AchievementsReadable = true };
         var window = new WpfWindow(model)
         {
             WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000, Width = 1260, Height = 840,
@@ -176,7 +158,6 @@ public sealed class AchievementsContractTests
         {
             window.ShowPage("Achievements");
             model.SetAchievements(AchievementsScene.Build(Now, confirmed: false));
-            Built(model.AchievementsWork);
             model.ToggleAchievementStar.Execute(AchievementsScene.TieredHead.ToString(CultureInfo.InvariantCulture));
             Pump();
             var page = window.PageAchievements;

@@ -47,19 +47,19 @@ slides. No games and no achievements at all: "No games yet…", both arrows off.
 
 ## Work and threads
 
-Each request (opening, an arrow, month/year, a new book, a new game) is worked out off the UI thread with a build number;
-an older result never replaces a newer one. The history is read once (`HistoryStore.Since`) and again after the history
-changed (`OnRecentChanged`): when the page is on screen at once, else the next time it is shown. A language switch
-rebuilds the texts from the worked-out report (`RebuildWrapped`).
+Each request (opening, an arrow, month/year, a new book, a new game) is worked out off the UI thread
+(`MainViewModel.Background`) with a build number; an older result never replaces a newer one. The history is read once
+(`HistoryStore.Since`) and again after the history changed (`OnRecentChanged`): when the page is on screen at once,
+else the next time it is shown. A language switch rebuilds the texts from the worked-out report (`RebuildWrapped`).
 
 ## Checks
 
 - `tests/Hearthpulse.Tests/WrappedViewModelTests.cs`: the opening period, month and year, the arrows and their limits, the
-  hero numbers and slides, empty states, a new game, a newer request winning, the achievements of the period, no
-  opponent anywhere, the language switch.
+  hero numbers and slides, empty states, a new game, a newer request winning over an older one worked out last, a
+  failure and "Try again", the achievements of the period, no opponent anywhere, the language switch.
 - `tests/Hearthpulse.Tests/WrappedLayoutTests.cs` (Avalonia Headless): the arrows' names and disabled tips, the hero
-  number whole at 420 and 1280, the empty period.
+  number whole at 420 and 1280, the empty period, a failure and its button.
 - `tests/Hearthpulse.Presentation.Tests/WrappedContractTests.cs`: both view models show the same recap, and the WPF page
-  loads.
+  loads, with a failure and its button.
 - Render group `wrapped` (`DevRender.Wrapped.cs`, `OffscreenRenderer.Wrapped.cs`): this month, this year, English, an
   empty period, without a book, compact (Avalonia). Not in the baseline loop.

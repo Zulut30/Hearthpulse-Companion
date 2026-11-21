@@ -69,8 +69,11 @@ public sealed partial class MainViewModel
     /// <summary>The book the page shows (render scenes and tests).</summary>
     internal AchievementBook? AchievementBookShown => _achievementBook;
 
-    /// <summary>The work of the last change of book or page; a test waits for it.</summary>
+    /// <summary>The work of the last change of book or page; a render scene waits for it.</summary>
     internal Task AchievementsWork { get; private set; } = Task.CompletedTask;
+
+    /// <summary>Writes the settings once a star changed them (<see cref="AppSettings.Save()"/>); a test gives a file of its own.</summary>
+    internal Action<AppSettings> SaveSettings { get; init; } = static settings => settings.Save();
 
     /// <summary>
     /// The newest known achievement book, from the host on the UI thread (it listens to
@@ -252,7 +255,7 @@ public sealed partial class MainViewModel
             return;
         }
 
-        Settings.Save();
+        SaveSettings(Settings);
         ShowTrackedAchievements(reuse: true);
         UpdateAchievementStars();
     }
@@ -305,7 +308,7 @@ public sealed partial class MainViewModel
         {
             // The chains and their sums are worked out once per book, on first use; a journal of thousands of tiers
             // is not something to do on the UI thread.
-            var data = await Task.Run(() => AchievementsData.Of(book)).ConfigureAwait(true);
+            var data = await Background.RunAsync(() => AchievementsData.Of(book)).ConfigureAwait(true);
             if (build != _achievementsBuild)
             {
                 return;

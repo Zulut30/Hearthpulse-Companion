@@ -3,12 +3,12 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Progression;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 using Hearthpulse.UI.Main.Pages;
 
@@ -17,7 +17,8 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// The Achievements page in Avalonia, laid out headless (AC24, AC26): the star is a named button in the Tab order that
 /// tracks a chain, the journal builds the rows of one subcategory and a secret chain has no star, and the compact
-/// layout (420) swaps the table of contents for chips; the status line is read out when it changes.
+/// layout (420) swaps the table of contents for chips and puts a chain's progress under its name; the status line is
+/// read out when it changes. The page is built on the caller (<see cref="BackgroundWork.Inline"/>).
 /// </summary>
 [Collection(nameof(GlobalLanguage))]
 public sealed class AchievementsLayoutTests
@@ -27,7 +28,12 @@ public sealed class AchievementsLayoutTests
     private static (Window Window, MainView View, MainViewModel Model, Avalonia.Styling.Styles Theme) Open(double width, AchievementBook? book)
     {
         var theme = PageRowsPanelAvaloniaTests.Theme();
-        var model = new MainViewModel(HistoryStore.InMemory(), new AppSettings(), TestDataFolder.App) { AchievementsReadable = true };
+        var model = new MainViewModel(HistoryStore.InMemory(), new AppSettings(), TestDataFolder.App)
+        {
+            Background = BackgroundWork.Inline,
+            AchievementsReadable = true,
+            SaveSettings = _ => { },
+        };
         var view = new MainView { DataContext = model };
         var window = new Window { Width = width, Height = 1600 };
         window.Resources["UiFont"] = FontFamily.Default;
@@ -35,11 +41,6 @@ public sealed class AchievementsLayoutTests
         window.Show();
         view.ShowPage("Achievements");
         model.SetAchievements(book);
-        Assert.True(SpinWait.SpinUntil(() =>
-        {
-            Dispatcher.UIThread.RunJobs();
-            return model.AchievementsWork.IsCompleted;
-        }, TimeSpan.FromSeconds(30)), "the page was not built");
         PageRowsPanelAvaloniaTests.Settle(window);
         return (window, view, model, theme);
     }
@@ -118,11 +119,16 @@ public sealed class AchievementsLayoutTests
             Assert.Equal(!compact, page.Subcategories.IsEffectivelyVisible);
             Assert.Equal(compact, page.SubcategoryChips.IsEffectivelyVisible);
 
-            // The progress columns line up from row to row (one width for all), narrower in compact (review m3).
-            var progress = rows.GetVisualDescendants().OfType<StackPanel>().Where(p => p.Classes.Contains("browseProgress") && p.IsEffectivelyVisible).ToList();
+            // The progress lines up from row to row (review m3): one column of 176 on the right, in compact the line under
+            // the name.
+            var progress = rows.GetVisualDescendants().OfType<Grid>().Where(p => p.Classes.Contains("browseProgress") && p.IsEffectivelyVisible).ToList();
             Assert.NotEmpty(progress);
             Assert.Single(progress.Select(p => Math.Round(p.TranslatePoint(default, rows)!.Value.X)).Distinct());
-            Assert.All(progress, p => Assert.Equal(compact ? 120 : 176, p.Bounds.Width));
+            Assert.All(progress, p => Assert.Equal(compact ? 1 : 0, Grid.GetRow(p)));
+            if (!compact)
+            {
+                Assert.All(progress, p => Assert.Equal(176, p.Bounds.Width));
+            }
 
             // A category's name wraps instead of being cut to a few letters in compact (review m4).
             var names = page.SummaryCard.GetVisualDescendants().OfType<TextBlock>().Where(t => model.AchievementSummary.Categories.Any(c => c.Title == t.Text)).ToList();
@@ -145,8 +151,8 @@ public sealed class AchievementsLayoutTests
     private const double GlyphScale = 0.6;
 
     /// <summary>
-    /// One subcategory: a chain done to its end ("All levels completed"), a long count in progress, and a tracked chain
-    /// whose current tier turned secret (tier 1 seen and done, tier 2 secret).
+    /// One subcategory: a chain done to its end ("All levels completed"), a long count in progress under a long name, and
+    /// a tracked chain whose current tier turned secret (tier 1 seen and done, tier 2 secret).
     /// </summary>
     private static AchievementBook Edges(DateTime now) => new(
         [new AchievementCategory(1, "Общие", "general", 1)],
@@ -156,7 +162,7 @@ public sealed class AchievementsLayoutTests
         {
             [1] = new(1, 111, 1, "Мастер I", "Сыграйте $q игр.", false, 10, 5, 2),
             [2] = new(2, 111, 2, "Мастер II", "Сыграйте $q игр.", false, 20, 10, 0),
-            [3] = new(3, 111, 3, "Великая победа", "Победите $q раз.", false, 10_000, 10, 0),
+            [3] = new(3, 111, 3, "Еженедельное мастерство в испытаниях", "Победите $q раз.", false, 10_000, 10, 0),
             [10] = new(10, 111, 4, "Видимый", "Пройдите путь.", false, 1, 5, 11),
             [11] = new(11, 111, 5, string.Empty, string.Empty, true, 1, 5, 0),
         },
@@ -185,34 +191,46 @@ public sealed class AchievementsLayoutTests
             model.Settings.TrackedAchievements = [10];
             model.SetAchievements(null);
             model.SetAchievements(Edges(DateTime.UtcNow));
-            Assert.True(SpinWait.SpinUntil(() =>
-            {
-                Dispatcher.UIThread.RunJobs();
-                return model.AchievementsWork.IsCompleted;
-            }, TimeSpan.FromSeconds(30)));
             var page = Page(view);
             page.ShowBrowse();
             PageRowsPanelAvaloniaTests.Settle(window);
+            var compact = width < 900;
 
-            // Each row's first line - the check, "All levels completed" (compact: "Completed") or "8,601 of 10,000" - fits
-            // the column (176, compact 120) instead of running past the row (review m7).
-            var columns = page.BrowseRows.GetVisualDescendants().OfType<StackPanel>().Where(p => p.Classes.Contains("browseProgress") && p.IsEffectivelyVisible).ToList();
+            // Each row's count - the check, "All levels completed" (compact: "Completed") or "8,601 of 10,000" - fits its
+            // column of 176 (review m7); in compact it starts the line under the name and the level follows it, never over it.
+            var columns = page.BrowseRows.GetVisualDescendants().OfType<Grid>().Where(p => p.Classes.Contains("browseProgress") && p.IsEffectivelyVisible).ToList();
             Assert.Equal(2, columns.Count); // the secret chain has no progress column
             foreach (var column in columns)
             {
-                var line = column.Children.OfType<StackPanel>().First();
-                var texts = line.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text)).ToList();
+                var count = column.Children.OfType<StackPanel>().Single(p => p.Classes.Contains("browseCount"));
+                var texts = count.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text)).ToList();
                 var needed = texts.Sum(t => Natural(t) + t.Margin.Left + t.Margin.Right);
                 Assert.True(needed <= column.Bounds.Width + 0.5, $"{string.Join(" ", texts.Select(t => t.Text))}: {needed} > {column.Bounds.Width}");
+                var level = column.Children.OfType<TextBlock>().Single(t => t.Classes.Contains("browseLevel"));
+                Assert.Equal(compact ? 0 : 1, Grid.GetRow(level));
+                if (compact)
+                {
+                    Assert.True(level.Bounds.X >= count.Bounds.Right, $"the level starts at {level.Bounds.X}, the count ends at {count.Bounds.Right}");
+                    Assert.True(level.Bounds.Right <= column.Bounds.Width + 0.5, $"the level ends at {level.Bounds.Right} of {column.Bounds.Width}");
+                }
             }
 
-            // Compact: a name takes two lines (its description is in the row's tip), else one line and the description.
-            var name = page.BrowseRows.GetVisualDescendants().OfType<TextBlock>().First(t => t.Classes.Contains("browseName"));
-            Assert.Equal(width < 900 ? (TextWrapping.Wrap, 2) : (TextWrapping.NoWrap, 0), (name.TextWrapping, name.MaxLines));
+            // A chain's name is one line, trimmed (whole in the row's tip), so no word of it is broken; in compact it has
+            // the row's width - as much as the line under it - and its description goes to the tip.
+            var names = page.BrowseRows.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("chainName") && t.IsEffectivelyVisible).ToList();
+            Assert.Equal(3, names.Count);
+            Assert.All(names, n => Assert.Equal((TextWrapping.NoWrap, TextTrimming.CharacterEllipsis), (n.TextWrapping, n.TextTrimming)));
+            var longName = names.Single(n => n.DataContext is AchievementRow { HeadId: 3 });
+            var longColumn = columns.Single(c => c.DataContext is AchievementRow { HeadId: 3 });
+            if (compact)
+            {
+                Assert.Equal(longColumn.Bounds.Width, longName.Bounds.Width, 1);
+                Assert.Equal(longColumn.TranslatePoint(default, page.BrowseRows)!.Value.X, longName.TranslatePoint(default, page.BrowseRows)!.Value.X, 1);
+            }
 
             var done = model.AchievementBrowseRows.OfType<AchievementRow>().Single(r => r.HeadId == 1);
             Assert.Contains(page.BrowseRows.GetVisualDescendants().OfType<TextBlock>(),
-                t => t.IsEffectivelyVisible && t.Text == (width < 900 ? done.ProgressShort : done.ProgressText));
+                t => t.IsEffectivelyVisible && t.Text == (compact ? done.ProgressShort : done.ProgressText));
 
             // The tracked secret chain's star in the journal: pressed from the keyboard it goes with its tracking, and the
             // focus moves on instead of falling out of the page (review n9).

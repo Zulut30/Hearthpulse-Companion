@@ -104,10 +104,6 @@
         <Style Selector="TextBlock.chainName.muted">
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
         </Style>
-        <Style Selector="m|MainView.compact TextBlock.chainName.browseName">
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="MaxLines" Value="2" />
-        </Style>
         <!-- The star of a tracked chain stays lit, under the mouse too -->
         <Style Selector="Button.star.tracked, Button.star.tracked:pointerover">
             <Setter Property="Foreground" Value="{StaticResource Accent}" />
@@ -129,14 +125,47 @@
             <Setter Property="Grid.Column" Value="4" />
             <Setter Property="Width" Value="176" />
         </Style>
-        <!-- A journal row's progress column, and a summary category's points: one width for every row, narrower in compact
-             (the journal's bar and dates go; the category's name takes what the points leave and wraps) -->
-        <Style Selector="StackPanel.browseProgress">
+        <!-- A journal row's progress column: one width for every row, the count over the level, both on the right. Place
+             and size are style values, so compact can change them (a local value would win). -->
+        <Style Selector="Grid.browseProgress">
+            <Setter Property="Grid.Column" Value="4" />
             <Setter Property="Width" Value="176" />
         </Style>
-        <Style Selector="m|MainView.compact StackPanel.browseProgress">
-            <Setter Property="Width" Value="120" />
+        <Style Selector="Grid.browseProgress > StackPanel.browseCount">
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
         </Style>
+        <Style Selector="Grid.browseProgress > TextBlock.browseLevel">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <!-- Compact: a column beside it would leave a chain's name a word's width, so the name takes the row's width on one
+             line (trimmed, whole in the tip) and the count, then the level, go on the line under it -->
+        <Style Selector="m|MainView.compact Grid.browseRow > StackPanel.browseText">
+            <Setter Property="Grid.ColumnSpan" Value="5" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.browseRow > Grid.browseProgress">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="Grid.ColumnSpan" Value="5" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.browseProgress > StackPanel.browseCount">
+            <Setter Property="Grid.ColumnSpan" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.browseProgress > TextBlock.browseLevel">
+            <Setter Property="Grid.Row" Value="0" />
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Grid.ColumnSpan" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+        </Style>
+        <!-- A summary category's points: one width for every row; compact: the name takes what the points leave and wraps -->
         <Style Selector="TextBlock.catFraction">
             <Setter Property="MinWidth" Value="104" />
         </Style>
@@ -331,31 +360,31 @@
                                                 <c:Wave Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,0,12" IsHitTestVisible="False" />
                                             </Grid>
                                         </DataTemplate>
-                                        <!-- A chain: star, name and description, progress and level, points and date (the last two only in the tip in compact) -->
+                                        <!-- A chain: star, name and description, progress and level, points and date (compact: the description, points
+                                             and date only in the tip) -->
                                         <DataTemplate x:DataType="m:AchievementRow">
                                             <Border Classes="row" Height="56" ToolTip.Tip="{Binding Tip}">
-                                                <Grid ColumnDefinitions="32,12,*,12,Auto,12,Auto">
-                                                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AchievementStar}" Focusable="False" VerticalAlignment="Center" />
-                                                    <!-- Compact: the name takes two lines and the description goes to the row's tip -->
-                                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Title}" Classes="chainName browseName" Classes.muted="{Binding Muted}" />
+                                                <Grid Classes="browseRow" ColumnDefinitions="32,12,*,12,Auto,12,Auto" RowDefinitions="Auto,Auto" VerticalAlignment="Center">
+                                                    <ContentControl Grid.RowSpan="2" Content="{Binding}" ContentTemplate="{StaticResource AchievementStar}" Focusable="False" VerticalAlignment="Center" />
+                                                    <StackPanel Grid.Column="2" Classes="browseText" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Title}" Classes="chainName" Classes.muted="{Binding Muted}" />
                                                         <TextBlock Text="{Binding Description}" Classes="caption wide" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
                                                     </StackPanel>
-                                                    <!-- Fixed widths (styles, narrower in compact): the bars and dates line up from row to row -->
-                                                    <StackPanel Grid.Column="4" Classes="browseProgress" VerticalAlignment="Center" IsVisible="{Binding !Secret}">
-                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <!-- The count over the level in a fixed width (a style), so the bars line up from row to row; compact: one line under the name -->
+                                                    <Grid Classes="browseProgress" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" VerticalAlignment="Center" IsVisible="{Binding !Secret}">
+                                                        <StackPanel Classes="browseCount" Orientation="Horizontal">
                                                             <Panel Classes="wide" VerticalAlignment="Center">
                                                                 <ProgressBar Classes="shareBar fill" Width="56" Height="6" MinHeight="6" Margin="0,0,8,0" VerticalAlignment="Center"
                                                                              Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" IsVisible="{Binding ShowsBar}" />
                                                             </Panel>
                                                             <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
                                                                        VerticalAlignment="Center" Opacity="{Binding GraphicsOpacity}" IsVisible="{Binding Done}" />
-                                                            <!-- Compact's column is 120: "All levels completed" would not fit, "Completed" does (the level is under it) -->
+                                                            <!-- Compact: "Completed" instead of "All levels completed", the level beside it says how many -->
                                                             <TextBlock Text="{Binding ProgressText}" Classes="wide" FontWeight="SemiBold" VerticalAlignment="Center" />
                                                             <TextBlock Text="{Binding ProgressShort}" Classes="narrow" FontWeight="SemiBold" VerticalAlignment="Center" />
                                                         </StackPanel>
-                                                        <TextBlock Text="{Binding Level}" Classes="caption" HorizontalAlignment="Right" Margin="0,2,0,0" />
-                                                    </StackPanel>
+                                                        <TextBlock Text="{Binding Level}" Classes="caption browseLevel" TextTrimming="CharacterEllipsis" />
+                                                    </Grid>
                                                     <Panel Grid.Column="6" Classes="wide" Width="104" VerticalAlignment="Center">
                                                         <StackPanel IsVisible="{Binding !Secret}">
                                                             <TextBlock Text="{Binding Points}" Classes="label" HorizontalAlignment="Right" />

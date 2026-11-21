@@ -256,9 +256,36 @@ public sealed class CollectionPageViewModelTests
     });
 
     [Fact]
+    public void A_price_with_a_missing_card_the_game_hands_out_is_marked_as_an_estimate() => LocBindingTests.Headless.Run(() =>
+    {
+        var vm = Model(CollectionPageFixture.HandedOutCards);
+        vm.SetCollection(CollectionPageFixture.Collection());
+        vm.PageShown("Collection");
+
+        // The missing legendary is also handed out by the game: the tile's pill and the sum's dust line say "estimate".
+        var standard = Assert.Single(vm.CollectionSets);
+        Assert.True(standard.Estimate);
+        Assert.Equal(Loc.F("CollectionPage.Set.Dust", 2000L), standard.Dust);
+        Assert.Equal(Loc.T("Collection.Mark.Estimate"), vm.CollectionSum[2].Detail);
+
+        // Every card owned: nothing left to price, no mark.
+        vm.SetCollection(CollectionPageFixture.Collection(full: true));
+        Assert.True(vm.CollectionSets[0].Complete);
+        Assert.False(vm.CollectionSets[0].Estimate);
+        Assert.Equal(string.Empty, vm.CollectionSum[2].Detail);
+
+        // The same missing cards, none handed out: an exact price.
+        var plain = Model();
+        plain.SetCollection(CollectionPageFixture.Collection());
+        plain.PageShown("Collection");
+        Assert.False(plain.CollectionSets[0].Estimate);
+        Assert.Equal(string.Empty, plain.CollectionSum[2].Detail);
+    });
+
+    [Fact]
     public void The_count_runs_off_the_ui_thread_keeps_the_old_one_meanwhile_and_drops_a_stale_one() => LocBindingTests.Headless.Run(() =>
     {
-        var held = new HeldWork();
+        var held = new HeldWork("CollectionPageData");
         var vm = new MainViewModel(History(), new AppSettings(), TestDataFolder.App) { Background = held };
         vm.SetCards(CollectionPageFixture.Cards);
         vm.SetCollection(CollectionPageFixture.Collection());
@@ -285,7 +312,7 @@ public sealed class CollectionPageViewModelTests
     [Fact]
     public void A_failed_count_says_so_and_a_new_collection_counts_again() => LocBindingTests.Headless.Run(() =>
     {
-        var work = new FailingWork { Fail = true };
+        var work = new FailingWork("CollectionPageData") { Fail = true };
         var vm = new MainViewModel(History(), new AppSettings(), TestDataFolder.App) { Background = work, CollectionReadable = true };
         vm.SetCards(CollectionPageFixture.Cards);
         vm.SetCollection(CollectionPageFixture.Collection());
@@ -346,42 +373,5 @@ public sealed class CollectionPageViewModelTests
         var vm = new MainViewModel(History(), new AppSettings(), TestDataFolder.App) { Background = BackgroundWork.Inline, CollectionReadable = true };
         vm.SetCards(cards ?? CollectionPageFixture.Cards);
         return vm;
-    }
-
-    /// <summary>The page's count throws while <see cref="Fail"/> is set; the view model's other work runs at once.</summary>
-    private sealed class FailingWork : BackgroundWork
-    {
-        public bool Fail { get; set; }
-
-        public override Task<T> RunAsync<T>(Func<T> work) =>
-            Fail && typeof(T).Name == "CollectionPageData" ? Task.FromException<T>(new InvalidOperationException("made-up failure")) : Inline.RunAsync(work);
-    }
-
-    /// <summary>
-    /// Holds each count of the page until the test releases it by its number (in any order); the view model's other
-    /// work (the history read on new card data) runs at once.
-    /// </summary>
-    private sealed class HeldWork : BackgroundWork
-    {
-        private readonly List<Action> _work = [];
-
-        public override Task<T> RunAsync<T>(Func<T> work)
-        {
-            if (typeof(T).Name != "CollectionPageData")
-            {
-                return Inline.RunAsync(work);
-            }
-
-            // The count's continuation runs when the test releases it: inline, or on the dispatcher run after it.
-            var done = new TaskCompletionSource<T>();
-            _work.Add(() => done.SetResult(work()));
-            return done.Task;
-        }
-
-        public void Release(int index)
-        {
-            _work[index]();
-            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        }
     }
 }

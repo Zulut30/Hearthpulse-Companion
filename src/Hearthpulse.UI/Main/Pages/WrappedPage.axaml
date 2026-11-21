@@ -141,9 +141,9 @@
                         <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Wrapped.Computing}" IsVisible="{Binding WrappedFirstComputing}" />
                         <ContentControl Name="RecapEmpty" Classes="emptyState" Tag="&#xF00ED;" Content="{Binding WrappedEmpty}" AutomationProperties.LiveSetting="Polite"
                                         IsVisible="{Binding WrappedEmptyShown}" />
-                        <StackPanel HorizontalAlignment="Center" Margin="0,16,0,0" IsVisible="{Binding WrappedFailed}">
+                        <StackPanel Name="RecapError" HorizontalAlignment="Center" Margin="0,16,0,0" IsVisible="{Binding WrappedFailed}">
                             <TextBlock Text="{i:Loc Wrapped.Error}" Classes="caption" HorizontalAlignment="Center" />
-                            <Button Classes="ghost" Content="{i:Loc Wrapped.Retry}" Command="{Binding RetryWrapped}" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                            <Button Name="RetryButton" Classes="ghost" Content="{i:Loc Wrapped.Retry}" Command="{Binding RetryWrapped}" HorizontalAlignment="Center" Margin="0,8,0,0" />
                         </StackPanel>
 
                         <StackPanel Name="HeroNumbers" i:Motion.RevealOnShow="True" IsVisible="{Binding HasRecap}">

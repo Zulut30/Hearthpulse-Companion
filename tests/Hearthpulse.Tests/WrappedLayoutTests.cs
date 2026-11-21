@@ -2,11 +2,11 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 using Hearthpulse.UI.Main.Pages;
 
@@ -15,7 +15,8 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// The Recap page in Avalonia, laid out headless (AC28): the period's arrows are named buttons whose tip shows on the
 /// disabled one too, the hero number is whole at the compact window's narrowest and at the usual width, and the slides
-/// follow the recap; an empty period shows its empty state and no slides.
+/// follow the recap; an empty period shows its empty state and no slides; a failed recap says so and its button works it
+/// out again. The recap is worked out on the caller (<see cref="BackgroundWork.Inline"/>).
 /// </summary>
 [Collection(nameof(GlobalLanguage))]
 public sealed class WrappedLayoutTests
@@ -37,7 +38,8 @@ public sealed class WrappedLayoutTests
         HeroCardId = mode == "Battlegrounds" ? "TB_BaconShop_HERO_01" : "HERO_08",
     };
 
-    private static (Window Window, MainView View, MainViewModel Model, Avalonia.Styling.Styles Theme) Open(double width, IEnumerable<GameRecord> games)
+    private static (Window Window, MainView View, MainViewModel Model, Avalonia.Styling.Styles Theme) Open(double width, IEnumerable<GameRecord> games,
+                                                                                                         BackgroundWork? background = null)
     {
         var theme = PageRowsPanelAvaloniaTests.Theme();
         var history = HistoryStore.InMemory();
@@ -46,25 +48,15 @@ public sealed class WrappedLayoutTests
             history.Add(game);
         }
 
-        var model = new MainViewModel(history, new AppSettings(), TestDataFolder.App) { WrappedToday = () => Today };
+        var model = new MainViewModel(history, new AppSettings(), TestDataFolder.App) { Background = background ?? BackgroundWork.Inline, WrappedToday = () => Today };
         var view = new MainView { DataContext = model };
         var window = new Window { Width = width, Height = 2400 };
         window.Resources["UiFont"] = FontFamily.Default;
         window.Content = view;
         window.Show();
         view.ShowPage("Wrapped");
-        Settle(window, model);
-        return (window, view, model, theme);
-    }
-
-    private static void Settle(Window window, MainViewModel model)
-    {
-        Assert.True(SpinWait.SpinUntil(() =>
-        {
-            Dispatcher.UIThread.RunJobs();
-            return model.WrappedWork.IsCompleted && !model.WrappedComputing;
-        }, TimeSpan.FromSeconds(30)), "the recap was not worked out");
         PageRowsPanelAvaloniaTests.Settle(window);
+        return (window, view, model, theme);
     }
 
     /// <summary>As in <see cref="CollectionLayoutTests"/>: the headless platform gives every character its font size as width.</summary>
@@ -135,7 +127,7 @@ public sealed class WrappedLayoutTests
 
             // The period's achievements: in compact the date and points go under the name (review m4).
             model.SetAchievements(Core.Progression.AchievementsScene.Build(Today.ToUniversalTime(), confirmed: true));
-            Settle(window, model);
+            PageRowsPanelAvaloniaTests.Settle(window);
             var meta = page.GetVisualDescendants().OfType<StackPanel>().Where(p => p.Classes.Contains("recapMeta") && p.IsEffectivelyVisible).ToList();
             Assert.NotEmpty(meta);
             Assert.All(meta, p => Assert.Equal(width < 900 ? 1 : 0, Grid.GetRow(p)));
@@ -154,18 +146,56 @@ public sealed class WrappedLayoutTests
         try
         {
             model.ShowWrappedPeriod(new Core.Stats.WrappedPeriod(Core.Stats.WrappedSpan.Month, 2026, 3), clamp: false);
-            Settle(window, model);
+            PageRowsPanelAvaloniaTests.Settle(window);
             var page = view.GetVisualDescendants().OfType<WrappedPage>().Single();
             var empty = Named<ContentControl>(page, "RecapEmpty");
             Assert.True(empty.IsEffectivelyVisible);
             Assert.Equal(Loc.T("Wrapped.Empty.Period"), empty.Content);
             Assert.False(Named<StackPanel>(page, "Slides").IsEffectivelyVisible);
             Assert.False(Named<StackPanel>(page, "HeroNumbers").IsEffectivelyVisible);
+            Assert.False(Named<StackPanel>(page, "RecapError").IsEffectivelyVisible);
         }
         finally
         {
             window.Close();
             Avalonia.Application.Current!.Styles.Remove(theme);
+        }
+    });
+
+    [Fact]
+    public void A_failed_recap_says_so_and_its_button_works_it_out_again() => LocBindingTests.Headless.Run(() =>
+    {
+        Loc.Instance.SetLanguage(Loc.Russian);
+        var work = new FailingWork("WrappedData") { Fail = true };
+        var (window, view, model, theme) = Open(1280, [Game(2), Game(3)], work);
+        try
+        {
+            // The history read failed: the hero card says so with "Try again" (no numbers, no empty state, no "working out").
+            var page = view.GetVisualDescendants().OfType<WrappedPage>().Single();
+            var error = Named<StackPanel>(page, "RecapError");
+            Assert.True(error.IsEffectivelyVisible);
+            Assert.Contains(error.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Не удалось посчитать итоги." && t.IsEffectivelyVisible);
+            var retry = Named<Button>(page, "RetryButton");
+            Assert.Equal("Посчитать снова", retry.Content);
+            Assert.True(retry.IsEffectivelyEnabled);
+            Assert.Same(model.RetryWrapped, retry.Command);
+            Assert.False(Named<StackPanel>(page, "HeroNumbers").IsEffectivelyVisible);
+            Assert.False(Named<ContentControl>(page, "RecapEmpty").IsEffectivelyVisible);
+            Assert.False(model.WrappedFirstComputing);
+
+            work.Fail = false;
+            retry.Command!.Execute(retry.CommandParameter);
+            PageRowsPanelAvaloniaTests.Settle(window);
+
+            Assert.False(error.IsEffectivelyVisible);
+            Assert.True(Named<StackPanel>(page, "HeroNumbers").IsEffectivelyVisible);
+            Assert.Equal("2", Named<TextBlock>(page, "HeroNumber").Text);
+        }
+        finally
+        {
+            window.Close();
+            Avalonia.Application.Current!.Styles.Remove(theme);
+            Loc.Instance.SetLanguage(Loc.English);
         }
     });
 }

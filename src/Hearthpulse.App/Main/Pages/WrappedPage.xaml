@@ -111,9 +111,9 @@
                                         Visibility="{Binding WrappedFirstComputing, Converter={StaticResource Vis}}" />
                         <ContentControl x:Name="RecapEmpty" Style="{StaticResource EmptyState}" Tag="&#xF00ED;" Content="{Binding WrappedEmpty}" AutomationProperties.LiveSetting="Polite"
                                         Visibility="{Binding WrappedEmptyShown, Converter={StaticResource Vis}}" />
-                        <StackPanel HorizontalAlignment="Center" Margin="0,16,0,0" Visibility="{Binding WrappedFailed, Converter={StaticResource Vis}}">
+                        <StackPanel x:Name="RecapError" HorizontalAlignment="Center" Margin="0,16,0,0" Visibility="{Binding WrappedFailed, Converter={StaticResource Vis}}">
                             <TextBlock Text="{i:Loc Wrapped.Error}" Style="{StaticResource Caption}" HorizontalAlignment="Center" />
-                            <Button Style="{StaticResource GhostButton}" Content="{i:Loc Wrapped.Retry}" Command="{Binding RetryWrapped}" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                            <Button x:Name="RetryButton" Style="{StaticResource GhostButton}" Content="{i:Loc Wrapped.Retry}" Command="{Binding RetryWrapped}" HorizontalAlignment="Center" Margin="0,8,0,0" />
                         </StackPanel>
 
                         <StackPanel x:Name="HeroNumbers" i:Motion.RevealOnShow="True" Visibility="{Binding HasRecap, Converter={StaticResource Vis}}">

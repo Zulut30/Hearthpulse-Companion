@@ -4,6 +4,7 @@ using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Progression;
 using Hearthpulse.Core.Stats;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 
 namespace Hearthpulse.Tests;
@@ -11,7 +12,8 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// The Recap page's view model (docs/wrapped-page.md, AC28) on a made-up history: the period it opens on, month and
 /// year, the arrows within the range, the hero numbers and the slides, the empty states, a new game, a newer request
-/// winning, the achievements of the period, no opponent anywhere, and a language switch.
+/// winning, a failure and "Try again", the achievements of the period, no opponent anywhere, and a language switch.
+/// The recap is worked out on the caller (<see cref="BackgroundWork.Inline"/>) unless a test holds it.
 /// </summary>
 [Collection(nameof(GlobalLanguage))]
 public sealed class WrappedViewModelTests : IDisposable
@@ -67,7 +69,7 @@ public sealed class WrappedViewModelTests : IDisposable
         Game(new DateTime(2026, 11, 12, 1, 0, 0, DateTimeKind.Local), mode: "Casual", minutes: 300),
     ];
 
-    private static MainViewModel Shown(IEnumerable<GameRecord> games, AchievementBook? book = null, DateTime? today = null)
+    private static HistoryStore Store(IEnumerable<GameRecord> games)
     {
         var history = HistoryStore.InMemory();
         foreach (var game in games)
@@ -75,14 +77,19 @@ public sealed class WrappedViewModelTests : IDisposable
             history.Add(game);
         }
 
-        var vm = new MainViewModel(history, new AppSettings(), TestDataFolder.App) { WrappedToday = () => today ?? Today };
-        vm.SetAchievements(book);
-        vm.PageShown("Wrapped");
-        Wait(vm);
-        return vm;
+        return history;
     }
 
-    private static void Wait(MainViewModel vm) => vm.WrappedWork.GetAwaiter().GetResult();
+    private static MainViewModel Model(HistoryStore history, BackgroundWork? background = null, DateTime? today = null) =>
+        new(history, new AppSettings(), TestDataFolder.App) { Background = background ?? BackgroundWork.Inline, WrappedToday = () => today ?? Today };
+
+    private static MainViewModel Shown(IEnumerable<GameRecord> games, AchievementBook? book = null, DateTime? today = null)
+    {
+        var vm = Model(Store(games), today: today);
+        vm.SetAchievements(book);
+        vm.PageShown("Wrapped");
+        return vm;
+    }
 
     private static WrappedReport Report(IEnumerable<GameRecord> games, WrappedPeriod period, AchievementBook? book = null) => Wrapped.Build(games, period, book);
 
@@ -130,7 +137,6 @@ public sealed class WrappedViewModelTests : IDisposable
         var vm = Shown(History());
 
         vm.SetWrappedSpan.Execute("Year");
-        Wait(vm);
         Assert.Equal(new WrappedPeriod(WrappedSpan.Year, 2026, 0), vm.ShownWrappedPeriod);
         Assert.Equal("2026", vm.WrappedTitle);
         Assert.Equal(Loc.P("Wrapped.Hero.GamesYear", 14, "2026"), vm.Recap!.Caption);
@@ -142,7 +148,6 @@ public sealed class WrappedViewModelTests : IDisposable
         Assert.Equal(Loc.T("Wrapped.Nav.Current"), vm.WrappedForwardTip);
 
         vm.SetWrappedSpan.Execute("Month");
-        Wait(vm);
         Assert.Equal(new WrappedPeriod(WrappedSpan.Month, 2026, 11), vm.ShownWrappedPeriod);
         Assert.Equal(Loc.T("Wrapped.Nav.PrevMonth"), vm.WrappedBackName);
     }
@@ -157,16 +162,13 @@ public sealed class WrappedViewModelTests : IDisposable
         for (var month = 10; month >= 1; month--)
         {
             vm.WrappedBack.Execute(null);
-            Wait(vm);
             Assert.Equal(new WrappedPeriod(WrappedSpan.Month, 2026, month), vm.ShownWrappedPeriod);
         }
 
         Assert.False(vm.WrappedCanGoBack);
         vm.WrappedBack.Execute(null);
-        Wait(vm);
         Assert.Equal(new WrappedPeriod(WrappedSpan.Month, 2026, 1), vm.ShownWrappedPeriod);
         vm.WrappedForward.Execute(null);
-        Wait(vm);
         Assert.Equal(new WrappedPeriod(WrappedSpan.Month, 2026, 2), vm.ShownWrappedPeriod);
 
         // February has nothing: its empty state, no slides.
@@ -188,7 +190,6 @@ public sealed class WrappedViewModelTests : IDisposable
 
         // Month or year still works.
         vm.SetWrappedSpan.Execute("Year");
-        Wait(vm);
         Assert.Equal("2026", vm.WrappedTitle);
     }
 
@@ -284,7 +285,6 @@ public sealed class WrappedViewModelTests : IDisposable
         Assert.Equal(done.Take(10).Select(d => d.Achievement.Name.Length > 0 ? d.Achievement.Name : Loc.T("Achievements.Hidden")), vm.Recap.Achievements.Select(a => a.Title));
 
         vm.SetWrappedSpan.Execute("Year");
-        Wait(vm);
         var year = book.CompletedBetween(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Local).ToUniversalTime(), new DateTime(2027, 1, 1, 0, 0, 0, DateTimeKind.Local).ToUniversalTime());
         Assert.True(year.Count > 10);
         Assert.Equal(10, vm.Recap!.Achievements.Count);
@@ -311,64 +311,106 @@ public sealed class WrappedViewModelTests : IDisposable
     // ------------------------------------------------------------------------------------------ freshness
 
     [Fact]
-    public async Task A_new_game_counts_once_the_page_is_shown_again()
+    public void A_new_game_counts_once_the_page_is_shown_again()
     {
-        var games = History();
-        var history = HistoryStore.InMemory();
-        games.ForEach(g => history.Add(g));
-        var vm = new MainViewModel(history, new AppSettings(), TestDataFolder.App) { WrappedToday = () => Today };
+        var history = Store(History());
+        var vm = Model(history);
         vm.PageShown("Wrapped");
-        Wait(vm);
         Assert.Equal("11", vm.Recap!.Number);
 
         vm.PageShown("History");
         history.Add(Game(new DateTime(2026, 11, 18, 20, 0, 0, DateTimeKind.Local)));
-        await vm.RefreshAsync();
-        Wait(vm);
+        Assert.True(vm.RefreshAsync().IsCompletedSuccessfully);
         Assert.Equal("11", vm.Recap!.Number);
 
         vm.PageShown("Wrapped");
-        Wait(vm);
         Assert.Equal("12", vm.Recap!.Number);
     }
 
     [Fact]
-    public async Task A_newer_request_wins_over_one_still_being_worked_out()
+    public void A_newer_request_wins_over_one_still_being_worked_out() => LocBindingTests.Headless.Run(() =>
     {
-        var vm = Shown(History());
+        var held = new HeldWork("WrappedData");
+        var vm = Model(Store(History()), held);
+        vm.PageShown("Wrapped");
+        held.Release(0);
+        var november = new WrappedPeriod(WrappedSpan.Month, 2026, 11);
+        Assert.Equal(november, vm.ShownWrappedPeriod);
 
+        // October, then the year: November stays on screen while both are worked out; the year, asked last, comes in first
+        // and stays when October comes in after it.
         vm.WrappedBack.Execute(null);
-        var older = vm.WrappedWork;
         vm.SetWrappedSpan.Execute("Year");
-        await vm.WrappedWork;
-        await older;
+        Assert.Equal(3, held.Count);
+        Assert.True(vm.WrappedComputing);
+        Assert.Equal(november, vm.ShownWrappedPeriod);
 
-        Assert.Equal(new WrappedPeriod(WrappedSpan.Year, 2026, 0), vm.ShownWrappedPeriod);
-        Assert.Equal("2026", vm.WrappedTitle);
+        held.Release(2);
+        var year = new WrappedPeriod(WrappedSpan.Year, 2026, 0);
+        Assert.Equal(year, vm.ShownWrappedPeriod);
         Assert.False(vm.WrappedComputing);
-    }
+        held.Release(1);
+        Assert.Equal(year, vm.ShownWrappedPeriod);
+        Assert.Equal("2026", vm.WrappedTitle);
+        Assert.Equal(Loc.P("Wrapped.Hero.GamesYear", 14, "2026"), vm.Recap!.Caption);
+        Assert.False(vm.WrappedComputing);
+    });
 
     [Fact]
-    public async Task A_history_refresh_repeats_the_newest_request_and_keeps_the_period_asked_for()
+    public void A_history_refresh_repeats_the_newest_request_and_keeps_the_period_asked_for() => LocBindingTests.Headless.Run(() =>
     {
-        var games = History();
-        var history = HistoryStore.InMemory();
-        games.ForEach(g => history.Add(g));
-        var vm = new MainViewModel(history, new AppSettings(), TestDataFolder.App) { WrappedToday = () => Today };
+        var held = new HeldWork("WrappedData");
+        var history = Store(History());
+        var vm = Model(history, held);
         vm.PageShown("Wrapped");
-        Wait(vm);
+        held.Release(0);
 
-        // A period outside the range, asked for outright, then a new game while it may still be on its way: the recap
-        // is worked out again for that period, not for the one shown before it, nor pulled into the range.
+        // A period outside the range, asked for outright, then a new game while it is still on its way: the recap is
+        // worked out again for that period, not for the one shown before it, nor pulled into the range.
         var asked = new WrappedPeriod(WrappedSpan.Month, 2001, 1);
         vm.ShowWrappedPeriod(asked, clamp: false);
         history.Add(Game(new DateTime(2026, 11, 18, 20, 0, 0, DateTimeKind.Local)));
-        await vm.RefreshAsync();
-        await vm.WrappedWork;
+        Assert.True(vm.RefreshAsync().IsCompletedSuccessfully);
+        Assert.Equal(3, held.Count);
 
+        held.Release(2);
+        Assert.Equal(asked, vm.ShownWrappedPeriod);
+        held.Release(1);
         Assert.Equal(asked, vm.ShownWrappedPeriod);
         Assert.Null(vm.Recap);
         Assert.Equal(Loc.T("Wrapped.Empty.Period"), vm.WrappedEmpty);
+    });
+
+    [Fact]
+    public void A_failed_recap_says_so_and_try_again_repeats_the_request_that_failed()
+    {
+        var work = new FailingWork("WrappedData") { Fail = true };
+        var vm = Model(Store(History()), work);
+        vm.PageShown("Wrapped");
+
+        // The first result failed: the error and its button, not "working out" for ever, not an empty period.
+        Assert.True(vm.WrappedFailed);
+        Assert.False(vm.WrappedComputing);
+        Assert.False(vm.WrappedFirstComputing);
+        Assert.False(vm.HasRecap);
+        Assert.False(vm.WrappedEmptyShown);
+
+        work.Fail = false;
+        vm.RetryWrapped.Execute(null);
+        Assert.False(vm.WrappedFailed);
+        Assert.Equal(WrappedPeriod.MonthOf(Today), vm.ShownWrappedPeriod);
+        Assert.Equal("11", vm.Recap!.Number);
+
+        // October fails: trying again works out October, not the month shown before it.
+        work.Fail = true;
+        vm.WrappedBack.Execute(null);
+        Assert.True(vm.WrappedFailed);
+        Assert.False(vm.WrappedComputing);
+        work.Fail = false;
+        vm.RetryWrapped.Execute(null);
+        Assert.False(vm.WrappedFailed);
+        Assert.Equal(new WrappedPeriod(WrappedSpan.Month, 2026, 10), vm.ShownWrappedPeriod);
+        Assert.Equal("2", vm.Recap!.Number);
     }
 
     // ------------------------------------------------------------------------------------------ language

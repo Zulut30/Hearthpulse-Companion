@@ -54,7 +54,7 @@ public sealed partial class MainViewModel
     private RelayCommand? _wrappedForward;
     private RelayCommand? _retryWrapped;
 
-    /// <summary>The work of the last request; a test waits for it.</summary>
+    /// <summary>The work of the last request; a render scene waits for it.</summary>
     internal Task WrappedWork { get; private set; } = Task.CompletedTask;
 
     /// <summary>Today for the recap (the current period and the newest one there is); a test or a render scene sets it.</summary>
@@ -238,26 +238,26 @@ public sealed partial class MainViewModel
         var today = WrappedToday();
         try
         {
-            var (games, range, report, nothing) = await Task.Run(() =>
+            var data = await Background.RunAsync(() =>
             {
                 var games = known ?? history.Since(DateTime.MinValue);
                 var range = Wrapped.Range(games, book, span, today);
                 var chosen = request.Choose(games, book, span, today);
                 var period = request.Exact ? chosen : Clamp(chosen, range);
                 var nothing = games.All(g => g.IsAbandoned) && !HasDatedAchievements(book);
-                return (games, range, Wrapped.Build(games, period, book, cards.BaseHeroId), nothing);
+                return new WrappedData(games, range, Wrapped.Build(games, period, book, cards.BaseHeroId), nothing);
             }).ConfigureAwait(true);
             if (build != _wrappedBuild)
             {
                 return;
             }
 
-            _wrappedRequest = RecapRequest.Of(report.Period) with { Exact = request.Exact };
-            _wrappedGames = games;
-            _wrappedNothing = nothing;
-            _wrappedRange = range;
-            _wrappedPeriod = report.Period;
-            _wrappedReport = report;
+            _wrappedRequest = RecapRequest.Of(data.Report.Period) with { Exact = request.Exact };
+            _wrappedGames = data.Games;
+            _wrappedNothing = data.Nothing;
+            _wrappedRange = data.Range;
+            _wrappedPeriod = data.Report.Period;
+            _wrappedReport = data.Report;
             ShowRecap();
         }
         catch (Exception ex) when (ex is System.IO.IOException or InvalidOperationException or Microsoft.Data.Sqlite.SqliteException or ArgumentException)
@@ -517,6 +517,9 @@ public sealed partial class MainViewModel
         Raise(nameof(WrappedEmpty));
         Raise(nameof(WrappedEmptyShown));
     }
+
+    /// <summary>What a request works out off the UI thread: the games it read, the range of periods with anything in them, the report, and whether there is nothing at all.</summary>
+    private sealed record WrappedData(IReadOnlyList<GameRecord> Games, (WrappedPeriod First, WrappedPeriod Last) Range, WrappedReport Report, bool Nothing);
 
     /// <summary>What a request asks for: a period, the default (this month, else the last one with anything), or a month of a year.</summary>
     private sealed record RecapRequest(WrappedPeriod? Period, int? MonthOfYear)

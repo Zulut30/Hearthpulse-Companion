@@ -4,6 +4,7 @@ using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Progression;
 using Hearthpulse.Core.Tracking;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 
 namespace Hearthpulse.Tests;
@@ -11,7 +12,8 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// The Achievements page's view model (docs/achievements-page.md, AC23-AC27) on the made-up book of
 /// <see cref="AchievementsScene"/>: the summary, the star and the tracked block, the nearly done and recent lists, the
-/// browse view one subcategory at a time, every state's line, and a language switch.
+/// browse view one subcategory at a time, every state's line, an older book worked out last, and a language switch.
+/// The page's work runs on the caller (<see cref="BackgroundWork.Inline"/>) unless a test holds it.
 /// </summary>
 [Collection(nameof(GlobalLanguage))]
 public sealed class AchievementsViewModelTests : IDisposable
@@ -25,12 +27,19 @@ public sealed class AchievementsViewModelTests : IDisposable
 
     private static AchievementBook Book(bool confirmed = true) => AchievementsScene.Build(Now, confirmed);
 
+    private static MainViewModel Model(AppSettings? settings = null, BackgroundWork? background = null) =>
+        new(HistoryStore.InMemory(), settings ?? new AppSettings(), TestDataFolder.App)
+        {
+            Background = background ?? BackgroundWork.Inline,
+            AchievementsReadable = true,
+            SaveSettings = _ => { },
+        };
+
     private static MainViewModel Shown(AchievementBook? book, AppSettings? settings = null)
     {
-        var vm = new MainViewModel(HistoryStore.InMemory(), settings ?? new AppSettings(), TestDataFolder.App) { AchievementsReadable = true };
+        var vm = Model(settings);
         vm.SetAchievements(book);
         vm.PageShown("Achievements");
-        vm.AchievementsWork.GetAwaiter().GetResult();
         return vm;
     }
 
@@ -76,15 +85,25 @@ public sealed class AchievementsViewModelTests : IDisposable
     [Fact]
     public void A_star_tracks_the_chain_by_its_first_tier_saves_it_and_a_second_press_stops_tracking()
     {
+        // The settings go to a file of this test's own: the run's settings.json is written by other tests too.
+        var file = TestDataFolder.Scratch("hp-achievements-star") + ".json";
         var settings = new AppSettings();
-        var vm = Shown(Book(), settings);
+        var vm = new MainViewModel(HistoryStore.InMemory(), settings, TestDataFolder.App)
+        {
+            Background = BackgroundWork.Inline,
+            AchievementsReadable = true,
+            SaveSettings = s => s.Save(file),
+        };
+        vm.SetAchievements(Book());
+        vm.PageShown("Achievements");
         Assert.True(vm.TrackedAchievementsEmpty);
+        Assert.False(File.Exists(file));
 
         vm.ToggleAchievementStar.Execute(Key(AchievementsScene.TieredHead));
 
         Assert.Equal([AchievementsScene.TieredHead], settings.TrackedAchievements);
-        // Kept as the settings file keeps it (the file itself is written by Settings.Save; other tests share it).
-        Assert.Equal([AchievementsScene.TieredHead], AppSettings.FromJson(settings.ToJson()).TrackedAchievements);
+        // Written at once, as a restart reads it.
+        Assert.Equal([AchievementsScene.TieredHead], AppSettings.Load(file).TrackedAchievements);
         var row = Assert.Single(vm.TrackedAchievementRows);
         Assert.Equal("Коллекционер II", row.Title);
         Assert.Equal("Уровень 2 из 3", row.Level);
@@ -109,9 +128,11 @@ public sealed class AchievementsViewModelTests : IDisposable
 
         vm.ToggleAchievementStar.Execute(Key(AchievementsScene.TieredHead));
         Assert.Equal([AchievementsScene.TierGainHead], settings.TrackedAchievements);
+        Assert.Equal([AchievementsScene.TierGainHead], AppSettings.Load(file).TrackedAchievements);
         Assert.Equal([AchievementsScene.TierGainHead], vm.TrackedAchievementRows.Select(r => r.HeadId));
         Assert.False(vm.AchievementBrowseRows.OfType<AchievementRow>().Single(r => r.HeadId == AchievementsScene.TieredHead).Tracked);
         Assert.Equal("Отслеживать «Коллекционер II»", vm.AchievementBrowseRows.OfType<AchievementRow>().Single(r => r.HeadId == AchievementsScene.TieredHead).StarName);
+        TestDataFolder.TryDelete(file);
     }
 
     [Fact]
@@ -193,6 +214,29 @@ public sealed class AchievementsViewModelTests : IDisposable
     {
         Confirmed = true,
     };
+
+    [Fact]
+    public void Nearly_done_takes_a_quota_of_two_or_more_and_some_progress()
+    {
+        // Four chains of one tier each, at the edges of the rule: a quota of 1 is done or not (even "in progress" with
+        // its 1 of 1), a quota of 2 with 1 counts; no progress at all does not count, the first point does.
+        var vm = Shown(Small(
+            [
+                new AchievementDef(1, 111, 1, "Один шаг", "Сыграйте игру.", false, 1, 5, 0),
+                new AchievementDef(2, 111, 2, "Два шага", "Сыграйте $q игры.", false, 2, 5, 0),
+                new AchievementDef(3, 111, 3, "Не начато", "Сыграйте $q игр.", false, 50, 5, 0),
+                new AchievementDef(4, 111, 4, "Первый шаг", "Сыграйте $q игр.", false, 50, 5, 0),
+            ],
+            [
+                new AchievementState(1, AchievementStatus.InProgress, 1, null),
+                new AchievementState(2, AchievementStatus.InProgress, 1, null),
+                new AchievementState(3, AchievementStatus.InProgress, 0, null),
+                new AchievementState(4, AchievementStatus.InProgress, 1, null),
+            ]));
+
+        Assert.Equal([2, 4], vm.NearlyDoneRows.Select(r => r.HeadId));
+        Assert.Equal([Loc.F("Achievements.Progress", 1, 2), Loc.F("Achievements.Progress", 1, 50)], vm.NearlyDoneRows.Select(r => r.ProgressText));
+    }
 
     [Fact]
     public void A_chain_not_done_never_shows_a_hundred_percent()
@@ -342,26 +386,58 @@ public sealed class AchievementsViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task The_page_is_built_only_once_shown_and_a_newer_book_replaces_the_rows()
+    public void The_page_is_built_only_once_shown_and_a_newer_book_replaces_the_rows() => LocBindingTests.Headless.Run(() =>
     {
-        var vm = new MainViewModel(HistoryStore.InMemory(), new AppSettings(), TestDataFolder.App) { AchievementsReadable = true };
+        var held = new HeldWork("AchievementsData");
+        var vm = Model(background: held);
         vm.SetAchievements(Book());
+        Assert.Equal(0, held.Count);
         Assert.False(vm.AchievementsShown);
         Assert.Equal(Loc.T("Achievements.Loading"), vm.AchievementsEmpty);
 
         vm.PageShown("Achievements");
-        await vm.AchievementsWork;
+        Assert.Equal(1, held.Count);
+        held.Release(0);
         Assert.True(vm.AchievementsShown);
 
         vm.SetAchievements(Book(confirmed: false));
-        await vm.AchievementsWork;
+        held.Release(1);
         Assert.True(vm.AchievementsStatusLine!.Saved);
         Assert.All(vm.NearlyDoneRows, r => Assert.Equal(DeckBuildView.SavedOpacity, r.GraphicsOpacity));
 
         vm.SetAchievements(null);
+        Assert.Equal(2, held.Count);
         Assert.False(vm.AchievementsShown);
         Assert.Equal(Loc.T("Achievements.Empty.None"), vm.AchievementsEmpty);
-    }
+    });
+
+    [Fact]
+    public void A_book_worked_out_after_a_newer_one_is_dropped_and_the_old_rows_stay_meanwhile() => LocBindingTests.Headless.Run(() =>
+    {
+        var held = new HeldWork("AchievementsData");
+        var vm = Model(background: held);
+        var scene = Book();
+        vm.SetAchievements(scene);
+        vm.PageShown("Achievements");
+        held.Release(0);
+        var sceneRows = scene.NearlyDone(MainViewModel.AchievementListLength).Select(c => c.HeadId).ToList();
+        Assert.Equal(sceneRows, vm.NearlyDoneRows.Select(r => r.HeadId));
+
+        // Two newer books: the scene's rows stay until the newest is worked out; the one between, done last, is dropped.
+        var between = Small([new AchievementDef(1, 111, 1, "Между", "Сыграйте $q игр.", false, 10, 5, 0)], [new AchievementState(1, AchievementStatus.InProgress, 4, null)]);
+        var newest = Small([new AchievementDef(2, 111, 1, "Новейшая", "Сыграйте $q игр.", false, 10, 5, 0)], [new AchievementState(2, AchievementStatus.InProgress, 7, null)]);
+        vm.SetAchievements(between);
+        vm.SetAchievements(newest);
+        Assert.Equal(3, held.Count);
+        Assert.Equal(sceneRows, vm.NearlyDoneRows.Select(r => r.HeadId));
+
+        held.Release(2);
+        Assert.Equal([2], vm.NearlyDoneRows.Select(r => r.HeadId));
+        Assert.Equal([2], vm.AchievementBrowseRows.OfType<AchievementRow>().Select(r => r.HeadId));
+        held.Release(1);
+        Assert.Equal([2], vm.NearlyDoneRows.Select(r => r.HeadId));
+        Assert.Equal([2], vm.AchievementBrowseRows.OfType<AchievementRow>().Select(r => r.HeadId));
+    });
 
     // ------------------------------------------------------------------------------------------ language
 

@@ -11,13 +11,15 @@ using Hearthpulse.Core.Progression;
 using AvaMain = Hearthpulse.UI.Main.MainViewModel;
 using WpfMain = Hearthpulse.App.Main.MainViewModel;
 using WpfWindow = Hearthpulse.App.Main.MainWindow;
+using WpfWork = Hearthpulse.App.Infrastructure.BackgroundWork;
 
 namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
 /// The Recap page in both hosts (docs/wrapped-page.md, AC28): the WPF and the Avalonia view model show the same recap,
 /// period and arrows for the same history and book, month and year alike, and the WPF page shows the model's numbers
-/// with named arrows. The Avalonia page alone: <c>Hearthpulse.Tests/WrappedLayoutTests</c>.
+/// with named arrows, and a failure with its "Try again" button. The recap is worked out on the caller
+/// (<c>BackgroundWork.Inline</c>). The Avalonia page alone: <c>Hearthpulse.Tests/WrappedLayoutTests</c>.
 /// </summary>
 public sealed class WrappedContractTests
 {
@@ -97,21 +99,6 @@ public sealed class WrappedContractTests
         }
     }
 
-    private static void Done(Task work)
-    {
-        for (var i = 0; i < 3000 && !work.IsCompleted; i++)
-        {
-            if (Dispatcher.FromThread(Thread.CurrentThread) is not null)
-            {
-                Pump();
-            }
-
-            Thread.Sleep(1);
-        }
-
-        Assert.True(work.IsCompletedSuccessfully);
-    }
-
     [Fact]
     public void Both_view_models_show_the_same_recap_for_the_same_history_and_book()
     {
@@ -119,15 +106,13 @@ public sealed class WrappedContractTests
         try
         {
             var book = AchievementsScene.Build(Today.ToUniversalTime(), confirmed: true);
-            var wpf = new WpfMain(History(), new AppSettings(), TestApp.Data) { WrappedToday = () => Today };
-            var ava = new AvaMain(History(), new AppSettings(), TestApp.Data) { WrappedToday = () => Today };
+            var wpf = new WpfMain(History(), new AppSettings(), TestApp.Data) { Background = WpfWork.Inline, WrappedToday = () => Today };
+            var ava = new AvaMain(History(), new AppSettings(), TestApp.Data) { Background = Hearthpulse.UI.Infrastructure.BackgroundWork.Inline, WrappedToday = () => Today };
             wpf.SetAchievements(book);
             ava.SetAchievements(book);
 
             void Same(string what)
             {
-                Done(wpf.WrappedWork);
-                Done(ava.WrappedWork);
                 var (w, a) = (State(wpf), State(ava));
                 Assert.True(w.SequenceEqual(a), what + ": " + string.Join(" | ", w.Except(a).Take(5)));
             }
@@ -153,22 +138,22 @@ public sealed class WrappedContractTests
         }
     }
 
+    private static WpfWindow OffScreen(WpfMain model) => new(model)
+    {
+        WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000, Width = 1260, Height = 840,
+        ShowActivated = false, ShowInTaskbar = false,
+    };
+
     [Fact]
     public void The_WPF_page_shows_the_models_numbers_with_named_arrows() => WpfThread.RunFresh(() =>
     {
-        var model = new WpfMain(History(), new AppSettings(), TestApp.Data) { WrappedToday = () => Today };
-        var window = new WpfWindow(model)
-        {
-            WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000, Width = 1260, Height = 840,
-            ShowActivated = false, ShowInTaskbar = false,
-        };
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data) { Background = WpfWork.Inline, WrappedToday = () => Today };
+        var window = OffScreen(model);
         window.Show();
         Pump();
         try
         {
             window.ShowPage("Wrapped");
-            Pump();
-            Done(model.WrappedWork);
             Pump();
             var page = window.PageWrapped;
             page.UpdateLayout();
@@ -196,10 +181,10 @@ public sealed class WrappedContractTests
 
             // An empty period: its empty state, no slides.
             model.ShowWrappedPeriod(new Core.Stats.WrappedPeriod(Core.Stats.WrappedSpan.Month, 2026, 3), clamp: false);
-            Done(model.WrappedWork);
             Pump();
             Assert.True(page.RecapEmpty.IsVisible);
             Assert.False(page.Slides.IsVisible);
+            Assert.False(page.RecapError.IsVisible);
         }
         finally
         {
@@ -207,6 +192,54 @@ public sealed class WrappedContractTests
             Pump();
         }
     });
+
+    [Fact]
+    public void The_WPF_page_says_a_recap_failed_and_its_button_works_it_out_again() => WpfThread.RunFresh(() =>
+    {
+        Loc.Instance.SetLanguage(Loc.Russian);
+        var work = new FailingWork { Fail = true };
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data) { Background = work, WrappedToday = () => Today };
+        var window = OffScreen(model);
+        window.Show();
+        Pump();
+        try
+        {
+            window.ShowPage("Wrapped");
+            Pump();
+            var page = window.PageWrapped;
+            page.UpdateLayout();
+
+            Assert.True(page.RecapError.IsVisible);
+            Assert.Contains("Не удалось посчитать итоги.", VisualChildren(page.RecapError).OfType<TextBlock>().Select(t => t.Text));
+            Assert.Equal("Посчитать снова", page.RetryButton.Content);
+            Assert.Same(model.RetryWrapped, page.RetryButton.Command);
+            Assert.True(page.RetryButton.IsEnabled);
+            Assert.False(page.HeroNumbers.IsVisible);
+            Assert.False(page.RecapEmpty.IsVisible);
+
+            work.Fail = false;
+            page.RetryButton.Command.Execute(page.RetryButton.CommandParameter);
+            Pump();
+            Assert.False(page.RecapError.IsVisible);
+            Assert.True(page.HeroNumbers.IsVisible);
+            Assert.Equal(model.Recap!.Number, page.HeroNumber.Text);
+        }
+        finally
+        {
+            window.CloseForReal();
+            Pump();
+            Loc.Instance.SetLanguage(Loc.English);
+        }
+    });
+
+    /// <summary>The recap's work throws while <see cref="Fail"/> is set, as a failed history read would; other work runs at once.</summary>
+    private sealed class FailingWork : WpfWork
+    {
+        public bool Fail { get; set; }
+
+        public override Task<T> RunAsync<T>(Func<T> work) =>
+            Fail && typeof(T).Name == "WrappedData" ? Task.FromException<T>(new InvalidOperationException("made-up failure")) : Inline.RunAsync(work);
+    }
 
     private static void Pump()
     {
