@@ -177,7 +177,10 @@ cores beside CPU-bound work on the pool; inventory and numbers in `docs/mutation
 ### Data isolation
 
 - Tests normally run in parallel. `LocBindingTests` uses the nonparallel `GlobalLanguage` collection because it
-  changes the shared localization service. `TestDataFolder` (a `[ModuleInitializer]`) points `HEARTHPULSE_DATA` at a temp
+  changes the shared localization service; it runs alone after the parallel collections and is the longest stretch of a
+  run. After each of its tests `LanguageListeners.cs` takes off the `Loc.LanguageChanged` listeners of finished tests
+  (what the test added, and every main or overlay view model's; the Windows suite takes off what each test added): a
+  main view model never unsubscribes, and the ones left over rebuild on every switch. `TestDataFolder` (a `[ModuleInitializer]`) points `HEARTHPULSE_DATA` at a temp
   folder before anything reads `AppPaths` and deletes it at the end: never set it in a test. Read the shared log with
   `TestDataFolder.ReadLog()` - a plain `File.ReadAllText` locks out `Diag` in a parallel test and that line is lost.
 - A `GameSession` in a test: set `Clock`, `IsHearthstoneRunning` and `ReadsMemory = false` (internal hooks), so time is
