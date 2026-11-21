@@ -88,12 +88,40 @@ public sealed class ArtMotionTests
             Assert.Same(shown, row.Source);
             Assert.False(CardArt.Fading(row));
 
-            // Mid-fade, the control is given a card in memory: the fade stops, the card is whole at once.
+            // Mid-fade, the control is given a card in memory: the fade stops, the card is whole at once. The fade runs on
+            // the wall clock and could end under load before a wait saw it, so the card is given in the job right after the
+            // fade starts (Send outranks every animation frame).
             var next = Card();
             CardArt.SetCard(row, next);
-            Arrive(ArtKind.Card, next, () => CardArt.Fading(row), row);
-            Assert.True(CardArt.Fading(row));
-            CardArt.SetCard(row, current);
+            bool? fadingWhenGiven = null;
+            void Give(object? sender, AvaloniaPropertyChangedEventArgs e)
+            {
+                if (!CardArt.Fading(row))
+                {
+                    return;
+                }
+
+                row.PropertyChanged -= Give;
+                Dispatcher.UIThread.Post(
+                    () =>
+                    {
+                        fadingWhenGiven = CardArt.Fading(row);
+                        CardArt.SetCard(row, current);
+                    },
+                    DispatcherPriority.Send);
+            }
+
+            row.PropertyChanged += Give;
+            try
+            {
+                Arrive(ArtKind.Card, next, () => fadingWhenGiven is not null, row);
+            }
+            finally
+            {
+                row.PropertyChanged -= Give;
+            }
+
+            Assert.True(fadingWhenGiven);
             Assert.Same(shown, row.Source);
             Assert.False(CardArt.Fading(row));
             Assert.Equal(1, row.Opacity);

@@ -87,12 +87,41 @@ public sealed class ArtMotionTests
             Assert.Same(shown, row.Source);
             Assert.False(row.HasAnimatedProperties);
 
-            // Mid-fade, the element is given a card in memory: the fade stops, the card is whole at once.
+            // Mid-fade, the element is given a card in memory: the fade stops, the card is whole at once. The fade runs on
+            // the render clock and could end under load before a wait saw it; the art and its fade start in one job, so
+            // the card is given in the job right after the art is set (Send outranks every frame).
             var next = Card();
             CardArt.SetCard(row, next);
-            Arrive(ArtKind.Card, next, () => row.HasAnimatedProperties);
-            Assert.True(row.HasAnimatedProperties);
-            CardArt.SetCard(row, current);
+            bool? fadingWhenGiven = null;
+            var source = DependencyPropertyDescriptor.FromProperty(Image.SourceProperty, typeof(Image));
+            void Give(object? sender, EventArgs e)
+            {
+                if (row.Source is null)
+                {
+                    return;
+                }
+
+                source.RemoveValueChanged(row, Give);
+                row.Dispatcher.BeginInvoke(
+                    DispatcherPriority.Send,
+                    () =>
+                    {
+                        fadingWhenGiven = row.HasAnimatedProperties;
+                        CardArt.SetCard(row, current);
+                    });
+            }
+
+            source.AddValueChanged(row, Give);
+            try
+            {
+                Arrive(ArtKind.Card, next, () => fadingWhenGiven is not null);
+            }
+            finally
+            {
+                source.RemoveValueChanged(row, Give);
+            }
+
+            Assert.True(fadingWhenGiven);
             Assert.Same(shown, row.Source);
             Assert.False(row.HasAnimatedProperties);
             Assert.Equal(1, row.Opacity);
