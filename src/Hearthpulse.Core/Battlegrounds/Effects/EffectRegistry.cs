@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Hearthpulse.Core.Battlegrounds.Effects;
@@ -16,6 +17,7 @@ public sealed class EffectRegistry
     private readonly Dictionary<string, CombatEffect[]> _golden = new(StringComparer.Ordinal);
     private readonly List<string> _problems = new();
 
+    [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "Effect classes are created by reflection; a trimmed or Native AOT host keeps every type of this assembly (BGSim.Server: TrimmerRootAssembly).")]
     private EffectRegistry(IEnumerable<Type> types)
     {
         var normalExplicit = new HashSet<string>(StringComparer.Ordinal);
@@ -69,6 +71,7 @@ public sealed class EffectRegistry
 
     public static EffectRegistry Empty { get; } = new(Array.Empty<Type>());
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Effect classes are found by reflection over the assembly; a trimmed or Native AOT host keeps every type of it (BGSim.Server: TrimmerRootAssembly).")]
     public static EffectRegistry FromAssembly(Assembly assembly)
     {
         Type[] types;

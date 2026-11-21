@@ -33,6 +33,17 @@ The lists at the top of `sync.ps1` decide everything; edit them, not BGSim by ha
 Inside `src/BGSim/` and `tests/BGSim.Tests/` the copy is a mirror: a file that is no longer copied is removed, unless
 it is owned. BGSim's README, LICENSE, solution and other docs are outside the synced folders.
 
+## BGSim's own parts
+
+BGSim also has parts of its own outside the mirrored folders, never synced: `src/BGSim.Server` (HTTP API, Native AOT),
+`tests/BGSim.Server.Tests`, `tools/BGSim.LoadTest`, `Dockerfile`, `compose.yaml`, `.github/workflows/docker.yml` and
+`docs/server.md`. `sync.ps1` builds and tests the whole `BGSim.slnx`, the server included.
+
+The server keeps the simulator whole with `<TrimmerRootAssembly Include="BGSim" />`, but its AOT publish still warns
+about reflection it cannot prove. New reflection in the simulator (`Effects/`, `Simulation/`) must stay AOT-compatible,
+or BGSim's AOT publish of the server prints an IL2xxx warning. Suppress such a warning in place with a justification, as
+`EffectRegistry` and `CombatEffect` do (`[UnconditionalSuppressMessage("Trimming", "IL20xx", Justification = ...)]`).
+
 ## Shims
 
 A shim is a BGSim-only stand-in for a Hearthpulse type the simulator reaches but BGSim cannot carry.

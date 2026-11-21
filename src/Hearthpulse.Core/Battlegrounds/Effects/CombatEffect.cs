@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Hearthpulse.Core.Battlegrounds.Effects;
@@ -269,6 +270,7 @@ public abstract class CombatEffect
     /// <summary>"Whenever you would summon a minion that doesn't fit in your warband": a summon failed on a full board.</summary>
     public virtual void OnSummonDidNotFit(Fight fight, Unit self) { }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2070", Justification = "Hook overrides are found by reflection on effect classes; a trimmed or Native AOT host keeps every member of this assembly (BGSim.Server: TrimmerRootAssembly).")]
     private static Hook ScanHooks(Type type)
     {
         var hooks = Hook.None;

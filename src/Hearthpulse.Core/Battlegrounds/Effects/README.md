@@ -11,6 +11,8 @@ Rules for every effect:
   needs a hand overrides `NeedsHand => true`; it then stays "not simulated" on the opponent's side.
 - **Add files, don't edit shared ones.** One class per card (or per group of cards with the same behaviour) in its
   own file under `Effects/<Family>/`. Registration is automatic (reflection over `[CardEffect]`); there is no list to edit.
+- **AOT-compatible reflection.** New reflection here or in `Simulation/` must not make BGSim's Native AOT server warn
+  (IL2xxx); suppress in place with a justification, as `EffectRegistry`/`CombatEffect` do (`tools/bgsim/README.md`).
 
 ## Adding an effect
 
