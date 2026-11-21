@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Hearthpulse.Core.Collection;
 using Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Progression;
 
 namespace Hearthpulse.Core.Tracking;
 
@@ -15,7 +16,19 @@ internal sealed record MemoryRequest(
     string? AwaitingRatingKey,
     bool WantDraftChoices = false,
     bool WantLobbyNames = false,
-    int CollectionTicket = 0);
+    int CollectionTicket = 0,
+    int CosmeticsTicket = 0,
+    int AchievementsTicket = 0,
+    AchievementBook? AchievementsCatalog = null);
+
+/// <summary>The long read a memory scan makes, at most one (docs/collection-cosmetics.md).</summary>
+internal enum LongReadKind
+{
+    None,
+    Collection,
+    Cosmetics,
+    Achievements,
+}
 
 /// <summary>What one memory scan found; null where nothing was read.</summary>
 internal sealed record MemoryReading(
@@ -27,7 +40,9 @@ internal sealed record MemoryReading(
     (MatchPlayerInfo? Local, MatchPlayerInfo? Opponent)? Players,
     Arena.ArenaDraftOffer? DraftChoices = null,
     IReadOnlyDictionary<int, string>? LobbyNames = null,
-    CardCollection? Collection = null);
+    CardCollection? Collection = null,
+    CosmeticsCollection? Cosmetics = null,
+    AchievementBook? Achievements = null);
 
 /// <summary>
 /// Reads the game's memory on its own thread. A scan can take seconds on a slow PC, or when a security tool inspects
@@ -41,7 +56,7 @@ internal sealed class MemoryPoller
     private MemoryRequest? _request;
     private MemoryReading? _reading;
     private Thread? _thread;
-    private TimeSpan _collectionTime;
+    private TimeSpan _longReadTime;
 
     public MemoryPoller(HearthstoneMemory memory)
     {
@@ -65,6 +80,13 @@ internal sealed class MemoryPoller
     /// <summary>The newest reading that was not taken yet, or null.</summary>
     public MemoryReading? Take() => Interlocked.Exchange(ref _reading, null);
 
+    /// <summary>One scan of <paramref name="request"/> on the caller's thread, without the reader thread (tests).</summary>
+    internal MemoryReading? ScanOnce(MemoryRequest request)
+    {
+        Volatile.Write(ref _request, request);
+        return Scan(request);
+    }
+
     private void Run()
     {
         while (true)
@@ -86,9 +108,9 @@ internal sealed class MemoryPoller
                     Diag.Error("Memory scan failed", ex);
                 }
 
-                // The collection's read is long by nature and rare: it is no sign of a slow PC.
-                var elapsed = Stopwatch.GetElapsedTime(started) - _collectionTime;
-                _collectionTime = TimeSpan.Zero;
+                // The collection's, the cosmetics' and the achievements' reads are long by nature and rare: no sign of a slow PC.
+                var elapsed = Stopwatch.GetElapsedTime(started) - _longReadTime;
+                _longReadTime = TimeSpan.Zero;
                 if (elapsed > TimeSpan.FromSeconds(1))
                 {
                     Diag.Info($"Memory scan took {elapsed.TotalMilliseconds:N0} ms; the next one waits longer");
@@ -113,17 +135,60 @@ internal sealed class MemoryPoller
 
         var awaiting = request.AwaitingRatingKey is not null;
         var battlegroundsGame = request.InGame && request.Battlegrounds;
-        return new MemoryReading(
-            request,
-            request.ReadRating || awaiting ? _memory.GetBattlegroundsRating() : null,
-            awaiting ? _memory.GetPostGameBattlegroundsRating() : null,
-            battlegroundsGame && request.WantRaces ? _memory.GetBattlegroundsRaces() : null,
-            battlegroundsGame ? _memory.GetBattlegroundsButtonCosts() : null,
-            request.InGame && request.WantRanks ? _memory.GetMatchPlayers() : null,
-            request.WantDraftChoices ? _memory.GetArenaDraftChoices() : null,
-            battlegroundsGame && request.WantLobbyNames ? _memory.GetBattlegroundsLobbyNames() : null,
-            ReadCollection(request));
+        var rating = request.ReadRating || awaiting ? _memory.GetBattlegroundsRating() : null;
+        var postGameRating = awaiting ? _memory.GetPostGameBattlegroundsRating() : null;
+        var races = battlegroundsGame && request.WantRaces ? _memory.GetBattlegroundsRaces() : null;
+        var buttonCosts = battlegroundsGame ? _memory.GetBattlegroundsButtonCosts() : null;
+        var players = request.InGame && request.WantRanks ? _memory.GetMatchPlayers() : null;
+        var draft = request.WantDraftChoices ? _memory.GetArenaDraftChoices() : null;
+        var lobby = battlegroundsGame && request.WantLobbyNames ? _memory.GetBattlegroundsLobbyNames() : null;
+        var (served, collection, cosmetics, achievements) = LongRead(request);
+        return new MemoryReading(served, rating, postGameRating, races, buttonCosts, players, draft, lobby, collection, cosmetics, achievements);
     }
+
+    /// <summary>
+    /// At most one long read a scan, after the other values (docs/collection-cosmetics.md): the collection if it is
+    /// wanted, else the cosmetics, else the achievements (with the session's catalog, the states only). A long read this
+    /// scan did not make keeps its wish for the next scan: its ticket is taken off the request the reading answers, so
+    /// the watch does not take the empty result for a failed read.
+    /// </summary>
+    private (MemoryRequest Served, CardCollection? Collection, CosmeticsCollection? Cosmetics, AchievementBook? Achievements) LongRead(MemoryRequest request)
+    {
+        var kind = NextLongRead(request, Volatile.Read(ref _request));
+        var served = Served(request, kind);
+        var started = Stopwatch.GetTimestamp();
+        switch (kind)
+        {
+            case LongReadKind.Collection:
+                return (served, ReadCollection(request), null, null);
+            case LongReadKind.Cosmetics:
+                var cosmetics = _memory.GetCosmetics(() => LongReadStale(request.CosmeticsTicket, request, Volatile.Read(ref _request)));
+                _longReadTime = Stopwatch.GetElapsedTime(started);
+                return (served, null, cosmetics, null);
+            case LongReadKind.Achievements:
+                var achievements = _memory.GetAchievements(
+                    () => LongReadStale(request.AchievementsTicket, request, Volatile.Read(ref _request)), request.AchievementsCatalog);
+                _longReadTime = Stopwatch.GetElapsedTime(started);
+                return (served, null, null, achievements);
+            default:
+                return (served, null, null, null);
+        }
+    }
+
+    /// <summary>The one long read of a scan: the collection, else the cosmetics, else the achievements, each only while it is wanted.</summary>
+    internal static LongReadKind NextLongRead(MemoryRequest request, MemoryRequest? newest) =>
+        !CollectionReadStale(request, newest) ? LongReadKind.Collection
+        : !LongReadStale(request.CosmeticsTicket, request, newest) ? LongReadKind.Cosmetics
+        : !LongReadStale(request.AchievementsTicket, request, newest) ? LongReadKind.Achievements
+        : LongReadKind.None;
+
+    /// <summary>The request a reading answers: the tickets of the long reads that come after the one made are taken off (they wait for the next scan).</summary>
+    internal static MemoryRequest Served(MemoryRequest request, LongReadKind made) => made switch
+    {
+        LongReadKind.Collection => request with { CosmeticsTicket = 0, AchievementsTicket = 0, AchievementsCatalog = null },
+        LongReadKind.Cosmetics => request with { AchievementsTicket = 0, AchievementsCatalog = null },
+        _ => request,
+    };
 
     /// <summary>
     /// The collection, read last (after the other values of this scan) and only while it is still wanted: the newest
@@ -139,7 +204,7 @@ internal sealed class MemoryPoller
 
         var started = Stopwatch.GetTimestamp();
         var collection = _memory.GetCollection(() => CollectionReadStale(request, Volatile.Read(ref _request)));
-        _collectionTime = Stopwatch.GetElapsedTime(started);
+        _longReadTime = Stopwatch.GetElapsedTime(started);
         return collection;
     }
 
@@ -147,7 +212,13 @@ internal sealed class MemoryPoller
     /// Whether a collection read asked for by <paramref name="asked"/> should not run (or go on): it was not asked for,
     /// the client is gone, a game is on, or the Arena draft screen opened since and its offer is waited for.
     /// </summary>
-    internal static bool CollectionReadStale(MemoryRequest asked, MemoryRequest? newest) =>
-        asked.CollectionTicket == 0 || asked.InGame || newest is null || newest.InGame
+    internal static bool CollectionReadStale(MemoryRequest asked, MemoryRequest? newest) => LongReadStale(asked.CollectionTicket, asked, newest);
+
+    /// <summary>
+    /// Whether a long read with <paramref name="ticket"/> asked for by <paramref name="asked"/> should not run (or go
+    /// on): it was not asked for, the client is gone, a game is on, or the Arena draft screen opened since.
+    /// </summary>
+    internal static bool LongReadStale(int ticket, MemoryRequest asked, MemoryRequest? newest) =>
+        ticket == 0 || asked.InGame || newest is null || newest.InGame
         || (newest.WantDraftChoices && !asked.WantDraftChoices);
 }

@@ -593,8 +593,16 @@ public sealed partial class CollectionStoreTests : IDisposable
 
     // ------------------------------------------------------------------------ no sending source names the collection
 
-    /// <summary>The words through which code reaches the collection: its records, its store, its file, its reads.</summary>
-    [GeneratedRegex(@"CardCollection|CollectionStore|CollectionWatch|OwnedCopies|DeckCost|collection\.json|GetCollection|CollectionChanged|\.Collection\b(?!<)", RegexOptions.CultureInvariant)]
+    /// <summary>
+    /// The words through which code reaches the collection, the card backs and coins and the achievements: their records,
+    /// stores, files, reads and events (docs/collection.md, docs/collection-cosmetics.md).
+    /// </summary>
+    [GeneratedRegex(@"CardCollection|CollectionStore|CollectionWatch|OwnedCopies|DeckCost|collection\.json|GetCollection|CollectionChanged|\.Collection\b(?!<)"
+        + @"|CosmeticsCollection|CosmeticCardBack|CosmeticCoin|CosmeticsStore|CosmeticsWatch|cosmetics\.json|GetCosmetics|CosmeticsChanged|\.Cosmetics\b"
+        + @"|AchievementBook|AchievementState|AchievementsStore|AchievementsWatch|achievements\.json|GetAchievements|AchievementsChanged|\.Achievements\b"
+        + @"|AchievementChain|AchievementDef|CompletedAchievement|AchievementSummary|CategorySummary|AchievementGain|AchievementCategory"
+        + @"|AchievementSubcategory|AchievementSection|ClientAchievement|TrackedAchievements|CardBackCategory|ClientCardBack|ClientCoin"
+        + @"|ExpansionCompletion|SetCompletion|RarityCompletion|HeroSkins?\b|ClientReadWatch", RegexOptions.CultureInvariant)]
     private static partial Regex CollectionWords();
 
     /// <summary>
@@ -621,13 +629,20 @@ public sealed partial class CollectionStoreTests : IDisposable
         Assert.Contains(senders, f => Path.GetFileName(f) == "GameStatsClient.cs");
         Assert.Empty(senders.Where(f => CollectionWords().IsMatch(File.ReadAllText(f))).Select(Path.GetFileName));
 
-        // And the collection's own code names no network type.
+        // And the collection's, the cosmetics' and the achievements' own code names no network type.
         var own = RepoFiles.Sources(".cs")
             .Where(f => f.Contains($"{Path.DirectorySeparatorChar}Collection{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                || Path.GetFileName(f) is "GameSession.Collection.cs" or "HearthstoneMemory.Collection.cs")
+                || Path.GetFileName(f) is "GameSession.Collection.cs" or "HearthstoneMemory.Collection.cs" or "GameSession.Cosmetics.cs"
+                    or "GameSession.Achievements.cs" or "HearthstoneMemory.Cosmetics.cs" or "HearthstoneMemory.Achievements.cs" or "HearthstoneMemory.Dbf.cs")
             .ToList();
-        Assert.Equal(6, own.Count);
-        foreach (var file in own)
+        Assert.Equal(20, own.Count);
+
+        // The achievements' code (Core/Progression) the same.
+        var progression = RepoFiles.Sources(".cs")
+            .Where(f => f.Contains($"{Path.DirectorySeparatorChar}Progression{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .ToList();
+        Assert.Equal(6, progression.Count);
+        foreach (var file in own.Concat(progression))
         {
             var text = File.ReadAllText(file);
             Assert.DoesNotContain("Http", text, StringComparison.Ordinal);

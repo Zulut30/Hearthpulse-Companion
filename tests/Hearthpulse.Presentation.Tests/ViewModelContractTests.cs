@@ -746,6 +746,9 @@ public sealed class ViewModelContractTests
         Assert.Equal("Settings", WpfMain.NavPageForDigit(8));
         Assert.Null(AvaMain.NavPageForDigit(0));
         Assert.Null(WpfMain.NavPageForDigit(9));
+        Assert.Null(AvaMain.NavPageForDigit(11));
+        // The library pages have no digit: none of 1…9 opens them.
+        Assert.DoesNotContain(Enumerable.Range(1, 9).Select(WpfMain.NavPageForDigit), p => p is "Collection" or "Achievements" or "Wrapped");
 
         var history = History();
         Assert.True(history.Add(Game(0)));

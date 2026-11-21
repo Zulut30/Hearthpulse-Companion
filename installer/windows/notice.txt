@@ -128,9 +128,10 @@ DATA AND CREDITS
 - Fonts: Montserrat (SIL Open Font License 1.1), Inter (SIL Open Font
   License 1.1), Material Design Icons (Pictogrammers, Apache 2.0).
 - Navigation icons from game-icons.net (CC BY 3.0,
-  creativecommons.org/licenses/by/3.0), drawn in gold: "house" by Delapouite;
-  "beer-stein", "poker-hand", "vine-leaf", "crossed-swords",
-  "fist", "hourglass" and "cog" by Lorc.
+  creativecommons.org/licenses/by/3.0), drawn in gold: "house",
+  "trophy-cup" and "present" by Delapouite; "beer-stein", "poker-hand",
+  "vine-leaf", "crossed-swords", "fist", "hourglass", "open-book" and
+  "cog" by Lorc.
 - Keyboard, focus and popup behaviors (list navigation, type-to-find,
   focus return): ported from UI SDK, Copyright 2026 Vercel, Inc., Apache
   License 2.0; the full text is in THIRD-PARTY-NOTICES.txt.

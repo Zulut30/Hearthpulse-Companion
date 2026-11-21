@@ -87,7 +87,18 @@ public sealed partial class MainViewModel : Observable
     private string _setupWarning = string.Empty;
     private string _busy = string.Empty;
 
-    public bool HearthstoneRunning { get => _hearthstoneRunning; private set { if (Set(ref _hearthstoneRunning, value)) RaiseCollectionStatus(); } }
+    public bool HearthstoneRunning
+    {
+        get => _hearthstoneRunning;
+        private set
+        {
+            if (Set(ref _hearthstoneRunning, value))
+            {
+                RaiseCollectionStatus();
+                HearthstoneRunningChanged();
+            }
+        }
+    }
     public bool MemoryAttached { get => _memoryAttached; private set => Set(ref _memoryAttached, value); }
     public string MemoryStatus { get => _memoryStatus; private set => Set(ref _memoryStatus, value); }
     public string LiveTitle { get => _liveTitle; private set => Set(ref _liveTitle, value); }

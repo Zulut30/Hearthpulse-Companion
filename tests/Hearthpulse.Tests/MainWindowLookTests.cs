@@ -54,14 +54,16 @@ public sealed class MainWindowLookTests
         // The window and its page controls (Main/Pages), which hold the pages' trees.
         var wpf = Load("src/Hearthpulse.App/Main/MainWindow.xaml");
         var titles = WithPages(wpf, "src/Hearthpulse.App/Main/Pages", "*.xaml").Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Style") == "{StaticResource PageTitle}").ToList();
-        Assert.Equal(7, titles.Count);
+        // Overview, Battlegrounds, Constructed, History, the three library pages (Collection, Achievements, Recap) in
+        // their controls; Arena, Brawl and Settings in the window.
+        Assert.Equal(10, titles.Count);
         Assert.All(titles, t => Assert.Equal("{StaticResource PageRule}", (string?)Next(Head(t))?.Attribute("Style")));
         Assert.All(titles, t => Assert.Contains(Head(t).Descendants(), e => e.Name.LocalName == "GoldGlyph"));
         Assert.DoesNotContain(wpf.Descendants(), e => (string?)e.Attribute("Style") == "{StaticResource Display}");
 
         var ava = Load("src/Hearthpulse.UI/Main/MainView.axaml");
         var avaTitles = WithPages(ava, "src/Hearthpulse.UI/Main/Pages", "*.axaml").Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Classes") == "display pageTitle").ToList();
-        Assert.Equal(7, avaTitles.Count);
+        Assert.Equal(10, avaTitles.Count);
         Assert.All(avaTitles, t => Assert.Equal("pageRule", (string?)Next(Head(t))?.Attribute("Classes")));
         Assert.All(avaTitles, t => Assert.Contains(Head(t).Descendants(), e => e.Name.LocalName == "GoldGlyph"));
 

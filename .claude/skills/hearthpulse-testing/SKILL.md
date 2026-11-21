@@ -160,9 +160,11 @@ are served ahead of queued work, so the timeout fires while the work waits for a
 cores beside CPU-bound work on the pool; inventory and numbers in `docs/mutation-testing.md`, "Tests that wait").
 
 - No pool hop between the act and the assertion where a seam exists: a view model built with
-  `Background = BackgroundWork.Inline` runs refresh history reads, My Stats builds, deck details and match loads on
-  the caller. It does not cover the Brawl page or deck-list builds. Tests of the covered paths can assert right after
-  the call; `LiveFeed.Offload` and a fake that answers on the caller's thread do the same.
+  `Background = BackgroundWork.Inline` runs refresh history reads, My Stats builds, deck details, match loads and the
+  Collection, Achievements and Recap pages on the caller. It does not cover the Brawl page or deck-list builds. Tests
+  of the covered paths can assert right after the call; `LiveFeed.Offload` and a fake that answers on the caller's
+  thread do the same. A stale result is tested by holding the work (`HeldWork`) and releasing the newer request first,
+  a failure with `FailingWork`.
   Product code a new test must wait for through `Task.Run` gets such a seam instead of a longer timeout.
 - Sustained CPU-bound work occupying a worker per core runs on threads of its own (`new Thread`): keeping the shared
   pool busy starves every other class's `Task.Run`. Short concurrency tests may use the pool when that is the behavior
@@ -177,7 +179,10 @@ cores beside CPU-bound work on the pool; inventory and numbers in `docs/mutation
 ### Data isolation
 
 - Tests normally run in parallel. `LocBindingTests` uses the nonparallel `GlobalLanguage` collection because it
-  changes the shared localization service. `TestDataFolder` (a `[ModuleInitializer]`) points `HEARTHPULSE_DATA` at a temp
+  changes the shared localization service; it runs alone after the parallel collections and is the longest stretch of a
+  run. After each of its tests `LanguageListeners.cs` takes off the `Loc.LanguageChanged` listeners of finished tests
+  (what the test added, and every main or overlay view model's; the Windows suite takes off what each test added): a
+  main view model never unsubscribes, and the ones left over rebuild on every switch. `TestDataFolder` (a `[ModuleInitializer]`) points `HEARTHPULSE_DATA` at a temp
   folder before anything reads `AppPaths` and deletes it at the end: never set it in a test. Read the shared log with
   `TestDataFolder.ReadLog()` - a plain `File.ReadAllText` locks out `Diag` in a parallel test and that line is lost.
 - A `GameSession` in a test: set `Clock`, `IsHearthstoneRunning` and `ReadsMemory = false` (internal hooks), so time is

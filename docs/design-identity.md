@@ -35,7 +35,8 @@ Token and style mechanics stay in the `hearthpulse-design` skill.
   and no animation over 0.25 s.
 - **Seven themes** through `ThemePalette`; meaning colours (`Positive`, `Negative`, `Tier*`, `Rarity*`, mana) and the
   logo never change.
-- **Rhythm:** the D1 scale - spacing 4/8/12/16/24/32, radii 4/8/12, one type ramp.
+- **Rhythm:** the D1 scale - spacing 4/8/12/16/24/32, radii 4/8/12, one type ramp (10-32, plus `FontSizeHero` 64 for the
+  Recap page's one number).
 
 ## Rejected
 

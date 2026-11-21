@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
+using Hearthpulse.Core.Collection;
 using Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Progression;
 
 namespace Hearthpulse.Probe;
 
@@ -23,11 +25,30 @@ internal static class Cosmetics
         }
 
         var started = System.Diagnostics.Stopwatch.GetTimestamp();
-        var gameDbf = rt.FindClass("GameDbf");
-        if (gameDbf is null)
+        if (Dump(rt) is not { } dump)
         {
             Console.WriteLine("GameDbf not found");
             return 3;
+        }
+
+        var took = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+        Summary(dump, took);
+        if (args.Length > 0)
+        {
+            File.WriteAllText(args[0], JsonSerializer.Serialize(dump, new JsonSerializerOptions { WriteIndented = false }));
+            Console.WriteLine("written " + args[0]);
+        }
+
+        return 0;
+    }
+
+    /// <summary>Everything <c>cosmetics</c> writes, walked field by field through the generic object reader; null without GameDbf.</summary>
+    private static Dictionary<string, object?>? Dump(MonoRuntime rt)
+    {
+        var gameDbf = rt.FindClass("GameDbf");
+        if (gameDbf is null)
+        {
+            return null;
         }
 
         var cardBacksCache = HearthstoneMemory.FindNetCacheObject(rt, "NetCacheCardBacks");
@@ -114,17 +135,175 @@ internal static class Cosmetics
                 ["completedDate"] = e.Value.Long("_CompletedDate"),
             }).ToList(),
         };
+        return dump;
+    }
 
-        var took = System.Diagnostics.Stopwatch.GetElapsedTime(started);
-        Summary(dump, took);
-        if (args.Length > 0)
+    /// <summary>
+    /// <c>recon-import &lt;cosmetics-dump.json&gt; &lt;folder&gt;</c>: turns a file written by <c>cosmetics</c> into the app's
+    /// <c>cosmetics.json</c> and <c>achievements.json</c> in the folder, by the same rules the app's read applies
+    /// (<see cref="CosmeticsCollection.FromClient"/>, <see cref="AchievementBook.FromClient"/>), written by its stores and
+    /// read back through them. For a copy of a data folder made for renders; prints counts only.
+    /// </summary>
+    public static int ReconImport(string[] args)
+    {
+        if (args.Length < 2)
         {
-            File.WriteAllText(args[0], JsonSerializer.Serialize(dump, new JsonSerializerOptions { WriteIndented = false }));
-            Console.WriteLine("written " + args[0]);
+            Console.WriteLine("usage: recon-import <cosmetics-dump.json> <folder>");
+            return 1;
         }
 
-        return 0;
+        var readAt = File.GetLastWriteTimeUtc(args[0]);
+        using var document = JsonDocument.Parse(File.ReadAllBytes(args[0]));
+        var (cosmetics, book) = FromDump(document.RootElement, readAt);
+        if (cosmetics is null || book is null)
+        {
+            Console.WriteLine($"rejected by the rules: cosmetics {(cosmetics is null ? "none" : "ok")}, achievements {(book is null ? "none" : "ok")}");
+            return 3;
+        }
+
+        Directory.CreateDirectory(args[1]);
+        var cosmeticsStore = new CosmeticsStore(Path.Combine(args[1], "cosmetics.json"));
+        var achievementsStore = new AchievementsStore(Path.Combine(args[1], "achievements.json"));
+        cosmeticsStore.Save(cosmetics);
+        achievementsStore.Save(book);
+        var cosmeticsBack = cosmeticsStore.Load();
+        var bookBack = achievementsStore.Load();
+        Console.WriteLine($"read at {readAt:O}");
+        Counts(cosmetics, book);
+        Console.WriteLine($"loaded back: cosmetics {(cosmeticsBack is null ? "FAILED" : "ok")}, achievements {(bookBack is null ? "FAILED" : "ok")}");
+        return cosmeticsBack is null || bookBack is null ? 4 : 0;
     }
+
+    /// <summary>
+    /// <c>cosmetics-check &lt;folder&gt;</c> (docs/collection-cosmetics.md, "What was checked"): the cosmetics and the
+    /// achievements read by the app's methods (<see cref="HearthstoneMemory.GetCosmetics(Func{bool}?)"/>,
+    /// <see cref="HearthstoneMemory.GetAchievements(Func{bool}?, AchievementBook?)"/>: the catalog read and a read of
+    /// states only) with their times, then the same walked field by field through the generic object reader, turned into
+    /// records by the same rules, and the two compared record by record. The app's reads are written by its stores into
+    /// the folder (a copy of a data folder, outside the repository). Prints counts and differences only.
+    /// </summary>
+    public static int Check(string[] args)
+    {
+        if (args.Length < 1)
+        {
+            Console.WriteLine("usage: cosmetics-check <folder>");
+            return 1;
+        }
+
+        using var memory = new HearthstoneMemory();
+        if (!memory.EnsureAttached() || memory.Runtime is not { } rt)
+        {
+            Console.WriteLine("Not attached: " + memory.Status);
+            return 2;
+        }
+
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var cosmetics = memory.GetCosmetics();
+        var cosmeticsTime = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+        started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var book = memory.GetAchievements();
+        var bookTime = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+        started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var states = book is null ? null : memory.GetAchievements(catalog: book);
+        var statesTime = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+        Console.WriteLine($"app read: cosmetics {cosmeticsTime.TotalMilliseconds:N0} ms ({(cosmetics is null ? "none" : "ok")}), "
+            + $"achievements with the catalog {bookTime.TotalMilliseconds:N0} ms ({(book is null ? "none" : "ok")}), "
+            + $"states only {statesTime.TotalMilliseconds:N0} ms ({(states is null ? "none" : "ok")})");
+        if (cosmetics is null || book is null || states is null)
+        {
+            Console.WriteLine("see hearthpulse.log of HEARTHPULSE_DATA for the reason");
+            return 3;
+        }
+
+        started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var dump = Dump(rt);
+        var walkTime = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+        var (walkedCosmetics, walkedBook) = dump is null ? (null, null) : FromDump(JsonSerializer.SerializeToElement(dump), DateTime.UtcNow);
+        Console.WriteLine($"generic walk: {walkTime.TotalMilliseconds:N0} ms");
+        if (walkedCosmetics is null || walkedBook is null)
+        {
+            Console.WriteLine("the generic walk gave nothing the rules accept");
+            return 3;
+        }
+
+        var differences = 0;
+        differences += Report("card backs", Differ(cosmetics.CardBacks.ToDictionary(b => b.Id), walkedCosmetics.CardBacks.ToDictionary(b => b.Id)));
+        differences += Report("coins", Differ(cosmetics.Coins.ToDictionary(c => c.Id), walkedCosmetics.Coins.ToDictionary(c => c.Id)));
+        differences += Report("owned card backs", Differ(cosmetics.OwnedCardBacks, walkedCosmetics.OwnedCardBacks));
+        differences += Report("favourite card backs", Differ(cosmetics.FavoriteCardBacks, walkedCosmetics.FavoriteCardBacks));
+        differences += Report("owned coins", Differ(cosmetics.OwnedCoins, walkedCosmetics.OwnedCoins));
+        differences += Report("favourite coins", Differ(cosmetics.FavoriteCoins, walkedCosmetics.FavoriteCoins));
+        differences += Report("categories", Differ(book.Categories.ToDictionary(c => c.Id), walkedBook.Categories.ToDictionary(c => c.Id)));
+        differences += Report("subcategories", Differ(book.Subcategories.ToDictionary(c => c.Id), walkedBook.Subcategories.ToDictionary(c => c.Id)));
+        differences += Report("sections", Differ(book.Sections.ToDictionary(c => c.Id), walkedBook.Sections.ToDictionary(c => c.Id)));
+        differences += Report("achievements", Differ(book.Achievements, walkedBook.Achievements));
+        differences += Report("states", Differ(book.States, walkedBook.States));
+        differences += Report("states (read of states only)", Differ(states.States, walkedBook.States));
+        Console.WriteLine($"differences: {differences}");
+
+        Directory.CreateDirectory(args[0]);
+        new CosmeticsStore(Path.Combine(args[0], "cosmetics.json")).Save(cosmetics);
+        new AchievementsStore(Path.Combine(args[0], "achievements.json")).Save(states.WithGainsSince(book));
+        Console.WriteLine("written by the app's stores to " + args[0]);
+        Counts(cosmetics, states);
+        return differences == 0 ? 0 : 5;
+    }
+
+    /// <summary>The cosmetics and the book from a file of <c>cosmetics</c>, by the rules the app's read applies.</summary>
+    private static (CosmeticsCollection? Cosmetics, AchievementBook? Book) FromDump(JsonElement root, DateTime readAt)
+    {
+        var cosmetics = CosmeticsCollection.FromClient(
+            Rows(root, "cardBacks", r => new ClientCardBack(Int(r, "id"), Text(r, "name"), Text(r, "description"), Int(r, "sortCategory"),
+                Int(r, "sortOrder"), Bool(r, "enabled"), Bool(r, "random"))),
+            Ints(root, "ownedCardBacks"), Ints(root, "favoriteCardBacks"),
+            Rows(root, "coins", r => new ClientCoin(Int(r, "id"), Int(r, "cardDbfId"), Text(r, "name"), Text(r, "description"), Bool(r, "enabled"))),
+            Ints(root, "ownedCoins"), Ints(root, "favoriteCoins"),
+            readAt);
+        var book = AchievementBook.FromClient(
+            Rows(root, "categories", r => new AchievementCategory(Int(r, "id"), Text(r, "name"), Text(r, "icon"), Int(r, "sortOrder"))),
+            Rows(root, "subcategories", r => new AchievementSubcategory(Int(r, "id"), Int(r, "categoryId"), Text(r, "name"), Int(r, "sortOrder"))),
+            Rows(root, "sections", r => new ClientSection(Int(r, "id"), Text(r, "name"))),
+            Rows(root, "sectionItems", r => new ClientSectionItem(Int(r, "subcategoryId"), Int(r, "sectionId"), Int(r, "sortOrder"))),
+            Rows(root, "achievements", r => new ClientAchievement(Int(r, "id"), Int(r, "sectionId"), Int(r, "sortOrder"), Bool(r, "enabled"),
+                Bool(r, "retired"), Text(r, "name"), Text(r, "description"), Int(r, "visibility"), Int(r, "quota"), Int(r, "points"), Int(r, "nextTierId"))),
+            Rows(root, "states", r => new ClientAchievementState(Int(r, "id"), Int(r, "status"), Int(r, "progress"), r.GetProperty("completedDate").GetInt64())),
+            readAt);
+        return (cosmetics, book);
+    }
+
+    private static int Differ<T>(IReadOnlyDictionary<int, T> app, IReadOnlyDictionary<int, T> walked) =>
+        app.Keys.Union(walked.Keys).Count(id => !app.TryGetValue(id, out var a) || !walked.TryGetValue(id, out var w) || !Equals(a, w));
+
+    private static int Differ(IReadOnlySet<int> app, IReadOnlySet<int> walked) => app.Count + walked.Count - (2 * app.Intersect(walked).Count());
+
+    private static int Report(string what, int count)
+    {
+        Console.WriteLine($"  {what}: {count} differ");
+        return count;
+    }
+
+    private static void Counts(CosmeticsCollection cosmetics, AchievementBook book)
+    {
+        Console.WriteLine($"cosmetics: card backs {cosmetics.CardBacks.Count} (owned {cosmetics.OwnedCardBacks.Count}, favourite {cosmetics.FavoriteCardBacks.Count}), "
+            + $"coins {cosmetics.Coins.Count} (owned {cosmetics.OwnedCoins.Count}, favourite {cosmetics.FavoriteCoins.Count})");
+        var summary = book.Summary;
+        Console.WriteLine($"achievements: {book.Achievements.Count} in {book.Chains.Count} chains, states {book.States.Count}, "
+            + $"completed {summary.Completed}/{summary.Total}, points {summary.PointsEarned}/{summary.PointsTotal}");
+        foreach (var category in summary.Categories)
+        {
+            Console.WriteLine($"  category {category.Category.Id}: {category.Completed}/{category.Total}, points {category.PointsEarned}/{category.PointsTotal}");
+        }
+    }
+
+    private static List<T> Rows<T>(JsonElement root, string name, Func<JsonElement, T> map) => root.GetProperty(name).EnumerateArray().Select(map).ToList();
+
+    private static List<int> Ints(JsonElement root, string name) => root.GetProperty(name).EnumerateArray().Select(e => e.GetInt32()).ToList();
+
+    private static int Int(JsonElement row, string name) => row.GetProperty(name).GetInt32();
+
+    private static bool Bool(JsonElement row, string name) => row.GetProperty(name).GetBoolean();
+
+    private static string Text(JsonElement row, string name) => row.GetProperty(name).GetString() ?? string.Empty;
 
     private static List<Dictionary<string, object?>> Records(MonoClass gameDbf, string table, Func<MonoObject, Dictionary<string, object?>> map) =>
         gameDbf.GetStatic(table)["m_records"].ListItems().Where(r => !r.IsNull).Select(map).ToList();

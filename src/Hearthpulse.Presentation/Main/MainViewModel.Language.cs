@@ -38,6 +38,9 @@ public sealed partial class MainViewModel
         RebuildCard();
         _migration?.Rebuild();
         RebuildConstructedMeta();
+        RebuildCollectionPage();
+        RebuildAchievementsPage();
+        RebuildWrapped();
         RebuildLanguagePlatformData();
         RaiseDataHealth();
 

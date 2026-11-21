@@ -2,7 +2,9 @@
 
 Game state comes from Hearthstone's Power.log. Values the log does not carry (ranks, the Arena draft offer,
 Battlegrounds lobby names for the MMR option, button costs, and since 2026-11-16 the player's own card collection and
-arcane dust balance, asked for only outside games and kept on the machine only: [collection.md](../collection.md)) are read from
+arcane dust balance, and since 2026-11-19 its card backs, coins and achievements (catalog and progress), all asked
+for only outside games and kept on the machine only: [collection.md](../collection.md),
+[collection-cosmetics.md](../collection-cosmetics.md)) are read from
 the client's memory through a handle opened
 for `PROCESS_VM_READ | PROCESS_QUERY_LIMITED_INFORMATION` only (`src/Hearthpulse.Core/Memory/ProcessMemory.cs`). The
 app never writes to the client's memory, injects code, hooks the client or sends input to it: any of those would put

@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core;
@@ -28,9 +29,17 @@ public sealed class MainNavigationContractTests
         Assert.Equal(["Mine", "Heroes", "Comps", "Trinkets", "Cards"], WpfMain.BattlegroundsTabs);
         Assert.Equal(["Decks", "Tiers", "Top", "Matchups"], AvaMain.ConstructedTabs);
 
+        Assert.Equal(WpfMain.NavPages, AvaMain.NavPages);
+        Assert.Equal(WpfMain.NavDigitPages, AvaMain.NavDigitPages);
+        // The library pages come after History, in this order, and before Settings at the sidebar's foot.
+        Assert.Equal(["Overview", "Battlegrounds", ConstructedPage.Standard, ConstructedPage.Wild, "Arena", "Brawl", "History", "Collection", "Achievements", "Wrapped", "Settings"], WpfMain.NavPages);
         Assert.Equal(3, WpfMain.NavIndex(WpfMain.NavPages, ConstructedPage.Wild));
         Assert.Equal(5, AvaMain.NavIndex(AvaMain.NavPages, "Brawl"));
         Assert.Equal(6, AvaMain.NavIndex(AvaMain.NavPages, "History"));
+        Assert.Equal(7, AvaMain.NavIndex(AvaMain.NavPages, "Collection"));
+        Assert.Equal(8, WpfMain.NavIndex(WpfMain.NavPages, "Achievements"));
+        Assert.Equal(9, AvaMain.NavIndex(AvaMain.NavPages, "Wrapped"));
+        Assert.Equal(10, WpfMain.NavIndex(WpfMain.NavPages, "Settings"));
         Assert.Equal(0, AvaMain.NavIndex(AvaMain.BattlegroundsTabs, "Mine"));
         Assert.Equal(1, AvaMain.NavIndex(AvaMain.BattlegroundsTabs, "Heroes"));
         // An unknown name opens the first: Overview, My stats, Decks.
@@ -38,7 +47,8 @@ public sealed class MainNavigationContractTests
         Assert.Equal(0, WpfMain.NavIndex(WpfMain.ConstructedTabs, string.Empty));
 
         Assert.Equal("Trinkets", WpfMain.NavChecked(WpfMain.BattlegroundsTabs, [false, null, false, true, false]));
-        Assert.Equal("Overview", AvaMain.NavChecked(AvaMain.NavPages, [true, false, false, false, false, false, false, false]));
+        Assert.Equal("Overview", AvaMain.NavChecked(AvaMain.NavPages, [true, false, false, false, false, false, false, false, false, false, false]));
+        Assert.Equal("Achievements", WpfMain.NavChecked(WpfMain.NavPages, [false, false, false, false, false, false, false, false, true, false, false]));
         // Between two buttons of a radio group none is checked.
         Assert.Null(AvaMain.NavChecked(AvaMain.ConstructedTabs, [false, false, null, false]));
     }
@@ -92,6 +102,18 @@ public sealed class MainNavigationContractTests
                 Assert.Equal(page, window.CurrentPage);
             }
 
+            // Each library page shows its own control (built on the first visit).
+            foreach (var (page, control) in new (string, Func<System.Windows.FrameworkElement>)[]
+            {
+                ("Collection", () => window.PageCollection), ("Achievements", () => window.PageAchievements), ("Wrapped", () => window.PageWrapped),
+            })
+            {
+                window.ShowPage(page);
+                Pump();
+                Assert.Equal(page, window.CurrentPage);
+                Assert.Equal(System.Windows.Visibility.Visible, control().Visibility);
+            }
+
             // The old "Constructed" opens Standard; an unknown page, Overview.
             window.ShowPage("Constructed");
             Assert.Equal(ConstructedPage.Standard, window.CurrentPage);
@@ -131,8 +153,8 @@ public sealed class MainNavigationContractTests
     });
 
     /// <summary>
-    /// Etalon D2: the sidebar items name their Ctrl+1…8 to screen readers, and game rows and History cards show a focus
-    /// ring (R13). The Avalonia twin is in LocBindingTests.Keyboard.
+    /// Etalon D2: the sidebar items name their Ctrl+1…8 to screen readers (the library pages after History have no
+    /// number), and game rows and History cards show a focus ring (R13). The Avalonia twin is in LocBindingTests.Keyboard.
     /// </summary>
     [Fact]
     public void The_wpf_sidebar_names_its_shortcuts_and_game_rows_show_focus() => WpfThread.RunFresh(() =>
@@ -143,10 +165,13 @@ public sealed class MainNavigationContractTests
         Pump();
         try
         {
-            var items = new[] { "NavOverview", "NavBattlegrounds", "NavStandard", "NavWild", "NavArena", "NavBrawl", "NavHistory", "NavSettings" }
+            var items = new[] { "NavOverview", "NavBattlegrounds", "NavStandard", "NavWild", "NavArena", "NavBrawl", "NavHistory", "NavCollection", "NavAchievements", "NavWrapped", "NavSettings" }
                 .Select(n => (DependencyObject)window.FindName(n)).ToList();
             Assert.Equal(WpfMain.NavPages.Count, items.Count);
-            Assert.Equal(Enumerable.Range(1, items.Count).Select(i => $"Ctrl+{i}"), items.Select(System.Windows.Automation.AutomationProperties.GetAcceleratorKey));
+            List<string> digits = [.. WpfMain.NavDigitPages];
+            Assert.Equal(
+                WpfMain.NavPages.Select(p => digits.IndexOf(p) is var i and >= 0 ? $"Ctrl+{i + 1}" : string.Empty),
+                items.Select(System.Windows.Automation.AutomationProperties.GetAcceleratorKey));
 
             Assert.NotNull(((Style)window.FindResource("BareRow")).Setters.OfType<Setter>().Single(s => s.Property == FrameworkElement.FocusVisualStyleProperty).Value);
             var library = window.PageHistory.LibraryView;
@@ -156,6 +181,67 @@ public sealed class MainNavigationContractTests
         {
             window.CloseForReal();
             Pump();
+        }
+    });
+
+    /// <summary>
+    /// The sidebar's eleven pages (three library pages after History) stand above the overlay card and Settings at the
+    /// window's default size (1260 x 840) in both languages, with no scrolling; in the shortest window the page list
+    /// scrolls between the status card and the foot, which stays on screen, and a page brought into view keeps its
+    /// pill inside the list. The default size is laid out whatever the screen, as the visual baselines are
+    /// (DevRender.Baseline): the CI runner's screen is 1024 x 768 and Windows keeps a window within the screen.
+    /// </summary>
+    [Theory]
+    [InlineData(Loc.English)]
+    [InlineData(Loc.Russian)]
+    public void The_wpf_sidebar_fits_every_page_above_its_foot_at_the_default_size(string language) => WpfThread.RunFresh(() =>
+    {
+        Loc.Instance.SetLanguage(language);
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var window = OffScreen(new WpfWindow(model));
+        window.Show();
+        Pump();
+        try
+        {
+            var sidebar = (FrameworkElement)window.FindName("Sidebar");
+            var list = (System.Windows.Controls.ScrollViewer)window.FindName("NavScroll");
+            double Top(string name) => ((FrameworkElement)window.FindName(name)).TranslatePoint(default, sidebar).Y;
+            double Bottom(FrameworkElement element) => element.TranslatePoint(new Point(0, element.ActualHeight), sidebar).Y;
+            var foot = (System.Windows.Controls.StackPanel)((FrameworkElement)window.FindName("OverlayCard")).Parent;
+
+            // The window's template laid out at 1260 x 840 and read before the next layout pass puts it back to the
+            // window's real size. The pages' own height is what the list's content asks for (measured unbounded). The
+            // window is made shorter first, as on the CI runner, so a run on a large screen checks the same thing.
+            window.Height = 760;
+            Pump();
+            Assert.True(window.ActualHeight < 840, $"the window is {window.ActualHeight:0} high");
+            var root = (FrameworkElement)VisualTreeHelper.GetChild(window, 0);
+            root.Measure(new Size(1260, 840));
+            root.Arrange(new Rect(0, 0, 1260, 840));
+            var pages = ((FrameworkElement)list.Content).DesiredSize.Height;
+            var lastPage = Bottom((FrameworkElement)window.FindName("NavWrapped"));
+            var footEnd = Bottom((FrameworkElement)foot.Children[foot.Children.Count - 1]);
+            Assert.True(sidebar.ActualHeight >= 800, $"the sidebar is {sidebar.ActualHeight:0} high");
+            Assert.True(pages <= list.ActualHeight && lastPage <= Top("OverlayCard") && footEnd <= sidebar.ActualHeight,
+                $"The pages need {pages:0} of {list.ActualHeight:0}; Recap ends at {lastPage:0}, the overlay card starts at {Top("OverlayCard"):0}, "
+                + $"the foot ends at {footEnd:0} of {sidebar.ActualHeight:0} ({language}).");
+            // The shortest window: the pages scroll, the foot stays whole; Recap opened from the keyboard comes into view.
+            window.Height = window.MinHeight;
+            Pump();
+            Assert.True(list.ExtentHeight > list.ViewportHeight, $"{list.ExtentHeight:0} in {list.ViewportHeight:0}");
+            Assert.True(Bottom((FrameworkElement)foot.Children[foot.Children.Count - 1]) <= sidebar.ActualHeight);
+            var recap = (System.Windows.Controls.RadioButton)window.FindName("NavWrapped");
+            window.ShowPage("Wrapped");
+            recap.BringIntoView();
+            Pump();
+            Assert.True(list.VerticalOffset > 0);
+            Assert.True(Bottom(recap) <= Top("NavScroll") + list.ViewportHeight + 0.5, $"Recap ends at {Bottom(recap):0}");
+        }
+        finally
+        {
+            window.CloseForReal();
+            Pump();
+            Loc.Instance.SetLanguage(Loc.English);
         }
     });
 

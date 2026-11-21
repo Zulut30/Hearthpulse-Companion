@@ -1,0 +1,52 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:m="clr-namespace:Hearthpulse.App.Main">
+    <!-- The common look of the library pages (Collection, Achievements, Recap): the status line under the title, the
+         "from saved data" mark and the badge on a tile. Theme tokens only; the Avalonia twin is Main/Pages/LibraryLook.axaml. -->
+
+    <!-- The status line (MainViewModel.LibraryStatus): a muted glyph, where the numbers come from and of what time, and,
+         for saved data, the mark under it with its reason in the tip. Read out when it changes. -->
+    <DataTemplate x:Key="LibraryStatusLine" DataType="{x:Type m:LibraryStatus}">
+        <Grid Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Muted}"
+                       VerticalAlignment="Top" Margin="0,1,8,0" />
+            <TextBlock Grid.Column="1" Text="{Binding Text}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLead}" TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite" />
+            <Border x:Name="Mark" Grid.Row="1" Grid.Column="1" Style="{StaticResource Pill}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                    ToolTip="{Binding MarkTip}" AutomationProperties.Name="{Binding Mark}" AutomationProperties.HelpText="{Binding MarkTip}">
+                <TextBlock Text="{Binding Mark}" Style="{StaticResource Caption}" />
+            </Border>
+        </Grid>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Saved}" Value="False">
+                <Setter TargetName="Mark" Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- A tile's badge in its corner (a heart for a favourite, a lock for one not owned): graphics only, the tile says the
+         same in words. The glyph takes TileBadgeGlyph with its own colour (Accent for the heart, Muted for the lock). -->
+    <Style x:Key="TileBadge" TargetType="Border">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="4" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <Style x:Key="TileBadgeGlyph" TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+</ResourceDictionary>

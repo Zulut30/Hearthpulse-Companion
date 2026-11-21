@@ -1,0 +1,407 @@
+<UserControl
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:pg="using:Hearthpulse.UI.Main.Pages"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Main.Pages.AchievementsPage"
+             x:DataType="m:MainViewModel">
+    <!-- The Achievements page (docs/achievements-page.md): Hearthstone's achievements read from the game - the points,
+         the tracked chains with their latest gain, the nearly done and the recent ones, and the whole journal one
+         subcategory at a time. Same tree as the WPF AchievementsPage.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Meta/MetaResources.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- The star of a chain: lit (accent) while tracked; off at the limit with the reason in its tip. A secret chain
+                 not done yet has none (its place stays empty so the names line up), unless it is tracked: then the star
+                 stays, so the chain can be let go (AchievementRow.CanStar). -->
+            <DataTemplate x:Key="AchievementStar" x:DataType="m:AchievementRow">
+                <Button Name="Star" Classes="icon star" Classes.tracked="{Binding Tracked}" Content="{Binding StarGlyph}" VerticalAlignment="Top"
+                        Command="{Binding $parent[pg:AchievementsPage].((m:MainViewModel)DataContext).ToggleAchievementStar}" CommandParameter="{Binding Key}"
+                        IsEnabled="{Binding StarEnabled}" IsVisible="{Binding CanStar}" ToolTip.Tip="{Binding StarTip}" ToolTip.ShowOnDisabled="True"
+                        AutomationProperties.Name="{Binding StarName}" Click="OnStar" />
+            </DataTemplate>
+
+            <!-- A tracked chain: star, name, description, level and path; on the right (under them in compact) the bar, the progress and the gain -->
+            <DataTemplate x:Key="TrackedRow" x:DataType="m:AchievementRow">
+                <Border Classes="row" MinHeight="56" ToolTip.Tip="{Binding Tip}">
+                    <Grid Classes="trackedRow" ColumnDefinitions="32,8,*,16,Auto" RowDefinitions="Auto,Auto">
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AchievementStar}" Focusable="False" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" Classes="chainName" Classes.muted="{Binding Muted}" FontSize="{StaticResource FontSizeLead}" />
+                            <TextBlock Text="{Binding Description}" Classes="caption" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                            <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <StackPanel Classes="trackedRight" VerticalAlignment="Center">
+                            <ProgressBar Classes="shareBar fill" Height="8" MinHeight="8" Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" IsVisible="{Binding ShowsBar}" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" IsVisible="{Binding Done}">
+                                <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Accent}" Opacity="{Binding GraphicsOpacity}"
+                                           VerticalAlignment="Center" Margin="0,0,4,0" />
+                                <TextBlock Text="{Binding ProgressText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding ProgressText}" FontWeight="SemiBold" HorizontalAlignment="Right" Margin="0,4,0,0" IsVisible="{Binding !Done}" />
+                            <TextBlock Classes="caption" HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="Wrap" Margin="0,2,0,0"
+                                       ToolTip.Tip="{i:Loc Achievements.Gain.Tip}" AutomationProperties.Name="{Binding GainLine}">
+                                <Run Text="{Binding GainValue}" Foreground="{StaticResource Positive}" FontWeight="SemiBold" /><Run Text="{Binding GainRest}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+            <!-- A chain close to done: star, name, level and category, a thin bar under them; the share and the progress -->
+            <DataTemplate x:Key="NearRow" x:DataType="m:AchievementRow">
+                <Border Classes="row" ToolTip.Tip="{Binding Tip}">
+                    <Grid ColumnDefinitions="32,8,*,12,Auto">
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AchievementStar}" Focusable="False" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" Classes="chainName" Classes.muted="{Binding Muted}" />
+                            <TextBlock Text="{Binding NearDetail}" Classes="caption" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                            <ProgressBar Classes="shareBar fill" Height="4" MinHeight="4" Margin="0,4,0,0" Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Percent}" FontWeight="Bold" HorizontalAlignment="Right" />
+                            <TextBlock Text="{Binding ProgressText}" Classes="caption" HorizontalAlignment="Right" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+            <!-- A completed tier: a check, its name (or "Hidden achievement"), where; the date and the points -->
+            <DataTemplate x:Key="RecentRow" x:DataType="m:AchievementRecentRow">
+                <Border Classes="row" ToolTip.Tip="{Binding Tip}">
+                    <Grid ColumnDefinitions="Auto,8,*,12,Auto">
+                        <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Accent}" VerticalAlignment="Center"
+                                   Opacity="{Binding $parent[pg:AchievementsPage].((m:MainViewModel)DataContext).AchievementsGraphicsOpacity}" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" Classes="chainName" Classes.muted="{Binding Muted}" />
+                            <TextBlock Text="{Binding Path}" Classes="caption" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" IsVisible="{Binding Path, Converter={StaticResource Truthy}}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Date}" Classes="caption" HorizontalAlignment="Right" />
+                            <TextBlock Text="{Binding Points}" Classes="label" HorizontalAlignment="Right" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <!-- LibraryLook after StatsStyles: its accent bar (shareBar.fill) overrides the stats' red one -->
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Pages/LibraryLook.axaml" />
+        <!-- A chain's name: one line; the stand-in "Hidden achievement" is muted -->
+        <Style Selector="TextBlock.chainName">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style Selector="TextBlock.chainName.muted">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <!-- The star of a tracked chain stays lit, under the mouse too -->
+        <Style Selector="Button.star.tracked, Button.star.tracked:pointerover">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <!-- A subcategory of the table of contents (as the tier list's archetype rows): the chosen one keeps the selected plate -->
+        <Style Selector="Border.row.archetype">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="-8,0,-8,2" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.row.selected">
+            <Setter Property="Background" Value="{StaticResource SelectedFill}" />
+            <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+        </Style>
+        <!-- A tracked row's bar, progress and gain: a column of 176 on the right; in compact under the text, the row's width.
+             Size and place are style values, so compact can change them (a local value would win). -->
+        <Style Selector="Grid.trackedRow > StackPanel.trackedRight">
+            <Setter Property="Grid.Column" Value="4" />
+            <Setter Property="Width" Value="176" />
+        </Style>
+        <!-- A journal row's progress column: one width for every row, the count over the level, both on the right. Place
+             and size are style values, so compact can change them (a local value would win). -->
+        <Style Selector="Grid.browseProgress">
+            <Setter Property="Grid.Column" Value="4" />
+            <Setter Property="Width" Value="176" />
+        </Style>
+        <Style Selector="Grid.browseProgress > StackPanel.browseCount">
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+        <Style Selector="Grid.browseProgress > TextBlock.browseLevel">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <!-- Compact: a column beside it would leave a chain's name a word's width, so the name takes the row's width on one
+             line (trimmed, whole in the tip) and the count, then the level, go on the line under it -->
+        <Style Selector="m|MainView.compact Grid.browseRow > StackPanel.browseText">
+            <Setter Property="Grid.ColumnSpan" Value="5" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.browseRow > Grid.browseProgress">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="Grid.ColumnSpan" Value="5" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.browseProgress > StackPanel.browseCount">
+            <Setter Property="Grid.ColumnSpan" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.browseProgress > TextBlock.browseLevel">
+            <Setter Property="Grid.Row" Value="0" />
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Grid.ColumnSpan" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+        </Style>
+        <!-- A summary category's points: one width for every row; compact: the name takes what the points leave and wraps -->
+        <Style Selector="TextBlock.catFraction">
+            <Setter Property="MinWidth" Value="104" />
+        </Style>
+        <Style Selector="m|MainView.compact TextBlock.catFraction">
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+        <!-- Compact: a tracked row's bar, progress and gain go under its text; the browse rows take the whole width -->
+        <Style Selector="m|MainView.compact Grid.trackedRow > StackPanel.trackedRight">
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="0,8,0,0" />
+        </Style>
+        <Style Selector="Grid.browse > :is(Control).browseRows">
+            <Setter Property="Grid.Column" Value="2" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.browse > :is(Control).browseRows">
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+        </Style>
+    </UserControl.Styles>
+    <ScrollViewer Name="Scroller" Classes="page" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
+                <StackPanel>
+                    <!-- The glyph, then the title in the rest of the width: a long title wraps under itself. -->
+                    <Grid ColumnDefinitions="Auto,*">
+                        <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Achievements}" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Achievements.Title}" Classes="display pageTitle" TextWrapping="Wrap" />
+                    </Grid>
+                    <c:Wave Classes="pageRule" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Where the numbers come from and of what time; none without a book (the empty state says why) -->
+            <ContentControl Name="StatusLine" Content="{Binding AchievementsStatusLine}" ContentTemplate="{StaticResource LibraryStatusLine}" Focusable="False"
+                            IsVisible="{Binding AchievementsStatusLine, Converter={StaticResource Truthy}}" />
+            <ContentControl Name="AchievementsEmptyState" Classes="emptyState" Tag="{Binding AchievementsEmptyGlyph}" Content="{Binding AchievementsEmpty}"
+                            AutomationProperties.LiveSetting="Polite" IsVisible="{Binding AchievementsEmptyShown}" />
+
+            <StackPanel Name="AchievementsContent" i:Motion.RevealOnShow="True" IsVisible="{Binding AchievementsShown}">
+                <!-- The summary: points and completed tiers on the left, the five categories as buttons on the right (under it in compact) -->
+                <Border Name="SummaryCard" Classes="card" Margin="0,0,0,24">
+                    <Grid RowDefinitions="Auto,Auto">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="220" MaxWidth="320" />
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="2*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Classes="statsLeft" VerticalAlignment="Top">
+                            <TextBlock Text="{i:Loc Achievements.Points}" Classes="label" />
+                            <TextBlock Name="PointsEarned" Text="{Binding AchievementSummary.Points}" FontFamily="{DynamicResource DisplayFont}" FontWeight="ExtraBold"
+                                       FontSize="{StaticResource FontSizeDisplay}" Foreground="{StaticResource GildedText}" Margin="0,4,0,0" />
+                            <TextBlock Text="{Binding AchievementSummary.Of}" Foreground="{StaticResource Muted}" />
+                            <ProgressBar Classes="shareBar fill" Margin="0,12,0,8" Value="{Binding AchievementSummary.Share}" Opacity="{Binding AchievementSummary.GraphicsOpacity}" />
+                            <TextBlock Text="{Binding AchievementSummary.Completed}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ItemsControl Classes="statsRight" ItemsSource="{Binding AchievementSummary.Categories}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:AchievementCategoryRow">
+                                    <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                            Command="{Binding $parent[pg:AchievementsPage].((m:MainViewModel)DataContext).ShowAchievementCategory}" CommandParameter="{Binding Key}"
+                                            Click="OnCategory" AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{i:Loc Achievements.Category.Tip}">
+                                        <Border Classes="row" MinHeight="44">
+                                            <Grid ColumnDefinitions="28,8,*,12,Auto,12,Auto">
+                                                <Panel Width="28" Height="28" Opacity="{Binding GraphicsOpacity}">
+                                                    <c:Scallop Fill="{StaticResource AccentContainer}" Lobes="9" Depth="0.12" />
+                                                    <TextBlock Text="{Binding Glyph}" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Accent}"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Panel>
+                                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Line}" Classes="caption" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <ProgressBar Grid.Column="4" Classes="shareBar fill wide" Width="96" Height="6" MinHeight="6" VerticalAlignment="Center"
+                                                             Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" />
+                                                <TextBlock Grid.Column="6" Text="{Binding Fraction}" Classes="catFraction" FontWeight="SemiBold" TextAlignment="Right" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
+
+                <!-- Tracked chains, in the order they were starred -->
+                <Border Name="TrackedCard" Classes="card" Margin="0,0,0,24">
+                    <StackPanel>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                            <c:Ornament Name="TrackedHead" Text="{i:Loc Achievements.Tracked.Title}" Icon="&#xF04CE;" Size="13" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Column="1" Text="{Binding TrackedAchievementsCount}" Classes="caption" VerticalAlignment="Center" />
+                        </Grid>
+                        <TextBlock Text="{Binding TrackedAchievementsFullText}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,8" IsVisible="{Binding TrackedAchievementsFull}" />
+                        <ItemsControl Name="TrackedList" ItemsSource="{Binding TrackedAchievementRows}" ItemTemplate="{StaticResource TrackedRow}" />
+                        <TextBlock Text="{Binding TrackedAchievementsMissing}" Classes="caption" TextWrapping="Wrap" Margin="0,8,0,0" IsVisible="{Binding HasTrackedAchievementsMissing}" />
+                        <ContentControl Classes="emptyState" Tag="&#xF04D2;" Content="{i:Loc Achievements.Tracked.Empty}" IsVisible="{Binding TrackedAchievementsEmpty}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Nearly done beside recently completed (one under the other in compact) -->
+                <Grid RowDefinitions="Auto,Auto" Margin="0,0,0,24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Classes="card statsLeft" VerticalAlignment="Top">
+                        <StackPanel>
+                            <c:Ornament Text="{i:Loc Achievements.Near.Title}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                            <ItemsControl ItemsSource="{Binding NearlyDoneRows}" ItemTemplate="{StaticResource NearRow}" />
+                            <ContentControl Classes="emptyState" Tag="&#xF012A;" Content="{i:Loc Achievements.Near.Empty}" IsVisible="{Binding NearlyDoneEmpty}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card statsRight" VerticalAlignment="Top">
+                        <StackPanel>
+                            <c:Ornament Text="{i:Loc Achievements.Recent.Title}" Icon="&#xF05E0;" Size="13" Margin="0,0,0,12" />
+                            <ItemsControl ItemsSource="{Binding RecentAchievementRows}" ItemTemplate="{StaticResource RecentRow}" />
+                            <ContentControl Classes="emptyState" Tag="&#xF05E0;" Content="{i:Loc Achievements.Recent.Empty}" IsVisible="{Binding RecentAchievementsEmpty}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- The whole journal: categories, the chosen category's subcategories (chips in compact), the chosen subcategory's rows -->
+                <Border Name="BrowseCard" Classes="card">
+                    <StackPanel>
+                        <c:Ornament Text="{i:Loc Achievements.Browse.Title}" Icon="&#xF0538;" Size="13" Margin="0,0,0,12" />
+                        <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,16" AutomationProperties.Name="{i:Loc Achievements.Browse.Categories}">
+                            <ItemsControl ItemsSource="{Binding AchievementCategories}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:MetaChoice">
+                                        <RadioButton Classes="segment" Content="{Binding Label}" IsChecked="{Binding Selected, Mode=OneWay}" GroupName="AchievementCategory"
+                                                     Command="{Binding $parent[pg:AchievementsPage].((m:MainViewModel)DataContext).ShowAchievementCategory}" CommandParameter="{Binding Key}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                        <Border Classes="segmentBar narrow" HorizontalAlignment="Left" Margin="0,0,0,16" AutomationProperties.Name="{i:Loc Achievements.Browse.Subcategories}">
+                            <ItemsControl Name="SubcategoryChips" ItemsSource="{Binding AchievementSubcategories}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:AchievementSubcategoryRow">
+                                        <RadioButton Classes="segment" Content="{Binding Chip}" IsChecked="{Binding IsSelected, Mode=OneWay}" GroupName="AchievementSubcategoryChip"
+                                                     AutomationProperties.Name="{Binding Name}"
+                                                     Command="{Binding $parent[pg:AchievementsPage].((m:MainViewModel)DataContext).ShowAchievementSubcategory}" CommandParameter="{Binding Key}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                        <Grid Classes="browse">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MaxWidth="280" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="3*" />
+                            </Grid.ColumnDefinitions>
+                            <ItemsControl Name="Subcategories" Classes="wide" ItemsSource="{Binding AchievementSubcategories}" VerticalAlignment="Top" MinWidth="200"
+                                          AutomationProperties.Name="{i:Loc Achievements.Browse.Subcategories}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:AchievementSubcategoryRow">
+                                        <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                                Command="{Binding $parent[pg:AchievementsPage].((m:MainViewModel)DataContext).ShowAchievementSubcategory}" CommandParameter="{Binding Key}"
+                                                AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{Binding Title}">
+                                            <Border Classes="row archetype" Classes.selected="{Binding IsSelected}">
+                                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Count}" Classes="caption" Margin="8,0,0,0" VerticalAlignment="Top" />
+                                                    <ProgressBar Grid.Row="1" Grid.ColumnSpan="2" Classes="shareBar fill" Height="3" MinHeight="3" Margin="0,4,0,0"
+                                                                 Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" />
+                                                </Grid>
+                                            </Border>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <StackPanel Classes="browseRows">
+                                <ItemsControl Name="BrowseRows" ItemsSource="{Binding AchievementBrowseRows}" ItemsPanel="{StaticResource PageRows}">
+                                    <ItemsControl.DataTemplates>
+                                        <!-- A section's heading: its name and a gold rule to the edge, at the bottom of a row's height -->
+                                        <DataTemplate x:DataType="m:AchievementSectionRow">
+                                            <Grid Height="56" ColumnDefinitions="Auto,*">
+                                                <TextBlock Text="{Binding Title}" Classes="h2" VerticalAlignment="Bottom" Margin="0,0,12,8" TextTrimming="CharacterEllipsis" />
+                                                <c:Wave Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,0,12" IsHitTestVisible="False" />
+                                            </Grid>
+                                        </DataTemplate>
+                                        <!-- A chain: star, name and description, progress and level, points and date (compact: the description, points
+                                             and date only in the tip) -->
+                                        <DataTemplate x:DataType="m:AchievementRow">
+                                            <Border Classes="row" Height="56" ToolTip.Tip="{Binding Tip}">
+                                                <Grid Classes="browseRow" ColumnDefinitions="32,12,*,12,Auto,12,Auto" RowDefinitions="Auto,Auto" VerticalAlignment="Center">
+                                                    <ContentControl Grid.RowSpan="2" Content="{Binding}" ContentTemplate="{StaticResource AchievementStar}" Focusable="False" VerticalAlignment="Center" />
+                                                    <StackPanel Grid.Column="2" Classes="browseText" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Title}" Classes="chainName" Classes.muted="{Binding Muted}" />
+                                                        <TextBlock Text="{Binding Description}" Classes="caption wide" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                                                    </StackPanel>
+                                                    <!-- The count over the level in a fixed width (a style), so the bars line up from row to row; compact: one line under the name -->
+                                                    <Grid Classes="browseProgress" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" VerticalAlignment="Center" IsVisible="{Binding !Secret}">
+                                                        <StackPanel Classes="browseCount" Orientation="Horizontal">
+                                                            <Panel Classes="wide" VerticalAlignment="Center">
+                                                                <ProgressBar Classes="shareBar fill" Width="56" Height="6" MinHeight="6" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                                             Value="{Binding Share}" Opacity="{Binding GraphicsOpacity}" IsVisible="{Binding ShowsBar}" />
+                                                            </Panel>
+                                                            <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
+                                                                       VerticalAlignment="Center" Opacity="{Binding GraphicsOpacity}" IsVisible="{Binding Done}" />
+                                                            <!-- Compact: "Completed" instead of "All levels completed", the level beside it says how many -->
+                                                            <TextBlock Text="{Binding ProgressText}" Classes="wide" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding ProgressShort}" Classes="narrow" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Level}" Classes="caption browseLevel" TextTrimming="CharacterEllipsis" />
+                                                    </Grid>
+                                                    <Panel Grid.Column="6" Classes="wide" Width="104" VerticalAlignment="Center">
+                                                        <StackPanel IsVisible="{Binding !Secret}">
+                                                            <TextBlock Text="{Binding Points}" Classes="label" HorizontalAlignment="Right" />
+                                                            <TextBlock Text="{Binding Date}" Classes="caption" HorizontalAlignment="Right" Margin="0,2,0,0" />
+                                                        </StackPanel>
+                                                    </Panel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.DataTemplates>
+                                </ItemsControl>
+                                <ContentControl Classes="emptyState" Tag="&#xF0538;" Content="{i:Loc Achievements.Browse.Empty}" IsVisible="{Binding AchievementBrowseEmpty}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

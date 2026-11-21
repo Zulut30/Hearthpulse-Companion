@@ -10,6 +10,8 @@ using Hearthpulse.Core.Power;
 //   collection [samples] [file]     the collection and dust, read twice and compared; saved to file when given (docs/collection.md)
 //   walk <root> [segment...]        print a client object reached from a net cache object, service or static field
 //   cosmetics [file]                card backs, coins and achievements with the player's state, saved to file when given
+//   recon-import <dump> <folder>    a cosmetics file turned into cosmetics.json and achievements.json in folder
+//   cosmetics-check <folder>        the app's cosmetics and achievements reads against the generic walk; files to folder
 return args.FirstOrDefault() switch
 {
     "heroes" => Heroes(args[1], args.Length > 2 ? int.Parse(args[2]) : int.MaxValue),
@@ -20,6 +22,8 @@ return args.FirstOrDefault() switch
     "upgrade" => Upgrade(),
     "walk" => Hearthpulse.Probe.Walk.Run(args[1..]),
     "cosmetics" => Hearthpulse.Probe.Cosmetics.Run(args[1..]),
+    "recon-import" => Hearthpulse.Probe.Cosmetics.ReconImport(args[1..]),
+    "cosmetics-check" => Hearthpulse.Probe.Cosmetics.Check(args[1..]),
     "collection" => Collection(args.Length > 1 ? int.Parse(args[1]) : 5, args.Length > 2 ? args[2] : null),
     _ => Usage(),
 };

@@ -23,6 +23,7 @@
     <Using Include="System.IO" />
     <Compile Include="..\Hearthpulse.Tests\TestDataFolder.cs" Link="Support\TestDataFolder.cs" />
     <Compile Include="..\Hearthpulse.Tests\CollectionFixture.cs" Link="Support\CollectionFixture.cs" />
+    <Compile Include="..\Hearthpulse.Tests\CollectionPageFixture.cs" Link="Support\CollectionPageFixture.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hearthpulse.App\Hearthpulse.App.csproj" />

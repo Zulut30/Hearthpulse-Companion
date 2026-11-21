@@ -214,6 +214,7 @@ public sealed partial class MainViewModel
         Raise(nameof(CanBuildOnly));
         Raise(nameof(MetaDeckSorts));
         ShowMetaDecks();
+        CollectionPageInputsChanged();
     }
 
     /// <summary>
@@ -260,6 +261,7 @@ public sealed partial class MainViewModel
         Raise(nameof(CanBuildNote));
         Raise(nameof(HasCanBuildNote));
         _deckPage?.RefreshCollection();
+        RaiseCollectionPageStatus();
     }
 
     /// <summary>The card data changed: every price was made from the old one.</summary>
@@ -267,6 +269,7 @@ public sealed partial class MainViewModel
     {
         ShowMetaDecks();
         _deckPage?.RefreshCollection();
+        CollectionPageInputsChanged();
     }
 
     /// <summary>The label of a meta deck list; null while it is not priced or its answer is unknown.</summary>

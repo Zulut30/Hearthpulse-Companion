@@ -115,8 +115,8 @@ public sealed partial class LocBindingTests
     });
 
     /// <summary>
-    /// Ctrl+1…8 name themselves to screen readers on the sidebar items, and the shortcut moves focus with the page: the
-    /// control focus was on may sit on the page just hidden.
+    /// Ctrl+1…8 name themselves to screen readers on the sidebar items (the library pages after History have no number),
+    /// and the shortcut moves focus with the page: the control focus was on may sit on the page just hidden.
     /// </summary>
     [Fact]
     public void Page_shortcuts_are_named_on_the_sidebar_and_take_focus_with_the_page() => Headless.Run(() =>
@@ -142,7 +142,10 @@ public sealed partial class LocBindingTests
         Dispatcher.UIThread.RunJobs();
         var items = view.GetLogicalDescendants().OfType<RadioButton>().Where(r => r.Classes.Contains("nav")).ToList();
         Assert.Equal(MainViewModel.NavPages.Count, items.Count);
-        Assert.Equal(Enumerable.Range(1, items.Count).Select(i => $"Ctrl+{i}"), items.Select(Avalonia.Automation.AutomationProperties.GetAcceleratorKey));
+        List<string> digits = [.. MainViewModel.NavDigitPages];
+        Assert.Equal(
+            MainViewModel.NavPages.Select(p => digits.IndexOf(p) is var i and >= 0 ? $"Ctrl+{i + 1}" : null),
+            items.Select(Avalonia.Automation.AutomationProperties.GetAcceleratorKey));
 
         window.KeyPressQwerty(PhysicalKey.Digit3, RawInputModifiers.Control);
         Assert.Equal("Standard", view.CurrentPage);

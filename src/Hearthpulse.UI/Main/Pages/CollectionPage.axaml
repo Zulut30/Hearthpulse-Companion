@@ -1,0 +1,355 @@
+<UserControl
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:pg="using:Hearthpulse.UI.Main.Pages"
+             x:Class="Hearthpulse.UI.Main.Pages.CollectionPage"
+             x:DataType="m:MainViewModel">
+    <!-- The Collection page (docs/collection-page.md): expansions, hero skins, coins and card backs read from the game,
+         each tab with its status line and empty states. Same tree as the WPF CollectionPage.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Meta/MetaResources.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- A sum tile: the stats' KPI card (label, gold rule, big value, caption) with its own tip; its words wrap, never cut -->
+            <DataTemplate x:Key="CollectionSumTile" x:DataType="m:CollectionSumTile">
+                <Border Classes="card tile" Padding="16,12,16,12" Margin="0,0,12,12" ToolTip.Tip="{Binding Tip}"
+                        AutomationProperties.Name="{Binding Label}" AutomationProperties.HelpText="{Binding Value}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Label}" Classes="label" TextWrapping="Wrap" />
+                        <Border Width="22" Height="2" CornerRadius="1" Background="{StaticResource AccentLine}" HorizontalAlignment="Left" Margin="0,4,0,0" />
+                        <TextBlock Text="{Binding Value}" Classes="stat statsValue" Margin="0,4,0,2" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Detail}" Classes="caption" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
+            <!-- A set's tile: name and percent, its bar, playable and unique counts, the dust line, rarities 2x2 -->
+            <DataTemplate x:Key="CollectionSetTile" x:DataType="m:CollectionSetView">
+                <Border Classes="card tile setTile" Classes.complete="{Binding Complete}" Padding="16,12" Margin="0,0,12,12" AutomationProperties.Name="{Binding A11y}">
+                    <StackPanel>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="{Binding Name}" Classes="h2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2"
+                                       ToolTip.Tip="{Binding Name}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Percent}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeHeadline}"
+                                       Foreground="{StaticResource StatText}" Margin="12,0,0,0" VerticalAlignment="Top" />
+                        </Grid>
+                        <TextBlock Text="{Binding Group}" Classes="caption" IsVisible="{Binding HasGroup}" />
+                        <ProgressBar Classes="shareBar fill" Value="{Binding Fraction, Mode=OneWay}" Margin="0,8,0,0" Opacity="{Binding ArtOpacity}" />
+                        <UniformGrid Classes="fixed" Columns="2" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="{i:Loc CollectionPage.Set.Playable}" Classes="label" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Playable}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="{i:Loc CollectionPage.Set.Unique}" Classes="label" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Unique}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" />
+                            </StackPanel>
+                        </UniformGrid>
+                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
+                            <TextBlock Text="{Binding DustGlyph}" Classes="icon dustGlyph" Classes.done="{Binding Complete}" FontSize="{StaticResource FontSizeLead}"
+                                       Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Dust}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="pill" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip.Tip="{i:Loc CollectionPage.Set.EstimateTip}"
+                                    IsVisible="{Binding Estimate}">
+                                <TextBlock Text="{i:Loc Collection.Mark.Estimate}" Classes="caption" />
+                            </Border>
+                        </Grid>
+                        <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0" Background="Transparent" ToolTip.Tip="{i:Loc CollectionPage.Set.UncraftableTip}"
+                              IsVisible="{Binding HasUncraftable}">
+                            <TextBlock Text="&#xF033E;" Classes="icon" FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Muted}" Margin="0,0,8,0"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Uncraftable}" Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding Rarities}" Margin="0,12,-12,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Classes="fixed" Columns="2" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:CollectionRarityView">
+                                    <!-- The rarity's colour always comes with its name -->
+                                    <StackPanel Margin="0,0,12,8" Background="Transparent" ToolTip.Tip="{Binding Tip}">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <Ellipse Width="8" Height="8" Fill="{Binding Rarity, Converter={StaticResource KeyBrush}}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" Classes="label" TextTrimming="CharacterEllipsis" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                                            <ProgressBar Classes="shareBar" Height="4" MinHeight="4" Foreground="{Binding Rarity, Converter={StaticResource KeyBrush}}"
+                                                         Value="{Binding Fraction, Mode=OneWay}" VerticalAlignment="Center" Opacity="{Binding ArtOpacity}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Count}" Classes="caption" FontWeight="SemiBold" Margin="8,0,0,0" />
+                                        </Grid>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{Binding Golden}" Classes="caption" Margin="0,8,0,0" IsVisible="{Binding HasGolden}" />
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
+            <!-- A hero skin: its art 112x112 (the full card on hover), the name, "Not owned" under it; a lock on the art -->
+            <DataTemplate x:Key="CollectionSkinTile" x:DataType="m:CollectionItemView">
+                <StackPanel Width="112" Margin="0,0,12,16" Background="Transparent" ToolTip.Tip="{Binding Tip}" AutomationProperties.Name="{Binding A11y}">
+                    <Panel Width="112" Height="112">
+                        <Border CornerRadius="{StaticResource RadiusMedium}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}" BorderThickness="1"
+                                ClipToBounds="True" Opacity="{Binding ArtOpacity}">
+                            <Border CornerRadius="{StaticResource RadiusMedium}" i:CardArt.Portrait="{Binding CardId}" c:CardPreview.CardId="{Binding CardId}" />
+                        </Border>
+                        <Border Classes="tileBadge" IsVisible="{Binding HasBadge}">
+                            <TextBlock Text="{Binding Badge}" Classes="icon tileBadgeGlyph badgeGlyph" Classes.favourite="{Binding Favourite}" />
+                        </Border>
+                    </Panel>
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2"
+                               Margin="0,8,0,0" />
+                    <TextBlock Text="{Binding State}" Classes="caption" TextAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding HasState}" />
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- A coin: the coin card's art in a gold-rimmed circle (a placeholder glyph without the card), its name -->
+            <DataTemplate x:Key="CollectionCoinTile" x:DataType="m:CollectionItemView">
+                <StackPanel Width="112" Margin="0,0,12,16" Background="Transparent" ToolTip.Tip="{Binding Tip}" AutomationProperties.Name="{Binding A11y}">
+                    <Panel Width="80" Height="80">
+                        <Border CornerRadius="40" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="2" Opacity="{Binding ArtOpacity}">
+                            <Panel>
+                                <TextBlock Text="&#xF0695;" Classes="icon" FontSize="{StaticResource FontSizeDisplay}" Foreground="{StaticResource Faint}" HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" IsVisible="{Binding !HasArt}" />
+                                <Border Width="76" Height="76" CornerRadius="38" ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" c:CardPreview.CardId="{Binding CardId}"
+                                        IsVisible="{Binding HasArt}" />
+                            </Panel>
+                        </Border>
+                        <Border Classes="tileBadge" VerticalAlignment="Bottom" Margin="0" IsVisible="{Binding HasBadge}">
+                            <TextBlock Text="{Binding Badge}" Classes="icon tileBadgeGlyph badgeGlyph" Classes.favourite="{Binding Favourite}" />
+                        </Border>
+                    </Panel>
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2"
+                               Margin="0,8,0,0" />
+                    <TextBlock Text="{Binding State}" Classes="caption" TextAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding HasState}" />
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- A card back without art: a double frame over the theme's motif, a medallion shaped by its id with the group's glyph -->
+            <DataTemplate x:Key="CollectionBackTile" x:DataType="m:CardBackView">
+                <StackPanel Width="112" Margin="0,0,12,16" Background="Transparent" AutomationProperties.Name="{Binding A11y}">
+                    <ToolTip.Tip>
+                        <StackPanel MaxWidth="280">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Margin="0,4,0,0" IsVisible="{Binding HasDescription}" />
+                            <TextBlock Text="{Binding Standing}" Classes="caption" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </ToolTip.Tip>
+                    <!-- The frame dims (not owned, saved data); the badge on it keeps its strength, as on the skins and coins -->
+                    <Panel Width="96" Height="128">
+                        <Panel Opacity="{Binding Opacity}">
+                            <Border CornerRadius="{StaticResource RadiusMedium}" Background="{StaticResource Surface2}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" />
+                            <!-- The theme's motif, turned by the back's id: no two neighbours show it the same way -->
+                            <Border Margin="8" CornerRadius="{StaticResource RadiusSmall}" ClipToBounds="True" Opacity="0.5" IsHitTestVisible="False">
+                                <Rectangle Margin="-32,-16" Fill="{StaticResource MotifBrush}">
+                                    <Rectangle.RenderTransform>
+                                        <RotateTransform Angle="{Binding MotifAngle}" />
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Border>
+                            <Border Margin="8" CornerRadius="{StaticResource RadiusSmall}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" />
+                            <!-- The medallion: its shape and turn by the id, a gold edge of the same shape under it -->
+                            <Panel Width="64" Height="64">
+                                <c:Scallop Fill="{StaticResource AccentLine}" Depth="0.24" Lobes="{Binding Lobes}" Angle="{Binding Angle}" />
+                                <c:Scallop Margin="2" Fill="{StaticResource AccentContainer}" Depth="0.24" Lobes="{Binding Lobes}" Angle="{Binding Angle}" />
+                                <TextBlock Text="{Binding Glyph}" Classes="icon" FontSize="{StaticResource FontSizeSubhead}" Foreground="{StaticResource Accent}" HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Panel>
+                        </Panel>
+                        <Border Classes="tileBadge" IsVisible="{Binding HasBadge}">
+                            <TextBlock Text="{Binding Badge}" Classes="icon tileBadgeGlyph badgeGlyph" Classes.favourite="{Binding Favourite}" />
+                        </Border>
+                    </Panel>
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2"
+                               Margin="0,8,0,0" />
+                    <TextBlock Text="{Binding State}" Classes="caption" TextAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding HasState}" />
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- A group's head over its tiles: (the class's hero) name, "14 of 58" on the right, the bar -->
+            <DataTemplate x:Key="CollectionGroupHead" x:DataType="m:CollectionGroupView">
+                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,16">
+                    <Border Grid.RowSpan="2" Width="48" Height="48" Margin="0,0,12,0" CornerRadius="24" Background="{StaticResource Surface4}" ClipToBounds="True"
+                            VerticalAlignment="Center" i:CardArt.Portrait="{Binding HeroCardId}" Opacity="{Binding ArtOpacity}" IsVisible="{Binding HasPortrait}" />
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" Classes="h2" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}"
+                               Margin="12,0,0,0" VerticalAlignment="Center" />
+                    <ProgressBar Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Classes="shareBar fill" Value="{Binding Fraction, Mode=OneWay}" Margin="0,8,0,0"
+                                 Opacity="{Binding ArtOpacity}" />
+                </Grid>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Pages/LibraryLook.axaml" />
+        <!-- The set tiles: two columns, one in the compact layout ("fixed": MainView leaves the grid's columns to these styles) -->
+        <Style Selector="UniformGrid.setGrid">
+            <Setter Property="Columns" Value="2" />
+        </Style>
+        <Style Selector="m|MainView.compact UniformGrid.setGrid">
+            <Setter Property="Columns" Value="1" />
+        </Style>
+        <!-- A complete set: the best edge on its tile and the check in the accent -->
+        <Style Selector="Border.setTile.complete">
+            <Setter Property="BorderBrush" Value="{StaticResource BestEdge}" />
+        </Style>
+        <Style Selector="TextBlock.dustGlyph">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="TextBlock.dustGlyph.done">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <!-- A tile's badge: the lock muted, the favourite's heart in the accent -->
+        <Style Selector="TextBlock.badgeGlyph">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="TextBlock.badgeGlyph.favourite">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
+                <StackPanel>
+                    <!-- The glyph, then the title in the rest of the width: a long title wraps under itself. -->
+                    <Grid ColumnDefinitions="Auto,*">
+                        <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Collection}" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc CollectionPage.Title}" Classes="display pageTitle" TextWrapping="Wrap" />
+                    </Grid>
+                    <c:Wave Classes="pageRule" />
+                </StackPanel>
+            </Grid>
+
+            <!-- The tabs, then the set filter (on Expansions only); in the compact layout the filter wraps under them -->
+            <WrapPanel Margin="0,0,0,8">
+                <Border Classes="segmentBar" Margin="0,0,16,8">
+                    <WrapPanel>
+                        <RadioButton Name="TabSets" Classes="segment" Content="{i:Loc CollectionPage.Tab.Sets}" GroupName="CollectionTab"
+                                     IsChecked="{Binding CollectionTabSets}" ToolTip.Tip="{i:Loc CollectionPage.Tab.SetsTip}" />
+                        <RadioButton Name="TabSkins" Classes="segment" Content="{i:Loc CollectionPage.Tab.Skins}" GroupName="CollectionTab"
+                                     IsChecked="{Binding CollectionTabSkins}" ToolTip.Tip="{i:Loc CollectionPage.Tab.SkinsTip}" />
+                        <RadioButton Name="TabCoins" Classes="segment" Content="{i:Loc CollectionPage.Tab.Coins}" GroupName="CollectionTab"
+                                     IsChecked="{Binding CollectionTabCoins}" ToolTip.Tip="{i:Loc CollectionPage.Tab.CoinsTip}" />
+                        <RadioButton Name="TabBacks" Classes="segment" Content="{i:Loc CollectionPage.Tab.Backs}" GroupName="CollectionTab"
+                                     IsChecked="{Binding CollectionTabBacks}" ToolTip.Tip="{i:Loc CollectionPage.Tab.BacksTip}" />
+                    </WrapPanel>
+                </Border>
+                <Border Name="SetFilter" Classes="segmentBar" Margin="0,0,0,8" ToolTip.Tip="{i:Loc CollectionPage.Filter.Tip}" IsVisible="{Binding CollectionFilterShown}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Classes="segment" Content="{i:Loc CollectionPage.Filter.Standard}" GroupName="CollectionFilter" IsChecked="{Binding CollectionFilterStandard}" />
+                        <RadioButton Classes="segment" Content="{i:Loc CollectionPage.Filter.Wild}" GroupName="CollectionFilter" IsChecked="{Binding CollectionFilterWild}"
+                                     ToolTip.Tip="{i:Loc CollectionPage.Filter.WildTip}" />
+                        <RadioButton Classes="segment" Content="{i:Loc CollectionPage.Filter.All}" GroupName="CollectionFilter" IsChecked="{Binding CollectionFilterAll}"
+                                     ToolTip.Tip="{i:Loc CollectionPage.Filter.AllTip}" />
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
+
+            <!-- The tab's data: read from the game when, or a saved copy with its mark -->
+            <ContentControl Name="Status" Content="{Binding CollectionPageStatus}" ContentTemplate="{StaticResource LibraryStatusLine}" Focusable="False"
+                            IsVisible="{Binding HasCollectionPageStatus}" />
+
+            <ContentControl Name="Empty" Classes="emptyState" Tag="{Binding CollectionPageEmptyGlyph}" Content="{Binding CollectionPageEmpty}"
+                            AutomationProperties.LiveSetting="Polite" IsVisible="{Binding HasCollectionPageEmpty}" />
+
+            <!-- ===== Expansions: the filter's sum, its bar, then a tile per set (newest first) ===== -->
+            <StackPanel Name="SetsView" i:Motion.RevealOnShow="True" IsVisible="{Binding CollectionSetsShown}">
+                <ItemsControl ItemsSource="{Binding CollectionSum}" ItemTemplate="{StaticResource CollectionSumTile}" ItemsPanel="{StaticResource StatsKpiPanel}"
+                              Margin="0,0,-12,0" />
+                <ProgressBar Classes="shareBar fill" Value="{Binding CollectionSumFraction, Mode=OneWay}" Margin="0,4,0,24" Opacity="{Binding CollectionArtOpacity}"
+                             AutomationProperties.Name="{i:Loc CollectionPage.Sum.Playable}" />
+                <ItemsControl ItemsSource="{Binding CollectionSets}" ItemTemplate="{StaticResource CollectionSetTile}" Margin="0,0,-12,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Classes="fixed setGrid" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- ===== Hero skins: the classes as chips, the owned count, one class's skins ===== -->
+            <StackPanel Name="SkinsView" i:Motion.RevealOnShow="True" IsVisible="{Binding CollectionSkinsShown}">
+                <Border Classes="segmentBar" HorizontalAlignment="Left">
+                    <ItemsControl ItemsSource="{Binding CollectionSkinClasses}" ItemsPanel="{StaticResource ChoiceWrap}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:MetaChoice">
+                                <RadioButton Classes="segment" Content="{Binding Label}" GroupName="CollectionSkinClass" IsChecked="{Binding Selected, Mode=OneWay}"
+                                             Command="{Binding $parent[pg:CollectionPage].((m:MainViewModel)DataContext).SetCollectionSkinClass}" CommandParameter="{Binding Key}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+                <TextBlock Text="{Binding CollectionSkinsOwned}" Classes="caption" Margin="0,8,0,16" />
+                <Border Classes="card">
+                    <StackPanel>
+                        <ContentControl Content="{Binding CollectionSkinGroup}" ContentTemplate="{StaticResource CollectionGroupHead}" Focusable="False" />
+                        <ItemsControl ItemsSource="{Binding CollectionSkins}" ItemTemplate="{StaticResource CollectionSkinTile}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- ===== Coins: the owned count and its bar, every coin in one card ===== -->
+            <StackPanel Name="CoinsView" i:Motion.RevealOnShow="True" IsVisible="{Binding CollectionCoinsShown}">
+                <TextBlock Text="{Binding CollectionCoinsOwned}" Classes="caption" />
+                <ProgressBar Classes="shareBar fill" Value="{Binding CollectionCoinsOwnedFraction, Mode=OneWay}" Margin="0,8,0,16" Opacity="{Binding CollectionArtOpacity}"
+                             AutomationProperties.Name="{Binding CollectionCoinsOwned}" />
+                <Border Classes="card">
+                    <ItemsControl ItemsSource="{Binding CollectionCoins}" ItemTemplate="{StaticResource CollectionCoinTile}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </Border>
+            </StackPanel>
+
+            <!-- ===== Card backs: the owned count and its bar, the groups as chips, one group's backs ===== -->
+            <StackPanel Name="BacksView" i:Motion.RevealOnShow="True" IsVisible="{Binding CollectionBacksShown}">
+                <TextBlock Text="{Binding CollectionBacksOwned}" Classes="caption" />
+                <ProgressBar Classes="shareBar fill" Value="{Binding CollectionBacksOwnedFraction, Mode=OneWay}" Margin="0,8,0,16" Opacity="{Binding CollectionArtOpacity}"
+                             AutomationProperties.Name="{Binding CollectionBacksOwned}" />
+                <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,16">
+                    <ItemsControl ItemsSource="{Binding CollectionBackGroups}" ItemsPanel="{StaticResource ChoiceWrap}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:MetaChoice">
+                                <RadioButton Classes="segment" Content="{Binding Label}" GroupName="CollectionBackGroup" IsChecked="{Binding Selected, Mode=OneWay}"
+                                             Command="{Binding $parent[pg:CollectionPage].((m:MainViewModel)DataContext).SetCollectionBackGroup}" CommandParameter="{Binding Key}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <ContentControl Content="{Binding CollectionBackGroup}" ContentTemplate="{StaticResource CollectionGroupHead}" Focusable="False" />
+                        <ItemsControl ItemsSource="{Binding CollectionBacks}" ItemTemplate="{StaticResource CollectionBackTile}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

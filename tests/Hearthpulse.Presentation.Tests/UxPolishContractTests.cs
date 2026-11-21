@@ -262,8 +262,11 @@ public sealed partial class UxPolishContractTests
         Assert.Equal(rows.Select(r => Loc.T("Settings.Shortcuts." + r)), labels);
         var keys = Logical<Border>(card).Where(b => ReferenceEquals(b.Style, b.TryFindResource("Pill"))).Select(b => ((TextBlock)b.Child).Text);
         Assert.Equal(["Ctrl+1…8", "Esc · Alt+← · mouse Back", "Ctrl+Shift+H", "Ctrl+Shift+L", "Ctrl+Shift+R"], keys);
-        // Ctrl+1…8 open the sidebar's pages in order.
-        Assert.Equal(8, WpfMain.NavPages.Count);
+        // Ctrl+1…8 open the sidebar's pages in order; the library pages after History (Collection, Achievements,
+        // Recap) have no number, so the eleven pages keep the eight digits.
+        Assert.Equal(11, WpfMain.NavPages.Count);
+        Assert.Equal(8, WpfMain.NavDigitPages.Count);
+        Assert.Equal(WpfMain.NavPages.Except(["Collection", "Achievements", "Wrapped"]), WpfMain.NavDigitPages);
         window.Close();
     });
 

@@ -137,6 +137,7 @@ public sealed partial class AppHost : IDisposable
         Controls.CardPreview.Related = Session.RelatedCardsOf;
         Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => _constructedLoader.Ensure(format));
         ShowCollection();
+        ShowLibraryPages();
         Main.ConstructedMetaRequested += format =>
         {
             if (format is not null)

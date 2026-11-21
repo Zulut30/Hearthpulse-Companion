@@ -11,6 +11,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [arena-draft.md](arena-draft.md) | Arena draft helper on the overlay, card scores, community Arena numbers |
 | [arena-rewards.md](arena-rewards.md) | Arena run rewards: entered on each run in My Stats, the period's total tile |
 | [card-page.md](card-page.md) | Card page: a Constructed card's numbers, the archetypes that run it, its mulligan by archetype, your own games with it |
+| [collection-page.md](collection-page.md) | Collection page: expansion completion and dust, hero skins by class, coins and card backs read from the game, its states |
 | [brawl.md](brawl.md) | Tavern Brawl page: this week's class win rates by everyone's games, your classes in the Brawl played last |
 | [counters-constructed.md](counters-constructed.md) | In-game counters for Constructed and Arena |
 | [counters-battlegrounds.md](counters-battlegrounds.md) | Battlegrounds counter chips (`bg-counters` panel) |
@@ -20,6 +21,8 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [secrets-helper.md](secrets-helper.md) | Opponent Secrets panel |
 | [streaming.md](streaming.md) | OBS capture windows (deck, lobby, combat odds, session) and streamer mode: what each hides and shows |
 | [sharing.md](sharing.md) | Share pictures (session recap, deck list and 16:9 cover, year in review), YouTube timestamps, the year page |
+| [achievements-page.md](achievements-page.md) | Achievements page: Hearthstone's achievements read from the game - points, tracked chains with their gain, nearly done, recent, the journal |
+| [wrapped-page.md](wrapped-page.md) | Recap page ("Wrapped"): the player's month or year from their own games and achievements |
 | [mulligan-v2.md](mulligan-v2.md) | Mulligan guide: research, what the app computes, proposed endpoints |
 | [match-replay.md](match-replay.md) | Match page: turn-by-turn replay and what it may reveal |
 | [replay-library.md](replay-library.md) | History as the replay library: Saved, Imported, the import filter, Share |
@@ -49,6 +52,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [analytics-metrics.md](analytics-metrics.md) | Catalog of statistics metrics and the field matrix ([JSON](analytics-metrics.json)); per-metric eligibility |
 | [local-data.md](local-data.md) | Broken or busy settings, history and API cache files; known limits; files that never leave the machine (combat captures, the collection) |
 | [collection.md](collection.md) | The player's collection read from the client, `collection.json`, what a deck costs in dust (Core; no UI yet) |
+| [collection-cosmetics.md](collection-cosmetics.md) | Card backs, coins and achievements read from the client, `cosmetics.json`, `achievements.json`, when they are read; set completion, hero skins, chains and gains, "Wrapped" counts |
 
 ## Project records
 

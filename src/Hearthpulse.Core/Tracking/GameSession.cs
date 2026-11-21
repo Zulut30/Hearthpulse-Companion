@@ -130,6 +130,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         Replays = history.Replays ?? new ReplayStore(AppPaths.Replays);
         _memoryPoller = new MemoryPoller(memory);
         CollectionWatch = new Hearthpulse.Core.Collection.CollectionWatch(new Hearthpulse.Core.Collection.CollectionStore(AppPaths.Collection));
+        CosmeticsWatch = new Hearthpulse.Core.Collection.CosmeticsWatch(new Hearthpulse.Core.Collection.CosmeticsStore(AppPaths.Cosmetics));
+        AchievementsWatch = new Hearthpulse.Core.Progression.AchievementsWatch(new Hearthpulse.Core.Progression.AchievementsStore(AppPaths.Achievements));
         _turnClock = new TurnClock(() => _parser?.LastTimestamp);
         _sourceCapture.Combats = SourceCombats;
         _history.Changed += () =>

@@ -15,6 +15,9 @@ public static class GameIcons
     public static Geometry Arena { get; } = StreamGeometry.Parse(GameIconData.Arena);
     public static Geometry Brawl { get; } = StreamGeometry.Parse(GameIconData.Brawl);
     public static Geometry History { get; } = StreamGeometry.Parse(GameIconData.History);
+    public static Geometry Collection { get; } = StreamGeometry.Parse(GameIconData.Collection);
+    public static Geometry Achievements { get; } = StreamGeometry.Parse(GameIconData.Achievements);
+    public static Geometry Wrapped { get; } = StreamGeometry.Parse(GameIconData.Wrapped);
     public static Geometry Settings { get; } = StreamGeometry.Parse(GameIconData.Settings);
 }
 

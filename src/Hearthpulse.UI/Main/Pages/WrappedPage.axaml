@@ -1,0 +1,328 @@
+<UserControl
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Main.Pages.WrappedPage"
+             x:DataType="m:MainViewModel">
+    <!-- The Recap page (docs/wrapped-page.md): the player's month or year from their own games and achievements - one big
+         number, the three under it, then a slide each for favourites, modes, when they play, Battlegrounds and achievements.
+         Same tree as the WPF WrappedPage.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- A bar of "When you play": the count over it (days only), the bar on a 96 high base, the label under the line -->
+            <DataTemplate x:Key="RecapBarTemplate" x:DataType="m:RecapBar">
+                <StackPanel Margin="2,0" Background="Transparent" ToolTip.Tip="{Binding Tip}">
+                    <!-- The count's line keeps its height with no count (a day without games, every hour): the bases line up -->
+                    <TextBlock Text="{Binding Count}" Classes="caption" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,2" MinHeight="16" />
+                    <Panel Height="96">
+                        <Border Classes="recapBar" Classes.top="{Binding Top}" Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="2,2,1,1" />
+                    </Panel>
+                    <Border Height="1" Background="{StaticResource Outline}" />
+                    <!-- The label may run past its narrow bar ("21" under an hour's bar in compact) -->
+                    <TextBlock Text="{Binding Label}" Classes="caption" HorizontalAlignment="Center" Margin="-8,4,-8,0" TextAlignment="Center" />
+                </StackPanel>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <!-- LibraryLook after StatsStyles: its accent bar (shareBar.fill) overrides the stats' red one -->
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Pages/LibraryLook.axaml" />
+        <!-- A slide's leading line: a label over a large value ("Your day" / "Saturday") -->
+        <Style Selector="TextBlock.slideValue">
+            <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="{StaticResource FontSizeHeadline}" />
+            <Setter Property="Foreground" Value="{StaticResource StatText}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,4,0,12" />
+        </Style>
+        <!-- A number of the hero's three: the value, then what it is, then a detail -->
+        <Style Selector="TextBlock.trioValue">
+            <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="{StaticResource FontSizeDisplay}" />
+            <Setter Property="Foreground" Value="{StaticResource StatText}" />
+        </Style>
+        <Style Selector="m|MainView.compact TextBlock.trioValue">
+            <Setter Property="FontSize" Value="{StaticResource FontSizeHeadline}" />
+        </Style>
+        <Style Selector="TextBlock.trioLabel">
+            <Setter Property="FontSize" Value="{StaticResource FontSizeLead}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="Border.recapBar">
+            <Setter Property="Background" Value="{StaticResource AccentContainer}" />
+        </Style>
+        <Style Selector="Border.recapBar.top">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+        </Style>
+        <!-- A mode's name: a column of 160, narrower in compact -->
+        <Style Selector="TextBlock.modeName">
+            <Setter Property="Width" Value="160" />
+        </Style>
+        <Style Selector="m|MainView.compact TextBlock.modeName">
+            <Setter Property="Width" Value="112" />
+        </Style>
+        <!-- A completed achievement's date and points: right of its name; under it in compact -->
+        <Style Selector="Grid.recapRow > StackPanel.recapMeta">
+            <Setter Property="Grid.Column" Value="4" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.recapRow > StackPanel.recapMeta">
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <!-- A completed achievement's stand-in name ("Hidden achievement") is muted -->
+        <Style Selector="TextBlock.recapName.muted">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <!-- Favourites in three columns, one in compact -->
+        <Style Selector="UniformGrid.favTiles">
+            <Setter Property="Columns" Value="3" />
+        </Style>
+        <Style Selector="m|MainView.compact UniformGrid.favTiles">
+            <Setter Property="Columns" Value="1" />
+        </Style>
+    </UserControl.Styles>
+    <ScrollViewer Name="Scroller" Classes="page" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
+                <StackPanel>
+                    <!-- The glyph, then the title in the rest of the width: a long title wraps under itself. -->
+                    <Grid ColumnDefinitions="Auto,*">
+                        <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Wrapped}" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Wrapped.Title}" Classes="display pageTitle" TextWrapping="Wrap" />
+                    </Grid>
+                    <c:Wave Classes="pageRule" />
+                </StackPanel>
+                <!-- Month or year: top right; under the title in compact -->
+                <Border Classes="segmentBar headFilter" ToolTip.Tip="{i:Loc Wrapped.Span.Tip}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Name="SpanMonth" Classes="segment" Content="{i:Loc Wrapped.Span.Month}" GroupName="WrappedSpan" IsChecked="{Binding WrappedIsMonth, Mode=OneWay}"
+                                     Command="{Binding SetWrappedSpan}" CommandParameter="Month" />
+                        <RadioButton Name="SpanYear" Classes="segment" Content="{i:Loc Wrapped.Span.Year}" GroupName="WrappedSpan" IsChecked="{Binding WrappedIsYear, Mode=OneWay}"
+                                     Command="{Binding SetWrappedSpan}" CommandParameter="Year" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- "Working out your recap…": keeps its room, lit only while a request is being worked out -->
+            <StackPanel Orientation="Horizontal" Height="20" Margin="0,0,0,4" IsHitTestVisible="False"
+                        i:ContentMotion.Lit="{Binding WrappedComputing}" AutomationProperties.LiveSetting="Polite">
+                <TextBlock Text="&#xF04E6;" Classes="icon" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Accent2}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <TextBlock Text="{i:Loc Wrapped.Computing}" Classes="caption" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- The hero card: the period with its arrows, one big number over a glow, the comparison, then three numbers -->
+            <Border Name="HeroCard" Classes="card" Padding="32,24" Margin="0,0,0,24" ClipToBounds="True">
+                <Panel>
+                    <Border Width="160" Height="160" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{StaticResource MotifBrush}" Opacity="0.5" IsHitTestVisible="False" />
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Name="BackButton" Classes="icon" Content="&#xF0141;" Command="{Binding WrappedBack}" IsEnabled="{Binding WrappedCanGoBack}"
+                                    ToolTip.Tip="{Binding WrappedBackTip}" ToolTip.ShowOnDisabled="True" AutomationProperties.Name="{Binding WrappedBackName}" />
+                            <TextBlock Name="PeriodTitle" Text="{Binding WrappedTitle}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeSubhead}"
+                                       Margin="12,0" VerticalAlignment="Center" />
+                            <Button Name="ForwardButton" Classes="icon" Content="&#xF0142;" Command="{Binding WrappedForward}" IsEnabled="{Binding WrappedCanGoForward}"
+                                    ToolTip.Tip="{Binding WrappedForwardTip}" ToolTip.ShowOnDisabled="True" AutomationProperties.Name="{Binding WrappedForwardName}" />
+                        </StackPanel>
+
+                        <!-- The first result on its way, nothing in the period, nothing at all, or a failure -->
+                        <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Wrapped.Computing}" IsVisible="{Binding WrappedFirstComputing}" />
+                        <ContentControl Name="RecapEmpty" Classes="emptyState" Tag="&#xF00ED;" Content="{Binding WrappedEmpty}" AutomationProperties.LiveSetting="Polite"
+                                        IsVisible="{Binding WrappedEmptyShown}" />
+                        <StackPanel Name="RecapError" HorizontalAlignment="Center" Margin="0,16,0,0" IsVisible="{Binding WrappedFailed}">
+                            <TextBlock Text="{i:Loc Wrapped.Error}" Classes="caption" HorizontalAlignment="Center" />
+                            <Button Name="RetryButton" Classes="ghost" Content="{i:Loc Wrapped.Retry}" Command="{Binding RetryWrapped}" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                        </StackPanel>
+
+                        <StackPanel Name="HeroNumbers" i:Motion.RevealOnShow="True" IsVisible="{Binding HasRecap}">
+                            <Panel HorizontalAlignment="Left">
+                                <Ellipse Width="360" Height="240" Fill="{StaticResource Glow}" Margin="-120,-80,-120,-80" IsHitTestVisible="False" />
+                                <StackPanel>
+                                    <TextBlock Name="HeroNumber" Text="{Binding Recap.Number}" FontFamily="{DynamicResource DisplayFont}" FontWeight="ExtraBold" FontSize="{StaticResource FontSizeHero}"
+                                               Foreground="{StaticResource GildedText}" Margin="0,16,0,0" />
+                                    <TextBlock Text="{Binding Recap.Caption}" FontSize="{StaticResource FontSizeSubhead}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Background="Transparent" ToolTip.Tip="{Binding Recap.DeltaTip}" IsVisible="{Binding Recap.HasDelta}">
+                                        <TextBlock Text="{Binding Recap.DeltaGlyph}" Classes="icon" FontSize="{StaticResource FontSizeTitle}" VerticalAlignment="Center" Margin="0,0,4,0"
+                                                   Foreground="{Binding Recap.DeltaSign, Converter={StaticResource SignBrush}}" />
+                                        <TextBlock Text="{Binding Recap.Delta}" FontSize="{StaticResource FontSizeLead}" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"
+                                                   Foreground="{Binding Recap.DeltaSign, Converter={StaticResource SignBrush}}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Panel>
+                            <StackPanel IsVisible="{Binding Recap.HasGames}">
+                                <c:Wave Width="168" HorizontalAlignment="Left" Margin="0,24" IsHitTestVisible="False" />
+                                <UniformGrid Classes="fixed" Rows="1">
+                                    <StackPanel Background="Transparent" ToolTip.Tip="{Binding Recap.HoursTip}">
+                                        <TextBlock Text="{Binding Recap.Hours}" Classes="trioValue" />
+                                        <TextBlock Text="{i:Loc Wrapped.Hours.Label}" Classes="caption trioLabel" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Recap.WinRate}" Classes="trioValue" />
+                                        <TextBlock Text="{i:Loc Wrapped.WinRate.Label}" Classes="caption trioLabel" />
+                                        <TextBlock Text="{Binding Recap.WinRateDetail}" Classes="caption" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <StackPanel Background="Transparent" ToolTip.Tip="{i:Loc Wrapped.Streak.Tip}">
+                                        <TextBlock Text="{Binding Recap.Streak}" Classes="trioValue" />
+                                        <TextBlock Text="{Binding Recap.StreakLabel}" Classes="caption trioLabel" />
+                                    </StackPanel>
+                                </UniformGrid>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Panel>
+            </Border>
+
+            <StackPanel Name="Slides" i:Motion.RevealOnShow="True" IsVisible="{Binding HasRecap}">
+                <StackPanel IsVisible="{Binding Recap.HasGames}">
+                    <!-- Favourites: class, deck, Battlegrounds hero -->
+                    <Border Classes="card" Margin="0,0,0,24" IsVisible="{Binding Recap.HasFavourites}">
+                        <StackPanel>
+                            <c:Ornament Text="{i:Loc Wrapped.Fav.Title}" Icon="&#xF02D1;" Size="13" Margin="0,0,0,12" />
+                            <ItemsControl ItemsSource="{Binding Recap.Favourites}" Margin="0,0,-12,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Classes="favTiles fixed" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:RecapTile">
+                                        <Border Classes="card tile" Padding="16" Margin="0,0,12,12">
+                                            <StackPanel>
+                                                <Border Width="72" Height="72" CornerRadius="36" HorizontalAlignment="Left" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}"
+                                                        BorderThickness="2" ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" c:CardPreview.CardId="{Binding CardId}" />
+                                                <TextBlock Text="{Binding Label}" Classes="label" Margin="0,12,0,0" />
+                                                <TextBlock Text="{Binding Value}" Classes="slideValue" Margin="0,4,0,4" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Detail}" Classes="caption" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Modes: the most played one, then each mode's games against the most played, time and wins–losses (only in the tip in compact) -->
+                    <Border Classes="card" Margin="0,0,0,24">
+                        <StackPanel>
+                            <c:Ornament Text="{i:Loc Wrapped.Modes.Title}" Icon="&#xF0128;" Size="13" Margin="0,0,0,12" />
+                            <TextBlock Text="{i:Loc Wrapped.Modes.Top}" Classes="label" />
+                            <TextBlock Text="{Binding Recap.TopMode}" Classes="slideValue" />
+                            <ItemsControl ItemsSource="{Binding Recap.Modes}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:RecapModeRow">
+                                        <Border Classes="row" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}">
+                                            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+                                                <TextBlock Text="{Binding Title}" Classes="modeName" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                                <ProgressBar Grid.Column="1" Classes="shareBar fill" VerticalAlignment="Center" Value="{Binding Share}" />
+                                                <TextBlock Grid.Column="2" Text="{Binding Games}" Width="96" FontWeight="SemiBold" TextAlignment="Right" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="3" Text="{Binding Time}" Width="72" Classes="caption wide" TextAlignment="Right" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="4" Text="{Binding Record}" Width="72" Classes="caption wide" TextAlignment="Right" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- When you play: the busiest day and hour with their charts (one under the other in compact), then the longest game -->
+                    <Border Classes="card" Margin="0,0,0,24">
+                        <StackPanel>
+                            <c:Ornament Text="{i:Loc Wrapped.When.Title}" Icon="&#xF0150;" Size="13" Margin="0,0,0,12" />
+                            <Grid RowDefinitions="Auto,Auto">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="24" />
+                                    <ColumnDefinition Width="2*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Classes="statsLeft">
+                                    <TextBlock Text="{i:Loc Wrapped.When.Day}" Classes="label" />
+                                    <TextBlock Text="{Binding Recap.Day}" Classes="slideValue" />
+                                    <ItemsControl Name="DaysChart" ItemsSource="{Binding Recap.Days}" ItemTemplate="{StaticResource RecapBarTemplate}" AutomationProperties.Name="{Binding Recap.DaysName}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Classes="fixed" Rows="1" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
+                                </StackPanel>
+                                <StackPanel Classes="statsRight">
+                                    <TextBlock Text="{i:Loc Wrapped.When.Hour}" Classes="label" />
+                                    <TextBlock Text="{Binding Recap.Hour}" Classes="slideValue" />
+                                    <ItemsControl ItemsSource="{Binding Recap.HoursOfDay}" ItemTemplate="{StaticResource RecapBarTemplate}" AutomationProperties.Name="{Binding Recap.HoursName}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Classes="fixed" Rows="1" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Grid>
+                            <WrapPanel Margin="0,16,0,0" Background="Transparent" ToolTip.Tip="{i:Loc Wrapped.When.LongestTip}" IsVisible="{Binding Recap.HasLongest}">
+                                <TextBlock Text="&#xF0150;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="{i:Loc Wrapped.When.Longest}" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding Recap.Longest}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding Recap.LongestDetail}" Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Battlegrounds solo: games, first places, top 4, average place (two columns in compact) -->
+                    <Border Classes="card" Margin="0,0,0,24" IsVisible="{Binding Recap.HasBattlegrounds}">
+                        <StackPanel>
+                            <c:Ornament Text="{i:Loc Main.Mode.Battlegrounds}" Icon="&#xF01A5;" Size="13" Margin="0,0,0,12" />
+                            <ItemsControl ItemsSource="{Binding Recap.Battlegrounds}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
+                            <TextBlock Text="{i:Loc Wrapped.Bg.SoloNote}" Classes="caption" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Achievements completed in the period: how many, their points, the latest ten -->
+                <Border Classes="card">
+                    <StackPanel>
+                        <c:Ornament Text="{i:Loc Achievements.Title}" Icon="&#xF0538;" Size="13" Margin="0,0,0,12" />
+                        <TextBlock Text="{Binding Recap.AchievementsNote}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding Recap.HasAchievementsNote}" />
+                        <StackPanel IsVisible="{Binding Recap.HasAchievements}">
+                            <WrapPanel Margin="0,0,0,8">
+                                <TextBlock Text="{Binding Recap.AchievementsCount}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeHeadline}"
+                                           Foreground="{StaticResource StatText}" VerticalAlignment="Bottom" Margin="0,0,16,0" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Recap.AchievementsPoints}" Classes="label" VerticalAlignment="Bottom" Margin="0,0,0,4" />
+                            </WrapPanel>
+                            <ItemsControl ItemsSource="{Binding Recap.Achievements}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:AchievementRecentRow">
+                                        <Border Classes="row" ToolTip.Tip="{Binding Tip}">
+                                            <!-- Compact: the date and the points go under the name, which takes the row's width (two lines at most) -->
+                                            <Grid Classes="recapRow" ColumnDefinitions="Auto,8,*,12,Auto" RowDefinitions="Auto,Auto">
+                                                <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="2" Text="{Binding Title}" Classes="recapName" Classes.muted="{Binding Muted}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                                           MaxLines="2" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                <StackPanel Classes="recapMeta" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Date}" Classes="caption" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                                    <TextBlock Text="{Binding Points}" Classes="label" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding Recap.AchievementsMore}" Classes="caption" Margin="0,8,0,0" IsVisible="{Binding Recap.HasAchievementsMore}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
