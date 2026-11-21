@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core;
@@ -185,9 +186,10 @@ public sealed class MainNavigationContractTests
 
     /// <summary>
     /// The sidebar's eleven pages (three library pages after History) stand above the overlay card and Settings at the
-    /// window's default size in both languages, with no scrolling; in the shortest window the page list scrolls
-    /// between the status card and the foot, which stays on screen, and a page brought into view keeps its pill
-    /// inside the list.
+    /// window's default size (1260 x 840) in both languages, with no scrolling; in the shortest window the page list
+    /// scrolls between the status card and the foot, which stays on screen, and a page brought into view keeps its
+    /// pill inside the list. The default size is laid out whatever the screen, as the visual baselines are
+    /// (DevRender.Baseline): the CI runner's screen is 1024 x 768 and Windows keeps a window within the screen.
     /// </summary>
     [Theory]
     [InlineData(Loc.English)]
@@ -206,12 +208,23 @@ public sealed class MainNavigationContractTests
             double Top(string name) => ((FrameworkElement)window.FindName(name)).TranslatePoint(default, sidebar).Y;
             double Bottom(FrameworkElement element) => element.TranslatePoint(new Point(0, element.ActualHeight), sidebar).Y;
             var foot = (System.Windows.Controls.StackPanel)((FrameworkElement)window.FindName("OverlayCard")).Parent;
+
+            // The window's template laid out at 1260 x 840 and read before the next layout pass puts it back to the
+            // window's real size. The pages' own height is what the list's content asks for (measured unbounded). The
+            // window is made shorter first, as on the CI runner, so a run on a large screen checks the same thing.
+            window.Height = 760;
+            Pump();
+            Assert.True(window.ActualHeight < 840, $"the window is {window.ActualHeight:0} high");
+            var root = (FrameworkElement)VisualTreeHelper.GetChild(window, 0);
+            root.Measure(new Size(1260, 840));
+            root.Arrange(new Rect(0, 0, 1260, 840));
+            var pages = ((FrameworkElement)list.Content).DesiredSize.Height;
             var lastPage = Bottom((FrameworkElement)window.FindName("NavWrapped"));
             var footEnd = Bottom((FrameworkElement)foot.Children[foot.Children.Count - 1]);
-            Assert.True(list.ExtentHeight <= list.ViewportHeight && lastPage <= Top("OverlayCard") && footEnd <= sidebar.ActualHeight,
-                $"The pages need {list.ExtentHeight:0} of {list.ViewportHeight:0}; Recap ends at {lastPage:0}, the overlay card starts at {Top("OverlayCard"):0}, "
+            Assert.True(sidebar.ActualHeight >= 800, $"the sidebar is {sidebar.ActualHeight:0} high");
+            Assert.True(pages <= list.ActualHeight && lastPage <= Top("OverlayCard") && footEnd <= sidebar.ActualHeight,
+                $"The pages need {pages:0} of {list.ActualHeight:0}; Recap ends at {lastPage:0}, the overlay card starts at {Top("OverlayCard"):0}, "
                 + $"the foot ends at {footEnd:0} of {sidebar.ActualHeight:0} ({language}).");
-
             // The shortest window: the pages scroll, the foot stays whole; Recap opened from the keyboard comes into view.
             window.Height = window.MinHeight;
             Pump();
