@@ -102,7 +102,7 @@ public sealed class ArtMotionTests
                 }
 
                 source.RemoveValueChanged(row, Give);
-                row.Dispatcher.BeginInvoke(
+                _ = row.Dispatcher.BeginInvoke(
                     DispatcherPriority.Send,
                     () =>
                     {
