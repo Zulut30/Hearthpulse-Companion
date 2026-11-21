@@ -288,17 +288,19 @@ try {
         }
 
         $filter = if ($Timing) { @() } else { @('--filter', 'Category!=Timing') }
-        dotnet test $sln --no-build -c Release @filter --nologo -v q --logger 'trx;LogFileName=bgsim.trx' --results-directory $results -- xUnit.MaxParallelThreads=2 | Out-Host
+        # One .trx per test project (BGSim.Tests, BGSim.Server.Tests): a fixed LogFileName would keep only the last one.
+        dotnet test $sln --no-build -c Release @filter --nologo -v q --logger trx --results-directory $results -- xUnit.MaxParallelThreads=2 | Out-Host
         $testCode = $LASTEXITCODE
     } finally {
         if ($ownsGate) { $gate.ReleaseMutex() }
         $gate.Dispose()
     }
-    $trx = Get-ChildItem -LiteralPath $results -Filter *.trx -Recurse | Select-Object -First 1
-    if ($trx) {
-        $c = ([xml](Get-Content -Raw -LiteralPath $trx.FullName)).TestRun.ResultSummary.Counters
-        $which = if ($Timing) { 'all' } else { 'Category!=Timing' }
-        Write-Host ("BGSim tests [{0}]: {1} passed, {2} failed, {3} not run, {4} total" -f $which, $c.passed, $c.failed, $c.notExecuted, $c.total)
+    $which = if ($Timing) { 'all' } else { 'Category!=Timing' }
+    foreach ($trx in @(Get-ChildItem -LiteralPath $results -Filter *.trx -Recurse -ErrorAction SilentlyContinue | Sort-Object Name)) {
+        $run = ([xml](Get-Content -Raw -LiteralPath $trx.FullName)).TestRun
+        $c = $run.ResultSummary.Counters
+        $project = [IO.Path]::GetFileNameWithoutExtension(@($run.TestDefinitions.UnitTest)[0].TestMethod.codeBase)
+        Write-Host ("BGSim tests [{0}] {1}: {2} passed, {3} failed, {4} not run, {5} total" -f $which, $project, $c.passed, $c.failed, $c.notExecuted, $c.total)
     }
     if ($testCode) { Write-Host "BGSim tests fail; nothing committed. Checkout: $Target" -ForegroundColor Red; exit 1 }
 
