@@ -25,6 +25,87 @@ namespace Hearthpulse.Bench;
 
 internal static partial class WpfBench
 {
+    private static bool LoadLibrary(MainViewModel vm)
+    {
+        var collection = new Core.Collection.CollectionStore(AppPaths.Collection).Load();
+        var cosmetics = new Core.Collection.CosmeticsStore(AppPaths.Cosmetics).Load();
+        var achievements = new Core.Progression.AchievementsStore(AppPaths.Achievements).Load();
+        Console.WriteLine($"[library] {collection?.Cards.Count ?? 0} cards, {cosmetics?.CardBacks.Count ?? 0} backs, {cosmetics?.Coins.Count ?? 0} coins, {achievements?.Achievements.Count ?? 0} achievements");
+        vm.SetCollection(collection);
+        vm.SetCosmetics(cosmetics);
+        vm.SetAchievements(achievements);
+        return collection is not null;
+    }
+
+    private static void VisitLibrary(MainWindow main, MainViewModel vm, bool hasCollection, Action<string, Action> time)
+    {
+        void WaitFor(Func<bool> ready)
+        {
+            var watch = Stopwatch.StartNew();
+            while (!ready())
+            {
+                if (watch.Elapsed > TimeSpan.FromSeconds(30))
+                {
+                    throw new TimeoutException("The library page did not finish loading.");
+                }
+
+                Pump(DispatcherPriority.Background);
+            }
+        }
+
+        time("Collection/Sets/Standard", () =>
+        {
+            main.ShowPage("Collection");
+            vm.ShowCollectionTab("Sets");
+            vm.ShowCollectionFilter("Standard");
+            WaitFor(() => !hasCollection || vm.CollectionFilterShown);
+        });
+        foreach (var filter in new[] { "Wild", "All" })
+        {
+            time($"Collection/Sets/{filter}", () => vm.ShowCollectionFilter(filter));
+        }
+
+        foreach (var tab in new[] { "Skins", "Coins", "Backs" })
+        {
+            time($"Collection/{tab}", () => vm.ShowCollectionTab(tab));
+        }
+
+        time("Achievements/open", () =>
+        {
+            main.ShowPage("Achievements");
+            WaitFor(() => !vm.HasAchievementBook || vm.AchievementsShown);
+        });
+        main.PageAchievements.ShowBrowse();
+        Pump();
+        foreach (var category in vm.AchievementCategories.Where(c => !c.Selected).Take(2))
+        {
+            time($"Achievements/category/{category.Key}", () => vm.ShowAchievementCategory.Execute(category.Key));
+            foreach (var sub in vm.AchievementSubcategories.Where(s => !s.IsSelected).Take(2))
+            {
+                time($"Achievements/sub/{sub.Key}", () => vm.ShowAchievementSubcategory.Execute(sub.Key));
+            }
+        }
+
+        time("Wrapped/Month", () =>
+        {
+            main.ShowPage("Wrapped");
+            vm.SetWrappedSpan.Execute("Month");
+            WaitFor(() => !vm.WrappedComputing);
+        });
+        time("Wrapped/Year", () =>
+        {
+            vm.SetWrappedSpan.Execute("Year");
+            WaitFor(() => !vm.WrappedComputing);
+        });
+        main.ShowPage("Settings");
+        main.ShowSettingsTab("General");
+        Pump();
+        foreach (var tab in new[] { "Appearance", "Stream" })
+        {
+            time($"Settings/{tab}", () => main.ShowSettingsTab(tab));
+        }
+    }
+
     /// <summary>
     /// How long each page, Settings tab and Battlegrounds/Constructed tab takes to open the first time and again (until
     /// the dispatcher is idle), with the bytes allocated, then a deck page and a match page. Same data as <see cref="Ram"/>.
@@ -35,13 +116,14 @@ internal static partial class WpfBench
         var (app, settings) = NewApplication();
         using var http = Http();
         var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
+        var libraryOnly = Environment.GetEnvironmentVariable("HP_BENCH_LIBRARY_ONLY") == "1";
         var api = new HearthpulseApi(http);
-        var bgMeta = BattlegroundsMeta.LoadAsync(new HearthpulseData(api)).GetAwaiter().GetResult();
+        var bgMeta = libraryOnly ? null : BattlegroundsMeta.LoadAsync(new HearthpulseData(api)).GetAwaiter().GetResult();
         // The tier tabs' lists, from the data folder's cache while it is fresh (the site's service otherwise).
         using var siteHttp = Hearthpulse.Core.Battlegrounds.Site.BgSiteClient.CreateHttp();
-        var bgSite = new Hearthpulse.Core.Battlegrounds.Site.BgSiteClient(siteHttp).LoadAsync().GetAwaiter().GetResult();
+        var bgSite = libraryOnly ? null : new Hearthpulse.Core.Battlegrounds.Site.BgSiteClient(siteHttp).LoadAsync().GetAwaiter().GetResult();
         Console.WriteLine($"[pages] site lists: heroes {bgSite?.Heroes?.Entries.Count ?? 0}, duos {bgSite?.HeroesDuos?.Entries.Count ?? 0}, minions {bgSite?.Minions?.Entries.Count ?? 0}, trinkets {bgSite?.Trinkets?.Entries.Count ?? 0}, comps {bgSite?.Comps.Count ?? 0}");
-        var ctMeta = ConstructedMeta.LoadAsync(new HearthpulseData(api), cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, cards.Locale).GetAwaiter().GetResult();
+        var ctMeta = libraryOnly ? null : ConstructedMeta.LoadAsync(new HearthpulseData(api), cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, cards.Locale).GetAwaiter().GetResult();
         var history = new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-bench-ram-{n}.db"));
         if (history.GameCount() < n)
         {
@@ -57,9 +139,16 @@ internal static partial class WpfBench
         main.Show();
         Pump();
         vm.SetCards(cards);
-        vm.SetMeta(bgMeta);
+        var hasCollection = LoadLibrary(vm) && cards.Count > 0;
+        if (bgMeta is not null)
+        {
+            vm.SetMeta(bgMeta);
+        }
         vm.SetBgSiteStats(bgSite);
-        vm.SetConstructedMeta(ctMeta);
+        if (ctMeta is not null)
+        {
+            vm.SetConstructedMeta(ctMeta);
+        }
         var refresh = vm.RefreshAsync();
         while (!refresh.IsCompleted)
         {
@@ -123,6 +212,14 @@ internal static partial class WpfBench
             }
 
             SettleArt(what);
+        }
+
+        if (libraryOnly)
+        {
+            VisitLibrary(main, vm, hasCollection, Time);
+            settings.SettingsTab = savedTab;
+            Close(main, settings);
+            return;
         }
 
         foreach (var round in new[] { "first", "again" })
@@ -255,6 +352,7 @@ internal static partial class WpfBench
             Time("back to History", () => vm.GoBack(main.CurrentPage));
         }
 
+        VisitLibrary(main, vm, hasCollection, Time);
         settings.SettingsTab = savedTab;
         Close(main, settings);
         GC.KeepAlive(app);

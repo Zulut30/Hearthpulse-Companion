@@ -51,6 +51,8 @@ internal static class Program
                     then the same fights warm (one process per measurement; HP_BENCH_WARMUP=1: the warm-up first)
           simmatrix combat simulator coverage matrix of the current pool (six statuses) -> docs/bg-sim-matrix.md
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
+          theme     warm WPF theme switches Shadow -> Frost -> Tavern -> Shadow (--rounds n)
+          (HP_BENCH_REDUCE_MOTION=1 disables WPF motion; HP_BENCH_LIBRARY_ONLY=1 limits pages to library and settings)
           art       decode the cached portraits and deck tiles at once (--games caps the count): time, allocations, GCs
           idle      the overlay window with no Hearthstone window: CPU time over 20 s (run with Hearthstone closed)
           rest      the main window at rest with the overlay and the log watcher: shown, in the tray, let go; CPU,
@@ -152,6 +154,9 @@ internal static class Program
                 break;
             case "pages":
                 WpfBench.Pages(options);
+                break;
+            case "theme":
+                WpfBench.Theme(options);
                 break;
             case "art":
                 WpfBench.Art(options);
