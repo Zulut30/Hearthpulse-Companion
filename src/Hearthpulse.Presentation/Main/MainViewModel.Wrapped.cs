@@ -296,10 +296,27 @@ public sealed partial class MainViewModel
             return;
         }
 
-        Recap = report.IsEmpty ? null : RecapOf(report, _achievementBook is not null);
+        var next = report.IsEmpty ? null : RecapOf(report, _achievementBook is not null);
+        if (next is not null && Recap is { } previous)
+        {
+            next = next with
+            {
+                Achievements = KeepEqual(previous.Achievements, next.Achievements),
+                Favourites = KeepEqual(previous.Favourites, next.Favourites),
+                Days = KeepEqual(previous.Days, next.Days),
+                HoursOfDay = KeepEqual(previous.HoursOfDay, next.HoursOfDay),
+                Modes = KeepEqual(previous.Modes, next.Modes),
+                Battlegrounds = KeepEqual(previous.Battlegrounds, next.Battlegrounds),
+            };
+        }
+
+        Recap = next;
         RaiseWrappedSpan();
         RaiseWrappedState();
     }
+
+    private static IReadOnlyList<T> KeepEqual<T>(IReadOnlyList<T> previous, IReadOnlyList<T> next) =>
+        previous.Count == next.Count && previous.SequenceEqual(next) ? previous : next;
 
     /// <summary>The recap of a report: hero numbers, favourites, modes, days and hours, Battlegrounds, achievements.</summary>
     internal RecapView RecapOf(WrappedReport report, bool hasBook)
@@ -551,7 +568,9 @@ public sealed partial class MainViewModel
             }
 
             var current = WrappedPeriod.Of(span, today);
-            return Wrapped.Build(games, current, book).IsEmpty && Latest(games, book?.RecentlyCompleted(1)) is { } last
+            var hasCurrent = games.Any(g => !g.IsAbandoned && current.Contains(LocalStart(g)))
+                || book?.CompletedBetween(current.From.ToUniversalTime(), current.To.ToUniversalTime()).Count > 0;
+            return !hasCurrent && Latest(games, book?.RecentlyCompleted(1)) is { } last
                 ? WrappedPeriod.Of(span, last)
                 : current;
         }
