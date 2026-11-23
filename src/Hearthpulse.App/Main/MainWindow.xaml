@@ -27,6 +27,28 @@
             <ResourceDictionary Source="Logo.xaml" />
             <ResourceDictionary Source="MainPages.xaml" />
         </ResourceDictionary.MergedDictionaries>
+
+        <!-- The Arena and Tavern Brawl pages' content, built on their first visit (MainWindow.Pages.cs) -->
+        <DataTemplate x:Key="ArenaPageContent">
+            <StackPanel Margin="40,0,40,120">
+                <StackPanel Orientation="Horizontal">
+                    <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Arena}" />
+                    <TextBlock Text="{i:Loc Main.Mode.Arena}" Style="{StaticResource PageTitle}" />
+                </StackPanel>
+                <c:Wave Style="{StaticResource PageRule}" />
+                <s:ArenaStatsView />
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="BrawlPageContent">
+            <StackPanel Margin="40,0,40,120">
+                <StackPanel Orientation="Horizontal">
+                    <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Brawl}" />
+                    <TextBlock Text="{i:Loc Main.Mode.Brawl}" Style="{StaticResource PageTitle}" />
+                </StackPanel>
+                <c:Wave Style="{StaticResource PageRule}" />
+                <s:BrawlView />
+            </StackPanel>
+        </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -410,28 +432,12 @@
                     <ScrollViewer x:Name="PageCard" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
 
                     <!-- ===== Arena ===== -->
-                    <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                        <StackPanel Margin="40,0,40,120">
-                            <StackPanel Orientation="Horizontal">
-                                <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Arena}" />
-                                <TextBlock Text="{i:Loc Main.Mode.Arena}" Style="{StaticResource PageTitle}" />
-                            </StackPanel>
-                            <c:Wave Style="{StaticResource PageRule}" />
-                            <s:ArenaStatsView />
-                        </StackPanel>
-                    </ScrollViewer>
+                    <!-- Its content (ArenaPageContent) is built on the first visit (MainWindow.Pages.cs). -->
+                    <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
 
                     <!-- ===== Tavern Brawl ===== -->
-                    <ScrollViewer x:Name="PageBrawl" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                        <StackPanel Margin="40,0,40,120">
-                            <StackPanel Orientation="Horizontal">
-                                <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Brawl}" />
-                                <TextBlock Text="{i:Loc Main.Mode.Brawl}" Style="{StaticResource PageTitle}" />
-                            </StackPanel>
-                            <c:Wave Style="{StaticResource PageRule}" />
-                            <s:BrawlView />
-                        </StackPanel>
-                    </ScrollViewer>
+                    <!-- Its content (BrawlPageContent) is built on the first visit. -->
+                    <ScrollViewer x:Name="PageBrawl" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
 
                     <!-- ===== History ===== -->
                     <ContentControl x:Name="SlotHistory" Grid.Row="1" Focusable="False" IsTabStop="False" />
@@ -448,61 +454,12 @@
                     </ScrollViewer>
 
                     <!-- ===== Settings: tabs General / Appearance / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
-                    <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                        <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left" ToggleButton.Checked="OnSettingChanged" ToggleButton.Unchecked="OnSettingChanged">
-                            <StackPanel Orientation="Horizontal">
-                                <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Settings}" />
-                                <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource PageTitle}" />
-                            </StackPanel>
-                            <c:Wave Style="{StaticResource PageRule}" />
-
-                            <!-- Search over every tab; while a query is typed its matches replace the tabs -->
-                            <st:SettingsSearchBox x:Name="SettingsSearchBar" />
-
-                            <StackPanel x:Name="SettingsTabsArea" i:Motion.RevealOnShow="True" Visibility="{Binding SettingsSearching, Converter={StaticResource Vis}, ConverterParameter=!}">
-                            <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,20">
-                                <WrapPanel>
-                                    <RadioButton x:Name="SettingsTabGeneral" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.General}" GroupName="SettingsTab" Tag="General" IsChecked="True" Checked="OnSettingsTab" />
-                                    <RadioButton x:Name="SettingsTabAppearance" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Appearance}" GroupName="SettingsTab" Tag="Appearance" Checked="OnSettingsTab" />
-                                    <RadioButton x:Name="SettingsTabOverlay" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Overlay}" GroupName="SettingsTab" Tag="Overlay" Checked="OnSettingsTab" />
-                                    <RadioButton x:Name="SettingsTabTracker" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Tracker}" GroupName="SettingsTab" Tag="Tracker" Checked="OnSettingsTab" />
-                                    <RadioButton x:Name="SettingsTabStream" Style="{StaticResource Tab}" Content="{i:Loc Stream.Tab}" GroupName="SettingsTab" Tag="Stream" Checked="OnSettingsTab" />
-                                    <RadioButton x:Name="SettingsTabAccount" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Account}" GroupName="SettingsTab" Tag="Account" Checked="OnSettingsTab" />
-                                    <RadioButton x:Name="SettingsTabData" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Data}" GroupName="SettingsTab" Tag="Data" Checked="OnSettingsTab" />
-                                    <RadioButton x:Name="SettingsTabAbout" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.About}" GroupName="SettingsTab" Tag="About" Checked="OnSettingsTab" />
-                                </WrapPanel>
-                            </Border>
-
-                            <!-- ===== General: language, app ===== -->
-                            <st:GeneralSettings x:Name="SettingsGeneral" i:Motion.RevealOnShow="True" />
-
-                            <!-- ===== Appearance: theme gallery, accent, page background, corners, density, size ===== -->
-                            <st:AppearanceSettings x:Name="SettingsAppearance" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-                            <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->
-                            <st:OverlaySettings x:Name="SettingsOverlay" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-                            <!-- ===== Tracker: the Constructed deck tracker, counters and mulligan ===== -->
-                            <st:TrackerSettings x:Name="SettingsTracker" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-                            <!-- ===== Stream: streamer mode and the OBS windows ===== -->
-                            <st:StreamSettings x:Name="SettingsStream" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-                            <!-- ===== Account: the hearthpulse.net sign-in ===== -->
-                            <st:AccountSettings x:Name="SettingsAccount" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-                            <!-- ===== Data: history, the data folder, where the numbers come from ===== -->
-                            <st:DataSettings x:Name="SettingsData" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-                            <!-- ===== About: version, updates, licences ===== -->
-                            <st:AboutSettings x:Name="SettingsAbout" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-                            </StackPanel>
-
-                        </StackPanel>
-                    </ScrollViewer>
+                    <!-- Its content (Pages/SettingsPage: tabs and search) is built on the first visit (MainWindow.SettingsView). -->
+                    <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" />
 
                     <!-- ===== Setup wizard (D4): over the whole page and the live bar while open; it opens by itself once for a new player ===== -->
-                    <su:SetupWizard x:Name="Setup" Grid.RowSpan="2" Panel.ZIndex="10" Visibility="{Binding SetupOpen, Converter={StaticResource Vis}}" />
+                    <!-- Built when it first opens (MainWindow.Pages.cs) -->
+                    <ContentControl x:Name="SlotSetup" Grid.RowSpan="2" Panel.ZIndex="10" Focusable="False" IsTabStop="False" />
 
                 </Grid>
             </Border>

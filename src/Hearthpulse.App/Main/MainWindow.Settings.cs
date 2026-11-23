@@ -14,13 +14,16 @@ public partial class MainWindow
 {
     private bool _syncingSettings;
 
-    /// <summary>Shows a Settings tab by its tag ("General", "Appearance", "Overlay", "Tracker", "Stream", "Account", "Data", "About"); unknown names show General.</summary>
+    /// <summary>
+    /// Shows a Settings tab by its tag ("General", "Appearance", "Overlay", "Tracker", "Stream", "Account", "Data", "About");
+    /// unknown names show General. The page is built if it was not yet.
+    /// </summary>
     public void ShowSettingsTab(string tab)
     {
-        var radio = new[] { SettingsTabAppearance, SettingsTabOverlay, SettingsTabTracker, SettingsTabStream, SettingsTabAccount, SettingsTabData, SettingsTabAbout }
-            .FirstOrDefault(r => (string)r.Tag == tab) ?? SettingsTabGeneral;
+        var buttons = SettingsView.TabButtons;
+        var radio = buttons.Skip(1).FirstOrDefault(r => (string)r.Tag == tab) ?? buttons[0];
         radio.IsChecked = true;
-        UpdateSettingsTab(radio);
+        UpdateSettingsTab();
     }
 
     /// <summary>
@@ -31,12 +34,18 @@ public partial class MainWindow
     public void SyncOverlaySwitch()
     {
         OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
+        if (_settingsView is not { } page)
+        {
+            // Not built yet: its switches read the settings when it is.
+            return;
+        }
+
         var syncing = _syncingSettings;
         _syncingSettings = true;
         try
         {
-            BindingOperations.GetBindingExpression(SettingsOverlay.OverlaySetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
-            BindingOperations.GetBindingExpression(SettingsOverlay.PanelLockSetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
+            BindingOperations.GetBindingExpression(page.SettingsOverlay.OverlaySetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
+            BindingOperations.GetBindingExpression(page.SettingsOverlay.PanelLockSetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
         }
         finally
         {
@@ -51,32 +60,24 @@ public partial class MainWindow
         SettingsChanged?.Invoke();
     }
 
-    private void OnSettingsTab(object sender, RoutedEventArgs e)
+    /// <summary>The checked tab button shows its tab and is kept in the settings.</summary>
+    private void UpdateSettingsTab()
     {
-        // A tab is not a setting: stop Checked here so the page's OnSettingChanged does not re-apply every setting. The
-        // tab is saved with the next change or on exit.
-        e.Handled = true;
-        UpdateSettingsTab(sender);
-    }
-
-    private void UpdateSettingsTab(object sender)
-    {
-        // Checked fires while InitializeComponent is still building the page.
-        if (SettingsAbout is null || _viewModel is null || sender is not RadioButton { Tag: string tab })
+        if (_settingsView is not { } page || page.TabButtons.FirstOrDefault(r => r.IsChecked == true) is not { Tag: string tab })
         {
             return;
         }
 
         _viewModel.Settings.SettingsTab = tab;
-        SettingsGeneral.Visibility = SettingsTabGeneral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsAppearance.Visibility = SettingsTabAppearance.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsOverlay.Visibility = SettingsTabOverlay.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsTracker.Visibility = SettingsTabTracker.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsStream.Visibility = SettingsTabStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsAccount.Visibility = SettingsTabAccount.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsData.Visibility = SettingsTabData.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SettingsAbout.Visibility = SettingsTabAbout.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        if (SettingsTabData.IsChecked == true)
+        page.SettingsGeneral.Visibility = page.SettingsTabGeneral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        page.SettingsAppearance.Visibility = page.SettingsTabAppearance.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        page.SettingsOverlay.Visibility = page.SettingsTabOverlay.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        page.SettingsTracker.Visibility = page.SettingsTabTracker.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        page.SettingsStream.Visibility = page.SettingsTabStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        page.SettingsAccount.Visibility = page.SettingsTabAccount.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        page.SettingsData.Visibility = page.SettingsTabData.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        page.SettingsAbout.Visibility = page.SettingsTabAbout.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (page.SettingsTabData.IsChecked == true)
         {
             // The search for HDT / Firestone data, when the start did not run it (the home card was answered).
             _viewModel.Migration.EnsureScanned();
@@ -89,7 +90,7 @@ public partial class MainWindow
         // binding before it is loaded (the Tracker tab's counter rows raised 95 Checked at once, each re-applying and
         // saving every setting), and the tab buttons' Unchecked is not a setting either.
         if (IsLoaded && !_syncingSettings && e.OriginalSource is FrameworkElement { IsLoaded: true } source
-                     && (source as RadioButton)?.GroupName != SettingsTabGeneral.GroupName)
+                     && (source as RadioButton)?.GroupName != SettingsView.SettingsTabGeneral.GroupName)
         {
             Loc.Instance.SetLanguage(_viewModel.Settings.InterfaceLanguage());
             SyncOverlaySwitch();

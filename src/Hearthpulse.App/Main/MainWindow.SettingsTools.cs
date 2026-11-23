@@ -34,8 +34,7 @@ public partial class MainWindow
         viewModel.SettingsIndex = IndexSettings;
         viewModel.SettingJumpRequested += JumpToSetting;
         viewModel.SettingsReplaced += OnSettingsReplaced;
-        SettingsData.ExportSettingsClicked += OnExportSettings;
-        SettingsData.ImportSettingsClicked += OnImportSettings;
+        // The Data tab's export and import are wired when the page is built (MainWindow.BuildSettings).
         PageSettings.PreviewKeyDown += OnSettingsKey;
     }
 
@@ -104,12 +103,16 @@ public partial class MainWindow
         return false;
     }
 
-    private IEnumerable<(RadioButton Radio, FrameworkElement Tab)> SettingsTabs() =>
-    [
-        (SettingsTabGeneral, SettingsGeneral), (SettingsTabAppearance, SettingsAppearance), (SettingsTabOverlay, SettingsOverlay),
-        (SettingsTabTracker, SettingsTracker), (SettingsTabStream, SettingsStream), (SettingsTabAccount, SettingsAccount),
-        (SettingsTabData, SettingsData), (SettingsTabAbout, SettingsAbout),
-    ];
+    private IEnumerable<(RadioButton Radio, FrameworkElement Tab)> SettingsTabs()
+    {
+        var page = SettingsView;
+        return
+        [
+            (page.SettingsTabGeneral, page.SettingsGeneral), (page.SettingsTabAppearance, page.SettingsAppearance), (page.SettingsTabOverlay, page.SettingsOverlay),
+            (page.SettingsTabTracker, page.SettingsTracker), (page.SettingsTabStream, page.SettingsStream), (page.SettingsTabAccount, page.SettingsAccount),
+            (page.SettingsTabData, page.SettingsData), (page.SettingsTabAbout, page.SettingsAbout),
+        ];
+    }
 
     /// <summary>A setting's name beside its slider or choice (SettingLabel), or a group heading inside a card (SettingGroup).</summary>
     private static bool IsRowLabel(TextBlock block) =>
