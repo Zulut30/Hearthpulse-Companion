@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Hearthpulse.Core;
 
 namespace Hearthpulse.Tests;
@@ -8,6 +10,115 @@ public sealed class AppSettingsTests : IDisposable
     private string FilePath => Path.Combine(_directory, "settings.json");
 
     public void Dispose() => Directory.Delete(_directory, recursive: true);
+
+    private static readonly JsonSerializerOptions ReflectionJson = new()
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
+    [Theory]
+    [InlineData(PickHints.Off)]
+    [InlineData(PickHints.StatsOnly)]
+    [InlineData(PickHints.Highlight)]
+    public void Settings_file_round_trips_the_reflection_format(PickHints hints)
+    {
+        var at = new DateTime(2025, 11, 1, 12, 34, 56, DateTimeKind.Utc);
+        var settings = new AppSettings
+        {
+            PickHints = hints,
+            Locale = "ruRU",
+            Language = "ru",
+            SettingsTab = "Stream",
+            OverlayScale = 1.2,
+            OverlayOpacity = 0.8,
+            CardPoolBrowserWidth = AppSettings.MinCardPoolBrowserWidth,
+            LadderSessionBreakHours = 3,
+            TwitchDelaySeconds = 3,
+            MetaFormat = "wild",
+            MetaRank = "legend",
+            MulliganRank = "diamond",
+            MetaPeriod = "past_month",
+            StreamWindowBackground = StreamBackgrounds.Green,
+            LeaderboardTop = 0.3,
+            LeaderboardSlotHeight = 0.08,
+            LeaderboardWidth = 0.2,
+            TimestampLeadInSeconds = 4,
+            Theme = "Shadow",
+            ThemeAccentHue = 100,
+            ThemeBaseHue = 90,
+            ThemeBaseTint = 0.5,
+            ThemeAccent = "Amber",
+            BackgroundHero = "HERO_01",
+            BackgroundIntensity = 0.5,
+            CornerStyle = ThemeLook.Sharp,
+            Density = ThemeLook.Compact,
+            InterfaceScale = 1.1,
+            ClientLocale = "deDE",
+            HearthstonePath = "game",
+            CompFocus = "MURLOC",
+            HdtFolder = "migration",
+            LastMigration = new() { At = at, Added = 1, Already = 2, Skipped = 3, Decks = 4, Replays = 5 },
+            StreamSessionStart = at,
+            PoolConsent = true,
+            PoolEndpoint = "https://example.invalid",
+            PoolSecret = "fixture",
+            CounterModes = { ["test"] = "off" },
+            Panels = { ["deck"] = new() { X = 0.25, Y = 0.75, Scale = 1.2 } },
+            PanelLooks = { ["deck"] = new() { Compact = true, Opacity = 0.75 } },
+            StreamWindows = { ["session"] = new() { X = -20, Y = 30, Width = 400, Height = 500 } },
+            TrackedAchievements = [12, 7],
+            LeaderboardGeometryVersion = 2,
+        };
+
+        // Exercise each persisted switch with a value its constructor would not restore by default.
+        foreach (var property in typeof(AppSettings).GetProperties())
+        {
+            if (property.PropertyType == typeof(bool) && property.CanWrite && !property.IsDefined(typeof(JsonIgnoreAttribute), false))
+            {
+                property.SetValue(settings, !((bool)property.GetValue(settings)!));
+            }
+        }
+
+        var expected = JsonSerializer.Serialize(settings, ReflectionJson);
+        Assert.Equal(expected, settings.ToJson());
+        File.WriteAllText(FilePath, expected);
+        var loaded = AppSettings.Load(FilePath);
+        Assert.Equal(expected, JsonSerializer.Serialize(loaded, ReflectionJson));
+        Assert.Equal(expected, loaded.ToJson());
+    }
+
+    [Theory]
+    [InlineData("1")]
+    [InlineData("\"stAtsoNLy\"")]
+    public void Generated_reader_preserves_enum_forms_and_last_duplicate_property(string hints)
+    {
+        var json = $$$"""
+            {"PickHints":{{{hints}}},"PanelLooks":{"deck":{"Compact":true}},"PanelLooks":{},
+             "SettingsTab":"Tracker","SettingsTab":"Data","LeaderboardGeometryVersion":2,
+             "ClientLocale":{"ignored":true},"unknown":[1,{"nested":true}]}
+            """;
+        var reference = JsonSerializer.Deserialize<AppSettings>(json, ReflectionJson);
+        Assert.Equal(JsonSerializer.Serialize(reference, ReflectionJson), AppSettings.FromJson(json).ToJson());
+    }
+
+    [Fact]
+    public void Older_file_is_normalized_and_migrated_before_saving_in_the_reflection_format()
+    {
+        File.WriteAllText(FilePath, """
+            {"ShowHeroPick":false,"Locale":null,"LeaderboardGeometryVersion":0,
+             "Panels":{"deck":{"X":-1,"Y":0.75,"Scale":1},"mulligan-strip":{"Scale":1}}}
+            """);
+        var loaded = AppSettings.Load(FilePath);
+        Assert.Equal("auto", loaded.Locale);
+        Assert.Equal(PickHints.Off, loaded.PickHints);
+        Assert.Null(loaded.ShowHeroPick);
+        Assert.Equal(2, loaded.LeaderboardGeometryVersion);
+        Assert.Equal(0, Assert.Single(loaded.Panels).Value.X);
+        var expected = JsonSerializer.Serialize(loaded, ReflectionJson);
+        loaded.Save(FilePath);
+        Assert.Equal(expected, File.ReadAllText(FilePath));
+    }
 
     [Fact]
     public void Null_collections_and_required_strings_recover_without_losing_other_settings()

@@ -1,6 +1,6 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Hearthpulse.Core;
 
@@ -29,7 +29,7 @@ public enum CompMode
 
 public sealed partial class AppSettings
 {
-    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
+    private static JsonTypeInfo<AppSettings> Json => AppSettingsJsonContext.Default.AppSettings;
     private string? _unpreservedFile;
 
     /// <summary>
@@ -405,7 +405,7 @@ public sealed partial class AppSettings
     /// <summary>Reads settings saved by this or an older version and brings them up to date.</summary>
     public static AppSettings FromJson(string json)
     {
-        var settings = JsonSerializer.Deserialize<AppSettings>(json, Json) ?? new AppSettings();
+        var settings = AppSettingsJsonContext.Read(json) ?? new AppSettings();
         settings.Normalize();
         settings.Migrate();
         return settings;
@@ -433,54 +433,14 @@ public sealed partial class AppSettings
         MulliganRank = DefaultIfBlank(MulliganRank, "legend");
         MetaPeriod = DefaultIfBlank(MetaPeriod, "past_week");
         Theme = DefaultIfBlank(Theme, "Tavern");
-        CounterModes ??= new(StringComparer.Ordinal);
-        foreach (var key in CounterModes.Where(p => p.Value is null).Select(p => p.Key).ToArray())
-        {
-            CounterModes.Remove(key);
-        }
-
-        Panels ??= new(StringComparer.Ordinal);
-        foreach (var (key, panel) in Panels.ToArray())
-        {
-            if (panel is null || !double.IsFinite(panel.X) || !double.IsFinite(panel.Y) || !double.IsFinite(panel.Scale))
-            {
-                Panels.Remove(key);
-                continue;
-            }
-
-            panel.X = Math.Clamp(panel.X, 0, 1);
-            panel.Y = Math.Clamp(panel.Y, 0, 1);
-            panel.Scale = ClampScale(panel.Scale);
-        }
-
-        PanelLooks ??= new(StringComparer.Ordinal);
-        foreach (var (key, look) in PanelLooks.ToArray())
-        {
-            if (look is null || look.IsDefault)
-            {
-                PanelLooks.Remove(key);
-                continue;
-            }
-
-            look.Opacity = Bounded(look.Opacity, PanelLook.MinOpacity, 1, 1);
-        }
-
         if (!StreamBackgrounds.All.Contains(StreamWindowBackground, StringComparer.Ordinal)) StreamWindowBackground = StreamBackgrounds.Theme;
+        CounterModes ??= new(StringComparer.Ordinal);
+        Panels ??= new(StringComparer.Ordinal);
+        PanelLooks ??= new(StringComparer.Ordinal);
         StreamWindows ??= new(StringComparer.Ordinal);
-        foreach (var (key, window) in StreamWindows.ToArray())
+        if (CounterModes.Count != 0 || Panels.Count != 0 || PanelLooks.Count != 0 || StreamWindows.Count != 0)
         {
-            if (window is null || !double.IsFinite(window.X) || !double.IsFinite(window.Y) || !double.IsFinite(window.Width) || !double.IsFinite(window.Height)
-                || window.Width <= 0 || window.Height <= 0)
-            {
-                StreamWindows.Remove(key);
-                continue;
-            }
-
-            // Far outside any desktop is no place either: the window then opens at its default spot (StreamWindowLayout).
-            window.X = Math.Clamp(window.X, -StreamWindowPlacement.MaxCoordinate, StreamWindowPlacement.MaxCoordinate);
-            window.Y = Math.Clamp(window.Y, -StreamWindowPlacement.MaxCoordinate, StreamWindowPlacement.MaxCoordinate);
-            window.Width = Math.Min(window.Width, StreamWindowPlacement.MaxSize);
-            window.Height = Math.Min(window.Height, StreamWindowPlacement.MaxSize);
+            NormalizeOverrides();
         }
 
         if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
@@ -497,6 +457,55 @@ public sealed partial class AppSettings
         ThemeBaseTint = Bounded(ThemeBaseTint, 0, 1.5, 1);
         NormalizeAppearance();
         NormalizeGrowth();
+    }
+
+    // Dictionary.Remove preserves active enumerators on .NET. Repair entries in place.
+    private void NormalizeOverrides()
+    {
+        foreach (var (key, mode) in CounterModes)
+        {
+            if (mode is null) CounterModes.Remove(key);
+        }
+
+        foreach (var (key, panel) in Panels)
+        {
+            if (panel is null || !double.IsFinite(panel.X) || !double.IsFinite(panel.Y) || !double.IsFinite(panel.Scale))
+            {
+                Panels.Remove(key);
+                continue;
+            }
+
+            panel.X = Math.Clamp(panel.X, 0, 1);
+            panel.Y = Math.Clamp(panel.Y, 0, 1);
+            panel.Scale = ClampScale(panel.Scale);
+        }
+
+        foreach (var (key, look) in PanelLooks)
+        {
+            if (look is null || look.IsDefault)
+            {
+                PanelLooks.Remove(key);
+                continue;
+            }
+
+            look.Opacity = Bounded(look.Opacity, PanelLook.MinOpacity, 1, 1);
+        }
+
+        foreach (var (key, window) in StreamWindows)
+        {
+            if (window is null || !double.IsFinite(window.X) || !double.IsFinite(window.Y) || !double.IsFinite(window.Width) || !double.IsFinite(window.Height)
+                || window.Width <= 0 || window.Height <= 0)
+            {
+                StreamWindows.Remove(key);
+                continue;
+            }
+
+            // Far outside any desktop is no place either: the window then opens at its default spot (StreamWindowLayout).
+            window.X = Math.Clamp(window.X, -StreamWindowPlacement.MaxCoordinate, StreamWindowPlacement.MaxCoordinate);
+            window.Y = Math.Clamp(window.Y, -StreamWindowPlacement.MaxCoordinate, StreamWindowPlacement.MaxCoordinate);
+            window.Width = Math.Min(window.Width, StreamWindowPlacement.MaxSize);
+            window.Height = Math.Min(window.Height, StreamWindowPlacement.MaxSize);
+        }
     }
 
     private static string DefaultIfBlank(string? value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback : value;
