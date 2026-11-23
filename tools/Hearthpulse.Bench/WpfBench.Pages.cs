@@ -77,10 +77,10 @@ internal static partial class WpfBench
         });
         main.PageAchievements.ShowBrowse();
         Pump();
-        foreach (var category in vm.AchievementCategories.Where(c => !c.Selected).Take(2))
+        foreach (var category in vm.AchievementCategories.Where(c => !c.Selected).Take(2).ToArray())
         {
             time($"Achievements/category/{category.Key}", () => vm.ShowAchievementCategory.Execute(category.Key));
-            foreach (var sub in vm.AchievementSubcategories.Where(s => !s.IsSelected).Take(2))
+            foreach (var sub in vm.AchievementSubcategories.Where(s => !s.IsSelected).Take(2).ToArray())
             {
                 time($"Achievements/sub/{sub.Key}", () => vm.ShowAchievementSubcategory.Execute(sub.Key));
             }
