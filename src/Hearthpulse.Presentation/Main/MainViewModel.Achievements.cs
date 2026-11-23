@@ -43,7 +43,7 @@ public sealed partial class MainViewModel
     private IReadOnlyList<AchievementRow> _nearlyDoneRows = [];
     private IReadOnlyList<AchievementRecentRow> _recentAchievementRows = [];
     private IReadOnlyList<MetaChoice> _achievementCategories = [];
-    private IReadOnlyList<AchievementSubcategoryRow> _achievementSubcategories = [];
+    private SyncList<AchievementSubcategoryRow> _achievementSubcategories = [];
     private IReadOnlyList<object> _achievementBrowseRows = [];
     private int _trackedMissing;
     private RelayCommand? _toggleAchievementStar;
@@ -191,7 +191,7 @@ public sealed partial class MainViewModel
     public IReadOnlyList<MetaChoice> AchievementCategories { get => _achievementCategories; private set => Set(ref _achievementCategories, value); }
 
     /// <summary>The chosen category's subcategories, the chosen one marked.</summary>
-    public IReadOnlyList<AchievementSubcategoryRow> AchievementSubcategories { get => _achievementSubcategories; private set => Set(ref _achievementSubcategories, value); }
+    public IReadOnlyList<AchievementSubcategoryRow> AchievementSubcategories => _achievementSubcategories;
 
     /// <summary>The chosen subcategory's rows: a heading for each named section, then its chains (one height for all).</summary>
     public IReadOnlyList<object> AchievementBrowseRows { get => _achievementBrowseRows; private set => Set(ref _achievementBrowseRows, value); }
@@ -333,7 +333,7 @@ public sealed partial class MainViewModel
             NearlyDoneRows = [];
             RecentAchievementRows = [];
             AchievementCategories = [];
-            AchievementSubcategories = [];
+            _achievementSubcategories.Clear();
             AchievementBrowseRows = [];
             TrackedAchievementRows.Sync([]);
             _trackedMissing = 0;
@@ -415,7 +415,7 @@ public sealed partial class MainViewModel
 
         var opacity = AchievementsGraphicsOpacity;
         AchievementCategories = [.. categories.Select(c => new MetaChoice(c.Id.ToString(CultureInfo.InvariantCulture), c.Name, c.Id == _achievementCategory))];
-        AchievementSubcategories = [.. subcategories.Select(s =>
+        var choices = subcategories.Select(s =>
         {
             var (completed, total) = data.Counts.GetValueOrDefault(s.Id);
             return new AchievementSubcategoryRow(
@@ -427,7 +427,17 @@ public sealed partial class MainViewModel
                 Loc.F("Achievements.Browse.SubA11y", s.Name, completed, total),
                 Loc.F("Achievements.Browse.Chip", s.Name, completed, total),
                 opacity);
-        })];
+        }).ToList();
+        // A different category replaces the whole menu. Within one category only the two selection marks move.
+        if (choices.Count > 0 && (_achievementSubcategories.Count == 0 || _achievementSubcategories[0].Key != choices[0].Key))
+        {
+            _achievementSubcategories = new SyncList<AchievementSubcategoryRow>(choices);
+            Raise(nameof(AchievementSubcategories));
+        }
+        else
+        {
+            _achievementSubcategories.Sync(choices);
+        }
 
         var rows = new List<object>();
         if (data.BySubcategory.TryGetValue(_achievementSubcategory, out var chains))
