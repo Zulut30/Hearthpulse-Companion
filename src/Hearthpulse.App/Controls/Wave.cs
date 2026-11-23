@@ -44,21 +44,17 @@ public sealed class Wave : FrameworkElement
         }
 
         var cx = from + DiamondHalf + 0.5;
-        var gem = new StreamGeometry();
-        using (var ctx = gem.Open())
-        {
-            ctx.BeginFigure(new Point(cx, y - DiamondHalf), true, true);
-            ctx.LineTo(new Point(cx + DiamondHalf, y), false, false);
-            ctx.LineTo(new Point(cx, y + DiamondHalf), false, false);
-            ctx.LineTo(new Point(cx - DiamondHalf, y), false, false);
-        }
+        dc.DrawGeometry(diamond, null, Diamond(cx, y));
 
-        gem.Freeze();
-        dc.DrawGeometry(diamond, null, gem);
-
-        // A crisp 1 px line on the pixel grid, faded with an opacity mask so any brush works.
+        // A crisp 1 px line on the pixel grid, fading to the right.
         var start = cx + DiamondHalf + 3;
         var line = Math.Floor(y) + 0.5;
+        if (stroke is SolidColorBrush solid)
+        {
+            dc.DrawRectangle(LineFill(solid.Color, solid.Opacity), null, new Rect(start, line - 0.5, to - start, 1));
+            return;
+        }
+
         var fade = new LinearGradientBrush(Colors.Black, Color.FromArgb(0, 0, 0, 0), new Point(start, 0), new Point(to, 0))
         {
             MappingMode = BrushMappingMode.Absolute,
@@ -69,5 +65,49 @@ public sealed class Wave : FrameworkElement
         dc.PushOpacityMask(fade);
         dc.DrawLine(pen, new Point(start, line), new Point(to, line));
         dc.Pop();
+    }
+
+    // Ornaments also draw through the static Draw entry point. Keep the last shape and
+    // colour on the drawing thread, without retaining controls or theme resources.
+    [ThreadStatic]
+    private static (double X, double Y, Geometry? Shape) _diamond;
+
+    private static Geometry Diamond(double cx, double y)
+    {
+        if (_diamond.X == cx && _diamond.Y == y && _diamond.Shape is { } shape)
+        {
+            return shape;
+        }
+
+        var gem = new StreamGeometry();
+        using (var ctx = gem.Open())
+        {
+            ctx.BeginFigure(new Point(cx, y - DiamondHalf), true, true);
+            ctx.LineTo(new Point(cx + DiamondHalf, y), false, false);
+            ctx.LineTo(new Point(cx, y + DiamondHalf), false, false);
+            ctx.LineTo(new Point(cx - DiamondHalf, y), false, false);
+        }
+
+        gem.Freeze();
+        _diamond = (cx, y, gem);
+        return gem;
+    }
+
+    [ThreadStatic]
+    private static (Color Color, double Opacity, LinearGradientBrush? Brush) _line;
+
+    private static LinearGradientBrush LineFill(Color color, double opacity)
+    {
+        if (_line.Color == color && _line.Opacity == opacity && _line.Brush is { } cached)
+        {
+            return cached;
+        }
+
+        var clear = color;
+        clear.ScA = 0;
+        var brush = new LinearGradientBrush(color, clear, new Point(0, 0), new Point(1, 0)) { Opacity = opacity };
+        brush.Freeze();
+        _line = (color, opacity, brush);
+        return brush;
     }
 }

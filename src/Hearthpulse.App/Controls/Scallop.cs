@@ -46,9 +46,25 @@ public sealed class Scallop : FrameworkElement
         dc.DrawGeometry(Fill, null, Build(ActualWidth, ActualHeight, Math.Max(2, Lobes), Math.Clamp(Depth, 0, 0.45), Angle));
     }
 
+    [ThreadStatic]
+    private static Dictionary<(double Width, double Height, int Lobes, double Depth, double Angle), Geometry>? _outlines;
+
     /// <summary>Closed outline r(θ) = R·(1 − d·(1 − cos nθ)/2), sampled finely enough to look smooth.</summary>
     public static Geometry Build(double width, double height, int lobes, double depth, double angle)
     {
+        var outlines = _outlines ??= new();
+        var key = (width, height, lobes, depth, angle);
+        if (outlines.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        // Resizing can produce arbitrarily many distinct outlines.
+        if (outlines.Count >= 32)
+        {
+            outlines.Clear();
+        }
+
         var rx = width / 2;
         var ry = height / 2;
         var steps = lobes * 18;
@@ -73,6 +89,7 @@ public sealed class Scallop : FrameworkElement
         }
 
         geometry.Freeze();
+        outlines.Add(key, geometry);
         return geometry;
     }
 }

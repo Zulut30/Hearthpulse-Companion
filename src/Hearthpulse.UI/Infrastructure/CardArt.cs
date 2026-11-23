@@ -352,16 +352,17 @@ public static class CardArt
 
         try
         {
-            // LoadAsync already runs on the thread pool (GetAsync starts it with Task.Run): the file check that
-            // EnsureArtAsync makes is off the UI thread.
-            if (Http is { } http)
+            // GetAsync dispatches the cache miss to the pool, including the offline disk lookup.
+            var exists = File.Exists(file);
+            if (!exists && Http is { } http)
             {
                 // A page hero's splash has no fallback: without HearthstoneJSON's art the page keeps its stone (a Battlegrounds
                 // card picture from another source would not fit the backdrop).
                 await Files.EnsureArtAsync(http, url, file, kind is ArtKind.Card or ArtKind.Splash ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
+                exists = File.Exists(file);
             }
 
-            if (File.Exists(file))
+            if (exists)
             {
                 await Decodes.WaitAsync().ConfigureAwait(false);
                 try

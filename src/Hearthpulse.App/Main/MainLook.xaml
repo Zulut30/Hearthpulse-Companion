@@ -28,13 +28,8 @@
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
-    <!-- Stat tiles: a card lifted off the page (neutral black shadow, not themed); the edge warms on hover -->
+    <!-- Tile depth comes from the CardFill surface and CardEdge rim; the rim warms on hover. -->
     <Style x:Key="TileCard" TargetType="Border" BasedOn="{StaticResource Card}">
-        <Setter Property="Effect">
-            <Setter.Value>
-                <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="5" Direction="270" Opacity="0.3" />
-            </Setter.Value>
-        </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />

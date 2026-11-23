@@ -312,8 +312,8 @@ public static class CardArt
         }
 
         TrimPending();
-        var load = Pending.GetOrAdd(key, static (_, art) => LoadAsync(art.kind, art.cardId), (kind, cardId));
-        // A load that finished before it was added (no await on the way) removed its entry too early: drop it now, or
+        var load = Pending.GetOrAdd(key, static (_, art) => Task.Run(() => LoadAsync(art.kind, art.cardId)), (kind, cardId));
+        // A load that finished before it was added removed its entry too early: drop it now, or
         // the finished task keeps its image alive past the memory cache.
         if (load.IsCompleted)
         {
@@ -371,16 +371,17 @@ public static class CardArt
 
         try
         {
-            // LoadAsync starts on the caller's thread (the UI thread for a template's art): the disk is asked off it, so a
-            // list of 300 games does not wait on 300 file checks before its first frame.
-            if (Http is { } http && !await Task.Run(() => File.Exists(file)).ConfigureAwait(false))
+            // GetAsync dispatches the cache miss to the pool, including the offline disk lookup.
+            var exists = File.Exists(file);
+            if (!exists && Http is { } http)
             {
                 // A page hero's splash has no fallback: without HearthstoneJSON's art the page keeps its stone (a Battlegrounds
                 // card picture from another source would not fit the backdrop).
                 await Files.EnsureArtAsync(http, url, file, kind is ArtKind.Card or ArtKind.Splash ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
+                exists = File.Exists(file);
             }
 
-            if (File.Exists(file))
+            if (exists)
             {
                 // Decoding an image costs tens of milliseconds. It used to happen on the UI thread (the file was
                 // already on disk), so a burst of card art — the comp panel alone asks for dozens — froze the
@@ -423,7 +424,7 @@ public static class CardArt
         await Decodes.WaitAsync().ConfigureAwait(false);
         try
         {
-            return await Task.Run(() => Decode(file, kind)).ConfigureAwait(false);
+            return Decode(file, kind);
         }
         finally
         {
