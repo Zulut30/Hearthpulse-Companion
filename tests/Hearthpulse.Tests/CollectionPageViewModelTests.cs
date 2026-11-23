@@ -64,6 +64,7 @@ public sealed class CollectionPageViewModelTests
 
         // All: Classic too; its missing cards cannot be crafted, which the tile says in words.
         vm.CollectionFilterAll = true;
+        Assert.Same(titans, vm.CollectionSets.Single(s => s.Set == "TITANS"));
         var classic = vm.CollectionSets.Single(s => s.Set == "VANILLA");
         Assert.Equal(Loc.T("CollectionPage.Group.Classic"), classic.Group);
         Assert.True(classic.HasUncraftable);

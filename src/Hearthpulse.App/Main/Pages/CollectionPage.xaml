@@ -30,29 +30,29 @@
 
             <!-- A set's tile: name and percent, its bar, playable and unique counts, the dust line, rarities 2x2 -->
             <DataTemplate x:Key="CollectionSetTile" DataType="{x:Type m:CollectionSetView}">
-                <Border x:Name="Tile" Style="{DynamicResource TileCard}" Padding="16,12" Margin="0,0,12,12" AutomationProperties.Name="{Binding A11y}">
+                <Border x:Name="Tile" Style="{DynamicResource TileCard}" Padding="16,12" Margin="0,0,12,12" AutomationProperties.Name="{Binding A11y, Mode=OneTime}">
                     <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding Name}" Style="{StaticResource H2}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                                       MaxHeight="44" LineStackingStrategy="BlockLineHeight" LineHeight="22" ToolTip="{Binding Name}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="{Binding Percent}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeHeadline}"
+                            <TextBlock Text="{Binding Name, Mode=OneTime}" Style="{StaticResource H2}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                       MaxHeight="44" LineStackingStrategy="BlockLineHeight" LineHeight="22" ToolTip="{Binding Name, Mode=OneTime}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Percent, Mode=OneTime}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeHeadline}"
                                        Foreground="{StaticResource StatText}" Margin="12,0,0,0" VerticalAlignment="Top" />
                         </Grid>
-                        <TextBlock Text="{Binding Group}" Style="{StaticResource Caption}" Visibility="{Binding HasGroup, Converter={StaticResource Vis}}" />
-                        <ProgressBar Style="{StaticResource ShareBar}" Foreground="{StaticResource Accent}" Value="{Binding Fraction, Mode=OneWay}" Margin="0,8,0,0"
-                                     Opacity="{Binding ArtOpacity}" />
+                        <TextBlock Text="{Binding Group, Mode=OneTime}" Style="{StaticResource Caption}" Visibility="{Binding HasGroup, Mode=OneTime, Converter={StaticResource Vis}}" />
+                        <ProgressBar Style="{StaticResource ShareBar}" Foreground="{StaticResource Accent}" Value="{Binding Fraction, Mode=OneTime}" Margin="0,8,0,0"
+                                     Opacity="{Binding ArtOpacity, Mode=OneTime}" />
                         <UniformGrid Columns="2" Margin="0,12,0,0">
                             <StackPanel>
                                 <TextBlock Text="{i:Loc CollectionPage.Set.Playable}" Style="{StaticResource Label}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding Playable}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" />
+                                <TextBlock Text="{Binding Playable, Mode=OneTime}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" />
                             </StackPanel>
                             <StackPanel>
                                 <TextBlock Text="{i:Loc CollectionPage.Set.Unique}" Style="{StaticResource Label}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding Unique}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" />
+                                <TextBlock Text="{Binding Unique, Mode=OneTime}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" />
                             </StackPanel>
                         </UniformGrid>
                         <Grid Margin="0,12,0,0">
@@ -61,25 +61,25 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="DustGlyph" Text="{Binding DustGlyph}" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Muted}"
+                            <TextBlock x:Name="DustGlyph" Text="{Binding DustGlyph, Mode=OneTime}" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Muted}"
                                        Margin="0,0,8,0" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="{Binding Dust}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Dust, Mode=OneTime}" TextWrapping="Wrap" VerticalAlignment="Center" />
                             <Border Grid.Column="2" Style="{StaticResource Pill}" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="{i:Loc CollectionPage.Set.EstimateTip}"
-                                    Visibility="{Binding Estimate, Converter={StaticResource Vis}}">
+                                    Visibility="{Binding Estimate, Mode=OneTime, Converter={StaticResource Vis}}">
                                 <TextBlock Text="{i:Loc Collection.Mark.Estimate}" Style="{StaticResource Caption}" />
                             </Border>
                         </Grid>
                         <Grid Margin="0,4,0,0" Background="Transparent" ToolTip="{i:Loc CollectionPage.Set.UncraftableTip}"
-                              Visibility="{Binding HasUncraftable, Converter={StaticResource Vis}}">
+                              Visibility="{Binding HasUncraftable, Mode=OneTime, Converter={StaticResource Vis}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="&#xF033E;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Muted}" Margin="0,0,8,0"
                                        VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="{Binding Uncraftable}" Style="{StaticResource Caption}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Uncraftable, Mode=OneTime}" Style="{StaticResource Caption}" TextWrapping="Wrap" VerticalAlignment="Center" />
                         </Grid>
-                        <ItemsControl ItemsSource="{Binding Rarities}" Margin="0,12,-12,0" Focusable="False">
+                        <ItemsControl ItemsSource="{Binding Rarities, Mode=OneTime}" Margin="0,12,-12,0" Focusable="False">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <UniformGrid Columns="2" />
@@ -88,33 +88,33 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type m:CollectionRarityView}">
                                     <!-- The rarity's colour always comes with its name -->
-                                    <StackPanel Margin="0,0,12,8" Background="Transparent" ToolTip="{Binding Tip}">
+                                    <StackPanel Margin="0,0,12,8" Background="Transparent" ToolTip="{Binding Tip, Mode=OneTime}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
-                                            <Ellipse Width="8" Height="8" Fill="{Binding Rarity, Converter={StaticResource KeyBrush}}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Name}" Style="{StaticResource Label}" TextTrimming="CharacterEllipsis" />
+                                            <Ellipse Width="8" Height="8" Fill="{Binding Rarity, Mode=OneTime, Converter={StaticResource KeyBrush}}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Name, Mode=OneTime}" Style="{StaticResource Label}" TextTrimming="CharacterEllipsis" />
                                         </Grid>
                                         <Grid Margin="0,4,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <ProgressBar Style="{StaticResource ShareBar}" Height="4" Foreground="{Binding Rarity, Converter={StaticResource KeyBrush}}"
-                                                         Value="{Binding Fraction, Mode=OneWay}" VerticalAlignment="Center" Opacity="{Binding ArtOpacity}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Count}" Style="{StaticResource Caption}" FontWeight="SemiBold" Margin="8,0,0,0" />
+                                            <ProgressBar Style="{StaticResource ShareBar}" Height="4" Foreground="{Binding Rarity, Mode=OneTime, Converter={StaticResource KeyBrush}}"
+                                                         Value="{Binding Fraction, Mode=OneTime}" VerticalAlignment="Center" Opacity="{Binding ArtOpacity, Mode=OneTime}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Count, Mode=OneTime}" Style="{StaticResource Caption}" FontWeight="SemiBold" Margin="8,0,0,0" />
                                         </Grid>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <TextBlock Text="{Binding Golden}" Style="{StaticResource Caption}" Margin="0,8,0,0" Visibility="{Binding HasGolden, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="{Binding Golden, Mode=OneTime}" Style="{StaticResource Caption}" Margin="0,8,0,0" Visibility="{Binding HasGolden, Mode=OneTime, Converter={StaticResource Vis}}" />
                     </StackPanel>
                 </Border>
                 <DataTemplate.Triggers>
-                    <DataTrigger Binding="{Binding Complete}" Value="True">
+                    <DataTrigger Binding="{Binding Complete, Mode=OneTime}" Value="True">
                         <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource BestEdge}" />
                         <Setter TargetName="DustGlyph" Property="Foreground" Value="{StaticResource Accent}" />
                     </DataTrigger>
