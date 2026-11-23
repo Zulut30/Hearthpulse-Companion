@@ -356,7 +356,8 @@ public sealed class CardPageContractTests
             // Enter on the row: the card page is shown and the focus is on its first control, Back.
             System.Windows.Input.FocusManager.SetFocusedElement(window, row);
             Press(row, System.Windows.Input.Key.Enter);
-            Until(() => model.CardOpen && !model.CardPage.Loading);
+            // The model can finish loading while the outgoing deck is still fading.
+            Until(() => model.CardOpen && !model.CardPage.Loading && deck.Visibility == Visibility.Collapsed);
             Assert.Equal(Visibility.Visible, cardPage.Visibility);
             Assert.Equal(Visibility.Collapsed, deck.Visibility);
             var back = (Button)window.CardDetailsPage.FindName("BackButton");
