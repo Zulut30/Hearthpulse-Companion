@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Threading;
 using Hearthpulse.App.Infrastructure;
 using St = Hearthpulse.App.Main.SettingsTabs;
 
@@ -88,9 +89,10 @@ public partial class MainWindow
     private Setup.SetupWizard? _setup;
 
     /// <summary>
-    /// The Settings page's content (tabs and search), built on the first visit, a tab asked for, or a render, rather than
-    /// with the window: about a hundred milliseconds of the start-up (TASK-2026-11-23-perf-arch-round2, AC3). It opens on
-    /// the tab shown last.
+    /// The Settings page's content (tab bar and search), built on the first visit, a tab asked for, or a render, rather
+    /// than with the window (TASK-2026-11-23-perf-arch-round2, AC3). It opens on the tab shown last, built at once; the
+    /// other tabs follow one by one at background priority once it is drawn (input goes between them), so that switching
+    /// tabs or searching finds them built.
     /// </summary>
     internal Pages.SettingsPage SettingsView => _settingsView ?? BuildSettings();
 
@@ -122,14 +124,17 @@ public partial class MainWindow
 
     internal St.SettingsSearchBox SettingsSearchBar => SettingsView.SettingsSearchBar;
 
+    /// <summary>Set once the window is closed: the Settings tabs left to build are not built.</summary>
+    private bool _closed;
+
     private Pages.SettingsPage BuildSettings()
     {
         var page = new Pages.SettingsPage { Name = nameof(SettingsView) };
         _settingsView = page;
         PageSettings.Content = page;
-        // Its names stay reachable through the window, as when the page was part of its XAML (FindName, renders, tools).
-        foreach (var element in page.TabButtons.Concat<FrameworkElement>([page.SettingsSearchBar, page.SettingsTabsArea, page.SettingsGeneral, page.SettingsAppearance,
-                     page.SettingsOverlay, page.SettingsTracker, page.SettingsStream, page.SettingsAccount, page.SettingsData, page.SettingsAbout]))
+        // Its names stay reachable through the window, as when the page was part of its XAML (FindName, renders, tools);
+        // a tab's when it is built (OnSettingsTabBuilt).
+        foreach (var element in page.TabButtons.Concat<FrameworkElement>([page.SettingsSearchBar, page.SettingsTabsArea]))
         {
             RegisterName(element.Name, element);
         }
@@ -138,28 +143,58 @@ public partial class MainWindow
         page.AddHandler(ToggleButton.CheckedEvent, new RoutedEventHandler(OnSettingChanged));
         page.AddHandler(ToggleButton.UncheckedEvent, new RoutedEventHandler(OnSettingChanged));
         page.TabChanged += UpdateSettingsTab;
-        // The Tracker tab's "overlay is off" banner follows the Overlay tab's switch (two controls, one binding).
-        BindingOperations.SetBinding(page.SettingsTracker, St.TrackerSettings.OverlayOnProperty,
-            new Binding(nameof(ToggleButton.IsChecked)) { Source = page.SettingsOverlay.OverlaySetting });
-        page.SettingsGeneral.SettingClicked += e => OnSettingChanged(page.SettingsGeneral, e);
-        page.SettingsAppearance.SliderChanged += e => OnSliderChanged(page.SettingsAppearance, e);
-        page.SettingsOverlay.SliderChanged += e => OnSliderChanged(page.SettingsOverlay, e);
-        page.SettingsOverlay.DensityChanged += () =>
-        {
-            if (IsLoaded)
-            {
-                SettingsChanged?.Invoke();
-            }
-        };
-        page.SettingsOverlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(page.SettingsOverlay, e);
-        page.SettingsOverlay.ArrangeOverlayClicked += e => OnArrangeOverlay(page.SettingsOverlay, e);
-        page.SettingsTracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(page.SettingsTracker, e);
-        page.SettingsData.ReimportClicked += e => OnReimport(page.SettingsData, e);
-        page.SettingsData.OpenDataClicked += e => OnOpenData(page.SettingsData, e);
-        page.SettingsData.ExportSettingsClicked += OnExportSettings;
-        page.SettingsData.ImportSettingsClicked += OnImportSettings;
+        page.TabBuilt += OnSettingsTabBuilt;
         ShowSettingsTab(_viewModel.Settings.SettingsTab);
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, BuildNextSettingsTab);
         return page;
+    }
+
+    /// <summary>One more Settings tab in the background, until all are built (none once the window is closed).</summary>
+    private void BuildNextSettingsTab()
+    {
+        if (!_closed && _settingsView is { } page && page.BuildNextTab())
+        {
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, BuildNextSettingsTab);
+        }
+    }
+
+    /// <summary>A Settings tab was built: what its buttons, sliders and links do here, and its name in the window.</summary>
+    private void OnSettingsTabBuilt(UserControl tab)
+    {
+        RegisterName(tab.Name, tab);
+        switch (tab)
+        {
+            case St.GeneralSettings general:
+                general.SettingClicked += e => OnSettingChanged(general, e);
+                break;
+            case St.AppearanceSettings appearance:
+                appearance.SliderChanged += e => OnSliderChanged(appearance, e);
+                break;
+            case St.OverlaySettings overlay:
+                overlay.SliderChanged += e => OnSliderChanged(overlay, e);
+                overlay.DensityChanged += () =>
+                {
+                    if (IsLoaded)
+                    {
+                        SettingsChanged?.Invoke();
+                    }
+                };
+                overlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(overlay, e);
+                overlay.ArrangeOverlayClicked += e => OnArrangeOverlay(overlay, e);
+                break;
+            case St.TrackerSettings tracker:
+                tracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(tracker, e);
+                // Its "overlay is off" banner follows the Overlay tab's switch (two tabs, one binding): that tab is built too.
+                BindingOperations.SetBinding(tracker, St.TrackerSettings.OverlayOnProperty,
+                    new Binding(nameof(ToggleButton.IsChecked)) { Source = SettingsView.SettingsOverlay.OverlaySetting });
+                break;
+            case St.DataSettings data:
+                data.ReimportClicked += e => OnReimport(data, e);
+                data.OpenDataClicked += e => OnOpenData(data, e);
+                data.ExportSettingsClicked += OnExportSettings;
+                data.ImportSettingsClicked += OnImportSettings;
+                break;
+        }
     }
 
     /// <summary>The setup wizard over the page, built when it first opens (a new player, or "Run setup again").</summary>

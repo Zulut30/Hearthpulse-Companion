@@ -34,29 +34,12 @@
             </WrapPanel>
         </Border>
 
-        <!-- ===== General: language, app ===== -->
-        <st:GeneralSettings x:Name="SettingsGeneral" i:Motion.RevealOnShow="True" />
-
-        <!-- ===== Appearance: theme gallery, accent, page background, corners, density, size ===== -->
-        <st:AppearanceSettings x:Name="SettingsAppearance" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-        <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->
-        <st:OverlaySettings x:Name="SettingsOverlay" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-        <!-- ===== Tracker: the Constructed deck tracker, counters and mulligan ===== -->
-        <st:TrackerSettings x:Name="SettingsTracker" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-        <!-- ===== Stream: streamer mode and the OBS windows ===== -->
-        <st:StreamSettings x:Name="SettingsStream" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-        <!-- ===== Account: the hearthpulse.net sign-in ===== -->
-        <st:AccountSettings x:Name="SettingsAccount" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-        <!-- ===== Data: history, the data folder, where the numbers come from ===== -->
-        <st:DataSettings x:Name="SettingsData" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
-
-        <!-- ===== About: version, updates, licences ===== -->
-        <st:AboutSettings x:Name="SettingsAbout" Visibility="Collapsed" i:Motion.RevealOnShow="True" />
+        <!-- The tabs follow the bar, each built when first shown (the others in the background once the page is drawn), in
+             this order: General (language, app), Appearance (theme gallery, accent, page background, corners, density,
+             size), Overlay (what is drawn over the game, its size, panel layout), Tracker (the Constructed deck tracker,
+             counters and mulligan), Stream (streamer mode and the OBS windows), Account (the hearthpulse.net sign-in), Data
+             (history, the data folder, where the numbers come from), About (version, updates, licences).
+             SettingsPage.xaml.cs -->
         </StackPanel>
 
     </StackPanel>

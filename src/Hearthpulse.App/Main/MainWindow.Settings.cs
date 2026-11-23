@@ -34,9 +34,9 @@ public partial class MainWindow
     public void SyncOverlaySwitch()
     {
         OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
-        if (_settingsView is not { } page)
+        if (_settingsView?.BuiltOverlay is not { } overlay)
         {
-            // Not built yet: its switches read the settings when it is.
+            // The Overlay tab is not built yet: its switches read the settings when it is.
             return;
         }
 
@@ -44,8 +44,8 @@ public partial class MainWindow
         _syncingSettings = true;
         try
         {
-            BindingOperations.GetBindingExpression(page.SettingsOverlay.OverlaySetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
-            BindingOperations.GetBindingExpression(page.SettingsOverlay.PanelLockSetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
+            BindingOperations.GetBindingExpression(overlay.OverlaySetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
+            BindingOperations.GetBindingExpression(overlay.PanelLockSetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
         }
         finally
         {
@@ -69,14 +69,20 @@ public partial class MainWindow
         }
 
         _viewModel.Settings.SettingsTab = tab;
-        page.SettingsGeneral.Visibility = page.SettingsTabGeneral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        page.SettingsAppearance.Visibility = page.SettingsTabAppearance.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        page.SettingsOverlay.Visibility = page.SettingsTabOverlay.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        page.SettingsTracker.Visibility = page.SettingsTabTracker.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        page.SettingsStream.Visibility = page.SettingsTabStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        page.SettingsAccount.Visibility = page.SettingsTabAccount.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        page.SettingsData.Visibility = page.SettingsTabData.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        page.SettingsAbout.Visibility = page.SettingsTabAbout.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        var buttons = page.TabButtons;
+        for (var i = 0; i < buttons.Length; i++)
+        {
+            // The chosen tab is built if it was not; the others built already are hidden.
+            if (buttons[i].IsChecked == true)
+            {
+                page.TabAt(i).Visibility = Visibility.Visible;
+            }
+            else if (page.BuiltTab(i) is { } other)
+            {
+                other.Visibility = Visibility.Collapsed;
+            }
+        }
+
         if (page.SettingsTabData.IsChecked == true)
         {
             // The search for HDT / Firestone data, when the start did not run it (the home card was answered).
@@ -101,7 +107,9 @@ public partial class MainWindow
 
     private void OnSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (IsLoaded)
+        // Only a slider the player moved: one built after the window was loaded (the Settings page is built on its first
+        // visit) takes its value from its binding before it is loaded itself.
+        if (IsLoaded && e.OriginalSource is FrameworkElement { IsLoaded: true })
         {
             SettingsChanged?.Invoke();
         }

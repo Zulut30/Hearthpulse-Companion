@@ -157,6 +157,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _closed = true;
         _viewModel.PropertyChanged -= OnViewModelChanged;
         _viewModel.HistoryRequested -= ShowHistoryGame;
         _viewModel.PanelToggled -= OnPanelToggled;
