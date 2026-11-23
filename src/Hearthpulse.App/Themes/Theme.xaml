@@ -436,6 +436,10 @@
         <GradientStop Color="{StaticResource AccentColor}" Offset="1" />
     </LinearGradientBrush>
 
+    <!-- palette:end. Every colour and motif of the theme is above this line: ThemeEngine.Compiled recolours and parses
+         only these lines for a theme and takes the rest compiled, so a colour below it (a literal, a motif) would not
+         follow the theme (ThemeEngineTests). -->
+
     <!-- ===== Scale (D1, hearthpulse-design): type ramp, corner radii, padding of plates. Spacing literals stay on
          0/1/2/4/8/12/16/24/32 (and multiples of 4 from 40); DesignTokenTests counts the rest. ===== -->
     <sys:Double x:Key="FontSizeMicro">10</sys:Double>
@@ -1279,7 +1283,12 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="T" Property="Margin" Value="0" />
-                            <Setter TargetName="T" Property="Background" Value="#80E9B949" />
+                            <!-- The accent at half strength (the colour stays above palette:end) -->
+                            <Setter TargetName="T" Property="Background">
+                                <Setter.Value>
+                                    <SolidColorBrush Color="{StaticResource AccentColor}" Opacity="0.5" />
+                                </Setter.Value>
+                            </Setter>
                         </Trigger>
                         <Trigger Property="IsDragging" Value="True">
                             <Setter TargetName="T" Property="Margin" Value="0" />

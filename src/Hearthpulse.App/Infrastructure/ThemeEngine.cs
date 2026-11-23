@@ -11,12 +11,14 @@ namespace Hearthpulse.App.Infrastructure;
 /// <summary>
 /// Builds the app's resource dictionary for a colour theme. The source of Themes/Theme.xaml ships inside the app;
 /// every colour in it is recoloured through <see cref="ThemePalette.Map"/>, the backdrop takes the theme's motif and
-/// the result replaces the theme. Windows resolve their brushes when they are created, so the host recreates them
-/// after a change.
+/// the result replaces the theme. With the default look and motion on, only the palette is parsed again and the rest
+/// comes compiled (<see cref="Compiled"/>). Windows resolve their brushes when they are created, so the host recreates
+/// them after a change.
 /// </summary>
 public static partial class ThemeEngine
 {
-    private static readonly Uri BuiltIn = new("pack://application:,,,/Themes/Theme.xaml");
+    /// <summary>The compiled Theme.xaml, named with its assembly so that it loads from any host (a test, the bench).</summary>
+    private static readonly Uri BuiltIn = new("pack://application:,,,/Hearthpulse;component/Themes/Theme.xaml");
     private static string? _source;
 
     /// <summary>Brushes whose colour carries meaning never change.</summary>
@@ -55,10 +57,17 @@ public static partial class ThemeEngine
     {
         // With motion off (Windows' animation setting or the app's reduce-motion setting), the theme is rebuilt with every control animation made instant.
         // An isolated run builds the theme from its source too: its text font is the one every Windows has (TextFont).
-        var dictionary = ThemePalette.IsDefault(theme) && look.IsDefault && Motion.On && !Isolation.On
-            ? new ResourceDictionary { Source = BuiltIn }
-            : Build(theme, look);
-        Freeze(dictionary);
+        ResourceDictionary dictionary;
+        if (look.IsDefault && Motion.On && !Isolation.On)
+        {
+            dictionary = Compiled(theme);
+        }
+        else
+        {
+            dictionary = Build(theme, look);
+            Freeze(dictionary);
+        }
+
         var merged = app.Resources.MergedDictionaries;
         merged.Clear();
         merged.Add(dictionary);
@@ -68,13 +77,63 @@ public static partial class ThemeEngine
 
     public static ResourceDictionary Build(ThemeSpec theme, ThemeLook look) => (ResourceDictionary)XamlReader.Parse(Source(theme, look));
 
+    /// <summary>
+    /// The theme from the compiled Theme.xaml, as <see cref="Build"/> makes it for the default look with motion on, without
+    /// parsing the whole file again: only the palette (the lines above <see cref="PaletteEnd"/>, every colour of the
+    /// theme) is recoloured and parsed, with the theme's motif alone among the motifs, and takes the place of the
+    /// compiled one, so the styles below it find the new colours when they are made. Values are made and frozen on
+    /// first use.
+    /// </summary>
+    internal static ResourceDictionary Compiled(ThemeSpec theme)
+    {
+        if (ThemePalette.IsDefault(theme))
+        {
+            return new FrozenOnUse { Source = BuiltIn };
+        }
+
+        var parsed = (ResourceDictionary)XamlReader.Parse(PaletteSource(theme));
+        var palette = new Dictionary<object, object>(parsed.Count);
+        foreach (var key in parsed.Keys)
+        {
+            var value = parsed[key];
+            if (value is Freezable { IsFrozen: false, CanFreeze: true } freezable)
+            {
+                freezable.Freeze();
+            }
+
+            palette[key] = value;
+        }
+
+        return new FrozenOnUse { Palette = palette, Source = BuiltIn };
+    }
+
+    /// <summary>The line of Theme.xaml that ends its palette: no colour literal and no motif below it.</summary>
+    internal const string PaletteEnd = "<!-- palette:end";
+
+    /// <summary>The source of the built-in Theme.xaml (its controls named with their assembly).</summary>
+    internal static string BuiltInSource => _source ??= Load();
+
+    /// <summary>The palette of the theme's XAML (<see cref="Compiled"/>): recoloured as <see cref="Source(ThemeSpec, ThemeLook)"/> does, the other presets' motifs left out.</summary>
+    internal static string PaletteSource(ThemeSpec theme)
+    {
+        var source = BuiltInSource;
+        var end = source.LastIndexOf('\n', source.IndexOf(PaletteEnd, StringComparison.Ordinal));
+        var motif = "x:Key=\"Motif" + theme.Motif + "\"";
+        var motifAlt = "x:Key=\"Motif" + theme.Motif + "Alt\"";
+        var lines = source[..end].Split('\n')
+            .Where(l => !l.Contains("<Geometry x:Key=\"Motif", StringComparison.Ordinal)
+                        || l.Contains(motif, StringComparison.Ordinal) || l.Contains(motifAlt, StringComparison.Ordinal))
+            .Append("</ResourceDictionary>");
+        return Transform(lines.ToArray(), theme, ThemeLook.Default);
+    }
+
     public static string Source(ThemeSpec theme) => Source(theme, ThemeLook.Default);
 
     /// <summary>The theme's XAML: Theme.xaml recoloured, with the theme's motif, its look's shape and, if needed, instant animations.</summary>
-    public static string Source(ThemeSpec theme, ThemeLook look)
+    public static string Source(ThemeSpec theme, ThemeLook look) => Transform(BuiltInSource.Split('\n'), theme, look);
+
+    private static string Transform(string[] lines, ThemeSpec theme, ThemeLook look)
     {
-        _source ??= Load();
-        var lines = _source.Split('\n');
         for (var i = 0; i < lines.Length; i++)
         {
             if (!FixedKey().IsMatch(lines[i]))
@@ -127,6 +186,31 @@ public static partial class ThemeEngine
         foreach (var key in dictionary.Keys)
         {
             if (dictionary[key] is Freezable { IsFrozen: false, CanFreeze: true } freezable)
+            {
+                freezable.Freeze();
+            }
+        }
+    }
+
+    /// <summary>
+    /// The compiled theme, each value made when first asked for (by a window, a style or a lookup) and every brush,
+    /// geometry and drawing frozen as it comes out: <see cref="Freeze"/> on the whole dictionary made its 45 styles
+    /// at start-up, most of them before any window used them.
+    /// </summary>
+    private sealed class FrozenOnUse : ResourceDictionary
+    {
+        /// <summary>The recoloured palette: what a lookup of its keys gets, from outside or from a style being made.</summary>
+        public Dictionary<object, object>? Palette { get; init; }
+
+        protected override void OnGettingValue(object key, ref object value, out bool canCache)
+        {
+            base.OnGettingValue(key, ref value, out canCache);
+            if (Palette is not null && Palette.TryGetValue(key, out var recoloured))
+            {
+                value = recoloured;
+            }
+
+            if (value is Freezable { IsFrozen: false, CanFreeze: true } freezable)
             {
                 freezable.Freeze();
             }
