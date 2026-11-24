@@ -16,6 +16,16 @@ namespace Hearthpulse.Presentation.Tests;
 /// </summary>
 public sealed partial class CollectionContractTests
 {
+    /// <summary>
+    /// The view model of a window on the top decks: an empty history read on this thread, and the setup wizard, which an
+    /// empty history offers, already done. A read left on a pool thread came back at any point of the test and opened the
+    /// wizard over the page then (review of TASK-2026-11-23-perf-arch-round2 P2, B1).
+    /// </summary>
+    internal static WpfMain TopDecksModel() => new(History(), new AppSettings { SetupDone = true }, TestApp.Data)
+    {
+        Background = Hearthpulse.App.Infrastructure.BackgroundWork.Inline, CollectionReadable = true,
+    };
+
     internal static WpfWindow OffScreen(WpfMain model) => new(model)
     {
         WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000, Width = 1260, Height = 840,
@@ -50,7 +60,7 @@ public sealed partial class CollectionContractTests
     [Fact]
     public void The_sample_deck_opens_the_real_WPF_deck_page_and_stays_through_new_stats() => WpfThread.RunFresh(() =>
     {
-        var model = new WpfMain(History(), new AppSettings(), TestApp.Data) { CollectionReadable = true };
+        var model = TopDecksModel();
         model.SetCards(CollectionFixture.Cards);
         var window = OffScreen(model);
         try

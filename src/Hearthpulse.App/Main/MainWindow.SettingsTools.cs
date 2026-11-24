@@ -29,19 +29,28 @@ public partial class MainWindow
     /// <summary>The largest file an import reads: a settings file is a few kilobytes.</summary>
     private const long MaxSettingsFile = 1_000_000;
 
+    /// <summary>This window's index, as it gave it to the view model.</summary>
+    private Func<IReadOnlyList<SettingsEntry>>? _settingsIndex;
+
     private void InitSettingsTools(MainViewModel viewModel)
     {
-        viewModel.SettingsIndex = IndexSettings;
+        _settingsIndex = IndexSettings;
+        viewModel.SettingsIndex = _settingsIndex;
         viewModel.SettingJumpRequested += JumpToSetting;
         viewModel.SettingsReplaced += OnSettingsReplaced;
-        SettingsData.ExportSettingsClicked += OnExportSettings;
-        SettingsData.ImportSettingsClicked += OnImportSettings;
+        // The Data tab's export and import are wired when the page is built (MainWindow.BuildSettings).
         PageSettings.PreviewKeyDown += OnSettingsKey;
     }
 
     private void ReleaseSettingsTools()
     {
-        _viewModel.SettingsIndex = null;
+        // A theme change opens the new window on the same view model before the old one closes: the old window takes back
+        // only its own index, not the one the new window has given since.
+        if (ReferenceEquals(_viewModel.SettingsIndex, _settingsIndex))
+        {
+            _viewModel.SettingsIndex = null;
+        }
+
         _viewModel.SettingJumpRequested -= JumpToSetting;
         _viewModel.SettingsReplaced -= OnSettingsReplaced;
     }
@@ -104,12 +113,16 @@ public partial class MainWindow
         return false;
     }
 
-    private IEnumerable<(RadioButton Radio, FrameworkElement Tab)> SettingsTabs() =>
-    [
-        (SettingsTabGeneral, SettingsGeneral), (SettingsTabAppearance, SettingsAppearance), (SettingsTabOverlay, SettingsOverlay),
-        (SettingsTabTracker, SettingsTracker), (SettingsTabStream, SettingsStream), (SettingsTabAccount, SettingsAccount),
-        (SettingsTabData, SettingsData), (SettingsTabAbout, SettingsAbout),
-    ];
+    private IEnumerable<(RadioButton Radio, FrameworkElement Tab)> SettingsTabs()
+    {
+        var page = SettingsView;
+        return
+        [
+            (page.SettingsTabGeneral, page.SettingsGeneral), (page.SettingsTabAppearance, page.SettingsAppearance), (page.SettingsTabOverlay, page.SettingsOverlay),
+            (page.SettingsTabTracker, page.SettingsTracker), (page.SettingsTabStream, page.SettingsStream), (page.SettingsTabAccount, page.SettingsAccount),
+            (page.SettingsTabData, page.SettingsData), (page.SettingsTabAbout, page.SettingsAbout),
+        ];
+    }
 
     /// <summary>A setting's name beside its slider or choice (SettingLabel), or a group heading inside a card (SettingGroup).</summary>
     private static bool IsRowLabel(TextBlock block) =>

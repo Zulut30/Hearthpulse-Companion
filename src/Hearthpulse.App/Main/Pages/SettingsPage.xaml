@@ -1,0 +1,46 @@
+<UserControl x:Class="Hearthpulse.App.Main.Pages.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs">
+    <!-- The Settings page: tabs General / Appearance / Overlay / Tracker / Stream / Account / Data / About (the last one
+         shown is kept in AppSettings.SettingsTab) and the search over them. Built on the first visit
+         (MainWindow.SettingsView); the window keeps its scrolling frame PageSettings and the logic (MainWindow.Settings.cs). -->
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+    </UserControl.Resources>
+    <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left">
+        <StackPanel Orientation="Horizontal">
+            <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Settings}" />
+            <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource PageTitle}" />
+        </StackPanel>
+        <c:Wave Style="{StaticResource PageRule}" />
+
+        <!-- Search over every tab; while a query is typed its matches replace the tabs -->
+        <st:SettingsSearchBox x:Name="SettingsSearchBar" />
+
+        <StackPanel x:Name="SettingsTabsArea" i:Motion.RevealOnShow="True" Visibility="{Binding SettingsSearching, Converter={StaticResource Vis}, ConverterParameter=!}">
+        <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,20">
+            <WrapPanel>
+                <RadioButton x:Name="SettingsTabGeneral" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.General}" GroupName="SettingsTab" Tag="General" IsChecked="True" Checked="OnTab" />
+                <RadioButton x:Name="SettingsTabAppearance" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Appearance}" GroupName="SettingsTab" Tag="Appearance" Checked="OnTab" />
+                <RadioButton x:Name="SettingsTabOverlay" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Overlay}" GroupName="SettingsTab" Tag="Overlay" Checked="OnTab" />
+                <RadioButton x:Name="SettingsTabTracker" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Tracker}" GroupName="SettingsTab" Tag="Tracker" Checked="OnTab" />
+                <RadioButton x:Name="SettingsTabStream" Style="{StaticResource Tab}" Content="{i:Loc Stream.Tab}" GroupName="SettingsTab" Tag="Stream" Checked="OnTab" />
+                <RadioButton x:Name="SettingsTabAccount" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Account}" GroupName="SettingsTab" Tag="Account" Checked="OnTab" />
+                <RadioButton x:Name="SettingsTabData" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Data}" GroupName="SettingsTab" Tag="Data" Checked="OnTab" />
+                <RadioButton x:Name="SettingsTabAbout" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.About}" GroupName="SettingsTab" Tag="About" Checked="OnTab" />
+            </WrapPanel>
+        </Border>
+
+        <!-- The tabs follow the bar, each built when first shown (the others in the background once the page is drawn), in
+             this order: General (language, app), Appearance (theme gallery, accent, page background, corners, density,
+             size), Overlay (what is drawn over the game, its size, panel layout), Tracker (the Constructed deck tracker,
+             counters and mulligan), Stream (streamer mode and the OBS windows), Account (the hearthpulse.net sign-in), Data
+             (history, the data folder, where the numbers come from), About (version, updates, licences).
+             SettingsPage.xaml.cs -->
+        </StackPanel>
+
+    </StackPanel>
+</UserControl>

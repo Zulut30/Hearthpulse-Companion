@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -24,26 +23,7 @@ public partial class MainWindow : Window
         AddHandler(Controls.CardLink.OpenEvent, new EventHandler<Controls.CardLinkEventArgs>(OnCardLink));
         PageOverview.ImportRequested += () => ReimportRequested?.Invoke();
         PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
-        Setup.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
         PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
-        // The Tracker tab's "overlay is off" banner follows the Overlay tab's switch (two controls now, one binding).
-        BindingOperations.SetBinding(SettingsTracker, global::Hearthpulse.App.Main.SettingsTabs.TrackerSettings.OverlayOnProperty,
-            new Binding(nameof(ToggleButton.IsChecked)) { Source = SettingsOverlay.OverlaySetting });
-        SettingsGeneral.SettingClicked += e => OnSettingChanged(SettingsGeneral, e);
-        SettingsAppearance.SliderChanged += e => OnSliderChanged(SettingsAppearance, e);
-        SettingsOverlay.SliderChanged += e => OnSliderChanged(SettingsOverlay, e);
-        SettingsOverlay.DensityChanged += () =>
-        {
-            if (IsLoaded)
-            {
-                SettingsChanged?.Invoke();
-            }
-        };
-        SettingsOverlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(SettingsOverlay, e);
-        SettingsOverlay.ArrangeOverlayClicked += e => OnArrangeOverlay(SettingsOverlay, e);
-        SettingsTracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(SettingsTracker, e);
-        SettingsData.ReimportClicked += e => OnReimport(SettingsData, e);
-        SettingsData.OpenDataClicked += e => OnOpenData(SettingsData, e);
         _viewModel = viewModel;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelChanged;
@@ -51,7 +31,13 @@ public partial class MainWindow : Window
         viewModel.HistoryRequested += ShowHistoryGame;
         viewModel.PanelToggled += OnPanelToggled;
         InitSettingsTools(viewModel);
-        ShowSettingsTab(viewModel.Settings.SettingsTab);
+        // The Settings page is built on its first visit and opens on the tab shown last (AppSettings.SettingsTab); the
+        // setup wizard when it first opens.
+        if (viewModel.SetupOpen)
+        {
+            _ = SetupView;
+        }
+
         SyncStatus();
         StateChanged += (_, _) =>
         {
@@ -171,6 +157,8 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _closed = true;
+        StopBuildingSettingsTabs();
         _viewModel.PropertyChanged -= OnViewModelChanged;
         _viewModel.HistoryRequested -= ShowHistoryGame;
         _viewModel.PanelToggled -= OnPanelToggled;
@@ -235,6 +223,9 @@ public partial class MainWindow : Window
                     ShowPage(ConstructedPage.PageOf(_viewModel.ConstructedFormat));
                 }
 
+                break;
+            case nameof(MainViewModel.SetupOpen) when _viewModel.SetupOpen:
+                _ = SetupView;
                 break;
             case nameof(MainViewModel.MatchOpen):
                 // A game opened from the Overview's recent games goes to History, where its page lives.
@@ -304,14 +295,14 @@ public partial class MainWindow : Window
         NavBattlegrounds.IsChecked == true ? PageBattlegrounds
         : cardOpen ? PageCard
         : ConstructedShown ? _viewModel.DeckOpen ? PageDeck : PageConstructed
-        : NavArena.IsChecked == true ? PageArena
-        : NavBrawl.IsChecked == true ? PageBrawl
+        : NavArena.IsChecked == true ? Filled(PageArena, "ArenaPageContent")
+        : NavBrawl.IsChecked == true ? Filled(PageBrawl, "BrawlPageContent")
         // The match page stands in for the History list while a game is open.
         : NavHistory.IsChecked == true ? _viewModel.MatchOpen ? PageMatch : PageHistory
         : NavCollection.IsChecked == true ? PageCollection
         : NavAchievements.IsChecked == true ? PageAchievements
         : NavWrapped.IsChecked == true ? PageWrapped
-        : NavSettings.IsChecked == true ? PageSettings
+        : NavSettings.IsChecked == true ? SettingsFrame
         : PageOverview;
 
     private void OnSidebarSize(object sender, SizeChangedEventArgs e) => PlacePill(animate: false);

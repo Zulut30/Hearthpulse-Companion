@@ -193,6 +193,8 @@
     <SolidColorBrush x:Key="Accent2Soft" Color="#1F4FC2A8" />
     <SolidColorBrush x:Key="Accent2Line" Color="#994FC2A8" />
     <SolidColorBrush x:Key="ScrollThumbFill" Color="#3DE9B949" />
+    <!-- The scrollbar thumb under the mouse (ScrollThumb): the accent at alpha 0x80 -->
+    <SolidColorBrush x:Key="ScrollThumbHover" Color="#80E9B949" />
     <!-- Halos are gradients, not bitmap effects: free to draw on the overlay -->
     <RadialGradientBrush x:Key="Glow">
         <GradientStop Color="#3DE9B949" Offset="0" />
@@ -435,6 +437,10 @@
         <GradientStop Color="{StaticResource AccentDeepColor}" Offset="0" />
         <GradientStop Color="{StaticResource AccentColor}" Offset="1" />
     </LinearGradientBrush>
+
+    <!-- palette:end. Every colour and motif of the theme is above this line: ThemeEngine.Compiled recolours and parses
+         only these lines for a theme and takes the rest compiled, so a colour below it (a literal, a motif) would not
+         follow the theme (ThemeEngineTests). -->
 
     <!-- ===== Scale (D1, hearthpulse-design): type ramp, corner radii, padding of plates. Spacing literals stay on
          0/1/2/4/8/12/16/24/32 (and multiples of 4 from 40); DesignTokenTests counts the rest. ===== -->
@@ -1279,7 +1285,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="T" Property="Margin" Value="0" />
-                            <Setter TargetName="T" Property="Background" Value="#80E9B949" />
+                            <Setter TargetName="T" Property="Background" Value="{StaticResource ScrollThumbHover}" />
                         </Trigger>
                         <Trigger Property="IsDragging" Value="True">
                             <Setter TargetName="T" Property="Margin" Value="0" />

@@ -13,7 +13,13 @@ namespace Hearthpulse.Presentation.Tests;
 /// </summary>
 internal static class WpfThread
 {
-    /// <summary>Runs <paramref name="body"/> as it is; <paramref name="english"/> sets the interface language first.</summary>
+    /// <summary>
+    /// Runs <paramref name="body"/> as it is; <paramref name="english"/> sets the interface language first. The body runs
+    /// as the app's code does, with the dispatcher's synchronization context: what a view model awaits comes back to this
+    /// thread while the test pumps the dispatcher. A bare thread has none, and the continuations then ran on pool
+    /// threads at any moment of the test, beside it (a history read that landed mid-test changed the deck list, or built
+    /// the setup wizard off the UI thread; review of TASK-2026-11-23-perf-arch-round2 P2, B1).
+    /// </summary>
     public static void Run(Action body, bool english = false)
     {
         if (english)
@@ -26,6 +32,7 @@ internal static class WpfThread
         {
             try
             {
+                SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
                 body();
             }
             catch (Exception ex)

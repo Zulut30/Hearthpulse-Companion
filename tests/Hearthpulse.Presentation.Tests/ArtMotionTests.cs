@@ -313,13 +313,9 @@ public sealed class ArtMotionTests
 
     /// <summary>
     /// Runs <paramref name="body"/> on a WPF thread as the app's own code runs: with the dispatcher's synchronization
-    /// context, so an awaiting load comes back to the UI thread (a bare test thread has none).
+    /// context (<see cref="WpfThread.Run"/>), so an awaiting load comes back to the UI thread.
     /// </summary>
-    private static void OnUiThread(Action body) => WpfThread.RunFresh(() =>
-    {
-        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
-        body();
-    });
+    private static void OnUiThread(Action body) => WpfThread.RunFresh(body);
 
     /// <summary>The hero shown whole in one slot, the other slot transparent and empty.</summary>
     private static void AssertSettled(HeroSwap hero, string shown)

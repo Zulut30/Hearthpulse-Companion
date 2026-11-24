@@ -2,7 +2,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Threading;
 using Hearthpulse.App.Infrastructure;
+using St = Hearthpulse.App.Main.SettingsTabs;
 
 namespace Hearthpulse.App.Main;
 
@@ -70,6 +72,159 @@ public partial class MainWindow
         page.Visibility = Visibility.Collapsed;
         slot.Content = page;
         return page;
+    }
+
+    /// <summary>A scrolling page of the window (Arena, Tavern Brawl) with its content made from <paramref name="template"/> on the first visit.</summary>
+    private ScrollViewer Filled(ScrollViewer page, string template)
+    {
+        if (page.Content is null)
+        {
+            page.Content = ((DataTemplate)FindResource(template)).LoadContent();
+        }
+
+        return page;
+    }
+
+    private Pages.SettingsPage? _settingsView;
+    private Setup.SetupWizard? _setup;
+
+    /// <summary>
+    /// The Settings page's content (tab bar and search), built on the first visit, a tab asked for, or a render, rather
+    /// than with the window (TASK-2026-11-23-perf-arch-round2, AC3). It opens on the tab shown last, built at once; the
+    /// other tabs follow one by one at background priority once it is drawn (input goes between them), so that switching
+    /// tabs or searching finds them built.
+    /// </summary>
+    internal Pages.SettingsPage SettingsView => _settingsView ?? BuildSettings();
+
+    /// <summary>The Settings page's frame, its content built.</summary>
+    private ScrollViewer SettingsFrame
+    {
+        get
+        {
+            _ = SettingsView;
+            return PageSettings;
+        }
+    }
+
+    internal St.GeneralSettings SettingsGeneral => SettingsView.SettingsGeneral;
+
+    internal St.AppearanceSettings SettingsAppearance => SettingsView.SettingsAppearance;
+
+    internal St.OverlaySettings SettingsOverlay => SettingsView.SettingsOverlay;
+
+    internal St.TrackerSettings SettingsTracker => SettingsView.SettingsTracker;
+
+    internal St.StreamSettings SettingsStream => SettingsView.SettingsStream;
+
+    internal St.AccountSettings SettingsAccount => SettingsView.SettingsAccount;
+
+    internal St.DataSettings SettingsData => SettingsView.SettingsData;
+
+    internal St.AboutSettings SettingsAbout => SettingsView.SettingsAbout;
+
+    internal St.SettingsSearchBox SettingsSearchBar => SettingsView.SettingsSearchBar;
+
+    /// <summary>Set once the window is closed: the Settings tabs left to build are not built.</summary>
+    private bool _closed;
+
+    private Pages.SettingsPage BuildSettings()
+    {
+        var page = new Pages.SettingsPage { Name = nameof(SettingsView) };
+        _settingsView = page;
+        PageSettings.Content = page;
+        // Its names stay reachable through the window, as when the page was part of its XAML (FindName, renders, tools);
+        // a tab's when it is built (OnSettingsTabBuilt).
+        foreach (var element in page.TabButtons.Concat<FrameworkElement>([page.SettingsSearchBar, page.SettingsTabsArea]))
+        {
+            RegisterName(element.Name, element);
+        }
+
+        // A switch changed by the player saves and applies the settings; the tab buttons stop their own Checked.
+        page.AddHandler(ToggleButton.CheckedEvent, new RoutedEventHandler(OnSettingChanged));
+        page.AddHandler(ToggleButton.UncheckedEvent, new RoutedEventHandler(OnSettingChanged));
+        page.TabChanged += UpdateSettingsTab;
+        page.TabBuilt += OnSettingsTabBuilt;
+        ShowSettingsTab(_viewModel.Settings.SettingsTab);
+        _nextSettingsTab = Dispatcher.BeginInvoke(DispatcherPriority.Background, BuildNextSettingsTab);
+        return page;
+    }
+
+    /// <summary>The queued build of the next Settings tab, taken off the queue when the window closes.</summary>
+    private DispatcherOperation? _nextSettingsTab;
+
+    /// <summary>Whether a Settings tab is still queued to be built in the background.</summary>
+    internal bool BuildingSettingsTabs => _nextSettingsTab?.Status == DispatcherOperationStatus.Pending;
+
+    /// <summary>One more Settings tab in the background, until all are built (none once the window is closed).</summary>
+    private void BuildNextSettingsTab()
+    {
+        _nextSettingsTab = !_closed && _settingsView is { } page && page.BuildNextTab()
+            ? Dispatcher.BeginInvoke(DispatcherPriority.Background, BuildNextSettingsTab)
+            : null;
+    }
+
+    /// <summary>The window closed: the Settings tabs not built yet stay unbuilt, and nothing of it stays queued.</summary>
+    private void StopBuildingSettingsTabs()
+    {
+        _nextSettingsTab?.Abort();
+        _nextSettingsTab = null;
+    }
+
+    /// <summary>A Settings tab was built: what its buttons, sliders and links do here, and its name in the window.</summary>
+    private void OnSettingsTabBuilt(UserControl tab)
+    {
+        RegisterName(tab.Name, tab);
+        switch (tab)
+        {
+            case St.GeneralSettings general:
+                general.SettingClicked += e => OnSettingChanged(general, e);
+                break;
+            case St.AppearanceSettings appearance:
+                appearance.SliderChanged += e => OnSliderChanged(appearance, e);
+                break;
+            case St.OverlaySettings overlay:
+                overlay.SliderChanged += e => OnSliderChanged(overlay, e);
+                overlay.DensityChanged += () =>
+                {
+                    if (IsLoaded)
+                    {
+                        SettingsChanged?.Invoke();
+                    }
+                };
+                overlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(overlay, e);
+                overlay.ArrangeOverlayClicked += e => OnArrangeOverlay(overlay, e);
+                break;
+            case St.TrackerSettings tracker:
+                tracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(tracker, e);
+                // Its "overlay is off" banner follows the Overlay tab's switch (two tabs, one binding): that tab is built too.
+                BindingOperations.SetBinding(tracker, St.TrackerSettings.OverlayOnProperty,
+                    new Binding(nameof(ToggleButton.IsChecked)) { Source = SettingsView.SettingsOverlay.OverlaySetting });
+                break;
+            case St.DataSettings data:
+                data.ReimportClicked += e => OnReimport(data, e);
+                data.OpenDataClicked += e => OnOpenData(data, e);
+                data.ExportSettingsClicked += OnExportSettings;
+                data.ImportSettingsClicked += OnImportSettings;
+                break;
+        }
+    }
+
+    /// <summary>The setup wizard over the page, built when it first opens (a new player, or "Run setup again").</summary>
+    private Setup.SetupWizard SetupView
+    {
+        get
+        {
+            if (_setup is null)
+            {
+                _setup = new Setup.SetupWizard { Name = "Setup" };
+                _setup.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
+                // In the window first: the binding then finds the view model at once.
+                SlotSetup.Content = _setup;
+                _setup.SetBinding(VisibilityProperty, new Binding(nameof(MainViewModel.SetupOpen)) { Converter = (IValueConverter)FindResource("Vis") });
+            }
+
+            return _setup;
+        }
     }
 
     /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
