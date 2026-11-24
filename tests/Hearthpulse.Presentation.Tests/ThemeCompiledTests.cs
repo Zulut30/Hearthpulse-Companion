@@ -13,8 +13,10 @@ namespace Hearthpulse.Presentation.Tests;
 /// The theme the app applies with the default look (ThemeEngine.Compiled: the compiled Theme.xaml, only its palette
 /// recoloured and parsed again) holds the same colours, in its resources and in every style's setters and triggers, as
 /// the theme parsed whole from the recoloured text (ThemeEngine.Build), for every preset; it draws the preset's motif
-/// and hands out every brush, geometry and drawing frozen.
+/// and hands out every brush, geometry and drawing frozen. Motion is a global switch here (Motion.Reduced), so the class
+/// runs with the other motion tests, never beside them.
 /// </summary>
+[Collection(MotionCollection.Name)]
 public sealed partial class ThemeCompiledTests
 {
     // ThemeEngine keeps a pack:// URI of the built-in theme; without an Application the scheme needs registering.
@@ -32,6 +34,32 @@ public sealed partial class ThemeCompiledTests
             var different = Differences(ThemeEngine.Build(theme), ThemeEngine.Compiled(theme));
             Assert.True(different.Count == 0, string.Join('\n', different.Take(2)));
         });
+    }
+
+    /// <summary>
+    /// With motion off (a machine with Windows' animations off, as the CI runner; or the app's reduce-motion setting) the
+    /// compiled theme still matches the text: its motion tokens are instant too, the default theme's included.
+    /// </summary>
+    [Theory]
+    [InlineData("Tavern")]
+    [InlineData("Frost")]
+    public void With_motion_off_the_compiled_theme_has_the_values_of_the_theme_parsed_from_text(string name)
+    {
+        var theme = ThemePalette.Resolve(name, 330, 300, 0.9);
+        var reduced = Motion.Reduced;
+        Motion.Reduced = true;
+        try
+        {
+            WpfThread.Run(() =>
+            {
+                var different = Differences(ThemeEngine.Build(theme), ThemeEngine.Compiled(theme));
+                Assert.True(different.Count == 0, string.Join('\n', different.Take(2)));
+            });
+        }
+        finally
+        {
+            Motion.Reduced = reduced;
+        }
     }
 
     /// <summary>

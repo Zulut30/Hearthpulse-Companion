@@ -86,7 +86,9 @@ public static partial class ThemeEngine
     /// </summary>
     internal static ResourceDictionary Compiled(ThemeSpec theme)
     {
-        if (ThemePalette.IsDefault(theme))
+        // The built-in dictionary as it is only with motion on: with motion off the palette is parsed like any other
+        // preset's, so its motion tokens are instant here too (Apply itself builds from text then).
+        if (ThemePalette.IsDefault(theme) && Motion.On)
         {
             return new FrozenOnUse { Source = BuiltIn };
         }
