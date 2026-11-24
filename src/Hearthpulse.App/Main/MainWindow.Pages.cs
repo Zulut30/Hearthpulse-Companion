@@ -145,17 +145,29 @@ public partial class MainWindow
         page.TabChanged += UpdateSettingsTab;
         page.TabBuilt += OnSettingsTabBuilt;
         ShowSettingsTab(_viewModel.Settings.SettingsTab);
-        _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, BuildNextSettingsTab);
+        _nextSettingsTab = Dispatcher.BeginInvoke(DispatcherPriority.Background, BuildNextSettingsTab);
         return page;
     }
+
+    /// <summary>The queued build of the next Settings tab, taken off the queue when the window closes.</summary>
+    private DispatcherOperation? _nextSettingsTab;
+
+    /// <summary>Whether a Settings tab is still queued to be built in the background.</summary>
+    internal bool BuildingSettingsTabs => _nextSettingsTab?.Status == DispatcherOperationStatus.Pending;
 
     /// <summary>One more Settings tab in the background, until all are built (none once the window is closed).</summary>
     private void BuildNextSettingsTab()
     {
-        if (!_closed && _settingsView is { } page && page.BuildNextTab())
-        {
-            _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, BuildNextSettingsTab);
-        }
+        _nextSettingsTab = !_closed && _settingsView is { } page && page.BuildNextTab()
+            ? Dispatcher.BeginInvoke(DispatcherPriority.Background, BuildNextSettingsTab)
+            : null;
+    }
+
+    /// <summary>The window closed: the Settings tabs not built yet stay unbuilt, and nothing of it stays queued.</summary>
+    private void StopBuildingSettingsTabs()
+    {
+        _nextSettingsTab?.Abort();
+        _nextSettingsTab = null;
     }
 
     /// <summary>A Settings tab was built: what its buttons, sliders and links do here, and its name in the window.</summary>

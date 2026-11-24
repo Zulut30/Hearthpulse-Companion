@@ -106,6 +106,47 @@ public sealed class MainWindowLazyPagesTests
         Dispatcher.PushFrame(frame);
     }
 
+    /// <summary>
+    /// The Settings tabs left to build in the background end with their window: once it is closed none is built and
+    /// nothing of it stays in its dispatcher's queue, where it would hold the window and delay the work queued after it
+    /// (review of TASK-2026-11-23-perf-arch-round2 P2, B1).
+    /// </summary>
+    [Fact]
+    public void Closing_the_window_takes_the_settings_tabs_left_to_build_off_the_queue() => WpfThread.RunFresh(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings { SetupDone = true }, TestApp.Data);
+        var window = new WpfWindow(model)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = -20000, Top = -20000, Width = 1260, Height = 840,
+            ShowActivated = false, ShowInTaskbar = false,
+        };
+        window.Show();
+        window.ShowPage("Settings");
+        Assert.True(window.BuildingSettingsTabs);
+        Assert.Null(window.FindName("SettingsAbout"));
+
+        window.CloseForReal();
+        Assert.False(window.BuildingSettingsTabs);
+        Idle();
+        Assert.Null(window.FindName("SettingsAbout"));
+        Assert.False(window.BuildingSettingsTabs);
+    });
+
+    /// <summary>Left open, the window builds every tab in the background and then stops asking for more.</summary>
+    [Fact]
+    public void The_settings_tabs_are_built_in_the_background_until_all_are() => WpfThread.RunFresh(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings { SetupDone = true }, TestApp.Data);
+        var window = new WpfWindow(model);
+        window.ShowSettingsTab("General");
+        Assert.True(window.BuildingSettingsTabs);
+        Idle();
+        Assert.False(window.BuildingSettingsTabs);
+        Assert.IsType<Hearthpulse.App.Main.SettingsTabs.AboutSettings>(window.FindName("SettingsAbout"));
+        window.Close();
+    });
+
     [Fact]
     public void A_settings_tab_asked_for_before_a_visit_builds_the_page_on_that_tab() => WpfThread.RunFresh(() =>
     {
