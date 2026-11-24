@@ -235,6 +235,27 @@ public sealed class WrappedViewModelTests : IDisposable
     }
 
     [Fact]
+    public void Switching_to_year_updates_the_day_and_hour_bars()
+    {
+        // November has one Monday evening game. October adds two Saturday morning games.
+        var november = new DateTime(2026, 11, 2, 20, 0, 0, DateTimeKind.Local);
+        var october = new DateTime(2026, 10, 3, 9, 0, 0, DateTimeKind.Local);
+        var vm = Shown([Game(november, mode: "Battlegrounds", placement: 1), Game(october), Game(october.AddDays(7))]);
+        var month = vm.Recap!;
+        Assert.True(month.Days[0].Top);
+        Assert.True(month.HoursOfDay[20].Top);
+
+        vm.SetWrappedSpan.Execute("Year");
+
+        var year = vm.Recap!;
+        Assert.Equal(("2", true, true), (year.Days[5].Count, year.Days[5].Top, year.HoursOfDay[9].Top));
+        Assert.False(year.Days[0].Top);
+        Assert.False(year.HoursOfDay[20].Top);
+        Assert.NotEmpty(month.Battlegrounds);
+        Assert.Same(month.Battlegrounds, year.Battlegrounds);
+    }
+
+    [Fact]
     public void Nothing_on_the_page_names_an_opponent()
     {
         var vm = Shown(History());

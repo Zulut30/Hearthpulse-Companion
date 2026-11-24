@@ -183,7 +183,12 @@ public sealed class AchievementsContractTests
 
             // The journal: one subcategory, the heading of its named section first.
             Assert.Equal(model.AchievementBrowseRows.Count, page.BrowseRows.Items.Count);
-            Assert.Equal(model.AchievementSubcategories.Count, page.Subcategories.Items.Count);
+            IEnumerable<string> MenuKeys() => VisualChildren(page.Subcategories).OfType<Button>()
+                .Select(b => Assert.IsType<string>(b.CommandParameter));
+            Assert.Equal(["11", "12"], MenuKeys());
+            model.ShowAchievementCategory.Execute("3");
+            Pump();
+            Assert.Equal(["31", "32"], MenuKeys());
 
             // Without a book: the empty state alone.
             model.SetAchievements(null);
