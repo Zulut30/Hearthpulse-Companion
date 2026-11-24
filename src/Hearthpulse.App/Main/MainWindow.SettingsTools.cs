@@ -29,9 +29,13 @@ public partial class MainWindow
     /// <summary>The largest file an import reads: a settings file is a few kilobytes.</summary>
     private const long MaxSettingsFile = 1_000_000;
 
+    /// <summary>This window's index, as it gave it to the view model.</summary>
+    private Func<IReadOnlyList<SettingsEntry>>? _settingsIndex;
+
     private void InitSettingsTools(MainViewModel viewModel)
     {
-        viewModel.SettingsIndex = IndexSettings;
+        _settingsIndex = IndexSettings;
+        viewModel.SettingsIndex = _settingsIndex;
         viewModel.SettingJumpRequested += JumpToSetting;
         viewModel.SettingsReplaced += OnSettingsReplaced;
         // The Data tab's export and import are wired when the page is built (MainWindow.BuildSettings).
@@ -40,7 +44,13 @@ public partial class MainWindow
 
     private void ReleaseSettingsTools()
     {
-        _viewModel.SettingsIndex = null;
+        // A theme change opens the new window on the same view model before the old one closes: the old window takes back
+        // only its own index, not the one the new window has given since.
+        if (ReferenceEquals(_viewModel.SettingsIndex, _settingsIndex))
+        {
+            _viewModel.SettingsIndex = null;
+        }
+
         _viewModel.SettingJumpRequested -= JumpToSetting;
         _viewModel.SettingsReplaced -= OnSettingsReplaced;
     }

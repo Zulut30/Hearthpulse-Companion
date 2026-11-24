@@ -107,6 +107,57 @@ public sealed class ThemeSwapTests
         }
     });
 
+    /// <summary>
+    /// The swap opens the new window on the same view model, then closes the old one (App.Theme.cs): the old window,
+    /// closing, leaves the new one's settings search in place, and a result opens in the new window (review of
+    /// TASK-2026-11-23-perf-arch-round2 P2, M3: the search found nothing after a theme change).
+    /// </summary>
+    [Fact]
+    public void After_a_theme_swap_the_settings_search_finds_a_setting_and_opens_it_in_the_new_window() => WpfThread.RunFresh(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings { SetupDone = true }, TestApp.Data);
+        var old = Shown(model);
+        var rebuilt = Shown(model);
+        old.CloseForReal();
+        CollectionContractTests.Pump();
+        try
+        {
+            var label = Hearthpulse.Core.Localization.Loc.T("Settings.Data.CrashReports");
+            model.SettingsQuery = label;
+            var hit = Assert.Single(model.SettingsHits, h => h.Label == label);
+            Assert.Equal("Data", hit.Tab);
+            Assert.Contains(rebuilt.SettingsData, LogicalAncestors((DependencyObject)hit.Target));
+
+            model.JumpToSetting.Execute(hit);
+            CollectionContractTests.Pump();
+            Assert.Equal("Data", model.Settings.SettingsTab);
+            Assert.Equal(Visibility.Visible, rebuilt.SettingsData.Visibility);
+            Assert.Equal(string.Empty, model.SettingsQuery);
+        }
+        finally
+        {
+            rebuilt.CloseForReal();
+            CollectionContractTests.Pump();
+        }
+
+        static WpfWindow Shown(WpfMain model)
+        {
+            var window = CollectionContractTests.OffScreen(model);
+            window.Show();
+            window.ShowPage("Settings");
+            CollectionContractTests.Pump();
+            return window;
+        }
+
+        static IEnumerable<DependencyObject> LogicalAncestors(DependencyObject element)
+        {
+            for (var at = LogicalTreeHelper.GetParent(element); at is not null; at = LogicalTreeHelper.GetParent(at))
+            {
+                yield return at;
+            }
+        }
+    });
+
     /// <summary>A main window on Settings, Appearance, laid out at 1260×840 without being shown.</summary>
     private static WpfWindow Settings(WpfMain model)
     {
