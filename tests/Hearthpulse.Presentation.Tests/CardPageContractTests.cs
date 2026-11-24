@@ -356,7 +356,9 @@ public sealed class CardPageContractTests
             // Enter on the row: the card page is shown and the focus is on its first control, Back.
             System.Windows.Input.FocusManager.SetFocusedElement(window, row);
             Press(row, System.Windows.Input.Key.Enter);
-            Until(() => model.CardOpen && !model.CardPage.Loading);
+            // With motion on, the deck page is collapsed when its fade ends (PageSwitch, Motion.Fast): that is awaited,
+            // not assumed to have passed by the time the card is loaded.
+            Until(() => model.CardOpen && !model.CardPage.Loading && deck.Visibility == Visibility.Collapsed);
             Assert.Equal(Visibility.Visible, cardPage.Visibility);
             Assert.Equal(Visibility.Collapsed, deck.Visibility);
             var back = (Button)window.CardDetailsPage.FindName("BackButton");

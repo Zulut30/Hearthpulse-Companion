@@ -216,7 +216,9 @@ public sealed partial class CollectionContractTests
             },
         };
         Assert.True(history.Add(games[0]));
-        var model = new WpfMain(history, new AppSettings(), TestApp.Data) { CollectionReadable = true };
+        // The history is read on this thread: the deck list built below is built from the game, never from the empty list
+        // a read still on a pool thread leaves (review of TASK-2026-11-23-perf-arch-round2 P2, B1).
+        var model = new WpfMain(history, new AppSettings(), TestApp.Data) { Background = Hearthpulse.App.Infrastructure.BackgroundWork.Inline, CollectionReadable = true };
         model.SetCards(CollectionFixture.Cards);
         model.SetCollection(CollectionFixture.Collection());
         var window = new WpfWindow(model)

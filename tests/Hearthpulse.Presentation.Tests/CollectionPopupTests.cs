@@ -30,7 +30,7 @@ public sealed class CollectionPopupTests
     [Fact]
     public void The_WPF_popup_takes_focus_gives_it_back_on_escape_and_keeps_nothing_of_its_row() => WpfThread.RunFresh(() =>
     {
-        var model = new WpfMain(History(), new AppSettings(), TestApp.Data) { CollectionReadable = true };
+        var model = TopDecksModel();
         model.SetCards(CollectionFixture.Cards);
         var window = OffScreen(model);
         try
@@ -152,7 +152,7 @@ public sealed class CollectionPopupTests
     [InlineData("left open when the window closed")]
     public void A_closed_popup_reaches_neither_its_view_nor_the_window(string how) => WpfThread.RunFresh(() =>
     {
-        var model = new WpfMain(History(), new AppSettings(), TestApp.Data) { CollectionReadable = true };
+        var model = TopDecksModel();
         model.SetCards(CollectionFixture.Cards);
         var window = OffScreen(model);
         var closed = false;
