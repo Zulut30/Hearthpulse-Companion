@@ -29,44 +29,113 @@ public sealed partial class ThemeCompiledTests
         var theme = ThemePalette.Resolve(name, 330, 300, 0.9);
         WpfThread.Run(() =>
         {
-            var parsed = ThemeEngine.Build(theme);
-            var compiled = ThemeEngine.Compiled(theme);
-
-            var keys = parsed.Keys.Cast<object>().Select(k => k.ToString()!).Order(StringComparer.Ordinal).ToList();
-            Assert.Equal(keys, compiled.Keys.Cast<object>().Select(k => k.ToString()!).Order(StringComparer.Ordinal));
-            var different = keys.Where(k => Print(parsed[k]) != Print(compiled[k])).ToList();
-            Assert.True(different.Count == 0, string.Join('\n', different.Take(2).Select(k => k + "\n P " + Print(parsed[k]) + "\n C " + Print(compiled[k]))));
+            var different = Differences(ThemeEngine.Build(theme), ThemeEngine.Compiled(theme));
+            Assert.True(different.Count == 0, string.Join('\n', different.Take(2)));
         });
     }
 
-    /// <summary>A style's template draws with the theme's colours too: each templated control is built from both dictionaries and its tree's brushes compared.</summary>
+    /// <summary>
+    /// The comparison sees an implicit style, keyed by its type rather than by a name: a setter added to the ScrollBar
+    /// style of the text alone is a difference (review of TASK-2026-11-23-perf-arch-round2 P2, M1: looked up by the
+    /// text of its key, the style was null on both sides and passed).
+    /// </summary>
+    [Fact]
+    public void A_difference_in_an_implicit_style_is_found()
+    {
+        var theme = ThemePalette.Resolve("Frost", 0, 0, 1);
+        WpfThread.Run(() =>
+        {
+            const string scrollBar = "<Style TargetType=\"ScrollBar\">";
+            var source = ThemeEngine.Source(theme);
+            Assert.Contains(scrollBar, source, StringComparison.Ordinal);
+            var wrong = (ResourceDictionary)System.Windows.Markup.XamlReader.Parse(
+                source.Replace(scrollBar, scrollBar + "<Setter Property=\"Opacity\" Value=\"0.625\" />", StringComparison.Ordinal));
+
+            var different = Differences(wrong, ThemeEngine.Compiled(theme));
+            Assert.Equal(new[] { "{x:Type System.Windows.Controls.Primitives.ScrollBar}" }, different.Select(d => d.Split('\n')[0]));
+            Assert.Contains("Opacity=Double:0.625", different[0], StringComparison.Ordinal);
+            Assert.Contains("ScrollBar", Templated(wrong, ThemeEngine.Compiled(theme)).Different);
+        });
+    }
+
+    /// <summary>A style's template draws with the theme's colours too: each templated control is built from both dictionaries and its tree compared, node by node.</summary>
     [Fact]
     public void Templates_of_the_compiled_theme_draw_with_the_colours_of_the_theme_parsed_from_text()
     {
         var theme = ThemePalette.Resolve("Frost", 0, 0, 1);
         WpfThread.Run(() =>
         {
-            var parsed = ThemeEngine.Build(theme);
-            var compiled = ThemeEngine.Compiled(theme);
-            var templated = 0;
-            foreach (var key in parsed.Keys.Cast<object>().Select(k => k.ToString()!).Order(StringComparer.Ordinal))
-            {
-                if (parsed[key] is not Style { TargetType: { IsAbstract: false } type } style || !typeof(System.Windows.Controls.Control).IsAssignableFrom(type)
-                    || typeof(Window).IsAssignableFrom(type) || type.GetConstructor(Type.EmptyTypes) is null)
-                {
-                    continue;
-                }
+            var (templated, implicitStyles, different) = Templated(ThemeEngine.Build(theme), ThemeEngine.Compiled(theme));
+            Assert.True(different.Length == 0, different);
+            Assert.True(templated > 10, $"templated controls compared: {templated}");
+            Assert.True(implicitStyles > 0, "implicit styles (keyed by their type) are compared too");
+        });
+    }
 
-                var drawn = Tree(type, style);
-                if (drawn.Length > 0)
-                {
-                    templated++;
-                    Assert.True(drawn == Tree(type, (Style)compiled[key]), key + "\n P " + drawn + "\n C " + Tree(type, (Style)compiled[key]));
-                }
+    /// <summary>
+    /// The scrollbar thumb under the mouse keeps the colour it had before the theme came compiled: the accent with alpha
+    /// 0x80 at full opacity, not the opaque accent at opacity 0.5 (review of P2, m1).
+    /// </summary>
+    [Fact]
+    public void The_scroll_thumb_under_the_mouse_keeps_its_colour()
+    {
+        var tavern = ThemePalette.Resolve(ThemePalette.DefaultName, 0, 0, 1);
+        WpfThread.Run(() =>
+        {
+            var parsed = ThemeEngine.Build(tavern);
+            var template = (System.Windows.Controls.ControlTemplate)((Style)parsed["ScrollThumb"]).Setters.OfType<Setter>()
+                .Single(s => s.Property == System.Windows.Controls.Control.TemplateProperty).Value;
+            var hover = template.Triggers.OfType<Trigger>().Single(t => t.Property == UIElement.IsMouseOverProperty);
+            var brush = Assert.IsType<SolidColorBrush>(hover.Setters.OfType<Setter>().Single(s => s.Property.Name == "Background").Value);
+            Assert.Equal((Color.FromArgb(0x80, 0xE9, 0xB9, 0x49), 1d), (brush.Color, brush.Opacity));
+            var compiled = (SolidColorBrush)ThemeEngine.Compiled(tavern)["ScrollThumbHover"];
+            Assert.Equal((brush.Color, brush.Opacity), (compiled.Color, compiled.Opacity));
+        });
+    }
+
+    /// <summary>
+    /// The keys whose values differ between the two dictionaries, each looked up by the key itself (an implicit style is
+    /// keyed by its type), with both values printed; the two must hold the same keys.
+    /// </summary>
+    private static List<string> Differences(ResourceDictionary parsed, ResourceDictionary compiled)
+    {
+        var keys = parsed.Keys.Cast<object>().OrderBy(Name, StringComparer.Ordinal).ToList();
+        Assert.Equal(keys.Select(Name), compiled.Keys.Cast<object>().Select(Name).Order(StringComparer.Ordinal));
+        Assert.All(keys, k => Assert.True(compiled.Contains(k), Name(k)));
+        return keys.Select(k => (Key: k, P: Print(parsed[k]), C: Print(compiled[k])))
+            .Where(d => d.P != d.C)
+            .Select(d => Name(d.Key) + "\n P " + d.P + "\n C " + d.C)
+            .ToList();
+    }
+
+    /// <summary>Every templated control of the styles built from both dictionaries: how many, how many of them by an implicit style, and the first trees that differ.</summary>
+    private static (int Templated, int Implicit, string Different) Templated(ResourceDictionary parsed, ResourceDictionary compiled)
+    {
+        var (templated, implicitStyles, different) = (0, 0, new StringBuilder());
+        foreach (var key in parsed.Keys.Cast<object>().OrderBy(Name, StringComparer.Ordinal))
+        {
+            if (parsed[key] is not Style { TargetType: { IsAbstract: false } type } style || !typeof(System.Windows.Controls.Control).IsAssignableFrom(type)
+                || typeof(Window).IsAssignableFrom(type) || type.GetConstructor(Type.EmptyTypes) is null)
+            {
+                continue;
             }
 
-            Assert.True(templated > 10, $"templated controls compared: {templated}");
-        });
+            var drawn = Tree(type, style);
+            if (drawn.Length == 0)
+            {
+                continue;
+            }
+
+            templated++;
+            implicitStyles += key is Type ? 1 : 0;
+            var other = Tree(type, (Style)compiled[key]);
+            if (drawn != other && different.Length < 4000)
+            {
+                different.Append(Name(key)).Append("\n P ").Append(drawn).Append("\n C ").Append(other).Append('\n');
+            }
+        }
+
+        return (templated, implicitStyles, different.ToString());
 
         static string Tree(Type type, Style style)
         {
@@ -77,27 +146,44 @@ public sealed partial class ThemeCompiledTests
                 return "";
             }
 
+            // Every node with its name and the values a theme or a setter can change, brushes or not.
             var text = new StringBuilder();
-            void Walk(DependencyObject node)
+            void Walk(DependencyObject node, int depth)
             {
-                foreach (var brush in new[] { "Background", "BorderBrush", "Foreground", "Fill", "Stroke" }
-                    .Select(p => node.GetType().GetProperty(p)?.GetValue(node)).OfType<Brush>())
+                text.Append(depth).Append(' ').Append(node.GetType().Name);
+                if (node is FrameworkElement { Name.Length: > 0 } named)
                 {
-                    text.Append(node.GetType().Name).Append(' ');
-                    Print(brush, text);
-                    text.Append(';');
+                    text.Append('#').Append(named.Name);
                 }
 
+                if (node is UIElement element)
+                {
+                    text.Append(" opacity ").Append(Number(element.Opacity)).Append(' ').Append(element.Visibility);
+                }
+
+                foreach (var property in new[] { "Background", "BorderBrush", "Foreground", "Fill", "Stroke" })
+                {
+                    if (node.GetType().GetProperty(property)?.GetValue(node) is Brush brush)
+                    {
+                        text.Append(' ').Append(property).Append('=');
+                        Print(brush, text);
+                    }
+                }
+
+                text.Append(';');
                 for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
                 {
-                    Walk(VisualTreeHelper.GetChild(node, i));
+                    Walk(VisualTreeHelper.GetChild(node, i), depth + 1);
                 }
             }
 
-            Walk(control);
+            Walk(control, 0);
             return text.ToString();
         }
     }
+
+    /// <summary>A key as the report names it: an implicit style's type as XAML writes it.</summary>
+    private static string Name(object key) => key is Type type ? "{x:Type " + type.FullName + "}" : key.ToString()!;
 
     [Theory]
     [MemberData(nameof(Presets))]
@@ -204,9 +290,10 @@ public sealed partial class ThemeCompiledTests
                 Print(style.BasedOn, text);
                 PrintSetters(style.Setters, text);
                 PrintTriggers(style.Triggers, text);
-                foreach (var key in style.Resources.Keys.Cast<object>().Select(k => k.ToString()!).Order(StringComparer.Ordinal))
+                // Looked up by the keys themselves: a nested implicit style is keyed by its type.
+                foreach (var key in style.Resources.Keys.Cast<object>().OrderBy(Name, StringComparer.Ordinal))
                 {
-                    text.Append(" res ").Append(key).Append('=');
+                    text.Append(" res ").Append(Name(key)).Append('=');
                     Print(style.Resources[key], text);
                 }
 

@@ -313,6 +313,8 @@
             <SolidColorBrush x:Key="Accent2Soft" Color="#1F4FC2A8" />
             <SolidColorBrush x:Key="Accent2Line" Color="#994FC2A8" />
             <SolidColorBrush x:Key="ScrollThumbFill" Color="#3DE9B949" />
+            <!-- The WPF scrollbar thumb under the mouse; kept here so both themes hold the same tokens -->
+            <SolidColorBrush x:Key="ScrollThumbHover" Color="#80E9B949" />
             <RadialGradientBrush x:Key="Glow">
                 <GradientStop Color="#3DE9B949" Offset="0" />
                 <GradientStop Color="#14E9B949" Offset="0.55" />
