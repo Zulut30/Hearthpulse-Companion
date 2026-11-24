@@ -54,7 +54,7 @@ public sealed partial class MainViewModel
     private string _collectionPageEmptyGlyph = string.Empty;
     private IReadOnlyList<CollectionSumTile> _collectionSum = [];
     private double _collectionSumFraction;
-    private IReadOnlyList<CollectionSetView> _collectionSets = [];
+    private readonly SyncList<CollectionSetView> _collectionSets = [];
     private IReadOnlyList<MetaChoice> _skinClasses = [];
     private CollectionGroupView? _skinGroup;
     private IReadOnlyList<CollectionItemView> _skins = [];
@@ -119,7 +119,7 @@ public sealed partial class MainViewModel
     public double CollectionSumFraction { get => _collectionSumFraction; private set => Set(ref _collectionSumFraction, value); }
 
     /// <summary>The filter's sets, newest first.</summary>
-    public IReadOnlyList<CollectionSetView> CollectionSets { get => _collectionSets; private set => Set(ref _collectionSets, value); }
+    public IReadOnlyList<CollectionSetView> CollectionSets => _collectionSets;
 
     /// <summary>The classes with hero skins, as chips "Mage · 14/58", in the game's order.</summary>
     public IReadOnlyList<MetaChoice> CollectionSkinClasses { get => _skinClasses; private set => Set(ref _skinClasses, value); }
@@ -408,7 +408,7 @@ public sealed partial class MainViewModel
         {
             CollectionSum = [];
             CollectionSumFraction = 0;
-            CollectionSets = [];
+            _collectionSets.Clear();
             return;
         }
 
@@ -422,7 +422,7 @@ public sealed partial class MainViewModel
         {
             CollectionSum = [];
             CollectionSumFraction = 0;
-            CollectionSets = [];
+            _collectionSets.Clear();
             return;
         }
 
@@ -445,7 +445,7 @@ public sealed partial class MainViewModel
         CollectionSum = tiles;
         CollectionSumFraction = Fraction(sum.PlayableOwned, sum.PlayableTotal);
         var dim = SavedDim(CollectionSaved);
-        CollectionSets = sets.Select(s => SetView(s, dim)).ToList();
+        _collectionSets.Sync(sets.Select(s => SetView(s, dim)).ToList());
     }
 
     private static string SumDustDetail(SetCompletion sum)

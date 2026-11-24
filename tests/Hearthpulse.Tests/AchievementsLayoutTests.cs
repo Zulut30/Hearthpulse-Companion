@@ -135,6 +135,14 @@ public sealed class AchievementsLayoutTests
             Assert.Equal(model.AchievementSummary.Categories.Count, names.Count);
             Assert.All(names, t => Assert.Equal(TextWrapping.Wrap, t.TextWrapping));
 
+            var menu = compact ? page.SubcategoryChips : page.Subcategories;
+            IEnumerable<string> MenuKeys() => menu.GetVisualDescendants().OfType<Button>()
+                .Select(b => Assert.IsType<string>(b.CommandParameter));
+            Assert.Equal(["11", "12"], MenuKeys());
+            model.ShowAchievementCategory.Execute("3");
+            PageRowsPanelAvaloniaTests.Settle(window);
+            Assert.Equal(["31", "32"], MenuKeys());
+
             // Another subcategory replaces the rows.
             model.ShowAchievementSubcategory.Execute(model.AchievementSubcategories[1].Key);
             PageRowsPanelAvaloniaTests.Settle(window);

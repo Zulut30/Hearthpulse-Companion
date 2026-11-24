@@ -310,6 +310,7 @@ internal static partial class WpfBench
         Console.WriteLine($"[start] AppSettings.Load in {load.Elapsed.TotalMilliseconds:N0} ms");
         // As the app does before any window: the language decides every text (and a later switch rebuilds pages).
         Core.Localization.Loc.Instance.SetLanguage(settings.InterfaceLanguage());
+        Motion.Reduced = Environment.GetEnvironmentVariable("HP_BENCH_REDUCE_MOTION") == "1" || settings.ReduceMotion;
         var theme = Stopwatch.StartNew();
         ThemeEngine.Apply(app, ThemePalette.Resolve(settings.Theme, settings.ThemeAccentHue, settings.ThemeBaseHue, settings.ThemeBaseTint));
         Console.WriteLine($"[start] theme \"{settings.Theme}\" applied in {theme.Elapsed.TotalMilliseconds:N0} ms");
@@ -486,7 +487,7 @@ internal static partial class WpfBench
 
     /// <summary>Content height of the scrolling page on screen: a list that builds fewer rows must keep it.</summary>
     private static string PageExtent(MainWindow main) =>
-        new[] { "PageOverview", "PageBattlegrounds", "PageConstructed", "PageDeck", "PageArena", "PageMatch", "PageSettings" }
+        new[] { "PageOverview", "PageBattlegrounds", "PageConstructed", "PageDeck", "PageArena", "PageMatch", "PageSettings", "PageCollection", "PageAchievements", "PageWrapped" }
             .Select(name => Scroller(main, name)).FirstOrDefault(p => p is { IsVisible: true }) is { } page
             ? page.ExtentHeight.ToString("N1", CultureInfo.InvariantCulture)
             : "-";

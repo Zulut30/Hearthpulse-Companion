@@ -41,7 +41,7 @@
                                        Foreground="{StaticResource StatText}" Margin="12,0,0,0" VerticalAlignment="Top" />
                         </Grid>
                         <TextBlock Text="{Binding Group}" Classes="caption" IsVisible="{Binding HasGroup}" />
-                        <ProgressBar Classes="shareBar fill" Value="{Binding Fraction, Mode=OneWay}" Margin="0,8,0,0" Opacity="{Binding ArtOpacity}" />
+                        <ProgressBar Classes="shareBar fill" Value="{Binding Fraction}" Margin="0,8,0,0" Opacity="{Binding ArtOpacity}" />
                         <UniformGrid Classes="fixed" Columns="2" Margin="0,12,0,0">
                             <StackPanel>
                                 <TextBlock Text="{i:Loc CollectionPage.Set.Playable}" Classes="label" TextTrimming="CharacterEllipsis" />
@@ -83,7 +83,7 @@
                                         </Grid>
                                         <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
                                             <ProgressBar Classes="shareBar" Height="4" MinHeight="4" Foreground="{Binding Rarity, Converter={StaticResource KeyBrush}}"
-                                                         Value="{Binding Fraction, Mode=OneWay}" VerticalAlignment="Center" Opacity="{Binding ArtOpacity}" />
+                                                         Value="{Binding Fraction}" VerticalAlignment="Center" Opacity="{Binding ArtOpacity}" />
                                             <TextBlock Grid.Column="1" Text="{Binding Count}" Classes="caption" FontWeight="SemiBold" Margin="8,0,0,0" />
                                         </Grid>
                                     </StackPanel>

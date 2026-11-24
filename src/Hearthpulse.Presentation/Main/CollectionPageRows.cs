@@ -33,6 +33,17 @@ public sealed record CollectionSetView(
     string Playable, string Unique, string Dust, string DustGlyph, bool Complete, bool Estimate,
     string Uncraftable, IReadOnlyList<CollectionRarityView> Rarities, string Golden, string A11y, double ArtOpacity) : IImmutableView
 {
+    // The All filter adds Classic to Wild. Equal rarity cells keep the existing set tile alive.
+    public bool Equals(CollectionSetView? other) =>
+        other is not null && (ReferenceEquals(this, other) ||
+            (Set == other.Set && Name == other.Name && Percent == other.Percent && Group == other.Group &&
+             Fraction.Equals(other.Fraction) && Playable == other.Playable && Unique == other.Unique &&
+             Dust == other.Dust && DustGlyph == other.DustGlyph && Complete == other.Complete && Estimate == other.Estimate &&
+             Uncraftable == other.Uncraftable && Golden == other.Golden && A11y == other.A11y &&
+             ArtOpacity.Equals(other.ArtOpacity) && Rarities.SequenceEqual(other.Rarities)));
+
+    public override int GetHashCode() => HashCode.Combine(Set, Percent, Group, Dust, Golden, Rarities.Count);
+
     public bool HasGroup => Group.Length > 0;
 
     public bool HasUncraftable => Uncraftable.Length > 0;

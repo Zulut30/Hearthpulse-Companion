@@ -75,6 +75,7 @@ internal static partial class WpfBench
         }
 
         vm.SetCards(cards);
+        var hasCollection = LoadLibrary(vm) && cards.Count > 0;
         vm.SetMeta(bgMeta);
         vm.SetBgSiteStats(bgSite);
         vm.SetConstructedMeta(ctMeta);
@@ -94,6 +95,17 @@ internal static partial class WpfBench
             Step($"open {page}");
         }
 
+        VisitLibrary(main, vm, hasCollection, (label, action) =>
+        {
+            sw.Restart();
+            allocated = GC.GetTotalAllocatedBytes();
+            gen2 = GC.CollectionCount(2);
+            paused = GC.GetTotalPauseDuration();
+            action();
+            Pump();
+            Step(label);
+            Memory(label);
+        });
         Memory("every page opened");
 
         // History filter changes: time and allocations (all threads) until the new rows are in. Each filter must change
