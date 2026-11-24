@@ -27,6 +27,7 @@ public sealed class AppSettingsTests : IDisposable
         var settings = new AppSettings
         {
             PickHints = hints,
+            ShowHeroPick = true,
             Locale = "ruRU",
             Language = "ru",
             SettingsTab = "Stream",
@@ -81,11 +82,27 @@ public sealed class AppSettingsTests : IDisposable
         }
 
         var expected = JsonSerializer.Serialize(settings, ReflectionJson);
+        // Require a non-default sample for every persisted member. A new setting left at
+        // its default could otherwise disappear on read without changing the saved file.
+        if (hints == PickHints.Off)
+        {
+            var defaults = JsonSerializer.SerializeToElement(new AppSettings(), ReflectionJson);
+            var sample = JsonSerializer.SerializeToElement(settings, ReflectionJson);
+            foreach (var member in ReflectionJson.GetTypeInfo(typeof(AppSettings)).Properties.Where(p => p.Get is not null))
+            {
+                Assert.True(sample.TryGetProperty(member.Name, out var value), member.Name);
+                Assert.True(!defaults.TryGetProperty(member.Name, out var original) || !JsonElement.DeepEquals(original, value), member.Name);
+            }
+        }
+
         Assert.Equal(expected, settings.ToJson());
+        Assert.Equal(expected, JsonSerializer.Serialize(AppSettingsJsonContext.Read(expected), ReflectionJson));
         File.WriteAllText(FilePath, expected);
         var loaded = AppSettings.Load(FilePath);
-        Assert.Equal(expected, JsonSerializer.Serialize(loaded, ReflectionJson));
-        Assert.Equal(expected, loaded.ToJson());
+        settings.ShowHeroPick = null; // Migration consumes the legacy switch.
+        var migrated = JsonSerializer.Serialize(settings, ReflectionJson);
+        Assert.Equal(migrated, JsonSerializer.Serialize(loaded, ReflectionJson));
+        Assert.Equal(migrated, loaded.ToJson());
     }
 
     [Theory]

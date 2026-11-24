@@ -28,8 +28,9 @@
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
-    <!-- Tile depth comes from the CardFill surface and CardEdge rim; the rim warms on hover. -->
+    <!-- The lighter GhostFill raises stat tiles above ordinary cards; CardEdge lights the top rim. -->
     <Style x:Key="TileCard" TargetType="Border" BasedOn="{StaticResource Card}">
+        <Setter Property="Background" Value="{StaticResource GhostFill}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />

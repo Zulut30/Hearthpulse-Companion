@@ -332,13 +332,20 @@ public static class CardArt
         }
 
         var load = Pending.GetOrAdd(key, static (_, art) => Task.Run(() => LoadAsync(art.kind, art.cardId)), (kind, cardId));
-        // A load that finished before it was added removed its entry too early: drop it now, or it stays for good.
-        if (load.IsCompleted)
+        return AwaitAndRemoveAsync(key, load);
+    }
+
+    private static async Task<Bitmap?> AwaitAndRemoveAsync(string key, Task<Bitmap?> load)
+    {
+        try
         {
+            return await load.ConfigureAwait(false);
+        }
+        finally
+        {
+            // Another waiter can finish after a retry has already registered a new task.
             Pending.TryRemove(new KeyValuePair<string, Task<Bitmap?>>(key, load));
         }
-
-        return load;
     }
 
     private static async Task<Bitmap?> LoadAsync(ArtKind kind, string cardId)
@@ -397,10 +404,6 @@ public static class CardArt
         {
             Remember(Key(kind, cardId), image);
         }
-
-        // Only loads in flight stay here. A finished task would keep its image alive after the memory cache dropped
-        // it (so the cache limit freed nothing), and a failed one must allow a later retry (e.g. after reconnecting).
-        Pending.TryRemove(Key(kind, cardId), out _);
 
         return image;
     }

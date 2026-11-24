@@ -28,9 +28,9 @@
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
-    <!-- Stat tiles: a card lifted off the page (neutral black shadow, not themed); the edge warms on hover -->
+    <!-- The lighter GhostFill raises stat tiles above ordinary cards; CardEdge lights the top rim. -->
     <Style Selector="Border.card.tile">
-        <Setter Property="BoxShadow" Value="0 5 20 0 #4D000000" />
+        <Setter Property="Background" Value="{StaticResource GhostFill}" />
     </Style>
     <Style Selector="Border.card.tile:pointerover">
         <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />

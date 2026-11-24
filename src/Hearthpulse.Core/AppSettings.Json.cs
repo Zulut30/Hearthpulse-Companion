@@ -14,15 +14,27 @@ internal sealed partial class AppSettingsJsonContext : JsonSerializerContext
     // configures contracts for the entire graph, even for absent or empty groups of overrides.
     private static class Reader
     {
-        internal static readonly Dictionary<string, JsonPropertyInfo> Members =
-            ((IJsonTypeInfoResolver)Default).GetTypeInfo(typeof(AppSettings), Default.Options)!.Properties
-                .Where(p => p.Set is not null).ToDictionary(p => p.Name, StringComparer.Ordinal);
+        internal static readonly Dictionary<string, JsonPropertyInfo>? Members = GetMembers();
+
+        private static Dictionary<string, JsonPropertyInfo>? GetMembers()
+        {
+            var contract = ((IJsonTypeInfoResolver)Default).GetTypeInfo(typeof(AppSettings), Default.Options)!;
+            if (contract.CreateObject is null || contract.OnDeserializing is not null || contract.OnDeserialized is not null
+                || contract.PreferredPropertyObjectCreationHandling == JsonObjectCreationHandling.Populate
+                || Default.Options.PreferredObjectCreationHandling == JsonObjectCreationHandling.Populate
+                || contract.Properties.Any(p => p.IsExtensionData || p.IsRequired || p.ObjectCreationHandling == JsonObjectCreationHandling.Populate))
+            {
+                return null;
+            }
+
+            return contract.Properties.Where(p => p.Set is not null).ToDictionary(p => p.Name, StringComparer.Ordinal);
+        }
     }
 
     internal static AppSettings? Read(string json)
     {
         using var document = JsonDocument.Parse(json);
-        if (document.RootElement.ValueKind != JsonValueKind.Object)
+        if (document.RootElement.ValueKind != JsonValueKind.Object || Reader.Members is not { } members)
         {
             return JsonSerializer.Deserialize(json, Default.AppSettings);
         }
@@ -32,7 +44,7 @@ internal sealed partial class AppSettingsJsonContext : JsonSerializerContext
         {
             foreach (var member in document.RootElement.EnumerateObject())
             {
-                if (!Reader.Members.TryGetValue(member.Name, out var property)) continue;
+                if (!members.TryGetValue(member.Name, out var property)) continue;
                 if (property.CustomConverter is not null || property.NumberHandling is not null)
                 {
                     return JsonSerializer.Deserialize(json, Default.AppSettings);

@@ -28,9 +28,6 @@ public static class CardArt
     /// </summary>
     private const long MaxCachedBytes = 24L * 1024 * 1024;
 
-    /// <summary>How many finished load tasks are remembered; they only keep the image reachable.</summary>
-    private const int MaxPendingTasks = 2000;
-
     /// <summary>How long art with no file is not asked for again, and how many such cards are remembered.</summary>
     private const long AbsentRetryMs = 10_000;
 
@@ -296,7 +293,9 @@ public static class CardArt
 
     private static string Key(ArtKind kind, string cardId) => CardImageFiles.Key(kind, cardId);
 
-    public static Task<ImageSource?> GetAsync(ArtKind kind, string cardId)
+    public static Task<ImageSource?> GetAsync(ArtKind kind, string cardId) => GetAsync(kind, cardId, File.Exists);
+
+    internal static Task<ImageSource?> GetAsync(ArtKind kind, string cardId, Func<string, bool> fileExists)
     {
         var key = Key(kind, cardId);
         if (Absent.Skips(key))
@@ -311,37 +310,20 @@ public static class CardArt
             return Task.FromResult<ImageSource?>(cached);
         }
 
-        TrimPending();
-        var load = Pending.GetOrAdd(key, static (_, art) => Task.Run(() => LoadAsync(art.kind, art.cardId)), (kind, cardId));
-        // A load that finished before it was added removed its entry too early: drop it now, or
-        // the finished task keeps its image alive past the memory cache.
-        if (load.IsCompleted)
-        {
-            Pending.TryRemove(new KeyValuePair<string, Task<ImageSource?>>(key, load));
-        }
-
-        return load;
+        var load = Pending.GetOrAdd(key, static (_, art) => Task.Run(() => LoadAsync(art.kind, art.cardId, art.fileExists)), (kind, cardId, fileExists));
+        return AwaitAndRemoveAsync(key, load);
     }
 
-    /// <summary>Keeps the task dictionary from growing for every card the session ever shows.</summary>
-    private static void TrimPending()
+    private static async Task<ImageSource?> AwaitAndRemoveAsync(string key, Task<ImageSource?> load)
     {
-        if (Pending.Count <= MaxPendingTasks)
+        try
         {
-            return;
+            return await load.ConfigureAwait(false);
         }
-
-        foreach (var entry in Pending)
+        finally
         {
-            if (entry.Value.IsCompletedSuccessfully)
-            {
-                Pending.TryRemove(entry.Key, out _);
-            }
-
-            if (Pending.Count <= MaxPendingTasks)
-            {
-                return;
-            }
+            // Another waiter can finish after a retry has already registered a new task.
+            Pending.TryRemove(new KeyValuePair<string, Task<ImageSource?>>(key, load));
         }
     }
 
@@ -360,7 +342,7 @@ public static class CardArt
         _ => 0,
     };
 
-    private static async Task<ImageSource?> LoadAsync(ArtKind kind, string cardId)
+    private static async Task<ImageSource?> LoadAsync(ArtKind kind, string cardId, Func<string, bool> fileExists)
     {
         var (url, file) = CardImageFiles.Art(kind, cardId, Locale, AppPaths.Images);
         ImageSource? image = null;
@@ -372,13 +354,13 @@ public static class CardArt
         try
         {
             // GetAsync dispatches the cache miss to the pool, including the offline disk lookup.
-            var exists = File.Exists(file);
+            var exists = fileExists(file);
             if (!exists && Http is { } http)
             {
                 // A page hero's splash has no fallback: without HearthstoneJSON's art the page keeps its stone (a Battlegrounds
                 // card picture from another source would not fit the backdrop).
                 await Files.EnsureArtAsync(http, url, file, kind is ArtKind.Card or ArtKind.Splash ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
-                exists = File.Exists(file);
+                exists = fileExists(file);
             }
 
             if (exists)
@@ -410,10 +392,6 @@ public static class CardArt
         {
             Absent.Miss(Key(kind, cardId));
         }
-
-        // Only loads in flight stay here. A finished task would keep its image alive after the memory cache dropped
-        // it (so the cache limit freed nothing), and a failed one must allow a later retry (e.g. after reconnecting).
-        Pending.TryRemove(Key(kind, cardId), out _);
 
         return image;
     }
