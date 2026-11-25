@@ -387,9 +387,9 @@
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="Bd" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
-                                            CornerRadius="{StaticResource RadiusPill}">
+                                            c:RoundClip.Pill="True">
                                         <!-- Hover and press tint the pill like the other chrome buttons (State over the groove fill) -->
-                                        <Border x:Name="State" Background="Transparent" CornerRadius="{StaticResource RadiusPill}" Padding="12,5">
+                                        <Border x:Name="State" Background="Transparent" c:RoundClip.Pill="True" Padding="12,5">
                                             <StackPanel Orientation="Horizontal">
                                                 <Grid Width="8" Height="8" VerticalAlignment="Center">
                                                     <Ellipse Fill="{StaticResource Positive}" Visibility="{Binding AccountLinkOk, Converter={StaticResource Vis}}" />

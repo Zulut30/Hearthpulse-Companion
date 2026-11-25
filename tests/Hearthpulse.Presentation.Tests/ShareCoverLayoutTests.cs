@@ -97,6 +97,52 @@ public sealed class ShareCoverLayoutTests
     });
 
     /// <summary>
+    /// Every deck row is a capsule at its laid-out height, 28 in the list and up to 36 on the cover: the plate, its art clip
+    /// and the rarity edge round by half the height. RadiusPill (999) alone drew an ellipse across the row in WPF
+    /// (TASK-2026-11-25-polish S6).
+    /// </summary>
+    [Theory]
+    [InlineData(false, 21)]
+    [InlineData(true, 30)]
+    [InlineData(true, 8)]
+    public void Wpf_deck_rows_are_capsules_at_their_height(bool cover, int count) => WpfThread.RunThemed(() =>
+    {
+        var share = new ShareViewModel(ShareKind.Deck, Deck(count), "Deck", "file", new AppSettings(), null) { Cover = cover };
+        var window = Open(share);
+        try
+        {
+            var rows = Descendants((DependencyObject)window.Card).OfType<ItemsControl>().Where(c => c.ItemsSource is IReadOnlyList<DeckListRow>)
+                .SelectMany(c => Enumerable.Range(0, c.Items.Count).Select(i => Container(c, i))).ToList();
+            Assert.Equal(count, rows.Count);
+            foreach (var row in rows)
+            {
+                var grid = Descendants(row).OfType<Grid>().First();
+                var shapes = grid.Children.OfType<Border>().ToList();
+                Assert.Equal(2, shapes.Count);
+                foreach (var shape in shapes)
+                {
+                    var half = shape.ActualHeight / 2;
+                    Assert.True(shape.ActualWidth > shape.ActualHeight * 4, $"{shape.ActualWidth}x{shape.ActualHeight}");
+                    Assert.Equal(new CornerRadius(half), shape.CornerRadius);
+                    var clip = Assert.IsType<RectangleGeometry>(shape.Clip);
+                    Assert.Equal(half, clip.RadiusX, 3);
+                    Assert.Equal(half, clip.RadiusY, 3);
+                }
+            }
+
+            if (cover && count == 8)
+            {
+                // A short deck's cover stretches the rows: the check covers a row taller than the list's 28
+                Assert.All(rows, r => Assert.True(r.ActualHeight > DeckPictureCard.RowPitch + 4, $"{r.ActualHeight}"));
+            }
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
+    /// <summary>
     /// The buttons without GroupName still exclude each other and drive their models, clicked back and forth with two share
     /// windows open and a third closed, and the period buttons of the timestamps window likewise. GroupName went as the
     /// likely cause of a stack overflow in the render scenes; this test is the behaviour check, not a proof of that cause.

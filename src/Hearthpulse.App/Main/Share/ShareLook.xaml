@@ -80,7 +80,7 @@
 
     <!-- A Battlegrounds place: gold-edged in the top half -->
     <DataTemplate x:Key="SharePlaceChip" DataType="{x:Type s:SharePlace}">
-        <Border x:Name="Chip" MinWidth="28" Height="28" CornerRadius="{StaticResource RadiusPill}" Padding="8,0" Margin="0,0,4,0"
+        <Border x:Name="Chip" MinWidth="28" Height="28" c:RoundClip.Pill="True" Padding="8,0" Margin="0,0,4,0"
                 Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1">
             <TextBlock x:Name="Place" Text="{Binding Text}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}"
                        Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -96,9 +96,10 @@
 
     <!-- A deck card as the tracker lists it: cost gem, name over the art, copies or the legendary star, rarity edge -->
     <DataTemplate x:Key="ShareDeckRow" DataType="{x:Type d:DeckListRow}">
-        <!-- 28 high in the list; the cover's even rows stretch it up to 36 (DeckPictureCard.Row*; the margin is RowGap) -->
+        <!-- 28 high in the list; the cover's even rows stretch it up to 36 (DeckPictureCard.Row*; the margin is RowGap). RoundClip.Pill
+             keeps the plate, the art clip and the rarity edge a capsule at any height: RadiusPill drew an ellipse in WPF -->
         <Grid MinHeight="{x:Static s:DeckPictureCard.RowHeight}" MaxHeight="{x:Static s:DeckPictureCard.RowMaxHeight}" Margin="0,0,0,2">
-            <Border Background="{StaticResource Row}" CornerRadius="{StaticResource RadiusPill}" c:RoundClip.Radius="14">
+            <Border Background="{StaticResource Row}" c:RoundClip.Pill="True">
                 <Grid>
                     <Grid Width="180" HorizontalAlignment="Right">
                         <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
@@ -106,7 +107,7 @@
                     </Grid>
                     <DockPanel Margin="1,0,4,0">
                         <c:ManaCost Width="26" Height="26" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center" />
-                        <Border DockPanel.Dock="Right" MinWidth="24" Height="20" CornerRadius="{StaticResource RadiusPill}" Padding="8,0" Margin="4,0,0,0" VerticalAlignment="Center"
+                        <Border DockPanel.Dock="Right" MinWidth="24" Height="20" c:RoundClip.Pill="True" Padding="8,0" Margin="4,0,0,0" VerticalAlignment="Center"
                                 Background="{StaticResource OverlayBadgeShade}" Visibility="{Binding Count, Converter={StaticResource Vis}}">
                             <TextBlock x:Name="CountText" Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}"
                                        Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -116,7 +117,7 @@
                     </DockPanel>
                 </Grid>
             </Border>
-            <Border CornerRadius="{StaticResource RadiusPill}" BorderThickness="1" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
+            <Border c:RoundClip.Pill="True" BorderThickness="1" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
         </Grid>
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding Rarity}" Value="LEGENDARY">
