@@ -206,6 +206,9 @@
                             IsVisible="{Binding AchievementsStatusLine, Converter={StaticResource Truthy}}" />
             <ContentControl Name="AchievementsEmptyState" Classes="emptyState" Tag="{Binding AchievementsEmptyGlyph}" Content="{Binding AchievementsEmpty}"
                             AutomationProperties.LiveSetting="Polite" IsVisible="{Binding AchievementsEmptyShown}" />
+            <!-- Working the book out failed: the empty state above says so, and this tries again -->
+            <Button Name="RetryAchievementsButton" Classes="ghost" Content="{i:Loc Achievements.Retry}" Command="{Binding RetryAchievements}"
+                    HorizontalAlignment="Center" Margin="0,8,0,0" IsVisible="{Binding AchievementsFailed}" />
 
             <StackPanel Name="AchievementsContent" i:Motion.RevealOnShow="True" IsVisible="{Binding AchievementsShown}">
                 <!-- The summary: points and completed tiers on the left, the five categories as buttons on the right (under it in compact) -->

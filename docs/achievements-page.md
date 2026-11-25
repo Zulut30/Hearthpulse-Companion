@@ -10,8 +10,8 @@ is worked out from the history, and nothing leaves the machine.
 
 Sidebar group "Library", under History: "Achievements" (`ShowPage("Achievements")`, no Ctrl digit). The page is
 `Main/Pages/AchievementsPage.xaml` / `.axaml`; the shared view model is
-`src/Hearthpulse.Presentation/Main/MainViewModel.Achievements.cs` with its rows in `AchievementRows.cs`. The hosts hand
-the session's book over in `App.Achievements.cs` / `AppHost.Achievements.cs` (`GameSession.AchievementsChanged`,
+`src/Hearthpulse.Presentation/Main/MainViewModel.Achievements.cs` (the empty, loading and failed states with the retry
+in `MainViewModel.AchievementsState.cs`) with its rows in `AchievementRows.cs`. The hosts hand the session's book over in `App.Achievements.cs` / `AppHost.Achievements.cs` (`GameSession.AchievementsChanged`,
 dispatched to the UI thread, `MainViewModel.SetAchievements`).
 
 ## What it shows
@@ -20,7 +20,8 @@ dispatched to the UI thread, `MainViewModel.SetAchievements`).
   date with the next step (start Hearthstone; not read yet - after a game or leaving the collection; Windows only).
   Saved data carries the "from saved data" mark; its bars and glyphs are dimmed (`DeckBuildView.SavedOpacity`), text is
   not. Without a book there is no line: the empty state says why (none yet, not read yet, another system), and while the
-  first book is being worked out it says so.
+  first book is being worked out it says so. When working it out fails, it says that instead (alert glyph) with a
+  "Try again" button (`RetryAchievements`); a retry or a newer book clears it.
 - **Summary**: points earned of all (`AchievementBook.Summary`), the share as a bar, completed tiers of all; then each
   category (glyph by the client's icon name, the client's name, completed tiers, a bar, points) as a button that opens
   that category in the journal and brings the journal into view.

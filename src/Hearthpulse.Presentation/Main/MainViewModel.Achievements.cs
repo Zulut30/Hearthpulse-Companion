@@ -31,11 +31,13 @@ public sealed partial class MainViewModel
     private const string GlyphUnsupported = "\U000F002A";
     private const string GlyphNone = "\U000F0538";
     private const string GlyphWaiting = "\U000F051F";
+    private const string GlyphFailed = "\U000F05D6";
 
     private AchievementBook? _achievementBook;
     private bool _achievementsReadable = HearthstoneMemory.IsSupported;
     private AchievementsData? _achievementsData;
     private bool _achievementsWanted;
+    private bool _achievementsFailed;
     private int _achievementsBuild;
     private int _achievementCategory;
     private int _achievementSubcategory;
@@ -49,6 +51,7 @@ public sealed partial class MainViewModel
     private RelayCommand? _toggleAchievementStar;
     private RelayCommand? _showAchievementCategory;
     private RelayCommand? _showAchievementSubcategory;
+    private RelayCommand? _retryAchievements;
 
     /// <summary>
     /// Whether this system can read achievements from the game client at all (Windows). The host leaves the default; a
@@ -87,6 +90,7 @@ public sealed partial class MainViewModel
         }
 
         _achievementBook = book;
+        _achievementsFailed = false;
         RaiseAchievementsStatus();
         WrappedBookChanged();
         if (_achievementsWanted)
@@ -134,20 +138,6 @@ public sealed partial class MainViewModel
                 Loc.T("Achievements.Mark.Saved"), Loc.T("Achievements.Mark.SavedTip"));
         }
     }
-
-    /// <summary>
-    /// The page's empty state: why there is no book (another system, not read yet, none yet), or that the first one is
-    /// being put together. Empty once the page has its content.
-    /// </summary>
-    public string AchievementsEmpty => _achievementBook is null
-        ? Loc.T(!_achievementsReadable ? "Achievements.Empty.Unsupported" : HearthstoneRunning ? "Achievements.Empty.NotRead" : "Achievements.Empty.None")
-        : _achievementsData is null ? Loc.T("Achievements.Loading") : string.Empty;
-
-    public string AchievementsEmptyGlyph => _achievementBook is not null || (_achievementsReadable && HearthstoneRunning) ? GlyphWaiting
-        : !_achievementsReadable ? GlyphUnsupported : GlyphNone;
-
-    /// <summary>The empty state stands in for the content: no book, or the first one not worked out yet.</summary>
-    public bool AchievementsEmptyShown => _achievementsData is null;
 
     /// <summary>The page's blocks are shown: the book's views are worked out.</summary>
     public bool AchievementsShown => _achievementsData is not null;
@@ -291,6 +281,7 @@ public sealed partial class MainViewModel
     private void BuildAchievements()
     {
         var build = ++_achievementsBuild;
+        _achievementsFailed = false;
         if (_achievementBook is not { } book)
         {
             _achievementsData = null;
@@ -299,6 +290,8 @@ public sealed partial class MainViewModel
             return;
         }
 
+        // A retry turns the error back into "loading" at once.
+        RaiseAchievementsStatus();
         AchievementsWork = BuildAchievementsAsync(book, build);
     }
 
@@ -318,9 +311,15 @@ public sealed partial class MainViewModel
             ShowAchievementRows();
             RaiseAchievementsStatus();
         }
-        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException)
+        catch (Exception ex)
         {
+            // Any failure, not only the expected kinds: without a result the page would say "loading" for good.
             Diag.Error("Achievements page not built", ex);
+            if (build == _achievementsBuild)
+            {
+                _achievementsFailed = true;
+                RaiseAchievementsStatus();
+            }
         }
     }
 
@@ -498,6 +497,7 @@ public sealed partial class MainViewModel
         Raise(nameof(AchievementsEmpty));
         Raise(nameof(AchievementsEmptyGlyph));
         Raise(nameof(AchievementsEmptyShown));
+        Raise(nameof(AchievementsFailed));
         Raise(nameof(AchievementsShown));
         Raise(nameof(AchievementsGraphicsOpacity));
     }

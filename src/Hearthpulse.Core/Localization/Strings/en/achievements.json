@@ -8,6 +8,8 @@
   "Achievements.Empty.NotRead": "Achievements haven't been read yet. The app tries again after a game or when you leave your collection in Hearthstone.",
   "Achievements.Empty.Unsupported": "Achievements are read from the game client on Windows. This page stays empty on this system.",
   "Achievements.Loading": "Putting your achievements together…",
+  "Achievements.Error": "Couldn't put your achievements together. Try again; if it fails again, the reason is in the app's log.",
+  "Achievements.Retry": "Try again",
   "Achievements.Mark.Saved": "from saved data",
   "Achievements.Mark.SavedTip": "Numbers from the last read, not the running game. They may be out of date.",
   "Achievements.Points": "Achievement points",

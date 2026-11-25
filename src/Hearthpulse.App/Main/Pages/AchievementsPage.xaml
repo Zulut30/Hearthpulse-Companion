@@ -173,6 +173,9 @@
                             IsTabStop="False" Visibility="{Binding AchievementsStatusLine, Converter={StaticResource Vis}}" />
             <ContentControl x:Name="AchievementsEmptyState" Style="{StaticResource EmptyState}" Tag="{Binding AchievementsEmptyGlyph}" Content="{Binding AchievementsEmpty}"
                             AutomationProperties.LiveSetting="Polite" Visibility="{Binding AchievementsEmptyShown, Converter={StaticResource Vis}}" />
+            <!-- Working the book out failed: the empty state above says so, and this tries again -->
+            <Button x:Name="RetryAchievementsButton" Style="{StaticResource GhostButton}" Content="{i:Loc Achievements.Retry}" Command="{Binding RetryAchievements}"
+                    HorizontalAlignment="Center" Margin="0,8,0,0" Visibility="{Binding AchievementsFailed, Converter={StaticResource Vis}}" />
 
             <StackPanel x:Name="AchievementsContent" i:Motion.RevealOnShow="True" Visibility="{Binding AchievementsShown, Converter={StaticResource Vis}}">
                 <!-- The summary: points and completed tiers on the left, the five categories as buttons on the right -->
