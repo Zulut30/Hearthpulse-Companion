@@ -4,6 +4,10 @@ Hearthpulse is a Hearthstone companion: deck tracker, Battlegrounds advisor, com
 odds, in-game overlay and match history. It reads the log files Hearthstone writes
 in /Applications/Hearthstone/Logs and never changes the game.
 
+LICENCE
+Hearthpulse is proprietary software. Installing or using it means you accept the
+licence agreement in LICENSE.txt, which comes with the app.
+
 INSTALL
 Double-click "Install Hearthpulse". It copies Hearthpulse to Applications, puts a
 shortcut on your Desktop and starts it.

@@ -1,15 +1,15 @@
 Hearthpulse End-User Licence Agreement
-Copyright (c) 2026 Manacost Labs. All rights reserved.
+Copyright (c) 2026 Manacost Labs. Portions copyright (c) Dev-NotAqua (HeartLens). All rights reserved.
 
-Please read this agreement carefully. By installing, copying or using Hearthpulse, you agree to these
-terms. If you do not agree, do not install or use Hearthpulse.
+Please read this agreement carefully. By installing, updating, copying or using Hearthpulse, you agree
+to these terms. If you do not agree, do not install or use Hearthpulse.
 
 
 1. WHO AND WHAT THIS AGREEMENT COVERS
 
-1.1 "Hearthpulse" (the "Software") means the Hearthpulse application, its in-game overlay, its
-    installers and update packages, its source code, user interface, graphics, documentation and data
-    files, and any update or new version of them.
+1.1 "Hearthpulse" (the "Software") means the Hearthpulse application, its in-game overlay, the
+    Hearthpulse Twitch extension, its installers and update packages, its source code, user
+    interface, graphics, documentation and data files, and any update or new version of them.
 
 1.2 "We", "us" and "the copyright holder" mean Manacost Labs. "You" means the person who installs or
     uses the Software.
@@ -18,19 +18,23 @@ terms. If you do not agree, do not install or use Hearthpulse.
     the Software, including all copyrights and other intellectual property rights. Any right not
     expressly granted in this agreement is reserved.
 
+1.4 Hearthstone game content shown by the Software, such as card names, texts and art (including the
+    mana gem image), belongs to Blizzard Entertainment, Inc. It is not part of the Software, and this
+    agreement grants no rights in it.
+
 
 2. LICENCE GRANT
 
 2.1 Subject to this agreement, we grant you a limited, personal, revocable, non-exclusive,
     non-transferable licence to install and use official releases of the Software on devices that
-    you own or control.
+    you own or control, for your own use, including as a player, coach or content creator.
 
 2.2 "Official releases" are the builds we publish through the official channels: the GitHub
     releases of the repository Zulut30/Hearthpulse-Companion and the website hearthpulse.net,
     including updates the Software downloads from those channels itself.
 
 2.3 This licence does not cover builds obtained from anywhere else, or builds made from the source
-    code, unless we have given you written permission.
+    code, except as section 5.3 allows, unless we have given you written permission.
 
 
 3. STREAMS, VIDEOS AND SCREENSHOTS
@@ -38,10 +42,15 @@ terms. If you do not agree, do not install or use Hearthpulse.
 3.1 You may show the Software and its overlay in live streams, recorded videos and screenshots,
     including streams and videos that you monetize (for example through subscriptions, donations,
     advertising or sponsorships), and you may use the Software's stream, OBS and Twitch extension
-    features for that purpose.
+    features for that purpose. This section covers Hearthpulse only; showing Hearthstone itself is
+    governed by Blizzard's terms, including the Blizzard Video Policy.
 
-3.2 Showing the Software in this way is not "commercial use" of the Software and is not restricted by
-    section 4. It does not allow you to distribute the Software itself.
+3.2 Showing the Software in this way is allowed even when you earn money from it. It does not allow
+    you to distribute the Software itself.
+
+3.3 Viewers may view and use the Hearthpulse Twitch extension on Twitch. Twitch hosts the extension
+    under its own agreement with us, and sections 4.2 and 4.3 do not apply to that hosting. Your use
+    of Twitch is governed by Twitch's terms. Hearthpulse is not affiliated with Twitch.
 
 
 4. RESTRICTIONS
@@ -51,7 +60,7 @@ you may not allow anyone else to:
 
 4.1 copy, modify, adapt, translate, merge or create derivative works of the Software, its source code,
     binaries or installers, in whole or in part, except for the copies needed to install and run it
-    under section 2;
+    under section 2, a backup copy, and what section 5 allows;
 
 4.2 publish, distribute, sublicense, rent, lease, lend, sell or otherwise make the Software, its
     source code, binaries or installers available to anyone else;
@@ -60,17 +69,21 @@ you may not allow anyone else to:
     anywhere other than the official channels;
 
 4.4 reverse engineer, decompile or disassemble the Software, except to the extent that applicable
-    law expressly permits it notwithstanding this restriction;
+    law permits it despite this restriction (for example, to study how the Software works or to make
+    an independently created program work with it);
 
 4.5 remove, alter or obscure any copyright, trademark, licence or other notice in the Software;
 
-4.6 use the Software, its source code, documentation, data files or output to build, train or
-    improve a competing product, or any machine-learning or artificial-intelligence model or
-    dataset;
+4.6 use the Software, its source code, its documentation or the data it receives from Hearthpulse
+    services to build, train or improve a competing product, or a machine-learning or
+    artificial-intelligence model or dataset (except as GitHub's Terms of Service allow GitHub and
+    its affiliates; see section 5.2). This does not limit (a) your own data, such as your game
+    history, settings and exports, which you may use as you like, or (b) game data and images that
+    belong to Blizzard Entertainment or other third parties, which are under their own terms;
 
-4.7 access Hearthpulse services and APIs (including the Hearthpulse data API, the statistics pool
-    and the hearthpulse.net account services) in an automated or bulk way, or by any means other
-    than through the Software itself; or
+4.7 access the Hearthpulse data API or the statistics pool other than through the Software, or
+    access any Hearthpulse service, including hearthpulse.net, by automated or bulk means other than
+    the Software or an API that we publish for that purpose; or
 
 4.8 circumvent, disable or interfere with account checks, usage limits, paid-feature checks or any
     other technical limit of the Software or of Hearthpulse services.
@@ -78,9 +91,21 @@ you may not allow anyone else to:
 
 5. SOURCE CODE AVAILABILITY
 
-The source code of the Software is published in a public repository so that it can be viewed for
-reference only. The source code is not open source. Viewing or downloading the repository grants you
-no licence to the source code, and sections 2 and 4 apply to it in full.
+5.1 The source code of the Software is published in a public repository on GitHub so that it can be
+    read. It is not open source. Except as sections 5.2 and 5.3 allow, sections 2 and 4 apply to it
+    in full.
+
+5.2 Because the repository is public on GitHub, GitHub's Terms of Service let GitHub users view and
+    fork it within GitHub, and let GitHub and its affiliates use its content as those terms describe.
+    This agreement does not take those rights away and grants no rights beyond them; a fork gives no
+    right to distribute the Software or builds of it.
+
+5.3 You may download the source code and build and run it on devices you own or control, only to
+    evaluate the Software, to investigate or report a problem, or to prepare a Contribution under
+    section 6, including making the changes that Contribution needs in a fork on GitHub. Such builds
+    are not official releases. You may not distribute them or offer them to anyone else, except as a
+    pull request to the official repository. They may connect to Hearthpulse services only in the
+    way an official release does, without changing what is sent; sections 4.7 and 4.8 apply to them.
 
 
 6. FEEDBACK AND CONTRIBUTIONS
@@ -88,16 +113,17 @@ no licence to the source code, and sections 2 and 4 apply to it in full.
 6.1 If you send us feedback, such as the text of an issue, an idea, a bug report, a patch or a pull
     request (a "Contribution"), we may use it in any way, without any obligation to you.
 
-6.2 By submitting a Contribution, you grant us a perpetual, irrevocable, worldwide, royalty-free,
-    non-exclusive licence to use, copy, modify, publish, distribute, sublicense and otherwise exploit
-    the Contribution, as part of the Software or otherwise. You confirm that you have the right to
-    grant this licence.
+6.2 By submitting a Contribution, you grant us a worldwide, royalty-free, non-exclusive licence for
+    the full term of copyright protection, which you cannot revoke, to use, copy, modify, publish,
+    distribute, sublicense and otherwise exploit the Contribution, as part of the Software or
+    otherwise. You confirm that you have the right to grant this licence.
 
 
 7. THIRD-PARTY COMPONENTS AND HEARTLENS
 
 7.1 Portions of Hearthpulse are based on HeartLens by Dev-NotAqua and are used with the author's
-    permission.
+    permission. The author keeps the copyright in those portions, and this agreement does not limit
+    the author's rights in their own code.
 
 7.2 Hearthpulse includes third-party components that are licensed under their own terms. Those terms
     apply to those components only, and nothing in this agreement limits the rights they give you;
@@ -106,29 +132,33 @@ no licence to the source code, and sections 2 and 4 apply to it in full.
 
 8. DATA AND PRIVACY
 
-What the Software keeps on your device, what it sends, and how to turn sending off or ask for
-deletion are described in the notes shown by the installer (the sections "GAME STATISTICS",
-"CRASH REPORTS" and "DATA AND CREDITS"; on macOS and Linux the README.txt in the package), in the
-Software under Settings > Data and Settings > Hearthpulse account, and in the "Privacy" section of
-the README in the public repository. Those descriptions, as updated from time to time, apply to your
-use of the Software.
+What the Software keeps on your device, what it sends and how to turn sending off are described in
+the Software (Settings > Data and Settings > Hearthpulse account), in the installer notes (on macOS
+and Linux, README.txt in the package) and in the "Privacy" section of the README in the public
+repository. How hearthpulse.net processes the data of your account, including games uploaded to your
+profile, and how to export or delete it, is described in its privacy policy at
+https://hearthpulse.net/privacy. These descriptions are information, not terms of this agreement, and
+nothing in this agreement limits your rights under data protection law.
 
 
 9. TRADEMARKS AND NO AFFILIATION
 
 Hearthstone, Battlegrounds and Blizzard Entertainment are trademarks or registered trademarks of
 Blizzard Entertainment, Inc. Hearthpulse is a third-party program that is not affiliated with,
-endorsed by or sponsored by Blizzard Entertainment. Use it at your own risk. This agreement grants no
-right to use the Hearthpulse name or logo except to refer to the Software.
+endorsed by or sponsored by Blizzard Entertainment. Blizzard Entertainment decides which third-party
+programs it allows with its games. Hearthpulse is designed to read only what the game writes and what
+you can see, but we cannot promise how Blizzard will treat it. Use it at your own risk. This
+agreement grants no right to use the Hearthpulse name or logo except to refer to the Software.
 
 
 10. TERMINATION
 
-10.1 This licence ends automatically, without notice, if you breach any term of this agreement. We
-     may also end it if we stop providing the Software.
+10.1 This licence ends automatically, without notice, if you breach any term of this agreement. If
+     we stop providing the Software, we may stop updates and online services; your licence to use
+     the release you have continues, apart from features that need those services.
 
 10.2 When the licence ends, you must stop using the Software and delete all copies of it in your
-     possession or control. Sections 1.3, 4 to 6 and 9 to 15 survive the end of the licence.
+     possession or control. Sections 1.3, 1.4, 4 to 6 and 9 to 15 survive the end of the licence.
 
 
 11. DISCLAIMER OF WARRANTIES
@@ -136,23 +166,29 @@ right to use the Hearthpulse name or logo except to refer to the Software.
 THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
 NONINFRINGEMENT. WE DO NOT WARRANT THAT THE SOFTWARE OR HEARTHPULSE SERVICES WILL BE UNINTERRUPTED,
-ERROR-FREE OR ACCURATE.
+ERROR-FREE OR ACCURATE. Nothing in this section limits rights that you have as a consumer under the
+law of your country and that cannot be excluded by contract.
 
 
 12. LIMITATION OF LIABILITY
 
-TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR
-ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE,
-INCLUDING ANY INDIRECT, INCIDENTAL, SPECIAL OR CONSEQUENTIAL DAMAGES, LOSS OF DATA, OR ANY ACTION A
-THIRD PARTY TAKES AGAINST YOUR GAME ACCOUNT. Some jurisdictions do not allow certain limitations of
-liability; in those jurisdictions our liability is limited to the fullest extent the law allows.
+12.1 To the extent applicable law allows, we are not liable for indirect, incidental, special or
+     consequential damages, for loss of data, or for any action that Blizzard Entertainment or
+     another third party takes against your game account.
+
+12.2 Nothing in this agreement excludes or limits our liability for death or personal injury caused
+     by our negligence, for fraud, for damage we cause intentionally or by gross negligence, or any
+     other liability, or any of your rights as a consumer, that cannot be excluded or limited under
+     applicable law.
 
 
 13. CHANGES TO THESE TERMS
 
-We may change this agreement. A changed agreement applies to releases published after the change;
-the version that came with a release continues to apply to that release.
+We may change this agreement. A changed agreement applies to releases published after the change.
+The release notes of the first such release will say that the agreement has changed and link to it,
+and the Software shows the current agreement under Settings > About. If you do not agree to a changed
+agreement, do not install that release: turn off automatic updates and keep the release you have,
+which stays under the agreement that came with it, or uninstall the Software.
 
 
 14. SEVERABILITY
@@ -165,5 +201,7 @@ maximum extent permitted, and the remaining provisions stay in full force and ef
 
 This agreement, together with the third-party terms referred to in section 7, is the entire
 agreement between you and us about the Software and replaces any earlier licence notice for the
-releases it applies to. Any permission that goes beyond it must be given in writing by the copyright
-holder.
+releases it applies to. Your hearthpulse.net account, subscriptions and the website are governed by
+the hearthpulse.net terms of use (https://hearthpulse.net/terms) and privacy policy; this agreement
+governs the Software itself. Any permission that goes beyond this agreement must be given in writing
+by the copyright holder.
