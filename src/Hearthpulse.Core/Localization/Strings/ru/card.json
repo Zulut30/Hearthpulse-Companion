@@ -13,6 +13,7 @@
   "Card.Period.Patch": "текущий патч",
   "Card.Stats.Title": "В рейтинговых играх",
   "Card.Stats.DeckShare": "Доля колод",
+  "Card.Stats.Copy": "копий в колоде: {0:0.##}",
   "Card.Stats.Copies": "копий в колоде: {0:0.##}",
   "Card.Stats.DeckWinRate": "Винрейт колод",
   "Card.Stats.DeckWinRateDetail": "колоды с этой картой",

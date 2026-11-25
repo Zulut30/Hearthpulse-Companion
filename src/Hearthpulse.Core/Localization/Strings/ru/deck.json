@@ -128,7 +128,7 @@
   "Deck.Recent.Title": "Последние игры",
   "Deck.Recent.ShowInHistory": "Показать в истории",
   "Deck.Recent.Empty": "В этом матчапе нет игр.",
-  "Deck.Game.Vs": "против {0}",
+  "Deck.Game.Vs": "против: {0}",
   "Deck.Game.UnknownOpponent": "Неизвестный соперник",
   "Deck.Game.Turns": "{0} ход|{0} хода|{0} ходов",
   "Deck.Game.WentFirst": "первым",

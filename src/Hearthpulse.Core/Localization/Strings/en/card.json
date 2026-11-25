@@ -13,6 +13,7 @@
   "Card.Period.Patch": "current patch",
   "Card.Stats.Title": "In ranked games",
   "Card.Stats.DeckShare": "Share of decks",
+  "Card.Stats.Copy": "{0:0.##} copy per deck",
   "Card.Stats.Copies": "{0:0.##} copies per deck",
   "Card.Stats.DeckWinRate": "Deck win rate",
   "Card.Stats.DeckWinRateDetail": "decks that run the card",

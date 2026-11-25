@@ -1,0 +1,436 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Hearthpulse.UI.Controls"
+        xmlns:i="using:Hearthpulse.UI.Infrastructure"
+        xmlns:r="using:Hearthpulse.Core.Replay"
+        xmlns:m="using:Hearthpulse.UI.Main"
+        xmlns:mt="using:Hearthpulse.UI.Main.Match">
+    <!-- Styles of the match page (MatchView.axaml includes them). Theme tokens only; the WPF twins are in
+         Main/Match/MatchResources.xaml. -->
+    <Style Selector="TextBlock.turnLabel">
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+    <Style Selector="TextBlock.replaced">
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+    <Style Selector="Border.art.taunt">
+        <Setter Property="BorderBrush" Value="{StaticResource Muted}" />
+        <Setter Property="BorderThickness" Value="4" />
+    </Style>
+    <Style Selector="Border.art.golden">
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="TextBlock.hp.damaged">
+        <Setter Property="Foreground" Value="{StaticResource Negative}" />
+    </Style>
+    <Style Selector="TextBlock.glyph">
+        <Setter Property="Foreground" Value="{StaticResource Accent2}" />
+    </Style>
+    <Style Selector="Border.edge">
+        <Setter Property="Background" Value="{StaticResource Accent2Line}" />
+    </Style>
+    <Style Selector="Border.edge.mine">
+        <Setter Property="Background" Value="{StaticResource AccentLine}" />
+    </Style>
+    <Style Selector="Border.disc">
+        <Setter Property="Background" Value="{StaticResource Accent2Soft}" />
+    </Style>
+    <Style Selector="Border.disc.mine">
+        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+    </Style>
+    <Style Selector="Border.step.key">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+    </Style>
+    <!-- The step bar: whose step it is shows in the edge and turn colour -->
+    <Style Selector="Border.stepBar">
+        <Setter Property="Background" Value="{StaticResource Accent2Soft}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Accent2Line}" />
+    </Style>
+    <Style Selector="Border.stepBar.mine">
+        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+    </Style>
+    <Style Selector="Border.stepBar TextBlock.stepTurn">
+        <Setter Property="Foreground" Value="{StaticResource Accent2}" />
+    </Style>
+    <Style Selector="Border.stepBar.mine TextBlock.stepTurn">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <!-- The result plate: green for a win (top half in Battlegrounds), red for a loss, neutral otherwise -->
+    <Style Selector="Border.resultPlate">
+        <Setter Property="Background" Value="{StaticResource Surface3}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+    </Style>
+    <Style Selector="Border.resultPlate.win">
+        <Setter Property="Background" Value="{StaticResource PositiveSoft}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Positive}" />
+    </Style>
+    <Style Selector="Border.resultPlate.loss">
+        <Setter Property="Background" Value="{StaticResource NegativeSoft}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
+    </Style>
+    <Style Selector="Border.resultPlate TextBlock.resultGlyph">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Border.resultPlate TextBlock.resultGlyph.neutral">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Border.resultPlate.win TextBlock.resultGlyph.neutral, Border.resultPlate.loss TextBlock.resultGlyph.neutral">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Border.resultPlate.win TextBlock.resultGlyph.win, Border.resultPlate.loss TextBlock.resultGlyph.loss">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="TextBlock.glyph.mine">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Border.step.current">
+        <Setter Property="Background" Value="{StaticResource SelectedFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+    </Style>
+    <Style Selector="StackPanel.unusedTile">
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
+    <Style Selector="StackPanel.dimmed">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="StackPanel.heroChoice.picked TextBlock.heroName">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="TextBlock.caption.revealed">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="TextBlock.you">
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <!-- A Battlegrounds minion's rim: later styles win - the step's state over golden over taunt -->
+    <Style Selector="Border.oval">
+        <Setter Property="CornerRadius" Value="32" />
+        <Setter Property="Background" Value="{StaticResource Surface4}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="Border.oval.taunt">
+        <Setter Property="BorderBrush" Value="{StaticResource Muted}" />
+        <Setter Property="BorderThickness" Value="4" />
+    </Style>
+    <Style Selector="Border.oval.golden">
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+        <Setter Property="BorderThickness" Value="2.5" />
+    </Style>
+    <Style Selector="Border.oval.golden.taunt">
+        <Setter Property="BorderThickness" Value="4" />
+    </Style>
+    <Style Selector="Border.oval.frozen">
+        <Setter Property="BorderBrush" Value="{StaticResource Info}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Border.oval.acting">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Border.oval.defending">
+        <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
+        <Setter Property="BorderThickness" Value="3" />
+    </Style>
+    <Style Selector="Border.oval.attacking">
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+        <Setter Property="BorderThickness" Value="3" />
+    </Style>
+    <Style Selector="Panel.bgCell.dying">
+        <Setter Property="Opacity" Value="0.4" />
+    </Style>
+    <Style Selector="Border.portrait">
+        <Setter Property="BorderBrush" Value="{StaticResource GoldTrim}" />
+    </Style>
+    <Style Selector="Border.portrait.theirs">
+        <Setter Property="BorderBrush" Value="{StaticResource Accent2Line}" />
+    </Style>
+    <!-- The Battlegrounds step bar: tavern in the accent, combat neutral, the end of a combat in its result's colour -->
+    <Style Selector="Border.bgStep">
+        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+    </Style>
+    <Style Selector="Border.bgStep.combat">
+        <Setter Property="Background" Value="{StaticResource Surface3}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GoldTrim}" />
+    </Style>
+    <Style Selector="Border.bgStep.over">
+        <Setter Property="Background" Value="{StaticResource Surface3}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+    </Style>
+    <Style Selector="Border.bgStep.won">
+        <Setter Property="Background" Value="{StaticResource PositiveSoft}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Positive}" />
+    </Style>
+    <Style Selector="Border.bgStep.lost">
+        <Setter Property="Background" Value="{StaticResource NegativeSoft}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
+    </Style>
+    <Style Selector="Border.bgStep TextBlock.stepTitle">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Border.bgStep.combat TextBlock.stepTitle">
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+    <!-- A leaderboard row: the combat opponent on a soft plate, heroes out of the game faded -->
+    <Style Selector="Border.leader">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.leader.fighting">
+        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+    </Style>
+    <Style Selector="Border.leader.dead">
+        <Setter Property="Opacity" Value="0.35" />
+    </Style>
+    <Style Selector="TextBlock.place">
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+    <Style Selector="TextBlock.place.you">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <!-- The "Turn" list's marker: the stretch's colour (MatchTimelineLayout.MarkerBrush) -->
+    <Style Selector="Border.marker">
+        <Setter Property="Background" Value="{StaticResource Muted}" />
+    </Style>
+    <Style Selector="Border.marker.mine">
+        <Setter Property="Background" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Border.marker.theirs">
+        <Setter Property="Background" Value="{StaticResource Accent2}" />
+    </Style>
+    <Style Selector="Border.marker.won">
+        <Setter Property="Background" Value="{StaticResource Positive}" />
+    </Style>
+    <Style Selector="Border.marker.lost">
+        <Setter Property="Background" Value="{StaticResource Negative}" />
+    </Style>
+    <!-- Plan R2, the Constructed table's marks (Panel.mark: a minion, a hero portrait, a chip). The table's classes say
+         whose step it is (mine: the accent, else the second accent) and its kind (attack, else a play); later styles
+         win, so an attack target's Negative comes last. -->
+    <Style Selector="Panel.mark Ellipse.halo, Panel.mark Border.frame, Panel.mark Ellipse.ring, Panel.mark Rectangle.aim, Panel.mark Border.badge, Panel.mark TextBlock.skull">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Panel.mark.acting Ellipse.halo, Panel.mark.acting Border.frame.act, Panel.mark.acting Ellipse.ring.act">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="StackPanel.ctTable.attack Panel.mark.acting Border.badge.attacker">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="StackPanel.ctTable.attack Panel.mark.acting Border.frame.act">
+        <Setter Property="ToolTip.Tip" Value="{i:Loc Match.Mark.Attacker}" />
+    </Style>
+    <Style Selector="StackPanel.ctTable.attack Panel.mark.targeted Border.frame.hit, StackPanel.ctTable.attack Panel.mark.targeted Ellipse.ring.hit, StackPanel.ctTable.attack Panel.mark.targeted Border.badge.hit">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="StackPanel.ctTable:not(.attack) Panel.mark.targeted Rectangle.aim, StackPanel.ctTable:not(.attack) Panel.mark.targeted Ellipse.ring.aim, StackPanel.ctTable:not(.attack) Panel.mark.targeted Border.badge.aim">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Panel.mark.dying Panel.body">
+        <Setter Property="Opacity" Value="0.4" />
+    </Style>
+    <Style Selector="Panel.mark.dying TextBlock.skull">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Panel.mark Border.badge">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Background" Value="{StaticResource Surface3}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{StaticResource Accent2}" />
+    </Style>
+    <Style Selector="Panel.mark Border.badge TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{StaticResource Accent2}" />
+    </Style>
+    <Style Selector="Panel.mark Border.frame">
+        <Setter Property="BorderBrush" Value="{StaticResource Accent2}" />
+    </Style>
+    <Style Selector="Panel.mark Ellipse.ring, Panel.mark Rectangle.aim">
+        <Setter Property="Stroke" Value="{StaticResource Accent2}" />
+    </Style>
+    <Style Selector="StackPanel.ctTable.mine Panel.mark Border.frame, StackPanel.ctTable.mine Panel.mark Border.badge">
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="StackPanel.ctTable.mine Panel.mark Ellipse.ring, StackPanel.ctTable.mine Panel.mark Rectangle.aim">
+        <Setter Property="Stroke" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="StackPanel.ctTable.mine Panel.mark Border.badge TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Panel.mark Border.frame.hit, Panel.mark Border.badge.hit">
+        <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
+    </Style>
+    <Style Selector="Panel.mark Ellipse.ring.hit">
+        <Setter Property="Stroke" Value="{StaticResource Negative}" />
+    </Style>
+    <Style Selector="Panel.mark Border.badge.hit TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Negative}" />
+    </Style>
+    <!-- The change badge: the health a card or hero gained or lost on the step (its colour from the sign) -->
+    <Style Selector="Border.change">
+        <Setter Property="MinWidth" Value="30" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="Padding" Value="6,0" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+    </Style>
+    <Style Selector="Border.change TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- A side's counters: glyph and number, the tooltip on the whole pair -->
+    <Style Selector="StackPanel.counter">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="StackPanel.counter TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="StackPanel.counter TextBlock.icon">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        <Setter Property="Margin" Value="0,0,3,0" />
+    </Style>
+    <!-- The side's name, mana and counters right of the portrait (under it at phone width) -->
+    <Style Selector="Grid.heroLine StackPanel.sideInfo">
+        <Setter Property="Grid.Column" Value="2" />
+        <Setter Property="Margin" Value="18,0,0,0" />
+    </Style>
+    <!-- The event feed: right of the table; a turn's header with its marker (yours, theirs, the mulligan) -->
+    <Style Selector="Border.feed">
+        <Setter Property="Grid.Column" Value="2" />
+    </Style>
+    <Style Selector="Button.feedHeader">
+        <Setter Property="Margin" Value="0,10,0,4" />
+    </Style>
+    <Style Selector="Button.feedHeader.first">
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="Button.feedHeader Border.marker">
+        <Setter Property="Background" Value="{StaticResource Accent2}" />
+    </Style>
+    <Style Selector="Button.feedHeader Border.marker.mine">
+        <Setter Property="Background" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Button.feedHeader Border.marker.neutral">
+        <Setter Property="Background" Value="{StaticResource Muted}" />
+    </Style>
+    <Style Selector="TextBlock.feedTurn">
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+    <Style Selector="TextBlock.feedTurn.current">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <!-- The bookmark toggle on a bookmarked step, the header's star of a saved game: the accent -->
+    <Style Selector="Button.bookmark.on, Button.headerStar.starred">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <!-- Phone width: "Turn" over the bookmarks ("Bookmarks" drops its word: the window's .wide rule) -->
+    <Style Selector="m|MainView.compact Grid.playerNav ComboBox.turns">
+        <Setter Property="Grid.ColumnSpan" Value="2" />
+        <Setter Property="Width" Value="NaN" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="m|MainView.compact Grid.playerNav StackPanel.bookmarks">
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="2" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+    <!-- Phone width: the turn's actions go under the table, the decks stack -->
+    <Style Selector="m|MainView.compact Border.actions">
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+        <Setter Property="Margin" Value="0,16,0,0" />
+    </Style>
+    <Style Selector="m|MainView.compact Border.table">
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
+    <Style Selector="m|MainView.compact Border.second">
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+        <Setter Property="Margin" Value="0,16,0,0" />
+    </Style>
+    <Style Selector="m|MainView.compact Border.first">
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
+    <!-- The header's columns come from styles, not the tags: a local Grid.Column would beat the compact styles below, and
+         at phone width the plate and the opponent stayed in the narrow columns, leaving the names no room -->
+    <Style Selector="Border.result">
+        <Setter Property="Grid.Column" Value="1" />
+    </Style>
+    <Style Selector="DockPanel.opponent">
+        <Setter Property="Grid.Column" Value="2" />
+    </Style>
+    <Style Selector="m|MainView.compact DockPanel.local">
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
+    <Style Selector="m|MainView.compact Border.result">
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,12,0,0" />
+    </Style>
+    <!-- Phone width, plan R2: the event feed under the table, 360 at most; a side's name and counters under its portrait -->
+    <Style Selector="m|MainView.compact Border.feed">
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+        <Setter Property="Margin" Value="0,16,0,0" />
+    </Style>
+    <Style Selector="m|MainView.compact ScrollViewer.feed">
+        <Setter Property="MaxHeight" Value="360" />
+    </Style>
+    <Style Selector="m|MainView.compact Grid.heroLine StackPanel.sideInfo">
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+    <Style Selector="m|MainView.compact DockPanel.opponent">
+        <Setter Property="Grid.Row" Value="2" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,12,0,0" />
+    </Style>
+
+    <!-- The header's icon buttons on one framed bar over the hero art (its visibility is bound in the view) -->
+    <Style Selector="Border.headerActions">
+        <Setter Property="DockPanel.Dock" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="12,0,0,0" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+        <Setter Property="Background" Value="{StaticResource Surface2}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <!-- Phone width: the bar above the title, so the title keeps the whole width -->
+    <Style Selector="m|MainView.compact Border.headerActions">
+        <Setter Property="DockPanel.Dock" Value="Top" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+</Styles>

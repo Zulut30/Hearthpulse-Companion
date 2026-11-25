@@ -3,6 +3,7 @@ using System.Text;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Collection;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
@@ -71,7 +72,7 @@ public sealed class CardPageViewModelTests : IDisposable
         var page = vm.CardPage;
         Assert.False(page.Loading);
         Assert.Equal(("T_BOLT", "Test Bolt", "Discover a spell. Deal 3 damage."), (page.CardId, page.Name, page.Text));
-        Assert.Equal([Loc.F("Card.Cost", 2), "Mage", "Emerald Dream", Loc.T("Main.Nav.Standard")], page.Facts);
+        Assert.Equal([Loc.F("Card.Cost", 2), "Mage", CardSets.DisplayName("EMERALD_DREAM"), Loc.T("Main.Nav.Standard")], page.Facts);
 
         // 22.4 % of decks at 1.99 copies; 55.1 % deck win rate; drawn 54.1 %; played 53.6 % over 143,721 plays; kept 50 %
         // (56.1 % in the opening hand); turn 6.4.

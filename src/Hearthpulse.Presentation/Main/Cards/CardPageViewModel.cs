@@ -8,6 +8,7 @@ using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Collection;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
@@ -149,7 +150,7 @@ public sealed partial class CardPageViewModel : Observable
         Tiles = page.Stats is { } stats ? StatTiles(stats) : [];
         var slice = Joined(
         [
-            page.StatsDate is { } date ? Loc.F("Source.Health.Updated", date.ToLocalTime()) : HearthpulseData.Attribution,
+            page.StatsDate is { } date ? Loc.F("Source.Health.Updated", date.ToLocalTime()) : SourceName(HearthpulseData.Attribution),
             RankLabel(page.RankRange),
             PeriodLabel(page.TimeRange),
         ]);
@@ -186,7 +187,7 @@ public sealed partial class CardPageViewModel : Observable
 
         var source = meta is null ? string.Empty : Joined(
         [
-            Loc.F("Card.Meta.Source", meta.Source, ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank), ConstructedMeta.Label(ConstructedMeta.Periods, meta.Period)),
+            Loc.F("Card.Meta.Source", SourceName(meta.Source), ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank), ConstructedMeta.Label(ConstructedMeta.Periods, meta.Period)),
             page.MetaDate is { } updated ? Loc.F("Card.Updated", updated.ToLocalTime()) : null,
         ]);
         MetaSource = Archetypes.Count == 0 && Mulligan.Count == 0 ? string.Empty : MainViewModel.WithDelay(source, metaDelay);
@@ -228,7 +229,7 @@ public sealed partial class CardPageViewModel : Observable
         var tiles = new List<StatTile>();
         if (s.DeckShare is { } share)
         {
-            tiles.Add(new StatTile(Loc.T("Card.Stats.DeckShare"), Percent(share, "P1"), s.AverageCopies is { } copies ? Loc.F("Card.Stats.Copies", copies) : string.Empty));
+            tiles.Add(new StatTile(Loc.T("Card.Stats.DeckShare"), Percent(share, "P1"), s.AverageCopies is { } copies ? Loc.F(Math.Round(copies, 2) == 1 ? "Card.Stats.Copy" : "Card.Stats.Copies", copies) : string.Empty));
         }
 
         if (s.DeckWinRate is { } deck)
@@ -289,8 +290,12 @@ public sealed partial class CardPageViewModel : Observable
         : range == "CURRENT_PATCH" ? Loc.T("Card.Period.Patch")
         : string.Empty;
 
-    /// <summary>The set as the card data names it: card data has the set's code only ("EMERALD_DREAM"), shown as words.</summary>
-    private static string SetName(string set) => CultureInfo.InvariantCulture.TextInfo.ToTitleCase(set.Replace('_', ' ').ToLowerInvariant());
+    /// <summary>The set's name in the interface language, as the collection page names it; words from the code only for a set the table does not know.</summary>
+    private static string SetName(string set) => CardSets.DisplayName(set);
+
+    /// <summary>The data source as the interface language names it: one wording per language on the whole page ("Данные Hearthpulse" beside "Данные Hearthpulse", never "Hearthpulse data").</summary>
+    private static string SourceName(string source) =>
+        string.Equals(source, HearthpulseData.Attribution, StringComparison.Ordinal) ? Loc.T("Overlay.Source.External") : source;
 
     private static string Percent(double value, string format) => value.ToString(format, CultureInfo.CurrentCulture);
 

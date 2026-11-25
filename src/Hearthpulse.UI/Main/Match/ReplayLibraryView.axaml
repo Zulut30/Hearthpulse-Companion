@@ -309,19 +309,19 @@
                     <RadioButton Classes="segment" GroupName="Library" IsChecked="{Binding IsRecent, Mode=OneWay}" Command="{Binding SetTab}" CommandParameter="Recent">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{i:Loc Library.Tab.Recent}" />
-                            <TextBlock Text="{Binding RecentCount}" FontSize="{StaticResource FontSizeLabel}" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
+                            <TextBlock Text="{Binding RecentCount}" FontSize="{StaticResource FontSizeLabel}" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Muted}" />
                         </StackPanel>
                     </RadioButton>
                     <RadioButton Classes="segment" GroupName="Library" IsChecked="{Binding IsSaved, Mode=OneWay}" Command="{Binding SetTab}" CommandParameter="Saved">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{i:Loc Library.Tab.Saved}" />
-                            <TextBlock Text="{Binding SavedCount}" FontSize="{StaticResource FontSizeLabel}" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
+                            <TextBlock Text="{Binding SavedCount}" FontSize="{StaticResource FontSizeLabel}" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Muted}" />
                         </StackPanel>
                     </RadioButton>
                     <RadioButton Classes="segment" GroupName="Library" IsChecked="{Binding IsImported, Mode=OneWay}" Command="{Binding SetTab}" CommandParameter="Imported">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{i:Loc Library.Tab.Imported}" />
-                            <TextBlock Text="{Binding ImportedCount}" FontSize="{StaticResource FontSizeLabel}" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
+                            <TextBlock Text="{Binding ImportedCount}" FontSize="{StaticResource FontSizeLabel}" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Muted}" />
                         </StackPanel>
                     </RadioButton>
                 </StackPanel>

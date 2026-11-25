@@ -320,7 +320,8 @@ public sealed partial class LocBindingTests
             Assert.True(bar.Bounds.Width > 0);
 
             // The leaderboard rows (from the view model) and the hand's template on contract records.
-            var row = Assert.IsAssignableFrom<IDataTemplate>(view.Resources["LeaderRow"]).Build(MatchViewModel.Leader(step.Leaderboard[0]))!;
+            // FindResource: the template lives in MatchResources.axaml, merged into the view.
+            var row = Assert.IsAssignableFrom<IDataTemplate>(view.FindResource("LeaderRow")).Build(MatchViewModel.Leader(step.Leaderboard[0]))!;
             row.DataContext = MatchViewModel.Leader(step.Leaderboard[0]);
             window.Content = row;
             Dispatcher.UIThread.RunJobs();
