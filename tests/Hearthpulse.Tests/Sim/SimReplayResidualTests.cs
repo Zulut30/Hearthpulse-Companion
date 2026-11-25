@@ -8,7 +8,7 @@ namespace Hearthpulse.Tests.Sim;
 /// Real fights → tests (package ACC sim-replay-residuals, 2026-11-19): the fights of the kept log of 15.11.2026
 /// (<c>D:\Hearthstone\Logs\Hearthstone_2026_11_15_20_36_45</c>, build 255790) that Bench <c>simreplay</c> found diverging
 /// after the engine rules package, replayed step by step through <see cref="SimReplayKit"/>. They run only where that log
-/// is kept (<see cref="RealLogsFactAttribute"/>); the rules themselves are pinned without it by
+/// is kept (<see cref="RealLogsFactAttribute"/> with the folder name); the rules themselves are pinned without it by
 /// <c>VeryHungryWinterfinnerTests</c> and <c>TarecgosaTests</c>.
 /// </summary>
 /// <remarks>
@@ -33,7 +33,7 @@ public sealed class SimReplayResidualTests
 
     private static ReplayableFight Fight(string key) => Fights.Value.Single(f => f.Key.EndsWith(key, StringComparison.Ordinal));
 
-    [RealLogsFact]
+    [RealLogsFact(Log)]
     public void Winterfinner_buffs_the_flighty_scout_in_hand_before_bassgill_summons_it()
     {
         // Game 2 fight 9: Winterfinner takes 49 and gives Flighty Scout in hand +2/+1 (179/172 → 181/173); Bassgill's
@@ -41,21 +41,21 @@ public sealed class SimReplayResidualTests
         SimReplayKit.AssertReplays(Fight("#2/9"), Cards.Value);
     }
 
-    [RealLogsFact]
+    [RealLogsFact(Log)]
     public void Winterfinner_buffs_the_dark_paradox_in_hand_before_it_is_summoned()
     {
         // Game 2 fight 12: Winterfinner's +2/+1 goes to Dark Paradox in hand (82/74 → 84/75), summoned later as a Golem.
         SimReplayKit.AssertReplays(Fight("#2/12"), Cards.Value);
     }
 
-    [RealLogsFact]
+    [RealLogsFact(Log)]
     public void Golden_tarecgosa_doubles_eudoras_buff_on_itself()
     {
         // Game 5 fight 8: Ship Master Eudora gives +8/+8 once; golden Tarecgosa doubles its own to +16/+16 (36/34).
         SimReplayKit.AssertReplays(Fight("#5/8"), Cards.Value);
     }
 
-    [RealLogsFact]
+    [RealLogsFact(Log)]
     public void The_last_one_standing_fight_replays_with_the_opponents_deity_awakening_from_its_progress()
     {
         // Game 3 fight 11: both Rallies of The Last One Standing match (+20/+20 then +10/+10), and the opponent's Y'Shaarj

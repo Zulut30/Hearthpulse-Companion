@@ -70,7 +70,7 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>Re-reads <c>/me</c> (profile and subscription) and the daily limits, then the center's counts.</summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "RelayCommand takes an Action in both UIs. Kept on purpose (Q7, 2026-11-02): the account service reports failures as results, and anything else that escapes still reaches the dispatcher's crash window instead of only the log.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "RelayCommand takes an Action in both UIs. Kept on purpose (Q7, 2026-11-02): the account service reports failures as results. Nothing here can be cancelled: CheckNowAsync gets no token, the refresh and /me run with CancellationToken.None and an HTTP timeout comes back as OFFLINE. Anything else that escapes still reaches the dispatcher's crash window instead of only the log.")]
     public RelayCommand CheckAccountNow => _checkAccountNow ??= new RelayCommand(async () =>
     {
         if (_account is null || AccountChecking)

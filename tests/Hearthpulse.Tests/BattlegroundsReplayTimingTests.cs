@@ -13,16 +13,10 @@ namespace Hearthpulse.Tests;
 [Collection(nameof(TimingCollection))]
 public sealed class BattlegroundsReplayTimingTests(ITestOutputHelper output)
 {
-    [RealLogsFact]
+    [RealLogsFact(BattlegroundsReplayTests.RealLogFolder)]
     [Trait("Category", "Timing")]
     public void The_28_10_game_is_recorded_whole_under_a_megabyte_and_without_slowing_the_parser()
     {
-        if (!File.Exists(BattlegroundsReplayTests.RealLog))
-        {
-            output.WriteLine($"skipped: {BattlegroundsReplayTests.RealLog} is not here");
-            return;
-        }
-
         // The Battlegrounds game only: from its CREATE_GAME on (the log holds two Constructed games before it).
         var all = File.ReadAllLines(BattlegroundsReplayTests.RealLog);
         var type = Array.FindIndex(all, l => l.Contains("GameType=GT_BATTLEGROUNDS", StringComparison.Ordinal));
