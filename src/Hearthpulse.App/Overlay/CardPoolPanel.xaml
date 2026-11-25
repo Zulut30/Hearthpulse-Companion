@@ -31,7 +31,7 @@
         <DataTemplate x:Key="PoolRowTemplate" DataType="{x:Type o:PoolListRow}">
             <!-- The full card on hover: the panel lets clicks through, so the poll finds the row under the pointer -->
             <Grid Height="24" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
-                <Border Style="{StaticResource OverlayCapsule}" c:RoundClip.Radius="12">
+                <Border Style="{StaticResource OverlayCapsule}">
                     <Grid>
                         <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                         <Rectangle Fill="{StaticResource TileFade}" />

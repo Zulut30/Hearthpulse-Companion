@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:c="clr-namespace:Hearthpulse.App.Controls">
     <!-- Overlay-only look shared by the overlay window and its panels (Avalonia: Overlay/OverlayLook.axaml, same names as
          classes). Theme tokens only, no hex: the theme engine recolours Theme.xaml alone. Nothing here loops, blurs or casts a
          shadow: the overlay draws over the game. The one motion is the row flash, started once by the row template. -->
@@ -77,10 +78,12 @@
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
-    <!-- Card row as a capsule (V3): the plate, the art and the flash are clipped to it (RoundClip 12 on a 24 row) -->
+    <!-- Card row as a capsule (V3): the plate, the art and the flash are clipped to it. RoundClip.Pill keeps it a capsule at
+         any row height (22, compact 18): a fixed 12 drew elliptic ends on the shorter rows in WPF -->
     <Style x:Key="OverlayCapsule" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource Row}" />
         <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="c:RoundClip.Pill" Value="True" />
     </Style>
 
     <!-- Rarity-lit edge around a capsule row: KeyBrush with "edge" gives the rarity colour at 85 % alpha (a card
@@ -88,6 +91,7 @@
     <Style x:Key="OverlayRarityEdge" TargetType="Border">
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="c:RoundClip.Pill" Value="True" />
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
@@ -95,6 +99,7 @@
     <Style x:Key="OverlayCountBadge" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource OverlayBadgeShade}" />
         <Setter Property="CornerRadius" Value="9" />
+        <Setter Property="c:RoundClip.Pill" Value="True" />
         <Setter Property="MinWidth" Value="20" />
         <Setter Property="Height" Value="18" />
         <Setter Property="Padding" Value="5,0" />

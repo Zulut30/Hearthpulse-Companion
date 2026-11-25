@@ -17,7 +17,7 @@
             <!-- A dead minion: cost gem, name over the art with its rarity strip, "×2" for repeats -->
             <DataTemplate x:Key="DeadRow" DataType="{x:Type o:PoolListRow}">
                 <Grid x:Name="RowRoot" Height="22" Margin="0,0,0,2" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
-                    <Border Style="{StaticResource OverlayCapsule}" c:RoundClip.Radius="11">
+                    <Border Style="{StaticResource OverlayCapsule}">
                         <Grid>
                             <Image x:Name="Art" i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
                             <Rectangle x:Name="Fade" Fill="{StaticResource TileFade}" />

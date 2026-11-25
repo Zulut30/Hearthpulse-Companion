@@ -32,7 +32,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Border Style="{StaticResource OverlayCapsule}" c:RoundClip.Radius="12">
+                    <Border Style="{StaticResource OverlayCapsule}">
                         <Grid>
                             <Image x:Name="Art" i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                             <Rectangle x:Name="Fade" Fill="{StaticResource TileFade}" />
