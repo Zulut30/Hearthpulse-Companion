@@ -40,11 +40,6 @@ public partial class App
         menu.Items.Add(_traySoftwareItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(Loc.T("Host.Tray.Quit"), null, (_, _) => Quit()).Tag = "Host.Tray.Quit";
-        foreach (Forms.ToolStripItem item in menu.Items)
-        {
-            item.ForeColor = System.Drawing.Color.FromArgb(0xF4, 0xE7, 0xC9);
-        }
-
         _tray = new Forms.NotifyIcon
         {
             Icon = iconStream is null ? System.Drawing.SystemIcons.Application : new System.Drawing.Icon(iconStream),
@@ -123,12 +118,32 @@ public partial class App
         }
     }
 
-    /// <summary>Tray menu in the app's brown and gold palette (Surface, Surface3, Border and Accent).</summary>
+    /// <summary>
+    /// Tray menu in the current theme's colours (Surface, Surface3, Border, Text and Accent), read at each paint so a
+    /// theme switch recolours it; it was fixed to Tavern's brown and gold in every theme (H1). The fallbacks are Tavern's.
+    /// </summary>
     private sealed class DarkMenuRenderer : Forms.ToolStripProfessionalRenderer
     {
-        private static readonly System.Drawing.Color Background = System.Drawing.Color.FromArgb(0x21, 0x16, 0x0E);
-        private static readonly System.Drawing.Color Hover = System.Drawing.Color.FromArgb(0x3A, 0x28, 0x17);
-        private static readonly System.Drawing.Color Line = System.Drawing.Color.FromArgb(0x3D, 0x2A, 0x19);
+        private static System.Drawing.Color Background => Token("Surface", 0x21, 0x16, 0x0E);
+
+        private static System.Drawing.Color Hover => Token("Surface3", 0x3A, 0x28, 0x17);
+
+        private static System.Drawing.Color Line => Token("Border", 0x3D, 0x2A, 0x19);
+
+        private static System.Drawing.Color Token(string key, byte r, byte g, byte b) =>
+            Current?.TryFindResource(key) is System.Windows.Media.SolidColorBrush brush
+                ? System.Drawing.Color.FromArgb(brush.Color.R, brush.Color.G, brush.Color.B)
+                : System.Drawing.Color.FromArgb(r, g, b);
+
+        protected override void OnRenderItemText(Forms.ToolStripItemTextRenderEventArgs e)
+        {
+            if (e.Item.Enabled)
+            {
+                e.TextColor = Token("Text", 0xF4, 0xE7, 0xC9);
+            }
+
+            base.OnRenderItemText(e);
+        }
 
         protected override void OnRenderToolStripBackground(Forms.ToolStripRenderEventArgs e) => e.Graphics.Clear(Background);
 
@@ -160,7 +175,7 @@ public partial class App
 
         protected override void OnRenderItemCheck(Forms.ToolStripItemImageRenderEventArgs e)
         {
-            using var brush = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(0xE9, 0xB9, 0x49));
+            using var brush = new System.Drawing.SolidBrush(Token("Accent", 0xE9, 0xB9, 0x49));
             e.Graphics.FillEllipse(brush, e.ImageRectangle.X + 4, e.ImageRectangle.Y + 4, 8, 8);
         }
     }
