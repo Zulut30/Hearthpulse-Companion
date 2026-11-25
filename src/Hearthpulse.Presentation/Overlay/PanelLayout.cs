@@ -115,6 +115,45 @@ public static class PanelLayout
         return (x, y, below, right);
     }
 
+    /// <summary>Space a fitted panel keeps from the screen's edge and from the panel it stays below.</summary>
+    public const double FitGap = 12;
+
+    /// <summary>A fitted panel never gets less room than this, however crowded its column: a few rows stay readable.</summary>
+    public const double FitFloor = 120;
+
+    /// <summary>
+    /// The height a panel that fits the screen may take, on screen (its scale included). A panel at its default spot at
+    /// the bottom (<paramref name="growsUp"/>: the counters) grows upward and stops under the panel above it in its column
+    /// (<paramref name="above"/>, when that one is shown and overlaps it across); one at a top spot runs down to the
+    /// screen's bottom edge. A panel the player placed is only held to the whole screen's height: it is moved up
+    /// rather than shortened (<see cref="KeepInside"/>). Long lists inside scroll instead of running off the screen.
+    /// </summary>
+    /// <param name="top">The panel's top on the surface.</param>
+    /// <param name="height">Its height on screen now.</param>
+    /// <param name="above">Left, right and bottom edge of the panel this one stays below, or null.</param>
+    public static double Room(double top, double height, double left, double width, double surfaceHeight, bool placed, bool growsUp,
+        (double Left, double Right, double Bottom)? above)
+    {
+        if (placed)
+        {
+            return Math.Max(FitFloor, surfaceHeight - (2 * FitGap));
+        }
+
+        if (!growsUp)
+        {
+            return Math.Max(FitFloor, surfaceHeight - FitGap - top);
+        }
+
+        var bottom = top + height;
+        var ceiling = FitGap;
+        if (above is { } a && a.Left < left + width && a.Right > left && a.Bottom < bottom)
+        {
+            ceiling = Math.Max(ceiling, a.Bottom + FitGap);
+        }
+
+        return Math.Max(FitFloor, bottom - ceiling);
+    }
+
     /// <summary>The placement saved for a panel whose top-left corner is at (<paramref name="x"/>, <paramref name="y"/>).</summary>
     public static PanelPlacement Placement(double x, double y, double surfaceWidth, double surfaceHeight, double scale) => new()
     {

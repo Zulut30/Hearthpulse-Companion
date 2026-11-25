@@ -165,19 +165,22 @@
                            IsVisible="{Binding CardPoolPicksNote, Converter={StaticResource Truthy}}" />
             </StackPanel>
 
-            <!-- ===== Summary: averages, then the most common mechanics, two cells a row ===== -->
+            <!-- ===== Summary: averages, then the most common mechanics, two cells a row. A wrap panel of half-width cells, not a
+                 uniform grid: a long name ("Предсмертный хрип") takes a second line in its own row only, and the panel takes no
+                 clicks, so a cut name could not be read from a tooltip ===== -->
             <ItemsControl ItemsSource="{Binding CardPoolSummary}" Margin="12,12,0,0" IsVisible="{Binding CardPoolSummary, Converter={StaticResource Truthy}}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <UniformGrid Columns="2" />
+                        <WrapPanel ItemWidth="142" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="o:PoolAverage">
-                        <DockPanel Height="18" Margin="0,0,12,0">
+                        <DockPanel MinHeight="18" Margin="0,0,12,0">
                             <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeLabel}" FontWeight="Bold"
                                        Foreground="{StaticResource Text}" VerticalAlignment="Center" Margin="4,0,0,0" />
-                            <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" MaxLines="2"
+                                       TextTrimming="CharacterEllipsis" LineHeight="14" Margin="0,2" VerticalAlignment="Center" />
                         </DockPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

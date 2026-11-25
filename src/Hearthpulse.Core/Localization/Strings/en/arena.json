@@ -1,6 +1,7 @@
 {
   "Arena.NoScore": "No score yet",
   "Arena.BestPick": "Best pick",
+  "Arena.NoClassData": "No class data yet",
   "Arena.BestClass": "Best class",
   "Arena.SevenPlus": "7+ wins: {0}",
   "Arena.SevenPlusShort": "7+: {0}",

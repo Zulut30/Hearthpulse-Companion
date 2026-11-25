@@ -15,36 +15,45 @@
         <DataTemplate x:Key="BadgeTemplate" DataType="{x:Type o:ArenaPickBadge}">
             <Border x:Name="Badge" HorizontalAlignment="Center" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}"
                     BorderThickness="1.5" CornerRadius="14" Padding="6,5,14,5" MinWidth="146">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <!-- The tier letter is the badge's first read, as on the site's tier list -->
-                    <Grid Width="42" Height="42" VerticalAlignment="Center">
-                        <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
+                <!-- A dock, not a horizontal stack: the lines beside the seal get the cell's width and wrap in it. At overlay scale 1.6
+                     a cell is narrower than the badge's text, which was cut at the next badge (bug-hunt #11) -->
+                <DockPanel HorizontalAlignment="Center">
+                    <!-- The tier letter is the badge's first read, as on the site's tier list. Without a tier (no numbers) the seal is a
+                         dark one with a question mark: an empty light seal read as a missing picture -->
+                    <Grid DockPanel.Dock="Left" Width="42" Height="42" VerticalAlignment="Center">
+                        <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" Visibility="{Binding Tier, Converter={StaticResource Vis}}" />
                         <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Ink}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <c:Scallop Fill="{StaticResource Surface3}" Lobes="9" Depth="0.1" Visibility="{Binding Tier, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        <TextBlock Text="?" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeSubhead}" FontWeight="Bold" Foreground="{StaticResource Muted}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding Tier, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     </Grid>
                     <StackPanel Margin="9,0,0,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="Star" Text="&#xF04CE;" Style="{StaticResource Icon}" FontSize="15" Foreground="{StaticResource Accent}" VerticalAlignment="Center"
                                        Margin="0,0,4,0" Visibility="{Binding IsBest, Converter={StaticResource Vis}}" />
-                            <TextBlock Text="{Binding Number}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="Bold"
+                            <TextBlock x:Name="Number" Text="{Binding Number}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="Bold"
                                        Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" VerticalAlignment="Center" />
                         </StackPanel>
-                        <TextBlock x:Name="Caption" Text="{Binding Caption}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                        <TextBlock x:Name="Caption" Text="{Binding Caption}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextWrapping="Wrap"
                                    Visibility="{Binding Caption, Converter={StaticResource Vis}}" />
                         <!-- Where the card would sit in the deck: its curve bucket, its type (or package) -->
-                        <TextBlock Text="{Binding FitCost}" FontSize="10" Foreground="{StaticResource Text}" Margin="0,2,0,0"
+                        <TextBlock Text="{Binding FitCost}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Text}" TextWrapping="Wrap" Margin="0,2,0,0"
                                    Visibility="{Binding FitCost, Converter={StaticResource Vis}}" />
-                        <TextBlock Text="{Binding FitType}" FontSize="10" Foreground="{StaticResource Muted}"
+                        <TextBlock Text="{Binding FitType}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Muted}" TextWrapping="Wrap"
                                    Visibility="{Binding FitType, Converter={StaticResource Vis}}" />
                         <!-- Our own adjustment for the deck so far, on a line of its own: the big number stays the source's score -->
-                        <TextBlock Text="{Binding DeckFit}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Text}" Margin="0,2,0,0"
+                        <TextBlock Text="{Binding DeckFit}" FontSize="{StaticResource FontSizeMicro}" FontWeight="SemiBold" Foreground="{StaticResource Text}" TextWrapping="Wrap" Margin="0,2,0,0"
                                    Visibility="{Binding DeckFit, Converter={StaticResource Vis}}" />
-                        <TextBlock Text="{Binding DeckFitWhy}" FontSize="10" Foreground="{StaticResource Muted}" TextWrapping="Wrap" MaxWidth="150"
+                        <TextBlock Text="{Binding DeckFitWhy}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" MaxWidth="150"
                                    Visibility="{Binding DeckFitWhy, Converter={StaticResource Vis}}" />
                     </StackPanel>
-                </StackPanel>
+                </DockPanel>
             </Border>
             <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Tier}" Value="">
+                    <Setter TargetName="Number" Property="Foreground" Value="{StaticResource Muted}" />
+                </DataTrigger>
                 <DataTrigger Binding="{Binding IsBest}" Value="True">
                     <Setter TargetName="Badge" Property="BorderBrush" Value="{StaticResource Accent}" />
                     <Setter TargetName="Badge" Property="BorderThickness" Value="2.5" />

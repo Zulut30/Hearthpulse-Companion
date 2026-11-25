@@ -258,7 +258,9 @@ public sealed partial class OverlayViewModel
     private static ArenaPickBadge HeroBadge(ArenaPickOption o, ArenaDraftView draft, CultureInfo culture)
     {
         var seven = draft.Classes.FirstOrDefault(c => c.PlayerClass == o.PlayerClass)?.SevenPlus;
-        var caption = o.IsBest ? Loc.T("Arena.BestClass")
+        // Without a win rate the badge says so in words: "—" beside a blank seal alone read as a missing picture.
+        var caption = o.WinRate is null ? Loc.T("Arena.NoClassData")
+            : o.IsBest ? Loc.T("Arena.BestClass")
             : seven is { } s ? Loc.F("Arena.SevenPlus", s.ToString("P0", culture))
             : ClassName(o.PlayerClass);
         var rank = o.ClassRank is { } place && draft.Classes.Count > 0 ? Loc.F("Arena.ClassRank", place, draft.Classes.Count) : string.Empty;
