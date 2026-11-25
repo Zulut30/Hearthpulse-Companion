@@ -83,30 +83,33 @@
 
             <DataTemplate x:Key="MetaDeckTemplate" DataType="{x:Type m:MetaDeckRow}">
                 <Border Style="{StaticResource RowBorder}" Padding="8,8" Margin="-8,0,-8,2">
-                    <!-- The list's columns, and under them (in the room of the row, not of the columns) the collection's label -->
+                    <!-- The list's columns, and under them (in the room of the row, not of the columns) the collection's label.
+                         The archetype's side card (Tag="Narrow" on its list) is too narrow for games, dust and Copy beside the
+                         name: they gave it 11 px. There, as in Avalonia's compact list (metaWide / metaNarrow), games and dust
+                         stay in the full list and Copy stands under the label. -->
                     <StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="40" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="64" />
-                            <ColumnDefinition Width="64" />
-                            <ColumnDefinition Width="64" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Border Width="30" Height="30" CornerRadius="15" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                                 i:CardArt.Portrait="{Binding HeroId}" />
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
                             <TextBlock Text="{Binding Class}" Style="{StaticResource Caption}" />
                         </StackPanel>
                         <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
                                    Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip="{i:Loc Main.Table.WinRate}" />
-                        <TextBlock Grid.Column="3" Text="{Binding Games}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        <TextBlock x:Name="Games" Grid.Column="3" Text="{Binding Games}" Style="{StaticResource Caption}" MinWidth="64" TextAlignment="Right" VerticalAlignment="Center"
                                    ToolTip="{i:Loc Main.Meta.ExactListTip}" />
-                        <TextBlock Grid.Column="4" Text="{Binding Dust}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        <TextBlock x:Name="Dust" Grid.Column="4" Text="{Binding Dust}" Style="{StaticResource Caption}" MinWidth="64" TextAlignment="Right" VerticalAlignment="Center"
                                    ToolTip="{i:Loc Main.Meta.DustTip}" />
-                        <Button Grid.Column="5" Style="{StaticResource GhostButton}" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" FontSize="{StaticResource FontSizeLabel}" Margin="12,0,0,0"
+                        <Button x:Name="CopyWide" Grid.Column="5" Style="{StaticResource GhostButton}" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" FontSize="{StaticResource FontSizeLabel}" Margin="12,0,0,0"
                                 Command="{Binding DataContext.CopyDeck, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                 ToolTip="{i:Loc Main.Meta.CopyTip}" />
                     </Grid>
@@ -115,8 +118,20 @@
                             Content="{Binding Build}" ContentTemplate="{StaticResource DeckBuildLabel}" Click="OnDeckBuild"
                             AutomationProperties.Name="{Binding Build.Name}" AutomationProperties.HelpText="{Binding Build.Details}"
                             ToolTip="{Binding Build.Details}" Visibility="{Binding HasBuild, Converter={StaticResource Vis}}" />
+                    <Button x:Name="CopyNarrow" Style="{StaticResource GhostButton}" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" FontSize="{StaticResource FontSizeLabel}"
+                            HorizontalAlignment="Left" Margin="40,4,0,0" Visibility="Collapsed"
+                            Command="{Binding DataContext.CopyDeck, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                            ToolTip="{i:Loc Main.Meta.CopyTip}" />
                     </StackPanel>
                 </Border>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="Narrow">
+                        <Setter TargetName="Games" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="Dust" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="CopyWide" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="CopyNarrow" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
             </DataTemplate>
 
         </ResourceDictionary>
@@ -349,7 +364,7 @@
                                Visibility="{Binding MulliganEmptyShown, Converter={StaticResource Vis}}" />
 
                     <c:Ornament Text="{i:Loc Main.Meta.BestLists}" Icon="&#xF0639;" Size="13" Margin="0,16,0,8" />
-                    <ItemsControl x:Name="BestLists" ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" Focusable="False" />
+                    <ItemsControl x:Name="BestLists" Tag="Narrow" ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" Focusable="False" />
                     <TextBlock Text="{i:Loc Main.Meta.ListsEmpty}" Style="{StaticResource Caption}" Margin="0,4"
                                Visibility="{Binding ArchetypeDecks, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     <TextBlock x:Name="BestListsCollection" Text="{Binding CollectionStatus}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8,0,0"
