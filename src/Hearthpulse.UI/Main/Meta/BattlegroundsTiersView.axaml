@@ -196,6 +196,18 @@
         <Style Selector="mm|BattlegroundsTiersView.narrow :is(Control).bgPlace">
             <Setter Property="Width" Value="72" />
         </Style>
+        <!-- A hero's name gets two lines there (most names are two or three words), in a row tall enough for both; the
+             list's rows keep one height (PageRowsPanel), so every hero row grows, the tier heads with them -->
+        <Style Selector="mm|BattlegroundsTiersView.narrow Border.bgRow.hero">
+            <Setter Property="Height" Value="56" />
+        </Style>
+        <Style Selector="mm|BattlegroundsTiersView.narrow ItemsControl#HeroTierList Border.tierRow">
+            <Setter Property="Height" Value="56" />
+        </Style>
+        <Style Selector="mm|BattlegroundsTiersView.narrow TextBlock.bgName">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MaxLines" Value="2" />
+        </Style>
         <!-- The line above a list: source, slice and date of the shown rows, or the slice being loaded -->
         <Style Selector="TextBlock.bgSource">
             <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
@@ -225,13 +237,13 @@
              places, pick rate, the player's own games. Compact drops first places and pick rate (metaWide); a narrow
              view also the rank, the bar, the top share and the player's own games (bgNarrowOff). -->
         <DataTemplate x:DataType="m:MetaHeroRow">
-            <Border Classes="bgRow">
+            <Border Classes="bgRow hero">
                 <Grid ColumnDefinitions="Auto,50,*,Auto,Auto,Auto,Auto,Auto">
                     <TextBlock Width="40" Text="{Binding Rank}" Classes="caption bgNarrowOff" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <Border Grid.Column="1" Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
                     <TextBlock Grid.Column="2" Text="{Binding Name}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                               TextTrimming="CharacterEllipsis" Margin="0,0,12,0" Classes="bgName" />
                     <TextBlock Grid.Column="3" Text="{Binding AveragePlace}" Classes="bgPlace" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold" />
                     <Border Grid.Column="3" Classes="bgNarrowOff" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="44,0,0,0"
                             Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
