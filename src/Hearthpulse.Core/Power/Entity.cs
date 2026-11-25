@@ -89,6 +89,12 @@ public sealed class Entity
 
     public bool WasRevealed { get; internal set; }
 
+    /// <summary>
+    /// True after HIDE_ENTITY until the card is shown again: the client shows a card back, and <see cref="CardId"/> is
+    /// only what an earlier reveal left behind (an opponent's Start of Game card shown from the deck, then drawn).
+    /// </summary>
+    public bool HiddenAgain { get; internal set; }
+
     /// <summary>True when the card was part of the starting deck (not generated mid-game).</summary>
     public bool IsOriginalDeckCard =>
         CreatedTurn == 0
