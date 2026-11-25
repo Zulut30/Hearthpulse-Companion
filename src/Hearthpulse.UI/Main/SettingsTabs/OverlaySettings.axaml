@@ -31,9 +31,9 @@
     <StackPanel>
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
-                <Grid Margin="0,0,0,12">
+                <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto">
                     <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" />
-                    <Button Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"
+                    <Button Grid.Column="1" Margin="12,0,0,0" Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"
                             Command="{Binding $parent[UserControl].((m:MainViewModel)DataContext).ResetSettingsGroup}" CommandParameter="{x:Static core:SettingsGroups.Overlay}" />
                 </Grid>
                 <CheckBox Name="OverlaySetting" Classes="switch" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
@@ -49,35 +49,47 @@
                 </Border>
                 <!-- How the overlay looks (D5): density, size and opacity on the left act on the whole overlay, right under its
                      switch; on the right the real deck panel over a sample game follows them and the theme (not in compact,
-                     where the controls take the width). The preview sits on a card's art, as panels sit on the board. -->
-                <Grid Margin="0,0,0,18" ColumnDefinitions="*,24,272">
-                    <StackPanel Classes="overlayLookControls">
-                        <Grid Margin="0,0,0,14" ColumnDefinitions="160,*">
+                     where the controls take the width). The preview sits on a card's art, as panels sit on the board. Density
+                     is a choice row (its bar on the right, as "Pick suggestions"); the sliders share one label column as wide
+                     as their longest label, so "Непрозрачность фона панелей" stays on one line (bug-hunt d5). With no room
+                     for the preview beside them, it goes under the controls (lookNarrow, OverlaySettings.axaml.cs). -->
+                <Grid Name="LookGrid" Margin="0,0,0,18" ColumnDefinitions="*,24,272" RowDefinitions="Auto,Auto">
+                    <StackPanel Classes="overlayLookControls" Grid.IsSharedSizeScope="True">
+                        <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14">
                             <TextBlock Text="{i:Loc Settings.Overlay.Density}" Classes="settingLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.DensityTip}" />
-                            <Border Grid.Column="1" Name="DensityChoice" Classes="segmentBar" HorizontalAlignment="Left" ToolTip.Tip="{i:Loc Settings.Overlay.DensityTip}">
-                                <StackPanel Orientation="Horizontal">
+                            <Border Name="DensityChoice" Classes="segmentBar choice" ToolTip.Tip="{i:Loc Settings.Overlay.DensityTip}">
+                                <WrapPanel>
                                     <RadioButton Classes="segment" Content="{i:Loc Settings.Overlay.Density.Compact}" GroupName="OverlayDensity" Tag="Compact" Click="OnDensity"
                                                  IsChecked="{Binding $parent[UserControl].((m:MainViewModel)DataContext).DensityCompact, Mode=OneWay}" />
                                     <RadioButton Classes="segment" Content="{i:Loc Settings.Overlay.Density.Normal}" GroupName="OverlayDensity" Tag="Normal" Click="OnDensity"
                                                  IsChecked="{Binding $parent[UserControl].((m:MainViewModel)DataContext).DensityNormal, Mode=OneWay}" />
                                     <RadioButton Classes="segment" Content="{i:Loc Settings.Overlay.Density.Large}" GroupName="OverlayDensity" Tag="Large" Click="OnDensity"
                                                  IsChecked="{Binding $parent[UserControl].((m:MainViewModel)DataContext).DensityLarge, Mode=OneWay}" />
-                                </StackPanel>
+                                </WrapPanel>
                             </Border>
                         </Grid>
-                        <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">
-                            <TextBlock Text="{i:Loc Settings.Overlay.Size}" Classes="settingLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="LookLabel" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="56" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Name="SizeLabel" Text="{i:Loc Settings.Overlay.Size}" Classes="settingLabel lookLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
                             <Slider Name="SizeSlider" Grid.Column="1" Minimum="{x:Static core:AppSettings.MinScale}" Maximum="{x:Static core:AppSettings.MaxScale}" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
                             <TextBlock Grid.Column="2" Text="{Binding #SizeSlider.Value, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                         </Grid>
-                        <Grid ColumnDefinitions="160,*,56">
-                            <!-- "Непрозрачность фона панелей" does not fit 160 on one line: it wraps, whole -->
-                            <TextBlock Text="{i:Loc Settings.Overlay.Opacity}" Classes="settingLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.OpacityTip}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="LookLabel" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="56" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Name="OpacityLabel" Text="{i:Loc Settings.Overlay.Opacity}" Classes="settingLabel lookLabel" TextWrapping="Wrap" ToolTip.Tip="{i:Loc Settings.Overlay.OpacityTip}" />
                             <Slider Name="OpacitySlider" Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
                             <TextBlock Grid.Column="2" Text="{Binding #OpacitySlider.Value, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                         </Grid>
                     </StackPanel>
-                    <StackPanel Grid.Column="2" Classes="wide">
+                    <StackPanel Classes="wide overlayLookPreview">
                         <TextBlock Text="{i:Loc Settings.Overlay.Preview}" Classes="caption" Margin="0,0,0,8" />
                         <!-- The board under the panel: a card's art, so the panel's opacity shows; the panel at the overlay's size,
                              cut at the box's edge like a panel at the screen's edge -->
@@ -165,9 +177,9 @@
                 <!-- Rare and expert: the leaderboard calibration -->
                 <ToggleButton Name="AdvancedToggle" Classes="advanced" Content="{i:Loc Settings.Advanced}" AutomationProperties.Name="{i:Loc Settings.Advanced}" />
                 <StackPanel Name="AdvancedPanel" Margin="0,16,0,0" Tag="{Binding #AdvancedToggle}" IsVisible="{Binding #AdvancedToggle.IsChecked}" i:Motion.RevealOnShow="True">
-                <Grid Margin="0,0,0,12">
+                <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto">
                     <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" />
-                    <Button Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"
+                    <Button Grid.Column="1" Margin="12,0,0,0" Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}" AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}"
                             Command="{Binding $parent[UserControl].((m:MainViewModel)DataContext).ResetSettingsGroup}" CommandParameter="{x:Static core:SettingsGroups.Leaderboard}" />
                 </Grid>
                 <TextBlock Text="{i:Loc Settings.Leaderboard.CaptionCrossPlatform}" Classes="caption cardNote" />

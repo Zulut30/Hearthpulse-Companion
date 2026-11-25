@@ -28,6 +28,28 @@ public partial class OverlaySettings : UserControl
         };
     }
 
+    /// <summary>
+    /// Below this width the look block puts its preview under the controls: beside a 272 preview the controls would get
+    /// less than the sliders' one-line label column (about 216 in Russian), a usable slider and its value need.
+    /// </summary>
+    internal const double NarrowLook = 680;
+
+    /// <summary>The preview beside the controls while both fit, under them when not (the minimum window width).</summary>
+    private void OnLookSize(object sender, SizeChangedEventArgs e)
+    {
+        // Also too narrow when the sliders' label column (a longer translation, a larger interface size) would leave a
+        // slider less than 120 beside its 56 value column
+        var label = Math.Max(SizeLabel.DesiredSize.Width, OpacityLabel.DesiredSize.Width);
+        var narrow = e.NewSize.Width < NarrowLook || e.NewSize.Width - 24 - 272 < label + 56 + 120;
+        Grid.SetColumnSpan(LookControls, narrow ? 3 : 1);
+        Grid.SetRow(LookPreview, narrow ? 1 : 0);
+        Grid.SetColumn(LookPreview, narrow ? 0 : 2);
+        Grid.SetColumnSpan(LookPreview, narrow ? 3 : 1);
+        LookPreview.Width = narrow ? 272 : double.NaN;
+        LookPreview.HorizontalAlignment = narrow ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+        LookPreview.Margin = narrow ? new Thickness(0, 16, 0, 0) : default;
+    }
+
     /// <summary>The window saves the settings after a density preset (D5).</summary>
     public event Action? DensityChanged;
 

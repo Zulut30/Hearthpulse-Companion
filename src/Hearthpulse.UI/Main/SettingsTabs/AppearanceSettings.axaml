@@ -22,9 +22,9 @@
         <!-- Theme gallery: the preview follows the pointer and the keyboard, a click applies -->
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel>
-                <Grid Margin="0,0,0,12">
+                <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto">
                     <c:Ornament Text="{i:Loc Settings.Gallery.Title}" Icon="&#xF03D8;" Size="13" />
-                    <Button Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}"
+                    <Button Grid.Column="1" Margin="12,0,0,0" Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}"
                             AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}" Command="{Binding ResetSettingsGroup}"
                             CommandParameter="{x:Static core:SettingsGroups.Appearance}" />
                 </Grid>

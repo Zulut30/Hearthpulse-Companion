@@ -13,7 +13,9 @@ namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
 /// WPF Settings → About, "What's new" (TASK-2026-11-09-update-delivery, review m3/m5): the link tells a screen reader
-/// whether the notes are open, and its accent follows a theme swapped in place (DynamicResource).
+/// whether the notes are open, and its accent follows a theme swapped in place (DynamicResource). The licence line
+/// (legal review L-M3) opens the shipped files and says when one is missing; card headings are headings for UI
+/// Automation (n5).
 /// </summary>
 public sealed class AboutSettingsXamlTests
 {
@@ -21,12 +23,31 @@ public sealed class AboutSettingsXamlTests
     public void Whats_new_link_names_its_state_and_follows_the_theme_accent()
     {
         Loc.Instance.SetLanguage(Loc.English);
+        OnSta(Check);
+    }
+
+    [Fact]
+    public void A_card_heading_is_a_level_two_heading_with_its_title_as_the_name() => OnSta(() =>
+    {
+        var heading = new Hearthpulse.App.Controls.Ornament { Text = "BATTLEGROUNDS RATING" };
+        var peer = System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(heading);
+        Assert.Equal("Battlegrounds rating", peer.GetName());
+        Assert.Equal(System.Windows.Automation.Peers.AutomationControlType.Text, peer.GetAutomationControlType());
+        Assert.Equal(AutomationHeadingLevel.Level2, peer.GetHeadingLevel());
+
+        var sub = new Hearthpulse.App.Controls.Ornament { Text = "Tracked" };
+        AutomationProperties.SetHeadingLevel(sub, AutomationHeadingLevel.Level3);
+        Assert.Equal(AutomationHeadingLevel.Level3, System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(sub).GetHeadingLevel());
+    });
+
+    private static void OnSta(Action check)
+    {
         Exception? failure = null;
         var thread = new Thread(() =>
         {
             try
             {
-                Check();
+                check();
             }
             catch (Exception ex)
             {
@@ -82,5 +103,29 @@ public sealed class AboutSettingsXamlTests
         Assert.Same(frost, link.Foreground);
         Assert.Same(frost, glyph.Foreground);
         Assert.Same(frost, ((Hyperlink)about.FindName("ReleasePageLink")).Foreground);
+
+        // The licence line: both links in the accent, bound to the files next to the exe; a missing one is said under them.
+        var licence = (Hyperlink)about.FindName("LicenceLink");
+        var notices = (Hyperlink)about.FindName("NoticesLink");
+        var status = (System.Windows.Controls.TextBlock)about.FindName("LicenceStatusLine");
+        Assert.Same(frost, licence.Foreground);
+        Assert.Same(frost, notices.Foreground);
+        Assert.Equal(Loc.T("Settings.About.Licence"), ((Run)licence.Inlines.FirstInline).Text);
+        Assert.Equal(Loc.T("Settings.About.Notices"), ((Run)notices.Inlines.FirstInline).Text);
+        Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(status));
+        Assert.Equal(Visibility.Collapsed, status.Visibility);
+        var opened = new List<string>();
+        model.ShippedFilesFolder = Path.Combine(AppPaths.Root, "no-licence-" + Guid.NewGuid().ToString("N"));
+        model.OpenDocument = new Func<string, bool>(path =>
+        {
+            opened.Add(path);
+            return true;
+        });
+        Assert.Same(model.OpenNotices, notices.Command);
+        licence.Command.Execute(null);
+        host.UpdateLayout();
+        Assert.Empty(opened);
+        Assert.Equal(Visibility.Visible, status.Visibility);
+        Assert.Equal(Loc.F("Settings.About.FileMissing", "LICENSE.txt"), status.Text);
     }
 }

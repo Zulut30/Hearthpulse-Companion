@@ -548,7 +548,7 @@
                     <StackPanel MaxWidth="780" HorizontalAlignment="Left">
                         <StackPanel Orientation="Horizontal">
                             <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Settings}" />
-                            <TextBlock Text="{i:Loc Settings.Title}" Classes="display pageTitle" />
+                            <TextBlock Text="{i:Loc Settings.Title}" Classes="display pageTitle" AutomationProperties.HeadingLevel="1" />
                         </StackPanel>
                         <c:Wave Classes="pageRule" />
 

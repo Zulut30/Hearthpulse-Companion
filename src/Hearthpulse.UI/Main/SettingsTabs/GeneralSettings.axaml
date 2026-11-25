@@ -50,9 +50,9 @@
 
         <Border Classes="card">
             <StackPanel>
-                <Grid Margin="0,0,0,12">
+                <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto">
                     <c:Ornament Text="{i:Loc Settings.App.Title}" Icon="&#xF0614;" Size="13" />
-                    <Button Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}"
+                    <Button Grid.Column="1" Margin="12,0,0,0" Classes="ghost reset" Content="{i:Loc Settings.Reset.Group}" ToolTip.Tip="{i:Loc Settings.Reset.GroupTip}"
                             AutomationProperties.Name="{i:Loc Settings.Reset.GroupTip}" Command="{Binding ResetSettingsGroup}"
                             CommandParameter="{x:Static core:SettingsGroups.General}" />
                 </Grid>

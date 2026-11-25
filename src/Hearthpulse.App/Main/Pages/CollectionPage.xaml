@@ -252,7 +252,7 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Collection}" />
-                <TextBlock Grid.Column="1" Text="{i:Loc CollectionPage.Title}" Style="{StaticResource PageTitle}" TextWrapping="Wrap" />
+                <TextBlock Grid.Column="1" Text="{i:Loc CollectionPage.Title}" Style="{StaticResource PageTitle}" TextWrapping="Wrap" AutomationProperties.HeadingLevel="Level1" />
             </Grid>
             <c:Wave Style="{StaticResource PageRule}" />
 

@@ -21,24 +21,27 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <Border Style="{StaticResource Card}" MaxWidth="760" Margin="40,32" Padding="32,24" VerticalAlignment="Center">
                 <StackPanel>
-                    <!-- Header: the logo, the wizard's name and Skip -->
+                    <!-- Header: Skip on the right, the logo on the left, the wizard's name and its line wrap in what is left -->
                     <DockPanel>
                         <Button x:Name="SkipButton" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="{i:Loc Setup.Skip}" Command="{Binding CloseSetup}" VerticalAlignment="Top" />
-                        <StackPanel Orientation="Horizontal">
-                            <Image Source="{StaticResource HearthpulseLogo}" Width="40" Height="40" VerticalAlignment="Center" />
-                            <StackPanel Margin="12,0,16,0" VerticalAlignment="Center">
-                                <TextBlock Text="{i:Loc Setup.Title}" Style="{StaticResource H2}" Foreground="{StaticResource GildedText}" />
-                                <TextBlock Text="{i:Loc Setup.Subtitle}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,2,0,0" />
-                            </StackPanel>
+                        <Image DockPanel.Dock="Left" Source="{StaticResource HearthpulseLogo}" Width="40" Height="40" VerticalAlignment="Center" />
+                        <StackPanel Margin="12,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Text="{i:Loc Setup.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" AutomationProperties.HeadingLevel="Level1" Foreground="{StaticResource GildedText}" />
+                            <TextBlock Text="{i:Loc Setup.Subtitle}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,2,0,0" />
                         </StackPanel>
                     </DockPanel>
 
                     <!-- Round gold step numbers on one hairline: the open one lit, the passed ones ticked; each opens its step -->
                     <Grid Margin="0,24,0,24">
-                        <Border Height="36" Margin="40,0" VerticalAlignment="Top">
+                        <!-- Ten equal halves of the five step cells: the hairline runs from the first marker's centre to the last's -->
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+                            <ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="1" Grid.ColumnSpan="8" Height="36" VerticalAlignment="Top">
                             <Border Height="1" VerticalAlignment="Center" Background="{StaticResource AccentLine}" />
                         </Border>
-                        <ItemsControl ItemsSource="{Binding SetupSteps}" Focusable="False">
+                        <ItemsControl Grid.ColumnSpan="10" ItemsSource="{Binding SetupSteps}" Focusable="False">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <UniformGrid Rows="1" />
@@ -99,7 +102,7 @@
 
                         <!-- 1. Game logs: what they are for, whether they are on, one button that turns them on -->
                         <StackPanel Grid.Column="1" Visibility="{Binding SetupOnLogs, Converter={StaticResource Vis}}">
-                            <TextBlock Text="{i:Loc Setup.Logs.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Logs.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" AutomationProperties.HeadingLevel="Level2" />
                             <TextBlock Text="{i:Loc Setup.Logs.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                                 <TextBlock Text="&#xF05E0;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource Positive}" Margin="0,0,8,0"
@@ -108,31 +111,39 @@
                                            Visibility="{Binding SetupLogsOk, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                 <TextBlock Text="{Binding SetupLogsStatus}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
                             </StackPanel>
-                            <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Setup.Logs.Fix}" Command="{Binding FixLogs}" HorizontalAlignment="Left"
+                            <Button x:Name="FixLogsButton" Style="{StaticResource PrimaryButton}" Content="{i:Loc Setup.Logs.Fix}" Command="{Binding FixLogs}" HorizontalAlignment="Left"
                                     Visibility="{Binding SetupCanFixLogs, Converter={StaticResource Vis}}" />
-                            <TextBlock Text="{Binding SetupLogsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,12,0,0"
+                            <TextBlock Text="{Binding SetupLogsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,12,0,0" AutomationProperties.LiveSetting="Polite"
                                        Visibility="{Binding SetupLogsNote, Converter={StaticResource Vis}}" />
                         </StackPanel>
 
                         <!-- 2. Moving from HDT or Firestone: the existing migration card, as in Settings > Data -->
                         <StackPanel Grid.Column="1" Visibility="{Binding SetupOnMigration, Converter={StaticResource Vis}}">
-                            <TextBlock Text="{i:Loc Setup.Migration.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Migration.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" AutomationProperties.HeadingLevel="Level2" />
                             <TextBlock Text="{i:Loc Setup.Migration.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
                             <mg:MigrationCard DataContext="{Binding Migration}" Full="True" Embedded="True" />
                         </StackPanel>
 
                         <!-- 3. The overlay panels: what they show, one button into the layout mode -->
                         <StackPanel Grid.Column="1" Visibility="{Binding SetupOnLayout, Converter={StaticResource Vis}}">
-                            <TextBlock Text="{i:Loc Setup.Layout.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Layout.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" AutomationProperties.HeadingLevel="Level2" />
                             <TextBlock Text="{i:Loc Setup.Layout.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
                             <Button x:Name="ArrangeButton" Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" Click="OnArrange" HorizontalAlignment="Left" />
                         </StackPanel>
 
                         <!-- 4. The look: the theme presets and the background characters -->
-                        <StackPanel Grid.Column="1" Visibility="{Binding SetupOnLook, Converter={StaticResource Vis}}">
-                            <TextBlock Text="{i:Loc Setup.Look.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" />
-                            <TextBlock Text="{i:Loc Setup.Look.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
-                            <ItemsControl ItemsSource="{Binding Themes}" Focusable="False" Margin="0,0,-10,8">
+                        <!-- The gallery scrolls inside the step's fixed height (thirteen themes take four rows), the switch stays under it -->
+                        <Grid Grid.Column="1" Visibility="{Binding SetupOnLook, Converter={StaticResource Vis}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{i:Loc Setup.Look.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" AutomationProperties.HeadingLevel="Level2" />
+                            <TextBlock Grid.Row="1" Text="{i:Loc Setup.Look.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
+                            <ScrollViewer x:Name="LookGallery" Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" Margin="0,0,0,8">
+                            <ItemsControl ItemsSource="{Binding Themes}" Focusable="False" Margin="0,0,-10,0">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <WrapPanel />
@@ -146,13 +157,14 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Theme.PageHeroes}" IsChecked="{Binding SetupPageHeroes}"
+                            </ScrollViewer>
+                            <CheckBox Grid.Row="3" Style="{StaticResource Switch}" Content="{i:Loc Settings.Theme.PageHeroes}" IsChecked="{Binding SetupPageHeroes}"
                                       ToolTip="{i:Loc Settings.Theme.PageHeroesTip}" />
-                        </StackPanel>
+                        </Grid>
 
                         <!-- 5. Done: what happens next -->
                         <StackPanel Grid.Column="1" Visibility="{Binding SetupOnDone, Converter={StaticResource Vis}}">
-                            <TextBlock Text="{i:Loc Setup.Done.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Done.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" AutomationProperties.HeadingLevel="Level2" />
                             <TextBlock Text="{i:Loc Setup.Done.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
                         </StackPanel>
                     </Grid>
@@ -161,9 +173,9 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
                         <Button Style="{StaticResource GhostButton}" Content="{i:Loc Setup.Back}" Command="{Binding SetupBack}" Margin="0,0,8,0"
                                 Visibility="{Binding SetupCanGoBack, Converter={StaticResource Vis}}" />
-                        <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Setup.Next}" Command="{Binding SetupNext}"
+                        <Button x:Name="NextButton" Style="{StaticResource PrimaryButton}" Content="{i:Loc Setup.Next}" Command="{Binding SetupNext}"
                                 Visibility="{Binding SetupOnDone, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                        <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Setup.Start}" Command="{Binding CloseSetup}"
+                        <Button x:Name="StartButton" Style="{StaticResource PrimaryButton}" Content="{i:Loc Setup.Start}" Command="{Binding CloseSetup}"
                                 Visibility="{Binding SetupOnDone, Converter={StaticResource Vis}}" />
                     </StackPanel>
                 </StackPanel>
