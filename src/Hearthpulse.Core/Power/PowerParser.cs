@@ -255,6 +255,7 @@ public sealed partial class PowerParser
             {
                 entity.CardId = _strings.Get(m.Groups["card"].ValueSpan);
                 entity.WasRevealed = true;
+                entity.HiddenAgain = false;
                 _tagTarget = entity;
                 _tagTargetIsNew = false;
                 _tagTargetRevealed = true;
@@ -268,6 +269,7 @@ public sealed partial class PowerParser
             var m = HideEntityRegex().Match(body);
             if (m.Success && Game is not null && Resolve(m.Groups["entity"].Value) is { } entity)
             {
+                entity.HiddenAgain = true;
                 ApplyTag(entity, _strings.Get(m.Groups["tag"].ValueSpan), _strings.Get(m.Groups["value"].ValueSpan), silent: false);
                 foreach (var listener in _listeners) listener.OnEntityHidden(Game, entity);
             }

@@ -99,6 +99,88 @@ public sealed class TurnClockTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// The shape of 24.11.2026 18:24 (names and most cards replaced): the opponent (player 1, logged as UNKNOWN HUMAN
+    /// PLAYER) has a Start of Game card that the game shows from the deck, hides again and then deals into the opening
+    /// hand with its old card id still on the entity. That card once made the opponent the local player, so the
+    /// opponent's real name was never adopted, its CURRENT_PLAYER changes were dropped and its turns had no player.
+    /// </summary>
+    private static readonly string[] ShownThenDealt =
+    [
+        "18:24:12.0 DebugPrintPower() - CREATE_GAME",
+        "18:24:12.0 DebugPrintPower() -     GameEntity EntityID=1",
+        "18:24:12.0 DebugPrintPower() -         tag=CARDTYPE value=GAME",
+        "18:24:12.0 DebugPrintPower() -     Player EntityID=2 PlayerID=1 GameAccountId=[hi=144115198130930503 lo=11]",
+        "18:24:12.0 DebugPrintPower() -         tag=CONTROLLER value=1",
+        "18:24:12.0 DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+        "18:24:12.0 DebugPrintPower() -     Player EntityID=3 PlayerID=2 GameAccountId=[hi=144115198130930503 lo=22]",
+        "18:24:12.0 DebugPrintPower() -         tag=CONTROLLER value=2",
+        "18:24:12.0 DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+        "18:24:12.0 DebugPrintPower() -     FULL_ENTITY - Creating ID=32 CardID=",
+        "18:24:12.0 DebugPrintPower() -         tag=ZONE value=DECK",
+        "18:24:12.0 DebugPrintPower() -         tag=CONTROLLER value=1",
+        "18:24:12.0 DebugPrintPower() -     FULL_ENTITY - Creating ID=46 CardID=",
+        "18:24:12.0 DebugPrintPower() -         tag=ZONE value=DECK",
+        "18:24:12.0 DebugPrintPower() -         tag=CONTROLLER value=2",
+        "18:24:12.0 DebugPrintPower() - BLOCK_START BlockType=TRIGGER Entity=32 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=2 Target=0 SubOption=-1 TriggerKeyword=0",
+        "18:24:12.0 DebugPrintPower() -     SHOW_ENTITY - Updating Entity=32 CardID=JAIL_397",
+        "18:24:12.0 DebugPrintPower() -         tag=CONTROLLER value=1",
+        "18:24:12.0 DebugPrintPower() -         tag=CARDTYPE value=MINION",
+        "18:24:12.0 DebugPrintPower() -     HIDE_ENTITY - Entity=32 tag=ZONE value=DECK",
+        "18:24:12.0 DebugPrintPower() -     TAG_CHANGE Entity=32 tag=REVEALED value=0 ",
+        "18:24:12.0 DebugPrintPower() - BLOCK_END",
+        "18:24:12.0 DebugPrintPower() - TAG_CHANGE Entity=3 tag=CURRENT_PLAYER value=1 ",
+        "18:24:12.0 DebugPrintPower() - TAG_CHANGE Entity=1 tag=TURN value=1 ",
+        // The deal: the shown card goes to the opponent's hand, then the Coin is created there, then our card is shown.
+        "18:24:12.0 DebugPrintPower() - TAG_CHANGE Entity=32 tag=ZONE value=HAND ",
+        "18:24:12.0 DebugPrintPower() - FULL_ENTITY - Creating ID=84 CardID=",
+        "18:24:12.0 DebugPrintPower() -     tag=ZONE value=HAND",
+        "18:24:12.0 DebugPrintPower() -     tag=CONTROLLER value=1",
+        "18:24:12.0 DebugPrintPower() - SHOW_ENTITY - Updating Entity=46 CardID=SW_039",
+        "18:24:12.0 DebugPrintPower() -     tag=CONTROLLER value=2",
+        "18:24:12.0 DebugPrintPower() -     tag=ZONE value=HAND",
+        "18:24:12.0 DebugPrintGame() - GameType=GT_RANKED",
+        "18:24:12.0 DebugPrintGame() - FormatType=FT_WILD",
+        "18:24:12.0 DebugPrintGame() - PlayerID=1, PlayerName=UNKNOWN HUMAN PLAYER",
+        "18:24:12.0 DebugPrintGame() - PlayerID=2, PlayerName=Me#2",
+        "18:24:13.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=BEGIN_MULLIGAN ",
+        "18:24:13.0 DebugPrintPower() - TAG_CHANGE Entity=Rival#1 tag=MULLIGAN_STATE value=INPUT ",
+        "18:24:13.0 DebugPrintEntityChoices() - id=1 Player=Rival#1 TaskList=7 ChoiceType=MULLIGAN CountMin=0 CountMax=5",
+        "18:24:13.0 DebugPrintEntityChoices() - id=2 Player=Me#2 TaskList=8 ChoiceType=MULLIGAN CountMin=0 CountMax=3",
+        "18:24:40.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_READY ",
+        "18:25:02.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_END ",
+        "18:25:02.0 DebugPrintPower() - TAG_CHANGE Entity=Me#2 tag=CURRENT_PLAYER value=0 ",
+        "18:25:02.0 DebugPrintPower() - TAG_CHANGE Entity=Rival#1 tag=CURRENT_PLAYER value=1 ",
+        "18:25:02.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=2 ",
+        "18:25:02.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_READY ",
+        "18:25:19.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_END ",
+        "18:25:19.0 DebugPrintPower() - TAG_CHANGE Entity=Rival#1 tag=CURRENT_PLAYER value=0 ",
+        "18:25:19.0 DebugPrintPower() - TAG_CHANGE Entity=Me#2 tag=CURRENT_PLAYER value=1 ",
+        "18:25:19.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=3 ",
+        "18:25:19.0 DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=MAIN_READY ",
+    ];
+
+    [Fact]
+    public void A_card_shown_from_the_opponents_deck_and_dealt_does_not_make_the_opponent_local()
+    {
+        var parser = new PowerParser(DateOnly.FromDateTime(Day));
+        var clock = new TurnClock(() => parser.LastTimestamp);
+        parser.AddListener(clock);
+        foreach (var line in ShownThenDealt)
+        {
+            var space = line.IndexOf(' ');
+            parser.Feed($"D {line[..space]}000000 GameState.{line[(space + 1)..]}");
+        }
+
+        var game = parser.Game!;
+        Assert.Equal(2, game.LocalPlayerId);
+        Assert.Equal("Rival#1", game.OpponentPlayer!.Name);
+        Assert.True(game.Entities[32].HiddenAgain);
+        Assert.False(game.Entities[46].HiddenAgain);
+        Assert.Equal([(1, 2), (2, 1), (3, 2)], clock.Turns.Select(t => (t.Turn, t.PlayerId)));
+        Assert.Equal(17, clock.Turns[1].Seconds);
+    }
+
+    /// <summary>
     /// The shape of 10.11.2026 15:17-15:19 (names replaced): a player lets a turn run out without a move, the game marks
     /// it away (GAME_004 on its hero) and sets its TIMEOUT to 10 just before that turn's MAIN_END; its next turn starts
     /// with that limit, and the usual one comes back at its first move of the turn.

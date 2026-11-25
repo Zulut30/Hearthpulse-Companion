@@ -273,9 +273,10 @@ public sealed class GameState
             }
         }
 
-        // Only the local player's starting hand is revealed to us.
+        // Only the local player's starting hand is revealed to us. A card the game showed and hid again keeps its old
+        // card id: the opponent's Start of Game card is shown from the deck, hidden and then dealt (24.11.2026 18:24).
         var known = Entities.Values.FirstOrDefault(e =>
-            e.InHand && e.CardId.Length > 0 && e.CardId != "GAME_005" && e.GetInt(GameTag.Creator) == 0
+            e.InHand && e.CardId.Length > 0 && !e.HiddenAgain && e.CardId != "GAME_005" && e.GetInt(GameTag.Creator) == 0
             && e.CardType != "HERO" && Players.ContainsKey(e.Controller));
         if (known is not null)
         {
