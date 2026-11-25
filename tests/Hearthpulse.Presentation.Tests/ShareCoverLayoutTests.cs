@@ -10,8 +10,9 @@ using Hearthpulse.Core;
 namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
-/// The WPF share pictures (TASK-2026-11-09-deck-cover): the deck cover's two columns start at the field's top on one line
-/// and end inside it, a short deck stays a compact block, every name of a column takes one size that fits it; the list
+/// The WPF share pictures (TASK-2026-11-09-deck-cover): the deck cover's two columns start on one line and end inside the
+/// field, a short deck stays a compact block on the field's middle line with the class, name, facts and curve
+/// (TASK-2026-11-25-polish S5), every name of a column takes one size that fits it; the list
 /// keeps 28-high rows; and the live layout and period buttons switch back and forth with their windows open.
 /// </summary>
 public sealed class ShareCoverLayoutTests
@@ -21,8 +22,9 @@ public sealed class ShareCoverLayoutTests
     [Theory]
     [InlineData(30)]
     [InlineData(21)]
+    [InlineData(17)]
     [InlineData(15)]
-    public void Wpf_deck_cover_columns_start_at_the_top_and_names_share_a_size_that_fits(int count) => WpfThread.RunThemed(() =>
+    public void Wpf_deck_cover_columns_stand_on_the_middle_line_and_names_share_a_size_that_fits(int count) => WpfThread.RunThemed(() =>
     {
         var share = new ShareViewModel(ShareKind.Deck, Deck(count), "Deck", "file", new AppSettings(), null) { Cover = true };
         var window = Open(share);
@@ -33,12 +35,19 @@ public sealed class ShareCoverLayoutTests
             var columns = Descendants(cover).OfType<ItemsControl>().Where(c => c.ItemsSource is IReadOnlyList<DeckListRow>).ToList();
             Assert.Equal(2, columns.Count);
             var tops = columns.Select(c => Container(c, 0).TranslatePoint(default, cover).Y).ToList();
-            Assert.All(tops, top => Assert.InRange(top, 31.5, 33));
+            var top = 32 + card.CoverListTop;
+            var shown = card.CoverListHeight * card.CoverScale;
+            Assert.All(tops, t => Assert.InRange(t, top - 1, top + 1));
             Assert.Equal(tops[0], tops[1], 0.5);
             var last = Container(columns[0], card.ColumnRows - 1);
             var bottom = last.TranslatePoint(new Point(0, last.ActualHeight), cover).Y;
-            Assert.InRange(bottom, 32 + card.CoverListHeight - 8, 32 + card.CoverListHeight + 0.5);
+            Assert.InRange(bottom, top + shown - 8, top + shown + 1);
             Assert.True(bottom <= 540 - 32 + 0.5, $"bottom {bottom}");
+
+            var curve = Descendants(cover).OfType<ItemsControl>().Single(c => c.ItemsSource is IReadOnlyList<ManaCurveBar>);
+            var block = Assert.IsType<StackPanel>(VisualTreeHelper.GetParent(curve));
+            Assert.Equal(270, block.TranslatePoint(default, cover).Y + (block.ActualHeight / 2), 1);
+            Assert.Equal(270, top + (shown / 2), 1);
 
             foreach (var column in columns)
             {

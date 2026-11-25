@@ -28,22 +28,30 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <DockPanel Margin="0,0,32,0">
-                <ContentControl DockPanel.Dock="Bottom" Template="{StaticResource ShareBrandFooter}" Focusable="False" />
-                <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Card.Curve}" ItemTemplate="{StaticResource ShareCurveBar}" ItemsPanel="{StaticResource ShareCurvePanel}"
-                              Margin="0,0,0,24" Focusable="False" />
-                <StackPanel VerticalAlignment="Center">
+            <!-- The class, name, facts and curve as one block on the field's middle line, the list's too (TASK-2026-11-25-polish
+                 S5: a text block in the middle, the curve on the bottom and the list on the top left holes between them); the
+                 footer keeps the bottom. The equal star rows centre the block on the whole field. -->
+            <Grid Margin="0,0,32,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="1">
                     <TextBlock Text="{Binding Card.ClassName}" Style="{StaticResource Label}" FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Accent}" />
                     <TextBlock Text="{Binding Card.Name}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeDisplay}" FontWeight="ExtraBold"
                                Foreground="{StaticResource GildedText}" TextWrapping="Wrap" Margin="0,4,0,8" />
                     <TextBlock Text="{Binding Card.Facts}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLead}" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding Card.Curve}" ItemTemplate="{StaticResource ShareCurveBar}" ItemsPanel="{StaticResource ShareCurvePanel}"
+                                  Margin="0,24,0,0" Focusable="False" />
                 </StackPanel>
-            </DockPanel>
+                <ContentControl Grid.Row="2" VerticalAlignment="Bottom" Template="{StaticResource ShareBrandFooter}" Focusable="False" />
+            </Grid>
 
-            <!-- Two columns of even rows from the field's top, both ending on one line (DeckPictureCard.CoverList*): rows grow
-                 from 28 to 36 while the field has room; a longer deck (over 15 rows a column) is laid out wider and shrinks as
-                 a whole to the field. One name size a column (ShareTextFit.Scope), never under 9 as shown. -->
-            <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <!-- Two columns of even rows on the field's middle line, both starting and ending on one line (DeckPictureCard.CoverList*):
+                 rows grow from 28 to 36 while the field has room; a longer deck (over 15 rows a column) is laid out wider and
+                 shrinks as a whole to the field. One name size a column (ShareTextFit.Scope), never under 9 as shown. -->
+            <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center">
                 <Grid Width="{Binding Card.CoverListWidth}" Height="{Binding Card.CoverListHeight}" s:ShareTextFit.MinFontSize="{Binding Card.CoverNameMinFontSize}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

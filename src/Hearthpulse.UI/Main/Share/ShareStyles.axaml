@@ -43,8 +43,12 @@
     <Style Selector="StackPanel.none Border.shareCurveBar">
         <Setter Property="Background" Value="{StaticResource Outline}" />
     </Style>
+    <!-- The curve's counts stand on the cover's class art: primary text, an empty cost muted (Faint vanished on bright art) -->
+    <Style Selector="TextBlock.shareCurveCount">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
     <Style Selector="StackPanel.none TextBlock.shareCurveCount">
-        <Setter Property="Foreground" Value="{StaticResource Faint}" />
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
     </Style>
     <Style Selector="TextBlock.shareStatus.error">
         <Setter Property="Foreground" Value="{StaticResource Negative}" />

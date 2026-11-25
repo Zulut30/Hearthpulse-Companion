@@ -79,8 +79,12 @@ public sealed record DeckPictureCard(
     /// </summary>
     public double CoverRowPitch => Math.Clamp(Math.Floor(CoverFieldHeight / Math.Max(1, ColumnRows)), RowPitch, RowMaxHeight + RowGap);
 
-    /// <summary>The height the cover lays its two columns out in, from the field's top.</summary>
+    /// <summary>The height the cover lays its two columns out in.</summary>
     public double CoverListHeight => ColumnRows * CoverRowPitch;
+
+    /// <summary>How far below the field's top the list starts as shown: it stands on the field's middle line, as the class,
+    /// name, facts and curve do (TASK-2026-11-25-polish S5), so a short deck leaves even bands above and below.</summary>
+    public double CoverListTop => (CoverFieldHeight - (CoverListHeight * CoverScale)) / 2;
 
     /// <summary>How much the cover shrinks the list to fit the field (1 up to 15 rows a column).</summary>
     public double CoverScale => CoverListHeight > CoverFieldHeight ? CoverFieldHeight / CoverListHeight : 1;

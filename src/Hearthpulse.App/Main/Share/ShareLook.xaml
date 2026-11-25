@@ -129,7 +129,14 @@
     <!-- One cost of the mana curve: count, bar (share of the tallest), the cost in a gem -->
     <DataTemplate x:Key="ShareCurveBar" DataType="{x:Type d:ManaCurveBar}">
         <StackPanel Margin="2,0" VerticalAlignment="Bottom">
-            <TextBlock x:Name="Count" Text="{Binding Count}" Style="{StaticResource Caption}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,2" />
+            <!-- The counts stand on the cover's class art: primary text, an empty cost muted (Faint vanished on bright art) -->
+            <TextBlock x:Name="Count" Text="{Binding Count}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,2">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                        <Setter Property="Foreground" Value="{StaticResource Text}" />
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
             <Grid Height="64">
                 <Border x:Name="Bar" VerticalAlignment="Bottom" MinHeight="2" CornerRadius="2,2,1,1" Background="{StaticResource Accent}"
                         Height="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />
@@ -140,7 +147,7 @@
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding Count}" Value="0">
                 <Setter TargetName="Bar" Property="Background" Value="{StaticResource Outline}" />
-                <Setter TargetName="Count" Property="Foreground" Value="{StaticResource Faint}" />
+                <Setter TargetName="Count" Property="Foreground" Value="{StaticResource Muted}" />
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>

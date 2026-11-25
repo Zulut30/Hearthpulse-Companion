@@ -15,15 +15,17 @@ namespace Hearthpulse.Tests;
 public sealed partial class LocBindingTests
 {
     /// <summary>
-    /// The 16:9 deck cover (TASK-2026-11-09-deck-cover): both columns start at the field's top margin on one line and end
-    /// inside the field (15 rows a short block, 21 and 30 the whole field), and every name of a column takes one size that
-    /// fits it, never under 10, instead of an ellipsis.
+    /// The 16:9 deck cover (TASK-2026-11-09-deck-cover): both columns start on one line and end inside the field (15 and 17
+    /// rows a short block, 21 and 30 nearly the whole field), and every name of a column takes one size that fits it, never
+    /// under 10, instead of an ellipsis. The list and the class, name, facts and curve stand on the field's middle line
+    /// (TASK-2026-11-25-polish S5), so a short deck leaves no hole between them.
     /// </summary>
     [Theory]
     [InlineData(30)]
     [InlineData(21)]
+    [InlineData(17)]
     [InlineData(15)]
-    public void Share_deck_cover_columns_start_at_the_top_and_names_share_a_size_that_fits(int count) => Headless.Run(() => DeckCoverLayout(count));
+    public void Share_deck_cover_columns_stand_on_the_middle_line_and_names_share_a_size_that_fits(int count) => Headless.Run(() => DeckCoverLayout(count));
 
     /// <summary>A fitted text fits again when its text changes at the same width.</summary>
     [Fact]
@@ -71,7 +73,9 @@ public sealed partial class LocBindingTests
         json.Append(",{\"id\":\"END_020\",\"dbfId\":2000,\"name\":\"Known\",\"cost\":1,\"type\":\"SPELL\",\"cardClass\":\"WARRIOR\",\"set\":\"END\",\"collectible\":true}]");
         var cards = CardDb.Parse("enUS", new MemoryStream(Encoding.UTF8.GetBytes(json.ToString())));
         var decks = ShareSampleDecks.All(cards).ToList();
-        Assert.Equal([21, 30, 15, 12, 8], decks.Select(d => d.Rows));
+        Assert.Equal([21, 30, 15, 12, 8, 17], decks.Select(d => d.Rows));
+        Assert.Equal("PRIEST", decks[5].HeroClass);
+        Assert.Empty(decks[5].Deck);
         Assert.Equal(["END_020"], decks[0].Deck.Keys);
         Assert.Equal(30, decks[1].Deck.Count);
         Assert.Contains("X_39", decks[1].Deck.Keys);
@@ -99,12 +103,20 @@ public sealed partial class LocBindingTests
             var columns = cover.GetVisualDescendants().OfType<ItemsControl>().Where(c => c.ItemsSource is IReadOnlyList<DeckListRow>).ToList();
             Assert.Equal(2, columns.Count);
             var tops = columns.Select(c => c.ContainerFromIndex(0)!.TranslatePoint(default, cover)!.Value.Y).ToList();
-            Assert.All(tops, top => Assert.InRange(top, 31.5, 33));
+            var top = 32 + card.CoverListTop;
+            var shown = card.CoverListHeight * card.CoverScale;
+            Assert.All(tops, t => Assert.InRange(t, top - 1, top + 1));
             Assert.Equal(tops[0], tops[1], 0.5);
             var last = columns[0].ContainerFromIndex(half - 1)!;
             var bottom = last.TranslatePoint(new Point(0, last.Bounds.Height), cover)!.Value.Y;
-            Assert.InRange(bottom, 32 + card.CoverListHeight - 8, 32 + card.CoverListHeight + 0.5);
+            Assert.InRange(bottom, top + shown - 8, top + shown + 1);
             Assert.True(bottom <= 540 - 32 + 0.5, $"bottom {bottom}");
+
+            var curve = cover.GetVisualDescendants().OfType<ItemsControl>().Single(c => c.ItemsSource is IReadOnlyList<ManaCurveBar>);
+            var block = Assert.IsType<StackPanel>(curve.GetVisualParent());
+            var blockTop = block.TranslatePoint(default, cover)!.Value.Y;
+            Assert.Equal(270, blockTop + (block.Bounds.Height / 2), 1);
+            Assert.Equal(270, top + (shown / 2), 1);
 
             foreach (var column in columns)
             {
