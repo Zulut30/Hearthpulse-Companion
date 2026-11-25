@@ -105,14 +105,22 @@ public sealed class RealLogTests(ITestOutputHelper output)
     }
 }
 
-/// <summary>A fact that is skipped on machines without the Hearthstone client's kept logs.</summary>
+/// <summary>
+/// A fact that is skipped on machines without the Hearthstone client's kept logs, or, when <paramref name="log"/> names
+/// one session folder (<c>Hearthstone_2026_11_15_20_36_45</c>), without that folder's <c>Power.log</c>: a machine that
+/// keeps other logs skips the test instead of failing it.
+/// </summary>
 public sealed class RealLogsFactAttribute : FactAttribute
 {
-    public RealLogsFactAttribute()
+    public RealLogsFactAttribute(string? log = null)
     {
         if (!OperatingSystem.IsWindows() || !Directory.Exists(RealLogTests.LogRoot))
         {
             Skip = $"No kept Hearthstone logs ({RealLogTests.LogRoot}) on this machine.";
+        }
+        else if (log is not null && !File.Exists(Path.Combine(RealLogTests.LogRoot, log, "Power.log")))
+        {
+            Skip = $"No kept Hearthstone log {log} ({RealLogTests.LogRoot}) on this machine.";
         }
     }
 }

@@ -96,7 +96,7 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>Gets a code from hearthpulse.net, opens the confirmation page and waits for the player.</summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "RelayCommand takes an Action in both UIs. Kept on purpose (Q7, 2026-11-02): the account service reports failures as results, and anything else that escapes still reaches the dispatcher's crash window instead of only the log.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "RelayCommand takes an Action in both UIs. Kept on purpose (Q7, 2026-11-02): the account service reports failures as results. Cancel included: SignInAsync catches the OperationCanceledException of its own token and returns CANCELLED (shown as the message), AccountClient turns an HTTP timeout into OFFLINE, and the poll that may bring tokens runs uncancelled (AccountSignInCancelTests). Anything else that escapes still reaches the dispatcher's crash window instead of only the log.")]
     public RelayCommand SignIn => _signIn ??= new RelayCommand(async () =>
     {
         if (_account is null || AccountWaiting)
@@ -133,7 +133,7 @@ public sealed partial class MainViewModel
         }
     });
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "RelayCommand takes an Action in both UIs. Kept on purpose (Q7, 2026-11-02): the account service reports failures as results, and anything else that escapes still reaches the dispatcher's crash window instead of only the log.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "RelayCommand takes an Action in both UIs. Kept on purpose (Q7, 2026-11-02): the account service reports failures as results. Nothing here can be cancelled: SignOutAsync gets no token and revokes with CancellationToken.None, a failed revoke is only logged. Anything else that escapes still reaches the dispatcher's crash window instead of only the log.")]
     public RelayCommand SignOut => _signOut ??= new RelayCommand(async () =>
     {
         if (_account is not null)

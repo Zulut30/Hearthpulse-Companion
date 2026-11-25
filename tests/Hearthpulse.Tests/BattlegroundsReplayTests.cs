@@ -15,7 +15,8 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
 {
     internal const int Me = 1;
     internal const int Bob = 9;
-    internal const string RealLog = @"D:\Hearthstone\Logs\Hearthstone_2026_10_28_00_19_35\Power.log";
+    internal const string RealLogFolder = "Hearthstone_2026_10_28_00_19_35";
+    internal const string RealLog = RealLogTests.LogRoot + @"\" + RealLogFolder + @"\Power.log";
 
     /// <summary>A Battlegrounds game on turn 1: our hero and hero power, a lobby hero, Bob's buttons and offer, 3 gold.</summary>
     internal static readonly string[] Setup =
