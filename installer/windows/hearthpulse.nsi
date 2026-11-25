@@ -79,6 +79,14 @@ VIAddVersionKey /LANG=0 "LegalCopyright" "Hearthpulse"
 !define MUI_LICENSEPAGE_TEXT_TOP "$(NoticeTop)"
 !define MUI_LICENSEPAGE_TEXT_BOTTOM "$(NoticeBottom)"
 !insertmacro MUI_PAGE_LICENSE "${__FILEDIR__}\notice.txt"
+; The end-user licence agreement (repository root LICENSE, plain ASCII): Next stays disabled until the box is ticked.
+!define MUI_PAGE_HEADER_TEXT "$(LicenseHeader)"
+!define MUI_PAGE_HEADER_SUBTEXT "$(LicenseSubheader)"
+!define MUI_LICENSEPAGE_TEXT_TOP "$(LicenseTop)"
+!define MUI_LICENSEPAGE_TEXT_BOTTOM "$(LicenseBottom)"
+!define MUI_LICENSEPAGE_CHECKBOX
+!define MUI_LICENSEPAGE_CHECKBOX_TEXT "$(LicenseAccept)"
+!insertmacro MUI_PAGE_LICENSE "${__FILEDIR__}\..\..\LICENSE"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -109,6 +117,16 @@ LangString NoticeTop ${LANG_ENGLISH} "Please read the following notes about Hear
 LangString NoticeTop ${LANG_ITALIAN} "Leggi le note seguenti su Hearthpulse."
 LangString NoticeBottom ${LANG_ENGLISH} "Click Next to continue."
 LangString NoticeBottom ${LANG_ITALIAN} "Fai clic su Avanti per continuare."
+LangString LicenseHeader ${LANG_ENGLISH} "Licence agreement"
+LangString LicenseHeader ${LANG_ITALIAN} "Contratto di licenza"
+LangString LicenseSubheader ${LANG_ENGLISH} "Please review the licence terms before installing Hearthpulse."
+LangString LicenseSubheader ${LANG_ITALIAN} "Leggi i termini di licenza prima di installare Hearthpulse."
+LangString LicenseTop ${LANG_ENGLISH} "Press Page Down to see the rest of the agreement."
+LangString LicenseTop ${LANG_ITALIAN} "Il contratto è in inglese, che è il testo vincolante. Premi Pag giù per leggere il resto."
+LangString LicenseBottom ${LANG_ENGLISH} "If you accept the terms of the agreement, tick the box below. You must accept the agreement to install Hearthpulse."
+LangString LicenseBottom ${LANG_ITALIAN} "Se accetti i termini del contratto, seleziona la casella qui sotto. Per installare Hearthpulse devi accettare il contratto."
+LangString LicenseAccept ${LANG_ENGLISH} "I accept the terms of the licence agreement"
+LangString LicenseAccept ${LANG_ITALIAN} "Accetto i termini del contratto di licenza"
 LangString RunNow ${LANG_ENGLISH} "Start Hearthpulse now"
 LangString RunNow ${LANG_ITALIAN} "Avvia Hearthpulse ora"
 LangString SecAppName ${LANG_ENGLISH} "Hearthpulse (required)"

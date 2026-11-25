@@ -136,8 +136,8 @@ Details: [docs/game-stats.md](docs/game-stats.md), [docs/source-capture.md](docs
 
 ## Build from source
 
-You need the [.NET 10 SDK](https://dotnet.microsoft.com/download). The source is published for reading and
-development; see [License](#license) for what it allows.
+You need the [.NET 10 SDK](https://dotnet.microsoft.com/download). The source is published for reference only;
+see [License](#license) for what it allows.
 
 ```sh
 dotnet restore Hearthpulse.slnx --source https://api.nuget.org/v3/index.json
@@ -164,9 +164,14 @@ Before sending code, open an issue first: the licence does not allow publishing 
 
 ## License
 
-Hearthpulse is proprietary software, all rights reserved: see [LICENSE](LICENSE). You may install and use official
-releases for personal, non-commercial use; publishing the source grants no further rights. Portions are based on
-HeartLens by Dev-NotAqua and are used with the author's permission.
+Hearthpulse is proprietary software, all rights reserved; the end-user licence agreement in [LICENSE](LICENSE) is
+the binding text, and the Windows installer asks you to accept it. You may install and use official releases from
+GitHub releases or [hearthpulse.net](https://hearthpulse.net) on your own devices, and show the app and its overlay in
+streams, videos and screenshots, monetized ones included. Copying, changing, redistributing or re-hosting the app, its
+installers or its source, reverse engineering, and using the code or data to train AI models or build a competing
+product are not allowed. The public source is for reference only and grants no licence; issues, ideas and pull
+requests you send may be used without obligation. Portions are based on HeartLens by Dev-NotAqua and are used with
+the author's permission.
 
 ## Credits
 
