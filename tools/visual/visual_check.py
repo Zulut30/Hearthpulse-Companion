@@ -12,7 +12,9 @@ theme in a job of its own, since one WPF render run takes about a minute whateve
 - render: builds the app (Release) unless --no-build, then for each theme of THEMES runs `--render-ui` with render group
   `baseline` (the built executable itself, found by one MSBuild evaluation, or `dotnet run --no-build` when that fails;
   each run's time is printed) on a fresh copy of the fixture data folder tests/visual/data, isolated (HEARTHPULSE_ISOLATED=1: no network, no Hearthstone install), and keeps
-  that theme's frames as <out-dir>/<ui>/<theme>-<scene>.png. The real data folder is never read or written.
+  that theme's frames as <out-dir>/<ui>/<theme>-<scene>.png. The real data folder is never read or written. On Windows
+  the build and runs hold the mutex Hearthpulse.LocalCheck (tools/dev/local_check_gate.py, shared with check.ps1), so
+  they queue behind local checks and renders of other worktrees.
 - compare: each kept frame against tests/visual/baselines/<ui>/<theme>-<scene>.webp. A pixel counts as changed when
   one channel moves by more than THRESHOLD; a frame fails when more than MAX_CHANGED of its pixels changed or its size
   changed (boxes in MASKS, such as the app version, are left out). Writes before | after | diff sheets to <out-dir>/diff/<ui>/. Frames listed in PENDING are reported, never
@@ -23,6 +25,7 @@ theme in a job of its own, since one WPF render run takes about a minute whateve
 Baselines are taken from the CI runner's renders (job "Visual baselines", artifact visual-renders): WPF draws text
 with the system's fonts, so a PC with other fonts renders other pixels.
 """
+import importlib.util
 import json
 import os
 import shutil
@@ -39,6 +42,9 @@ FIXTURE = ROOT / "tests/visual/data"
 BASELINES = ROOT / "tests/visual/baselines"
 PROJECTS = {"wpf": "src/Hearthpulse.App", "ava": "src/Hearthpulse.Desktop"}
 NUGET = "https://api.nuget.org/v3/index.json"
+_gate_spec = importlib.util.spec_from_file_location("hearthpulse_local_check_gate", ROOT / "tools/dev/local_check_gate.py")
+local_gate = importlib.util.module_from_spec(_gate_spec)
+_gate_spec.loader.exec_module(local_gate)
 
 THRESHOLD = 8  # per-channel difference that counts as a change: renders on the same runner differ by less
 MAX_CHANGED = 0.0002  # share of changed pixels a frame may have and still pass (0.02 %)
@@ -104,6 +110,11 @@ def chosen_themes(themes: list[str] | None) -> dict[str, list[str]]:
 
 
 def render(out: Path, which: str, build: bool, artifacts: str | None, themes: list[str] | None = None) -> int:
+    with local_gate.held():
+        return render_queued(out, which, build, artifacts, themes)
+
+
+def render_queued(out: Path, which: str, build: bool, artifacts: str | None, themes: list[str] | None) -> int:
     failed = False
     extra = ["--artifacts-path", artifacts] if artifacts else []
     for ui in uis(which):

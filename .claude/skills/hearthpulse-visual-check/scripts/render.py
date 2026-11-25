@@ -14,7 +14,10 @@ Usage (from the repository root, isolated interpreter):
 - Writes <out-dir>/wpf and/or <out-dir>/ava plus a render log per UI.
 - Each render starts in an empty temporary folder; exit zero alone is not success: the six main pages and
   overlay-layout must be present and nonempty. Optional log-dependent scenes may be absent.
+- On Windows the whole run holds the named mutex Hearthpulse.LocalCheck (tools/dev/local_check_gate.py), so it
+  queues behind tools/dev/check.ps1 and other renders: one build or app window at a time across worktrees.
 """
+import importlib.util
 import os
 import shutil
 import subprocess
@@ -28,6 +31,17 @@ REQUIRED_SCENES = frozenset({
     "main-overview.png", "main-battlegrounds.png", "main-standard.png", "main-wild.png",
     "main-history.png", "main-settings.png", "main-constructed-full.png", "overlay-layout.png",
 })
+
+
+def load_gate():
+    path = Path(__file__).resolve().parents[4] / "tools/dev/local_check_gate.py"
+    spec = importlib.util.spec_from_file_location("hearthpulse_local_check_gate", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+local_gate = load_gate()
 
 
 def real_data_dir() -> Path:
@@ -86,8 +100,12 @@ def main() -> int:
     temp = Path(tempfile.gettempdir())
     data = Path(opts.get("--data", temp / "hpd"))
     artifacts = Path(opts.get("--artifacts", temp / "hpa"))
-    ensure_copy(data)
+    with local_gate.held():
+        return render(out, which, data, artifacts, opts)
 
+
+def render(out: Path, which: str, data: Path, artifacts: Path, opts: dict[str, str]) -> int:
+    ensure_copy(data)
     env = dict(os.environ, HEARTHPULSE_DATA=str(data))
     if "--theme" in opts:
         env["HEARTHPULSE_THEME"] = opts["--theme"]

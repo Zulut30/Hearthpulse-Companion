@@ -27,6 +27,31 @@ def load(name):
 
 png_diff = load("png_diff")
 render = load("render")
+QUEUED = [("create", "Hearthpulse.LocalCheck"), ("wait", 0)]
+RELEASED = [("release",), ("close",)]
+
+
+class FakeKernel32:
+    """The four mutex calls of local_check_gate, logged; WaitForSingleObject answers from `waits`."""
+
+    def __init__(self, log, waits=(0x0,)):
+        self.log, self.waits = log, list(waits)
+
+    def CreateMutexW(self, security, owned, name):
+        self.log.append(("create", name))
+        return 7
+
+    def WaitForSingleObject(self, handle, milliseconds):
+        self.log.append(("wait", milliseconds))
+        return self.waits.pop(0)
+
+    def ReleaseMutex(self, handle):
+        self.log.append(("release",))
+        return 1
+
+    def CloseHandle(self, handle):
+        self.log.append(("close",))
+        return 1
 
 
 class VisualToolsTests(unittest.TestCase):
@@ -67,11 +92,15 @@ class VisualToolsTests(unittest.TestCase):
         self.assertIn("size 1x1 -> 2x1", result)
         self.assertTrue((self.root / "diff/before.png").is_file())
 
-    def run_render(self, scenes, code=0):
+    def run_render(self, scenes, code=0, fail_restore=False):
         calls = []
+        self.gate_log = []
 
         def run(command, **kwargs):
             calls.append(command)
+            self.gate_log.append(command[1])
+            if fail_restore and command[1] == "restore":
+                raise subprocess.CalledProcessError(1, command)
             if command[1] == "run":
                 staging = Path(command[-1])
                 self.assertEqual([], list(staging.iterdir()))
@@ -82,10 +111,57 @@ class VisualToolsTests(unittest.TestCase):
 
         with patch.object(render.sys, "argv", ["render.py", str(self.root / "out"), "ava"]), \
                 patch.object(render, "ensure_copy"), patch.object(render.subprocess, "run", side_effect=run), \
+                patch.object(render.local_gate, "kernel32", return_value=FakeKernel32(self.gate_log)), \
                 redirect_stdout(StringIO()):
             result = render.main()
         self.assertEqual(["restore", "run"], [c[1] for c in calls])
         return result
+
+    def test_the_render_holds_the_local_check_mutex_from_before_the_build_until_after_the_run(self):
+        self.assertEqual(0, self.run_render(render.REQUIRED_SCENES))
+        self.assertEqual([*QUEUED, "restore", "run", *RELEASED], self.gate_log)
+
+    def test_a_failed_render_releases_the_mutex(self):
+        self.assertEqual(1, self.run_render([], code=1))
+        self.assertEqual([*QUEUED, "restore", "run", *RELEASED], self.gate_log)
+
+    def test_a_failed_build_step_releases_the_mutex(self):
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.run_render([], fail_restore=True)
+        self.assertEqual([*QUEUED, "restore", *RELEASED], self.gate_log)
+
+    def gate(self, waits):
+        log, out = [], StringIO()
+        with patch.object(render.local_gate, "kernel32", return_value=FakeKernel32(log, waits)), redirect_stdout(out):
+            with render.local_gate.held():
+                log.append("inside")
+        return log, out.getvalue()
+
+    def test_a_busy_mutex_is_waited_for_with_one_line_and_an_abandoned_one_counts_as_acquired(self):
+        gate = render.local_gate
+        log, printed = self.gate([gate.WAIT_TIMEOUT, gate.WAIT_OBJECT_0])
+        self.assertEqual([*QUEUED, ("wait", gate.INFINITE), "inside", *RELEASED], log)
+        self.assertEqual(1, len(printed.splitlines()))
+        self.assertIn("Waiting", printed)
+        log, printed = self.gate([gate.WAIT_TIMEOUT, gate.WAIT_ABANDONED])
+        self.assertEqual([*QUEUED, ("wait", gate.INFINITE), "inside", *RELEASED], log)
+        log, printed = self.gate([gate.WAIT_ABANDONED])
+        self.assertEqual([*QUEUED, "inside", *RELEASED], log)
+        self.assertEqual("", printed)
+
+    def test_a_failed_wait_raises_without_releasing_a_mutex_it_does_not_own(self):
+        log = []
+        with patch.object(render.local_gate, "kernel32", return_value=FakeKernel32(log, [0xFFFFFFFF])):
+            with self.assertRaises(OSError):
+                with render.local_gate.held():
+                    log.append("inside")
+        self.assertEqual([*QUEUED, ("close",)], log)
+
+    def test_the_gate_is_a_no_op_off_windows(self):
+        with patch.object(render.local_gate.sys, "platform", "linux"):
+            self.assertIsNone(render.local_gate.kernel32())
+            with render.local_gate.held():
+                pass
 
     def test_success_requires_current_mandatory_scenes_but_not_optional_log_scenes(self):
         self.assertEqual(0, self.run_render(render.REQUIRED_SCENES))

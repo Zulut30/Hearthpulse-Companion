@@ -22,6 +22,29 @@ visual = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(visual)
 
 
+class FakeKernel32:
+    """The mutex calls of tools/dev/local_check_gate.py, logged, always granted at once."""
+
+    def __init__(self, log):
+        self.log = log
+
+    def CreateMutexW(self, security, owned, name):
+        self.log.append(("create", name))
+        return 7
+
+    def WaitForSingleObject(self, handle, milliseconds):
+        self.log.append(("wait", milliseconds))
+        return 0
+
+    def ReleaseMutex(self, handle):
+        self.log.append(("release",))
+        return 1
+
+    def CloseHandle(self, handle):
+        self.log.append(("close",))
+        return 1
+
+
 class VisualBaselineTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="hp-visual-test-")
@@ -153,7 +176,8 @@ class VisualBaselineTests(unittest.TestCase):
             return subprocess.CompletedProcess(args, 0)
 
         with patch.object(visual, "launcher", return_value=["app"]), patch.object(visual.subprocess, "run", side_effect=run), \
-                patch.object(visual, "uis", lambda which: [which]), redirect_stdout(StringIO()):
+                patch.object(visual, "uis", lambda which: [which]), \
+                patch.object(visual.local_gate, "kernel32", return_value=FakeKernel32([])), redirect_stdout(StringIO()):
             self.assertEqual(0, visual.render(out, "wpf", False, None, ["Frost"]))
         self.assertEqual(["Frost"], started)
         self.assertEqual(b"kept", (out / "wpf/Tavern-main-overview.png").read_bytes())
@@ -174,6 +198,30 @@ class VisualBaselineTests(unittest.TestCase):
             self.assertEqual(1, visual.compare(out, "ava"))
         with redirect_stdout(StringIO()):
             self.assertEqual(2, visual.main(["render", str(out), "--theme", "Winter"]))
+
+    def test_render_holds_the_local_check_mutex_around_the_build_and_runs_and_releases_it_on_failure(self):
+        for fail in (False, True):
+            with self.subTest(fail=fail):
+                log = []
+
+                def run(args, **_):
+                    log.append(args[1] if args[0] == "dotnet" else "app")
+                    if fail and args[0] == "app":
+                        raise subprocess.TimeoutExpired(args, 600)
+                    return subprocess.CompletedProcess(args, 1)
+
+                with patch.object(visual, "launcher", return_value=["app"]), \
+                        patch.object(visual.subprocess, "run", side_effect=run), \
+                        patch.object(visual, "uis", lambda which: [which]), \
+                        patch.object(visual.local_gate, "kernel32", return_value=FakeKernel32(log)), \
+                        redirect_stdout(StringIO()):
+                    if fail:
+                        with self.assertRaises(subprocess.TimeoutExpired):
+                            visual.render(self.root / "out", "ava", True, None, ["Frost"])
+                    else:
+                        self.assertEqual(1, visual.render(self.root / "out", "ava", True, None, ["Frost"]))
+                self.assertEqual([("create", "Hearthpulse.LocalCheck"), ("wait", 0), "build", "app",
+                                  ("release",), ("close",)], log)
 
 
 if __name__ == "__main__":
