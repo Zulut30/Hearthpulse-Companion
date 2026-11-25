@@ -97,7 +97,10 @@ public sealed class BgCardDb
         return path.Length == 0 ? null : Root.TrimEnd('/') + path;
     }
 
-    /// <summary>Loads from cache, refreshing from hsbg.cards when stale. Never throws.</summary>
+    /// <summary>
+    /// Loads from cache, refreshing from hsbg.cards when stale. Never throws, except <see cref="OperationCanceledException"/>
+    /// once <paramref name="cancellationToken"/> is cancelled (a timeout is a failed download like any other).
+    /// </summary>
     public static async Task<BgCardDb> LoadAsync(HttpClient http, CancellationToken cancellationToken = default)
     {
         var path = Path.Combine(AppPaths.Cache, "bgcards.hsbg.json");
@@ -191,7 +194,7 @@ public sealed class BgCardDb
             File.Move(path + ".tmp", path, overwrite: true);
             Diag.Info($"BG card supplement refreshed ({items.Count} cards)");
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TaskCanceledException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Error("BG card supplement not saved", ex);
         }
@@ -212,7 +215,7 @@ public sealed class BgCardDb
             await using var streamScope = stream.ConfigureAwait(false);
             return await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException or IOException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or IOException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Error($"BG card supplement download failed ({url})", ex);
             return null;

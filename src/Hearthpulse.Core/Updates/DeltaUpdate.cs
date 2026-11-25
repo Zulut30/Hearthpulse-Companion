@@ -225,7 +225,9 @@ public static partial class DeltaUpdate
     /// Downloads the delta package of <paramref name="info"/>, checks it against its published SHA-256, checks that
     /// <paramref name="appDirectory"/> holds exactly the files of the version it starts from (<paramref name="installedVersion"/>),
     /// and unpacks the files it carries into <see cref="StagingDirectory"/>, each checked against the new version's
-    /// manifest. False on any failure, with nothing left behind: the full setup then does the update.
+    /// manifest. False on any failure, with nothing left behind: the full setup then does the update. A cancelled
+    /// <paramref name="cancellationToken"/> throws <see cref="OperationCanceledException"/> instead (the 15-minute download
+    /// limit is a failure like any other).
     /// </summary>
     public static async Task<bool> PrepareAsync(HttpClient http, UpdateInfo info, string appDirectory, string installedVersion,
         CancellationToken cancellationToken = default)
@@ -293,6 +295,12 @@ public static partial class DeltaUpdate
             PreparedPlans[info.Version] = Sha256Text(planJson!);
             Diag.Info($"Delta update {info.Version} ready: {plan.Replaced.Count} files replaced, {plan.Added.Count} added, {plan.Removed.Count} removed.");
             return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Stopped by the caller (the app is closing): not a failed delta, and no reason to fall back to the setup.
+            DeleteDirectory(staging);
+            throw;
         }
         catch (Exception ex)
         {

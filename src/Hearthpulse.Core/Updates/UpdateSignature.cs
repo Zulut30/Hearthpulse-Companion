@@ -146,7 +146,7 @@ internal static class UpdateSignature
             sums = await FetchAsync(http, info.ChecksumsUrl, cancellationToken).ConfigureAwait(false);
             signature = sums is null ? null : await FetchAsync(http, info.SignatureUrl, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException)
+        catch (Exception ex) when (ex is HttpRequestException or IOException || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
             return Refuse(info, $"{ChecksumsName} or its signature could not be downloaded ({ex.Message})");
         }

@@ -98,6 +98,8 @@ public sealed partial class AppSettings
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
+            // Nothing could be kept: the caller goes on with defaults. The type only, the message may name the file's path.
+            Diag.Info($"Settings: nothing salvaged from the unreadable file ({ex.GetType().Name}), using defaults");
             return null;
         }
     }

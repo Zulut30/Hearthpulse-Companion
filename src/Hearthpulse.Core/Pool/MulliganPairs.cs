@@ -131,6 +131,12 @@ public sealed partial class MulliganPairs(HttpClient http, Func<string> endpoint
 
             return pairs;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The caller gave up while the pool was asked: nothing, as for a caller that gave up waiting its turn above;
+            // not logged as a pool that did not answer.
+            return [];
+        }
         finally
         {
             gate.Release();
@@ -231,7 +237,7 @@ public sealed partial class MulliganPairs(HttpClient http, Func<string> endpoint
 
             return Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
         }
-        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException)
+        catch (Exception ex) when (ex is HttpRequestException or IOException || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Info($"Mulligan pairs: the pool did not answer ({ex.GetType().Name})");
             return null;

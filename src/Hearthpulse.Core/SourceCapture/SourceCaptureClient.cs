@@ -91,7 +91,8 @@ public sealed class SourceCaptureClient(HttpClient http)
             var accepted = True(root, "ok") && receipt(root) && (!deletion || (int)response.StatusCode == 200);
             return new(accepted, accepted ? "stored" : deletion ? "deleting" : "invalid_receipt", Retry(response));
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException or JsonException or InvalidOperationException)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or JsonException or InvalidOperationException
+            || (ex is OperationCanceledException && !token.IsCancellationRequested))
         {
             return new(false, "offline", TimeSpan.FromSeconds(30));
         }

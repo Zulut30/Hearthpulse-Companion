@@ -170,8 +170,9 @@ public sealed class CrashReporter(HttpClient http, Uri endpoint, string folder, 
                 using var response = await http.PostAsync(endpoint, content, timeout.Token).ConfigureAwait(false);
                 status = (int)response.StatusCode;
             }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
+                // A timeout (SendTimeout) is "not sent now"; the caller's own cancellation goes up to it and is not recorded.
                 Diag.Info($"crash report: not sent now ({ex.GetType().Name}), it waits for the next start");
                 Record(false, "OFFLINE");
                 return false;

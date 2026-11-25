@@ -356,6 +356,56 @@ public sealed class DeltaUpdateTests : IDisposable
     }
 
     [Fact]
+    public async Task A_delta_stopped_by_the_caller_throws_and_leaves_nothing_staged_or_marked()
+    {
+        var (app, info, server) = Setup("2.0.9");
+        using var stop = new CancellationTokenSource();
+        using var http = new HttpClient(new Interrupting(server, token =>
+        {
+            stop.Cancel();
+            token.ThrowIfCancellationRequested();
+        }));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => DeltaUpdate.PrepareAsync(http, info, app, "1.0.0", stop.Token));
+        Assert.False(Directory.Exists(DeltaUpdate.StagingDirectory(info)));
+        Assert.False(File.Exists(DeltaUpdate.FailedMark(info)));
+    }
+
+    [Fact]
+    public async Task A_delta_download_that_times_out_is_a_failure_and_leaves_the_update_to_the_setup()
+    {
+        // The 15-minute limit cancels a token of its own: not the caller's, so the setup still updates.
+        var (app, info, server) = Setup("2.0.10");
+        using var http = new HttpClient(new Interrupting(server, _ => throw new TaskCanceledException("the download took too long")));
+        Assert.False(await DeltaUpdate.PrepareAsync(http, info, app, "1.0.0"));
+        Assert.False(Directory.Exists(DeltaUpdate.StagingDirectory(info)));
+    }
+
+    [Fact]
+    public async Task The_update_loop_stopped_during_the_delta_ends_without_a_failure_and_without_the_setup()
+    {
+        var (app, info, server) = Setup("97.0.2", installed: UpdateService.CurrentVersion);
+        var events = new UpdateTests.Events();
+        using var stop = new CancellationTokenSource();
+        using var http = new HttpClient(new Interrupting(server, token =>
+        {
+            stop.Cancel();
+            token.ThrowIfCancellationRequested();
+        }));
+        var options = new UpdateService.WatchOptions(TimeSpan.Zero, TimeSpan.FromMinutes(5), UpdateTarget.WindowsInstalled, app, _ => true,
+            UpdateTests.Context());
+
+        await UpdateService.WatchAsync(http, notifyOnly: false, automatic: true, events.Callbacks, new UpdateTrigger(), options, stop.Token)
+            .WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.Equal(0, server.SetupRequests);
+        Assert.DoesNotContain(events.Log, line => line.StartsWith("failed ", StringComparison.Ordinal) || line.StartsWith("staged ", StringComparison.Ordinal));
+        Assert.False(Directory.Exists(DeltaUpdate.StagingDirectory(info)));
+        Assert.False(File.Exists(DeltaUpdate.FailedMark(info)));
+        Assert.False(File.Exists(UpdateService.StagedPath(info)));
+    }
+
+    [Fact]
     public void A_plan_this_process_did_not_prepare_is_not_installed_and_not_marked()
     {
         var info = new UpdateInfo("2.0.8", "setup.exe", "https://example.invalid/s.exe", Sha("s"), new DeltaAsset("d.zip", "https://example.invalid/d.zip", Sha("d")));
@@ -409,6 +459,21 @@ public sealed class DeltaUpdateTests : IDisposable
         process.StandardOutput.ReadToEnd();
         Assert.True(process.WaitForExit(30_000));
         Assert.Equal(0, process.ExitCode);
+    }
+
+    /// <summary>The release and the setup from <paramref name="server"/>; the delta package request runs <paramref name="onDelta"/> first.</summary>
+    private sealed class Interrupting(Server server, Action<CancellationToken> onDelta) : DelegatingHandler(server)
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var url = request.RequestUri!.AbsoluteUri;
+            if (!url.Contains("api.github.com", StringComparison.Ordinal) && !url.EndsWith(".exe", StringComparison.Ordinal))
+            {
+                onDelta(cancellationToken);
+            }
+
+            return base.SendAsync(request, cancellationToken);
+        }
     }
 
     private sealed class Throwing : HttpMessageHandler

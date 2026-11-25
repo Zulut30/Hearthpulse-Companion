@@ -278,7 +278,9 @@ public static partial class UpdateService
             return UpdateCheck.Of(UpdateCheckOutcome.Available, info,
                 () => info.Sha256 is null ? UnverifiedMessage(info) : Loc.F("Core.Update.Available", info.Version));
         }
-        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or JsonException or IOException or InvalidOperationException)
+        // The 20-second limit is a failed check; the caller's own cancellation is not, and goes up to it.
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or IOException or InvalidOperationException
+            || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Info($"Update check skipped: {ex.Message}");
             var reason = ex.Message;

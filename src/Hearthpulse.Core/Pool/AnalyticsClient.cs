@@ -72,8 +72,8 @@ public static class AnalyticsClient
             using var doc = JsonDocument.Parse(bytes);
             return Parse(doc.RootElement) is { } snapshot ? (snapshot, System.Text.Encoding.UTF8.GetString(bytes)) : null;
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException or FormatException
-            or KeyNotFoundException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException or FormatException or KeyNotFoundException
+            || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Error("Pool analytics unavailable", ex);
             return null;

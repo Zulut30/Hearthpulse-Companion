@@ -26,6 +26,9 @@ public sealed partial class HearthstoneMemory : IDisposable
     private const int AttachReadBudget = 3_000_000;
     private static readonly TimeSpan AttachTimeBudget = TimeSpan.FromSeconds(30);
     private DateTime _nextBudgetNote = DateTime.MinValue;
+    // A failed attach or read is logged at most once a minute each: reads run every poll and would flood the log.
+    private DateTime _nextAttachFailureNote = DateTime.MinValue;
+    private DateTime _nextReadFailureNote = DateTime.MinValue;
     private readonly Dictionary<string, ulong> _netCacheObjects = new(StringComparer.Ordinal);
     private DateTime _netCacheRefreshAt = DateTime.MinValue;
 
@@ -88,6 +91,11 @@ public sealed partial class HearthstoneMemory : IDisposable
         catch (Exception ex)
         {
             result = (null, null, "Attach failed: " + ex.Message, true);
+            if (DateTime.UtcNow >= _nextAttachFailureNote)
+            {
+                _nextAttachFailureNote = DateTime.UtcNow.AddMinutes(1);
+                Diag.Debug($"Memory: attaching failed ({ex.GetType().Name}: {ex.Message})");
+            }
         }
 
         lock (_gate)
@@ -386,6 +394,12 @@ public sealed partial class HearthstoneMemory : IDisposable
             if (!quiet)
             {
                 Status = "Read failed: " + ex.Message;
+            }
+
+            if (DateTime.UtcNow >= _nextReadFailureNote)
+            {
+                _nextReadFailureNote = DateTime.UtcNow.AddMinutes(1);
+                Diag.Debug($"Memory: a read failed ({ex.GetType().Name}: {ex.Message})");
             }
 
             return default;

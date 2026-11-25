@@ -73,7 +73,9 @@ public static partial class UpdateService
             Diag.Info($"Update {info.Version} downloaded ({info.AssetName}).");
             return staged;
         }
-        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException or UnauthorizedAccessException)
+        // The 30-minute limit is a failed download; the caller's own cancellation is not, and goes up to it.
+        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException
+            || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Error("Update download failed", ex);
             return null;

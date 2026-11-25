@@ -88,7 +88,10 @@ public sealed partial class CardDb
             && (card.IsBattlegroundsPoolMinion || card.IsBattlegroundsPoolSpell);
     }
 
-    /// <summary>Loads from cache, refreshing from the network when stale. Never throws.</summary>
+    /// <summary>
+    /// Loads from cache, refreshing from the network when stale. Never throws, except <see cref="OperationCanceledException"/>
+    /// once <paramref name="cancellationToken"/> is cancelled (a timeout is a failed download like any other).
+    /// </summary>
     public static Task<CardDb> LoadAsync(string locale, HttpClient http, CancellationToken cancellationToken = default) =>
         // With a fresh cache nothing below awaits anything, so the whole parse (half a second, tens of MB) ran on the
         // caller's thread - the UI thread at start-up - and froze the window that had just appeared.
@@ -119,7 +122,8 @@ public sealed partial class CardDb
                 File.Move(temp, path, overwrite: true);
                 Diag.Info($"Card data refreshed ({locale}, {bytes.Length:N0} bytes)");
             }
-            catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException or TaskCanceledException or JsonException)
+            catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException or JsonException
+                || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
             {
                 Diag.Error("Card data download failed", ex);
             }

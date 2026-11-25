@@ -135,7 +135,7 @@ public static partial class PoolClient
 
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Error("Sharing games failed", ex);
             return false;
@@ -172,7 +172,7 @@ public static partial class PoolClient
                 : $"Pool refused the Constructed picks: {(int)response.StatusCode}");
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Error("Sharing Constructed picks failed", ex);
             return false;
@@ -189,7 +189,7 @@ public static partial class PoolClient
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
             return Parse(doc.RootElement);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Error("Pool stats unavailable", ex);
             return null;
@@ -249,7 +249,7 @@ public static partial class PoolClient
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
             return ParseMeta(doc.RootElement);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Error("Stats pool meta unavailable", ex);
             return null;

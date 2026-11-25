@@ -75,7 +75,7 @@ public static class GameStatsClient
                 : $"Game stats: the pool answered {(int)response.StatusCode} to {records.Count} game(s)");
             return answer;
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Info($"Game stats: not sent now ({ex.GetType().Name})");
             return GameStatsAnswer.Later;
@@ -98,7 +98,7 @@ public static class GameStatsClient
             Diag.Info($"Game stats: asked the pool to delete this PC's games: {(int)response.StatusCode}");
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             Diag.Info($"Game stats: deleting the sent games waits ({ex.GetType().Name})");
             return false;

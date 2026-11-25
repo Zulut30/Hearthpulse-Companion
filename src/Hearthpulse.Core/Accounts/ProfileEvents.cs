@@ -460,8 +460,11 @@ public static partial class ProfileEvents
         {
             return baseHero(id) is { Length: > 0 } baseId ? baseId : id;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            // The lookup is the host's (the card data); a failure there must not drop the game from the profile, and
+            // the hero id as played is still a valid card id for the site, only without its skin folded away.
+            Diag.Debug($"Profile event: the base hero of {id} not found ({ex.GetType().Name}), the id is sent as played");
             return id;
         }
     }

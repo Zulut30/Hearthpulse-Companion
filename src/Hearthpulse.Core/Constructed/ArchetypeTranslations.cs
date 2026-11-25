@@ -74,7 +74,8 @@ public sealed class ArchetypeTranslations
 
     /// <summary>
     /// Reads the cache while it is fresh and readable, else fetches the list. Never throws: a failed fetch falls back to
-    /// the cached list, however old, and to <see cref="Empty"/> without one.
+    /// the cached list, however old, and to <see cref="Empty"/> without one. The one exception is
+    /// <see cref="OperationCanceledException"/> once <paramref name="cancellationToken"/> is cancelled.
     /// </summary>
     /// <param name="cacheDirectory">Where the answer is cached; the app's API cache folder by default (tests pass a scratch one).</param>
     public static Task<ArchetypeTranslations> LoadAsync(HttpClient http, string? cacheDirectory = null, CancellationToken cancellationToken = default) =>
@@ -268,7 +269,13 @@ public sealed class ArchetypeTranslations
             await File.WriteAllTextAsync(temp, text, cancellationToken).ConfigureAwait(false);
             File.Move(temp, file, overwrite: true);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Stopped by the caller: not a failed write, but no half-written temporary file stays behind either.
+            Delete(temp);
+            throw;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Diag.Error($"Archetype names file not written ({Path.GetFileName(file)})", ex);
             Delete(temp);
