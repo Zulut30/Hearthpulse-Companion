@@ -180,6 +180,12 @@
             <Setter Property="Width" Value="NaN" />
             <Setter Property="Margin" Value="0,8,0,0" />
         </Style>
+        <!-- Compact: a tracked chain's name wraps to a second line before it is cut (the row's tip still says it whole); the
+             journal's rows keep one line -->
+        <Style Selector="m|MainView.compact Grid.trackedRow TextBlock.chainName">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MaxLines" Value="2" />
+        </Style>
         <Style Selector="Grid.browse > :is(Control).browseRows">
             <Setter Property="Grid.Column" Value="2" />
         </Style>
@@ -195,7 +201,7 @@
                     <!-- The glyph, then the title in the rest of the width: a long title wraps under itself. -->
                     <Grid ColumnDefinitions="Auto,*">
                         <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Achievements}" />
-                        <TextBlock Grid.Column="1" Text="{i:Loc Achievements.Title}" Classes="display pageTitle" TextWrapping="Wrap" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Achievements.Title}" Classes="display pageTitle" TextWrapping="Wrap" AutomationProperties.HeadingLevel="1" />
                     </Grid>
                     <c:Wave Classes="pageRule" />
                 </StackPanel>

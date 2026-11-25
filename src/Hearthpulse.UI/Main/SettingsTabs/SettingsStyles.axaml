@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:m="using:Hearthpulse.UI.Main">
     <!-- What the Settings tabs share: the "Advanced" disclosure and the per-group reset button. The WPF twin is
          SettingsLook.xaml (AdvancedToggle, ResetButton). -->
     <Style Selector="ToggleButton.advanced">
@@ -30,5 +31,36 @@
         <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
         <Setter Property="HorizontalAlignment" Value="Right" />
         <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <!-- A switch's label wraps beside its track instead of being cut (compact, long Russian labels) -->
+    <Style Selector="CheckBox.switch /template/ ContentPresenter#Presenter">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- The sliders' labels: the 160 column of the other rows at least (with the label's 16 margin), one line when longer;
+         compact: they wrap in a narrower column, so the sliders keep their room -->
+    <Style Selector="TextBlock.lookLabel">
+        <Setter Property="MinWidth" Value="144" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="m|MainView.compact TextBlock.lookLabel">
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MaxWidth" Value="128" />
+    </Style>
+    <!-- The overlay's look block: the controls beside the preview; when there is no room for both (OverlaySettings.axaml.cs)
+         the controls take the width and the preview goes under them -->
+    <!-- The preview's place as a style value, so lookNarrow can move it (a local value would win) -->
+    <Style Selector="StackPanel.overlayLookPreview">
+        <Setter Property="Grid.Column" Value="2" />
+    </Style>
+    <Style Selector="Grid.lookNarrow > StackPanel.overlayLookControls">
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
+    <Style Selector="Grid.lookNarrow > StackPanel.overlayLookPreview">
+        <Setter Property="Grid.Row" Value="1" />
+        <Setter Property="Grid.Column" Value="0" />
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+        <Setter Property="Width" Value="272" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,16,0,0" />
     </Style>
 </Styles>

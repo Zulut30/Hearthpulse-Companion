@@ -6,8 +6,28 @@
              x:DataType="m:MainViewModel">
     <!-- Settings search over every tab: the box, and while a query is typed the matches in place of the tabs (Enter or a
          click jumps to the first / the clicked one, Esc clears). Same tree as the WPF SettingsSearchBox.xaml. -->
+    <UserControl.Styles>
+        <Style Selector="Panel.searchBox">
+            <Setter Property="Width" Value="420" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Border.searchHits">
+            <Setter Property="MinWidth" Value="420" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <!-- Compact: the box and its matches take the page's width instead of running past it -->
+        <Style Selector="m|MainView.compact Panel.searchBox">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="m|MainView.compact Border.searchHits">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+    </UserControl.Styles>
     <StackPanel>
-        <Panel Width="420" HorizontalAlignment="Left" Margin="0,0,0,16">
+        <!-- 420 wide; the page's width in compact (styles above) -->
+        <Panel Classes="searchBox" Margin="0,0,0,16">
             <TextBox Name="Query" Text="{Binding SettingsQuery}" Padding="40,8,40,8" PlaceholderText="{i:Loc Settings.Search.Placeholder}"
                      AutomationProperties.Name="{i:Loc Settings.Search.Name}" KeyDown="OnQueryKey" />
             <TextBlock Text="&#xF0349;" Classes="icon" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource Muted}"
@@ -17,7 +37,7 @@
                     IsVisible="{Binding SettingsSearching}" />
         </Panel>
 
-        <Border Classes="card" IsVisible="{Binding SettingsSearching}" i:Motion.RevealOnShow="True" MinWidth="420" HorizontalAlignment="Left" Margin="0,0,0,24">
+        <Border Classes="card searchHits" IsVisible="{Binding SettingsSearching}" i:Motion.RevealOnShow="True" Margin="0,0,0,24">
             <StackPanel>
                 <ItemsControl Name="Hits" ItemsSource="{Binding SettingsHits}" AutomationProperties.Name="{i:Loc Settings.Search.Results}">
                     <ItemsControl.ItemTemplate>

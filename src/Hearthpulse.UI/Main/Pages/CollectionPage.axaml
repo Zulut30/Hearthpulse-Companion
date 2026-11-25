@@ -226,7 +226,7 @@
                     <!-- The glyph, then the title in the rest of the width: a long title wraps under itself. -->
                     <Grid ColumnDefinitions="Auto,*">
                         <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Collection}" />
-                        <TextBlock Grid.Column="1" Text="{i:Loc CollectionPage.Title}" Classes="display pageTitle" TextWrapping="Wrap" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc CollectionPage.Title}" Classes="display pageTitle" TextWrapping="Wrap" AutomationProperties.HeadingLevel="1" />
                     </Grid>
                     <c:Wave Classes="pageRule" />
                 </StackPanel>

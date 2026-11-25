@@ -13,7 +13,7 @@
     <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left">
         <StackPanel Orientation="Horizontal">
             <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Settings}" />
-            <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource PageTitle}" />
+            <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource PageTitle}" AutomationProperties.HeadingLevel="Level1" />
         </StackPanel>
         <c:Wave Style="{StaticResource PageRule}" />
 

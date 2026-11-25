@@ -40,11 +40,18 @@ public partial class App
     }
 
     /// <summary>
-    /// HEARTHPULSE_RENDER_ONLY=settings: the Appearance tab (gallery, accent, background, shape) and the search with
-    /// "size" typed in the interface language (<c>main-settings-appearance.png</c>, <c>main-settings-search.png</c>).
+    /// HEARTHPULSE_RENDER_ONLY=settings: every tab (<c>main-settings-general.png</c>...), the Appearance tab (gallery,
+    /// accent, background, shape) and the search with "size" typed in the interface language
+    /// (<c>main-settings-appearance.png</c>, <c>main-settings-search.png</c>), at HEARTHPULSE_RENDER_WIDTH when set.
     /// </summary>
     private async Task RenderSettingsToolsAsync(string folder)
     {
+        if (RenderWidth is { } width)
+        {
+            _main.Width = width;
+        }
+
+        await RenderSettingsTabsAsync(folder);
         _main.ShowPage("Settings");
         _main.ShowSettingsTab("Appearance");
         await Task.Delay(2500);

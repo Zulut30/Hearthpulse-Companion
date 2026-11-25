@@ -101,7 +101,7 @@
                     <!-- The glyph, then the title in the rest of the width: a long title wraps under itself. -->
                     <Grid ColumnDefinitions="Auto,*">
                         <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Wrapped}" />
-                        <TextBlock Grid.Column="1" Text="{i:Loc Wrapped.Title}" Classes="display pageTitle" TextWrapping="Wrap" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Wrapped.Title}" Classes="display pageTitle" TextWrapping="Wrap" AutomationProperties.HeadingLevel="1" />
                     </Grid>
                     <c:Wave Classes="pageRule" />
                 </StackPanel>
@@ -126,7 +126,8 @@
             <!-- The hero card: the period with its arrows, one big number over a glow, the comparison, then three numbers -->
             <Border Name="HeroCard" Classes="card" Padding="32,24" Margin="0,0,0,24" ClipToBounds="True">
                 <Panel>
-                    <Border Width="160" Height="160" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{StaticResource MotifBrush}" Opacity="0.5" IsHitTestVisible="False" />
+                    <!-- The theme's motif in the corner; not in compact, where it would lie under the period and the number -->
+                    <Border Classes="wide" Width="160" Height="160" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{StaticResource MotifBrush}" Opacity="0.5" IsHitTestVisible="False" />
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Button Name="BackButton" Classes="icon" Content="&#xF0141;" Command="{Binding WrappedBack}" IsEnabled="{Binding WrappedCanGoBack}"

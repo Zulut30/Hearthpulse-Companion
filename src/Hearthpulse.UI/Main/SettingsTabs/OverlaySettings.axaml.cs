@@ -27,6 +27,35 @@ public partial class OverlaySettings : UserControl
             }
         };
         DataContextChanged += (_, _) => OnLookChanged();
+        // The look block: the preview beside the controls while both fit, under them when not (the minimum window, compact)
+        LookGrid.SizeChanged += (_, e) => PlaceLook(IsNarrowLook(e.NewSize.Width));
+    }
+
+    /// <summary>
+    /// Narrow: the preview's columns close (fixed widths would keep the grid 296 wide however narrow the page is) and the
+    /// styles of <c>lookNarrow</c> span the controls over the width and put the preview under them.
+    /// </summary>
+    private void PlaceLook(bool narrow)
+    {
+        LookGrid.Classes.Set("lookNarrow", narrow);
+        LookGrid.ColumnDefinitions[1].Width = new GridLength(narrow ? 0 : 24);
+        LookGrid.ColumnDefinitions[2].Width = new GridLength(narrow ? 0 : 272);
+    }
+
+    /// <summary>
+    /// Below this width the look block puts its preview under the controls: beside a 272 preview the controls would get
+    /// less than the sliders' one-line label column (about 216 in Russian), a usable slider and its value need.
+    /// </summary>
+    internal const double NarrowLook = 680;
+
+    /// <summary>
+    /// Too narrow for the preview beside the controls: under <see cref="NarrowLook"/>, or when the sliders' label column (a
+    /// longer translation, a larger font) would leave a slider less than 120 beside its 56 value column.
+    /// </summary>
+    private bool IsNarrowLook(double width)
+    {
+        var label = Math.Max(SizeLabel.DesiredSize.Width, OpacityLabel.DesiredSize.Width);
+        return width < NarrowLook || width - 24 - 272 < label + 56 + 120;
     }
 
     /// <summary>The window saves the settings after a density preset (D5).</summary>

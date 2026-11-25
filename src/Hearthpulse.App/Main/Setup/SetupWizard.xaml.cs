@@ -1,5 +1,7 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace Hearthpulse.App.Main.Setup;
@@ -21,6 +23,18 @@ public partial class SetupWizard : UserControl
                 _ = Dispatcher.BeginInvoke(DispatcherPriority.Input, () => SkipButton.Focus());
             }
         };
+        DataContextChanged += (_, e) =>
+        {
+            if (e.OldValue is MainViewModel old)
+            {
+                old.PropertyChanged -= OnModelChanged;
+            }
+
+            if (e.NewValue is MainViewModel model)
+            {
+                model.PropertyChanged += OnModelChanged;
+            }
+        };
     }
 
     /// <summary>"Arrange panels" on the overlay step.</summary>
@@ -30,5 +44,32 @@ public partial class SetupWizard : UserControl
     {
         (DataContext as MainViewModel)?.SetupArranged();
         ArrangeRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Next on the next-to-last step, Back on the second and "Turn on logs" hide the very button that was pressed: the
+    /// keyboard would be left on nothing. After the step's layout, focus moves to the shown primary button.
+    /// </summary>
+    private void OnModelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(MainViewModel.SetupStep) or nameof(MainViewModel.SetupCanFixLogs))
+        {
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Input, KeepFocus);
+        }
+    }
+
+    private void KeepFocus()
+    {
+        // Only a focus lost here moves: none, or a wizard control that is hidden now; focus elsewhere stays put.
+        var lost = Keyboard.FocusedElement switch
+        {
+            null => true,
+            UIElement focused => !focused.IsVisible && IsAncestorOf(focused),
+            _ => false,
+        };
+        if (IsVisible && lost)
+        {
+            (NextButton.IsVisible ? NextButton : StartButton).Focus();
+        }
     }
 }

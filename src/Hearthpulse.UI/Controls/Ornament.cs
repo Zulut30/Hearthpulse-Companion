@@ -1,5 +1,6 @@
 using System.Globalization;
 using Avalonia;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Hearthpulse.UI.Infrastructure;
@@ -90,6 +91,12 @@ public sealed class Ornament : Control
 
     private FormattedText New() =>
         new(SentenceCase(_fullText), CultureInfo.CurrentCulture, FlowDirection.LeftToRight, _fullFace, _fullSize, _fullBrush);
+
+    /// <summary>
+    /// The title is drawn, not a TextBlock: the peer gives it to UI Automation as a heading (level 2, a card's heading
+    /// under the page title; <c>AutomationProperties.HeadingLevel</c> on the element overrides it).
+    /// </summary>
+    protected override AutomationPeer OnCreateAutomationPeer() => new OrnamentAutomationPeer(this);
 
     protected override Size MeasureOverride(Size availableSize)
     {
@@ -183,5 +190,21 @@ public sealed class Ornament : Control
         context.DrawText(text, new Point(x, mid - (text.Height / 2)));
         // The rule runs on after the title, as in WPF (icon + title + rule; bug-hunt d3).
         Wave.Draw(context, trim, gold, x + text.Width + 12, w, mid + 1);
+    }
+
+    private sealed class OrnamentAutomationPeer(Ornament owner) : ControlAutomationPeer(owner)
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
+
+        protected override string GetClassNameCore() => nameof(Ornament);
+
+        protected override string? GetNameCore() =>
+            base.GetNameCore() is { Length: > 0 } name ? name : SentenceCase(owner.Text ?? string.Empty);
+
+        protected override int GetHeadingLevelCore() => base.GetHeadingLevelCore() is > 0 and var level ? level : 2;
+
+        protected override bool IsContentElementCore() => true;
+
+        protected override bool IsControlElementCore() => true;
     }
 }

@@ -56,33 +56,50 @@
         <Style Selector="TextBlock.stepName.current">
             <Setter Property="Foreground" Value="{StaticResource Text}" />
         </Style>
+        <!-- The step's area keeps one height, so the card does not jump between steps; in compact it takes what its step needs -->
+        <Style Selector="Grid.setupStep">
+            <Setter Property="Height" Value="320" />
+        </Style>
+        <!-- The card's room as style values, so compact can change them (a local value would win) -->
+        <Style Selector="Border.setupCard">
+            <Setter Property="Margin" Value="40,32" />
+            <Setter Property="Padding" Value="32,24" />
+        </Style>
+        <!-- Compact (420): a slimmer card; the markers stay in one row without their names (the step's title says it), the
+             logo and the step's glyph go, so the words take the card's width -->
+        <Style Selector="m|MainView.compact Border.setupCard">
+            <Setter Property="Margin" Value="12,16" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.setupStep">
+            <Setter Property="Height" Value="NaN" />
+        </Style>
     </UserControl.Styles>
     <!-- Tab stays inside the wizard while it covers the page (Esc closes it: MainView.OnWindowKeyDown) -->
     <Panel Background="{StaticResource SetupScrim}" KeyboardNavigation.TabNavigation="Cycle">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <Border Classes="card" MaxWidth="760" Margin="40,32" Padding="32,24" VerticalAlignment="Center">
+            <Border Classes="card setupCard" MaxWidth="760" VerticalAlignment="Center">
                 <StackPanel>
-                    <!-- Header: the logo, the wizard's name and Skip -->
+                    <!-- Header: Skip on the right, the logo on the left, the wizard's name and its line wrap in what is left -->
                     <DockPanel>
                         <Button Name="SkipButton" DockPanel.Dock="Right" Classes="ghost" Content="{i:Loc Setup.Skip}" Command="{Binding CloseSetup}" VerticalAlignment="Top" />
-                        <StackPanel Orientation="Horizontal">
-                            <Image Source="{StaticResource HearthpulseLogo}" Width="40" Height="40" VerticalAlignment="Center" />
-                            <StackPanel Margin="12,0,16,0" VerticalAlignment="Center">
-                                <TextBlock Text="{i:Loc Setup.Title}" Classes="h2" Foreground="{StaticResource GildedText}" />
-                                <TextBlock Text="{i:Loc Setup.Subtitle}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0" />
-                            </StackPanel>
+                        <Image DockPanel.Dock="Left" Classes="wide" Source="{StaticResource HearthpulseLogo}" Width="40" Height="40" VerticalAlignment="Center" />
+                        <StackPanel Margin="12,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Text="{i:Loc Setup.Title}" Classes="h2" TextWrapping="Wrap" AutomationProperties.HeadingLevel="1" Foreground="{StaticResource GildedText}" />
+                            <TextBlock Text="{i:Loc Setup.Subtitle}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0" />
                         </StackPanel>
                     </DockPanel>
 
                     <!-- Round gold step numbers on one hairline: the open one lit, the passed ones ticked; each opens its step -->
-                    <Panel Margin="0,24,0,24">
-                        <Border Height="36" Margin="40,0" VerticalAlignment="Top">
+                    <!-- Ten equal halves of the five step cells: the hairline runs from the first marker's centre to the last's -->
+                    <Grid Margin="0,24,0,24" ColumnDefinitions="*,*,*,*,*,*,*,*,*,*">
+                        <Border Grid.Column="1" Grid.ColumnSpan="8" Height="36" VerticalAlignment="Top">
                             <Border Height="1" VerticalAlignment="Center" Background="{StaticResource AccentLine}" />
                         </Border>
-                        <ItemsControl ItemsSource="{Binding SetupSteps}">
+                        <ItemsControl Grid.ColumnSpan="10" ItemsSource="{Binding SetupSteps}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <UniformGrid Rows="1" />
+                                    <UniformGrid Classes="fixed" Rows="1" />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
@@ -99,18 +116,18 @@
                                                 <TextBlock Classes="icon tick" Text="&#xF012C;" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource OnAccentContainer}"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Panel>
-                                            <TextBlock Classes="caption stepName" Classes.current="{Binding Current}" Text="{Binding Title}" HorizontalAlignment="Center"
+                                            <TextBlock Classes="caption stepName wide" Classes.current="{Binding Current}" Text="{Binding Title}" HorizontalAlignment="Center"
                                                        TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0" />
                                         </StackPanel>
                                     </Button>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </Panel>
+                    </Grid>
 
                     <!-- The step: its engraved glyph on a soft glow, then its words and action -->
-                    <Grid ColumnDefinitions="Auto,*" Height="320">
-                        <Panel Width="96" Height="96" Margin="0,0,24,0" VerticalAlignment="Top">
+                    <Grid Classes="setupStep" ColumnDefinitions="Auto,*">
+                        <Panel Classes="wide" Width="96" Height="96" Margin="0,0,24,0" VerticalAlignment="Top">
                             <Ellipse Fill="{StaticResource Glow}" />
                             <c:GoldGlyph Width="64" Height="64" Glyph="{x:Static c:GameIcons.Settings}" IsVisible="{Binding SetupOnLogs}" />
                             <c:GoldGlyph Width="64" Height="64" Glyph="{x:Static c:GameIcons.History}" IsVisible="{Binding SetupOnMigration}" />
@@ -121,38 +138,40 @@
 
                         <!-- 1. Game logs: what they are for, whether they are on, one button that turns them on -->
                         <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnLogs}">
-                            <TextBlock Text="{i:Loc Setup.Logs.Title}" Classes="h2" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Logs.Title}" Classes="h2" TextWrapping="Wrap" AutomationProperties.HeadingLevel="2" />
                             <TextBlock Text="{i:Loc Setup.Logs.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                                 <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource Positive}" Margin="0,0,8,0" IsVisible="{Binding SetupLogsOk}" />
                                 <TextBlock Text="&#xF0028;" Classes="icon" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource Accent}" Margin="0,0,8,0" IsVisible="{Binding !SetupLogsOk}" />
                                 <TextBlock Text="{Binding SetupLogsStatus}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
                             </StackPanel>
-                            <Button Classes="ghost primary" Content="{i:Loc Setup.Logs.Fix}" Command="{Binding FixLogs}" HorizontalAlignment="Left"
+                            <Button Name="FixLogsButton" Classes="ghost primary" Content="{i:Loc Setup.Logs.Fix}" Command="{Binding FixLogs}" HorizontalAlignment="Left"
                                     IsVisible="{Binding SetupCanFixLogs}" />
-                            <TextBlock Text="{Binding SetupLogsNote}" Classes="caption" TextWrapping="Wrap" Margin="0,12,0,0"
+                            <TextBlock Text="{Binding SetupLogsNote}" Classes="caption" TextWrapping="Wrap" Margin="0,12,0,0" AutomationProperties.LiveSetting="Polite"
                                        IsVisible="{Binding SetupLogsNote, Converter={StaticResource Truthy}}" />
                         </StackPanel>
 
                         <!-- 2. Moving from HDT or Firestone: the existing migration card, as in Settings > Data -->
                         <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnMigration}">
-                            <TextBlock Text="{i:Loc Setup.Migration.Title}" Classes="h2" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Migration.Title}" Classes="h2" TextWrapping="Wrap" AutomationProperties.HeadingLevel="2" />
                             <TextBlock Text="{i:Loc Setup.Migration.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
                             <mg:MigrationCard DataContext="{Binding Migration}" Full="True" Embedded="True" />
                         </StackPanel>
 
                         <!-- 3. The overlay panels: what they show, one button into the layout mode -->
                         <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnLayout}">
-                            <TextBlock Text="{i:Loc Setup.Layout.Title}" Classes="h2" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Layout.Title}" Classes="h2" TextWrapping="Wrap" AutomationProperties.HeadingLevel="2" />
                             <TextBlock Text="{i:Loc Setup.Layout.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
                             <Button Name="ArrangeButton" Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" Click="OnArrange" HorizontalAlignment="Left" />
                         </StackPanel>
 
                         <!-- 4. The look: the theme presets and the background characters -->
-                        <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnLook}">
-                            <TextBlock Text="{i:Loc Setup.Look.Title}" Classes="h2" TextWrapping="Wrap" />
-                            <TextBlock Text="{i:Loc Setup.Look.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
-                            <ItemsControl ItemsSource="{Binding Themes}" Margin="0,0,-10,8">
+                        <!-- The gallery scrolls inside the step's fixed height (thirteen themes take four rows), the switch stays under it -->
+                        <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*,Auto" IsVisible="{Binding SetupOnLook}">
+                            <TextBlock Text="{i:Loc Setup.Look.Title}" Classes="h2" TextWrapping="Wrap" AutomationProperties.HeadingLevel="2" />
+                            <TextBlock Grid.Row="1" Text="{i:Loc Setup.Look.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
+                            <ScrollViewer Name="LookGallery" Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,8">
+                            <ItemsControl ItemsSource="{Binding Themes}" Margin="0,0,-10,0">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <WrapPanel />
@@ -166,13 +185,14 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <CheckBox Classes="switch" Content="{i:Loc Settings.Theme.PageHeroes}" IsChecked="{Binding SetupPageHeroes}"
+                            </ScrollViewer>
+                            <CheckBox Grid.Row="3" Classes="switch" Content="{i:Loc Settings.Theme.PageHeroes}" IsChecked="{Binding SetupPageHeroes}"
                                       ToolTip.Tip="{i:Loc Settings.Theme.PageHeroesTip}" />
-                        </StackPanel>
+                        </Grid>
 
                         <!-- 5. Done: what happens next -->
                         <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnDone}">
-                            <TextBlock Text="{i:Loc Setup.Done.Title}" Classes="h2" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Done.Title}" Classes="h2" TextWrapping="Wrap" AutomationProperties.HeadingLevel="2" />
                             <TextBlock Text="{i:Loc Setup.Done.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
                         </StackPanel>
                     </Grid>
@@ -180,8 +200,8 @@
                     <!-- Back / Next, and Start on the last step -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
                         <Button Classes="ghost" Content="{i:Loc Setup.Back}" Command="{Binding SetupBack}" Margin="0,0,8,0" IsVisible="{Binding SetupCanGoBack}" />
-                        <Button Classes="ghost primary" Content="{i:Loc Setup.Next}" Command="{Binding SetupNext}" IsVisible="{Binding !SetupOnDone}" />
-                        <Button Classes="ghost primary" Content="{i:Loc Setup.Start}" Command="{Binding CloseSetup}" IsVisible="{Binding SetupOnDone}" />
+                        <Button Name="NextButton" Classes="ghost primary" Content="{i:Loc Setup.Next}" Command="{Binding SetupNext}" IsVisible="{Binding !SetupOnDone}" />
+                        <Button Name="StartButton" Classes="ghost primary" Content="{i:Loc Setup.Start}" Command="{Binding CloseSetup}" IsVisible="{Binding SetupOnDone}" />
                     </StackPanel>
                 </StackPanel>
             </Border>
