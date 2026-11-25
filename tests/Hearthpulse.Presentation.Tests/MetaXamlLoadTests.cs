@@ -44,7 +44,7 @@ public sealed class MetaXamlLoadTests
         wpf.ShowConstructedFormat("FT_STANDARD");
         wpf.SetConstructedMeta(meta);
         Assert.Equal(ava.MetaTierRows.Select(RowText), wpf.MetaTierRows.Select(RowText));
-        Assert.Equal(8, wpf.MetaTierRows.Count);
+        Assert.Equal(6, wpf.MetaTierRows.Count);
         Assert.Equal(ava.MatchupMatrix.SelectMany(r => r.Cells).Select(c => c.Text), wpf.MatchupMatrix.SelectMany(r => r.Cells).Select(c => c.Text));
 
         Exception? failure = null;
@@ -107,8 +107,8 @@ public sealed class MetaXamlLoadTests
         var list = (ItemsControl)view.FindName("MetaTierList");
         var source = list.ItemsSource;
         Assert.Same(model.MetaTierRows, source);
-        Assert.Equal(8, list.Items.Count);
-        var containers = Enumerable.Range(0, 8).Select(i => (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(i)).ToList();
+        Assert.Equal(6, list.Items.Count);
+        var containers = Enumerable.Range(0, 6).Select(i => (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(i)).ToList();
         Assert.All(containers, Assert.NotNull);
         Assert.Single(containers.Select(c => c.ActualHeight).Distinct());
         // 46 and the gap of 3, rounded to whole pixels of the screen (48.57 at 175 %).
@@ -119,14 +119,15 @@ public sealed class MetaXamlLoadTests
         Layout(root);
         Assert.Same(source, list.ItemsSource);
         Assert.Equal(items, model.MetaTierRows, ReferenceEqualityComparer.Instance);
-        Assert.Equal(containers, Enumerable.Range(0, 8).Select(i => (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(i)));
+        Assert.Equal(containers, Enumerable.Range(0, 6).Select(i => (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(i)));
 
         model.SetMetaMinGames.Execute("5000");
         Layout(root);
         Assert.Same(source, list.ItemsSource);
-        Assert.Equal(7, list.Items.Count);
-        Assert.Equal(items.Take(6), model.MetaTierRows.Take(6), ReferenceEqualityComparer.Instance);
-        Assert.Equal(containers.Take(6), Enumerable.Range(0, 6).Select(i => (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(i)));
+        // The last archetype was alone in its tier: the tier's head goes with it (an empty tier has none).
+        Assert.Equal(4, list.Items.Count);
+        Assert.Equal(items.Take(4), model.MetaTierRows.Take(4), ReferenceEqualityComparer.Instance);
+        Assert.Equal(containers.Take(4), Enumerable.Range(0, 4).Select(i => (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(i)));
         Assert.Equal(2, Descendants<Button>(root).Count(b => b.DataContext is WpfArchetypeRow && Shown(b)));
         model.SetMetaMinGames.Execute("100");
         Layout(root);

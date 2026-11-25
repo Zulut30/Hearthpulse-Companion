@@ -411,9 +411,9 @@ public sealed class PageRowsPanelAvaloniaTests
             AssertRowsShowTheirItems();
             model.SetMetaClass.Execute("PRIEST");
             Settle(window);
-            Assert.Equal(5, list.ItemCount);
-            Assert.Equal(5, panel.Children.Count);
-            AssertRowsShowTheirItems();
+            // No archetype, so no tier head either (an empty tier is left out): the list is empty.
+            Assert.Equal(0, list.ItemCount);
+            Assert.Empty(panel.Children);
             model.SetMetaClass.Execute(string.Empty);
             Settle(window);
             Assert.Equal(85, list.ItemCount);

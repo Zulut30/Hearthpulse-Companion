@@ -57,7 +57,7 @@ public sealed class MetaPrebuildAvaloniaTests
         var segments = Segments(meta);
         Assert.True(segments.Count >= 8 + 6 + 6 + 2, $"{segments.Count} segments built ahead");
         Assert.True(Named<Control>(meta, "MetaHead").Bounds.Width > 0);
-        Assert.Equal(12, list.ItemCount);
+        Assert.Equal(11, list.ItemCount);
         Assert.Empty(list.GetRealizedContainers());
         Assert.False(Named<Control>(meta, "MetaLists").IsVisible);
 
@@ -90,7 +90,7 @@ public sealed class MetaPrebuildAvaloniaTests
         PageRowsPanelAvaloniaTests.Settle(window);
         Assert.True(meta.IsEffectivelyVisible);
         Assert.Equal(segments, Segments(meta));
-        Assert.Equal(12, list.GetRealizedContainers().Count());
+        Assert.Equal(11, list.GetRealizedContainers().Count());
         Assert.True(meta.Bounds.Height > 300);
     });
 
@@ -111,7 +111,7 @@ public sealed class MetaPrebuildAvaloniaTests
         Assert.True(double.IsNaN(meta.Height));
         Assert.NotEqual(Avalonia.Input.KeyboardNavigationMode.None, Avalonia.Input.KeyboardNavigation.GetTabNavigation(meta));
         Assert.All(Parts, name => Assert.True(Named<Control>(meta, name).Bounds.Height > 0, name));
-        Assert.Equal(12, Named<ItemsControl>(meta, "MetaTierList").GetRealizedContainers().Count());
+        Assert.Equal(11, Named<ItemsControl>(meta, "MetaTierList").GetRealizedContainers().Count());
     });
 
     [Fact]
@@ -191,7 +191,7 @@ public sealed class MetaPrebuildAvaloniaTests
         // The click: the rows of the stats, the chosen archetype in the side card, the same fixed segments.
         view.ShowConstructedTab("Tiers");
         PageRowsPanelAvaloniaTests.Settle(window);
-        Assert.Equal(12, list.GetRealizedContainers().Count());
+        Assert.Equal(11, list.GetRealizedContainers().Count());
         Assert.Equal(fixedBars, bars.SelectMany(name => Segments(Named<Control>(meta, name))));
         Assert.True(Segments(Named<Control>(meta, "FilterClasses")).Count >= 7, "a segment per class of the stats");
         Assert.Contains(Named<Control>(meta, "ArchetypeCard").GetVisualDescendants().OfType<TextBlock>(), t => t.Text == model.SelectedArchetype!.Name && t.IsEffectivelyVisible);
