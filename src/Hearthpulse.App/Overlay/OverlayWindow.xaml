@@ -23,7 +23,7 @@
             <o:BgBadgesLayer />
 
             <!-- ============ Constructed: your deck (right) ============ -->
-            <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" CanCompact="True" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,12,0">
+            <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" CanCompact="True" FitsHeight="True" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,12,0">
                 <o:DeckPanel />
             </o:MovablePanel>
 
@@ -42,11 +42,13 @@
                 <o:LadderSessionPanel />
             </o:MovablePanel>
 
-            <!-- ============ Constructed: turn timers, left of each hero portrait (weapon slot side, clear of the hero power) ============ -->
-            <o:MovablePanel Id="turn-timer-opponent" Title="{i:Loc Widgets.Turn.OpponentPanel}" Shown="{Binding ShowTurnTimer}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,170,660,0">
+            <!-- ============ Constructed: turn timers, left of each hero portrait (weapon slot side, clear of the hero power). Spots on
+                 the game's screen (GameSpot): at a larger overlay scale they stay by the portraits instead of drifting
+                 towards the centre-left panels (bug-hunt #13) ============ -->
+            <o:MovablePanel Id="turn-timer-opponent" Title="{i:Loc Widgets.Turn.OpponentPanel}" GameSpot="True" Shown="{Binding ShowTurnTimer}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,170,660,0">
                 <o:TurnTimerPanel DataContext="{Binding OpponentTimer}" />
             </o:MovablePanel>
-            <o:MovablePanel Id="turn-timer" Title="{i:Loc Widgets.Turn.Panel}" Shown="{Binding ShowTurnTimer}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,660,200">
+            <o:MovablePanel Id="turn-timer" Title="{i:Loc Widgets.Turn.Panel}" GameSpot="True" Shown="{Binding ShowTurnTimer}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,660,200">
                 <o:TurnTimerPanel DataContext="{Binding MyTimer}" />
             </o:MovablePanel>
 
@@ -75,23 +77,27 @@
             </o:MovablePanel>
 
             <!-- ============ Constructed: counters (bottom-left) ============ -->
-            <!-- Low, just above the BG counters' tag (another mode; the two tags must not cover each other in layout mode): at
-                 overlay scale 1.2 the surface is only 900 high, and 110 from the bottom put it over the lower third of a full
-                 opponent panel (about 610 high from 76). A full hand and five counters still touch by about 40 -->
-            <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,66">
+            <!-- Low, just above the BG counters' tag (another mode; the two tags must not cover each other in layout mode). At
+                 overlay scale 1.2 the surface is only 900 high and a full opponent panel runs from 76 to about 686: the panel
+                 stays below it (StaysBelow, FitsHeight), so five counters or an opened one scroll inside the card instead of
+                 growing over it (bug-hunt #1, #12) -->
+            <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" FitsHeight="True" StaysBelow="opponent" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,66">
                 <!-- 232, not the 214 of the other cards: a long counter name (Russian above all) fits in two lines -->
                 <Border x:Name="CountersCard" Style="{StaticResource OverlayCard}" Width="232" o:OverlayHit.Interactive="True">
-                    <!-- One value column for every row, so the progress under each title ends at the same place -->
-                    <StackPanel Margin="9,8,9,7" Grid.IsSharedSizeScope="True">
-                        <StackPanel Visibility="{Binding OpponentCounters, Converter={StaticResource Vis}}">
-                            <ContentControl Style="{StaticResource OverlaySection}" Content="{i:Loc Overlay.Common.Opponent}" Margin="3,0,0,3" />
-                            <ItemsControl ItemsSource="{Binding OpponentCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
+                    <!-- One value column for every row, so the progress under each title ends at the same place. The list scrolls when
+                         the panel is held under the opponent panel -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                        <StackPanel Margin="9,8,9,7" Grid.IsSharedSizeScope="True">
+                            <StackPanel Visibility="{Binding OpponentCounters, Converter={StaticResource Vis}}">
+                                <ContentControl Style="{StaticResource OverlaySection}" Content="{i:Loc Overlay.Common.Opponent}" Margin="3,0,0,3" />
+                                <ItemsControl ItemsSource="{Binding OpponentCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding MyCounters, Converter={StaticResource Vis}}">
+                                <ContentControl Style="{StaticResource OverlaySection}" Content="{i:Loc Overlay.Counters.You}" Margin="3,6,0,3" />
+                                <ItemsControl ItemsSource="{Binding MyCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
+                            </StackPanel>
                         </StackPanel>
-                        <StackPanel Visibility="{Binding MyCounters, Converter={StaticResource Vis}}">
-                            <ContentControl Style="{StaticResource OverlaySection}" Content="{i:Loc Overlay.Counters.You}" Margin="3,6,0,3" />
-                            <ItemsControl ItemsSource="{Binding MyCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
-                        </StackPanel>
-                    </StackPanel>
+                    </ScrollViewer>
                 </Border>
             </o:MovablePanel>
 
@@ -177,12 +183,12 @@
                         </ItemsControl.ItemContainerStyle>
                     </ItemsControl>
                     <!-- When these numbers were collected -->
-                    <Border x:Name="BgHeroDataNote" HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                    <Border x:Name="BgHeroDataNote" HorizontalAlignment="Center" Margin="0,6,0,0" Style="{StaticResource OverlayNoteChip}"
                             Visibility="{Binding BgHeroDataNote, Converter={StaticResource Vis}}">
                         <TextBlock Text="{Binding BgHeroDataNote}" FontSize="10" Foreground="{StaticResource Muted}" />
                     </Border>
                     <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
-                    <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                    <Border HorizontalAlignment="Center" Margin="0,6,0,0" Style="{StaticResource OverlayNoteChip}"
                             Visibility="{Binding UsageNote, Converter={StaticResource Vis}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xF0341;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
@@ -206,7 +212,7 @@
                         </ItemsControl.ItemContainerStyle>
                     </ItemsControl>
                     <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
-                    <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                    <Border HorizontalAlignment="Center" Margin="0,6,0,0" Style="{StaticResource OverlayNoteChip}"
                             Visibility="{Binding UsageNote, Converter={StaticResource Vis}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xF0341;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
@@ -232,7 +238,7 @@
                         </ItemsControl.ItemContainerStyle>
                     </ItemsControl>
                     <!-- Plan 3.1: what is left today of the free games with the stats pool's numbers, or why they are missing -->
-                    <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                    <Border HorizontalAlignment="Center" Margin="0,6,0,0" Style="{StaticResource OverlayNoteChip}"
                             Visibility="{Binding UsageNote, Converter={StaticResource Vis}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xF0341;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
@@ -250,7 +256,7 @@
             <!-- ============ Battlegrounds: Discover pick hints (Dark Gift, triple reward…) ============ -->
             <o:MovablePanel Id="choice-row" PlaceholderAlignment="Center" Title="{i:Loc Overlay.Panel.Choice}" MinWidth="1360" Shown="{Binding ShowDiscover}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,222,0,0">
                 <StackPanel>
-                    <Border HorizontalAlignment="Center" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                    <Border HorizontalAlignment="Center" Style="{StaticResource OverlayNoteChip}"
                             Visibility="{Binding DiscoverTitle, Converter={StaticResource Vis}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xF0674;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
@@ -272,15 +278,17 @@
             <!-- ============ Leaderboard calibration guides ============ -->
             <Canvas x:Name="GuideLayer" IsHitTestVisible="False" />
 
+            <!-- ============ Arena draft: deck so far, curve, average score, class win rates (left) ============ -->
+            <o:MovablePanel Id="arena-draft" Title="{i:Loc Arena.Panel.Title}" FitsHeight="True" Hint="{i:Loc Overlay.Layout.AppearsInArenaDraft}" Shown="{Binding ShowArenaDraft}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,148,0,0">
+                <o:ArenaDraftPanel />
+            </o:MovablePanel>
+
+            <!-- The badges come after the draft panel: drawn over it, so at a large overlay scale the panel's right edge never hides the
+                 first badge's seal (bug-hunt #11) -->
             <!-- ============ Arena draft: a score badge over each offered card or hero (centred on the play area left of the client's
                  deck list: right margin 339 shifts the centre 170 left; anchors from HdtArenaHelper, MIT) ============ -->
             <o:MovablePanel Id="arena-picks" Title="{i:Loc Arena.Panel.Picks}" Hint="{i:Loc Overlay.Layout.AppearsInArenaDraft}" GameAnchored="True" Shown="{Binding ShowArenaPicks}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,566,339,0">
                 <o:ArenaPicksPanel />
-            </o:MovablePanel>
-
-            <!-- ============ Arena draft: deck so far, curve, average score, class win rates (left) ============ -->
-            <o:MovablePanel Id="arena-draft" Title="{i:Loc Arena.Panel.Title}" Hint="{i:Loc Overlay.Layout.AppearsInArenaDraft}" Shown="{Binding ShowArenaDraft}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,148,0,0">
-                <o:ArenaDraftPanel />
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: session (top-right) ============ -->
@@ -293,8 +301,9 @@
                 <o:LobbyPanel />
             </o:MovablePanel>
 
-            <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels) ============ -->
-            <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,400,0,0" Style="{StaticResource OverlayCardSolid}" BorderBrush="{StaticResource Accent}" Padding="16,10" o:OverlayHit.Interactive="True"
+            <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels, and above the
+                 Arena score badges, which stay at the game's card row: at overlay scale 1.2 a lower banner covered them) ============ -->
+            <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,372,0,0" Style="{StaticResource OverlayCardSolid}" BorderBrush="{StaticResource Accent}" Padding="16,10" o:OverlayHit.Interactive="True"
                     Visibility="{Binding LayoutEditing, Converter={StaticResource Vis}}">
                 <StackPanel Orientation="Horizontal">
                     <StackPanel VerticalAlignment="Center">

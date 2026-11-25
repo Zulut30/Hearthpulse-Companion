@@ -46,22 +46,26 @@
     </UserControl.Resources>
 
     <Border Classes="overlayCard" Width="252">
-        <StackPanel>
-            <Border Classes="overlayHeader" Margin="0,0,0,6">
+        <!-- Header and footer stay in sight; when the overlay holds the panel to the screen (MovablePanel FitsHeight: a large
+             overlay scale, a 30-card list) only the list scrolls, and the panel keeps its bottom frame -->
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Classes="overlayHeader" Margin="0,0,0,6">
                 <StackPanel>
                     <TextBlock Text="{Binding DeckName}" Classes="headerTitle" />
                     <TextBlock Text="{Binding DeckRecord}" Classes="headerNote"
                                Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}" />
                 </StackPanel>
             </Border>
-            <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" o:OverlayHit.Interactive="True" />
-            <Border BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,7,12,9">
+            <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,7,12,9">
                 <StackPanel>
-                    <TextBlock Text="{Binding DeckCounts}" FontSize="11" Foreground="{StaticResource Muted}" />
-                    <TextBlock Text="{Binding NextDraw}" FontSize="11" TextTrimming="CharacterEllipsis"
+                    <TextBlock Text="{Binding DeckCounts}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" />
+                    <TextBlock Text="{Binding NextDraw}" FontSize="{StaticResource FontSizeSmall}" TextTrimming="CharacterEllipsis"
                                IsVisible="{Binding NextDraw, Converter={StaticResource Truthy}}" />
                 </StackPanel>
             </Border>
-        </StackPanel>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="8,0,8,4" o:OverlayHit.Interactive="True">
+                <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" />
+            </ScrollViewer>
+        </DockPanel>
     </Border>
 </UserControl>

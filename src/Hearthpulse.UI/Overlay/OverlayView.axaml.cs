@@ -55,6 +55,20 @@ public partial class OverlayView : UserControl
             panel.LookChanged += OnLookChanged;
             panel.LockToggled += OnLockToggled;
         }
+
+        Surface.LayoutUpdated += (_, _) => FitPanels();
+    }
+
+    /// <summary>
+    /// Holds the panels with long lists to the room they have on the screen (<see cref="MovablePanel.FitsHeight"/>) after
+    /// each layout pass: a panel grows or the one above it changes, and the limit follows.
+    /// </summary>
+    private void FitPanels()
+    {
+        foreach (var panel in _panels)
+        {
+            panel.FitHeight(_panels);
+        }
     }
 
     /// <summary>Settings that hold panel placements, scale, opacity and leaderboard calibration.</summary>

@@ -25,13 +25,22 @@
     <Style Selector="Button.tribeChip.selected TextBlock#Name">
         <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
     </Style>
+    <!-- A one-line note under or over a row on the game's cards (where the numbers come from, the free games left, the
+         Discover title): the overlay card's frame (D5 frame unification: its radius, edge and solid fill) in a slim strip -->
+    <Style Selector="Border.noteChip">
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+        <Setter Property="Background" Value="{DynamicResource OverlayPanelSolid}" />
+        <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="12,2" />
+    </Style>
     <Style Selector="Border.divider">
         <Setter Property="Width" Value="1" />
         <Setter Property="Margin" Value="12,2" />
         <Setter Property="Background" Value="{StaticResource OverlayBorder}" />
     </Style>
     <Style Selector="TextBlock.sectionLabel">
-        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMicro}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
         <Setter Property="Margin" Value="0,0,0,6" />
@@ -172,7 +181,7 @@
         <Setter Property="Foreground" Value="{StaticResource Accent}" />
     </Style>
     <Style Selector="TextBlock.counterSection">
-        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMicro}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
         <Setter Property="Margin" Value="0,6,0,4" />
@@ -325,7 +334,7 @@
     <Style Selector="Button.icon.tagButton">
         <Setter Property="Width" Value="20" />
         <Setter Property="Height" Value="18" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
         <Setter Property="Focusable" Value="False" />
         <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
     </Style>

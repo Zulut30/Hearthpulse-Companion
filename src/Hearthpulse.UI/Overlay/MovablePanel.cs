@@ -385,6 +385,51 @@ public sealed partial class MovablePanel : ContentControl, IArmablePanel
     /// </summary>
     public bool GameAnchored { get; set; }
 
+    /// <summary>
+    /// The XAML margin is a spot on the game's screen beside its board (the turn timers by the hero portraits), not on
+    /// its cards: the margin keeps that spot at any overlay scale as <see cref="GameAnchored"/> does, but the panel still
+    /// unlocks and moves like any other.
+    /// </summary>
+    public bool GameSpot { get; set; }
+
+    /// <summary>
+    /// The panel holds a long list (the deck, the Arena draft, the counters): its content is held to the room it has on
+    /// the screen (<see cref="PanelLayout.Room"/>), so the list inside scrolls instead of running off the bottom (D1).
+    /// </summary>
+    public bool FitsHeight { get; set; }
+
+    /// <summary>
+    /// Id of the panel above this one in its column (the counters under the opponent): a fitted panel at its default
+    /// spot at the bottom grows up to it, never over it.
+    /// </summary>
+    public string? StaysBelow { get; set; }
+
+    /// <summary>Holds a <see cref="FitsHeight"/> panel's content to its room; the overlay calls it after each layout pass.</summary>
+    public void FitHeight(IEnumerable<MovablePanel> panels)
+    {
+        if (!FitsHeight || Content is not Control content || Surface is not { Bounds.Height: > 0 } surface || !IsVisible || Bounds.Height <= 0
+            || this.TranslatePoint(default, surface) is not { } origin)
+        {
+            return;
+        }
+
+        (double, double, double)? above = null;
+        if (StaysBelow is { } id && panels.FirstOrDefault(p => p.Id == id) is { IsVisible: true, Bounds.Height: > 0 } other
+            && other.TranslatePoint(default, surface) is { } corner)
+        {
+            above = (corner.X, corner.X + other.Bounds.Width, corner.Y + other.Bounds.Height);
+        }
+
+        var room = PanelLayout.Room(origin.Y, Bounds.Height, origin.X, Bounds.Width, surface.Bounds.Height, _saved is not null,
+            VerticalAlignment == VerticalAlignment.Bottom, above);
+        // The content's own height limit, in its units: the panel's scale sits outside it (Bounds already include it).
+        var max = Math.Floor((room - (Bounds.Height - (content.Bounds.Height * _scale))) / _scale);
+        if (Math.Abs((double.IsInfinity(content.MaxHeight) ? double.MaxValue : content.MaxHeight) - max) > 0.5)
+        {
+            content.MaxHeight = max;
+        }
+    }
+
     /// <summary>Places the panel from settings for the current surface size.</summary>
     /// <param name="overlayScale">The player's overlay scale, which a <see cref="GameAnchored"/> default margin undoes.</param>
     public void Apply(PanelPlacement? placement, Size surface, double overlayScale = 1)
@@ -395,7 +440,7 @@ public sealed partial class MovablePanel : ContentControl, IArmablePanel
             _saved = null;
             HorizontalAlignment = _defaultHorizontal;
             VerticalAlignment = _defaultVertical;
-            var divisor = PanelLayout.DefaultMarginDivisor(GameAnchored, overlayScale);
+            var divisor = PanelLayout.DefaultMarginDivisor(GameAnchored || GameSpot, overlayScale);
             Margin = new Thickness(_defaultMargin.Left / divisor, _defaultMargin.Top / divisor, _defaultMargin.Right / divisor, _defaultMargin.Bottom / divisor);
             _scale = 1;
             ApplyScale();

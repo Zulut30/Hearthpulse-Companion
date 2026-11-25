@@ -16,13 +16,23 @@
 
     <SolidColorBrush x:Key="Ink" Color="{StaticResource BgColor}" />
 
+    <!-- A one-line note under or over a row on the game's cards (where the numbers come from, the free games left, the
+         Discover title): the overlay card's frame (D5 frame unification: its radius, edge and solid fill) in a slim strip -->
+    <Style x:Key="OverlayNoteChip" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+        <Setter Property="Background" Value="{DynamicResource OverlayPanelSolid}" />
+        <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="12,2" />
+    </Style>
+
     <Style x:Key="Divider" TargetType="Border">
         <Setter Property="Width" Value="1" />
         <Setter Property="Margin" Value="12,2" />
         <Setter Property="Background" Value="{StaticResource OverlayBorder}" />
     </Style>
     <Style x:Key="SectionLabel" TargetType="TextBlock" BasedOn="{StaticResource Label}">
-        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMicro}" />
         <Setter Property="Margin" Value="0,0,0,6" />
     </Style>
     <Style x:Key="Number" TargetType="TextBlock" BasedOn="{StaticResource Base}">
@@ -51,9 +61,9 @@
                         <Border DockPanel.Dock="Right" Background="{DynamicResource OverlayBadgeShade}" CornerRadius="8" Height="16" Padding="4,0"
                                 Margin="4,0,0,0" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
+                                <TextBlock Text="{Binding Count}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
                                            VerticalAlignment="Center" Visibility="{Binding Count, Converter={StaticResource Vis}}" />
-                                <TextBlock Text="{Binding Turn}" FontSize="10" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Turn}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Border>
                         <TextBlock Text="{Binding Name}" FontSize="11.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
@@ -81,9 +91,9 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Border Background="{StaticResource Surface3}" CornerRadius="5">
-                <TextBlock Text="{Binding Slot}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Slot}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
-            <TextBlock Grid.Column="1" Text="{Binding Turn}" FontSize="11" Foreground="{StaticResource Muted}" Margin="6,0,2,0" VerticalAlignment="Center"
+            <TextBlock Grid.Column="1" Text="{Binding Turn}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="6,0,2,0" VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis" />
             <TextBlock x:Name="Detail" Grid.Column="2" Text="{Binding Detail}" FontSize="11.5" Foreground="{StaticResource Muted}"
                        TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
@@ -109,14 +119,14 @@
                     <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
                     <Rectangle Fill="{StaticResource TileFade}" />
                     <DockPanel Margin="7,0,7,0">
-                        <TextBlock x:Name="Mark" DockPanel.Dock="Left" Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Faint}"
+                        <TextBlock x:Name="Mark" DockPanel.Dock="Left" Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Faint}"
                                    Margin="0,0,6,0" VerticalAlignment="Center" Visibility="{Binding IsPart, Converter={StaticResource Vis}}" />
                         <Border DockPanel.Dock="Right" Background="{DynamicResource OverlayBadgeShade}" CornerRadius="4" MinWidth="20" Height="16" Padding="4,0"
                                 Margin="6,0,0,0" VerticalAlignment="Center" Visibility="{Binding Count, Converter={StaticResource Vis}}">
-                            <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                            <TextBlock Text="{Binding Count}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
-                        <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                     </DockPanel>
                 </Grid>
             </Border>
@@ -142,7 +152,7 @@
             <ItemsControl ItemsSource="{Binding Details}" Margin="0,0,0,2" Visibility="{Binding Details, Converter={StaticResource Vis}}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -153,12 +163,12 @@
             <StackPanel Visibility="{Binding Counted, Converter={StaticResource Vis}}">
                 <TextBlock Text="{i:Loc Overlay.Counter.Counted}" Style="{StaticResource SectionLabel}" Margin="0,6,0,4" />
                 <ItemsControl ItemsSource="{Binding Counted}" ItemTemplate="{StaticResource CounterCardTemplate}" />
-                <TextBlock Text="{Binding MoreCounted}" FontSize="11" Foreground="{StaticResource Muted}" Visibility="{Binding MoreCounted, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{Binding MoreCounted}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Visibility="{Binding MoreCounted, Converter={StaticResource Vis}}" />
             </StackPanel>
             <StackPanel Visibility="{Binding Related, Converter={StaticResource Vis}}">
                 <TextBlock Text="{i:Loc Overlay.Counter.NeededFor}" Style="{StaticResource SectionLabel}" Margin="0,6,0,4" />
                 <ItemsControl ItemsSource="{Binding Related}" ItemTemplate="{StaticResource CounterCardTemplate}" />
-                <TextBlock Text="{Binding MoreRelated}" FontSize="11" Foreground="{StaticResource Muted}" Visibility="{Binding MoreRelated, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{Binding MoreRelated}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Visibility="{Binding MoreRelated, Converter={StaticResource Vis}}" />
             </StackPanel>
         </StackPanel>
     </DataTemplate>
@@ -181,11 +191,11 @@
     <DataTemplate x:Key="CounterTipTemplate" DataType="{x:Type o:CounterChip}">
         <StackPanel Width="232" Margin="0,2,0,2">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" Style="{StaticResource Number}" FontSize="14" Foreground="{StaticResource Accent}"
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" Style="{StaticResource Number}" FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Accent}"
                            Margin="8,0,0,0" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Title}" FontSize="12.5" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
             </DockPanel>
-            <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,2" />
+            <TextBlock Text="{Binding Description}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,2" />
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterCardsTemplate}" Focusable="False" />
         </StackPanel>
     </DataTemplate>
@@ -230,13 +240,13 @@
                         <Border Margin="-3" i:CardArt.Portrait="{Binding IconCardId}" />
                     </Grid>
                     <Ellipse Width="20" Height="20" Stroke="{StaticResource OverlayBorder}" StrokeThickness="1" />
-                    <Button x:Name="HideButton" Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xF0156;" FontSize="11" Width="20" Height="20"
+                    <Button x:Name="HideButton" Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xF0156;" FontSize="{StaticResource FontSizeSmall}" Width="20" Height="20"
                             HorizontalAlignment="Right" Visibility="Hidden" ToolTip="{i:Loc Overlay.Counter.HideTip}" AutomationProperties.Name="{i:Loc Overlay.Counter.HideName}"
                             CommandParameter="{Binding Id}" Command="{Binding DataContext.HideCounter, RelativeSource={RelativeSource AncestorType=Window}}" />
                     <StackPanel Grid.Column="1" Margin="7,0,8,0" VerticalAlignment="Center">
                         <!-- A long name (Russian above all) takes a second line instead of an ellipsis; the tooltip repeats it. Two lines
                              are 30: the cap has room for the rounding of whole pixels, never for a third line (45) -->
-                        <TextBlock Text="{Binding Title}" FontSize="12" TextWrapping="Wrap" LineStackingStrategy="BlockLineHeight" LineHeight="15" MaxHeight="34"
+                        <TextBlock Text="{Binding Title}" FontSize="{StaticResource FontSizeLabel}" TextWrapping="Wrap" LineStackingStrategy="BlockLineHeight" LineHeight="15" MaxHeight="34"
                                    TextTrimming="CharacterEllipsis" Margin="0,2" />
                         <ItemsControl ItemsSource="{Binding Segments}" ItemTemplate="{StaticResource CounterSegmentTemplate}" Margin="0,3,-2,0"
                                       Visibility="{Binding Segments, Converter={StaticResource Vis}}">
@@ -254,7 +264,7 @@
                             </Border>
                         </Border>
                     </StackPanel>
-                    <TextBlock Grid.Column="2" Text="{Binding Value}" Style="{StaticResource Number}" FontSize="14" TextAlignment="Right" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding Value}" Style="{StaticResource Number}" FontSize="{StaticResource FontSizeLead}" TextAlignment="Right" VerticalAlignment="Center" />
                 </Grid>
                 <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterCardsTemplate}" Focusable="False" Margin="27,0,0,6"
                                 Visibility="{Binding Expanded, Converter={StaticResource Vis}}" />
@@ -300,7 +310,7 @@
                                 Width="{Binding Progress, Converter={StaticResource Fraction}, ConverterParameter=56}" />
                     </Border>
                 </StackPanel>
-                <Button x:Name="HideButton" Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xF0156;" FontSize="10" Width="18" Height="18"
+                <Button x:Name="HideButton" Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xF0156;" FontSize="{StaticResource FontSizeMicro}" Width="18" Height="18"
                         Margin="4,0,0,0" VerticalAlignment="Top" Visibility="Hidden" ToolTip="{i:Loc Overlay.BgCounter.HideTip}" AutomationProperties.Name="{i:Loc Overlay.Counter.HideName}"
                         CommandParameter="{Binding Id}" Command="{Binding DataContext.HideBgCounter, RelativeSource={RelativeSource AncestorType=Window}}" />
             </Grid>
@@ -385,8 +395,8 @@
                             <TextBlock Text="{Binding PlaceNote}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,3" VerticalAlignment="Bottom" TextTrimming="CharacterEllipsis" />
                         </DockPanel>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding PickRate}" FontSize="11" Foreground="{StaticResource Muted}" />
-                            <TextBlock Text="{Binding Personal}" FontSize="11" Foreground="{StaticResource Text}" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"
+                            <TextBlock Text="{Binding PickRate}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" />
+                            <TextBlock Text="{Binding Personal}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Text}" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"
                                        Visibility="{Binding Personal, Converter={StaticResource Vis}}" />
                         </StackPanel>
                     </StackPanel>
@@ -400,7 +410,7 @@
             <Border x:Name="Best" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{StaticResource PrimaryFill}" CornerRadius="5"
                     Padding="8,1" Visibility="Collapsed">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xF0AE2;" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource OnAccent}" Margin="0,0,4,0" />
+                    <TextBlock Text="&#xF0AE2;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource OnAccent}" Margin="0,0,4,0" />
                     <TextBlock Text="{i:Loc Overlay.Badge.BestPick}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
                 </StackPanel>
             </Border>
@@ -437,20 +447,20 @@
                     </Grid.ColumnDefinitions>
                     <Grid Width="40" Height="40" VerticalAlignment="Center" Background="Transparent" ToolTip="{Binding TierTip}" o:OverlayHit.Interactive="True">
                         <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
-                        <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                        <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeSubhead}" FontWeight="Bold" Foreground="{StaticResource Ink}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
                     <StackPanel Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Place}" Style="{StaticResource Number}" FontSize="16" />
+                            <TextBlock Text="{Binding Place}" Style="{StaticResource Number}" FontSize="{StaticResource FontSizeTitle}" />
                             <TextBlock Text="{i:Loc Overlay.Badge.AvgPlace}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,2" VerticalAlignment="Bottom" />
                         </StackPanel>
-                        <TextBlock Text="{Binding PickRate}" FontSize="11" Foreground="{StaticResource Muted}" />
+                        <TextBlock Text="{Binding PickRate}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" />
                         <TextBlock Text="{Binding Updated}" FontSize="10.5" Foreground="{StaticResource Muted}"
                                    Visibility="{Binding Updated, Converter={StaticResource Vis}}" />
                         <!-- A late source: a warning mark and words on a line of their own that wraps, never cut at the badge's width -->
                         <DockPanel x:Name="Delay" Margin="0,1,0,0" Visibility="{Binding Delay, Converter={StaticResource Vis}}">
-                            <TextBlock DockPanel.Dock="Left" Text="&#xF0026;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource InfoCaution}"
+                            <TextBlock DockPanel.Dock="Left" Text="&#xF0026;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource InfoCaution}"
                                        Margin="0,1,4,0" VerticalAlignment="Top" />
                             <TextBlock Text="{Binding Delay}" FontSize="10.5" Foreground="{StaticResource Text}" TextWrapping="Wrap" />
                         </DockPanel>
@@ -460,7 +470,7 @@
             <Border x:Name="Best" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{StaticResource PrimaryFill}" CornerRadius="5"
                     Padding="8,1" Visibility="Collapsed">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xF0AE2;" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource OnAccent}" Margin="0,0,4,0" />
+                    <TextBlock Text="&#xF0AE2;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource OnAccent}" Margin="0,0,4,0" />
                     <TextBlock Text="{i:Loc Overlay.Badge.BestPick}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
                 </StackPanel>
             </Border>
@@ -490,8 +500,8 @@
                 BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" VerticalAlignment="Bottom">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <TextBlock x:Name="Buy" Text="{i:Loc Overlay.Badge.Buy}" FontSize="11" FontWeight="Bold" Margin="0,0,5,0" Visibility="Collapsed" />
-                    <TextBlock x:Name="Lbl" Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Text}"
+                    <TextBlock x:Name="Buy" Text="{i:Loc Overlay.Badge.Buy}" FontSize="{StaticResource FontSizeSmall}" FontWeight="Bold" Margin="0,0,5,0" Visibility="Collapsed" />
+                    <TextBlock x:Name="Lbl" Text="{Binding Label}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Text}"
                                TextTrimming="CharacterEllipsis" MaxWidth="100" Visibility="{Binding Label, Converter={StaticResource Vis}}" />
                 </StackPanel>
                 <TextBlock x:Name="Data" Text="{Binding Placement}" FontSize="9.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"
@@ -532,9 +542,9 @@
                     <!-- Rank among the options: "Mark the best" only -->
                     <Grid x:Name="RankCookie" Width="32" Height="32" VerticalAlignment="Center" Visibility="Collapsed">
                         <c:Scallop x:Name="Cookie" Fill="{StaticResource Surface4}" Lobes="8" Depth="0.1" />
-                        <TextBlock x:Name="RankText" FontFamily="{StaticResource DisplayFont}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource Text}"
+                        <TextBlock x:Name="RankText" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeLead}" FontWeight="Bold" Foreground="{StaticResource Text}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Run Text="#" FontSize="10" /><Run Text="{Binding Rank, Mode=OneWay}" />
+                            <Run Text="#" FontSize="{StaticResource FontSizeMicro}" /><Run Text="{Binding Rank, Mode=OneWay}" />
                         </TextBlock>
                     </Grid>
                     <!-- Otherwise the option's tavern tier, when it has one: nothing is ranked -->
@@ -545,10 +555,10 @@
                     </Border>
                     <StackPanel x:Name="Info" Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Placement}" Style="{StaticResource Number}" FontSize="16" />
+                            <TextBlock Text="{Binding Placement}" Style="{StaticResource Number}" FontSize="{StaticResource FontSizeTitle}" />
                             <TextBlock Text="{Binding PlacementNote}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="5,0,0,2" VerticalAlignment="Bottom" />
                         </StackPanel>
-                        <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Text}" TextTrimming="CharacterEllipsis"
+                        <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Text}" TextTrimming="CharacterEllipsis"
                                    Visibility="{Binding Label, Converter={StaticResource Vis}}" />
                         <TextBlock Text="{Binding Gift}" FontSize="10.5" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
                                    Visibility="{Binding Gift, Converter={StaticResource Vis}}" />
@@ -558,7 +568,7 @@
             <Border x:Name="Best" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{StaticResource PrimaryFill}" CornerRadius="5"
                     Padding="8,1" Visibility="Collapsed">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xF0AE2;" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource OnAccent}" Margin="0,0,4,0" />
+                    <TextBlock Text="&#xF0AE2;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource OnAccent}" Margin="0,0,4,0" />
                     <TextBlock Text="{i:Loc Overlay.Badge.BestPick}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
                 </StackPanel>
             </Border>

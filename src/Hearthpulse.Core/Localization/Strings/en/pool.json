@@ -43,10 +43,10 @@
 
   "Pool.Source.TextOverWiki": "card text (the Hearthstone Wiki list is older: {0} of {1})",
 
-  "Pool.Reason.NamedGroup": "a named group of cards that the catalog does not mark",
+  "Pool.Reason.NamedGroup": "Hearthpulse doesn't know yet which cards belong to this group",
   "Pool.Reason.OtherCard": "the pool depends on another card",
   "Pool.Reason.GameState": "the pool depends on the game state",
-  "Pool.Reason.CatalogCannot": "the catalog cannot answer this pool",
+  "Pool.Reason.CatalogCannot": "Hearthpulse can't work out this kind of pool yet",
 
   "Pool.Scope.AnyClass": "any class",
   "Pool.Scope.OtherClasses": "other classes",

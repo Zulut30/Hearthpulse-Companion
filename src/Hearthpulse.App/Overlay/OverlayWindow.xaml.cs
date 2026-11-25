@@ -85,6 +85,8 @@ public partial class OverlayWindow : Window
                 panel.LookChanged += OnLookChanged;
                 panel.LockToggled += OnLockToggled;
             }
+
+            Surface.LayoutUpdated += (_, _) => FitPanels();
         };
         viewModel.PropertyChanged += OnViewModelChanged;
     }
@@ -428,6 +430,18 @@ public partial class OverlayWindow : Window
         }
 
         ViewModel.HoverLeaderboard(slot);
+    }
+
+    /// <summary>
+    /// Holds the panels with long lists to the room they have on the screen (<see cref="MovablePanel.FitsHeight"/>) after
+    /// each layout pass: a panel grows or the one above it changes, and the limit follows.
+    /// </summary>
+    private void FitPanels()
+    {
+        foreach (var panel in _panels)
+        {
+            panel.FitHeight(_panels);
+        }
     }
 
     private void ApplyLayout()

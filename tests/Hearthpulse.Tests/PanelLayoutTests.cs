@@ -20,6 +20,33 @@ public sealed class PanelLayoutTests
     public void A_wheel_notch_changes_the_size_by_five_percent_within_the_limits(double scale, bool up, double next) =>
         Assert.Equal(next, PanelLayout.StepScale(scale, up));
 
+    [Fact]
+    public void A_fitted_panel_at_a_top_spot_runs_down_to_the_bottom_edge_less_the_gap()
+    {
+        // The deck at overlay scale 1.6: the surface is 675 high and the panel starts at 76.
+        Assert.Equal(675 - 76 - PanelLayout.FitGap, PanelLayout.Room(76, 900, 1650, 252, 675, placed: false, growsUp: false, above: null));
+    }
+
+    [Fact]
+    public void Counters_at_the_bottom_grow_up_to_the_opponent_panel_and_no_further()
+    {
+        // Overlay scale 1.2 (900 high): counters at the bottom edge, a full opponent panel from 76 to 686 above them.
+        var room = PanelLayout.Room(700, 188, 12, 232, 900, placed: false, growsUp: true, above: (12, 226, 686));
+        Assert.Equal(888 - 686 - PanelLayout.FitGap, room);
+        // An opponent panel off to the side, or none: the whole column up to the top gap.
+        Assert.Equal(888 - PanelLayout.FitGap, PanelLayout.Room(700, 188, 12, 232, 900, placed: false, growsUp: true, above: (400, 600, 686)));
+        Assert.Equal(888 - PanelLayout.FitGap, PanelLayout.Room(700, 188, 12, 232, 900, placed: false, growsUp: true, above: null));
+    }
+
+    [Fact]
+    public void A_fitted_panel_keeps_a_readable_floor_and_a_placed_one_only_the_screen_height()
+    {
+        Assert.Equal(PanelLayout.FitFloor, PanelLayout.Room(840, 40, 12, 232, 900, placed: false, growsUp: true, above: (12, 226, 860)));
+        Assert.Equal(PanelLayout.FitFloor, PanelLayout.Room(860, 40, 12, 232, 900, placed: false, growsUp: false, above: null));
+        // A panel the player placed low is moved up by KeepInside, never shortened to the room under it.
+        Assert.Equal(900 - (2 * PanelLayout.FitGap), PanelLayout.Room(800, 40, 12, 232, 900, placed: true, growsUp: false, above: (12, 226, 860)));
+    }
+
     [Theory]
     [InlineData(0, true)]
     [InlineData(10, true)]

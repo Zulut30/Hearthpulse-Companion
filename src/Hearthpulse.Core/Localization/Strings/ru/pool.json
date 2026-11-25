@@ -43,10 +43,10 @@
 
   "Pool.Source.TextOverWiki": "текст карты (список Hearthstone Wiki устарел: {0} из {1})",
 
-  "Pool.Reason.NamedGroup": "именованная группа карт, которую каталог не отмечает",
+  "Pool.Reason.NamedGroup": "Hearthpulse пока не знает, какие карты входят в эту группу",
   "Pool.Reason.OtherCard": "пул зависит от другой карты",
   "Pool.Reason.GameState": "пул зависит от состояния игры",
-  "Pool.Reason.CatalogCannot": "каталог не может рассчитать этот пул",
+  "Pool.Reason.CatalogCannot": "Hearthpulse пока не умеет рассчитывать такой пул",
 
   "Pool.Scope.AnyClass": "любой класс",
   "Pool.Scope.OtherClasses": "другие классы",
