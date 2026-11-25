@@ -81,7 +81,7 @@
             </DataTemplate>
 
             <DataTemplate x:Key="MetaDeckTemplate" DataType="{x:Type m:MetaDeckRow}">
-                <Border Style="{StaticResource RowBorder}" Padding="8,8">
+                <Border Style="{StaticResource RowBorder}" Padding="8,8" Margin="-8,0,-8,2">
                     <!-- The list's columns, and under them (in the room of the row, not of the columns) the collection's label -->
                     <StackPanel>
                     <Grid>
@@ -318,7 +318,7 @@
                             <DataTemplate DataType="{x:Type m:MulliganRow}">
                                 <!-- A click opens the card's page (docs/card-page.md) -->
                                 <Button Style="{StaticResource CardRowButton}" c:CardLink.CardId="{Binding CardId}" c:CardLink.CardName="{Binding Name}">
-                                    <Border Style="{StaticResource RowBorder}" Padding="8,4">
+                                    <Border Style="{StaticResource RowBorder}" Padding="8,4" Margin="-8,0,-8,2">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="36" />

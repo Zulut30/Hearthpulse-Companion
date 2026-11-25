@@ -15,7 +15,7 @@ game-icons.net glyphs (CC BY 3.0, credited per glyph) in engraved gold (`GoldGly
 |---|---|
 | Overlay panel frame and header; every overlay card list (deck, played, pool, graveyard, likely deck, archetype, Secrets, Arena deck) as capsules | Gold glyphs beyond the sidebar and page titles (section headings keep the MDI ornament) |
 | Main window: deck page card list as capsules, brighter `CardEdge` on every card; home: recent games with the hero's art and result pills, deck banners | Other main-window lists (match page, meta decks, Arena page) |
-| Section headings without a trailing rule in both UIs; page backdrop A (hero per page, its colour glow, stone, frame, nav glow); icons I1 in the sidebar and page titles; setup wizard (D4: logs, moving from HDT/Firestone, overlay panels, look, done; opens once for a new player and from empty pages and Settings) | Overlay frame unification (D5), the UX round in seven themes (D3) |
+| Section headings as icon + title + trailing gold rule in both UIs (Avalonia since Nov 2026); page backdrop A (hero per page, its colour glow, stone, frame, nav glow); icons I1 in the sidebar and page titles; setup wizard (D4: logs, moving from HDT/Firestone, overlay panels, look, done; opens once for a new player and from empty pages and Settings) | Overlay frame unification (D5), the UX round in every theme (D3) |
 
 Task card with the render audit, all mockups and their sources:
 `../reference/tasks/TASK-2026-11-04-design-identity/` (`directions/` for A-C, `directions-v2/` for V1-V3, `directions-v3/`
@@ -26,16 +26,18 @@ Token and style mechanics stay in the `hearthpulse-design` skill.
 
 - **Hearthstone's atmosphere, kept clean:** warm wood and stone, gold trim, soft shadows and volume rather than flat
   dark plates; text stays readable on every surface (`ThemeContrastTests`).
-- **A mana crystal, not a circle:** a faceted blue gem with the cost on it, drawn as vector geometry in both UIs (no
-  Blizzard asset), in fixed colours that no theme recolours.
-- **Deck rows like the game's list:** card art on the right fading into the text, the crystal on the left, "×2" and
+- **A mana crystal, not a circle:** the game's own mana gem (`Assets/mana-gem.png` through the `ManaCost` control) with
+  the cost as a white digit in a dark outline, in both UIs; no theme recolours it. It replaced the drawn vector crystal
+  (owner, 2026-10-27; the licence risk is recorded in `LEGAL-HeartLens-claude-mana-assets.md`).
+- **Deck rows like the game's list:** card art on the right fading into the text, the gem on the left, "×2" and
   the legendary star on the right, rarity visible on every row.
 - **Less clutter** (the owner's words: remove the junk, make it faster): one main action per surface, no captions that
   repeat a heading or a nearby number, no empty plates, decoration removed rather than recoloured; no bitmap effects
   and no animation over 0.25 s.
-- **Seven themes** through `ThemePalette`; meaning colours (`Positive`, `Negative`, `Tier*`, `Rarity*`, mana) and the
+- **Thirteen themes** (`ThemePalette.Presets`: Tavern, Frost, Fel, Arcane, Ember, Tide, Shadow, Grove, Void, Bloodsteel,
+  Sands, Midnight, Mech) plus accent swatches, through `ThemePalette`; meaning colours (`Positive`, `Negative`, `Tier*`, `Rarity*`, mana) and the
   logo never change.
-- **Rhythm:** the D1 scale - spacing 4/8/12/16/24/32, radii 4/8/12, one type ramp (10-32, plus `FontSizeHero` 64 for the
+- **Rhythm:** the D1 scale - spacing 4/8/12/16/24/32 (`Space4`-`Space32` for even sides), radii 4/8/12, one type ramp (10-32, plus `FontSizeHero` 64 for the
   Recap page's one number).
 
 ## Rejected

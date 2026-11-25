@@ -2,7 +2,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:c="clr-namespace:Hearthpulse.App.Controls"
                     xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
-    <!-- Shared by the tier-list views (Main/Meta): Constructed meta, matchups, Battlegrounds tiers. Theme tokens only. -->
+    <!-- Shared by the tier-list views (Main/Meta): Constructed meta, matchups, Battlegrounds tiers. Theme tokens only.
+         TableHead, RowBorder and TierBadge come from Main/MainLook.xaml, which every user of this dictionary merges first. -->
     <i:VisibleWhen x:Key="Vis" />
     <i:KeyBrush x:Key="KeyBrush" />
     <i:SignBrush x:Key="SignBrush" />
@@ -12,11 +13,6 @@
     <ItemsPanelTemplate x:Key="PageRows">
         <c:PageRowsPanel />
     </ItemsPanelTemplate>
-
-    <Style x:Key="TableHead" TargetType="TextBlock" BasedOn="{StaticResource Label}">
-        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
 
     <!-- A sortable column head: its label and the sort arrow; it brightens under the mouse -->
     <Style x:Key="SortHead" TargetType="Button">
@@ -50,26 +46,6 @@
         <Setter Property="Margin" Value="4,0,0,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Foreground" Value="{StaticResource Accent}" />
-    </Style>
-
-    <!-- List rows: no rules, a soft highlight on hover -->
-    <Style x:Key="RowBorder" TargetType="Border">
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="8,8" />
-        <Setter Property="Margin" Value="-8,0,-8,2" />
-        <Setter Property="Background" Value="Transparent" />
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource Hover}" />
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <Style x:Key="TierBadge" TargetType="Border">
-        <Setter Property="Width" Value="30" />
-        <Setter Property="Height" Value="26" />
-        <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="HorizontalAlignment" Value="Left" />
     </Style>
 
     <!-- A tier's head: the big letter on its colour, "Tier S" and its bound; the tier colour runs down the left edge -->

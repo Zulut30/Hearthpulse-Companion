@@ -22,6 +22,32 @@
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
+    <!-- Table column heads, list rows and the tier badge: one copy for the pages (MainPages.xaml) and the tier lists
+         (Meta/MetaResources.xaml). A row's highlight reaches 10 past the column on each side, its content stays on it; the
+         card page's column heads count on that (CardPageView). -->
+    <Style x:Key="TableHead" TargetType="TextBlock" BasedOn="{StaticResource Label}">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- List rows: no rules, a soft highlight on hover -->
+    <Style x:Key="RowBorder" TargetType="Border">
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="Margin" Value="-10,0,-10,2" />
+        <Setter Property="Background" Value="Transparent" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource Hover}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="TierBadge" TargetType="Border">
+        <Setter Property="Width" Value="30" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusSmall}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+
     <!-- A layer of the page backdrop (MainWindow): fills the content plate inside its 1 px edge, rounded corners included -->
     <Style x:Key="PageLayer" TargetType="Border">
         <Setter Property="CornerRadius" Value="15" />

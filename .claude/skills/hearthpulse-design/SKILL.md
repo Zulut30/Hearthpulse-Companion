@@ -102,8 +102,9 @@ with the motif), `Motif<Name>` geometries.
   `Small` 11, `Label` 12, `Body` 13, `Lead` 14, `Title` 16, `Icon` 18, `Subhead` 20, `Headline` 24, `Stat` 28,
   `Display` 32, `Hero` 64 (the Recap page's one number) (`FontSize="{StaticResource FontSizeBody}"`); radii `RadiusSmall` 4 (`Pill`), `RadiusMedium` 8
   (`OverlayCard`), `RadiusLarge` 12 (`Card`), `RadiusPill` 999 (switch track; a pill or circle may also use half its
-  size); `CardPadding` 24. Margin/Padding literals stay on 0/1/2/4/8/12/16/24/32 (multiples of 4 from 40 are layout
-  offsets). `DesignTokenTests` counts literal font sizes and off-scale radii (`CornerRadius`, `RoundClip.Radius`) and
+  size); `CardPadding` 24; spacing `Space4`, `Space8`, `Space12`, `Space16`, `Space24`, `Space32` (`Thickness`, the same
+  on all four sides: `Padding="{StaticResource Space8}"`). Other Margin/Padding literals stay on 0/1/2/4/8/12/16/24/32
+  (multiples of 4 from 40 are layout offsets). `DesignTokenTests` counts literal font sizes and off-scale radii (`CornerRadius`, `RoundClip.Radius`) and
   spacing per UI, outside control templates, and fails when a count grows; `python -I tools/design/migrate_tokens.py
   <files>` moves a file onto the scale with the same rules (ties go down, templates untouched, circles kept).
 - **WPF trap: large text with a gradient brush.** The main window sets `TextOptions.TextFormattingMode="Display"`;
@@ -129,7 +130,7 @@ with the motif), `Motif<Name>` geometries.
 | Segmented choices (underline tabs: muted text on a thin line, the chosen one gold with a 2 px gold line; no frame, no check) | `Segment` / `Tab` inside `SegmentBar` | `segment` inside `segmentBar` |
 | Page tabs | `Tab` (Segment + 2px gold underline) | `segment` (no tab class) |
 | Toggle | `Switch` (CheckBox) | `switch` |
-| List row | `RowBorder` (MainWindow) | `row` |
+| List row | `RowBorder` (`Main/MainLook.xaml`) | `row` |
 
 Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay circles.
 
@@ -209,8 +210,13 @@ no hex literals outside the theme files, new tokens in both theme files, animati
 [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md) (`--render-ui` on a copy of the data folder,
 `HEARTHPULSE_THEME=<preset>`).
 
-## Known UI gaps (checked on main 2e8d9be, Oct 2026)
+## Known UI gaps (checked on main 97e10a8e, Nov 2026)
 
-- WPF only: nav pill animation, the faded hero banner, and the overlay tribe focus (`CompFocus`,
-  handed to the session only by the WPF host, `App.xaml.cs`).
-- Avalonia only: compact layout below 900 px, an extra overlay switch in Settings.
+- WPF only: the nav pill glides between items (`PlacePill`; Avalonia fades the raised plate in place), and the overlay
+  tribe focus (`CompFocus`, handed to the session only by the WPF host, `App.xaml.cs`).
+- Avalonia only: compact layout below 900 px.
+- Not visible, but it changes where code goes: WPF builds most pages on first use (`MainWindow.Pages.cs`; Settings is
+  `Pages/SettingsPage`, its shown tab first and the rest in the background), Avalonia keeps them in `MainView.axaml`
+  ([hearthpulse-main-page](../hearthpulse-main-page/SKILL.md)).
+- Both UIs have the page hero backdrop, the overlay switch in the sidebar foot and in Settings → Overlay, and one game
+  status dot.
