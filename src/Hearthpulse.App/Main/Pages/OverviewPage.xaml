@@ -185,7 +185,7 @@
                                                     </ItemsControl.ItemsPanel>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate DataType="{x:Type m:HomeDeckBar}">
-                                                            <Border Width="8" Height="{Binding Height}" Margin="0,0,4,0" VerticalAlignment="Bottom" CornerRadius="{StaticResource RadiusSmall}"
+                                                            <Border Width="8" Height="{Binding Height}" Margin="0,0,4,0" VerticalAlignment="Bottom" c:RoundClip.Pill="True"
                                                                     Background="{StaticResource Accent}" ToolTip="{Binding Tip}" />
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>

@@ -184,7 +184,8 @@
         </Setter>
     </Style>
 
-    <!-- A share as a flat rounded bar (0..1) on a dark track; Foreground is the bar -->
+    <!-- A share as a flat rounded bar (0..1) on a dark track; Foreground is the bar. Track and bar are capsules at any
+         height (3..10): a fixed CornerRadius 5 drew blunt elliptic ends on the thinner bars in WPF -->
     <Style x:Key="ShareBar" TargetType="ProgressBar">
         <Setter Property="Minimum" Value="0" />
         <Setter Property="Maximum" Value="1" />
@@ -196,8 +197,8 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ProgressBar">
                     <Grid>
-                        <Border x:Name="PART_Track" Background="{TemplateBinding Background}" CornerRadius="5" />
-                        <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="5" />
+                        <Border x:Name="PART_Track" Background="{TemplateBinding Background}" c:RoundClip.Pill="True" />
+                        <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" c:RoundClip.Pill="True" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

@@ -164,7 +164,7 @@
                                 HorizontalAlignment="Left" Margin="0,12,0,0">
                             <StackPanel>
                                 <Border Width="110" Height="8" CornerRadius="4" HorizontalAlignment="Left" Background="{Binding Text}" />
-                                <Border Width="150" Height="6" CornerRadius="4" HorizontalAlignment="Left" Background="{Binding Muted}" Margin="0,8,0,0" />
+                                <Border Width="150" Height="6" c:RoundClip.Pill="True" HorizontalAlignment="Left" Background="{Binding Muted}" Margin="0,8,0,0" />
                                 <DockPanel Margin="0,12,0,0" LastChildFill="False">
                                     <Border DockPanel.Dock="Left" Width="64" Height="20" CornerRadius="4" Background="{Binding Accent}" />
                                     <Ellipse DockPanel.Dock="Right" Width="14" Height="14" Fill="{Binding Secondary}" VerticalAlignment="Center" />
@@ -176,9 +176,9 @@
                 <Border Width="120" CornerRadius="4" Background="{Binding Panel}" BorderBrush="{Binding Accent}" BorderThickness="1" Padding="8"
                         HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,16">
                     <StackPanel>
-                        <Border Height="6" CornerRadius="4" Background="{Binding Text}" />
-                        <Border Height="6" CornerRadius="4" Background="{Binding Muted}" Margin="0,4,24,0" />
-                        <Border Height="6" CornerRadius="4" Background="{Binding Muted}" Margin="0,4,40,0" />
+                        <Border Height="6" c:RoundClip.Pill="True" Background="{Binding Text}" />
+                        <Border Height="6" c:RoundClip.Pill="True" Background="{Binding Muted}" Margin="0,4,24,0" />
+                        <Border Height="6" c:RoundClip.Pill="True" Background="{Binding Muted}" Margin="0,4,40,0" />
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                             <Border Width="36" Height="8" CornerRadius="4" Background="{StaticResource Positive}" />
                             <Border Width="20" Height="8" CornerRadius="4" Background="{StaticResource Negative}" Margin="4,0,0,0" />

@@ -75,7 +75,7 @@
                     <Grid>
                         <!-- A gold glow round the open page's icon -->
                         <Border CornerRadius="{StaticResource RadiusMedium}" Background="{StaticResource NavSelectedGlow}" />
-                        <Border Width="3" CornerRadius="2" Margin="0,8" HorizontalAlignment="Left" Background="{StaticResource Accent}">
+                        <Border Width="3" CornerRadius="1.5" Margin="0,8" HorizontalAlignment="Left" Background="{StaticResource Accent}">
                             <Border.Effect>
                                 <DropShadowEffect Color="{StaticResource AccentColor}" BlurRadius="12" ShadowDepth="0" Opacity="0.9" />
                             </Border.Effect>
