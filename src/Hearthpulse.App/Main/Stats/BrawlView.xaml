@@ -42,7 +42,7 @@
             <Border Style="{StaticResource Card}" Margin="0,0,0,16" Visibility="{Binding BrawlArticleShown, Converter={StaticResource Vis}}">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Brawl.Article.Title}" Icon="&#xF0219;" Size="13" Margin="0,0,0,8" />
-                    <Border CornerRadius="8" ClipToBounds="True" Height="150" Margin="0,0,0,8" Background="{StaticResource Surface3}"
+                    <Border CornerRadius="8" c:RoundClip.Radius="8" Height="150" Margin="0,0,0,8" Background="{StaticResource Surface3}"
                             Visibility="{Binding BrawlArticleHasCover, Converter={StaticResource Vis}}">
                         <Image Source="{Binding BrawlArticleCover, TargetNullValue={x:Null}}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" />
                     </Border>
