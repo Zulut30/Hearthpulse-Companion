@@ -319,9 +319,11 @@
 
                 <!-- ============ End of game toast ============ -->
                 <o:MovablePanel Id="toast" Title="{i:Loc Overlay.Panel.Toast}" Shown="{Binding ShowToast}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,120">
-                    <Border Classes="overlayCard solid" Padding="0">
+                    <!-- The result strip is square and clipped by the card: its own 7,0,0,7 on a 4 wide strip shrank to 4 and
+                         left a gap in the card's round corner -->
+                    <Border Classes="overlayCard solid" Padding="0" ClipToBounds="True">
                         <StackPanel Orientation="Horizontal">
-                            <Border Width="4" CornerRadius="7,0,0,7" Background="{Binding ToastResult, Converter={StaticResource KeyBrush}}" />
+                            <Border Width="4" Background="{Binding ToastResult, Converter={StaticResource KeyBrush}}" />
                             <StackPanel Margin="16,11,22,12">
                                 <TextBlock Text="{Binding ToastTitle}" Classes="number" FontSize="22" />
                                 <TextBlock Text="{Binding ToastDetail}" FontSize="12.5" Foreground="{StaticResource Muted}" />

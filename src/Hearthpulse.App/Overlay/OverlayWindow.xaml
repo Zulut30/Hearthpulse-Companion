@@ -320,8 +320,10 @@
             <!-- ============ End of game toast ============ -->
             <o:MovablePanel Id="toast" Title="{i:Loc Overlay.Panel.Toast}" Shown="{Binding ShowToast}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,120">
                 <Border x:Name="Toast" Style="{StaticResource OverlayCardSolid}" Padding="0">
-                    <StackPanel Orientation="Horizontal">
-                        <Border Width="4" CornerRadius="7,0,0,7" Background="{Binding ToastResult, Converter={StaticResource KeyBrush}}" />
+                    <!-- The result strip is square and clipped to the card's inner corners (8 - 1): its own 7,0,0,7 on a
+                         4 wide strip drew a 4x7 elliptic end inside the card's round corner -->
+                    <StackPanel Orientation="Horizontal" c:RoundClip.Radius="7">
+                        <Border Width="4" Background="{Binding ToastResult, Converter={StaticResource KeyBrush}}" />
                         <StackPanel Margin="16,11,22,12">
                             <TextBlock Text="{Binding ToastTitle}" Style="{StaticResource Number}" FontSize="22" />
                             <TextBlock Text="{Binding ToastDetail}" FontSize="12.5" Foreground="{StaticResource Muted}" />
