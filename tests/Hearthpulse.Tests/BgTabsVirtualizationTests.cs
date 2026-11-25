@@ -2,6 +2,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Hearthpulse.Core;
@@ -303,6 +304,15 @@ public sealed class BgTabsVirtualizationTests
                 // A name cut with an ellipsis is whole in its tooltip and for a screen reader.
                 Assert.Equal(name, ToolTip.GetTip(text));
                 Assert.Equal(name, Avalonia.Automation.AutomationProperties.GetName(text));
+                if (tab == "Heroes")
+                {
+                    // A hero's name has two lines there, in a row tall enough for both.
+                    Assert.Equal((TextWrapping.Wrap, 2), (text.TextWrapping, text.MaxLines));
+                    var plate = row.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("bgRow"));
+                    Assert.Equal(56, plate.Bounds.Height);
+                    Assert.True(text.Bounds.Height <= plate.Bounds.Height, $"the name is {text.Bounds.Height:0} high in a row of {plate.Bounds.Height:0}");
+                }
+
                 // Nothing of the row stands outside it.
                 Assert.All(row.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible),
                     t => Assert.True(t.TranslatePoint(new Point(t.Bounds.Width, 0), row)!.Value.X <= row.Bounds.Width + 0.5, $"{tab}: \"{t.Text}\" ends past the row"));

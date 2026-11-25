@@ -80,7 +80,10 @@
                 </o:MovablePanel>
 
                 <!-- ============ Constructed: counters (bottom-left) ============ -->
-                <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,110">
+                <!-- Low, just above the BG counters' tag (another mode; the two tags must not cover each other in layout mode): at
+                     overlay scale 1.2 the surface is only 900 high, and 110 from the bottom put it over the lower third of a full
+                     opponent panel (about 610 high from 76). A full hand and five counters still touch by about 40 -->
+                <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,66">
                     <!-- 232, not the 214 of the other cards: a long counter name (Russian above all) fits in two lines -->
                     <Border x:Name="CountersCard" Classes="overlayCard" Width="232" o:OverlayHit.Interactive="True">
                         <!-- One value column for every row, so the progress under each title ends at the same place -->

@@ -412,6 +412,47 @@ public sealed class AchievementsViewModelTests : IDisposable
     });
 
     [Fact]
+    public void A_failed_working_out_shows_the_error_instead_of_loading_and_retry_builds_the_page() => LocBindingTests.Headless.Run(() =>
+    {
+        var failing = new FailingWork("AchievementsData") { Fail = true };
+        var vm = Model(background: failing);
+        vm.SetAchievements(Book());
+        vm.PageShown("Achievements");
+
+        Assert.True(vm.AchievementsFailed);
+        Assert.True(vm.AchievementsEmptyShown);
+        Assert.False(vm.AchievementsShown);
+        Assert.Equal(Loc.T("Achievements.Error"), vm.AchievementsEmpty);
+        Assert.NotEqual(Loc.T("Achievements.Loading"), vm.AchievementsEmpty);
+        Assert.Equal("\U000F05D6", vm.AchievementsEmptyGlyph);
+
+        // Still failing: the error stays, nothing is shown half-built.
+        vm.RetryAchievements.Execute(null);
+        Assert.True(vm.AchievementsFailed);
+
+        failing.Fail = false;
+        vm.RetryAchievements.Execute(null);
+        Assert.False(vm.AchievementsFailed);
+        Assert.True(vm.AchievementsShown);
+        Assert.Equal(string.Empty, vm.AchievementsEmpty);
+    });
+
+    [Fact]
+    public void A_newer_book_clears_the_error_of_the_failed_one() => LocBindingTests.Headless.Run(() =>
+    {
+        var failing = new FailingWork("AchievementsData") { Fail = true };
+        var vm = Model(background: failing);
+        vm.SetAchievements(Book());
+        vm.PageShown("Achievements");
+        Assert.True(vm.AchievementsFailed);
+
+        failing.Fail = false;
+        vm.SetAchievements(Book(confirmed: false));
+        Assert.False(vm.AchievementsFailed);
+        Assert.True(vm.AchievementsShown);
+    });
+
+    [Fact]
     public void A_book_worked_out_after_a_newer_one_is_dropped_and_the_old_rows_stay_meanwhile() => LocBindingTests.Headless.Run(() =>
     {
         var held = new HeldWork("AchievementsData");

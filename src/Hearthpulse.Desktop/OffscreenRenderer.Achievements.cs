@@ -18,7 +18,7 @@ internal static partial class OffscreenRenderer
     /// else the file itself) with three chains tracked (<c>main-achievements</c>, the whole page <c>-page</c>), one
     /// subcategory with named sections and a secret chain in the journal (<c>-browse</c>), English (<c>-en</c>), the
     /// compact layout at 420 (<c>-compact</c>) and its journal on a chain done to its end (<c>-browse-compact</c>); then the states on the made-up book of <see cref="AchievementsScene"/>:
-    /// none (<c>-none</c>), a system without the read (<c>-unsupported</c>), a saved book (<c>-saved</c>) and ten chains
+    /// none (<c>-none</c>), a system without the read (<c>-unsupported</c>), a saved book (<c>-saved</c>), its working out failed (<c>-error</c>) and ten chains
     /// tracked with the other stars off (<c>-full</c>). Without a book in the copy the first frames show the made-up one.
     /// The tracked chains, the language, the window's size and the session's book are put back afterwards.
     /// </summary>
@@ -111,6 +111,8 @@ internal static partial class OffscreenRenderer
         Track(host.Main.AchievementBookShown!, 3);
         Top();
         await Shot("-saved");
+        host.Main.ShowAchievementsFailed();
+        await Shot("-error");
         await Show(AchievementsScene.Build(now, confirmed: true));
         Track(host.Main.AchievementBookShown!, AppSettings.MaxTrackedAchievements);
         main.Height = 3600;

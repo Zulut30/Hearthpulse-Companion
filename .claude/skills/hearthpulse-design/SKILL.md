@@ -214,4 +214,3 @@ no hex literals outside the theme files, new tokens in both theme files, animati
 - WPF only: nav pill animation, the faded hero banner, and the overlay tribe focus (`CompFocus`,
   handed to the session only by the WPF host, `App.xaml.cs`).
 - Avalonia only: compact layout below 900 px, an extra overlay switch in Settings.
-- Compact hero/comp tier tables (Avalonia): fixed column widths leave no room for the name column at phone width.
