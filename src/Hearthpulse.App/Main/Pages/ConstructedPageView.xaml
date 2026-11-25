@@ -32,7 +32,8 @@
             </StackPanel>
             <c:Wave Style="{StaticResource PageRule}" />
 
-            <Grid Margin="0,0,0,14">
+            <!-- The tabs and, on their right, the period (TabRowPanel: a line of its own when the window is too narrow, d1) -->
+            <c:TabRowPanel x:Name="CtTabRow" Margin="0,0,0,14">
                 <Border HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource SegmentBar}">
                     <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="TabMyDecks" Style="{StaticResource Tab}" Content="{i:Loc Main.Ct.MyStats}" GroupName="CtTab" IsChecked="True" Checked="OnTab"
@@ -56,7 +57,7 @@
                                      ToolTip="{i:Loc Stats.Period.SeasonTip}" />
                     </StackPanel>
                 </Border>
-            </Grid>
+            </c:TabRowPanel>
 
             <!-- My stats: the four headline numbers, then your decks (the way into a deck page), then the rank and the rest
                  (Main/Stats ConstructedStatsView) -->

@@ -5,6 +5,7 @@ using Avalonia.VisualTree;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.UI.Controls;
 using Hearthpulse.UI.Main;
 using Hearthpulse.UI.Main.Match;
 
@@ -46,6 +47,24 @@ public sealed partial class LocBindingTests
             var end = button.TranslatePoint(new Point(button.Bounds.Width, 0), view)!.Value.X;
             var start = button.TranslatePoint(new Point(0, 0), view)!.Value.X;
             Assert.True(start >= 0 && end <= view.Bounds.Width + 0.5, $"The button spans {start}..{end}, the page is {view.Bounds.Width} wide");
+
+            // d2: the folder, Export and Import stand at the right of the tabs, as in WPF; the last one ends at the
+            // row's right edge. Too narrow for both, they take a line of their own under the tabs; wide, the tabs' line.
+            var head = view.GetVisualDescendants().OfType<TabRowPanel>().Single();
+            var tabs = head.Children[0];
+            var import = head.GetVisualDescendants().OfType<Button>().Single(b => ReferenceEquals(b.Command, model.Library.Import));
+            foreach (var width in new[] { 676.0, 1100.0 })
+            {
+                window.Width = width;
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                var exportBox = new Rect(button.TranslatePoint(default, head)!.Value, button.Bounds.Size);
+                Assert.Equal(head.Bounds.Width, import.TranslatePoint(new Point(import.Bounds.Width, 0), head)!.Value.X, 1.0);
+                Assert.True(head.Wrapped ? exportBox.Y >= tabs.Bounds.Bottom : exportBox.X >= tabs.Bounds.Right + head.Gap - 0.5,
+                    $"At {width}: Export at {exportBox}, the tabs end at {tabs.Bounds.Right:0} (wrapped: {head.Wrapped})");
+            }
+
+            Assert.False(head.Wrapped);
         }
         finally
         {

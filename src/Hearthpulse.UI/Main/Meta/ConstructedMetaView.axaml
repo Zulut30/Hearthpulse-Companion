@@ -97,10 +97,11 @@
                     <TextBlock Text="{Binding Rank}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
                     <Border Grid.Column="1" Width="32" Height="32" CornerRadius="16" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding HeroId}" />
+                    <!-- Both lines trim in a narrow list; each one's tip has it whole -->
                     <TextBlock Grid.Column="2" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
-                               VerticalAlignment="Top" Margin="0,0,8,0" />
+                               VerticalAlignment="Top" Margin="0,0,8,0" ToolTip.Tip="{Binding Name}" />
                     <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis"
-                               VerticalAlignment="Bottom" Margin="0,0,8,0" />
+                               VerticalAlignment="Bottom" Margin="0,0,8,0" ToolTip.Tip="{Binding Detail}" />
                     <TextBlock Grid.Column="3" Text="{Binding Tier}" Width="30" HorizontalAlignment="Left" TextAlignment="Center" VerticalAlignment="Center"
                                FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" FontFamily="{DynamicResource DisplayFont}"
                                Classes="tierInk" />

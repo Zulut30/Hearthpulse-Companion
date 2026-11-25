@@ -411,8 +411,8 @@ on the UI thread after every `LoadAsync`; the hosts give the view model the slic
 
 - **One flat list a tab** (`HeroTierRows`, `TrinketTierRows`, `CardTierRows`, `CompTiers`: `SyncList<object>` of a
   `TierHeadRow` and the tier's rows), in the service's tiers and order. The tier letter is the service's; the
-  advisor's `TierOf` is not used on the tabs, so a tab's letter and the overlay's can differ. A tier that is empty in
-  the service's own list keeps its head, marked empty; a tier only the tavern tier filter emptied is left out.
+  advisor's `TierOf` is not used on the tabs, so a tab's letter and the overlay's can differ. A tier with no shown row
+  (empty in the service's own list, or emptied by the tavern tier filter) gets no head, as on the Constructed tier list.
 - **The line above a list** (`BgTabState.Source`): `Hearthpulse data`, then what the shown list itself names -
   Solo / Duos (heroes), the MMR slice, the period - then `updated <date>` of its `FetchedAt` (local time). A slice or
   period the app does not know is left out, never shown as the service's code word. Minions take the slice of

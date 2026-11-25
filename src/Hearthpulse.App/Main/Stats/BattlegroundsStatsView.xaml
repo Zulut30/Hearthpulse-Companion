@@ -13,12 +13,13 @@
         <!-- Highest MMR, average placement, games, time played -->
         <ItemsControl ItemsSource="{Binding BgStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
 
-        <!-- Rating over time beside where you finish -->
+        <!-- Rating over time beside where you finish; the places card keeps room for its Russian title at the minimum
+             window width (1040), the chart gives it up -->
         <Grid Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="16" />
-                <ColumnDefinition Width="*" MinWidth="250" />
+                <ColumnDefinition Width="*" MinWidth="300" />
             </Grid.ColumnDefinitions>
             <Border Style="{StaticResource Card}">
                 <DockPanel>

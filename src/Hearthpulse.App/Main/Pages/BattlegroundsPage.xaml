@@ -42,8 +42,11 @@
             </Grid>
 
             <!-- One tab row: My stats first (as Standard and Wild), then the community tier lists; on its right the period
-                 (My stats) or the MMR slice (Heroes and Trinkets, whose lists have more than one) -->
+                 (My stats) or the MMR slice (Heroes and Trinkets, whose lists have more than one). TabRowPanel keeps the
+                 tabs and the period apart and puts the period on a line of its own when the window is too narrow for both
+                 (d1, at 1040 in Russian). -->
             <Grid Margin="0,0,0,14">
+            <c:TabRowPanel x:Name="BgTabRow">
                 <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}">
                     <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="TabMine" Style="{StaticResource Tab}" Content="{i:Loc Stats.Title}" GroupName="BgTab" IsChecked="True" Checked="OnTab"
@@ -68,9 +71,11 @@
                                      ToolTip="{i:Loc Stats.Period.ThisMonthBgTip}" />
                     </StackPanel>
                 </Border>
+            </c:TabRowPanel>
                 <!-- The MMR slices of the open tab's list (heroes: top 50/20/5/1%, in Duos 50/20%; trinkets: the same four);
-                     hidden when there is no choice. It lies over the row's right side: showing it moves nothing. -->
-                <Grid HorizontalAlignment="Right" Visibility="{Binding HasBracketChoice, Converter={StaticResource Vis}}">
+                     hidden when there is no choice. It lies over the row's right side: showing it moves nothing (it is
+                     narrower than the period and leaves the tabs their room at 1040). -->
+                <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="{Binding HasBracketChoice, Converter={StaticResource Vis}}">
                     <Border x:Name="BracketPicker" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Bg.BracketTip}" Visibility="Collapsed">
                         <ItemsControl ItemsSource="{Binding BracketOptions}">
                             <ItemsControl.ItemsPanel>

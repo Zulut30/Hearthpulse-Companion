@@ -321,9 +321,9 @@ public sealed partial class MainViewModel
     // ---- shared pieces --------------------------------------------------------------------------
 
     /// <summary>
-    /// A tab's flat list: for each tier of the list, its head and the shown rows of the tier. A tier that is empty in
-    /// the service's own list keeps its head, marked empty; one that only our filter (the tavern tier) emptied is left
-    /// out. Nothing shown is an empty list (the tab's empty state).
+    /// A tab's flat list: for each tier of the list, its head and the shown rows of the tier. A tier with no shown row
+    /// (empty in the service's own list, or emptied by our filter, the tavern tier) is left out, as on the Constructed
+    /// tier list. Nothing shown is an empty list (the tab's empty state).
     /// </summary>
     private static List<object> Flat<TRow>(
         BgSiteTierList list,
@@ -345,19 +345,15 @@ public sealed partial class MainViewModel
             var rows = shown.Where(r => r.Entry.Tier == tier).ToList();
             if (rows.Count > 0)
             {
-                flat.Add(Head(tier, Loc.P(countKey, rows.Count), empty: false));
+                flat.Add(Head(tier, Loc.P(countKey, rows.Count)));
                 flat.AddRange((sort?.Invoke(rows) ?? rows).Select(r => (object)r.Row));
-            }
-            else if (!list.Entries.Any(e => e.Tier == tier))
-            {
-                flat.Add(Head(tier, Loc.T("Main.Bg.TierEmpty"), empty: true));
             }
         }
 
         return flat;
     }
 
-    private static TierHeadRow Head(string tier, string caption, bool empty) => new(tier, Loc.F("Main.Meta.TierTitle", tier), caption, empty);
+    private static TierHeadRow Head(string tier, string caption) => new(tier, Loc.F("Main.Meta.TierTitle", tier), caption);
 
     private static BgTabState Pending() => Empty(Loc.T("Main.Bg.CommunityLoading"));
 

@@ -279,6 +279,9 @@ public sealed partial class LocBindingTests
         Assert.EndsWith(Loc.T("Main.Live.DeckUnknown"), model.LiveDetail);
         Assert.Equal(model.LiveDetail, line.Text);
         Assert.Equal(model.LiveDetail, ToolTip.GetTip(line));
+        // Bug hunt #10: one line of detail, so the status card is two lines at most and the nav keeps its place.
+        Assert.Equal(Avalonia.Media.TextWrapping.NoWrap, line.TextWrapping);
+        Assert.Equal(Avalonia.Media.TextTrimming.CharacterEllipsis, line.TextTrimming);
     }));
 
     /// <summary>

@@ -117,11 +117,25 @@
     <!-- A KPI card: label, a short gold rule, big value (green or red with its sign), caption. The page's tile look
          (Main/MainLook TileCard), tighter. Placed in a row with 12 between cards. -->
     <DataTemplate x:Key="StatsTile" DataType="{x:Type m:StatTile}">
-        <Border Style="{DynamicResource TileCard}" Padding="16,12,16,12" Margin="0,0,12,12" ToolTip="{Binding Detail}">
+        <Border Style="{DynamicResource TileCard}" Padding="16,12,16,12" Margin="0,0,12,12">
+            <Border.ToolTip>
+                <!-- The whole tile: a value scaled down or a trimmed detail stays readable here -->
+                <StackPanel MaxWidth="320">
+                    <TextBlock Text="{Binding Label}" Style="{StaticResource Caption}" />
+                    <TextBlock Text="{Binding Value}" FontWeight="Bold" />
+                    <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Visibility="{Binding Detail, Converter={StaticResource Vis}}" />
+                </StackPanel>
+            </Border.ToolTip>
             <StackPanel>
                 <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" TextTrimming="CharacterEllipsis" />
                 <Border Width="22" Height="2" CornerRadius="1" Background="{StaticResource AccentLine}" HorizontalAlignment="Left" Margin="0,4,0,0" />
-                <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" FontSize="{StaticResource FontSizeHeadline}" Margin="0,4,0,2" TextTrimming="CharacterEllipsis" />
+                <!-- The value scales down (never up) to the tile's width instead of being cut; the hidden copy keeps its line's height -->
+                <Grid Margin="0,4,0,2">
+                    <TextBlock Text="0" Style="{StaticResource Stat}" FontSize="{StaticResource FontSizeHeadline}" Visibility="Hidden" />
+                    <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" FontSize="{StaticResource FontSizeHeadline}" />
+                    </Viewbox>
+                </Grid>
                 <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
         </Border>
