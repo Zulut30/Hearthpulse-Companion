@@ -460,7 +460,6 @@ public sealed partial class MainViewModel
                 .Where(a => a.Games >= _metaMinGames))
             .ToList();
         var topShare = archetypes.Count == 0 ? 0 : archetypes.Max(a => a.Share > 0 ? a.Share : 0);
-        var topGames = archetypes.Count == 0 ? 1 : Math.Max(1, archetypes.Max(a => a.Games));
         var selectedId = _selectedArchetype?.Id;
 
         // A row that shows what it showed before stays the same object in both lists, so it keeps its container and its
@@ -473,7 +472,7 @@ public sealed partial class MainViewModel
 
         var split = archetypes.Exists(a => a.FirstGames > 0 || a.CoinGames > 0);
         var rows = archetypes
-            .Select((a, i) => ArchetypeRow(a, i + 1, topShare, topGames) with { ShowsPlaySplit = split })
+            .Select((a, i) => ArchetypeRow(a, i + 1, topShare) with { ShowsPlaySplit = split })
             .Select(r => shown.TryGetValue(r.Id, out var old) && old.Equals(r) ? old : r)
             .ToList();
         ShowArchetypeRows(rows);
@@ -524,15 +523,18 @@ public sealed partial class MainViewModel
             // Without stats of the page's format there are no tiers to name either.
             foreach (var tier in MetaTiers.Letters)
             {
-                // An empty tier says so where the others give their bound and count; its own rows simply do not follow.
+                // A tier without archetypes is left out, as on the Battlegrounds tabs: the list opens on the best tier
+                // there is, and each head still gives its bound and count.
                 var count = rows.Count(r => r.Tier == tier);
+                if (count == 0)
+                {
+                    continue;
+                }
+
                 tiers.Add(new TierHeadRow(
                     tier,
                     Loc.F("Main.Meta.TierTitle", tier),
-                    count == 0
-                        ? Loc.T("Main.Meta.TierEmpty")
-                        : Loc.P(MetaTiers.IsLast(tier) ? "Main.Meta.TierBelow" : "Main.Meta.TierFrom", count, MetaTiers.Floor(tier).ToString("P0", CultureInfo.CurrentCulture)),
-                    count == 0));
+                    Loc.P(MetaTiers.IsLast(tier) ? "Main.Meta.TierBelow" : "Main.Meta.TierFrom", count, MetaTiers.Floor(tier).ToString("P0", CultureInfo.CurrentCulture))));
                 tiers.AddRange(rows.Where(r => r.Tier == tier));
             }
         }
@@ -544,7 +546,7 @@ public sealed partial class MainViewModel
         Raise(nameof(MetaEmpty));
     }
 
-    private static MetaArchetypeRow ArchetypeRow(MetaArchetype a, int rank, double topShare, int topGames)
+    private static MetaArchetypeRow ArchetypeRow(MetaArchetype a, int rank, double topShare)
     {
         var interval = MetaTiers.Interval(a.WinRate, a.Games);
         var english = string.Equals(a.Key, a.Name, StringComparison.OrdinalIgnoreCase) ? string.Empty : a.Key;
@@ -565,7 +567,8 @@ public sealed partial class MainViewModel
             WinSign(a.WinRate),
             Math.Clamp((a.WinRate - 0.40) / 0.25, 0.04, 1),
             a.Share > 0 ? a.Share.ToString("P1", CultureInfo.CurrentCulture) : "—",
-            a.Share > 0 && topShare > 0 ? Math.Clamp(a.Share / topShare, 0.03, 1) : Math.Clamp((double)a.Games / topGames, 0.03, 1),
+            // No share, no bar: a bar beside "—" would claim a popularity the source did not give.
+            a.Share > 0 && topShare > 0 ? Math.Clamp(a.Share / topShare, 0.03, 1) : 0,
             a.Games.ToString("N0", CultureInfo.CurrentCulture),
             a.FirstGames > 0 ? a.FirstWinRate.ToString("P0", CultureInfo.CurrentCulture) : "—",
             a.CoinGames > 0 ? a.CoinWinRate.ToString("P0", CultureInfo.CurrentCulture) : "—");

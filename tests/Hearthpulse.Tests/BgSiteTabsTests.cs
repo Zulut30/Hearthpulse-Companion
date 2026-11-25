@@ -44,9 +44,9 @@ public sealed class BgSiteTabsTests
         Assert.NotEqual(stats.Trinkets.Entries.Select(e => e.CardId), together.Select(e => e.CardId));
         AssertFlat(stats.Trinkets, together, vm.TrinketTierRows, r => ((MetaTrinketRow)r).CardId, r => ((MetaTrinketRow)r).Tier, "Main.Bg.TierTrinkets");
 
-        // The fixture's heroes have no S tier: the service's own empty tier keeps its head, marked empty.
-        var s = Assert.IsType<TierHeadRow>(vm.HeroTierRows[0]);
-        Assert.Equal(("S", true, Loc.T("Main.Bg.TierEmpty")), (s.Tier, s.IsEmpty, s.Caption));
+        // The fixture's heroes have no S tier: the service's own empty tier gets no head, the list opens on tier A.
+        Assert.Contains("S", stats.Heroes.AvailableTiers);
+        Assert.Equal("A", Assert.IsType<TierHeadRow>(vm.HeroTierRows[0]).Tier);
 
         // The rank is the entry's place in the service's list, through the tiers.
         Assert.Equal(Enumerable.Range(1, stats.Heroes.Entries.Count), vm.HeroTierRows.OfType<MetaHeroRow>().Select(r => r.Rank));
@@ -91,7 +91,6 @@ public sealed class BgSiteTabsTests
             Assert.Equal(Enumerable.Range(1, entries.Count), vm.CardTierRows.OfType<MetaCardRow>().Select(r => r.Rank));
             // Heads only of the tiers that have a row of this tavern tier, in the service's order.
             Assert.Equal(Letters.Where(l => entries.Any(e => e.Tier == l)), vm.CardTierRows.OfType<TierHeadRow>().Select(h => h.Tier));
-            Assert.All(vm.CardTierRows.OfType<TierHeadRow>(), h => Assert.False(h.IsEmpty));
         }
 
         Assert.Equal(stats.Minions!.Entries.Count, seen);
@@ -450,8 +449,9 @@ public sealed class BgSiteTabsTests
             Assert.Contains("Соло", vm.HeroTab.Source, StringComparison.Ordinal);
             Assert.Contains("по MMR", vm.HeroTab.Source, StringComparison.Ordinal);
             Assert.Contains("обновлено", vm.HeroTab.Source, StringComparison.Ordinal);
-            Assert.Equal("В этом тире сейчас пусто.", ((TierHeadRow)vm.HeroTierRows[0]).Caption);
-            Assert.Equal("Тир S", ((TierHeadRow)vm.HeroTierRows[0]).Title);
+            // The first head is tier A (the fixture's S is empty and has none), its count in Russian.
+            Assert.Matches("^[0-9]+ геро", ((TierHeadRow)vm.HeroTierRows[0]).Caption);
+            Assert.Equal("Тир A", ((TierHeadRow)vm.HeroTierRows[0]).Title);
             Assert.StartsWith("Топ", vm.BracketOptions[0].Label, StringComparison.Ordinal);
             Assert.Equal("Топ-4", vm.HeroTopLabel);
             Assert.Contains("за 7 дней", vm.TrinketTab.Source, StringComparison.Ordinal);
@@ -905,7 +905,7 @@ public sealed class BgSiteTabsTests
 
     /// <summary>
     /// The flat list of a tab against the service's list: for each tier of the list in its order a head and then the
-    /// tier's entries as sent; a tier that is empty in the service's own list keeps its head, marked empty.
+    /// tier's entries as sent; a tier without entries gets no head.
     /// </summary>
     private static void AssertFlat(BgSiteTierList list, IReadOnlyList<BgSiteTierEntry> shown, IReadOnlyList<object> rows, Func<object, string> id, Func<object, string> tier, string countKey)
     {
@@ -913,12 +913,15 @@ public sealed class BgSiteTabsTests
         foreach (var letter in list.AvailableTiers)
         {
             var entries = shown.Where(e => e.Tier == letter).ToList();
-            expected.Add(entries.Count > 0 ? $"head {letter} {Loc.P(countKey, entries.Count)}" : $"head {letter} {Loc.T("Main.Bg.TierEmpty")} empty");
-            expected.AddRange(entries.Select(e => $"{e.Tier} {e.CardId}"));
+            if (entries.Count > 0)
+            {
+                expected.Add($"head {letter} {Loc.P(countKey, entries.Count)}");
+                expected.AddRange(entries.Select(e => $"{e.Tier} {e.CardId}"));
+            }
         }
 
         Assert.NotEmpty(shown);
-        Assert.Equal(expected, rows.Select(r => r is TierHeadRow h ? $"head {h.Tier} {h.Caption}{(h.IsEmpty ? " empty" : string.Empty)}" : $"{tier(r)} {id(r)}"));
+        Assert.Equal(expected, rows.Select(r => r is TierHeadRow h ? $"head {h.Tier} {h.Caption}" : $"{tier(r)} {id(r)}"));
         Assert.All(rows.OfType<TierHeadRow>(), h => Assert.Equal(Loc.F("Main.Meta.TierTitle", h.Tier), h.Title));
     }
 

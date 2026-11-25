@@ -304,13 +304,17 @@ public sealed class BgTabsVirtualizationTests
                 // A name cut with an ellipsis is whole in its tooltip and for a screen reader.
                 Assert.Equal(name, ToolTip.GetTip(text));
                 Assert.Equal(name, Avalonia.Automation.AutomationProperties.GetName(text));
-                if (tab == "Heroes")
+                // A name has two lines there, in a row tall enough for both (heroes 56; trinkets 64, their size and cost
+                // under the name, bug hunt #32).
+                Assert.Equal((TextWrapping.Wrap, 2), (text.TextWrapping, text.MaxLines));
+                var plate = row.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("bgRow"));
+                Assert.Equal(tab == "Heroes" ? 56 : 64, plate.Bounds.Height);
+                Assert.True(text.Bounds.Height <= plate.Bounds.Height, $"the name is {text.Bounds.Height:0} high in a row of {plate.Bounds.Height:0}");
+                if (row.DataContext is MetaTrinketRow trinket)
                 {
-                    // A hero's name has two lines there, in a row tall enough for both.
-                    Assert.Equal((TextWrapping.Wrap, 2), (text.TextWrapping, text.MaxLines));
-                    var plate = row.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("bgRow"));
-                    Assert.Equal(56, plate.Bounds.Height);
-                    Assert.True(text.Bounds.Height <= plate.Bounds.Height, $"the name is {text.Bounds.Height:0} high in a row of {plate.Bounds.Height:0}");
+                    var detail = row.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == trinket.Detail);
+                    Assert.Equal(trinket.Detail, ToolTip.GetTip(detail));
+                    Assert.True(detail.TranslatePoint(new Point(0, detail.Bounds.Height), plate)!.Value.Y <= plate.Bounds.Height, "the detail stands inside the row");
                 }
 
                 // Nothing of the row stands outside it.
@@ -322,6 +326,9 @@ public sealed class BgTabsVirtualizationTests
                 // The row and its head agree on the columns: the number stands under "Avg placement".
                 var head = view.GetVisualDescendants().OfType<Control>().Single(c => c.Classes.Contains("bgPlace") && c.IsEffectivelyVisible && c.FindAncestorOfType<ItemsControl>() is null);
                 Assert.Equal(head.TranslatePoint(default, view)!.Value.X, place.TranslatePoint(default, view)!.Value.X, 1.0);
+                // The head is the short "Avg. place" (bug hunt #31: "Avg placement" was cut in the 72-wide cell; the
+                // headless font is wider than the real one, so the fit itself is checked on the compact renders).
+                Assert.Contains(head.GetVisualDescendants().Prepend(head).OfType<TextBlock>(), t => t.Text == Loc.T("Main.Table.AvgPlacement"));
             }
 
             // Cards: the art, the name and the impact stay; the rank and the combat win rate go with the two columns
@@ -334,6 +341,10 @@ public sealed class BgTabsVirtualizationTests
             Assert.Equal((card.Name, card.Name), ((string?)ToolTip.GetTip(shown[0]), Avalonia.Automation.AutomationProperties.GetName(shown[0])));
             Assert.Equal([card.Name, card.Detail, card.Impact], shown.Select(t => t.Text));
             Assert.True(shown[0].Bounds.Width >= 100, $"Cards: the name is {shown[0].Bounds.Width:0} wide");
+            // Two lines for the name, the tribes and games under it with their tooltip (#32).
+            Assert.Equal((TextWrapping.Wrap, 2), (shown[0].TextWrapping, shown[0].MaxLines));
+            Assert.Equal(card.Detail, ToolTip.GetTip(shown[1]));
+            Assert.Equal(64, cardRow.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("bgRow")).Bounds.Height);
 
             // Wide again: everything is back and the cell has its full width.
             window.Width = 1280;

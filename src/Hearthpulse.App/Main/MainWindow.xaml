@@ -108,8 +108,9 @@
 
                     <!-- The game's status (owner's pick B, 2026-11-05): the dot (gold: Hearthstone runs, green: connected), the live
                          line and its detail, two lines at most; the tip has the whole detail, the connection and this session -->
-                    <Border x:Name="StatusCard" Margin="14,0,14,14" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
-                            CornerRadius="{StaticResource RadiusMedium}" Padding="12,7" AutomationProperties.Name="{Binding LiveTitle}" AutomationProperties.HelpText="{Binding LiveDetail}">
+                    <!-- The overlay card's edges (12 in, 10 padding): the detail line gets the room for "Ожидание матча · главное меню" -->
+                    <Border x:Name="StatusCard" Margin="12,0,12,14" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusMedium}" Padding="10,7" AutomationProperties.Name="{Binding LiveTitle}" AutomationProperties.HelpText="{Binding LiveDetail}">
                         <Border.ToolTip>
                             <StackPanel MaxWidth="360">
                                 <TextBlock Text="{Binding MemoryStatus}" FontWeight="SemiBold" />
@@ -127,11 +128,11 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" VerticalAlignment="Top" Margin="0,5,0,0" />
-                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                 <TextBlock Text="{Binding LiveTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <!-- The "deck not recognised" tail is the first to go: the tip has it all -->
-                                <TextBlock x:Name="LiveDetailLine" Text="{Binding LiveDetail}" Style="{StaticResource Caption}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                                           MaxHeight="32" LineStackingStrategy="BlockLineHeight" LineHeight="16" ToolTip="{Binding LiveDetail}" />
+                                <!-- One line, so the card is two: a longer detail ("deck not recognised" first) trims, the tip has it all -->
+                                <TextBlock x:Name="LiveDetailLine" Text="{Binding LiveDetail}" Style="{StaticResource Caption}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding LiveDetail}" />
                             </StackPanel>
                         </Grid>
                     </Border>

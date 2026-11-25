@@ -244,8 +244,8 @@ public sealed partial class MainViewModel
                 if (rows.Count > 0)
                 {
                     flat.Add(tier is null
-                        ? new TierHeadRow("–", Loc.T("Main.Bg.CompsNoTier"), Loc.P("Main.Bg.TierComps", rows.Count), IsEmpty: false)
-                        : Head(tier, Loc.P("Main.Bg.TierComps", rows.Count), empty: false));
+                        ? new TierHeadRow("–", Loc.T("Main.Bg.CompsNoTier"), Loc.P("Main.Bg.TierComps", rows.Count))
+                        : Head(tier, Loc.P("Main.Bg.TierComps", rows.Count)));
                     flat.AddRange(rows);
                 }
             }

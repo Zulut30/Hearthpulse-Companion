@@ -44,6 +44,12 @@ public sealed class Ornament : FrameworkElement
 
     private double IconSize => Math.Round(Size * 2.3);
 
+    /// <summary>Where the title starts: after the cookie when there is an icon.</summary>
+    private double TextLeft => Icon.Length > 0 ? IconSize + 10 : 0;
+
+    /// <summary>Whether the tooltip is the one this heading put there for its trimmed title (not one set from XAML).</summary>
+    private bool _trimTip;
+
     /// <summary>"BATTLEGROUNDS RATING" reads as "Battlegrounds rating"; mixed-case text is kept.</summary>
     private static string SentenceCase(string text)
     {
@@ -77,6 +83,27 @@ public sealed class Ornament : FrameworkElement
         var iconWidth = Icon.Length > 0 ? IconSize + 10 : 0;
         var width = double.IsInfinity(availableSize.Width) ? iconWidth + text.Width + 48 : availableSize.Width;
         return new Size(width, Math.Max(Math.Ceiling(text.Height) + 4, Icon.Length > 0 ? IconSize : 0));
+    }
+
+    /// <summary>
+    /// A title wider than its room ends in "…" (OnRender); its tooltip then carries the whole title, unless the
+    /// heading has a tooltip of its own.
+    /// </summary>
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var trimmed = !Centered && Format().Width > finalSize.Width - TextLeft;
+        if (trimmed && (_trimTip || ReadLocalValue(ToolTipProperty) == DependencyProperty.UnsetValue))
+        {
+            ToolTip = SentenceCase(Text ?? string.Empty);
+            _trimTip = true;
+        }
+        else if (!trimmed && _trimTip)
+        {
+            ClearValue(ToolTipProperty);
+            _trimTip = false;
+        }
+
+        return finalSize;
     }
 
     protected override void OnRender(DrawingContext dc)
@@ -116,6 +143,14 @@ public sealed class Ornament : FrameworkElement
                 d * 0.5, gold, VisualTreeHelper.GetDpi(this).PixelsPerDip);
             dc.DrawText(glyph, new Point((d - glyph.Width) / 2, mid - (glyph.Height / 2)));
             x = d + 10;
+        }
+
+        // A narrow card (the minimum window width) trims the title on one line instead of cutting it at the card's edge.
+        if (text.Width > w - x && w - x > 0)
+        {
+            text.MaxTextWidth = w - x;
+            text.MaxLineCount = 1;
+            text.Trimming = TextTrimming.CharacterEllipsis;
         }
 
         dc.DrawText(text, new Point(x, mid - (text.Height / 2)));

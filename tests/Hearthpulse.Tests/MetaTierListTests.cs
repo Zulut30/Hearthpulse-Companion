@@ -101,20 +101,19 @@ public sealed class MetaTierListTests : IDisposable
         Assert.Equal(expected, HearthpulseData.MatchupRank(rank));
 
     [Fact]
-    public void Tier_list_is_one_flat_list_a_head_then_its_archetypes_and_an_empty_tier_says_so()
+    public void Tier_list_is_one_flat_list_a_head_then_its_archetypes_and_an_empty_tier_is_left_out()
     {
         var vm = Shown(Meta());
 
-        // S to D: every tier's head, then its archetypes; tier A has none, so the next head follows it at once.
+        // S to D: each tier's head, then its archetypes; tier A has none, so it has no head either (d6, as on the
+        // Battlegrounds tabs).
         Assert.Equal(
-            ["head S", "Zoolock", "head A", "head B", "Control Warrior", "head C", "Quest Priest", "head D", "Big Rogue"],
+            ["head S", "Zoolock", "head B", "Control Warrior", "head C", "Quest Priest", "head D", "Big Rogue"],
             vm.MetaTierRows.Select(r => r switch { TierHeadRow h => "head " + h.Tier, MetaArchetypeRow a => a.Name, _ => r.ToString() }));
         var heads = vm.MetaTierRows.OfType<TierHeadRow>().ToList();
-        Assert.Equal([false, true, false, false, false], heads.Select(h => h.IsEmpty));
         Assert.Equal("Tier S", heads[0].Title);
         Assert.StartsWith("from 53", heads[0].Caption, StringComparison.Ordinal);
-        Assert.StartsWith("below 47", heads[4].Caption, StringComparison.Ordinal);
-        Assert.Equal(Loc.T("Main.Meta.TierEmpty"), heads[1].Caption);
+        Assert.StartsWith("below 47", heads[3].Caption, StringComparison.Ordinal);
 
         // The two views show the same row objects, so a choice marks the archetype in both.
         Assert.All(vm.MetaTierRows.OfType<MetaArchetypeRow>(), row => Assert.Contains(vm.MetaArchetypes, r => ReferenceEquals(r, row)));
@@ -124,6 +123,17 @@ public sealed class MetaTierListTests : IDisposable
         Assert.Equal(1, vm.MetaArchetypes[0].WinSign);
         Assert.Equal(-1, vm.MetaArchetypes.Single(r => r.Name == "Big Rogue").WinSign);
         Assert.Equal(0, vm.MetaArchetypes.Single(r => r.Name == "Control Warrior").WinSign);
+    }
+
+    [Fact]
+    public void An_archetype_without_a_share_shows_a_dash_and_no_popularity_bar()
+    {
+        var vm = Shown(Meta(questShare: 0));
+
+        // #21: the bar is the share against the top share; with no share there is nothing to draw beside the "—".
+        var quest = vm.MetaArchetypes.Single(r => r.Name == "Quest Priest");
+        Assert.Equal(("—", 0.0), (quest.Popularity, quest.PopularityBar));
+        Assert.All(vm.MetaArchetypes.Where(r => r.Name != "Quest Priest"), r => Assert.True(r.PopularityBar > 0, r.Name));
     }
 
     [Fact]
@@ -161,8 +171,7 @@ public sealed class MetaTierListTests : IDisposable
         vm.SetMetaClass.Execute("PRIEST");
         Assert.Empty(vm.MetaArchetypes);
         Assert.True(vm.MetaEmpty);
-        Assert.Equal(5, vm.MetaTierRows.Count);
-        Assert.All(vm.MetaTierRows, r => Assert.True(Assert.IsType<TierHeadRow>(r).IsEmpty));
+        Assert.Empty(vm.MetaTierRows);
         Assert.Equal(0, requests);
 
         // A rank loads again; the stats shown stay meanwhile, with no loading box under them (MetaReloadTests).
@@ -351,8 +360,8 @@ public sealed class MetaTierListTests : IDisposable
     {
         var vm = Shown(MetaTierScene.States());
 
-        // A tier without archetypes, the split by who went first with a row that has none, two archetypes in tier D.
-        Assert.Equal(["A"], vm.MetaTierRows.OfType<TierHeadRow>().Where(h => h.IsEmpty).Select(h => h.Tier));
+        // A tier without archetypes (no head), the split by who went first with a row that has none, two archetypes in tier D.
+        Assert.Equal(["S", "B", "C", "D"], vm.MetaTierRows.OfType<TierHeadRow>().Select(h => h.Tier));
         Assert.True(vm.MetaHasPlaySplit);
         Assert.Contains(vm.MetaArchetypes, r => r.PlaySplit == "—");
         Assert.Contains(vm.MetaArchetypes, r => r.PlaySplit.Contains(" · ", StringComparison.Ordinal));
@@ -407,7 +416,7 @@ public sealed class MetaTierListTests : IDisposable
         return vm;
     }
 
-    private static ConstructedMeta Meta(string format = "standard")
+    private static ConstructedMeta Meta(string format = "standard", double questShare = 0.05)
     {
         MetaArchetype Archetype(int id, string name, string heroClass, int games, double winRate, double share, string? keep = null) =>
             new(id, name, name, heroClass, games, (int)(games * winRate), winRate, share, 0, 0, 0, 0, [],
@@ -419,7 +428,7 @@ public sealed class MetaTierListTests : IDisposable
             Archetype(1, "Zoolock", "WARLOCK", 5000, 0.56, 0.20, "CS2_065") with { FirstGames = 2600, FirstWinRate = 0.58, CoinGames = 2400, CoinWinRate = 0.54 },
             Archetype(2, "Control Warrior", "WARRIOR", 800, 0.50, 0.10),
             Archetype(3, "Big Rogue", "ROGUE", 6000, 0.46, 0.30, "EX1_134"),
-            Archetype(4, "Quest Priest", "PRIEST", 300, 0.48, 0.05),
+            Archetype(4, "Quest Priest", "PRIEST", 300, 0.48, questShare),
         };
         var decks = new[] { new MetaDeck("AAECAf0GAA==", 1, "Zoolock", "WARLOCK", 900, 520, 0.578, new DateTime(2026, 10, 26, 12, 0, 0, DateTimeKind.Utc)) };
         var matchups = new MetaMatchups(

@@ -101,9 +101,10 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
         </Style>
+        <!-- The overlay card's edges (12 in, 10 padding): the detail line gets the room for "Waiting for a match · main menu" -->
         <Style Selector="Border#StatusCard">
-            <Setter Property="Margin" Value="14,0,14,14" />
-            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Margin" Value="12,0,12,14" />
+            <Setter Property="Padding" Value="10,7" />
         </Style>
         <Style Selector="Border#OverlayCard">
             <Setter Property="Margin" Value="12,0,12,10" />
@@ -318,10 +319,10 @@
                     </ToolTip.Tip>
                     <Grid ColumnDefinitions="Auto,*">
                         <Ellipse Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" VerticalAlignment="Top" Margin="0,5,0,0" />
-                        <StackPanel Grid.Column="1" Classes="wide" Margin="10,0,0,0">
+                        <StackPanel Grid.Column="1" Classes="wide" Margin="8,0,0,0">
                             <TextBlock Text="{Binding LiveTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                            <!-- The "deck not recognised" tail is the first to go: the tip has it all -->
-                            <TextBlock Name="LiveDetailLine" Text="{Binding LiveDetail}" Classes="caption" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                            <!-- One line, so the card is two: a longer detail ("deck not recognised" first) trims, the tip has it all -->
+                            <TextBlock Name="LiveDetailLine" Text="{Binding LiveDetail}" Classes="caption" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                                        ToolTip.Tip="{Binding LiveDetail}" />
                         </StackPanel>
                     </Grid>

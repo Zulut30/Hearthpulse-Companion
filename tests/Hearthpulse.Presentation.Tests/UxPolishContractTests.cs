@@ -466,6 +466,67 @@ public sealed partial class UxPolishContractTests
         }
     });
 
+    /// <summary>
+    /// Bug hunt d1: at the minimum window width in Russian the Battlegrounds tabs and the period bar never touch: at
+    /// least the panel's gap apart on one line, or the bar on a line of its own under the tabs, inside the row.
+    /// </summary>
+    [Fact]
+    public void Battlegrounds_tabs_and_period_keep_apart_at_the_minimum_width() => Sta(() =>
+    {
+        Loc.Instance.SetLanguage(Loc.Russian);
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var (window, root) = Open(model, "Battlegrounds", width: 1040);
+        try
+        {
+            Settle(root);
+            var row = Named<Hearthpulse.App.Controls.TabRowPanel>(window, "BgTabRow");
+            var tabs = (FrameworkElement)row.Children[0];
+            var period = (FrameworkElement)row.Children[1];
+            Assert.Equal(Visibility.Visible, period.Visibility);
+            var tabsBox = tabs.TransformToAncestor(row).TransformBounds(new Rect(tabs.RenderSize));
+            var periodBox = period.TransformToAncestor(row).TransformBounds(new Rect(period.RenderSize));
+            Assert.True(row.Wrapped ? periodBox.Top >= tabsBox.Bottom : periodBox.Left >= tabsBox.Right + row.Gap - 0.5,
+                $"Tabs {tabsBox}, period {periodBox}, wrapped: {row.Wrapped}");
+            Assert.True(periodBox.Right <= row.ActualWidth + 0.5 && tabsBox.Right <= row.ActualWidth + 0.5, "Both bars stay inside the row");
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            window.Close();
+        }
+    });
+
+    /// <summary>
+    /// Bug hunt #10: the status card is two lines at most (the title and one line of detail), so the nav keeps its place;
+    /// in the menus the detail ("Ожидание матча · главное меню") fits that line whole, in Russian and English.
+    /// </summary>
+    [Fact]
+    public void Status_card_is_two_lines_and_the_menu_detail_fits_its_line() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var (window, root) = Open(model, "Home");
+        try
+        {
+            foreach (var language in new[] { Loc.Russian, Loc.English })
+            {
+                Loc.Instance.SetLanguage(language);
+                model.Apply(LiveSnapshot.Empty with { Scene = "HUB", HearthstoneRunning = true });
+                Settle(root);
+                var line = Named<TextBlock>(window, "LiveDetailLine");
+                var title = Assert.IsType<TextBlock>(((Panel)line.Parent).Children[0]);
+                Assert.Contains(Loc.T("Main.Scene.Hub"), line.Text, StringComparison.Ordinal);
+                Assert.Equal(TextWrapping.NoWrap, line.TextWrapping);
+                Assert.True(line.ActualWidth >= MeasureFree(line) - 0.5, $"{language}: \"{line.Text}\" should fit its line");
+                Assert.True(line.ActualHeight < title.ActualHeight * 1.5, $"{language}: the detail should take one line");
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            window.Close();
+        }
+    });
+
     // ---- harness ----
 
     /// <summary>Builds the main window with the default theme on a page (and Settings tab) and lays it out, nothing shown.</summary>

@@ -204,6 +204,13 @@
         <Style Selector="mm|BattlegroundsTiersView.narrow ItemsControl#HeroTierList Border.tierRow">
             <Setter Property="Height" Value="56" />
         </Style>
+        <!-- Trinkets and cards keep their detail line (size and cost, tribes and games) under a two-line name: 64 high -->
+        <Style Selector="mm|BattlegroundsTiersView.narrow ItemsControl#TrinketTierList Border.bgRow, mm|BattlegroundsTiersView.narrow ItemsControl#CardTierList Border.bgRow">
+            <Setter Property="Height" Value="64" />
+        </Style>
+        <Style Selector="mm|BattlegroundsTiersView.narrow ItemsControl#TrinketTierList Border.tierRow, mm|BattlegroundsTiersView.narrow ItemsControl#CardTierList Border.tierRow">
+            <Setter Property="Height" Value="64" />
+        </Style>
         <Style Selector="mm|BattlegroundsTiersView.narrow TextBlock.bgName">
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="MaxLines" Value="2" />
@@ -256,7 +263,7 @@
             </Border>
         </DataTemplate>
 
-        <!-- One trinket, 9 visuals: rank, art, name over its size and cost, average place as a number and a bar, pick rate.
+        <!-- One trinket, 10 visuals: rank, art, name over its size and cost, average place as a number and a bar, pick rate.
              A narrow view drops the rank, the bar and the pick rate. -->
         <DataTemplate x:DataType="m:MetaTrinketRow">
             <Border Classes="bgRow">
@@ -265,10 +272,12 @@
                     <!-- The square portrait crop as the frame's own fill: it covers the frame, centred; a card without art keeps the plain surface -->
                     <Border Grid.Column="1" Width="54" Height="38" CornerRadius="{StaticResource RadiusSmall}" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
-                    <TextBlock Grid.Column="2" Text="{Binding Name}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
-                               VerticalAlignment="Top" Margin="0,0,12,0" />
-                    <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis"
-                               VerticalAlignment="Bottom" Margin="0,0,12,0" />
+                    <!-- The name over its detail; a narrow view gives the name two lines (bgName) in a taller row -->
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}"
+                                   TextTrimming="CharacterEllipsis" Classes="bgName" />
+                        <TextBlock Text="{Binding Detail}" ToolTip.Tip="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                    </StackPanel>
                     <TextBlock Grid.Column="3" Text="{Binding Placement}" Classes="bgPlace long" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold" />
                     <Border Grid.Column="3" Classes="bgNarrowOff" Height="6" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="44,0,0,0"
                             Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
@@ -278,7 +287,7 @@
             </Border>
         </DataTemplate>
 
-        <!-- One minion or tavern spell, 10 visuals: rank, art, name over its tribes and games, impact with its sign's
+        <!-- One minion or tavern spell, 11 visuals: rank, art, name over its tribes and games, impact with its sign's
              colour, combat win rate, placement with and without the card, popularity. The three stat columns are there
              only when the list has numbers (ShowsStats, the same on every row). Compact drops the last two columns, a
              narrow view also the rank and the combat win rate. -->
@@ -289,10 +298,12 @@
                     <!-- The square portrait crop as the frame's own fill: it covers the frame, centred; a card without art keeps the plain surface -->
                     <Border Grid.Column="1" Width="54" Height="38" CornerRadius="{StaticResource RadiusSmall}" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
-                    <TextBlock Grid.Column="2" Text="{Binding Name}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
-                               VerticalAlignment="Top" Margin="0,0,12,0" />
-                    <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis"
-                               VerticalAlignment="Bottom" Margin="0,0,12,0" />
+                    <!-- The name over its detail; a narrow view gives the name two lines (bgName) in a taller row -->
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}"
+                                   TextTrimming="CharacterEllipsis" Classes="bgName" />
+                        <TextBlock Text="{Binding Detail}" ToolTip.Tip="{Binding Detail}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                    </StackPanel>
                     <TextBlock Grid.Column="3" Width="72" TextAlignment="Right" Text="{Binding Impact}" FontWeight="Bold" VerticalAlignment="Center"
                                Foreground="{Binding ImpactSign, Converter={StaticResource SignBrush}}"
                                Classes="bgStat" Classes.on="{Binding ShowsStats}" />

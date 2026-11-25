@@ -62,7 +62,7 @@ public sealed class MetaPrebuildTests
             Assert.True(((FrameworkElement)view.FindName("MetaHead")).ActualWidth > 0);
             Assert.True(model.ArchetypeDetailReady);
             Assert.True(((FrameworkElement)view.FindName("ArchetypeSections")).ActualHeight > 0);
-            Assert.Equal(12, list.Items.Count);
+            Assert.Equal(11, list.Items.Count);
             Assert.Null(list.ItemContainerGenerator.ContainerFromIndex(0));
 
             // A part a turn: the four filter bars, then each card's frame and each block inside it, the side card's
@@ -94,7 +94,7 @@ public sealed class MetaPrebuildTests
             Pump();
             Assert.Equal(Visibility.Visible, view.Visibility);
             Assert.Equal(segments, Segments(view));
-            Assert.All(Enumerable.Range(0, 12), i => Assert.NotNull(list.ItemContainerGenerator.ContainerFromIndex(i)));
+            Assert.All(Enumerable.Range(0, 11), i => Assert.NotNull(list.ItemContainerGenerator.ContainerFromIndex(i)));
             Assert.True(view.ActualHeight > 300);
         }
         finally
@@ -122,7 +122,7 @@ public sealed class MetaPrebuildTests
             Assert.True(double.IsNaN(view.Height));
             Assert.All(new[] { "FilterRanks", "FilterPeriods", "FilterClasses", "MinGamesPicker", "TierCard", "ArchetypeCard", "MetaLists" },
                 name => Assert.True(((FrameworkElement)view.FindName(name)).ActualHeight > 0, name));
-            Assert.All(Enumerable.Range(0, 12), i => Assert.NotNull(list.ItemContainerGenerator.ContainerFromIndex(i)));
+            Assert.All(Enumerable.Range(0, 11), i => Assert.NotNull(list.ItemContainerGenerator.ContainerFromIndex(i)));
             Assert.True(((FrameworkElement)view.FindName("ArchetypeSections")).ActualHeight > 0);
 
             // Back to "My stats" and to the tab again: an ordinary collapsed view, nothing left hidden or zero high.
@@ -168,7 +168,7 @@ public sealed class MetaPrebuildTests
             // The click: the rows of the stats, the chosen archetype in the side card, the same fixed segments.
             window.ShowConstructedTab("Tiers");
             Pump();
-            Assert.All(Enumerable.Range(0, 12), i => Assert.NotNull(list.ItemContainerGenerator.ContainerFromIndex(i)));
+            Assert.All(Enumerable.Range(0, 11), i => Assert.NotNull(list.ItemContainerGenerator.ContainerFromIndex(i)));
             Assert.Equal(fixedBars, new[] { "FilterRanks", "FilterPeriods", "MinGamesPicker" }.SelectMany(name => Segments((DependencyObject)view.FindName(name))));
             Assert.True(Segments((DependencyObject)view.FindName("FilterClasses")).Count >= 7, "a segment per class of the stats");
             Assert.True(((FrameworkElement)view.FindName("ArchetypeSections")).ActualHeight > 0);

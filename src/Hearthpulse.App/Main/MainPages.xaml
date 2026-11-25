@@ -23,10 +23,24 @@
     </Style>
 
     <DataTemplate x:Key="StatTileTemplate" DataType="{x:Type m:StatTile}">
-        <Border Style="{StaticResource TileCard}" Margin="0,0,14,0" Padding="20,16" ToolTip="{Binding Detail}">
+        <Border Style="{StaticResource TileCard}" Margin="0,0,14,0" Padding="20,16">
+            <Border.ToolTip>
+                <!-- The whole tile: a value scaled down or a trimmed detail stays readable here -->
+                <StackPanel MaxWidth="320">
+                    <TextBlock Text="{Binding Label}" Style="{StaticResource Caption}" />
+                    <TextBlock Text="{Binding Value}" FontWeight="Bold" />
+                    <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Visibility="{Binding Detail, Converter={StaticResource Vis}}" />
+                </StackPanel>
+            </Border.ToolTip>
             <StackPanel>
-                <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" />
-                <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" Margin="0,8,0,2" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" TextTrimming="CharacterEllipsis" />
+                <!-- The value scales down (never up) to the tile's width instead of being cut; the hidden copy keeps its line's height -->
+                <Grid Margin="0,8,0,2">
+                    <TextBlock Text="0" Style="{StaticResource Stat}" Visibility="Hidden" />
+                    <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" />
+                    </Viewbox>
+                </Grid>
                 <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
         </Border>

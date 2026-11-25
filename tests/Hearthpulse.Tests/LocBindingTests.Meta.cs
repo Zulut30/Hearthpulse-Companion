@@ -50,7 +50,7 @@ public sealed partial class LocBindingTests
             Dispatcher.UIThread.RunJobs();
             Assert.Contains("selected", button.Classes);
 
-            var head = new TierHeadRow("A", "Tier A", "from 51% · 3 archetypes", false);
+            var head = new TierHeadRow("A", "Tier A", "from 51% · 3 archetypes");
             var plate = Assert.IsType<Border>(Assert.Single(constructed.DataTemplates, t => t.Match(head)).Build(head));
             Assert.Contains("tierRow", plate.Classes);
         }
