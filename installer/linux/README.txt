@@ -5,6 +5,10 @@ odds, in-game overlay and match history. On Linux, Hearthstone runs through Wine
 Lutris, Bottles or Steam (Proton); Hearthpulse finds it in those prefixes and reads
 the game's own log files. It never changes the game.
 
+LICENCE
+Hearthpulse is proprietary software. Installing or using it means you accept the
+licence agreement in LICENSE.txt, which comes with the app.
+
 INSTALL
   For your user only (no password):   ./install.sh
   For every user on this computer:     sudo ./install.sh
