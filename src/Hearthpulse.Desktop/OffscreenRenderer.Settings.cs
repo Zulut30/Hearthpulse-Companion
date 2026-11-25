@@ -41,8 +41,10 @@ internal static partial class OffscreenRenderer
     }
 
     /// <summary>
-    /// HEARTHPULSE_RENDER_ONLY=settings: the Appearance tab (gallery, accent, background, shape) and the search with
-    /// "size" typed in the interface language (<c>main-settings-appearance.png</c>, <c>main-settings-search.png</c>).
+    /// HEARTHPULSE_RENDER_ONLY=settings: every tab (<c>main-settings-general.png</c>...), the Appearance tab (gallery,
+    /// accent, background, shape) and the search with "size" typed in the interface language
+    /// (<c>main-settings-appearance.png</c>, <c>main-settings-search.png</c>), at HEARTHPULSE_RENDER_WIDTH when set
+    /// (420: compact).
     /// </summary>
     private static async Task RenderSettingsToolsAsync(Window main, MainView view, string folder)
     {
@@ -51,6 +53,12 @@ internal static partial class OffscreenRenderer
             return;
         }
 
+        if (RenderWidth is { } width)
+        {
+            main.Width = width;
+        }
+
+        await RenderSettingsTabsAsync(main, view, folder);
         view.ShowPage("Settings");
         view.ShowSettingsTab("Appearance");
         await Task.Delay(2500);
