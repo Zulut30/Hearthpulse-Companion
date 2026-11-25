@@ -38,7 +38,7 @@
             <DockPanel>
                 <!-- The header's actions on one framed bar, so they read as buttons over the hero art: the step as a picture, the
                      deck as a picture, then the library card's star, Share and View in browser. Gone when none applies. -->
-                <Border DockPanel.Dock="Right" Classes="headerActions">
+                <Border Classes="headerActions">
                     <Border.IsVisible>
                         <MultiBinding Converter="{x:Static BoolConverters.Or}">
                             <Binding Path="CanExportStep" />
@@ -94,7 +94,7 @@
             <Border Classes="card" Margin="0,0,0,16">
                 <StackPanel>
                     <Grid ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto,Auto">
-                        <DockPanel VerticalAlignment="Center">
+                        <DockPanel Classes="local" VerticalAlignment="Center">
                             <Border DockPanel.Dock="Left" Width="64" Height="64" CornerRadius="32" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="2"
                                     ClipToBounds="True" i:CardArt.Portrait="{Binding Header.Local.HeroCardId}" ToolTip.Tip="{Binding Header.Local.Hero}" />
                             <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
@@ -114,7 +114,7 @@
                             </StackPanel>
                         </DockPanel>
                         <!-- The result: a plate in the result's colour (styles resultPlate.win / .loss) -->
-                        <Border Grid.Column="1" Classes="result resultPlate" Classes.win="{Binding Header.Won}" Classes.loss="{Binding Header.Lost}"
+                        <Border Classes="result resultPlate" Classes.win="{Binding Header.Won}" Classes.loss="{Binding Header.Lost}"
                                 MinWidth="150" CornerRadius="12" BorderThickness="1.5" Padding="22,8,22,10" Margin="18,0" VerticalAlignment="Center">
                             <StackPanel HorizontalAlignment="Center">
                                 <Panel HorizontalAlignment="Center">
@@ -126,19 +126,20 @@
                                            Foreground="{Binding Header.ResultKey, Converter={StaticResource KeyBrush}}" />
                             </StackPanel>
                         </Border>
-                        <DockPanel Grid.Column="2" Classes="opponent" VerticalAlignment="Center" IsVisible="{Binding ShowOpponent}">
+                        <DockPanel Classes="opponent" VerticalAlignment="Center" IsVisible="{Binding ShowOpponent}">
                             <Border DockPanel.Dock="Right" Width="64" Height="64" CornerRadius="32" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Accent2Line}" BorderThickness="2"
                                     ClipToBounds="True" i:CardArt.Portrait="{Binding Header.Opponent.HeroCardId}" ToolTip.Tip="{Binding Header.Opponent.Hero}" />
                             <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Header.Opponent.Name}" FontWeight="Bold" FontSize="{StaticResource FontSizeIcon}" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
-                                <!-- Hero and class on one line while they fit, the class under the hero when not -->
-                                <WrapPanel Margin="0,4,0,0" HorizontalAlignment="Right">
-                                    <TextBlock Text="{Binding Header.Opponent.Hero}" Classes="caption" Margin="0,0,8,2" VerticalAlignment="Center" TextAlignment="Right"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <Border Classes="pill" Background="{StaticResource SecondaryContainer}" VerticalAlignment="Center"
+                                <!-- Hero and class on one line while they fit, the hero under the class when not. The panel flows from the
+                                     right so both lines stay right-aligned; its children read left to right. -->
+                                <WrapPanel Margin="0,4,0,0" HorizontalAlignment="Right" FlowDirection="RightToLeft">
+                                    <Border Classes="pill" Background="{StaticResource SecondaryContainer}" Margin="0,0,0,2" VerticalAlignment="Center" FlowDirection="LeftToRight"
                                             IsVisible="{Binding Header.Opponent.Class, Converter={StaticResource Truthy}}">
                                         <TextBlock Text="{Binding Header.Opponent.Class}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}" />
                                     </Border>
+                                    <TextBlock Text="{Binding Header.Opponent.Hero}" Classes="caption" Margin="8,0,0,0" VerticalAlignment="Center" FlowDirection="LeftToRight"
+                                               TextTrimming="CharacterEllipsis" />
                                 </WrapPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0" IsVisible="{Binding Header.Opponent.Rank, Converter={StaticResource Truthy}}">
                                     <TextBlock Text="&#xF04CE;" Classes="icon" FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Accent}" Margin="0,0,5,0" VerticalAlignment="Center" />

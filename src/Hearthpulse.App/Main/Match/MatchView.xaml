@@ -157,14 +157,15 @@
                                     i:CardArt.Portrait="{Binding Header.Opponent.HeroCardId}" ToolTip="{Binding Header.Opponent.Hero}" />
                             <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Header.Opponent.Name}" FontWeight="Bold" FontSize="{StaticResource FontSizeIcon}" TextAlignment="Right" TextTrimming="CharacterEllipsis" />
-                                <!-- Hero and class on one line while they fit, the class under the hero when not (never cut at 1040) -->
-                                <WrapPanel Margin="0,4,0,0" HorizontalAlignment="Right">
-                                    <TextBlock Text="{Binding Header.Opponent.Hero}" Style="{StaticResource Caption}" Margin="0,0,8,2" VerticalAlignment="Center" TextAlignment="Right"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <Border Style="{StaticResource Pill}" Background="{StaticResource SecondaryContainer}" VerticalAlignment="Center"
+                                <!-- Hero and class on one line while they fit, the hero under the class when not (never cut at 1040). The panel
+                                     flows from the right so both lines stay right-aligned; its children read left to right. -->
+                                <WrapPanel Margin="0,4,0,0" HorizontalAlignment="Right" FlowDirection="RightToLeft">
+                                    <Border Style="{StaticResource Pill}" Background="{StaticResource SecondaryContainer}" Margin="0,0,0,2" VerticalAlignment="Center" FlowDirection="LeftToRight"
                                             Visibility="{Binding Header.Opponent.Class, Converter={StaticResource Vis}}">
                                         <TextBlock Text="{Binding Header.Opponent.Class}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}" />
                                     </Border>
+                                    <TextBlock Text="{Binding Header.Opponent.Hero}" Style="{StaticResource Caption}" Margin="8,0,0,0" VerticalAlignment="Center" FlowDirection="LeftToRight"
+                                               TextTrimming="CharacterEllipsis" />
                                 </WrapPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0" Visibility="{Binding Header.Opponent.Rank, Converter={StaticResource Vis}}">
                                     <TextBlock Text="&#xF04CE;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Accent}" Margin="0,0,5,0" VerticalAlignment="Center" />

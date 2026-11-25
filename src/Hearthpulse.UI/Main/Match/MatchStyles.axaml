@@ -374,6 +374,17 @@
     <Style Selector="m|MainView.compact Border.first">
         <Setter Property="Grid.ColumnSpan" Value="3" />
     </Style>
+    <!-- The header's columns come from styles, not the tags: a local Grid.Column would beat the compact styles below, and
+         at phone width the plate and the opponent stayed in the narrow columns, leaving the names no room -->
+    <Style Selector="Border.result">
+        <Setter Property="Grid.Column" Value="1" />
+    </Style>
+    <Style Selector="DockPanel.opponent">
+        <Setter Property="Grid.Column" Value="2" />
+    </Style>
+    <Style Selector="m|MainView.compact DockPanel.local">
+        <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
     <Style Selector="m|MainView.compact Border.result">
         <Setter Property="Grid.Row" Value="1" />
         <Setter Property="Grid.Column" Value="0" />
@@ -407,6 +418,7 @@
 
     <!-- The header's icon buttons on one framed bar over the hero art (its visibility is bound in the view) -->
     <Style Selector="Border.headerActions">
+        <Setter Property="DockPanel.Dock" Value="Right" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="12,0,0,0" />
         <Setter Property="Padding" Value="4" />
@@ -414,5 +426,11 @@
         <Setter Property="Background" Value="{StaticResource Surface2}" />
         <Setter Property="BorderBrush" Value="{StaticResource Border}" />
         <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <!-- Phone width: the bar above the title, so the title keeps the whole width -->
+    <Style Selector="m|MainView.compact Border.headerActions">
+        <Setter Property="DockPanel.Dock" Value="Top" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
 </Styles>
