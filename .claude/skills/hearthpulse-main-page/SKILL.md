@@ -30,9 +30,13 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). PNG proof
 
 Element names match between the UIs (`NavArena`/`PageArena`, `TabHeroes`...): WPF `x:Name`, Avalonia `Name`.
 
-**Page and tab controls (since Nov 2026).** Overview, Battlegrounds, Constructed, History and every settings tab are
-`UserControl`s with the same tree in both UIs. The window holds one tag per control, and that tag keeps the name and
-visibility (`<pg:OverviewPage x:Name="PageOverview" />`, `<st:TrackerSettings x:Name="SettingsTracker" ... />`).
+**Page and tab controls (since Nov 2026).** Overview, Battlegrounds, Constructed, History, Collection, Achievements,
+Recap and every settings tab are `UserControl`s with the same tree in both UIs (WPF also wraps the Settings tabs in
+`Pages/SettingsPage`). The Avalonia window holds one tag per control, and that tag keeps the name and visibility
+(`<pg:OverviewPage Name="PageOverview" />`, `<st:TrackerSettings Name="SettingsTracker" ... />`). The WPF window
+holds only Overview that way: the other pages are built on first use into an empty slot or frame
+(`SlotBattlegrounds`, `SlotConstructed`, `PageSettings`...; `MainWindow.Pages.cs` names them), so the start-up window
+builds only the page it shows.
 - Converters, row templates and panels the pages use live in `Main/MainPages.xaml(.axaml)`. The window and each
   control merge it: a control is built before it joins the window, so a `StaticResource` from the window's
   resources is not found there.
@@ -43,7 +47,14 @@ visibility (`<pg:OverviewPage x:Name="PageOverview" />`, `<st:TrackerSettings x:
   event carries only the args: forwarding a foreign `sender` trips MA0091.
 - An Avalonia window style `Type#Name` matches only the window's own names. A page styles itself by a class
   (`Grid.historyPage`); `MainWindowLookTests` checks this.
-- The Arena, Deck, Card, Match and Settings pages are still `ScrollViewer`s in the window. The card page (`PageCard`,
+- The Arena, Brawl, Deck, Card, Match and Settings pages are `ScrollViewer`s in the window. WPF fills several of them
+  on first use, not with the window (`MainWindow.Pages.cs`): Arena and Brawl from the `ArenaPageContent` /
+  `BrawlPageContent` templates on the first visit (`Filled`), and Settings is the `Pages/SettingsPage` control built by
+  `BuildSettings` on the first visit, a tab asked for or a render (`SettingsView`, `SettingsGeneral`...
+  `SettingsAbout` build it when code reaches them): the shown tab first, the others in the background, stopped when
+  the window closes (`_closed`); the setup wizard is built when it is opened. Window code that touches Settings goes
+  through those properties, never the frame's `Content`. Avalonia still writes these pages, Settings tabs included,
+  inline in `MainView.axaml`. The card page (`PageCard`,
   `Main/Cards/CardPageView`, `docs/card-page.md`) stands over the Constructed and deck pages while `MainViewModel.CardOpen`;
   a card row opens it as a button (WPF `CardRowButton`, Avalonia `bare`) with `c:CardLink.CardId="{Binding CardId}"` and
   `c:CardLink.CardName="{Binding Name}"`.
@@ -156,8 +167,9 @@ whose tag in the window is named `Settings<Tag>`; a new card goes into the tab t
 Every user-facing page goes into both UIs. Known accepted gaps (check before "fixing" them, and do not add new
 ones silently - list them in [hearthpulse-design](../hearthpulse-design/SKILL.md)):
 
-- WPF only: nav pill animation, hero banner, overlay tribe focus. (The page cross-fade and the tabs' motion are in both.)
-- Avalonia only: compact layout, separate Hearthstone/memory status dots, an extra overlay switch in Settings.
+- WPF only: the gliding nav pill, overlay tribe focus. (The page cross-fade, the tabs' motion and the page hero are in
+  both.)
+- Avalonia only: compact layout.
 
 ## Render scene
 

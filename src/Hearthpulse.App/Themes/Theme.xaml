@@ -398,13 +398,9 @@
     <SolidColorBrush x:Key="TierC" Color="{StaticResource MutedColor}" />
     <SolidColorBrush x:Key="TierD" Color="{StaticResource NegativeColor}" />
 
-    <!-- Gold trim for ornaments and frames; the other legacy keys are kept so older templates resolve. -->
+    <!-- Gold trim for ornaments and frames; the sidebar's plain fill. -->
     <SolidColorBrush x:Key="GoldTrim" Color="#8A6533" />
-    <SolidColorBrush x:Key="GoldFill" Color="{StaticResource AccentColor}" />
-    <SolidColorBrush x:Key="PanelFill" Color="{StaticResource SurfaceColor}" />
-    <SolidColorBrush x:Key="OverlayFill" Color="#F0201510" />
     <SolidColorBrush x:Key="SidebarFill" Color="{StaticResource BgColor}" />
-    <SolidColorBrush x:Key="WindowBg" Color="{StaticResource BgColor}" />
     <SolidColorBrush x:Key="Ink" Color="{StaticResource BgColor}" />
     <SolidColorBrush x:Key="ManaGem" Color="#3D7BE0" />
 
@@ -462,6 +458,14 @@
     <CornerRadius x:Key="RadiusLarge">12</CornerRadius>
     <CornerRadius x:Key="RadiusPill">999</CornerRadius>
     <Thickness x:Key="CardPadding">24</Thickness>
+    <!-- Even spacing on the same scale, for a Margin/Padding that is the same on all four sides
+         (Padding="{StaticResource Space8}"); mixed sides stay literals on the scale. -->
+    <Thickness x:Key="Space4">4</Thickness>
+    <Thickness x:Key="Space8">8</Thickness>
+    <Thickness x:Key="Space12">12</Thickness>
+    <Thickness x:Key="Space16">16</Thickness>
+    <Thickness x:Key="Space24">24</Thickness>
+    <Thickness x:Key="Space32">32</Thickness>
     <!-- ===== Type: Montserrat for display (OFL), Segoe UI Variable for text, Material Design Icons ===== -->
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFont">pack://application:,,,/Assets/Fonts/#Montserrat</FontFamily>
@@ -1431,7 +1435,7 @@
                                    HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" IsHitTestVisible="False" />
                         <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" VerticalOffset="4" AllowsTransparency="True"
                                Focusable="False" PopupAnimation="None">
-                            <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="10" Padding="4"
+                            <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="10" Padding="{StaticResource Space4}"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <ScrollViewer CanContentScroll="True" VerticalScrollBarVisibility="Auto">
                                     <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
@@ -1502,7 +1506,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
-                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="10" Padding="4" MinWidth="160">
+                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="10" Padding="{StaticResource Space4}" MinWidth="160">
                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
                     </Border>
                 </ControlTemplate>

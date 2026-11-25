@@ -198,7 +198,6 @@
 
             <!-- Gold trim, framed edges and the selected / primary fills. -->
             <SolidColorBrush x:Key="GoldTrim" Color="#8A6533" />
-            <SolidColorBrush x:Key="GoldFill" Color="{StaticResource AccentColor}" />
             <SolidColorBrush x:Key="PanelEdge" Color="#3D2A19" />
             <!-- Same as the WPF tokens: a raised leather plate with a gold edge, and a polished gold button -->
             <SolidColorBrush x:Key="SelectedEdge" Color="#A27839" />
@@ -216,10 +215,7 @@
                 <GradientStop Color="#F6CD66" Offset="0.45" />
                 <GradientStop Color="#D69C3C" Offset="1" />
             </LinearGradientBrush>
-            <SolidColorBrush x:Key="PanelFill" Color="{StaticResource SurfaceColor}" />
-            <SolidColorBrush x:Key="OverlayFill" Color="#F0201510" />
             <SolidColorBrush x:Key="SidebarFill" Color="{StaticResource BgColor}" />
-            <SolidColorBrush x:Key="WindowBg" Color="{StaticResource BgColor}" />
 
             <!-- ===== Gilded Tavern (same as the WPF tokens): light falls from above, every plate is lit on top ===== -->
             <LinearGradientBrush x:Key="GildedText" StartPoint="0%,0%" EndPoint="0%,100%">
@@ -530,6 +526,14 @@
             <CornerRadius x:Key="RadiusLarge">12</CornerRadius>
             <CornerRadius x:Key="RadiusPill">999</CornerRadius>
             <Thickness x:Key="CardPadding">24</Thickness>
+            <!-- Even spacing on the same scale, for a Margin/Padding that is the same on all four sides
+                 (Padding="{StaticResource Space8}"); mixed sides stay literals on the scale. -->
+            <Thickness x:Key="Space4">4</Thickness>
+            <Thickness x:Key="Space8">8</Thickness>
+            <Thickness x:Key="Space12">12</Thickness>
+            <Thickness x:Key="Space16">16</Thickness>
+            <Thickness x:Key="Space24">24</Thickness>
+            <Thickness x:Key="Space32">32</Thickness>
             <!-- ===== Type: Montserrat for display (OFL), the platform UI font for text, Material Design Icons ===== -->
             <!-- UiFont is replaced at startup with the platform's UI font (Segoe UI on Windows, Inter elsewhere). -->
             <FontFamily x:Key="UiFont">fonts:Inter#Inter</FontFamily>
@@ -1029,7 +1033,7 @@
     </Style>
     <Style Selector="ComboBox /template/ Border#PopupBorder">
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="4" />
+        <Setter Property="Padding" Value="{StaticResource Space4}" />
     </Style>
     <Style Selector="ComboBoxItem">
         <Setter Property="CornerRadius" Value="4" />
@@ -1038,7 +1042,7 @@
     </Style>
     <Style Selector="MenuFlyoutPresenter">
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="4" />
+        <Setter Property="Padding" Value="{StaticResource Space4}" />
         <Setter Property="MinWidth" Value="200" />
     </Style>
     <Style Selector="MenuFlyoutPresenter MenuItem">
@@ -1112,6 +1116,6 @@
         <Setter Property="CornerRadius" Value="2" />
     </Style>
     <Style Selector=".dense Border.card">
-        <Setter Property="Padding" Value="16" />
+        <Setter Property="Padding" Value="{StaticResource Space16}" />
     </Style>
 </Styles>

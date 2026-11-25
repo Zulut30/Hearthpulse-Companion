@@ -26,7 +26,7 @@ public sealed class DesignTokenTests
     /// </summary>
     private static readonly Dictionary<string, (int Font, int Radius, int Space)> Baseline = new(StringComparer.Ordinal)
     {
-        ["wpf"] = (356, 47, 582),
+        ["wpf"] = (309, 44, 538),
         // Avalonia radius 58: the page backdrop's layers (Border.pageLayer, V3 direction A) take the content plate's inner
         // radius 15 so the stone and the hero fill its rounded corners; WPF kept 47 (its old banner's 0,15,0,0 went).
         ["avalonia"] = (381, 58, 594),

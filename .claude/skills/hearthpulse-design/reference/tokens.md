@@ -18,7 +18,7 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 | TextColor | #F4E7C9 | `Text` | body text (parchment) |
 | MutedColor | #CDB894 | `Muted`, `TierC` | secondary text, icons, labels |
 | FaintColor | #8F7A5C | `Faint` | separators, glyphs, empty-box placeholders, disabled (below AA: not for text to be read) |
-| AccentColor | #E9B949 | `Accent`, `GoldFill` | gold accent |
+| AccentColor | #E9B949 | `Accent` | gold accent |
 | AccentDeepColor | #C48E2C | `AccentDeep` | darker gold |
 | AccentContainerColor | #5A3D17 | `AccentContainer` | icon cookie fill behind gold glyphs |
 | SecondaryContainerColor | #3F2C19 | `SecondaryContainer` | neutral container |
@@ -58,7 +58,8 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 `ContentEdge`, `CardFill`, `CardEdge` (lit top, the rim catches the accent), `GhostFill`, `GhostEdge`, `PrimaryEdge`,
 `BestEdge`, `BestHalo` (gold glow behind the recommended option, a gradient not a bitmap effect), `Sheen`,
 `GrooveFill`, `GrooveEdge` (SegmentBar), `NavSelectedFill`, `NavSelectedEdge`, `OverlayCardFill`, `OverlayEdge`.
-Legacy aliases kept so older templates resolve: `PanelFill`, `OverlayFill`, `SidebarFill`, `WindowBg`.
+`SidebarFill` (the sidebar's plain `Bg`, behind the beta badge). The unused aliases `GoldFill`, `PanelFill`, `OverlayFill`
+and `WindowBg` were removed in Nov 2026: use `Accent`, `Surface`, `OverlayPanel` and `Bg`.
 
 Theme character (both files; `ThemeFileTests` keeps the colour, brush and geometry keys of the two files identical):
 
@@ -123,6 +124,25 @@ Font files (both projects, `Assets/Fonts/`): `Montserrat-Bold.ttf`, `Montserrat-
 WPF windows set base type through the `AppWindow` style (UiFont 13, Text, tabular numerals) rather than an implicit
 TextBlock style, so icon glyph TextBlocks inside templates are not restyled.
 
+## Spacing
+
+Margin/Padding stay on 0/1/2/4/8/12/16/24/32, multiples of 4 from 40 being layout offsets (page margins 40, the 120
+under a page); `DesignTokenTests` counts the rest per UI. For a value that is the same on all four sides both theme
+files define `Thickness` tokens with the same values (the test compares them):
+
+| Key | Value | Typical use |
+|---|---|---|
+| `Space4` | 4 | popup and menu padding, a tight gap |
+| `Space8` | 8 | small plates, a row's inner gap |
+| `Space12` | 12 | a plate's inner gap |
+| `Space16` | 16 | dense card padding, settings rows |
+| `Space24` | 24 | `CardPadding`'s value, the gap between cards |
+| `Space32` | 32 | a section break |
+
+`Padding="{StaticResource Space8}"` in WPF and Avalonia alike. Mixed sides (`0,0,0,24`, `8,2`) stay literals on the
+scale; there is no token per side. `CardPadding` is not a `Space*` alias: density rewrites it (24 -> 16), the
+`Space*` tokens never change. Spacing inside `StackPanel Spacing=` / `Grid` gaps keeps literals on the same scale.
+
 ## Surfaces, buttons, inputs
 
 | WPF key | Avalonia selector | Shape |
@@ -149,7 +169,9 @@ States match in both UIs: hover fades a layer in over 0.12 s (`MotionFast`; out 
 `EdgeLight` top hairline, text boxes take an `AccentLine` rim on hover and `Accent` on focus. No transition in the
 themes is longer than 0.25 s and none repeats (`ThemeFileTests`).
 
-View-local styles: WPF `Main/MainPages.xaml` resources `TableHead`, `RowBorder`, `TierBadge`, `NavGroup`, `PageSubtitle`,
+View-local styles: WPF `Main/MainLook.xaml` resources `TableHead` (`Label` at `FontSizeLabel`), `RowBorder` (padding
+10,8, the hover plate 10 past the column on each side; the card page's heads count on it), `TierBadge` (30x26, `RadiusSmall`) - one copy for the pages and
+the tier lists, which merge MainLook before `Meta/MetaResources.xaml`; `Main/MainPages.xaml` resources `NavGroup`, `PageSubtitle`,
 `StatTileTemplate`, `GameRowTemplate`, `ThemeTile`, `HueStrip`, `TilesPanel` (`ThemeSwatch` is in `Theme.xaml`); Avalonia
 `MainView.axaml` selectors `TextBlock.tableHead`, `Border.tierBadge`, `Grid.navGroup`, `StackPanel.pageSubtitle`,
 `ScrollViewer.page`, `Grid.choiceRow`, plus `m|MainView.compact ...` rules.
