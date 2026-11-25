@@ -27,7 +27,17 @@ python -B -I .claude/skills/hearthpulse-visual-check/scripts/render.py <out-dir>
 python -B -I .claude/skills/hearthpulse-visual-check/scripts/render.py <out-dir> wpf --theme Frost
 ```
 
-Manual equivalent (Git Bash):
+**One render at a time.** `render.py` and `tools/visual/visual_check.py render` hold the named mutex
+`Hearthpulse.LocalCheck` (the one `tools/dev/check.ps1` takes) for the whole build and render, so worktrees queue and
+only one app window opens; `Waiting for the current Hearthpulse check or render to finish...` means queued. Wrap every
+manual `dotnet run ... --render-ui` (or a built exe) in PowerShell, and never call `check.ps1` inside it (it would
+wait for itself):
+
+```
+$m=[Threading.Mutex]::new($false,'Hearthpulse.LocalCheck'); try{$null=$m.WaitOne()}catch [Threading.AbandonedMutexException]{}; try{ <cmd> } finally { $m.ReleaseMutex() }
+```
+
+Manual equivalent (Git Bash; run its `dotnet run` lines through the wrapper above):
 
 ```
 export HEARTHPULSE_DATA="$TEMP/hpd"          # a copy: settings.json, history.db, cache/
@@ -195,5 +205,5 @@ kept log reaches the Discover moment) - do not claim a scene looks right if it w
 
 `python -B -I -m unittest discover -s tools/skill_checks -v` uses Pillow synthetic images and mocked child
 processes to check RGB/alpha differences, noise thresholds, current-scene validation, stale output, failed
-processes and data/output isolation. It does not launch either GUI or access the network. These checks do not
+processes, data/output isolation and the `Hearthpulse.LocalCheck` hold (mutex calls mocked). It does not launch either GUI or access the network. These checks do not
 replace opening the actual rendered PNGs.
