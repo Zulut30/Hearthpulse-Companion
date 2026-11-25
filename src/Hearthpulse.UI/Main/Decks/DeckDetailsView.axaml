@@ -139,6 +139,11 @@
         <Style Selector="TextBlock.bigWinRate">
             <Setter Property="FontSize" Value="40" />
         </Style>
+        <!-- Its column comes from a style, not the tag: a local Grid.Column would beat the compact style below and keep the
+             card in the Auto column, which then takes the name's width -->
+        <Style Selector="Border.deckWin">
+            <Setter Property="Grid.Column" Value="2" />
+        </Style>
         <Style Selector="m|MainView.compact Border.deckWin">
             <Setter Property="Grid.Row" Value="1" />
             <Setter Property="Grid.Column" Value="0" />
@@ -221,7 +226,7 @@
             </StackPanel>
 
             <!-- The big win rate (the games shown) and where it sits on the scale -->
-            <Border Grid.Column="2" Classes="card tile deckWin" Padding="16,12,16,16" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Deck.WinRate.ScaleTip}">
+            <Border Classes="card tile deckWin" Padding="16,12,16,16" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Deck.WinRate.ScaleTip}">
                 <StackPanel Width="200">
                     <TextBlock Text="{i:Loc Deck.Tile.WinRate}" Classes="label" />
                     <TextBlock Text="{Binding WinRateText}" Classes="stat bigWinRate" Margin="0,2,0,0"

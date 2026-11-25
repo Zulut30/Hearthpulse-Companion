@@ -77,7 +77,7 @@ Consequences:
   `KeyBrush`, `Rarity*`, the `ManaCost` control for cost gems, `Accent` for the one thing that matters, `Muted` for
   secondary text the player reads (AA on every surface and preset). `Faint` is below AA: only separators, glyphs, an
   empty box's placeholder and disabled things. `ReadableTextTests` fails on a bound or localized text painted `Faint`,
-  directly or through its style (outside `Themes/` and `Main/Match/`).
+  directly or through its style (outside `Themes/`).
 - Avalonia has its own engine, `src/Hearthpulse.UI/Infrastructure/ThemeEngine.cs`: it rewrites the brushes of
   Theme.axaml in place through the same `ThemePalette.Map` and fixed prefixes, picked in Settings like WPF
   (`MainView.Settings.cs` `ApplyTheme`). A hex outside Theme.axaml is not recoloured there either. Both renderers

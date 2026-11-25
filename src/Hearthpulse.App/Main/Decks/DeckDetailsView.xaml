@@ -168,8 +168,10 @@
             </Style>
 
             <!-- A numeric column head: right on the numbers' edge, wraps in its narrow column -->
+            <!-- Column heads sit on the band's bottom line, so a two-line head and a one-line one share a baseline -->
             <Style x:Key="Head" TargetType="c:SortHeader">
                 <Setter Property="HorizontalAlignment" Value="Right" />
+                <Setter Property="VerticalAlignment" Value="Bottom" />
                 <Setter Property="Margin" Value="4,0,0,0" />
             </Style>
             <!-- The head band of a table: hairline under it, stays in view while the rows scroll (c:StickyHeader) -->
@@ -737,21 +739,21 @@
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="64" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="72" />
-                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="100" />
                             </Grid.ColumnDefinitions>
-                            <c:SortHeader Text="{i:Loc Deck.Mulligan.Card}" Column="Card" Sort="{Binding MulliganSort}" HorizontalAlignment="Left" ToolTip="{i:Loc Deck.Mulligan.CardTip}" />
+                            <c:SortHeader Text="{i:Loc Deck.Mulligan.Card}" Column="Card" Sort="{Binding MulliganSort}" HorizontalAlignment="Left" VerticalAlignment="Bottom" ToolTip="{i:Loc Deck.Mulligan.CardTip}" />
                             <c:SortHeader Grid.Column="1" Text="{i:Loc Deck.Mulligan.Offered}" Column="Offered" Sort="{Binding MulliganSort}" Style="{StaticResource Head}" ToolTip="{i:Loc Deck.Mulligan.OfferedTip}" />
                             <c:SortHeader Grid.Column="2" Text="{i:Loc Deck.Mulligan.Kept}" Column="Kept" Sort="{Binding MulliganSort}" Style="{StaticResource Head}" ToolTip="{i:Loc Deck.Mulligan.KeptTip}" />
                             <c:SortHeader Grid.Column="3" Text="{i:Loc Deck.Mulligan.WrKept}" Column="KeptWinRate" Sort="{Binding MulliganSort}" Style="{StaticResource Head}" ToolTip="{i:Loc Deck.Mulligan.WrKeptTip}" />
                         </Grid>
                         <Grid Grid.Column="1" Visibility="{Binding MulliganAllColumns, Converter={StaticResource Vis}}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="100" />
                                 <ColumnDefinition Width="16" />
-                                <ColumnDefinition Width="76" />
-                                <ColumnDefinition Width="72" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="80" />
                             </Grid.ColumnDefinitions>
                             <c:SortHeader Text="{i:Loc Deck.Mulligan.WrReplaced}" Column="ReplacedWinRate" Sort="{Binding MulliganSort}" Style="{StaticResource Head}" ToolTip="{i:Loc Deck.Mulligan.WrReplacedTip}" />
                             <c:SortHeader Grid.Column="2" Text="{i:Loc Deck.Mulligan.MetaKept}" Column="MetaKept" Sort="{Binding MulliganSort}" Style="{StaticResource Head}" ToolTip="{i:Loc Deck.Mulligan.MetaKeptTip}" />
@@ -772,9 +774,9 @@
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="64" />
+                                                <ColumnDefinition Width="80" />
                                                 <ColumnDefinition Width="72" />
-                                                <ColumnDefinition Width="84" />
+                                                <ColumnDefinition Width="100" />
                                             </Grid.ColumnDefinitions>
                                             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CardCell}" Focusable="False" />
                                             <TextBlock Grid.Column="1" Text="{Binding Offered}" Style="{StaticResource Num}" />
@@ -788,10 +790,10 @@
                                         </Grid>
                                         <Grid Grid.Column="1" Visibility="{Binding DataContext.MulliganAllColumns, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Vis}}">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="84" />
+                                                <ColumnDefinition Width="100" />
                                                 <ColumnDefinition Width="16" />
-                                                <ColumnDefinition Width="76" />
-                                                <ColumnDefinition Width="72" />
+                                                <ColumnDefinition Width="84" />
+                                                <ColumnDefinition Width="80" />
                                             </Grid.ColumnDefinitions>
                                             <Border Style="{StaticResource MarkCell}" Tag="{Binding ReplacedMark}">
                                                 <TextBlock Text="{Binding ReplacedWinRate}" Style="{StaticResource Num}" FontWeight="Bold" Foreground="{Binding ReplacedSign, Converter={StaticResource SignBrush}}" />
@@ -836,7 +838,7 @@
                                 <ColumnDefinition Width="64" />
                                 <ColumnDefinition Width="84" />
                             </Grid.ColumnDefinitions>
-                            <c:SortHeader Text="{i:Loc Deck.Mulligan.Card}" Column="Card" Sort="{Binding CardsSort}" HorizontalAlignment="Left" ToolTip="{i:Loc Deck.Mulligan.CardTip}" />
+                            <c:SortHeader Text="{i:Loc Deck.Mulligan.Card}" Column="Card" Sort="{Binding CardsSort}" HorizontalAlignment="Left" VerticalAlignment="Bottom" ToolTip="{i:Loc Deck.Mulligan.CardTip}" />
                             <c:SortHeader Grid.Column="1" Text="{i:Loc Deck.Cards.Drawn}" Column="Drawn" Sort="{Binding CardsSort}" Style="{StaticResource Head}" ToolTip="{i:Loc Deck.Cards.DrawnTip}" />
                             <c:SortHeader Grid.Column="2" Text="{i:Loc Deck.Cards.WrDrawn}" Column="DrawnWinRate" Sort="{Binding CardsSort}" Style="{StaticResource Head}" ToolTip="{i:Loc Deck.Cards.WrTip}" />
                         </Grid>
