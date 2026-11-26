@@ -37,10 +37,13 @@ public sealed partial class MainViewModel
         var games = StatsFilter.Apply(all.Where(g => BattlegroundsStats.IsGame(g, duos)), period, DateTime.Now);
         var summary = BattlegroundsStats.Summary(games, duos);
         var timed = Math.Max(1, games.Count(g => g.Duration > TimeSpan.Zero));
+        // The highest MMR only with a rating: without one (none read from the client yet) the tile was a dash.
         IReadOnlyList<StatTile> tiles =
         [
-            new StatTile(Loc.T("Stats.Bg.HighestMmr"), summary.HighestRating is { } top ? top.ToString("N0", CultureInfo.CurrentCulture) : "—",
-                summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : Loc.T("Stats.Bg.RatingNotRead"), Math.Sign(summary.NetRating ?? 0)),
+            .. summary.HighestRating is { } top
+                ? [new StatTile(Loc.T("Stats.Bg.HighestMmr"), top.ToString("N0", CultureInfo.CurrentCulture),
+                    summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : string.Empty, Math.Sign(summary.NetRating ?? 0))]
+                : (StatTile[])[],
             new StatTile(Loc.T("Stats.Bg.AvgPlacement"), summary.AveragePlacement is { } avg ? avg.ToString("0.00", CultureInfo.CurrentCulture) : "—", string.Empty),
             new StatTile(Loc.T("Stats.TotalGames"), summary.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), summary.Games > 0 ? Loc.F("Stats.Bg.MinPerGame", summary.TimePlayed.TotalMinutes / timed) : "—"),

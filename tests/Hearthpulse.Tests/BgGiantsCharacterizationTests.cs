@@ -64,7 +64,9 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         output.WriteLine(actual);
         // 2026-11-19 (odds estimate mark): every view carries BattlegroundsView.CombatEstimates (empty throughout this game);
         // without that property the views hash is still 353E1634374395D9.
-        Assert.Equal("views 911DF8F2524AB527 replay 3DB931AD881A2307 data 2C492810FA8A5101", actual);
+        // 2026-11-26 (release cleanup, O-11): every view's counters carry CounterView.NothingCounted (false for the
+        // Battlegrounds counters); the replay and data hashes did not change, the views hash was 911DF8F2524AB527.
+        Assert.Equal("views D7A6094C273046B0 replay 3DB931AD881A2307 data 2C492810FA8A5101", actual);
     }
 
     /// <summary>The pool's totals with missing numbers, malformed rows and brackets (review m10).</summary>

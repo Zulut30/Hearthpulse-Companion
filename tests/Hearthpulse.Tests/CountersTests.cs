@@ -357,6 +357,28 @@ public sealed class CountersTests
     }
 
     [Fact]
+    public void A_counter_with_nothing_counted_yet_says_so_and_one_under_way_does_not()
+    {
+        // O-11: Auto mode waits for the first count. The flag marks a counter still at the start of every game (0, 0/4,
+        // +0/+0, the base damage), even with a card that cares about it in the deck.
+        var idle = View(Play([.. Card(10, "BE_013", "DECK", 1, "MINION")]));
+        var cthun = Assert.Single(idle.Counters, c => c.Id == "cthun" && !c.Opponent);
+        Assert.Equal("0/4", cthun.Value);
+        Assert.True(cthun.Relevant);
+        Assert.True(cthun.NothingCounted);
+        Assert.True(Assert.Single(idle.Counters, c => c.Id == "spells-cast" && !c.Opponent).NothingCounted);
+        Assert.True(Assert.Single(idle.Counters, c => c.Id == "cthun-old" && !c.Opponent).NothingCounted);
+
+        var used = View(Play([
+            .. Card(10, "BE_013", "DECK", 1, "MINION"),
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CTHUN_ABILITY2_USED value=1 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CTHUN_ATTACK_BUFF value=2 ",
+        ]));
+        Assert.False(Assert.Single(used.Counters, c => c.Id == "cthun" && !c.Opponent).NothingCounted);
+        Assert.False(Assert.Single(used.Counters, c => c.Id == "cthun-old" && !c.Opponent).NothingCounted);
+    }
+
+    [Fact]
     public void Cthun_abilities_count_toward_four()
     {
         var view = View(Play([

@@ -346,10 +346,10 @@ public sealed partial class MainViewModel : Observable
 
         var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today && !g.IsAbandoned).ToList();
         var todayBg = today.Where(g => g.IsBattlegrounds && g.Placement > 0).ToList();
-        // The Duos rating only for a player who has one: a "—" tile is a number nobody reads.
+        // A rating only for a player who has one: a "—" tile is a number nobody reads, and the others take its room.
         OverviewTiles =
         [
-            new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, SessionDelta, SessionDeltaValue),
+            .. (SoloRating == "—" ? (StatTile[])[] : [new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, SessionDelta, SessionDeltaValue)]),
             .. (DuosRating == "—" ? (StatTile[])[] : [new StatTile(Loc.T("Main.Tile.DuosRating"), DuosRating, string.Empty)]),
             new StatTile(Loc.T("Main.Tile.Today"), today.Count.ToString(CultureInfo.CurrentCulture),
                 todayBg.Count > 0 ? Loc.F("Main.Tile.BgAvg", todayBg.Average(g => g.Placement)) : today.Count > 0 ? $"{today.Count(g => g.Result == "Win")}–{today.Count(g => g.Result == "Loss")}" : string.Empty),

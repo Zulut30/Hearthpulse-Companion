@@ -180,8 +180,9 @@ public sealed class DataHealthContractTests
         dynamic overlay = wpf ? new WpfOverlay() : new AvaOverlay();
         Assert.Equal((string.Empty, string.Empty), ((string)overlay.ArenaDataNote, (string)overlay.BgHeroDataNote));
 
+        // Fresh scores carry no date on the draft panel (O-22): it stayed on screen all draft and changed nothing.
         overlay.SetArenaDataDate((DateTime?)Collected);
-        Assert.Equal(Loc.F("Source.Health.Overlay", Collected.ToLocalTime()), (string)overlay.ArenaDataNote);
+        Assert.Equal(string.Empty, (string)overlay.ArenaDataNote);
 
         overlay.SetDataHealth(Report(false, ("hsreplay_arena_cards_advanced", DataFreshness.Stale)));
         Assert.Equal(Loc.F("Source.Health.OverlayDelayed", Collected.ToLocalTime()), (string)overlay.ArenaDataNote);
@@ -206,7 +207,7 @@ public sealed class DataHealthContractTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void The_hero_pick_has_one_date_line_and_it_says_when_heroes_or_their_comps_are_late(bool wpf)
+    public void The_hero_pick_has_a_date_line_only_while_heroes_or_their_comps_are_late(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.English);
         dynamic overlay = wpf ? new WpfOverlay() : new AvaOverlay();
@@ -222,30 +223,31 @@ public sealed class DataHealthContractTests
 
         var day = Collected.ToLocalTime().ToString("d MMM", Loc.DateCulture);
         Assert.Equal(2, ((IEnumerable<dynamic>)overlay.HeroPicks).Count());
-        Assert.Equal($"data from {day}", (string)overlay.BgHeroDataNote);
+        // Fresh numbers: no date line under the badges (O-22).
+        Assert.Equal(string.Empty, (string)overlay.BgHeroDataNote);
 
-        // The comps on the badges come from their own collector: its delay marks the same line.
+        // The comps on the badges come from their own collector: its delay brings the same line.
         overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_compositions", DataFreshness.Stale)));
         Assert.Equal($"data from {day} · update delayed", (string)overlay.BgHeroDataNote);
         overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_heroes", DataFreshness.Failed)));
         Assert.Equal($"data from {day} · update delayed", (string)overlay.BgHeroDataNote);
-        // Stats that are the stats pool's alone: the summary's collectors are not theirs, so the date stays plain.
+        // Stats that are the stats pool's alone: the summary's collectors are not theirs, so no line.
         overlay.SetBgData((DateTime?)Collected, false);
-        Assert.Equal($"data from {day}", (string)overlay.BgHeroDataNote);
+        Assert.Equal(string.Empty, (string)overlay.BgHeroDataNote);
         overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_hero_details", DataFreshness.Stale), ("hsreplay_battlegrounds_compositions", DataFreshness.Failed)));
-        Assert.Equal($"data from {day}", (string)overlay.BgHeroDataNote);
+        Assert.Equal(string.Empty, (string)overlay.BgHeroDataNote);
         overlay.SetBgData((DateTime?)Collected, true);
         Assert.Equal($"data from {day} · update delayed", (string)overlay.BgHeroDataNote);
 
         // Another section's delay is not the heroes'.
         overlay.SetDataHealth(Report(false, ("hsguru_brawl", DataFreshness.Stale), ("hsreplay_arena_cards_advanced", DataFreshness.Stale)));
-        Assert.Equal($"data from {day}", (string)overlay.BgHeroDataNote);
+        Assert.Equal(string.Empty, (string)overlay.BgHeroDataNote);
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void A_trinket_badge_keeps_its_one_date_and_marks_only_external_numbers_as_delayed(bool wpf)
+    public void A_trinket_badge_dates_only_external_numbers_that_are_late(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.English);
         dynamic overlay = wpf ? new WpfOverlay() : new AvaOverlay();
@@ -272,17 +274,19 @@ public sealed class DataHealthContractTests
         overlay.SetBgData((DateTime?)Late, true); // the meta's own date is not a second date on the badges
         overlay.SetDataHealth(Report());
         overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
-        Assert.Equal([$"data from {day}", $"data from {day}", string.Empty], Dates());
+        // Fresh numbers: no date on any badge (O-22); it is in the tier badge's tooltip with the source.
+        Assert.Equal([string.Empty, string.Empty, string.Empty], Dates());
+        Assert.Contains("updated", (string)((IEnumerable<dynamic>)overlay.TrinketPicks).First().TierTip, StringComparison.Ordinal);
 
         // The trinket slices' collector is late: the data API's badge says so, the pool's own numbers do not.
         overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_trinkets_top_20_percent_last_7_days", DataFreshness.Stale)));
         overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
-        Assert.Equal([$"data from {day} · update delayed", $"data from {day}", string.Empty], Dates());
+        Assert.Equal([$"data from {day} · update delayed", string.Empty, string.Empty], Dates());
 
         // Heroes late, trinkets fine: the badges are plain again.
         overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_heroes", DataFreshness.Stale)));
         overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
-        Assert.Equal([$"data from {day}", $"data from {day}", string.Empty], Dates());
+        Assert.Equal([string.Empty, string.Empty, string.Empty], Dates());
     }
 
     [Fact]

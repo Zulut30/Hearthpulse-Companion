@@ -231,10 +231,11 @@ public partial class OverlayView : UserControl
     /// <summary>
     /// Ctrl held over a panel during a game arms that panel (the topmost one under the pointer, view coordinates; null
     /// when outside): it takes the mouse and can be dragged or resized as in layout mode, and the placement is saved
-    /// the same way. With the panels unlocked the pointer alone arms it, unless it lies on the game's cards. A locked
-    /// panel the pointer rests on shows the "Unlock panels" button, the only part of it that takes the mouse. Without
-    /// Ctrl, or over empty space, clicks keep going to the game. A panel being dragged or resized stays armed until the
-    /// button comes up. Every change is one line in the log (<see cref="PanelArming"/>).
+    /// the same way. With the panels unlocked the pointer alone arms it, unless it lies on the game's cards. An armed
+    /// panel shows the lock button ("Unlock panels" with Ctrl, "Lock panels" once unlocked); a pointer that only rests on
+    /// a locked panel changes nothing. Without Ctrl, or over empty space, clicks keep going to the game. A panel being
+    /// dragged or resized stays armed until the button comes up. Every change is one line in the log
+    /// (<see cref="PanelArming"/>).
     /// </summary>
     /// <returns>
     /// Whether a panel under the pointer is armed, or one is being dragged or resized, so the overlay must take

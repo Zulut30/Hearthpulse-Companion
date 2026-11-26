@@ -11,11 +11,12 @@ namespace Hearthpulse.UI.Overlay;
 #endif
 
 /// <summary>
-/// The date under the overlay's numbers from outside the machine, one per element and in one wording
-/// (<see cref="DataHealthText.Overlay"/>, "data from 15 Nov"): a line under the Battlegrounds hero pick badges and at
-/// the bottom of the Arena draft panel, from the dates the hosts hand in; each trinket badge carries its own date
-/// (<c>TrinketMeta.Updated</c>, built with the badges). A late source adds "update delayed" to its line; the narrow
-/// trinket badge puts it on a warning line of its own (<c>TrinketBadge.Delay</c>). The numbers themselves are never hidden.
+/// The date under the overlay's numbers from outside the machine, only while their source is late, one per element and
+/// in one wording (<see cref="DataHealthText.Overlay"/>, "data from 15 Nov · update delayed"): a line under the
+/// Battlegrounds hero pick badges and at the bottom of the Arena draft panel, from the dates the hosts hand in; each
+/// trinket badge carries its own (<c>TrinketMeta.Updated</c>, built with the badges), the delay on a warning line of its
+/// own (<c>TrinketBadge.Delay</c>). Fresh numbers carry no date: the source's date stayed on screen all game and changed
+/// nothing. The numbers themselves are never hidden.
 /// </summary>
 public sealed partial class OverlayViewModel
 {
@@ -25,14 +26,14 @@ public sealed partial class OverlayViewModel
     private DateTime? _arenaDataDate;
 
     /// <summary>
-    /// "data from 15 Nov" under the hero pick badges (the hero numbers and the comps named on the badges); empty while
-    /// no badge has numbers.
+    /// "data from 15 Nov · update delayed" under the hero pick badges (the hero numbers and the comps named on the
+    /// badges) while their source is late; empty otherwise and while no badge has numbers.
     /// </summary>
     public string BgHeroDataNote => HeroPicks.Count > 0
         ? DataHealthText.Overlay(_bgDataDate, _dataHealth, _bgDataExternal ? [DataSection.BgHeroes, DataSection.BgHeroComps] : [])
         : string.Empty;
 
-    /// <summary>The same line at the bottom of the Arena draft panel; empty while the panel has no scores.</summary>
+    /// <summary>The same line at the bottom of the Arena draft panel, while the scores are late; empty otherwise.</summary>
     public string ArenaDataNote => ArenaNoData.Length == 0 ? DataHealthText.Overlay(_arenaDataDate, _dataHealth, DataSection.Arena) : string.Empty;
 
     /// <summary>

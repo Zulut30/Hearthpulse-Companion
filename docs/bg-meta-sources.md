@@ -140,8 +140,9 @@ heroes and trinkets, the lobby's tribes); nothing about other players is read or
 - **One trinket, several rows.** The service lists a tribe-bound trinket once per tribe under one card id. The offer
   does not say which tribe it is for: the row without a tribe is used; when every row has one, their average
   weighted by the rows' lower bounds, with the smallest of them as the sample.
-- **Shown.** Tier letter by our bounds (`BattlegroundsAdvisor.TierOf`), average place, pick rate, "data from
-  <date>"; the source, the time and the lower bound in the tooltip. The best placement of the offer is recommended.
+- **Shown.** Tier letter by our bounds (`BattlegroundsAdvisor.TierOf`) and average place; the pick rate, the source,
+  the time and the lower bound in the tooltip, "data from <date> · update delayed" on the badge only while the source
+  is late. The best placement of the offer is recommended.
 
 ### 4.3. Lobby adjustment of the hero pick
 

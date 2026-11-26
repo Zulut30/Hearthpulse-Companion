@@ -1,5 +1,6 @@
 using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking;
 
 #if HEARTHPULSE_WPF
@@ -75,7 +76,9 @@ public sealed partial class OverlayViewModel
 
     /// <summary>
     /// The opponent panel's header. Streamer mode: the class (or "Opponent" before it is known) instead of the name or
-    /// BattleTag, and "Opponent" instead of "class · rank", so the line stays and the header keeps its height.
+    /// BattleTag, and "Opponent" instead of "class · rank", so the line stays and the header keeps its height. The log's
+    /// stand-in name before the game names the opponent ("UNKNOWN HUMAN PLAYER") counts as no name: the class heads the
+    /// panel then, and the line under it does not say the class again.
     /// </summary>
     private (string Title, string Subtitle) OpponentHeader(ConstructedView view)
     {
@@ -86,7 +89,8 @@ public sealed partial class OverlayViewModel
             return (className.Length > 0 ? className : opponent, opponent);
         }
 
-        return (string.IsNullOrEmpty(view.OpponentName) ? className : view.OpponentName!,
-            string.Join(" · ", new[] { className, view.OpponentRank?.Display }.Where(s => !string.IsNullOrEmpty(s))));
+        var name = view.OpponentName is { Length: > 0 } named && named != GameState.UnknownPlayerName ? named : null;
+        return (name ?? className,
+            string.Join(" · ", new[] { name is null ? null : className, view.OpponentRank?.Display }.Where(s => !string.IsNullOrEmpty(s))));
     }
 }

@@ -5,9 +5,11 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              x:Class="Hearthpulse.UI.Overlay.ArenaPicksPanel"
              x:DataType="o:OverlayViewModel">
-    <!-- Arena draft: a badge over each offered card (ArenaSmith score and tier, its place on the curve and among the
-         deck's types) or hero (class win rate and place), the best one in gold. Laid across the width of the draft screen's card row, so each badge sits over its card. Nothing here
-         takes clicks: the cards under it stay clickable. The data source is named once, in the draft panel's footer. DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+    <!-- Arena draft: a badge over each offered card (ArenaSmith score and tier, the package it brings, our deck-fit
+         adjustment) or hero (class win rate, 7+ wins and place), the best one marked by its star and gold frame. Laid across
+         the width of the draft screen's card row, so each badge sits over its card; a hero without numbers keeps its slot
+         and draws nothing. Nothing here takes clicks: the cards under it stay clickable. DataContext: OverlayViewModel.
+         Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:KeyBrush x:Key="KeyBrush" />
         <i:Truthy x:Key="Truthy" />
@@ -46,7 +48,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="o:ArenaPickBadge">
-                    <Border Classes="arenaBadge" Classes.best="{Binding IsBest}" HorizontalAlignment="Center">
+                    <Border Classes="arenaBadge" Classes.best="{Binding IsBest}" HorizontalAlignment="Center" IsVisible="{Binding !Empty}">
                         <!-- A dock, not a horizontal stack: the lines beside the seal get the cell's width and wrap in it. At overlay scale 1.6
                              a cell is narrower than the badge's text, which was cut at the next badge (bug-hunt #11) -->
                         <DockPanel HorizontalAlignment="Center">

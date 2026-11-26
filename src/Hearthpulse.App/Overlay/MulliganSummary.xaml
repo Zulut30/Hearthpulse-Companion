@@ -3,9 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
-    <!-- The mulligan summary under the offered cards (the bars are over them, MulliganPanel): the impact of the keeps;
-         the source and slice, the estimate and curve notes in the tooltip. A decklist's numbers (not an archetype's) add a
-         second line: "By your deck, N games, data from <date>". Above the Confirm button.
+    <!-- The mulligan summary under the offered cards (the bars are over them, MulliganPanel): the impact of the keeps,
+         or why there are no numbers; the source and slice ("By your deck, N games, data from <date>" for a decklist's
+         numbers), the estimate and curve notes in the tooltip. One line, above the Confirm button.
          DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
@@ -33,8 +33,6 @@
                 <TextBlock Text="&#xF02FD;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
                            Visibility="{Binding MulliganHasWarnings, Converter={StaticResource Vis}}" />
             </StackPanel>
-            <TextBlock Text="{Binding MulliganScopeLine}" Style="{StaticResource Base}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"
-                       Margin="0,1,0,0" Visibility="{Binding MulliganScopeLine, Converter={StaticResource Vis}}" />
         </StackPanel>
     </Border>
 </UserControl>

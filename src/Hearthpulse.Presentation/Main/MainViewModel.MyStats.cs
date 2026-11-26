@@ -303,7 +303,23 @@ public sealed partial class MainViewModel
     /// <summary>Share of games per final place (index 0 = 1st) as one bar per place, empty without games.</summary>
     public IReadOnlyList<BgPlaceRow> BgPlaces { get => _bgPlaces; private set => Set(ref _bgPlaces, value); }
 
-    public IReadOnlyList<IChartValue> BgRatingChart { get => _bgRatingChart; private set => Set(ref _bgRatingChart, value); }
+    public IReadOnlyList<IChartValue> BgRatingChart
+    {
+        get => _bgRatingChart;
+        private set
+        {
+            if (Set(ref _bgRatingChart, value))
+            {
+                Raise(nameof(BgHasRating));
+            }
+        }
+    }
+
+    /// <summary>
+    /// A rated game in the period: the rating card shows beside where you finish. Without one (no rating read from the
+    /// client yet) the places card takes the row; an empty chart said nothing.
+    /// </summary>
+    public bool BgHasRating => _bgRatingChart.Count > 0;
 
     /// <summary>«Результаты героев»: the combat win rate and pick rate columns; off by default.</summary>
     public bool BgHeroAllColumns { get => _bgHeroAllColumns; set => Set(ref _bgHeroAllColumns, value); }

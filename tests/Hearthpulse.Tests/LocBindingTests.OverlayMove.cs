@@ -161,7 +161,7 @@ public sealed partial class LocBindingTests
             Assert.True(tip.IsEffectivelyVisible);
             Assert.True(tip.TranslatePoint(default, view)!.Value.Y < 40);
             Assert.False(tip.IsHitTestVisible);
-            Assert.Contains("Point at a panel and press “Unlock panels”, or hold Ctrl over it", tip.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text));
+            Assert.Contains("Hold Ctrl over a panel to move or resize it", tip.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text));
             Assert.True(view.Settings.OverlayMoveTipShown);
             Assert.Equal(4, layoutChanges);
             view.OfferMoveTip();

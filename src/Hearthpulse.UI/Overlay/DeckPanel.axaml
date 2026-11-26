@@ -6,7 +6,8 @@
              x:Class="Hearthpulse.UI.Overlay.DeckPanel"
              x:DataType="o:OverlayViewModel">
     <!-- Your deck (MovablePanel "deck" and the OBS window "Hearthpulse — Deck", docs/streaming.md): the deck name and its
-         record, a row per card, the counts and the likeliest next draw. Row sizes, compact and the empty row come from
+         record (no line without one), a row per card with its draw chance, and the cards left in the deck. Row sizes,
+         compact and the empty row come from
          OverlayLook (included by the overlay view and the OBS window's StreamView); compact needs a compact MovablePanel, so
          the OBS window's rows stay full. DataContext: OverlayViewModel (inherited). Tokens only. -->
     <UserControl.Resources>
@@ -53,15 +54,12 @@
                 <StackPanel>
                     <TextBlock Text="{Binding DeckName}" Classes="headerTitle" />
                     <TextBlock Text="{Binding DeckRecord}" Classes="headerNote"
-                               Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}" />
+                               Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}"
+                               IsVisible="{Binding DeckRecord, Converter={StaticResource Truthy}}" />
                 </StackPanel>
             </Border>
             <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,7,12,9">
-                <StackPanel>
-                    <TextBlock Text="{Binding DeckCounts}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" />
-                    <TextBlock Text="{Binding NextDraw}" FontSize="{StaticResource FontSizeSmall}" TextTrimming="CharacterEllipsis"
-                               IsVisible="{Binding NextDraw, Converter={StaticResource Truthy}}" />
-                </StackPanel>
+                <TextBlock Text="{Binding DeckCounts}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" />
             </Border>
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="8,0,8,4" o:OverlayHit.Interactive="True">
                 <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" />

@@ -82,35 +82,6 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!-- Opponent's hand row: hover shows the card once revealed, else the card that created it -->
-    <DataTemplate x:Key="HandTemplate" DataType="{x:Type o:HandTile}">
-        <Grid x:Name="RowRoot" Height="22" Margin="0,0,0,2" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding PreviewCardId}" c:CardPreview.ShowRelated="False">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="22" />
-                <ColumnDefinition Width="64" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Border Background="{StaticResource Surface3}" CornerRadius="5">
-                <TextBlock Text="{Binding Slot}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
-            <TextBlock Grid.Column="1" Text="{Binding Turn}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="6,0,2,0" VerticalAlignment="Center"
-                       TextTrimming="CharacterEllipsis" />
-            <TextBlock x:Name="Detail" Grid.Column="2" Text="{Binding Detail}" FontSize="11.5" Foreground="{StaticResource Muted}"
-                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-        </Grid>
-        <DataTemplate.Triggers>
-            <Trigger SourceName="RowRoot" Property="o:MovablePanel.Compact" Value="True">
-                <Setter TargetName="RowRoot" Property="Height" Value="18" />
-            </Trigger>
-            <DataTrigger Binding="{Binding Highlight}" Value="True">
-                <Setter TargetName="Detail" Property="Foreground" Value="{StaticResource Text}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding Unknown}" Value="True">
-                <Setter TargetName="Detail" Property="Foreground" Value="{StaticResource Faint}" />
-            </DataTrigger>
-        </DataTemplate.Triggers>
-    </DataTemplate>
-
     <!-- Counter tooltip strip: card art behind the name, count on the right; a part of a goal gets a done mark -->
     <DataTemplate x:Key="CounterCardTemplate" DataType="{x:Type o:CounterTipCard}">
         <Grid x:Name="RowRoot" Height="22" Margin="0,0,0,2">
@@ -357,7 +328,7 @@
     </DataTemplate>
 
     <DataTemplate x:Key="CombatTemplate" DataType="{x:Type o:CombatDot}">
-        <Border x:Name="Dot" Width="8" Height="8" CornerRadius="4" Margin="0,0,4,0" Background="{StaticResource Faint}" ToolTip="{Binding Tooltip}" />
+        <Border x:Name="Dot" Width="8" Height="8" CornerRadius="4" Margin="0,0,4,0" Background="{StaticResource Faint}" />
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding Result}" Value="Win">
                 <Setter TargetName="Dot" Property="Background" Value="{StaticResource Positive}" />
@@ -394,14 +365,13 @@
                                        Foreground="{Binding DeltaValue, Converter={StaticResource SignBrush}}" />
                             <TextBlock Text="{Binding PlaceNote}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,3" VerticalAlignment="Bottom" TextTrimming="CharacterEllipsis" />
                         </DockPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding PickRate}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" />
-                            <TextBlock Text="{Binding Personal}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Text}" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"
-                                       Visibility="{Binding Personal, Converter={StaticResource Vis}}" />
-                        </StackPanel>
+                        <!-- How often players pick the hero is in the tier badge's tooltip: it says nothing of the hero's strength -->
+                        <TextBlock Text="{Binding Personal}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Text}" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding Personal, Converter={StaticResource Vis}}" />
                     </StackPanel>
                 </Grid>
-                <!-- The best comps this lobby allows; their tier, difficulty and advice are in the tooltip -->
+                <!-- The hero's own best comps the lobby allows (none when every hero would name the same two); their tier,
+                     difficulty and advice are in the tooltip -->
                 <TextBlock Text="{Binding Comps}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
                            Background="Transparent" ToolTip="{Binding CompsTip}" o:OverlayHit.Interactive="True"
                            Visibility="{Binding Comps, Converter={StaticResource Vis}}" />
@@ -455,7 +425,8 @@
                             <TextBlock Text="{Binding Place}" Style="{StaticResource Number}" FontSize="{StaticResource FontSizeTitle}" />
                             <TextBlock Text="{i:Loc Overlay.Badge.AvgPlace}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,2" VerticalAlignment="Bottom" />
                         </StackPanel>
-                        <TextBlock Text="{Binding PickRate}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" />
+                        <TextBlock Text="{Binding Note}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
+                                   Visibility="{Binding Note, Converter={StaticResource Vis}}" />
                         <TextBlock Text="{Binding Updated}" FontSize="10.5" Foreground="{StaticResource Muted}"
                                    Visibility="{Binding Updated, Converter={StaticResource Vis}}" />
                         <!-- A late source: a warning mark and words on a line of their own that wraps, never cut at the badge's width -->
@@ -782,7 +753,7 @@
                         <Trigger Property="IsFree" Value="True">
                             <Setter TargetName="Frame" Property="Visibility" Value="Visible" />
                         </Trigger>
-                        <!-- The pointer rests on the panel, or arms it: the lock button on the tag -->
+                        <!-- The panel is armed (Ctrl, or unlocked panels): the lock button on the tag -->
                         <Trigger Property="OffersLock" Value="True">
                             <Setter TargetName="PART_Chrome" Property="Visibility" Value="Visible" />
                             <Setter TargetName="PART_Lock" Property="Visibility" Value="Visible" />

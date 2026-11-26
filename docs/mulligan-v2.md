@@ -82,7 +82,7 @@ counts are present (a card offered once shows +58.8), so the client needs minimu
 - Caveat seen on real rows: kept / replaced numbers carry a strong selection bias for rarely kept cards (Zoolock on the
   coin: Vaultkeeper kept 16% of the time, +2.6 kept vs −6.8 replaced). "Kept" hands are good hands. That is why the guide
   does **not** decide from kept vs replaced; it uses the *offered* impact, which does not depend on the choice, for the
-  coin and class adjustments, and shows kept / replaced / drawn only in the tooltip and the second line.
+  coin and class adjustments, and shows kept / replaced / drawn only in the tooltip.
 - Some decks have their own slices (`deck_id`); the app does not map decks to HSGuru deck ids yet.
 
 ### 2.2 HSGuru class results and the HSReplay per-deck mulligan (2026-10-26, per deck called since 2026-11-15)
@@ -134,9 +134,9 @@ How the client uses it (`Core/Api/HearthpulseData.Mulligan.cs`, `MulliganGuideSo
    card, `HearthpulseData.DealtShare`) used only for the minimum-sample gates; the tooltip shows no per-card sample.
 
 `MulliganView.Scope` (`Deck` | `NearDeck` | `Archetype`), `DeckGames`, `DataAsOf` and `DeckDifference` carry this to the
-panel: the summary gets a second line "By your deck, 456,569 games, data from 14.11.2026" / "By a close deck, …"
-(`OverlayViewModel.MulliganScopeLine`, both UIs); an archetype's numbers add no line, as before. The source in the
-tooltip reads "Hearthpulse data, Legend, 30 days".
+panel: the summary's tooltip gets the line "By your deck, 456,569 games, data from 14.11.2026" / "By a close deck, …"
+after the source (`OverlayViewModel.MulliganScopeLine`, both UIs; a second line on the panel until 2026-11-26); an
+archetype's numbers add none. The source in the tooltip reads "Hearthpulse data, Legend, 30 days".
 
 Not used:
 
@@ -180,8 +180,10 @@ UI: `Overlay/MulliganPanel.xaml` (WPF) / `MulliganPanel.axaml` (Avalonia), view 
 Since 2026-10-25 a bar **over** each offered card in the HSReplay style (it replaced the badges under the cards): a large
 Keep / Replace with its icon and colour, the edge in points ("+1.9", `MulliganCardStat.Edge`), a gauge from replace (left)
 to keep (right) whose fill grows from the middle (4 points fill a half), coloured Negative / Accent (close call, under
-half a point) / Positive, and a small second line "kept 61% · drawn −1.3" (keep rate, win rate when drawn against the
-deck's; dropped from an overlay scale of 1.4, where taller bars would reach the opponent's hand markers, and kept in the tooltip). Small marks for a synergy, a 2nd copy, a late card; click = keep or replace. The summary line ("Expected impact
+half a point) / Positive; the keep rate and the win rate when drawn are in the tooltip (a second line "kept 61% · drawn
+−1.3" on the bar repeated it until 2026-11-26). Small marks for a synergy, a 2nd copy, a late card; click = keep or
+replace. Without numbers for the deck there are no bars, only the summary's "No mulligan stats for this deck yet"
+(`OverlayViewModel.ShowMulliganBars`). The summary line ("Expected impact
 of your keeps: +2.1%", source and slice in small type) is its own panel `mulligan-summary` under the cards (top at
 700 of 1080, above the Confirm button): over the cards it ran into the opponent's hand markers at a large overlay scale. Win rate,
 sample, the coin / class adjustments, kept / replaced and curve notes are in the tooltips. The bars are a 1020-unit row

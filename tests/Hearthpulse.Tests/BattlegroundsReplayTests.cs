@@ -770,7 +770,10 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         // 2026-11-19 (odds estimate mark): the view carries BattlegroundsView.CombatEstimates, empty after the game; without
         // that property the view hash is still 30DDE1DCF7070D18.
         // 2026-11-19 (E5): captures carry SimMinion.ScriptData3/4; without them (checked) the capture hash is still 06C36C54450A6E18.
-        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 4100374AC8858D96 captures 29E5D8A06B2D6713", actual);
+        // 2026-11-26 (release cleanup, O-11): the view's counters carry CounterView.NothingCounted (false for the Battlegrounds
+        // counters, which keep their own Relevant rule); the events, text and captures did not change, the view hash was
+        // 4100374AC8858D96.
+        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view F3F4890694159D31 captures 29E5D8A06B2D6713", actual);
     }
 
     [Fact]

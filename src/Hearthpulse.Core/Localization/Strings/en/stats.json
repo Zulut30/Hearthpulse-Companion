@@ -64,7 +64,6 @@
   "Stats.Bg.NoHeroes": "No hero has this many games in the time frame yet.",
   "Stats.Bg.HighestMmr": "Highest MMR",
   "Stats.Bg.NetDetail": "{0} net",
-  "Stats.Bg.RatingNotRead": "rating not read yet",
   "Stats.Bg.MinPerGame": "{0:0}\u00a0min a game",
   "Stats.Bg.NoteDuos": "No community comparison for Duos.",
   "Stats.Bg.NoteLoading": "Loading community data…",

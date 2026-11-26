@@ -15,32 +15,32 @@
     </UserControl.Resources>
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+        <!-- Without a rating the places card takes the whole row (it is then neither statsRight nor beside a chart) -->
+        <Style Selector="Border.statsAll">
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+        </Style>
     </UserControl.Styles>
     <StackPanel>
         <!-- The period bar sits in the page's tab row (BattlegroundsPage) -->
         <!-- Highest MMR, average placement, games, time played -->
         <ItemsControl ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
 
-        <!-- Rating over time beside where you finish -->
+        <!-- Rating over time beside where you finish; without a rating the places card takes the row -->
         <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="*" MinWidth="250" />
             </Grid.ColumnDefinitions>
-            <Border Classes="card statsLeft">
+            <Border Classes="card statsLeft" IsVisible="{Binding BgHasRating}">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
                     </Grid>
-                    <!-- No games in the period: one line instead of a tall empty chart, so the tier lists stay in view -->
-                    <ContentControl DockPanel.Dock="Top" Classes="emptyState" Tag="&#xF012A;" Content="{i:Loc Stats.Bg.RatingEmpty}"
-                                    IsVisible="{Binding BgRatingChart, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                    <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}"
-                                      EmptyText="{i:Loc Stats.Bg.RatingEmpty}" IsVisible="{Binding BgRatingChart, Converter={StaticResource Truthy}}" />
+                    <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}" />
                 </DockPanel>
             </Border>
-            <Border Classes="card statsRight">
+            <Border Classes="card" Classes.statsRight="{Binding BgHasRating}" Classes.statsAll="{Binding !BgHasRating}">
                 <StackPanel ToolTip.Tip="{i:Loc Stats.Bg.PlacementsTip}">
                     <c:Ornament Text="{i:Loc Stats.Bg.PlacesTitle}" Icon="&#xF0128;" Size="13" Margin="0,0,0,12" />
                     <ItemsControl ItemsSource="{Binding BgPlaces}" ItemTemplate="{StaticResource BgPlaceRowTemplate}" />

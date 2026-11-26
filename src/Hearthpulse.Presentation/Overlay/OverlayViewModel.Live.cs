@@ -68,10 +68,11 @@ public sealed partial class OverlayViewModel
             return;
         }
 
+        // Auto waits for the first count: a chip reading 0 (or 0/4, +0/+0) said nothing. Always shows the zero too.
         var shown = counters.Where(c => Counters.ModeOf(settings.CounterModes, c.Id) switch
         {
             CounterMode.Always => true,
-            CounterMode.Auto => c.Relevant,
+            CounterMode.Auto => c.Relevant && !c.NothingCounted,
             _ => false,
         }).ToList();
 

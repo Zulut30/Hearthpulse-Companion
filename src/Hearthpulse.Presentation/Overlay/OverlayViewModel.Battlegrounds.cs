@@ -39,23 +39,15 @@ public sealed partial class OverlayViewModel
             Tribes = view.Races.Select(r => Races.Display(r, _locale)).ToList();
             RebuildTribeChips();
         });
-        Combats = view.Combats.TakeLast(8)
-            .Select(c => new CombatDot(c.Result, Loc.F("Overlay.Combat.Tip", c.Turn, _cards.NameOf(c.OpponentHeroCardId), ResultText(c.Result))
-                + (c.DamageTaken > 0 ? Loc.F("Overlay.Combat.Took", c.DamageTaken) : c.DamageDealt > 0 ? Loc.F("Overlay.Combat.Dealt", c.DamageDealt) : string.Empty)
-                + (c.Odds is { } o ? Loc.F("Overlay.Combat.Predicted", OddsPercent(o.Win, o.Runs), OddsPercent(o.Loss, o.Runs)) : string.Empty)))
-            .ToList();
-
         if (view.CombatOdds is { } odds)
         {
             OddsWin = OddsPercent(odds.Win, odds.Runs);
             OddsTie = OddsPercent(odds.Tie, odds.Runs);
             OddsLoss = OddsPercent(odds.Loss, odds.Runs);
             SetOddsShares(odds.Win, odds.Tie, odds.Loss);
-            // The bottom line only when there is something to say: unsimulated effects, the hero damage cap, or both.
-            var unsimulated = odds.Approximate ? Loc.P("Overlay.Odds.Unsimulated", odds.Unsimulated) : string.Empty;
-            OddsNote = odds.DamageCap <= 0 ? unsimulated
-                : unsimulated.Length > 0 ? Loc.F("Overlay.Odds.Cap", unsimulated, odds.DamageCap)
-                : Loc.F("Overlay.Odds.CapOnly", odds.DamageCap);
+            // The bottom line only when the hero damage cap cuts the range shown: a cap the damage never reaches says
+            // nothing, and beside "You take 19-27" it read as a contradiction. Unsimulated effects are in the "≈" tooltip.
+            OddsNote = CapReached(odds) ? Loc.F("Overlay.Odds.CapOnly", odds.DamageCap) : string.Empty;
             UpdateOddsEstimate(odds, view.CombatEstimates);
 
             // Damage as the range of 8 fights in 10 ("You deal 8–16"); the cells' labels say who dies.
@@ -75,11 +67,18 @@ public sealed partial class OverlayViewModel
         // Lobby-adjusted numbers only mean something once the tribes are known.
         var lobbyKnown = view.Races.Count >= 4;
         var heroTierTip = Loc.T("Overlay.Tier.Heroes");
-        Replace(nameof(HeroPicks), view.HeroOptions, h => $"{heroTierTip}{lobbyKnown}{h.CardId}{h.Meta?.AdjustedPosition:0.000}{highlight && h.Recommended}{string.Join(',', h.TopComps ?? [])}", () => HeroPicks = !view.HeroOptions.Any(h => h.Meta is not null) ? [] : view.HeroOptions
+        Replace(nameof(HeroPicks), view.HeroOptions, h => $"{heroTierTip}{lobbyKnown}{h.CardId}{h.Meta?.AdjustedPosition:0.000}{h.Meta?.PickRate:0.000}{highlight && h.Recommended}{string.Join(',', h.TopComps ?? [])}", () => HeroPicks = !view.HeroOptions.Any(h => h.Meta is not null) ? [] : view.HeroOptions
             .Select(h =>
             {
                 var adjusted = h.Meta is not null && lobbyKnown;
                 var delta = adjusted ? h.Meta!.AdjustedPosition - h.Meta.AveragePosition : 0;
+                // The comps line only when the order is this hero's own (BgHeroComp.ByHero): without enough of the hero's
+                // games every hero gets the lobby's same two comps, a line repeated on every badge. They stay in the tooltip.
+                var comps = h.TopComps ?? [];
+                var ownComps = comps.Take(2).Any(c => c.ByHero);
+                var compsTip = CompsTip(comps);
+                // How often players pick the hero says nothing of its strength: a tooltip line under the tier scale.
+                var pickRate = h.Meta is null ? string.Empty : Loc.F("Overlay.Badge.PickRate", h.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture));
                 return new HeroPickCard(
                     h.CardId,
                     h.Name,
@@ -88,30 +87,41 @@ public sealed partial class OverlayViewModel
                     h.Meta is null ? Loc.T("Overlay.Badge.NoData") : adjusted ? Loc.T("Overlay.Badge.AvgPlaceLobby") : Loc.T("Overlay.Badge.AvgPlace"),
                     Math.Abs(delta) < 0.005 ? string.Empty : delta < 0 ? $"▲{-delta:0.00}" : $"▼{delta:0.00}",
                     -delta,
-                    h.Meta is null ? string.Empty : Loc.F("Overlay.Badge.PickRate", h.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)),
                     h.Stats is { Games: > 0 } s ? Loc.P("Overlay.Hero.Personal", s.Games, s.AveragePlace) : string.Empty,
-                    string.Join(" · ", (h.TopComps ?? []).Take(2).Select(c => c.Name)),
+                    ownComps ? string.Join(" · ", comps.Take(2).Select(c => c.Name)) : string.Empty,
                     highlight && h.Recommended,
-                    h.Meta is not null) { TierTip = heroTierTip, CompsTip = CompsTip(h.TopComps) };
+                    h.Meta is not null)
+                {
+                    TierTip = string.Join("\n\n", new[] { pickRate.Length > 0 ? heroTierTip + "\n" + pickRate : heroTierTip, ownComps ? string.Empty : compsTip }
+                        .Where(s => s.Length > 0)),
+                    CompsTip = ownComps ? compsTip : string.Empty,
+                };
             })
             .ToList());
 
         var trinketTierTip = Loc.T("Overlay.Tier.Heroes");
         var trinketsLate = _dataHealth.Section(DataSection.BgTrinkets).Delayed;
         Replace(nameof(TrinketPicks), view.TrinketOptions, t => $"{trinketTierTip}{t.CardId}{t.Meta}{highlight && t.Recommended}{trinketsLate}", () => TrinketPicks = !view.TrinketOptions.Any(t => t.Meta is not null) ? [] : view.TrinketOptions
-            .Select(t => new TrinketBadge(
-                t.CardId,
-                t.Name,
-                t.Meta?.Tier ?? "–",
-                t.Meta is null ? "—" : t.Meta.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
-                t.Meta is null ? Loc.T("Overlay.Badge.NoData") : Loc.F("Overlay.Badge.PickRate", t.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)),
-                highlight && t.Recommended,
-                t.Meta is not null)
+            .Select(t =>
             {
-                TierTip = t.Meta is null ? trinketTierTip : trinketTierTip + "\n" + TrinketSource(t.Meta),
-                // One date line per badge; the data API's numbers add an "update delayed" line while their collector is late.
-                Updated = DataHealthText.OverlayDate(t.Meta?.Updated),
-                Delay = DataHealthText.OverlayDelay(t.Meta?.Updated, _dataHealth, t.Meta is { External: true } ? [DataSection.BgTrinkets] : []),
+                // The date and an "update delayed" line only while the data API's collector of these numbers is late:
+                // fresh numbers need no date on the badge (it is in the tooltip, with the source).
+                var delay = DataHealthText.OverlayDelay(t.Meta?.Updated, _dataHealth, t.Meta is { External: true } ? [DataSection.BgTrinkets] : []);
+                return new TrinketBadge(
+                    t.CardId,
+                    t.Name,
+                    t.Meta?.Tier ?? "–",
+                    t.Meta is null ? "—" : t.Meta.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
+                    t.Meta is null ? Loc.T("Overlay.Badge.NoData") : string.Empty,
+                    highlight && t.Recommended,
+                    t.Meta is not null)
+                {
+                    TierTip = t.Meta is null
+                        ? trinketTierTip
+                        : string.Join("\n", trinketTierTip, Loc.F("Overlay.Badge.PickRate", t.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)), TrinketSource(t.Meta)),
+                    Updated = delay.Length > 0 ? DataHealthText.OverlayDate(t.Meta?.Updated) : string.Empty,
+                    Delay = delay,
+                };
             })
             .ToList());
 
@@ -135,14 +145,14 @@ public sealed partial class OverlayViewModel
                     d.TechLevel))
                 .ToList();
         });
+        // A caption only in "Mark the best", where it says whether one was marked; in "Stats only" it named the source,
+        // which the game shows itself.
         var source = view.DiscoverSource ?? Loc.T("Overlay.Discover.Name");
-        DiscoverTitle = view.DiscoverAdvice.Count == 0
+        DiscoverTitle = view.DiscoverAdvice.Count == 0 || !highlight
             ? string.Empty
-            : !highlight
-                ? view.DiscoverSource is { } offeredBy ? Loc.F("Overlay.Discover.OfferedBy", offeredBy) : Loc.T("Overlay.Discover.CommunityStats")
-                : view.DiscoverAdvice.Any(d => d.Best)
-                    ? Loc.F("Overlay.Discover.BestMarked", source)
-                    : Loc.F("Overlay.Discover.CloseCall", source);
+            : view.DiscoverAdvice.Any(d => d.Best)
+                ? Loc.F("Overlay.Discover.BestMarked", source)
+                : Loc.F("Overlay.Discover.CloseCall", source);
 
         UsageNote = view.UsageNote ?? string.Empty;
 

@@ -89,7 +89,8 @@ and what the server could add).
 30-minute disk cache `cache/api/data-health.json`) and maps source ids to the app's sections (`DataSections`, one
 table). Settings, Data shows each section's date and state ("Data status", "Check now"); a page whose section is
 stale or failed adds "Data from <date>: the update is delayed." under its source line (the meta page, the
-Battlegrounds tabs, Arena, the Brawl). In the overlay each element has one date in one wording, "data from 15 Nov"
-(`DataHealthText.Overlay`): a line under the hero pick badges, each trinket badge's own date, the bottom of the Arena
-draft panel; a late collector adds "update delayed" to it (for a trinket only when its numbers are the data API's).
+Battlegrounds tabs, Arena, the Brawl). In the overlay a date shows only while its collector is late, one per element
+in one wording, "data from 15 Nov · update delayed" (`DataHealthText.Overlay`): a line under the hero pick badges, each
+trinket badge's own date and delay line (only when its numbers are the data API's), the bottom of the Arena draft
+panel. Fresh numbers carry no date on the overlay (a trinket's is in its tooltip).
 A source waiting for its origin is not a delay; offline nothing is called stale. Numbers are never hidden.

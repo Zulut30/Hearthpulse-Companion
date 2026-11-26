@@ -18,8 +18,9 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   far with its tier, mana curve 0..7+ with the buckets of the offered cards lit, the deck's card types
   ("12 minions · 5 spells · 1 weapon"), class win rates at the hero pick (the offered classes in gold), after it the
   run class's own line under the title ("Win rate 55.2% · #1 of 11 classes · 7+ wins: 15%"), the cards
-  picked by cost with their scores. Attribution line "Scores: Hearthpulse data"; on a normal-Arena run a second line
-  says the scores come from Underground Arena games (the only slice the server has, see Data).
+  picked by cost with their scores. Attribution line "Scores: Hearthpulse data"; on a normal-Arena run the header's
+  tooltip says the scores come from Underground Arena games (the only slice the server has, see Data). The date of
+  the scores shows only while their collection is late. A hero without class numbers gets no badge.
 - **Arena page** (main window, My Stats Arena): each run row shows "Deck score N" when the run saved a deck code; a
   "Deck score" card for the latest run (average, tier, curve, three strongest and weakest cards); a "Class win rates"
   card with the community numbers.

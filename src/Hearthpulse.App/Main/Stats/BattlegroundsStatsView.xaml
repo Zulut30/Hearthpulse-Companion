@@ -14,26 +14,33 @@
         <ItemsControl ItemsSource="{Binding BgStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
 
         <!-- Rating over time beside where you finish; the places card keeps room for its Russian title at the minimum
-             window width (1040), the chart gives it up -->
+             window width (1040), the chart gives it up. Without a rating the places card takes the row. -->
         <Grid Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="*" MinWidth="300" />
             </Grid.ColumnDefinitions>
-            <Border Style="{StaticResource Card}">
+            <Border Style="{StaticResource Card}" Visibility="{Binding BgHasRating, Converter={StaticResource Vis}}">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
                     </Grid>
-                    <!-- No games in the period: one line instead of a tall empty chart, so the tier lists stay in view -->
-                    <ContentControl DockPanel.Dock="Top" Style="{DynamicResource EmptyState}" Tag="&#xF012A;" Content="{i:Loc Stats.Bg.RatingEmpty}"
-                                    Visibility="{Binding BgRatingChart, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                    <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}"
-                                      EmptyText="{i:Loc Stats.Bg.RatingEmpty}" Visibility="{Binding BgRatingChart, Converter={StaticResource Vis}}" />
+                    <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}" />
                 </DockPanel>
             </Border>
-            <Border Grid.Column="2" Style="{StaticResource Card}">
+            <Border>
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                        <Setter Property="Grid.Column" Value="2" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding BgHasRating}" Value="False">
+                                <Setter Property="Grid.Column" Value="0" />
+                                <Setter Property="Grid.ColumnSpan" Value="3" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <StackPanel ToolTip="{i:Loc Stats.Bg.PlacementsTip}">
                     <c:Ornament Text="{i:Loc Stats.Bg.PlacesTitle}" Icon="&#xF0128;" Size="13" Margin="0,0,0,12" />
                     <ItemsControl ItemsSource="{Binding BgPlaces}" ItemTemplate="{StaticResource BgPlaceRowTemplate}" />

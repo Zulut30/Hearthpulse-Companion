@@ -108,9 +108,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Style="{StaticResource Caption}">
-                                                    <Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" />
-                                                </TextBlock>
+                                                <TextBlock Text="{Binding Caption}" Style="{StaticResource Caption}" />
                                                 <TextBlock Text="{Binding Versions}" Style="{StaticResource Caption}" Foreground="{StaticResource Info}"
                                                            Visibility="{Binding Versions, Converter={StaticResource Vis}}" ToolTip="{i:Loc Main.Ct.VersionsTip}" />
                                                 <TextBlock Text="{Binding Meta}" Style="{StaticResource Caption}" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"

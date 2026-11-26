@@ -11,7 +11,8 @@ namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
 /// The Battlegrounds bar ("bgbar") and the combat odds ("odds") in both hosts: the lobby's tribes as a line of text,
-/// the tribe filter in the tier list, and the odds cells with damage ranges and a bottom line only when needed.
+/// the tribe filter in the tier list, the bar waiting for the first tavern turn, and the odds cells with damage ranges,
+/// unsimulated effects in the "≈" tooltip and a bottom line only while the damage cap cuts the range (O-19, O-24).
 /// </summary>
 public sealed class BgBarTests : IDisposable
 {
@@ -85,14 +86,17 @@ public sealed class BgBarTests : IDisposable
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void Odds_show_damage_ranges_both_ways_and_an_unsimulated_line(bool wpf)
+    public void Odds_show_damage_ranges_both_ways_and_unsimulated_effects_in_the_mark_tooltip(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.Russian);
         var model = Model(wpf, View(["BEAST"], Odds()));
 
         Assert.Equal("Нанесёте 8–16", (string)model.OddsDamageWin);
         Assert.Equal("Получите 9–17", (string)model.OddsDamageLoss);
-        Assert.Equal("1 эффект не учтён", (string)model.OddsNote);
+        // Not a line of its own any more: the "≈" mark says the odds are not exact, its tooltip says why.
+        Assert.Equal(string.Empty, (string)model.OddsNote);
+        Assert.True((bool)model.OddsEstimated);
+        Assert.Equal("1 эффект не учтён", (string)model.OddsEstimatedTip);
         // The cells carry the label, the value is just the share.
         Assert.Equal(Hearthpulse.App.Overlay.OverlayFormat.Percent(0.311, 1), (string)model.OddsLethal);
         Assert.Equal(Hearthpulse.App.Overlay.OverlayFormat.Percent(0.197, 1), (string)model.OddsKill);
@@ -101,13 +105,13 @@ public sealed class BgBarTests : IDisposable
         Loc.Instance.SetLanguage(Loc.English);
         model = Model(wpf, View(["BEAST"], Odds()));
         Assert.Equal(("You deal 8–16", "You take 9–17"), ((string)model.OddsDamageWin, (string)model.OddsDamageLoss));
-        Assert.Equal("1 effect not simulated", (string)model.OddsNote);
+        Assert.Equal("1 effect not simulated", (string)model.OddsEstimatedTip);
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void Odds_drop_empty_lethal_cells_and_the_bottom_line_when_nothing_is_left_out(bool wpf)
+    public void Odds_drop_empty_lethal_cells_and_show_the_cap_only_where_the_damage_reaches_it(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.English);
         var model = Model(wpf, View(["BEAST"], Odds(unsimulated: 0, lethal: 0, kill: 0)));
@@ -115,8 +119,24 @@ public sealed class BgBarTests : IDisposable
         Assert.Equal(string.Empty, (string)model.OddsKill);
         Assert.Equal(string.Empty, (string)model.OddsNote);
         Assert.False((bool)model.LethalDanger);
+        Assert.False((bool)model.OddsEstimated);
 
+        // The ranges reach 16 and 17: a cap of 15 cuts them, a cap of 30 says nothing.
         Assert.Equal("Hero damage capped at 15", (string)Model(wpf, View(["BEAST"], Odds(unsimulated: 0, cap: 15))).OddsNote);
-        Assert.Equal("2 effects not simulated · hero damage capped at 15", (string)Model(wpf, View(["BEAST"], Odds(unsimulated: 2, cap: 15))).OddsNote);
+        Assert.Equal(string.Empty, (string)Model(wpf, View(["BEAST"], Odds(unsimulated: 0, cap: 30))).OddsNote);
+        var both = Model(wpf, View(["BEAST"], Odds(unsimulated: 2, cap: 15)));
+        Assert.Equal("Hero damage capped at 15", (string)both.OddsNote);
+        Assert.Equal("2 effects not simulated", (string)both.OddsEstimatedTip);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_bar_waits_for_the_first_tavern_turn(bool wpf)
+    {
+        // The hero pick: no turn, no tavern, the lobby still read - the bar is not shown (O-19).
+        var pick = View(["BEAST"]) with { IsHeroSelection = true, HeroCardId = null, Turn = 0 };
+        Assert.False((bool)Model(wpf, pick).ShowBattlegrounds);
+        Assert.True((bool)Model(wpf, View(["BEAST"])).ShowBattlegrounds);
     }
 }

@@ -14,8 +14,9 @@ namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
 /// The combat odds' estimate mark in both hosts: "≈" at the share bar's end when the simulator estimated values the player
-/// cannot see (<see cref="CombatOdds.Estimated"/>), a tooltip naming them without their values, apart from the bottom line's
-/// unsimulated effects; in WPF the mark takes the pointer for its tooltip and leaves the card's size alone.
+/// cannot see (<see cref="CombatOdds.Estimated"/>) or left effects out (<see cref="CombatOdds.Unsimulated"/>), a tooltip
+/// saying how many effects and naming the estimates without their values (O-24: the effects were a bottom line of their
+/// own); in WPF the mark takes the pointer for its tooltip and leaves the card's size alone.
 /// </summary>
 public sealed class OddsEstimateTests : IDisposable
 {
@@ -90,18 +91,19 @@ public sealed class OddsEstimateTests : IDisposable
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void Estimates_and_unsimulated_effects_show_apart_and_together(bool wpf)
+    public void Estimates_and_unsimulated_effects_share_the_mark(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.Russian);
         var model = Model(wpf, View(Odds(estimated: 1, unsimulated: 2), [Item(SimInputs.BloodGemBonus)]));
         Assert.True((bool)model.OddsEstimated);
-        Assert.Equal("2 эффекта не учтены", (string)model.OddsNote);
+        Assert.Equal("2 эффекта не учтены\nШансы с оценкой — эти значения неизвестны точно:\n• Кровавые самоцветы соперника", (string)model.OddsEstimatedTip);
+        Assert.Equal(string.Empty, (string)model.OddsNote);
 
-        // Only unsimulated effects: the bottom line without the mark.
+        // Only unsimulated effects: the mark, its tooltip says how many; no bottom line.
         Update(model, View(Odds(estimated: 0, unsimulated: 1), []));
-        Assert.False((bool)model.OddsEstimated);
-        Assert.Equal(string.Empty, (string)model.OddsEstimatedTip);
-        Assert.Equal("1 эффект не учтён", (string)model.OddsNote);
+        Assert.True((bool)model.OddsEstimated);
+        Assert.Equal("1 эффект не учтён", (string)model.OddsEstimatedTip);
+        Assert.Equal(string.Empty, (string)model.OddsNote);
 
         // Only estimates: the mark without a bottom line.
         Update(model, View(Odds(estimated: 1), [Item(SimInputs.DeityStats)]));
@@ -123,7 +125,7 @@ public sealed class OddsEstimateTests : IDisposable
     {
         Loc.Instance.SetLanguage(Loc.Russian);
         var model = new WpfOverlay();
-        Update(model, View(Odds(estimated: 0, unsimulated: 1), []));
+        Update(model, View(Odds(estimated: 0), []));
         var panel = new Hearthpulse.App.Overlay.OddsPanel { DataContext = model };
         var card = (FrameworkElement)panel.FindName("OddsCard");
         var mark = (Border)panel.FindName("EstimateMark");
@@ -135,7 +137,7 @@ public sealed class OddsEstimateTests : IDisposable
 
         Assert.Equal(Visibility.Visible, mark.Visibility);
         Assert.Equal(model.OddsEstimatedTip, mark.ToolTip);
-        Assert.Equal("Шансы с оценкой", AutomationProperties.GetName(mark));
+        Assert.Equal("Шансы приблизительные", AutomationProperties.GetName(mark));
         Assert.True(Hearthpulse.App.Overlay.OverlayHit.GetInteractive(mark));
         Assert.True(mark.ActualWidth > 0);
         Assert.Equal(plain, marked);

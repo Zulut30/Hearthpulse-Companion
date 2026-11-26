@@ -14,19 +14,17 @@ public sealed record DeckTile(string CardId, string Name, int Cost, string Count
 
 public sealed record PlayedTile(string CardId, string Name, int Cost, string Count, string Turn, bool Created) : IImmutableView;
 
-/// <param name="Highlight">The card is known (or the Coin): drawn in full text colour.</param>
-/// <param name="Unknown">Nothing is known about the card: drawn faint so the cards with a hint stand out.</param>
-public sealed record HandTile(string Slot, string Turn, string Detail, bool Highlight, bool Unknown) : IImmutableView
-{
-    /// <summary>The card shown on hover: the card itself once revealed, else the card that created it; null when neither is known.</summary>
-    public string? PreviewCardId { get; init; }
-}
-
 public sealed record TierButton(int Tier, bool IsCurrent, bool IsSelected, bool Locked) : IImmutableView;
 
-public sealed record CombatDot(string Result, string Tooltip) : IImmutableView;
+/// <summary>One fight with an opponent on the leaderboard popup: its result ("Win", "Loss", "Tie") as a coloured dot.</summary>
+public sealed record CombatDot(string Result) : IImmutableView;
 
 /// <summary>Compact stats badge drawn above one hero portrait during hero selection.</summary>
+/// <param name="Personal">The player's own results with the hero ("5 games · 3.2"); empty without games.</param>
+/// <param name="Comps">
+/// The hero's two best comps the lobby allows, only when their order is the hero's own (<c>BgHeroComp.ByHero</c>):
+/// otherwise every badge named the same two. Empty then; they are in <see cref="TierTip"/>.
+/// </param>
 public sealed record HeroPickCard(
     string CardId,
     string Name,
@@ -35,32 +33,35 @@ public sealed record HeroPickCard(
     string PlaceNote,
     string Delta,
     double DeltaValue,
-    string PickRate,
     string Personal,
     string Comps,
     bool Recommended,
     bool HasMeta) : IImmutableView
 {
-    /// <summary>Where the numbers come from and what the tier letters mean, on the tier badge instead of a caption line.</summary>
+    /// <summary>
+    /// The tier badge's tooltip instead of caption lines: what the tier letters mean, how often players pick the hero,
+    /// and the comps while they are not on the badge.
+    /// </summary>
     public string TierTip { get; init; } = string.Empty;
 
     /// <summary>
     /// The tooltip of the <see cref="Comps"/> line: each comp with its tier letter, difficulty and advice. Empty when
-    /// there are no comps.
+    /// the line is not shown.
     /// </summary>
     public string CompsTip { get; init; } = string.Empty;
 }
 
 /// <summary>Compact stats badge drawn above one trinket during a trinket choice.</summary>
-public sealed record TrinketBadge(string CardId, string Name, string Tier, string Place, string PickRate, bool Recommended, bool HasMeta) : IImmutableView
+/// <param name="Note">"no data" for a trinket without numbers; empty otherwise (its pick rate is in <see cref="TierTip"/>).</param>
+public sealed record TrinketBadge(string CardId, string Name, string Tier, string Place, string Note, bool Recommended, bool HasMeta) : IImmutableView
 {
     /// <summary>
-    /// What the tier letters mean and where the numbers come from: the source, its date and the sample (a lower bound
-    /// is said to be one), on the tier badge instead of a caption line.
+    /// What the tier letters mean, how often players pick the trinket and where the numbers come from: the source, its
+    /// date and the sample (a lower bound is said to be one), on the tier badge instead of caption lines.
     /// </summary>
     public string TierTip { get; init; } = string.Empty;
 
-    /// <summary>The date of the numbers ("data from 15 Nov"); empty when the source gives none.</summary>
+    /// <summary>The date of the numbers ("data from 15 Nov") while they are late (<see cref="Delay"/>); empty otherwise.</summary>
     public string Updated { get; init; } = string.Empty;
 
     /// <summary>

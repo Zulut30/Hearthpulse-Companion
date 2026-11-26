@@ -48,6 +48,15 @@ public sealed partial class BattlegroundsAdvisor
             ? HeroCompPlacement(comp, baseHeroId, bracket)
             : meta.HeroFamily(baseHeroId, comp.Tribes, MinHeroDataPoints)?.Placement ?? 3.6 + (0.3 * TierRank(comp.PowerLevel));
 
+    /// <summary>
+    /// Whether <see cref="CompOrder"/> used the hero's own games with the comp (<see cref="MinHeroDataPoints"/> or more):
+    /// else the order is the same for every hero of the offer.
+    /// </summary>
+    private static bool OrderedByHero(MetaComp comp, string baseHeroId, BattlegroundsMeta meta) =>
+        !comp.External
+            ? comp.HeroPlacement.TryGetValue(baseHeroId, out var hero) && hero.DataPoints >= MinHeroDataPoints
+            : meta.HeroFamily(baseHeroId, comp.Tribes, MinHeroDataPoints) is not null;
+
     private IReadOnlyList<CompAdvice> RankComps(
         BattlegroundsView view, List<MetaComp> viable, string baseHero, int bracket, Dictionary<string, int> owned, CardDb cards, bool lobbyKnown,
         BattlegroundsMeta meta)

@@ -31,19 +31,14 @@ public static class DataHealthText
     public static string State(DataFreshness state) => Loc.T("Source.Health.State." + state);
 
     /// <summary>
-    /// The overlay's one line under numbers from the data API: "Hearthpulse data · 15 Nov", with "update delayed" when
-    /// one of <paramref name="sections"/> is late. Empty without a date.
+    /// The overlay's one line under numbers from the data API while one of <paramref name="sections"/> is late: "data
+    /// from 15 Nov · update delayed". Empty while they are fresh (a date on screen all game changed nothing) and without
+    /// a date.
     /// </summary>
-    public static string Overlay(DateTime? dataDate, DataHealthReport report, params DataSection[] sections)
-    {
-        if (dataDate is not { } date || date == default)
-        {
-            return string.Empty;
-        }
-
-        var late = sections.Any(s => report.Section(s).Delayed);
-        return Loc.F(late ? "Source.Health.OverlayDelayed" : "Source.Health.Overlay", date.ToLocalTime());
-    }
+    public static string Overlay(DateTime? dataDate, DataHealthReport report, params DataSection[] sections) =>
+        dataDate is { } date && date != default && sections.Any(s => report.Section(s).Delayed)
+            ? Loc.F("Source.Health.OverlayDelayed", date.ToLocalTime())
+            : string.Empty;
 
     /// <summary>
     /// The overlay's date alone, "data from 15 Nov", for a narrow badge that puts the delay on a line of its own

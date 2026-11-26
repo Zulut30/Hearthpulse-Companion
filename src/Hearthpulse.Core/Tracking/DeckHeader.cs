@@ -4,10 +4,16 @@ using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Tracking;
 
-/// <summary>The deck panel's subtitle: the player's own record with the deck, else its archetype's community win rate.</summary>
+/// <summary>
+/// The deck panel's subtitle: the player's own record with the deck, else its archetype's community win rate, else no
+/// line at all (a line saying there is nothing to say was noise on the overlay).
+/// </summary>
 public static class DeckHeader
 {
-    /// <summary>Subtitle text, its tooltip, and whether it comes from community stats rather than the player's games.</summary>
+    /// <summary>
+    /// Subtitle text, its tooltip, and whether it comes from community stats rather than the player's games; all empty
+    /// without either. The meta's rank filter is named in the tooltip only.
+    /// </summary>
     public static (string Text, string Tooltip, bool FromMeta) Describe(DeckAggregate? own, DeckMetaStat? meta)
     {
         // Ties and unknown results alone give no win rate: fall through to the meta.
@@ -20,12 +26,12 @@ public static class DeckHeader
 
         if (meta is not null)
         {
-            return (Loc.F("Core.Deck.Meta", Percent(meta.WinRate), meta.Rank),
+            return (Loc.F("Core.Deck.Meta", Percent(meta.WinRate)),
                 Loc.F("Core.Deck.MetaTip", meta.Archetype, Percent(meta.WinRate), meta.Games.ToString("N0", CultureInfo.InvariantCulture), meta.Format, meta.Rank, meta.Source),
                 true);
         }
 
-        return (Loc.T("Core.Deck.NoGames"), string.Empty, false);
+        return (string.Empty, string.Empty, false);
     }
 
     // Counts as before localization: invariant, so the text does not depend on the machine's culture.

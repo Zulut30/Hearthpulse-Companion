@@ -8,14 +8,16 @@ namespace Hearthpulse.UI.Overlay;
 #endif
 
 /// <summary>
-/// The "session" panel: "MMR 6,751 → 6,779 +28" and the places of the session's games. "Now" is the same rating the
-/// Battlegrounds bar reads (<c>snapshot.Rating</c>), so the two never disagree; the change is now minus the session's
-/// start. Duos has no session start of its own: its rating alone, without a change.
+/// The "session" panel: "MMR 6,751 → 6,779 +28" and the places of the session's games, while the player picks a hero
+/// and only once a rating is known. "Now" is the same rating the Battlegrounds bar reads (<c>snapshot.Rating</c>), so
+/// the two never disagree; the change is now minus the session's start. Duos has no session start of its own: its
+/// rating alone, without a change.
 /// </summary>
 public sealed partial class OverlayViewModel
 {
     private string _sessionDelta = string.Empty;
     private int _sessionDeltaValue;
+    private bool _sessionRated;
 
     /// <summary>"+28" / "−12" since the session's start; empty without a start, at the start, and in Duos.</summary>
     public string SessionDelta { get => _sessionDelta; private set => Set(ref _sessionDelta, value); }
@@ -34,6 +36,7 @@ public sealed partial class OverlayViewModel
 
         var start = view.IsDuos ? null : session.StartRating;
         var delta = start is { } s && now > 0 ? now - s : 0;
+        _sessionRated = now > 0;
         SessionRating = now <= 0
             ? "—"
             : delta != 0

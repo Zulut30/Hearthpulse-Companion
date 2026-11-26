@@ -211,7 +211,11 @@ public sealed record BgHeroOption(
 /// A comp the lobby allows, on a hero option: its name, the source's tier letter and difficulty ("easy", "medium",
 /// "hard" from the external list, free text from the pool's guides; empty when unknown) and its advice.
 /// </summary>
-public sealed record BgHeroComp(string Name, string Tier, string Difficulty, string? Tip);
+/// <param name="ByHero">
+/// Its place in the hero's list comes from the hero's own games with it. Otherwise every hero of the offer gets the same
+/// order (the comps' general placement, or a stand-in from the source's tier letter): a lobby fact, not the hero's.
+/// </param>
+public sealed record BgHeroComp(string Name, string Tier, string Difficulty, string? Tip, bool ByHero = false);
 
 public sealed record CompCard(string CardId, string Name, string Status, int TechLevel, bool Owned);
 

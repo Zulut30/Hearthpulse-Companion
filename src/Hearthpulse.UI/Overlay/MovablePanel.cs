@@ -127,8 +127,8 @@ public sealed partial class MovablePanel : ContentControl, IArmablePanel
     public bool IsUnlocked { get => GetValue(IsUnlockedProperty); set => SetValue(IsUnlockedProperty, value); }
 
     /// <summary>
-    /// Set by the overlay while the pointer rests on the panel or arms it: the name tag shows the lock button,
-    /// "Unlock panels" or, once unlocked, "Lock panels". Only that button takes the mouse on a locked panel.
+    /// Set by the overlay while it arms the panel (Ctrl, or unlocked panels): the name tag shows the lock button,
+    /// "Unlock panels" or, once unlocked, "Lock panels".
     /// </summary>
     public bool OffersLock { get => GetValue(OffersLockProperty); set => SetValue(OffersLockProperty, value); }
 

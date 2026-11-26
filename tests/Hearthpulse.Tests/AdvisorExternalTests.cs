@@ -57,12 +57,29 @@ public sealed class AdvisorExternalTests : IDisposable
         var comp = jaraxxus.TopComps![0];
         Assert.Equal(("S", "easy"), (comp.Tier, comp.Difficulty));
         Assert.False(string.IsNullOrWhiteSpace(comp.Tip));
+        // Each hero's own games ordered these: the badge may name them (BgHeroComp.ByHero).
+        Assert.All(advice.HeroOptions, h => Assert.All(h.TopComps!, c => Assert.True(c.ByHero, $"{h.CardId}: {c.Name}")));
 
         // Nothing here is the pool's: the source line does not name it, and nothing is limited.
         Assert.False(meta.FromPool);
         Assert.StartsWith("Hearthpulse data · ", advice.MetaSource, StringComparison.Ordinal);
         Assert.DoesNotContain(BattlegroundsMeta.PoolName, advice.MetaSource, StringComparison.Ordinal);
         Assert.Null(advice.UsageNote);
+    }
+
+    [Fact]
+    public async Task A_hero_without_games_of_its_own_gets_the_order_every_hero_shares()
+    {
+        var meta = await ExternalMetaAsync();
+        var advisor = new BattlegroundsAdvisor { Meta = meta };
+
+        // A hero the source has no compositions for: the comps come in the source's tier order, the same for any such
+        // hero - a lobby fact the hero badge leaves to its tooltip (O-21).
+        var advice = advisor.Enrich(HeroPick(["QUILBOAR", "ELEMENTAL", "MURLOC", "DEMON", "BEAST"], "TB_BaconShop_HERO_NONE_1", "TB_BaconShop_HERO_NONE_2"), 7000, Cards());
+
+        Assert.All(advice.HeroOptions, h => Assert.NotEmpty(h.TopComps!));
+        Assert.All(advice.HeroOptions, h => Assert.All(h.TopComps!, c => Assert.False(c.ByHero, $"{h.CardId}: {c.Name}")));
+        Assert.Equal(advice.HeroOptions[0].TopComps!.Select(c => c.Name), advice.HeroOptions[1].TopComps!.Select(c => c.Name));
     }
 
     [Fact]

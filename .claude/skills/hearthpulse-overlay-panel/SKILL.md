@@ -113,9 +113,9 @@ while the cross-platform test project continues to reference Avalonia UI.
   (`PanelSnap.CornerScale`, top-left fixed). A drag ends on button up or when the panel loses the mouse
   (`OnLostMouseCapture` / `PointerCaptureLost`); the overlay keeps the mouse while a panel `IsDragging`. Unlocked
   panels (`AppSettings.OverlayPanelsUnlocked`, `OverlayViewModel.PanelsUnlocked` -> `MovablePanel.IsUnlocked`) arm
-  under the pointer without Ctrl and show their frame (`IsFree` / class `free`). A locked panel the pointer rests on
-  for `PanelArming.OfferDelay` shows `PART_Lock` ("Unlock panels"; "Lock panels" once unlocked, `OffersLock`), the
-  only part of it that takes the mouse. Panels on the game's cards (`SitsOnGame`: `GameAnchored` or a wide row's
+  under the pointer without Ctrl and show their frame (`IsFree` / class `free`). An armed panel (Ctrl, or unlocked)
+  shows `PART_Lock` on its tag ("Unlock panels"; "Lock panels" once unlocked, `OffersLock`); a pointer that only rests
+  on a locked panel changes nothing. Panels on the game's cards (`SitsOnGame`: `GameAnchored` or a wide row's
   `PlaceholderAlignment`) never unlock or offer it. The rule and the log lines live once in the shared `PanelArming`;
   the hosts only find the panel under the pointer. The first
   show over the game puts a one-time tip at the top centre (`ShowMoveTip` via `OverlayViewModel.OfferMoveTip`,

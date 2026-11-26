@@ -222,7 +222,8 @@ public sealed partial class MainViewModel
             // The rank goes last: a narrow row trims it first (it is in the tooltip and on the match page), not the turns.
             Caption = string.Join(" · ", new[]
             {
-                deck is null ? null : playerClass,
+                // The class once: a deck named after it ("Priest 2") says it already.
+                deck is null || RowText.NameHasClass(deck, playerClass) ? null : playerClass,
                 ModeOf(g),
                 format,
                 g.Turns > 0 ? Loc.P("Main.Game.Turns", g.Turns) : null,
