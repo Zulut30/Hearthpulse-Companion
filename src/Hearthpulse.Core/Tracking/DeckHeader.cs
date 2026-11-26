@@ -6,7 +6,7 @@ namespace Hearthpulse.Core.Tracking;
 
 /// <summary>
 /// The deck panel's subtitle: the player's own record with the deck, else its archetype's community win rate, else no
-/// line at all (a line saying there is nothing to say was noise on the overlay).
+/// line at all (O-7).
 /// </summary>
 public static class DeckHeader
 {

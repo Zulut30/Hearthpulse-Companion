@@ -5,10 +5,9 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              x:Class="Hearthpulse.UI.Overlay.BattlegroundsBarPanel"
              x:DataType="o:OverlayViewModel">
-    <!-- Content of the "bgbar" overlay panel, from the first tavern turn. Line 1: turn and the tavern tiers that open the
-         minion browser; line 2: the lobby's tribes as text. The tribe filter lives in the browser's head. Rating is in the
-         "session" panel, each fight's result on the opponent under the mouse. Same tree as the WPF
-         BattlegroundsBarPanel.xaml. -->
+    <!-- "bgbar" from the first tavern turn: line 1 the turn and the tavern tiers that open the minion browser (its head
+         holds the tribe filter), line 2 the lobby's tribes. Rating is in "session", fights on the opponent under the mouse.
+         Same tree as the WPF BattlegroundsBarPanel.xaml. -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

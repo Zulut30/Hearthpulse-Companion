@@ -46,7 +46,7 @@ public sealed partial class OverlayViewModel
             OddsLoss = OddsPercent(odds.Loss, odds.Runs);
             SetOddsShares(odds.Win, odds.Tie, odds.Loss);
             // The bottom line only when the hero damage cap cuts the range shown: a cap the damage never reaches says
-            // nothing, and beside "You take 19-27" it read as a contradiction. Unsimulated effects are in the "≈" tooltip.
+            // nothing (O-24). Unsimulated effects are in the "≈" tooltip.
             OddsNote = CapReached(odds) ? Loc.F("Overlay.Odds.CapOnly", odds.DamageCap) : string.Empty;
             UpdateOddsEstimate(odds, view.CombatEstimates);
 
@@ -145,8 +145,8 @@ public sealed partial class OverlayViewModel
                     d.TechLevel))
                 .ToList();
         });
-        // A caption only in "Mark the best", where it says whether one was marked; in "Stats only" it named the source,
-        // which the game shows itself.
+        // A caption only in "Mark the best", where it says whether one was marked; in "Stats only" it would name only the
+        // source, which the game shows itself (O-27).
         var source = view.DiscoverSource ?? Loc.T("Overlay.Discover.Name");
         DiscoverTitle = view.DiscoverAdvice.Count == 0 || !highlight
             ? string.Empty

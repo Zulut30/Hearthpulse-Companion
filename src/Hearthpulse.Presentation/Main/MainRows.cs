@@ -68,7 +68,7 @@ public sealed record MetaHeroRow(
 /// </summary>
 public sealed record MetaCompRow(string Name, string Side, string Core, string Tip) : IImmutableView;
 
-/// <summary>Short texts the deck and game rows share.</summary>
+/// <summary>Caption rules the deck rows and the replay library's cards share.</summary>
 internal static class RowText
 {
     /// <summary>

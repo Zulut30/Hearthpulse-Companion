@@ -33,8 +33,7 @@ public sealed class OverlayPanelLockTests
     {
         foreach (var arm in new Arm[] { new Hearthpulse.App.Overlay.PanelArming().Update, new Hearthpulse.UI.Overlay.PanelArming().Update })
         {
-            // Locked, no Ctrl: the panel lets clicks through, however long the pointer rests on it (O-16: the unlock
-            // button came up by itself whenever the player paused over the deck to read a card).
+            // Locked, no Ctrl: the panel lets clicks through, however long the pointer rests on it (O-16).
             Assert.Equal((false, false, null), arm("deck", false, false, false, At(0)));
             Assert.Equal((false, false, null), arm("deck", false, false, false, At(300)));
             Assert.Equal((false, false, null), arm("deck", false, false, false, At(5000)));
@@ -150,7 +149,7 @@ public sealed class OverlayPanelLockTests
         Assert.True(shield.Color.A * 0.3 >= 1, shield.Color.ToString());
 
         // Locked: the pointer passing over the deck or resting on it changes nothing, and the deck lets clicks through
-        // (O-16: the button came up by itself whenever the player paused over a card to read it).
+        // (O-16).
         Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false, At(0)));
         root.UpdateLayout();
         Assert.False(deck.OffersLock);

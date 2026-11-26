@@ -10,8 +10,8 @@ namespace Hearthpulse.UI.Overlay;
 /// <summary>
 /// What the pointer does to the panel under it, decided on each overlay tick the same way in both overlays. Ctrl held,
 /// or panels unlocked, arms the panel: it takes the mouse, moves like in layout mode and offers the lock button
-/// ("Unlock panels", or "Lock panels" once unlocked). A pointer that only rests on a locked panel changes nothing: the
-/// button used to come up by itself whenever the player paused over the deck to read a card. Panels on the game's own
+/// ("Unlock panels", or "Lock panels" once unlocked). A pointer that only rests on a locked panel changes nothing
+/// (O-16). Panels on the game's own
 /// cards (mulligan, picks, Discover, tavern) arm only with Ctrl and never offer the button, so unlocked panels never
 /// take a click meant for a card. Each change gives one log line, so hearthpulse.log shows whether Ctrl ever reached a
 /// panel.
@@ -23,8 +23,8 @@ public sealed class PanelArming
 
     /// <summary>
     /// One tick: <paramref name="over"/> is the Id of the topmost shown panel under the pointer (null over empty space,
-    /// outside the game and in layout mode), <paramref name="onGameCards"/> says it lies on the game's cards. Nothing
-    /// here waits any more, so <paramref name="now"/> (the hosts' tick time) decides nothing.
+    /// outside the game and in layout mode), <paramref name="onGameCards"/> says it lies on the game's cards.
+    /// <paramref name="now"/> (the hosts' tick time) decides nothing; the hosts still pass it.
     /// </summary>
     /// <returns>
     /// Whether that panel is armed, whether it shows the lock button ("Unlock panels", or "Lock panels" once

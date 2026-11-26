@@ -32,8 +32,7 @@ public static class DataHealthText
 
     /// <summary>
     /// The overlay's one line under numbers from the data API while one of <paramref name="sections"/> is late: "data
-    /// from 15 Nov · update delayed". Empty while they are fresh (a date on screen all game changed nothing) and without
-    /// a date.
+    /// from 15 Nov · update delayed". Empty while they are fresh (O-22) and without a date.
     /// </summary>
     public static string Overlay(DateTime? dataDate, DataHealthReport report, params DataSection[] sections) =>
         dataDate is { } date && date != default && sections.Any(s => report.Section(s).Delayed)

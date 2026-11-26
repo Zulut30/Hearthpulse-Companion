@@ -6,9 +6,8 @@
              x:Class="Hearthpulse.UI.Overlay.MulliganPanel"
              x:DataType="o:OverlayViewModel">
     <!-- Mulligan bars: a bar over each offered card in the HSReplay style (Keep / Replace, a gauge from replace to keep
-         with the edge in points; click = keep or replace), lined up with the cards of the mulligan screen. The keep rate,
-         the win rate when drawn and the rest are in the tooltips.
-         DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+         with the edge in points; click = keep or replace), lined up with the mulligan screen's cards; the rates are in the
+         tooltips. DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
         <i:KeyBrush x:Key="KeyBrush" />

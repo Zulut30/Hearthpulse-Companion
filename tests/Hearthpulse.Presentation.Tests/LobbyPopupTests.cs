@@ -259,7 +259,7 @@ public sealed class LobbyPopupTests
         model.Update(rated with { Battlegrounds = View([Bob]) }, Cards, settings, null, null);
         Assert.False((bool)model.ShowSession);
 
-        // At the pick without a rating: "MMR —" said nothing.
+        // At the pick without a rating: no "MMR —" (O-20).
         model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, settings, null, null);
         Assert.False((bool)model.ShowSession);
 
@@ -267,8 +267,8 @@ public sealed class LobbyPopupTests
         model.Update(rated, Cards, new AppSettings { ShowSessionPanel = false }, null, null);
         Assert.False((bool)model.ShowSession);
 
-        // Reading the client off: no rating will come, so the panel stays at the pick with the reason in place of "MMR —"
-        // (the coordinator's rule for rating blocks with reading off, P5); a rating still known shows as before.
+        // Reading the client off: no rating will come, so the panel stays at the pick with the reason in place of "MMR —",
+        // as the main window's rating blocks do (P5); a rating still known shows.
         var off = new AppSettings { ReadGameMemory = false };
         model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, off, null, null);
         Assert.True((bool)model.ShowSession);

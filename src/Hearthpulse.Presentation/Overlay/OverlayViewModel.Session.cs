@@ -9,9 +9,9 @@ namespace Hearthpulse.UI.Overlay;
 
 /// <summary>
 /// The "session" panel: "MMR 6,751 → 6,779 +28" and the places of the session's games, while the player picks a hero
-/// and only once a rating is known, or with reading the client off, then with <see cref="SessionOffReason"/> instead. "Now" is the same rating the Battlegrounds bar reads (<c>snapshot.Rating</c>), so
-/// the two never disagree; the change is now minus the session's start. Duos has no session start of its own: its
-/// rating alone, without a change.
+/// and only once a rating is known, or with reading the client off (then <see cref="SessionOffReason"/> instead). "Now" is
+/// the same rating the Battlegrounds bar reads (<c>snapshot.Rating</c>), so the two never disagree; the change is now
+/// minus the session's start. Duos has no session start of its own: its rating alone, without a change.
 /// </summary>
 public sealed partial class OverlayViewModel
 {

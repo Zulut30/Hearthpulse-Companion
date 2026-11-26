@@ -112,7 +112,7 @@ public sealed partial class OverlayViewModel
 
     /// <summary>
     /// The bars over the cards, only with numbers to show: without them the summary says so once ("No mulligan stats for
-    /// this deck yet"), where a "No data" bar over every card said it three times.
+    /// this deck yet", O-13).
     /// </summary>
     public bool ShowMulliganBars { get => _showMulliganBars; private set => Set(ref _showMulliganBars, value); }
 

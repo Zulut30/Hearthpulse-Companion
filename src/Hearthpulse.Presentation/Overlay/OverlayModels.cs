@@ -23,7 +23,7 @@ public sealed record CombatDot(string Result) : IImmutableView;
 /// <param name="Personal">The player's own results with the hero ("5 games · 3.2"); empty without games.</param>
 /// <param name="Comps">
 /// The hero's two best comps the lobby allows, only when their order is the hero's own (<c>BgHeroComp.ByHero</c>):
-/// otherwise every badge named the same two. Empty then; they are in <see cref="TierTip"/>.
+/// otherwise every badge would name the same two. Empty then; they are in <see cref="TierTip"/>.
 /// </param>
 public sealed record HeroPickCard(
     string CardId,
@@ -39,8 +39,8 @@ public sealed record HeroPickCard(
     bool HasMeta) : IImmutableView
 {
     /// <summary>
-    /// The tier badge's tooltip instead of caption lines: what the tier letters mean, how often players pick the hero,
-    /// and the comps while they are not on the badge.
+    /// The tier badge's tooltip: what the tier letters mean, how often players pick the hero, and the comps while they are
+    /// not on the badge.
     /// </summary>
     public string TierTip { get; init; } = string.Empty;
 
@@ -57,7 +57,7 @@ public sealed record TrinketBadge(string CardId, string Name, string Tier, strin
 {
     /// <summary>
     /// What the tier letters mean, how often players pick the trinket and where the numbers come from: the source, its
-    /// date and the sample (a lower bound is said to be one), on the tier badge instead of caption lines.
+    /// date and the sample (a lower bound is said to be one), in the tier badge's tooltip.
     /// </summary>
     public string TierTip { get; init; } = string.Empty;
 

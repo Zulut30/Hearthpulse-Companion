@@ -5,11 +5,9 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              x:Class="Hearthpulse.UI.Overlay.ArenaPicksPanel"
              x:DataType="o:OverlayViewModel">
-    <!-- Arena draft: a badge over each offered card (ArenaSmith score and tier, the package it brings, our deck-fit
-         adjustment) or hero (class win rate, 7+ wins and place), the best one marked by its star and gold frame. Laid across
-         the width of the draft screen's card row, so each badge sits over its card; a hero without numbers keeps its slot
-         and draws nothing. Nothing here takes clicks: the cards under it stay clickable. DataContext: OverlayViewModel.
-         Tokens only (hearthpulse-design). -->
+    <!-- Arena draft: a badge over each offered card (ArenaSmith score and tier, the package it brings, our deck fit) or
+         hero (class win rate, 7+ wins, place), the best one with the star and gold frame; a hero without numbers keeps its
+         slot empty. Laid over the draft screen's card row, takes no clicks. DataContext: OverlayViewModel. Tokens only. -->
     <UserControl.Resources>
         <i:KeyBrush x:Key="KeyBrush" />
         <i:Truthy x:Key="Truthy" />

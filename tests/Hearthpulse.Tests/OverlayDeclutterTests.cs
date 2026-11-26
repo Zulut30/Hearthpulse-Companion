@@ -11,7 +11,7 @@ using Hearthpulse.UI.Overlay;
 namespace Hearthpulse.Tests;
 
 /// <summary>
-/// TASK-2026-11-26 (release cleanup, AC2/AC3): what the overlay and the deck lists no longer show because it said nothing
+/// TASK-2026-11-26 (release cleanup, AC2/AC3): what the overlay and the deck lists leave out because it changes nothing
 /// in a game - the log's stand-in name for the opponent, counters at zero in Auto, a "No data" bar over every mulligan
 /// card, the source caption over Battlegrounds Discover badges in "Stats only", the class twice in a deck's row.
 /// The shared view models are one source for both UIs; Hearthpulse.Presentation.Tests runs the WPF flavour where it
@@ -56,7 +56,7 @@ public sealed class OverlayDeclutterTests : IDisposable
     [Fact]
     public void Auto_counters_wait_for_their_first_count_and_always_shows_the_zero()
     {
-        // O-11: "Deathrattle minions 0" in the mulligan said nothing; a counter under way and one with a count show.
+        // O-11: no "Deathrattle minions 0" in the mulligan; a counter under way and one with a count show.
         CounterView Counter(string id, string value, bool nothing) =>
             new(id, id, value, null, false, "CARD", string.Empty, [], Relevant: true) { NothingCounted = nothing };
         var view = Constructed("Rival#1234") with
@@ -83,7 +83,7 @@ public sealed class OverlayDeclutterTests : IDisposable
         var missing = Loc.T("Mulligan.NoStats.NotYet");
         var none = deck with { Mulligan = deck.Mulligan! with { NoStats = missing } };
 
-        // O-13: a "No data" bar with an empty gauge over every card said what the summary says once.
+        // O-13: no "No data" bar over every card; the summary says it once.
         var model = Updated(none);
         Assert.True(model.ShowMulligan);
         Assert.False(model.ShowMulliganBars);
@@ -112,7 +112,7 @@ public sealed class OverlayDeclutterTests : IDisposable
             return model;
         }
 
-        // O-27: in "Stats only" the caption only named the source, which the game shows itself.
+        // O-27: in "Stats only" no caption: it would name only the source, which the game shows itself.
         var stats = Model(PickHints.StatsOnly);
         Assert.True(stats.ShowDiscover);
         Assert.Equal(string.Empty, stats.DiscoverTitle);

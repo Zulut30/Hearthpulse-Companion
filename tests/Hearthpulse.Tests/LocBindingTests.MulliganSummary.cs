@@ -14,8 +14,8 @@ namespace Hearthpulse.Tests;
 public sealed partial class LocBindingTests
 {
     /// <summary>
-    /// A decklist's numbers name their source in the mulligan summary's tooltip (plan 2.4.1; a second line on the panel
-    /// until O-15), so the summary is one line for a deck as for an archetype. The panel is anchored to the game at
+    /// A decklist's numbers name their source in the mulligan summary's tooltip (plan 2.4.1, O-15), so the summary is one
+    /// line for a deck as for an archetype. The panel is anchored to the game at
     /// <see cref="OverlayViewModel.MulliganSummaryTop"/> and grows downwards with the overlay scale, towards the Confirm
     /// button: measured in the Avalonia overlay, in both languages, it ends above the button's zone at 100 % and at the
     /// largest overlay scale, 160 %.

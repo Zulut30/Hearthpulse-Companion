@@ -192,7 +192,7 @@
                             <TextBlock Text="{Binding BgHeroDataNote}" FontSize="10" Foreground="{StaticResource Muted}" />
                         </Border>
                         <!-- Plan 3.1: what is left today of the free games with the stats pool's numbers; once, under the heroes
-                             (not again under the trinkets and the tavern all game) -->
+                             (O-23) -->
                         <Border HorizontalAlignment="Center" Margin="0,6,0,0" Classes="noteChip"
                                 IsVisible="{Binding UsageNote, Converter={StaticResource Truthy}}">
                             <StackPanel Orientation="Horizontal">

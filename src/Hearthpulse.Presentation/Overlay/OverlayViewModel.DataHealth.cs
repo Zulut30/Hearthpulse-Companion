@@ -15,8 +15,7 @@ namespace Hearthpulse.UI.Overlay;
 /// in one wording (<see cref="DataHealthText.Overlay"/>, "data from 15 Nov · update delayed"): a line under the
 /// Battlegrounds hero pick badges and at the bottom of the Arena draft panel, from the dates the hosts hand in; each
 /// trinket badge carries its own (<c>TrinketMeta.Updated</c>, built with the badges), the delay on a warning line of its
-/// own (<c>TrinketBadge.Delay</c>). Fresh numbers carry no date: the source's date stayed on screen all game and changed
-/// nothing. The numbers themselves are never hidden.
+/// own (<c>TrinketBadge.Delay</c>). Fresh numbers carry no date (O-22). The numbers themselves are never hidden.
 /// </summary>
 public sealed partial class OverlayViewModel
 {

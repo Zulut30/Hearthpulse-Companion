@@ -109,8 +109,8 @@ public sealed class BgPickSourcesTests
 
     /// <summary>
     /// The WPF badge templates built with data (a XAML mistake shows only when the template is loaded): the hero badge
-    /// has its comps line with the tooltip, the trinket badge its date line and its "no data" note; without them the lines
-    /// are gone, and neither badge has a pick rate line any more.
+    /// has its comps line with the tooltip, the trinket badge its date line and its "no data" note; without them those
+    /// lines are absent, and neither badge has a pick rate line.
     /// </summary>
     [Fact]
     public void Wpf_badges_show_the_comps_line_and_the_date_line() => WpfThread.RunThemed(() =>

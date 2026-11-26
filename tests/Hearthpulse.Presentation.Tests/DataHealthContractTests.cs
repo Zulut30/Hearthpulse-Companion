@@ -180,7 +180,7 @@ public sealed class DataHealthContractTests
         dynamic overlay = wpf ? new WpfOverlay() : new AvaOverlay();
         Assert.Equal((string.Empty, string.Empty), ((string)overlay.ArenaDataNote, (string)overlay.BgHeroDataNote));
 
-        // Fresh scores carry no date on the draft panel (O-22): it stayed on screen all draft and changed nothing.
+        // Fresh scores carry no date on the draft panel (O-22).
         overlay.SetArenaDataDate((DateTime?)Collected);
         Assert.Equal(string.Empty, (string)overlay.ArenaDataNote);
 

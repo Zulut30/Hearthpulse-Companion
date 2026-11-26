@@ -93,7 +93,7 @@ public sealed class BgBarTests : IDisposable
 
         Assert.Equal("Нанесёте 8–16", (string)model.OddsDamageWin);
         Assert.Equal("Получите 9–17", (string)model.OddsDamageLoss);
-        // Not a line of its own any more: the "≈" mark says the odds are not exact, its tooltip says why.
+        // The "≈" mark says the odds are not exact; its tooltip says why (O-24).
         Assert.Equal(string.Empty, (string)model.OddsNote);
         Assert.True((bool)model.OddsEstimated);
         Assert.Equal("1 эффект не учтён", (string)model.OddsEstimatedTip);

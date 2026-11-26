@@ -3,10 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
-    <!-- The mulligan summary under the offered cards (the bars are over them, MulliganPanel): the impact of the keeps,
-         or why there are no numbers; the source and slice ("By your deck, N games, data from <date>" for a decklist's
-         numbers), the estimate and curve notes in the tooltip. One line, above the Confirm button.
-         DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+    <!-- The mulligan summary, one line under the offered cards and above Confirm (the bars over them: MulliganPanel): the
+         keeps' impact or why there are no numbers; the source, the slice and the notes in the tooltip. DataContext:
+         OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
     </UserControl.Resources>

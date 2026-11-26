@@ -230,8 +230,7 @@ public sealed class UxRound2MarkupTests
     };
 
     /// <summary>
-    /// List panels whose band is the title alone: the Secrets panel's "Secrets · 2" (O-12: its muted "Mage · Standard"
-    /// named the opponent's class and the player's own format).
+    /// List panels whose band is the title alone: the Secrets panel's "Secrets · 2" (O-12).
     /// </summary>
     private static readonly string[] TitleOnlyPanels = ["secrets"];
 
@@ -398,7 +397,7 @@ public sealed class UxRound2MarkupTests
     }
 
     /// <summary>
-    /// TASK-2026-11-26, AC2: the overlay lines that said nothing in a game are gone from both UIs' markup - the opponent's
+    /// TASK-2026-11-26, AC2: the overlay lines that change nothing in a game are absent from both UIs' markup - the opponent's
     /// hand list, Secrets count and record against the class (O-1, O-2, O-4), the combat dots of the Battlegrounds bar
     /// (O-26), the mulligan bar's second line and the summary's deck line (O-14, O-15, both in tooltips), the Secrets
     /// panel's "class · format" (O-12), the Arena header's slice line (O-31, in its tooltip); the free-games note stands

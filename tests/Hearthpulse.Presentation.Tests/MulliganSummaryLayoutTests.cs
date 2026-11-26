@@ -10,8 +10,8 @@ using Hearthpulse.Core.Tracking;
 namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
-/// Plan 2.4.1: a decklist's numbers name their source in the WPF mulligan summary's tooltip (a second line on the panel
-/// until O-15), so the summary is one line for a deck as for an archetype. The panel is anchored to the game at
+/// Plan 2.4.1: a decklist's numbers name their source in the WPF mulligan summary's tooltip (O-15), so the summary is
+/// one line for a deck as for an archetype. The panel is anchored to the game at
 /// <see cref="OverlayViewModel.MulliganSummaryTop"/> and grows downwards with the overlay scale; measured with the real
 /// fonts and the theme, in both languages, it ends above the Confirm button's zone at 100 % and at 160 %.
 /// </summary>

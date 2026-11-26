@@ -39,8 +39,8 @@ public sealed partial class MainViewModel
         var games = StatsFilter.Apply(all.Where(g => BattlegroundsStats.IsGame(g, duos)), period, DateTime.Now);
         var summary = BattlegroundsStats.Summary(games, duos);
         var timed = Math.Max(1, games.Count(g => g.Duration > TimeSpan.Zero));
-        // The highest MMR with a rating. Without one the tile goes (it was a dash), unless reading the client is off: then
-        // it stays and says why no rating comes.
+        // The highest MMR with a rating. Without one the tile goes (G-3), unless reading the client is off: then it stays
+        // and says why no rating comes.
         var readingOffNote = readingOff ? Loc.T("Main.Tile.ReadingOff") : string.Empty;
         IReadOnlyList<StatTile> tiles =
         [

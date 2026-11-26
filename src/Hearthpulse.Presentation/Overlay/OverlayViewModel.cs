@@ -311,8 +311,8 @@ public sealed partial class OverlayViewModel : Observable
     /// <summary>Shows a snapshot: each panel's rows and whether it shows, rebuilt only where something changed.</summary>
     /// <param name="deck">The player's record with the deck in play: the deck panel's subtitle.</param>
     /// <param name="matchup">
-    /// The player's record against the opponent's class. Not shown any more (a score from past games changed no decision
-    /// in this one); the hosts' feed still hands it in.
+    /// The player's record against the opponent's class. Unused (O-4: a score from past games changes no decision in
+    /// this one); the hosts' feed still hands it in.
     /// </param>
     public void Update(LiveSnapshot snapshot, CardDb cards, AppSettings settings, DeckAggregate? deck, MatchupAggregate? matchup)
     {
@@ -379,9 +379,8 @@ public sealed partial class OverlayViewModel : Observable
             Browser = Array.Empty<BrowserGroup>();
         }
 
-        // The session's rating and places while picking a hero, and only with a rating to show: during the game they
-        // change no decision, and "MMR —" said nothing all game. With reading the client off no rating will come: the
-        // panel stays at the pick with one line saying why, as the main window's rating blocks do (P5).
+        // The session's rating and places while picking a hero, with a rating to show (O-20); with reading the client off
+        // no rating will come, and the panel says why in one line, as the main window's rating blocks do (P5).
         var readingOff = !settings.ReadGameMemory;
         SessionOffReason = readingOff && !_sessionRated ? Loc.T("Overlay.Session.ReadingOff") : string.Empty;
         ShowSession = bg is { IsHeroSelection: true } && settings.ShowSessionPanel && (_sessionRated || readingOff);

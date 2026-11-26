@@ -15,8 +15,8 @@ namespace Hearthpulse.Presentation.Tests;
 /// <summary>
 /// The combat odds' estimate mark in both hosts: "≈" at the share bar's end when the simulator estimated values the player
 /// cannot see (<see cref="CombatOdds.Estimated"/>) or left effects out (<see cref="CombatOdds.Unsimulated"/>), a tooltip
-/// saying how many effects and naming the estimates without their values (O-24: the effects were a bottom line of their
-/// own); in WPF the mark takes the pointer for its tooltip and leaves the card's size alone.
+/// saying how many effects and naming the estimates without their values (O-24); in WPF the mark takes the pointer for
+/// its tooltip and leaves the card's size alone.
 /// </summary>
 public sealed class OddsEstimateTests : IDisposable
 {

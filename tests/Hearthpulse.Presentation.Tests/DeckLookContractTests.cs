@@ -126,7 +126,7 @@ public sealed class DeckLookContractTests
     [InlineData(false)]
     public async Task Without_a_rating_the_places_take_the_row_and_no_mmr_tile_shows(bool wpf)
     {
-        // G-3: games with no rating read from the client: "Highest MMR —" and a half-page empty chart said nothing.
+        // G-3: games with no rating read from the client: no Highest MMR tile and no rating card.
         var history = History();
         for (var i = 0; i < 3; i++)
         {
