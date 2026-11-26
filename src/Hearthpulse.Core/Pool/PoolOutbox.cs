@@ -74,6 +74,9 @@ internal sealed class PoolOutbox : IDisposable
     /// <summary>Pause between two requests of a pass (<see cref="BatchDelay"/>); tests make it zero.</summary>
     internal TimeSpan Delay { get; set; } = BatchDelay;
 
+    /// <summary>How a pass waits out <see cref="Delay"/>; a test acts inside the pause through it.</summary>
+    internal Func<TimeSpan, CancellationToken, Task> Pause { get; set; } = Task.Delay;
+
     /// <summary>Games waiting for the pool the settings name now, both routes together.</summary>
     public int Pending => PoolDestination.Of(_settings) is { } destination ? _games.Count(destination) + _constructed.Count(destination) : 0;
 
@@ -203,7 +206,15 @@ internal sealed class PoolOutbox : IDisposable
         {
             if (_requests++ > 0)
             {
-                await Task.Delay(Delay, cancellationToken).ConfigureAwait(false);
+                var withdrawals = route.Queues.Generation;
+                await Pause(Delay, cancellationToken).ConfigureAwait(false);
+
+                // Read again after the pause (legal review L-M1): sharing turned off, the queue withdrawn or the address
+                // changed in between keeps this batch, taken before the pause, from going.
+                if (!PoolClient.Sharing(_settings) || PoolDestination.Of(_settings) != destination || route.Queues.Generation != withdrawals)
+                {
+                    break;
+                }
             }
 
             var answer = await SubmitAsync(route, destination, batch, cancellationToken).ConfigureAwait(false);

@@ -203,6 +203,37 @@ public sealed class PoolOutboxTests : IDisposable
         Assert.Empty(_pool.Requests);
     }
 
+    /// <summary>
+    /// The player turns sharing off while a pass waits between two batches (legal review L-M1): the batch taken before the
+    /// pause stays home, and the withdrawal empties the queue.
+    /// </summary>
+    [Fact]
+    public async Task Sharing_turned_off_in_the_pause_between_two_batches_keeps_the_next_batch_home()
+    {
+        var settings = Settings();
+        var host = Host(settings);
+        var outbox = host.Outbox;
+        outbox.Open();
+        for (var n = 1; n <= PoolClient.MaxBatch + 1; n++)
+        {
+            Assert.True(outbox.Add(outbox.Ticket()!.Value, Game(n)));
+        }
+
+        outbox.Pause = (_, _) =>
+        {
+            settings.PoolConsent = false;
+            host.SharingChanged();
+            return Task.CompletedTask;
+        };
+
+        Assert.True(await outbox.PassAsync(CancellationToken.None));
+
+        var sent = Assert.Single(_pool.Requests);
+        using var json = JsonDocument.Parse(sent.Body);
+        Assert.Equal(PoolClient.MaxBatch, json.RootElement.GetProperty("games").GetArrayLength());
+        Assert.Empty(Directory.EnumerateFiles(_root, "*.json", SearchOption.AllDirectories));
+    }
+
     [Fact]
     public async Task A_queue_goes_only_to_the_pool_its_games_ended_under()
     {
