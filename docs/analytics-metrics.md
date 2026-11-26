@@ -13,7 +13,10 @@ computation of an implemented metric is a new `rulesVersion`.
 - **Fitness.** A metric names the per-metric eligibility it needs ([ADR 0013](adr/0013-per-metric-eligibility.md));
   `completeForAggregation` is not loosened for it. An observation that is not fit is left out of both numerator and
   denominator.
-- **Patch.** The group is `start.build`; `null` is its own "unknown" group. Builds are never mixed to reach a sample.
+- **Patch.** A metric over source captures groups by `start.build`; `null` is its own "unknown" group. Builds are never
+  mixed to reach a sample. A view over game records groups by balance patch instead: builds that change no card are
+  one patch, and two balance patches are never merged ([ADR 0014](adr/0014-record-analytics-and-balance-patches.md),
+  [windows](#rules-for-every-record-view)).
 - **Small samples.** Shown honestly as missing (`null` with `small_sample`), never padded. Every published number
   covers games of at least 5 installations (`owner`, the hash of the install id), counted among the observations that
   number is made of; below that the number is `null`. Above it, a value with fewer than 10 in its denominator keeps
@@ -41,6 +44,7 @@ computation of an implemented metric is a new `rulesVersion`.
 | Arena | `arena.run.wins` | needs fields |
 | Mulligan | `mulligan.keep` | needs fields |
 | Mulligan | `mulligan.pair_winrate` (`mull-pairs-1`) | **implemented** |
+| Constructed meta, and the record views of the other areas | `mulligan.card`, `constructed.archetype`, `constructed.class`, `constructed.matchup`, `constructed.deck`, `constructed.card`, `constructed.choice`, `bg.hero.records`, `bg.trinket.records`, `bg.comp.records`, `bg.tierup.records`, `arena.class.runs` | in each [section below](#metrics-over-game-records) |
 
 Statuses: `implemented` — computed end to end; `defined` — every field exists (`have`/`derived`), no computation yet;
 `needs_fields` — a field is `add` (a later F1 round) or `unavailable`, so the number does not exist yet.
@@ -97,7 +101,7 @@ which they kept one or neither. It is not a causal effect of keeping them and no
   this test. This is a filter against noise, not a proof.
 - **The interval is nominal and too narrow.** It leaves out: repeated games of one installation (counted as
   independent, because only counts are published; `installs` is published beside them); the patches mixed in the
-  30-day window (records carry no game build); the selection by the keep decision (who keeps both, and against
+  30-day window (the rules do not read the game build, which older records lack); the selection by the keep decision (who keeps both, and against
   what, is the player's choice); and the many pairs looked at with no correction. The app marks it "approximate".
   A pair everybody keeps has no comparison cells and therefore no value.
 - **Deletion and withdrawal.** `POST /v1/events/forget` and the clean-up delete the published table in the same batch
@@ -119,11 +123,223 @@ API: `GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>` (both pool en
 Status on 2026-11-15: computed end to end in code and tests; the production pool holds no records, so the route
 answers an empty list and no pair line is on any screen.
 
+## Metrics over game records
+
+Game records are the main path of our own numbers ([ADR 0014](adr/0014-record-analytics-and-balance-patches.md)):
+their fields are in the record already, each record carries its installation for the five-installation floor, and a
+forget deletes them. The Node pool computes one view per metric in `server/pool/node/records/` and answers
+`GET /stats/v2/analytics/records/<view>` from the published snapshot, without recounting (route, envelope and answer
+states: `docs/analytics-records.md`). Source captures stay the audited path: `bg.hero.offer_pick_placement` stays as
+the capture-side check of `bg.hero.records`. `mulligan.pair_winrate` (`mull-pairs-1`, `events.js`) keeps its 30-day
+window over all builds until a new rules version moves it into these windows.
+
+### Rules for every record view
+
+The machine copy is `records` in the JSON (task contract K3).
+
+- **Unit and modes.** One record of one installation: a game, or one finished Arena run (an `arena_run` record). The
+  Constructed views read Ranked Standard and Wild only: Casual, Brawl, Classic and Twist are not counted (players
+  behave differently there). Solo and Duos are never mixed, nor Arena and Underground.
+- **Balance patches.** `server/pool/data/balance-patches.json` lists the balance patches of each line by first build:
+  `constructed` (`ranked`), `battlegrounds` (`bg`, `duos`), `arena` (`arena`, `arena_run`). A build belongs to the
+  entry with the greatest `fromBuild` not above it; a record without `build`, or with a build below the first entry,
+  is `unknown`. The builds of one balance patch (hotfixes that change no card) are one group; two balance patches are
+  never merged.
+- **Windows.** T is the server's day (UTC); a record dated after T waits for its day. Newest patch of the line:
+  `patch`, `7d` (day in [T − 6, T]) and `30d` (day in [T − 29, T]), both inside the patch. Previous patch: `patch`.
+  Unknown build: `30d`. Only the last 90 days are read ([T − 89, T]): older patches are not published, and a long
+  patch is cut at 90 days.
+- **Slices.** Rank bucket (Ranked): `all`, `bronze`, `silver`, `gold`, `platinum`, `diamond`, `d4-1` (Diamond 4–1,
+  from `band`), `legend`, `d4-legend` (`d4-1` and `legend` together). MMR range (Battlegrounds): `all`, `0-3999`,
+  `4000-5999`, `6000-7999`, `8000+`. Coin: `any`, `first`, `coin`. A record without the field is in `all` or `any`
+  only. A record counts in every slice it belongs to, so the slices of one dimension overlap and are never added up.
+  A Diamond 4–1 game without its star level (game memory reading off, or an app before the `band` field) is in
+  `diamond` only.
+- **Thresholds.** A row needs 5 installations (distinct `iid`) among the records it is made of; otherwise it is not
+  listed and counts in `suppressed`. Each number needs 5 installations among the records of its own denominator,
+  else it is `null`; with fewer than 10 in its denominator it keeps its counts (`num`, `den`, `n`) but its value,
+  interval and distribution are `null`. The totals of a slice (`games`, `runs`, `installs`) need 5 installations too.
+  A deck list needs 50 games. A row with a `null` value is `small_sample`, otherwise `ok`. Nothing is padded or
+  borrowed from another slice, window or patch.
+- **Uncertainty.** A share carries a Wilson interval (z = 1.96); a mean, mean ± 1.96·s/√n, `null` below n = 2; a
+  place, also the count of each place (1–8, Duos 1–4).
+- **Order (`rankable`).** A share is rankable when the half-width of its interval is at most 5 points, a mean place at
+  most 0.3 places, mean Arena wins at most 0.3 wins; means of turns and seconds never are. Each metric names the
+  number its rows are ordered by; rows whose number is not rankable are listed below the ordered ones, by games. At 10
+  games a win rate is ±26 points: enough to publish, not to rank. An order is not a test that one row beats the next.
+- **Deletion.** A forget (`POST /v1/events/forget`) or the 180-day clean-up that deleted records withdraws every
+  record view in the same transaction: `available: false`, `reason: "rebuilding"` until the next build, which no
+  longer holds them. A maintenance pass that deleted nothing withdraws nothing. The app keeps an answer at most 6
+  hours, shows no older copy while the pool is down, and deletes a copy dated in the future.
+- **Display.** "Hearthpulse statistics", beside the external "Hearthpulse data", never mixed with them or filled from
+  them, always with games, installations, interval, window and patch. Main window: always, with honest empty states.
+  Overlay: only where a value exists, and only for the player's own deck, offers and picks. Until about 300
+  installations they complement the external numbers, not replace them.
+- **Hidden information.** Only record fields, which hold only what the player saw. The opponent's archetype is
+  published only as an aggregate on the meta page, never during a game.
+
+Each metric below is **defined** until the package of its view implements it. That package sets `status:
+implemented`, `rulesVersion` and `api` in its own JSON block and the status line of its own section, and nothing else.
+
+| Metric | View | Query (besides `window`, `patch`) | Package · planned rules |
+|---|---|---|---|
+| `mulligan.card` | `constructed-mulligan` | `fmt`, `rank`, `cls` or `arch`, `coin` | C1 · `mull-card-1` |
+| `constructed.archetype` | `constructed-archetypes` | `fmt`, `rank` | C2 · `cons-arch-1` |
+| `constructed.class` | `constructed-classes` | `fmt`, `rank` | C2 · `cons-class-1` |
+| `constructed.matchup` | `constructed-matchups` | `fmt`, `rank`, `by` (`archetype` or `class`) | C2 · `cons-matchup-1` |
+| `constructed.deck` | `constructed-decks` | `fmt`, `rank`, `cls` (optional) | C3 · `cons-deck-1` |
+| `constructed.card` | `constructed-cards` | `fmt`, `rank`, `cls` | C3 · `cons-card-1` |
+| `constructed.choice` | `constructed-choices` | `fmt`, `rank` | C4 · `choice-1` |
+| `bg.hero.records` | `bg-heroes` | `mode` (`solo` or `duos`), `mmr` | D1 · `bg-rec-hero-1` |
+| `bg.trinket.records` | `bg-trinkets` | `mode`, `mmr` | D1 · `bg-rec-trinket-1` |
+| `bg.comp.records` | `bg-comps` | `mode`, `mmr` | D1 · `bg-rec-comp-1` |
+| `bg.tierup.records` | `bg-tierups` | `mode`, `mmr` | D1 · `bg-rec-tierup-1` |
+| `arena.class.runs` | `arena-classes` | `kind` (`arena` or `underground`) | E1 · `arena-run-1` |
+
+### `mulligan.card`: the mulligan guide per card
+
+Status: defined.
+
+Ranked game records with a class and a mulligan; slices: format, rank bucket, class or the server's archetype, coin.
+`kept` and `turnsHeld` count the copies of a card one by one; the win rates and `turnPlayed` count games.
+
+| Number | Counts | Out of |
+|---|---|---|
+| `kept` | offered copies that were kept | copies offered in opening hands; a game keeps at most what it offered |
+| `opening` | games won with the card in the hand after the mulligan (kept or received) | those games, W or L |
+| `drawn` | games won in which a deck copy came into the hand at any time, the opening hand included | those games, W or L |
+| `played` | games won in which a deck copy was played | those games, W or L |
+| `turnsHeld` | play turn minus arrival turn over played deck copies (the opening hand is turn 0) | played deck copies with a known arrival |
+| `turnPlayed` | the turn of the card's first play | games in which a deck copy was played |
+| `base` | games won | the slice's games, W or L |
+
+`delta` is `opening`, `drawn` or `played` minus `base.value` (`null` when either is), with no interval of its own: an
+observed difference, not the effect of keeping, drawing or playing the card. Created cards are never deck copies;
+`drawn`, `played` and the turns need a readable deck code; copies match first in, first out; turns are the player's
+own. No slice by opponent class (eleven times the volume). Order: `opening`. Display: U1 (the archetype card of the
+meta page) and U2 (the overlay's tooltip and summary, only cards with a value); the keep/replace call and the hand
+estimate do not use it.
+
+### `constructed.archetype`: the archetype tier list
+
+Status: defined.
+
+Ranked game records with a class; slices: format, rank bucket. `arch` is the server's archetype of the player's
+deck; a deck it does not recognise, or a game without a readable code, is its class's row with `arch: null`.
+
+- `winrate`: games of the archetype won / its games with W or L; `first`, `coin`: the same going first / with the Coin.
+- `shareClass`, `shareAll`: games of the archetype / games of its class, all games of the slice.
+
+A tie counts in games and shares, not in win rates. Order: `winrate`. Display: U1, the meta page's tier list.
+
+### `constructed.class`: classes
+
+Status: defined.
+
+Ranked game records with a class; slices: format, rank bucket. `winrate`: games of the class won / its games with W
+or L; `first`, `coin`: the same going first / with the Coin; `share`: games of the class / all games of the slice.
+Order: `winrate`. Display: U1, the meta page.
+
+### `constructed.matchup`: matchups
+
+Status: defined.
+
+Ranked game records with both classes, from the recording player's side; slices: format, rank bucket, `by`.
+`winrate`: games of `a` against `b` won / those games with W or L. By class, `a` and `b` are the two classes; by
+archetype, the server's archetypes of the player's deck and of the opponent (from the cards the opponent showed and
+its class), and a game in which either is unknown is in the class matrix only. `a` against `b` and `b` against `a` are
+different cells from different players' records and need not add up to 100 %. A matrix, not a ranking: `rankable`
+marks the cells precise enough to compare. Display: U1, the meta page; the opponent's archetype appears nowhere else.
+
+### `constructed.deck`: popular deck lists
+
+Status: defined.
+
+Ranked game records with a readable deck code; slices: format, rank bucket, class. A list is its key (cards and
+copies; card order, hero skin and format ignored, the sideboard left out). It is published only from 50 games of 5
+installations (the owner's Q5), with its canonical code: re-encoded with the class's default hero, never a code as a
+player sent it, never a deck name. `winrate`: games of the list won / its games with W or L; `vsClass`: the same
+against each opponent class, each cell with its own thresholds; `secs`, `turns`: mean length in seconds and in player
+turns (never rankable). Order: `winrate`. Display: U1, the meta page.
+
+### `constructed.card`: cards of a class
+
+Status: defined.
+
+Ranked game records with a class and a readable deck code (without the list a played card cannot be told from a
+created one); slices: format, rank bucket, class. `decks`: games whose list holds the card / the class's games;
+`deckWinrate`: those games won / those with W or L; `played`: games in which a deck copy was played / games whose list
+holds the card; `playedWinrate`: those games won / those with W or L. Shares are of games, not of distinct lists.
+Order: `decks`. Display: U5, the card page.
+
+### `constructed.choice`: choices from a source card
+
+Status: defined.
+
+Resolved choices (Discover and the like) in Ranked game records, by source card; slices: format, rank bucket.
+`offered`: choices of the source whose options hold the card (once per choice); `picked`: those in which it was picked
+/ `offered`; `winrate`: games won in which it was picked from the source / those games with W or L (a game counts
+once). A choice without a source card is not counted, whatever its kind. Order: `picked`. Display: U2, the overlay's
+choice hint, only options with a value.
+
+### `bg.hero.records`: Battlegrounds heroes from records
+
+Status: defined.
+
+Battlegrounds game records; slices: mode (solo, Duos), MMR range. `pick`: games that picked the hero / `offered`, the
+games whose offer holds it; `placement` (mean, interval and the count of each place), `top` (top 4, Duos top 2) and
+`first` among the games that picked it. The offer is the record's: up to four heroes seen at the pick, rerolled ones
+appended and cut at four, always with the pick; a record without one counts only in the place numbers. Unlike
+`bg.hero.offer_pick_placement`, a hero rerolled away early is in `offered`. A Duos record with a place above 4 is not
+counted. Order: `placement`. Display: U3, the Heroes tab (the own block moves here from the capture snapshot).
+
+### `bg.trinket.records`: Battlegrounds trinkets from records
+
+Status: defined.
+
+Battlegrounds game records with trinkets; slices: mode, MMR range. `pick`: games that picked the trinket / games whose
+offers held it; `placement` and `top` among the games that picked it. A record keeps every trinket offered in the game
+as one list, so the lesser and the greater offer cannot be told apart, and a trinket offered twice counts once.
+Order: `placement`. Display: U3, the Trinkets tab.
+
+### `bg.comp.records`: Battlegrounds final comps from records
+
+Status: defined.
+
+Battlegrounds game records with `bg.comp`, the main tribe of the final board (a tribe of at least 4 minions, else
+`MIXED`); slices: mode, MMR range. `share`: games with the comp / the slice's games with a comp; `placement`, `top` and
+`first` among the games with the comp. An association between ending with a comp and the place, not the comp's
+effect. Order: `placement`. Display: U3, the Comps tab.
+
+### `bg.tierup.records`: tavern tier-up timing from records
+
+Status: defined.
+
+Battlegrounds game records that reached tavern tier t (2–7); slices: mode, MMR range. `turn`: the mean first turn on
+which the tavern reached t (never rankable); `placement`: the mean place of those games. A game that never reached t
+is not in its row, so the rows are different sets of games. Rows are the tiers in order. Display: U3, the
+Battlegrounds page.
+
+### `arena.class.runs`: Arena classes by finished runs
+
+Status: defined.
+
+Finished Arena runs (`arena_run` records); slices: Arena kind. `share`: runs of the class / runs of the kind; `seven`:
+its runs with 7 wins or more / its runs; `winrate`: wins / wins and losses of its runs (the games of one run are not
+independent, so the interval is too narrow); `wins`: the mean wins of its runs. A run is sent once, when its last game
+ends it (12 wins or the loss limit), with a deck id and no imported game. Known bias: an app that starts in the middle
+of a run has only its later games, so that run's wins are understated, and a run retired before its end is never
+sent. Order: `wins`. Display: U4, My Stats → Arena.
+
 ## Field matrix
 
 `fieldMatrix` in the JSON lists every field a metric names, with its status and source:
 `have` (written by the current recorder or compact record), `derived` (computed reliably from `have` fields), `add`
 (planned for a later F1 round, absent today), `unavailable` (not visible to the player or never uploaded — the metric
-stays unavailable). The `record.*` rows are the compact game record's fields (`mulligan.pair_winrate`). Source v2 added `start.format`, `start.arena` and `choice.choiceType`; the remaining `add` fields
+stays unavailable). The `record.*` rows are the compact game record's fields (`mulligan.pair_winrate` and the record
+views); `build`, `band` and `bg.comp` come from the app version with TASK-2026-11-26-pro-collection A1, and the
+`run.*` fields of an `arena_run` record from E1, so older records lack them. The `derived.*` rows are what the pool
+derives from a record: the balance patch, the rank, MMR and coin slices, and the deck list, its key and the two
+archetypes (the `deck` and `archetypes` derivers). Source v2 added `start.format`, `start.arena` and `choice.choiceType`; the remaining `add` fields
 (game and run keys, class, deck key, coin, lobby tribes, mulligan phases, combat boundary and results) are the next
 round's F1 work.
