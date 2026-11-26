@@ -6,7 +6,9 @@ description: Use when reviewing a Hearthpulse branch, commit range or uncommitte
 > Source: [jakubkrehel/skills](https://github.com/jakubkrehel/skills) `skills/interface-review/SKILL.md` at
 > `592aedc`, MIT, © 2026 Jakub Krehel, see [THIRD-PARTY-NOTICES](../THIRD-PARTY-NOTICES.md). Hearthpulse changes:
 > model-invoked so the reviewer role can run it; `main...claude/*` scopes; blast radius through resource keys, controls
-> and shared view models; XAML removed signals; the task card as stated intent; B/M/m severity.
+> and shared view models; XAML removed signals; the task card as stated intent; B/M/m severity. The decisions log
+> (steps 5 and 8) follows the expert decision logs of [vercel-labs/ui](https://github.com/vercel-labs/ui) at `e9085ba`,
+> Apache-2.0, © 2026 Vercel, Inc.
 
 # Interface review
 
@@ -105,6 +107,11 @@ git blame -L <line>,<line> "$BASE"..<head-ref> -- path/to/File.xaml
 
 For uncommitted work, drop the range: a line marked `Not Committed Yet` belongs to the change.
 
+Check every finding against [docs/ui-decisions.md](../../../docs/ui-decisions.md) before it goes into the report. A
+finding a line under «Решено» covers is dropped; a change that breaks such a decision is a finding against it, citing
+the line. A finding under «Известно, открыто» is not new: it goes once under «Известно», still open or closed by this
+change.
+
 ## 6. Hold the change to its stated intent
 
 Read the task card (`D:\HeartLens-main\reference\tasks\TASK-*\task.md`), its `design.md` when there is one, and the
@@ -117,6 +124,9 @@ which a surface review misses because it inspects only the states that exist:
 - A new component with no empty, loading, error, compact or long-Russian-text state.
 - A new overlay element outside a `MovablePanel`, or a new panel with no render scene.
 - A colour added as a hex in a view, or a meaning colour without its fixed key prefix.
+- A new control an agent cannot find by name: no usable name, a name its view already has, a row action without its
+  row, a dangerous action without a confirm named apart from its trigger (`hearthpulse-agent-ready`; a grown count in
+  `AgentReadyNameTests` points at the file).
 
 Do not report scope creep; whether a change does too much is the card's question, not this review's.
 
@@ -125,6 +135,14 @@ Do not report scope creep; whether a change does too much is the card's question
 Hand `better-interface` the scope block, the affected surfaces and a status on every finding, and report in the format
 below. If `better-interface` is unavailable, report the scope and the file inventory, name it as missing and stop;
 do not invent severity or a verdict.
+
+## 8. Record the triage
+
+Whoever triages the findings records the outcome of each in `docs/ui-decisions.md` the same turn: fixed now, with its
+test as the proof; later, one line under «Известно, открыто»; won't do or decided otherwise, one line under «Решено»
+with the reason and its source (the owner and the date, the card and package). Then «Последняя сверка» moves to the
+reviewed head. A developer session triaging its own self-check writes the lines in its branch. A read-only reviewer
+puts the lines it proposes under «В журнал решений» in its report, and the coordinator copies them after triage.
 
 ## Never mutate the working tree
 
@@ -150,6 +168,7 @@ branch, add your own worktree at its head (`git worktree add <short path> <sha>`
 | `git checkout` or `git switch` in the command log | Read with `git show <head-ref>:path` |
 | A cited line that does not match `git show <head-ref>:path` | Cite against the head ref in the scope block |
 | A render taken while `Hearthstone.exe` ran | Discard it; render with the game closed |
+| A finding `docs/ui-decisions.md` settles, reported as new | Drop it, or report it against the decision it breaks |
 
 ## Review output format
 
@@ -182,5 +201,8 @@ responsibility. Omit the section when there are none.
 | Severity | Domain | Location | Issue |
 | --- | --- | --- | --- |
 | m | Typography | `src/Hearthpulse.App/Main/MainWindow.xaml:1210` | Rank column uses proportional digits; predates this change |
+
+Then «Известно» (findings the decisions log already lists, each still open or closed by this change) and «В журнал
+решений» (the lines step 8 proposes). Omit either when empty.
 
 Verification and the verdict follow in `better-interface`'s format.

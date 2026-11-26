@@ -21,7 +21,9 @@ motion still apply. When unsure, take the built-in control over a custom rebuild
 
 Contrast measurement and colour fixes belong to `better-colors`. Text sizing belongs to `better-typography`. Spacing
 between targets belongs to `better-layout`. Label, error and help wording belongs to `better-writing`. Animation
-recipes belong to `better-ui`. Focus ring styles are tokens of `hearthpulse-design`.
+recipes belong to `better-ui`. Focus ring styles are tokens of `hearthpulse-design`. How each framework computes a
+name, uniqueness in a view, row actions, state patterns and the agent test that walks the automation tree belong to
+`hearthpulse-agent-ready`.
 
 ## Owner's rules
 
@@ -110,8 +112,12 @@ not only a red border, and move focus to the first failing field. Wording is `be
 ## Accessible names everywhere
 
 An icon-only button needs `AutomationProperties.Name="{i:Loc Key}"`, the same key in both UIs; `AccessibleNameTests`
-scans both UIs' markup for one without it. A text button needs nothing: its `Content` is the name. The visible label's words appear in the name (2.5.3). An `Image` that carries
-meaning gets a name; the `CardPreview` hover is a visual extra and the card's name must also be text nearby.
+scans both UIs' markup for one without it. A button whose content is a text or one `TextBlock` needs nothing: that
+text is the name. An icon and a label in a `StackPanel`, a label the template draws and a data object as content
+name nothing usable (WPF reads an empty name, Avalonia the type name or `ToString()`): give the control the label's
+key, see `hearthpulse-agent-ready`, whose `AgentReadyNameTests` counts them. The visible label's words appear in the
+name (2.5.3). An `Image` that carries meaning gets a name; the `CardPreview` hover is a visual extra and the card's
+name must also be text nearby.
 
 ## Pair colour with a second cue
 
@@ -169,6 +175,7 @@ Fixed `Height` on a text container is the usual cause; `better-layout` owns the 
 | `Focusable="False"` or `IsTabStop="False"` on an interactive control | Remove it, or say why the control is reachable another way |
 | `TabIndex` on more than one control of a view | Fix the element order |
 | An icon-only `Button` (`IconButton`, `icon`) without `AutomationProperties.Name` | `AutomationProperties.Name="{i:Loc Key}"` in both views |
+| A `Button` holding a `StackPanel` of icon and label, without `AutomationProperties.Name` | The label's Loc key as the name, both views (`hearthpulse-agent-ready`) |
 | `AutomationProperties.Name` that omits the visible label's words | Start the name with the visible text |
 | `IsEnabled="False"` with the reason only in `ToolTip` | Visible text beside it, or `ShowOnDisabled` |
 | `Watermark` or `PlaceholderText` as the only label | A `Label`-style `TextBlock` and `LabeledBy` |
