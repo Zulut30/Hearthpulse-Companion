@@ -66,8 +66,9 @@ server rebuilds every record from known fields only, so anything else is dropped
     notice earlier versions showed, or a "no" to the old question); `true` and `null` share.
   - The switch, Settings → Data: «Делиться моими играми с пулом статистики» / "Share my games with the stats pool".
     Off stops every later send, including the remaining batches of the one-time 30 days of earlier games
-    (`Core/Hosting/PoolSharingHost.cs` asks before each batch). These routes have **no deletion on request**: what
-    was shared expires after 60 days.
+    (`Core/Hosting/PoolSharingHost.cs` asks before each batch), and empties the queue of shared games of every pool
+    address ("Shared games: queue and sending"). These routes have **no deletion on request**: what was shared
+    expires after 60 days.
 - Records are pseudonymous personal data (ADR 0011): only totals over 10 games and 5 installs are ever shown.
 - Switching off: the queue is emptied, and when a batch was ever handed to that pool `POST /v1/events/forget`
   deletes every record of this install there; the request waits in the queue (`game-stats/<address>/forget`) until
@@ -180,6 +181,41 @@ to production when `PoolEndpoint` is removed. Each queue therefore belongs to on
 - Tests: `GameStatsTests.Destination.cs` (address change, removed override, held answers both ways, restart, the
   earlier queue never adopted, unreadable destination, forget per address and only after a send, first refusal,
   a record built across a withdrawal, sharing off against leftovers, report order, expiry).
+
+## Shared games: queue and sending
+
+The shared games (`/v1/games`, `/v1/constructed`) wait in a queue of their own, as game records do, so a pool that is
+busy, over its budget of the day or offline loses none of them (`Core/Pool/PoolOutbox.cs`, sent by
+`Core/Hosting/PoolSharingHost.cs`).
+
+- **Layout.** `pool-outbox/games/<16 hex of the address hash>/` (Battlegrounds games) and
+  `pool-outbox/constructed/<16 hex>/` (the picks of Constructed games) in the data folder, in the store of game
+  records (`GameStatsQueues`, "Queue destination"): one JSON file per game beside the `destination` file, at most 300
+  games, 4 MB and 14 days per queue, oldest dropped. No `forget` or `sent` mark: these routes have no deletion call.
+- **Queueing.** The row is built when the game ends (`PoolClient.RowNode`, `ConstructedRowNode`), so it keeps the day
+  the game was played, also when it is sent after a restart on a later day. It is queued off the log thread for the
+  address and the withdrawal count read when the game ended (`PoolOutbox.Ticket`): a game built across a refusal is
+  not queued. A game is queued also before the live host starts (the log watcher starts first, so a game the catch-up
+  finds at start-up ends before it) and sent only after `PoolSharingHost.Start`; an off-screen render sends nothing.
+- **Sending.** A pass serves the address the settings name now: Battlegrounds games, then Constructed picks, in
+  batches of up to 20, 12 s apart. The body is the one a direct send of the same games has (`{"v":3,"games":[…]}`,
+  `{"v":1,"games":[…]}`). `2xx` removes the batch; `400`/`413`/`422` drop it for good; anything else (offline, a
+  timeout, `429`, `503`) keeps it, and that route waits 30 s, doubling up to 30 min, and at least the pool's
+  `Retry-After` when it sends one (30 s under load, 3600 s once the budget of the day is spent; at most 6 h). A pass
+  before then, also one a new game wakes, asks the pool nothing. A queue kept for another address waits for it, as
+  game records do.
+- **Switching off** (`PoolConsent == false`, Settings → Data) empties the queues of every address at once
+  (`PoolSharingHost.SharingChanged`) and again on every pass while it stays off; no pool is asked anything, and what a
+  pool already has expires after 60 days. An address that is only unavailable (not https, `off`, an isolated run) is no
+  refusal: its queue waits and the 14 days apply.
+- **Seen from outside.** One log line per request, with counts and the route, never the address:
+  `Pool outbox: sent N game(s) to /v1/games`, `Pool outbox: /v1/games not now (503), N game(s) kept, next try in 3600 s`,
+  `Pool outbox: /v1/constructed refused N game(s) (400), dropped`, `Pool outbox: sharing is off, dropped N waiting
+  game(s)`; the lines of the queue store start with `Pool outbox (games):` or `Pool outbox (constructed):`.
+- The earlier games (30 days, once) are not queued: `PoolSharingHost.ShareHistoryAsync` sends them itself and tries
+  again on the next start until `PoolHistoryShared` is set.
+- Tests: `PoolOutboxTests` (answers, `Retry-After`, the day, restart, refusal, addresses, before `Start`, the body),
+  `PoolSharingHostTests`, `CollectionPrivacyTests`.
 
 ## Server (`server/pool`)
 

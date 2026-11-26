@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -51,6 +52,12 @@ public static partial class PoolClient
     /// <summary>How far back earlier games are shared once, matching the pool's 30 day window.</summary>
     public const int HistoryDays = 30;
 
+    /// <summary>The body version of <c>POST /v1/games</c>: <c>{"v":3,"games":[...]}</c>.</summary>
+    internal const int GamesVersion = 3;
+
+    /// <summary>The body version of <c>POST /v1/constructed</c>: <c>{"v":1,"games":[...]}</c>.</summary>
+    internal const int ConstructedVersion = 1;
+
     public static string Endpoint(AppSettings settings) =>
         (settings.PoolEndpoint is { Length: > 0 } custom ? custom : Isolation.On ? string.Empty : DefaultEndpoint).TrimEnd('/');
 
@@ -78,7 +85,20 @@ public static partial class PoolClient
         return settings.PoolSecret;
     }
 
-    internal static object Body(IEnumerable<PoolGame> games) => new { v = 3, games = games.Select(Row).ToList() };
+    internal static object Body(IEnumerable<PoolGame> games) => new { v = GamesVersion, games = games.Select(Row).ToList() };
+
+    /// <summary>
+    /// A Battlegrounds game's row as the queue of shared games keeps it (<see cref="PoolOutbox"/>): <see cref="Row"/>
+    /// written out once, when the game ended, so its day stays that day, with the options of a direct send, so a queued
+    /// batch has the body a direct send of the same games has.
+    /// </summary>
+    internal static JsonObject RowNode(PoolGame game) => Node(Row(game));
+
+    /// <summary>A Constructed game's picks as the queue of shared games keeps them (<see cref="RowNode"/>).</summary>
+    internal static JsonObject ConstructedRowNode(ConstructedPoolGame game) => Node(ConstructedRow(game));
+
+    /// <summary>A row as <c>PostAsJsonAsync</c> writes it (<see cref="JsonSerializerOptions.Web"/>).</summary>
+    private static JsonObject Node(object row) => JsonSerializer.SerializeToNode(row, row.GetType(), JsonSerializerOptions.Web)!.AsObject();
 
     /// <summary>One game as the pool's <c>POST /v1/games</c> takes it (game records reuse the Battlegrounds part).</summary>
     internal static Dictionary<string, object?> Row(PoolGame game)
@@ -144,16 +164,19 @@ public static partial class PoolClient
 
     internal static object ConstructedBody(IEnumerable<ConstructedPoolGame> games) => new
     {
-        v = 1,
-        games = games.Select(g => new
-        {
-            id = g.GameId,
-            day = g.Day,
-            format = g.Format,
-            won = g.Won,
-            src = "live",
-            picks = g.Picks.Select(p => new object[] { p.Turn, p.Source, p.Offered, p.Picked }),
-        }).ToList(),
+        v = ConstructedVersion,
+        games = games.Select(ConstructedRow).ToList(),
+    };
+
+    /// <summary>One Constructed game as the pool's <c>POST /v1/constructed</c> takes it.</summary>
+    private static object ConstructedRow(ConstructedPoolGame game) => new
+    {
+        id = game.GameId,
+        day = game.Day,
+        format = game.Format,
+        won = game.Won,
+        src = "live",
+        picks = game.Picks.Select(p => new object[] { p.Turn, p.Source, p.Offered, p.Picked }),
     };
 
     /// <summary>Sends finished Constructed games' picks (<see cref="Sharing"/>); false when the pool did not take them.</summary>

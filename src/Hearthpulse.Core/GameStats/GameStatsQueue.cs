@@ -30,19 +30,24 @@ public sealed class GameStatsQueue
     /// </summary>
     internal const string SentFile = "sent";
 
+    /// <summary>What the log lines of game record queues start with; other queues name themselves (<see cref="GameStatsQueues.Label"/>).</summary>
+    internal const string DefaultLabel = "Game stats";
+
     private readonly string _folder;
     private readonly Lock _lock;
+    private readonly string _label;
 
     public GameStatsQueue(string folder)
-        : this(folder, null, new Lock())
+        : this(folder, null, new Lock(), DefaultLabel)
     {
     }
 
-    internal GameStatsQueue(string folder, string? destination, Lock gate)
+    internal GameStatsQueue(string folder, string? destination, Lock gate, string label)
     {
         _folder = folder;
         Destination = destination;
         _lock = gate;
+        _label = label;
     }
 
     /// <summary>
@@ -233,7 +238,7 @@ public sealed class GameStatsQueue
         }
     }
 
-    private static void TryDelete(string path)
+    private void TryDelete(string path)
     {
         try
         {
@@ -241,7 +246,7 @@ public sealed class GameStatsQueue
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Diag.Info($"Game stats: could not delete {Path.GetFileName(path)} ({ex.GetType().Name})");
+            Diag.Info($"{_label}: could not delete {Path.GetFileName(path)} ({ex.GetType().Name})");
         }
     }
 }

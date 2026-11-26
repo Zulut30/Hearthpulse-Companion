@@ -29,6 +29,12 @@ public sealed class GameStatsQueues
     internal Func<DateTime> UtcNow { get; init; } = () => DateTime.UtcNow;
 
     /// <summary>
+    /// What these queues' log lines start with: game records unless another sender keeps its queues here (the shared
+    /// games of <see cref="PoolOutbox"/>), so a line says whose queue it is about.
+    /// </summary>
+    internal string Label { get; init; } = GameStatsQueue.DefaultLabel;
+
+    /// <summary>
     /// Counts the withdrawals of this run. A record is built in the background: it carries the number read when its
     /// game ended, and <see cref="Add"/> refuses it once a withdrawal came in between.
     /// </summary>
@@ -53,13 +59,13 @@ public sealed class GameStatsQueues
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                Diag.Info($"Game stats: queue with an unreadable destination stays unsent ({ex.GetType().Name})");
+                Diag.Info($"{Label}: queue with an unreadable destination stays unsent ({ex.GetType().Name})");
                 return null;
             }
 
             if (!_open.TryGetValue(destination, out var queue))
             {
-                _open[destination] = queue = new GameStatsQueue(folder, destination, _lock) { UtcNow = UtcNow };
+                _open[destination] = queue = new GameStatsQueue(folder, destination, _lock, Label) { UtcNow = UtcNow };
             }
 
             return queue;
@@ -76,7 +82,7 @@ public sealed class GameStatsQueues
         {
             if (generation != _generation)
             {
-                Diag.Info("Game stats: a record built across a withdrawal was not queued");
+                Diag.Info($"{Label}: a record built across a withdrawal was not queued");
                 return false;
             }
 
@@ -123,7 +129,7 @@ public sealed class GameStatsQueues
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                Diag.Info($"Game stats: the queue layout mark could not be written ({ex.GetType().Name})");
+                Diag.Info($"{Label}: the queue layout mark could not be written ({ex.GetType().Name})");
                 return false;
             }
         }
@@ -163,17 +169,17 @@ public sealed class GameStatsQueues
                 }
 
                 File.Delete(forgetFile);
-                Diag.Info($"Game stats: earlier queue names no pool, set aside, {records.Count} record(s) not sent");
+                Diag.Info($"{Label}: earlier queue names no pool, set aside, {records.Count} record(s) not sent");
                 if (forget)
                 {
-                    Diag.Info("Game stats: earlier deletion request names no pool, cannot be delivered, dropped");
+                    Diag.Info($"{Label}: earlier deletion request names no pool, cannot be delivered, dropped");
                 }
 
                 return true;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                Diag.Info($"Game stats: earlier queue could not be moved, not sent ({ex.GetType().Name})");
+                Diag.Info($"{Label}: earlier queue could not be moved, not sent ({ex.GetType().Name})");
                 return false;
             }
         }
@@ -231,7 +237,7 @@ public sealed class GameStatsQueues
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    Diag.Info($"Game stats: a queue kept for another pool could not be cleared ({ex.GetType().Name})");
+                    Diag.Info($"{Label}: a queue kept for another pool could not be cleared ({ex.GetType().Name})");
                 }
             }
 
@@ -241,12 +247,12 @@ public sealed class GameStatsQueues
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                Diag.Info($"Game stats: earlier queue could not be deleted ({ex.GetType().Name})");
+                Diag.Info($"{Label}: earlier queue could not be deleted ({ex.GetType().Name})");
             }
 
             if (records > 0)
             {
-                Diag.Info($"Game stats: sharing is off, deleted {records} record(s) kept for other pools, {deletions} deletion request(s) wait for their pools");
+                Diag.Info($"{Label}: sharing is off, deleted {records} record(s) kept for other pools, {deletions} deletion request(s) wait for their pools");
             }
         }
     }
@@ -294,13 +300,13 @@ public sealed class GameStatsQueues
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    Diag.Info($"Game stats: a queue kept for another pool could not be trimmed ({ex.GetType().Name})");
+                    Diag.Info($"{Label}: a queue kept for another pool could not be trimmed ({ex.GetType().Name})");
                 }
             }
 
             if (expired > 0)
             {
-                Diag.Info($"Game stats: dropped {expired} expired record(s) kept for another pool");
+                Diag.Info($"{Label}: dropped {expired} expired record(s) kept for another pool");
             }
         }
     }
@@ -319,12 +325,12 @@ public sealed class GameStatsQueues
         File.Delete(forgetFile);
         if (records.Count > 0)
         {
-            Diag.Info($"Game stats: sharing is off, deleted {records.Count} record(s) of the earlier queue");
+            Diag.Info($"{Label}: sharing is off, deleted {records.Count} record(s) of the earlier queue");
         }
 
         if (forget)
         {
-            Diag.Info("Game stats: earlier deletion request names no pool, cannot be delivered, dropped");
+            Diag.Info($"{Label}: earlier deletion request names no pool, cannot be delivered, dropped");
         }
     }
 
@@ -387,6 +393,6 @@ public sealed class GameStatsQueues
             Directory.Delete(aside, recursive: true);
         }
 
-        Diag.Info($"Game stats: queue with an unreadable destination set aside, {records} record(s) not sent, {deletions} deletion request(s) dropped");
+        Diag.Info($"{Label}: queue with an unreadable destination set aside, {records} record(s) not sent, {deletions} deletion request(s) dropped");
     }
 }
