@@ -64,6 +64,8 @@ only the whole folder); the account name as a word `<user>`.
 ## Tests
 
 `DiagnosticsBundleTests` (contents with and without game logs, no token, key or password in any entry, the user's
-folder and name cut, cut logs, unreadable settings, `system.txt`, the game log lookup, secret field names) and
-`ReportProblemContractTests` (both UIs: the list, the switch, save, status, folder and form; the windows' and About's
-controls).
+folder and name cut, cut logs, unreadable settings, `system.txt`, the game log lookup, secret field names);
+`ReportProblemContractTests` (both UIs' model: the list, the switch and its note, save by path and by stream, a failed
+save, the folder and the form); `ReportProblemWindowXamlTests` (WPF: the BETA flag, the Feedback card, the window's
+bindings) and `LocBindingTests.Report_a_problem_card_and_window_bind` (Avalonia, ru and en). Render group `report`
+(`hearthpulse-visual-check`).
