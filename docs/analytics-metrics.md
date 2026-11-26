@@ -126,12 +126,25 @@ answers an empty list and no pair line is on any screen.
 ## Metrics over game records
 
 Game records are the main path of our own numbers ([ADR 0014](adr/0014-record-analytics-and-balance-patches.md)):
-their fields are in the record already, each record carries its installation for the five-installation floor, and a
-forget deletes them. The Node pool computes one view per metric in `server/pool/node/records/` and answers
+most of their fields are in the record already (this task adds the build, the Diamond 4–1 band, the final comp and
+the Arena run summary), each record carries its installation for the five-installation floor, and a forget deletes
+them. The Node pool computes one view per metric in `server/pool/node/records/` and answers
 `GET /stats/v2/analytics/records/<view>` from the published snapshot, without recounting (route, envelope and answer
 states: `docs/analytics-records.md`). Source captures stay the audited path: `bg.hero.offer_pick_placement` stays as
 the capture-side check of `bg.hero.records`. `mulligan.pair_winrate` (`mull-pairs-1`, `events.js`) keeps its 30-day
 window over all builds until a new rules version moves it into these windows.
+
+Where a metric over source captures and a metric over game records describe one product, the record metric is the
+main path and the capture metric names it in `mainPath`:
+
+| Over source captures | Main path, over game records | The capture metric |
+|---|---|---|
+| `results.by_class` | `constructed.class` (the deck and opponent-class groups: `constructed.deck`, `constructed.matchup`) | needs fields, no screen |
+| `bg.hero.offer_pick_placement` | `bg.hero.records` | implemented, the server's cross-check |
+| `bg.trinket.offer_pick` | `bg.trinket.records` | needs fields, no screen |
+| `bg.build.final_board` | `bg.comp.records` | needs fields, no screen |
+| `arena.run.wins` | `arena.class.runs` (the draft helper stays `arena.draft.offer_pick`, over captures) | needs fields, no screen |
+| `mulligan.keep` | `mulligan.card` | needs fields, no screen |
 
 ### Rules for every record view
 
@@ -155,12 +168,16 @@ The machine copy is `records` in the JSON (task contract K3).
   only. A record counts in every slice it belongs to, so the slices of one dimension overlap and are never added up.
   A Diamond 4–1 game without its star level (game memory reading off, or an app before the `band` field) is in
   `diamond` only.
-- **Thresholds.** A row needs 5 installations (distinct `iid`) among the records it is made of; otherwise it is not
-  listed and counts in `suppressed`. Each number needs 5 installations among the records of its own denominator,
-  else it is `null`; with fewer than 10 in its denominator it keeps its counts (`num`, `den`, `n`) but its value,
-  interval and distribution are `null`. The totals of a slice (`games`, `runs`, `installs`) need 5 installations too.
-  A deck list needs 50 games. A row with a `null` value is `small_sample`, otherwise `ok`. Nothing is padded or
-  borrowed from another slice, window or patch.
+- **Thresholds.** A slice (one patch, window and query of a view) whose records come from fewer than 5 installations
+  (distinct `iid`) publishes nothing: its totals (`games` or `runs`, `installs`) and `suppressed`, where the view's
+  data has them, are `null`, it has no rows and its `quality` is `small_sample`, the same answer as a slice nobody
+  played. In a published slice a row needs 5 installations among the records it is made of; otherwise it is not
+  listed and counts in `suppressed` where the view's data has one (`constructed-classes`, `constructed-cards`,
+  `constructed-choices` and `bg-tierups` have none: such a row is just absent). Each number needs 5 installations
+  among the records of its own denominator, else it is `null`; with fewer than 10 in its denominator it keeps its
+  counts (`num`, `den`, `n`) but its value, interval and distribution are `null`. A deck list needs 50 games
+  (`minDeckGames`). A row with a `null` value is `small_sample`, otherwise `ok`. Nothing is padded or borrowed from
+  another slice, window or patch.
 - **Uncertainty.** A share carries a Wilson interval (z = 1.96); a mean, mean ± 1.96·s/√n, `null` below n = 2; a
   place, also the count of each place (1–8, Duos 1–4).
 - **Order (`rankable`).** A share is rankable when the half-width of its interval is at most 5 points, a mean place at
@@ -216,9 +233,13 @@ Ranked game records with a class and a mulligan; slices: format, rank bucket, cl
 `delta` is `opening`, `drawn` or `played` minus `base.value` (`null` when either is), with no interval of its own: an
 observed difference, not the effect of keeping, drawing or playing the card. Created cards are never deck copies;
 `drawn`, `played` and the turns need a readable deck code; copies match first in, first out; turns are the player's
-own. No slice by opponent class (eleven times the volume). Order: `opening`. Display: U1 (the archetype card of the
-meta page) and U2 (the overlay's tooltip and summary, only cards with a value); the keep/replace call and the hand
-estimate do not use it.
+own. A deck copy is an approximation: a card whose id is in the list, not a tracked card. A copy of a listed card
+that an effect generated counts as one, a listed card whose id changed in the hand (Corrupt or Infuse, for example)
+is played as created, and a card returned to the hand, or traded into the deck and drawn again, arrives again. So
+`drawn`, `played`, `turnsHeld` and `turnPlayed` are approximate; an exact count needs a new record field and a new
+rules version. No slice by opponent class (eleven times the volume). Order: `opening`. Display: U1 (the archetype
+card of the meta page) and U2 (the overlay's tooltip and summary, only cards with a value); the keep/replace call
+and the hand estimate do not use it.
 
 ### `constructed.archetype`: the archetype tier list
 
@@ -256,11 +277,11 @@ marks the cells precise enough to compare. Display: U1, the meta page; the oppon
 Status: defined.
 
 Ranked game records with a readable deck code; slices: format, rank bucket, class. A list is its key (cards and
-copies; card order, hero skin and format ignored, the sideboard left out). It is published only from 50 games of 5
-installations (the owner's Q5), with its canonical code: re-encoded with the class's default hero, never a code as a
-player sent it, never a deck name. `winrate`: games of the list won / its games with W or L; `vsClass`: the same
-against each opponent class, each cell with its own thresholds; `secs`, `turns`: mean length in seconds and in player
-turns (never rankable). Order: `winrate`. Display: U1, the meta page.
+copies; card order, hero skin and format ignored, the sideboard left out). It is published only from 50 games
+(`minDeckGames`) of 5 installations (the owner's Q5), with its canonical code: re-encoded with the class's default
+hero, never a code as a player sent it, never a deck name. `winrate`: games of the list won / its games with W or L;
+`vsClass`: the same against each opponent class, each cell with its own thresholds; `secs`, `turns`: mean length in
+seconds and in player turns (never rankable). Order: `winrate`. Display: U1, the meta page.
 
 ### `constructed.card`: cards of a class
 
@@ -270,7 +291,9 @@ Ranked game records with a class and a readable deck code (without the list a pl
 created one); slices: format, rank bucket, class. `decks`: games whose list holds the card / the class's games;
 `deckWinrate`: those games won / those with W or L; `played`: games in which a deck copy was played / games whose list
 holds the card; `playedWinrate`: those games won / those with W or L. Shares are of games, not of distinct lists.
-Order: `decks`. Display: U5, the card page.
+A deck copy is a play whose card id is in the list, so a generated copy of a listed card counts as played and a
+listed card whose id changed in the hand does not: `played` and `playedWinrate` are approximate. Order: `decks`.
+Display: U5, the card page.
 
 ### `constructed.choice`: choices from a source card
 
@@ -290,8 +313,11 @@ Battlegrounds game records; slices: mode (solo, Duos), MMR range. `pick`: games 
 games whose offer holds it; `placement` (mean, interval and the count of each place), `top` (top 4, Duos top 2) and
 `first` among the games that picked it. The offer is the record's: up to four heroes seen at the pick, rerolled ones
 appended and cut at four, always with the pick; a record without one counts only in the place numbers. Unlike
-`bg.hero.offer_pick_placement`, a hero rerolled away early is in `offered`. A Duos record with a place above 4 is not
-counted. Order: `placement`. Display: U3, the Heroes tab (the own block moves here from the capture snapshot).
+`bg.hero.offer_pick_placement`, a hero rerolled away early is in `offered`. The floor of `pick` differs too: here 5
+installations that were offered the hero, in `bg-hero-1` 5 installations that picked it; a cross-check of the two
+paths compares only heroes with a value on both, since a value on one side and `null` on the other is a difference
+of floors, not of numbers. A Duos record with a place above 4 is not counted. Order: `placement`. Display: U3, the
+Heroes tab (the own block moves here from the capture snapshot).
 
 ### `bg.trinket.records`: Battlegrounds trinkets from records
 

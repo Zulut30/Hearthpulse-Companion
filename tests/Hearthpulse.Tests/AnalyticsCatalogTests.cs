@@ -16,6 +16,37 @@ public sealed partial class AnalyticsCatalogTests
     // names its line, its interval, the number its rows are ordered by and how it is withdrawn.
     private static readonly string[] RecordText = ["title", "line", "statistics", "rankable", "withdrawal"];
 
+    // Task contract K5: the twelve record views of wave 2, the metric each computes, its line, and whether its data counts
+    // the rows under the threshold in `suppressed`. A package of wave 2 switches its block (status, rulesVersion, api) and
+    // its status line; these pairs do not move, so a metric or its view cannot drop out of the catalog unseen.
+    private static readonly (string View, string Metric, string Line, bool Suppressed)[] K5 =
+    [
+        ("constructed-mulligan", "mulligan.card", "constructed", true),
+        ("constructed-archetypes", "constructed.archetype", "constructed", true),
+        ("constructed-classes", "constructed.class", "constructed", false),
+        ("constructed-matchups", "constructed.matchup", "constructed", true),
+        ("constructed-decks", "constructed.deck", "constructed", true),
+        ("constructed-cards", "constructed.card", "constructed", false),
+        ("constructed-choices", "constructed.choice", "constructed", false),
+        ("bg-heroes", "bg.hero.records", "battlegrounds", true),
+        ("bg-trinkets", "bg.trinket.records", "battlegrounds", true),
+        ("bg-comps", "bg.comp.records", "battlegrounds", true),
+        ("bg-tierups", "bg.tierup.records", "battlegrounds", false),
+        ("arena-classes", "arena.class.runs", "arena", true),
+    ];
+
+    // ADR 0014: game records are the main path. Where a capture metric and a record metric describe one product, the
+    // capture metric names the record metric in mainPath.
+    private static readonly (string Capture, string Record)[] MainPaths =
+    [
+        ("arena.run.wins", "arena.class.runs"),
+        ("bg.build.final_board", "bg.comp.records"),
+        ("bg.hero.offer_pick_placement", "bg.hero.records"),
+        ("bg.trinket.offer_pick", "bg.trinket.records"),
+        ("mulligan.keep", "mulligan.card"),
+        ("results.by_class", "constructed.class"),
+    ];
+
     private static JsonDocument Catalog() =>
         JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoFiles.Root, "docs", "analytics-metrics.json")));
 
@@ -87,6 +118,36 @@ public sealed partial class AnalyticsCatalogTests
         Assert.Equal("heroes", Text(hero, "area"));
         Assert.Equal(new[] { "offers", "outcome" }, hero.GetProperty("eligibility").EnumerateArray().Select(e => e.GetString()));
         Assert.Equal(new[] { "start.build" }, hero.GetProperty("groupBy").EnumerateArray().Select(e => e.GetString()));
+    }
+
+    // The Patch rule of the page: a metric over source captures groups by start.build, builds never merged. A metric over
+    // game records reads record and derived fields only: a view groups by balance patch, mull-pairs-1 by neither.
+    [Fact]
+    public void Every_metric_over_source_captures_groups_by_build()
+    {
+        using var doc = Catalog();
+        var ungrouped = doc.RootElement.GetProperty("metrics").EnumerateArray()
+            .Where(m => !Strings(m, "fields").All(f => f.StartsWith("record.", StringComparison.Ordinal) || f.StartsWith("derived.", StringComparison.Ordinal)))
+            .Where(m => !Strings(m, "groupBy").Contains("start.build"))
+            .Select(m => Text(m, "id"));
+        Assert.Empty(ungrouped);
+    }
+
+    // One product, one main path (ADR 0014): a later package that finds a capture metric of a product computed from game
+    // records learns from mainPath which definition the screens use.
+    [Fact]
+    public void A_capture_metric_of_a_product_computed_from_game_records_names_that_metric_as_its_main_path()
+    {
+        using var doc = Catalog();
+        var metrics = doc.RootElement.GetProperty("metrics").EnumerateArray().ToDictionary(m => Text(m, "id"), m => m, StringComparer.Ordinal);
+        var named = metrics.Values.Where(m => m.TryGetProperty("mainPath", out _))
+            .Select(m => (Capture: Text(m, "id"), Record: Text(m, "mainPath"))).OrderBy(p => p.Capture, StringComparer.Ordinal);
+        Assert.Equal(MainPaths, named);
+        foreach (var (capture, record) in MainPaths)
+        {
+            Assert.False(metrics[capture].TryGetProperty("view", out _), $"{capture}: a record view names no main path, it is one");
+            Assert.True(metrics[record].TryGetProperty("view", out _), $"{capture}: its main path {record} is not a record view");
+        }
     }
 
     // The rule, not a list of ids: a package of wave 2 switches its own block (status, rulesVersion, api) and nothing here.
@@ -184,6 +245,52 @@ public sealed partial class AnalyticsCatalogTests
         Assert.NotEmpty(views);
     }
 
+    // AC8: the catalog defines every view of K5 for its metric and line. Removing a metric, or only its view, fails here
+    // instead of when the package of that view finds no block to switch.
+    [Fact]
+    public void The_catalog_defines_exactly_the_twelve_record_views_of_contract_K5()
+    {
+        using var doc = Catalog();
+        var views = doc.RootElement.GetProperty("metrics").EnumerateArray().Where(m => m.TryGetProperty("view", out _))
+            .Select(m => (View: Text(m, "view"), Metric: Text(m, "id"), Line: Text(m, "line"))).OrderBy(v => v.View, StringComparer.Ordinal);
+        Assert.Equal(K5.Select(k => (k.View, k.Metric, k.Line)).OrderBy(v => v.View, StringComparer.Ordinal).ToArray(), views);
+    }
+
+    // The small-sample rule of each view as the pool computes it (A0's stats.totals and stats.rows): a slice under 5
+    // installations publishes nothing, each number needs 5 installations of its own denominator, and a row under the
+    // threshold counts in suppressed only where the view's data has that field (K5).
+    [Fact]
+    public void Every_record_view_states_its_slice_floor_its_number_floor_and_whether_it_counts_suppressed_rows()
+    {
+        using var doc = Catalog();
+        var metrics = doc.RootElement.GetProperty("metrics").EnumerateArray().ToDictionary(m => Text(m, "id"), m => m, StringComparer.Ordinal);
+        foreach (var (_, id, _, suppressed) in K5)
+        {
+            string rule = Text(metrics[id], "smallSample");
+            Assert.Contains("a slice under 5 installations publishes nothing", rule, StringComparison.Ordinal);
+            Assert.Matches(NumberFloor(), rule);
+            Assert.Contains(suppressed ? "counts in suppressed" : "has no suppressed count", rule, StringComparison.Ordinal);
+            Assert.DoesNotContain(suppressed ? "has no suppressed count" : "counts in suppressed", rule, StringComparison.Ordinal);
+        }
+        // Decision 19: the hero cross-check of the two paths meets different floors of the pick share.
+        Assert.Contains("bg-hero-1", Text(metrics["bg.hero.records"], "smallSample"), StringComparison.Ordinal);
+    }
+
+    // Decision 13 and Q5 of the task card: a deck list is published from 50 games of 5 installations. The catalog names
+    // the threshold as the pool does (THRESHOLDS.minDeckGames in server/pool/node/records/stats.mjs), and the deck metric's
+    // own rule carries the number, not only the page.
+    [Fact]
+    public void A_deck_list_is_published_from_50_games_in_the_rule_of_the_deck_metric()
+    {
+        using var doc = Catalog();
+        int minDeckGames = doc.RootElement.GetProperty("records").GetProperty("thresholds").GetProperty("minDeckGames").GetInt32();
+        Assert.Equal(50, minDeckGames);
+        var deck = Assert.Single(doc.RootElement.GetProperty("metrics").EnumerateArray(), m => Text(m, "id") == "constructed.deck");
+        string rule = Text(deck, "smallSample");
+        Assert.Contains($"{minDeckGames} games", rule, StringComparison.Ordinal);
+        Assert.Contains("minDeckGames", rule, StringComparison.Ordinal);
+    }
+
     // AC8: a view the pool loads computes an implemented metric with the same rules version, and a metric without its
     // view is defined. The loader checks the same at start; this keeps the catalog from claiming a view nobody wrote.
     [Fact]
@@ -226,7 +333,10 @@ public sealed partial class AnalyticsCatalogTests
         // The floor of every published number (docs/analytics-api.md): 5 installations, then 10 for a value.
         Assert.Equal(5, thresholds.GetProperty("minInstalls").GetInt32());
         Assert.Equal(10, thresholds.GetProperty("minGames").GetInt32());
-        Assert.Contains($"{thresholds.GetProperty("deckMinGames").GetInt32()} games", page, StringComparison.Ordinal);
+        Assert.Contains($"{thresholds.GetProperty("minDeckGames").GetInt32()} games", page, StringComparison.Ordinal);
+        // A slice under the installation floor publishes nothing (A0's stats.totals): the same answer as a slice nobody played.
+        Assert.Contains("publishes nothing", Text(records, "thresholdRule"), StringComparison.Ordinal);
+        Assert.Contains("publishes nothing", page, StringComparison.Ordinal);
         Assert.Contains($"last {records.GetProperty("readDays").GetInt32()} days", page, StringComparison.Ordinal);
         foreach (var slice in records.GetProperty("slices").EnumerateObject())
             foreach (var value in slice.Value.EnumerateArray())
@@ -254,6 +364,24 @@ public sealed partial class AnalyticsCatalogTests
         }
     }
 
+    // A package of wave 2 switches its JSON block and the status line of its section together.
+    [Fact]
+    public void The_status_line_of_every_record_metric_on_the_page_is_its_status_in_the_json()
+    {
+        using var doc = Catalog();
+        string page = Page();
+        foreach (var metric in doc.RootElement.GetProperty("metrics").EnumerateArray().Where(m => m.TryGetProperty("view", out _)))
+        {
+            string id = Text(metric, "id");
+            int start = page.IndexOf("### `" + id + "`", StringComparison.Ordinal);
+            Assert.True(start >= 0, $"{id}: no section on the page");
+            int end = page.IndexOf("\n#", start + 1, StringComparison.Ordinal);
+            var status = StatusLine().Match(end < 0 ? page[start..] : page[start..end]);
+            Assert.True(status.Success, $"{id}: no Status line in its section");
+            Assert.Equal(Text(metric, "status"), status.Groups["status"].Value);
+        }
+    }
+
     private static string Text(JsonElement element, string name) => element.GetProperty(name).GetString() ?? "";
 
     private static string[] Strings(JsonElement element, string name) =>
@@ -264,6 +392,14 @@ public sealed partial class AnalyticsCatalogTests
     // A view's key is the segment of its route: lower-case words joined by hyphens (task contract K2).
     [GeneratedRegex("^[a-z]+(-[a-z]+)*$")]
     private static partial Regex ViewKey();
+
+    // "Status: defined." at the start of a line of a metric's section.
+    [GeneratedRegex(@"^Status: (?<status>[a-z_]+)\b", RegexOptions.Multiline)]
+    private static partial Regex StatusLine();
+
+    // "each number needs 5 installations among the games of its own denominator" and its variants (records, runs, their).
+    [GeneratedRegex(@"5 installations among the (games|records|runs) of (its|their) own denominator")]
+    private static partial Regex NumberFloor();
 
     // export const key = 'constructed-mulligan'; (single, double or back quotes, no interpolation)
     [GeneratedRegex("""export\s+const\s+(?<name>key|metric|rules)\s*=\s*(?<q>['"`])(?<value>[^'"`$\\]+)\k<q>""")]

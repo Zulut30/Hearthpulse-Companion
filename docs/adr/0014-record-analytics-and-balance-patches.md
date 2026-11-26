@@ -1,6 +1,7 @@
 # Our own statistics come from game records, grouped by balance patch
 
-Status: accepted, 2026-11-26 (TASK-2026-11-26-pro-collection, A2; the owner's answers to Q1 and Q6).
+Status: accepted, 2026-11-26 (TASK-2026-11-26-pro-collection, A2). Q6 is the owner's answer; Q1 is the gap analysis's
+recommendation, taken until the owner says otherwise (task card, 2026-11-26).
 
 Three pipelines fed our own numbers: shared games (`/v1/games`), game records (`/v1/events`) and source captures
 (`/v1/captures/*`). None of them had the build, the rating and the five-installation floor together, and the
@@ -9,10 +10,13 @@ production pool held no Battlegrounds capture at all (the task's gap analysis, 2
 **Game records are the main path** (Q1). Every product we compute — the Constructed tier list, classes, matchups,
 decks, cards, the mulligan guide and choices; Battlegrounds heroes, trinkets, comps and tier-ups; Arena classes — is a
 view over game records, computed by the Node pool (`server/pool/node/records/`) and served at
-`GET /stats/v2/analytics/records/<view>`. The fields are in the record already, each record carries its installation
-(the floor of five installations works), a forget already deletes them, and `mulligan.pair_winrate` set the
-precedent. Source captures stay the audited path: for the Arena draft, and for one metric computed both ways
-(`bg.hero.offer_pick_placement` against `bg.hero.records`).
+`GET /stats/v2/analytics/records/<view>`. Most fields are in the record already (the build, the Diamond 4–1 band, the
+final comp and the Arena run summary are added by this task), each record carries its installation (the floor of
+five installations works), a forget already deletes them, and `mulligan.pair_winrate` set the precedent. Source
+captures stay the audited path: for the Arena draft, and for one metric computed both ways
+(`bg.hero.offer_pick_placement` against `bg.hero.records`). The capture metrics planned for the same products as
+record views (results by class, trinkets, final boards, run wins, the mulligan) name their record metric as the main
+path (`mainPath` in the catalog) and have no screen.
 
 **Windows follow the balance patch** (Q6). `server/pool/data/balance-patches.json` lists, for each line
 (Constructed, Battlegrounds, Arena), the first build of every balance patch; the builds up to the next entry are one
