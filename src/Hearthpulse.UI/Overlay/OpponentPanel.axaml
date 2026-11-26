@@ -25,7 +25,9 @@
                     </Border>
                     <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="{Binding OpponentTitle}" Classes="headerTitle" />
-                        <TextBlock Text="{Binding OpponentSubtitle}" Classes="headerNote" />
+                        <!-- Class and rank; none when the class heads the panel and no rank is known, so the title sits by the portrait -->
+                        <TextBlock Text="{Binding OpponentSubtitle}" Classes="headerNote"
+                                   IsVisible="{Binding OpponentSubtitle, Converter={StaticResource Truthy}}" />
                     </StackPanel>
                 </Grid>
             </Border>
