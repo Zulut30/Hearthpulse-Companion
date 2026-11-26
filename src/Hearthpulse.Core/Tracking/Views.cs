@@ -472,6 +472,13 @@ public sealed record GameOutcome(string Mode, string Result, int Placement, int?
     /// <summary>The local player's Discover-style picks of a Constructed game watched live; empty otherwise.</summary>
     public IReadOnlyList<ConstructedPick> ConstructedPicks { get; init; } = [];
 
+    /// <summary>
+    /// The game ended before the app started and was found while catching up with the log; raised once, when it is first
+    /// saved. It has none of the parts seen live (<see cref="Details"/>, <see cref="OfferedHeroes"/>), does not count in
+    /// this session's results and shows no toast; uploads read it from its history row.
+    /// </summary>
+    public bool Recovered { get; init; }
+
     public int? RatingDelta => RatingBefore is { } b && RatingAfter is { } a ? a - b : null;
 }
 

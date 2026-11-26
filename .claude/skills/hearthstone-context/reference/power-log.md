@@ -33,7 +33,23 @@ the body is trimmed, indentation only expresses nesting. Methods handled:
 | `DebugPrintEntitiesChosen` | the pick that was made |
 
 `PowerTaskList.*` lines (the client's on-screen replay) are not parsed except one signal:
-`Entity=GameEntity tag=BOARD_VISUAL_STATE value=2` = combat is on screen (Battlegrounds).
+`Entity=GameEntity tag=BOARD_VISUAL_STATE value=2` = combat is on screen (Battlegrounds). Lines that are not GameState
+prints are also checked for the spectator markers (below).
+
+## Spectator mode (not confirmed by a real log)
+
+Watching a friend's game is marked by lines of their own, not `GameState.` prints: one holding `Begin Spectating` or
+`Start Spectator` when it starts, one holding `End Spectator` when it ends; every game in between is the watched
+player's. The words come from the log format as described for spectator mode, not from a kept log: none of
+`D:\Hearthstone\Logs` had one (checked 2026-11-26), so the exact line (prefix, decoration, order against
+`CREATE_GAME`) is unknown. Check the first real spectator log against `PowerParser.SpectatorMarkerOf`.
+
+- `PowerParser.SpectatorMarkerOf`: "Spectat" in a line `PowerLine.TrySplit` rejected, then the three markers; a line
+  holding `DebugPrint` never counts (player and card names in game prints may hold the words).
+- `PowerParser.Spectating` outlives `CREATE_GAME`: each new game takes it as `GameState.IsSpectated`. A marker after
+  `CREATE_GAME` marks the game in progress, unless it was already over for us (our PLAYSTATE is set).
+- Such a game is never recorded (`docs/local-data.md`). Joining a log at its last game, `LogTail` feeds the nearest
+  earlier marker first (at most `LogTail.SpectatorLookBehind`, 32 MB, back).
 
 ## DebugPrintPower bodies (as in `tests/Hearthpulse.Tests/ParserTests.cs`)
 
