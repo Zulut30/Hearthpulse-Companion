@@ -7,9 +7,11 @@ public sealed class SourceCaptureRecord
 {
     /// <summary>
     /// The wire version new observations are written in. A spooled capture keeps the version it started with. v3 = v2 plus
-    /// the <c>bg_combat</c> record (<see cref="SourceCaptureCombat"/>).
+    /// the <c>bg_combat</c> record (<see cref="SourceCaptureCombat"/>); v4 = v3 where a gap is only a real loss: what the
+    /// format leaves out on purpose is not counted, an OTHER block is no unsupported observation and a Battlegrounds game
+    /// has no <c>combat_view</c> gap (docs/source-capture.md, "Source v4").
     /// </summary>
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     internal SourceCaptureRecord(int seq, string kind, int turn, string side, int entity, string? card, int target, object data, int v = CurrentVersion)
     {

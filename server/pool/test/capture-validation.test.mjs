@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { record, start, end, choice, jsonl } from './capture-fixture.mjs';
-import { validRecord, records, inflate, MiB, streamState, addRecords } from '../node/validation.mjs';
+import { validRecord, records, inflate, MiB, streamState, addRecords, finishStream } from '../node/validation.mjs';
 import { gzipSync } from 'node:zlib';
 
 test('intake agrees with decoder on partial outcomes framing and choice progression', () => {
@@ -87,7 +87,7 @@ test('source v2 lines: contract fields accepted, v2 fields never valid in v1, un
     c2(), c2('general'), c2('other'), combat, v2(end()), v2(record(1, 'gap', { reason: 'late_attach', count: 1 }))]) assert.equal(validRecord(ok), true, JSON.stringify(ok));
   for (const bad of [s2({ format: 'standard2' }), s2({ mode: 'bg' }), s2({ mode: 'arena' }), s2({ format: null, arena: 'normal' }),
     s2({ mode: 'arena', format: null, arena: 'heroic' }), v2(start()), c2('discover'), v2(choice()),
-    { ...start(), data: { ...start().data, format: null, arena: null } }, { ...c2(), v: 1 }, { ...combat, v: 1 }, { ...s2(), v: 4 }])
+    { ...start(), data: { ...start().data, format: null, arena: null } }, { ...c2(), v: 1 }, { ...combat, v: 1 }, { ...s2(), v: 5 }])
     assert.equal(validRecord(bad), false, JSON.stringify(bad));
   assert.throws(() => records(jsonl([start(), v2(end(1))])), e => e.code === 'mixed_source_version');
   assert.throws(() => addRecords(streamState(), [s2(), { ...combat }]), e => e.code === 'invalid_combat_view');
@@ -96,4 +96,31 @@ test('source v2 lines: contract fields accepted, v2 fields never valid in v1, un
   addRecords(streamState(), [bg, combat]);
   assert.throws(() => addRecords(streamState(), [bg, v2(record(1, 'tag', { tag: 'TURN', value: 1 }, { turn: 1 })), { ...combat, seq: 2, turn: 1 }]), e => e.code === 'invalid_combat_view');
   assert.throws(() => addRecords(streamState(), [bg, { ...combat, data: { reason: 'combat_view', count: 2 } }]), e => e.code === 'invalid_combat_view');
+});
+
+// Source v4 (TASK-2026-11-26-pro-collection P1): a gap is a real loss, the same rules as the decoder (source-v2.1).
+test('source v4: no combat_view, an OTHER block is no unsupported observation, a clean game commits as complete', () => {
+  const at = (v, r) => ({ ...r, v });
+  const begin = (v, mode) => at(v, record(0, 'start', { captureKind: 'game', mode, day: 1, build: 7, format: mode === 'ranked' ? 'standard' : null, arena: null }));
+  const finish = (v, seq, data) => at(v, end(seq, { placement: null, ...data }));
+  const manifestOf = (v, mode, captureStatus, gaps = 0) => ({ captureKind: 'game', mode, day: 1, sourceVersion: v, captureStatus, gaps });
+  const close = (rows, m) => { const state = streamState(); addRecords(state, rows); finishStream(state, m); };
+  const view = v => at(v, record(1, 'gap', { reason: 'combat_view', count: 1 }));
+  assert.equal(validRecord(begin(4, 'bg')), true);
+  assert.equal(validRecord(view(4)), false);
+  assert.equal(validRecord(view(3)), true);
+
+  // A Battlegrounds game without a loss: complete in v4; in v3 it still needs its combat_view gap.
+  const bg = v => [begin(v, 'bg'), finish(v, 1, { result: 'L', placement: 3 })];
+  close(bg(4), manifestOf(4, 'bg', 'complete'));
+  assert.throws(() => close(bg(3), manifestOf(3, 'bg', 'complete')), e => e.code === 'invalid_combat_view');
+  close([begin(3, 'bg'), view(3), finish(3, 2, { status: 'incomplete', result: 'L', placement: 3 })], manifestOf(3, 'bg', 'incomplete', 1));
+
+  // An OTHER block keeps its contents and is no loss in v4; in v3 a complete manifest with one is refused.
+  const other = v => [begin(v, 'ranked'), at(v, record(1, 'block_start', { block: 'OTHER' })), at(v, record(2, 'block_end', { block: 'OTHER' })), finish(v, 3, { result: 'W' })];
+  close(other(4), manifestOf(4, 'ranked', 'complete'));
+  assert.throws(() => close(other(3), manifestOf(3, 'ranked', 'complete')), e => e.code === 'incomplete_stream');
+  // An unknown action stays unsupported in v4.
+  const unknown = [begin(4, 'ranked'), at(4, record(1, 'action', { action: 'unknown', cost: null }, { side: 'local' })), finish(4, 2, { result: 'W' })];
+  assert.throws(() => close(unknown, manifestOf(4, 'ranked', 'complete')), e => e.code === 'incomplete_stream');
 });

@@ -73,7 +73,8 @@ public sealed partial class PowerParser
             _chosenIsLocal = game.LocalPlayer?.Name == header.Groups["player"].Value;
             if (_chosenIsLocal)
             {
-                foreach (var listener in _listeners) listener.OnChoiceMade(game);
+                var count = int.TryParse(header.Groups["count"].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : -1;
+                foreach (var listener in _listeners) listener.OnChoiceMade(game, count);
             }
 
             return;

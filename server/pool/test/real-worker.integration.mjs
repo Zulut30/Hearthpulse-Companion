@@ -99,7 +99,7 @@ test('AC18 real dotnet worker v2: BG hero pick and place reach facts and the sna
   assert.equal(row.status, 'partial');
   const result = JSON.parse(row.derived);
   assert.equal(result.v, 2);
-  assert.equal(result.parserVersion, 'source-v2.0');
+  assert.equal(result.parserVersion, 'source-v2.1');
   assert.equal(result.sourceVersion, 2);
   assert.equal(result.summary.completeForAggregation, false);
   assert.deepEqual(result.eligibility, { outcome: true, offers: true, reasons: [] });

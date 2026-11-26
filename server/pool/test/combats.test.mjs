@@ -199,6 +199,26 @@ test('bg_combat: a committed v3 game keeps its fights; v2 lines and a bad fight 
   for (const secret of [ID.iid, ID.generation, ID.captureId, stored[0].capture]) assert.equal(text.includes(secret), false);
 });
 
+test('source v4: a Battlegrounds game without a loss commits as complete with its fights; a combat_view line is refused', async t => {
+  const f = await setup(t);
+  const v4 = r => ({ ...r, v: 4 });
+  const rows = [v4(bgStart()), v4(combat(1, fight(0))), v4(combat(2, fight(1))),
+    v4(record(3, 'end', { status: 'complete', result: 'L', placement: 4, reason: 'normal' }, { turn: 9 }))];
+  const c = chunk(jsonl(rows));
+  assert.equal((await f.post('chunks', c)).status, 201);
+  assert.equal((await f.post('complete', manifest([c], { mode: 'bg', sourceVersion: 4, captureStatus: 'complete', gaps: 0 }))).status, 202);
+  assert.equal(count(f.pool), 2);
+  // v4 has no structural gap: a combat_view line is an invalid record, and a v3 game still needs one.
+  const other = { ...ID, captureId: '4'.repeat(32) };
+  const withView = [rows[0], v4(combatView(1)), ...rows.slice(1).map(r => ({ ...r, seq: r.seq + 1 }))];
+  assert.equal((await f.post('chunks', chunk(jsonl(withView), 0, other))).status, 400);
+  const third = { ...ID, captureId: '5'.repeat(32) };
+  const v3 = rows.map(r => ({ ...r, v: 3 }));
+  const c3 = chunk(jsonl(v3), 0, third);
+  assert.equal((await f.post('chunks', c3)).status, 201);
+  assert.equal((await f.post('complete', manifest([c3], { mode: 'bg', sourceVersion: 3, captureStatus: 'complete', gaps: 0 }, third))).status, 400);
+});
+
 test('bg_combat: forget and expiry take the fights with the capture; a full metadata budget asks to retry', async t => {
   const f = await setup(t, { operatorToken: TOKEN });
   assert.equal((await commit(f, game([fight(0), fight(1)]))).status, 202);

@@ -395,7 +395,7 @@ public sealed class SourceCaptureCombatTests : IDisposable
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
         var result = await new SourceCaptureParser().ParseAsync(stream);
-        Assert.Equal(3, result.SourceVersion);
+        Assert.Equal(SourceCaptureRecord.CurrentVersion, result.SourceVersion);
         var events = result.Events.Where(e => e.Kind == "bg_combat").ToArray();
         Assert.Equal(2, events.Length);
         Assert.All(events, e => Assert.Equal("{}", e.Data.GetRawText()));

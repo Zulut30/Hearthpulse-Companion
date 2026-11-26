@@ -16,7 +16,11 @@ the token on a command line), then `node server/pool/node/export-combats.mjs --o
 route `/v1/captures/combats/export`, refused by nginx). The export file is a working copy only on this host or the
 owner's PC, moved over SSH, never committed, put on a cloud drive or given to anyone, and deleted after the measurement
 and no later than 180 days from the `day` of its rows (`simcover --pool` ignores older rows). Deploy this before an app
-that writes source v3 is released, and update the site's privacy policy first (docs/source-capture.md). Tests:
+that writes source v3 is released, and update the site's privacy policy first (docs/source-capture.md). Source v4
+([docs/source-capture.md](../../docs/source-capture.md) "Source v4": a gap is a real loss) needs no migration: the
+intake takes v4 lines with no `combat_view` gap and does not count an `OTHER` block as unsupported. Deploy it, with the
+worker `source-v2.1`, before an app that writes v4 is released; an app meeting an older pool sends its journals as v3
+until it restarts. Tests:
 `npm test` here (the same `node --test server/pool/test/*.test.mjs` as CI).
 
 A small Cloudflare Worker that collects the Battlegrounds games players choose to share and serves the totals:

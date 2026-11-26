@@ -22,15 +22,18 @@ replay of the displayed combat. All records of a capture share one version, reco
 capture spooled by an older app is finished and sent as v1 unchanged. Contract details: the
 [CLI contract](../tools/Hearthpulse.SourceWorker/README.md#source-v2-and-result-v2).
 
-Source v3 (current recorder, 2026-11-19) is v2 plus one record kind, `bg_combat`: the fights of a Battlegrounds game
-(below). A v1/v2 line of that kind is invalid; everything else reads as v2.
+Source v3 (2026-11-19) is v2 plus one record kind, `bg_combat`: the fights of a Battlegrounds game (below). A v1/v2
+line of that kind is invalid; everything else reads as v2.
+
+Source v4 (current recorder, 2026-11-26) is v3 in which a gap is only a real loss: the same record kinds and fields,
+far fewer gap records, and no `combat_view` gap (["Source v4"](#source-v4-a-gap-is-a-real-loss) below).
 
 There is no player name, BattleTag, account id, deck name, chat, authentication/network log or machine path in the
 wire format. Other players' hidden cards, shop or future post-game reveals are not a source. References across
 opponent conceal/reveal boundaries must be renewed so an entity cannot track a hidden shuffled card.
 
 Capture is a typed safety boundary. Unknown or unavailable observations produce a gap/partial state rather than
-an arbitrary string payload or an invented zero. A newly supported semantic interpretation can reuse saved source;
+an arbitrary string payload or an invented zero; known log grammar the format leaves out on purpose is neither (v4). A newly supported semantic interpretation can reuse saved source;
 a new capture field or source sometimes needs a client update. The v1 allowlist does not imply coverage of every
 Hearthstone mechanic or a guarantee of complete data from every installation.
 
@@ -114,8 +117,8 @@ step by step after the game (`simreplay --pool`). Same switch as the rest of the
   checked by both test suites (`SourceCaptureCombatTests`, `SourceCaptureCombatTranscriptTests`, `combats.test.mjs`). A
   new tribe, keyword or mechanic bit, marker, card value, player counter or transcript step changes all three
   (`The_wire_lists_are_the_ones_the_simulator_reads` fails first).
-- **Decoder.** Reads v3; a `bg_combat` adds no fact and no gap, its event keeps no data. Parser version unchanged
-  (`source-v2.0`): v1/v2 sources decode as before.
+- **Decoder.** Reads v3 and v4; a `bg_combat` adds no fact and no gap, its event keeps no data. v3 kept the parser
+  version (`source-v2.0`); v4 brought `source-v2.1`, which decodes v1–v3 sources as before.
 - **Pool.** On the manifest commit the fights go to table `bg_combats` (migration `0010_bg_combats.sql`) in the same
   transaction, or the commit answers 503 to retry under storage pressure. They leave with their capture: expiry (the
   archive retention, 180 days), forget of the generation, deletion. Nothing is published from them; `/healthz` shows a
@@ -163,6 +166,62 @@ step by step after the game (`simreplay --pool`). Same switch as the rest of the
   > BattleTag, аккаунты. Цель — проверять точность симулятора: бои не публикуются и не сопоставляются с профилями
   > hearthpulse.net, с боями других установок из того же лобби или с чужими записями и видео. Хранятся и удаляются
   > вместе с журналом (до 180 дней, при выключении отправки).»
+
+## Source v4: a gap is a real loss
+
+Up to v3 the recorder counted every Power.log line and value it did not type as an `unsupported` gap. On the kept logs
+of 24–25.11.2026 (10 Ranked games, `Hearthpulse.Bench capture`) that was 12 244 gap records, 46 % of the records,
+about 1 200 a game, and every game ended `incomplete`; the pool saw the same (63 captures, all `partial`, 111 580
+`unsupported` gaps, 2026-11-26). Nine tenths were lines the format never meant to carry. Since v4
+(TASK-2026-11-26-pro-collection, P1) a capture is `partial` only when something was lost: a stretch of the game not
+seen (late start, log rotation, shutdown), a bound reached (`limit`), an observation that could not be typed
+(`unsupported`, `invalid`) or one that never became visible (`source_missing`).
+
+Left out on purpose, neither recorded nor counted (`SourceCaptureRecorder.Input.cs`, `SourceCaptureRecorder.cs`):
+
+| In Power.log | Why the format does not need it |
+|---|---|
+| `GameState.DebugPrintOptions` (the option lists), `SendOption`, `SendChoices`, `OnEntityChoices ... queued` | what the player could do or sent; what happened arrives as Power lines and chosen entities |
+| `DebugPrintPowerList` (`Count=`) | the header of a batch of Power lines |
+| `META_DATA` with its `Info[n]` lines; `SUB_SPELL_START` with `Source`/`Targets[n]`, `SUB_SPELL_END` | display metadata and effects; the state they show arrives as tag changes |
+| `SHUFFLE_DECK`, `CACHED_TAG_FOR_DORMANT_CHANGE` | the order of a hidden deck; tags the client keeps for a dormant minion |
+| tag `STEP` (no longer in the recorder's allowlist) | the phase is logged as a name and no metric reads it; `TURN` carries the turn |
+| `PROPOSED_ATTACKER`/`PROPOSED_DEFENDER` | the attack is its `ATTACK` block; v1–v3 wrote an `unknown` action and a gap for each |
+| a `PLAY` block from a card the action list does not name (a location used from play) | the block with its source is the observation; v1–v3 added an `unknown` action |
+| a block type outside the list (the `DECK_ACTION` of a trade, ...) | written as `OTHER` with its contents, which are kept; only the type is left out |
+
+Unknown Power.log grammar stays an `unsupported` gap: the recorder cannot claim a game complete when the client wrote
+something it does not know.
+
+A Battlegrounds game has no `combat_view` gap in v4. Every Battlegrounds source is the Power state, which runs ahead of
+the displayed combat; this section says so for all of them instead of counting a loss in each. A Battlegrounds game
+without a loss is `parsed` and complete for aggregation; the per-metric eligibility of [ADR 0013](adr/0013-per-metric-eligibility.md)
+is unchanged (its amendment of 2026-11-26).
+
+A local choice resolved with no card (`DebugPrintEntitiesChosen ... EntitiesCount=0`, a mulligan keeping every card)
+is written as resolved with an empty `picked`; before, it stayed open and made the game `partial` without a gap.
+
+On the same 10 games v4 writes 1 gap record (a game cut by the end of its log: `shutdown`) and 13 928 records instead
+of 26 395; 9 games are `parsed`, the cut one `partial`.
+
+- **Decoder** (`source-v2.1`): reads v1–v4 and decodes v1–v3 exactly as `source-v2.0` did. In v4 an `OTHER` block is
+  no unsupported observation and a `combat_view` gap is invalid. An `unknown` action and an unknown record kind stay
+  unsupported in every version.
+- **Pool**: takes v4 lines and manifests with the same two rules (`validation.mjs`). The worker-result rule (`partial`
+  when there are gaps or unsupported observations, `archive.mjs`) is unchanged.
+- **Old captures** keep their status: the 63 v2 captures of 2026-11-26 stay `partial`, since their gaps cannot be told
+  apart after the fact; reprocessing them with `source-v2.1` gives the same result.
+- **Order of deployment**: pool and worker before an app writing v4. A pool without v4 refuses a v4 line (`400
+  invalid_record`); the app then sends that journal and the next ones one version older until it restarts
+  (`SourceCaptureQueue.Downgrade.cs`, log line `Source capture: the pool does not take source v4 yet, journals go as v3
+  until the app restarts`): as v3 with the `combat_view` gap put back and the end sealed incomplete where v3 counts a
+  loss (that gap, an `OTHER` block), fights kept; as v2 without fights when the pool does not take v3 either.
+- **Nothing new leaves the machine**: v4 has the record kinds and fields of v3, in fewer records.
+- **Measure**: `Hearthpulse.Bench capture [--logs <dir>]` replays kept logs through `GameSession` and the worker's
+  parser: per capture the gaps by reason, the decoder's gaps, unsupported count and status, the choices left open.
+- Tests: `SourceCaptureV4Tests` (a whole Ranked game per left-out kind and a whole Battlegrounds game through
+  `GameSession`, `parsed`; unknown grammar still a gap; the decoder's rules; the fallback to v3 and v2),
+  `capture-validation.test.mjs` and `combats.test.mjs` (the pool's rules).
 
 ## Delivery and lifecycle
 
@@ -259,8 +318,9 @@ still preserve actions but cannot enter completed-match result aggregates. A dra
 
 Result v2 (`source-v2.0`) keeps that flag unchanged and adds per-metric eligibility ([ADR 0013](adr/0013-per-metric-eligibility.md)):
 `eligibility.outcome` and `eligibility.offers` with fixed reasons, plus the `facts` they admit (the visible result or
-place; the Battlegrounds hero offer at the moment of the pick). A v2 Battlegrounds game can be fit for the place and
-the hero offer while remaining `partial`; v1 Battlegrounds sources are never fit (`source_v1`). Metric definitions:
+place; the Battlegrounds hero offer at the moment of the pick). A v2/v3 Battlegrounds game can be fit for the place and
+the hero offer while remaining `partial` (its `combat_view` gap); a v4 one without a loss is `parsed`. v1 Battlegrounds
+sources are never fit (`source_v1`). Metric definitions:
 [analytics-metrics.md](analytics-metrics.md).
 
 ## Verification boundaries

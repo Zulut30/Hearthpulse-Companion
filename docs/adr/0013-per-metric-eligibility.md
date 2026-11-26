@@ -30,3 +30,12 @@ can tell it from a real loss. Source v1 cannot: v1 Battlegrounds sources stay un
   stored facts.
 - Each metric in [the catalog](../analytics-metrics.md) names the fitness it requires and its rules version
   (`bg-hero-1` for the first one).
+
+## Amendment, 2026-11-26: source v4
+
+The structural gap described every Battlegrounds source, not a loss in one of them. Source v4
+(TASK-2026-11-26-pro-collection P1, [source-capture.md](../source-capture.md), "Source v4") no longer writes it, and
+a gap in any mode is a real loss: a v4 Battlegrounds game without one is `parsed` and `completeForAggregation`. The
+flag's definition is unchanged (no gaps, no unsupported observations, no unresolved choices, the mode's outcome); what
+changed is that nothing the format leaves out on purpose counts as a gap. The per-metric flags, reasons and checks above
+are unchanged; v2/v3 Battlegrounds sources keep their `combat_view` gap and stay `partial`.
