@@ -17,6 +17,9 @@ public static class LogConfig
         ("Achievements", false),
     ];
 
+    /// <summary>The log sections Hearthpulse asks for: each is a <c>&lt;Section&gt;.log</c> in a log session folder.</summary>
+    internal static IEnumerable<string> Sections => Required.Select(r => r.Section);
+
     /// <summary>
     /// Makes Hearthstone write the logs the tracker needs: the log.config sections and, in client.config, no log size
     /// limit. Writes what it found to the diagnostic log. True when Hearthstone must restart to pick the change up.

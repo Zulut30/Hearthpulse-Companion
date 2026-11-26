@@ -73,15 +73,17 @@
         </Style>
         <!-- The BETA flag on the logo's lower edge (owner's pick E, 2026-11-07): a small outlined tag over the sidebar fill,
              accent capitals; the same in compact, where the wordmark hides -->
+        <Style Selector="Button.betaLink">
+            <Setter Property="Margin" Value="0,0,0,-8" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+        </Style>
         <Style Selector="Border.beta">
             <Setter Property="Background" Value="{StaticResource SidebarFill}" />
             <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="3" />
             <Setter Property="Padding" Value="3,0" />
-            <Setter Property="Margin" Value="0,0,0,-8" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment" Value="Bottom" />
         </Style>
         <Style Selector="Border.beta > TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
@@ -294,9 +296,13 @@
                 <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
                     <Panel Width="42" Height="42">
                         <Image Source="{StaticResource HearthpulseLogo}" />
-                        <Border Name="BetaBadge" Classes="beta" ToolTip.Tip="{i:Loc Main.BetaTip}" AutomationProperties.Name="{i:Loc Main.BetaName}">
-                            <TextBlock Text="{i:Loc Main.Beta}" />
-                        </Border>
+                        <!-- The flag is a button that opens "Report a problem" (roadmap E1, K2); its tip says so -->
+                        <Button Name="BetaLink" Classes="bare betaLink" Click="OnReportProblem" ToolTip.Tip="{i:Loc Main.BetaTip}"
+                                AutomationProperties.Name="{i:Loc Main.BetaReport}">
+                            <Border Name="BetaBadge" Classes="beta">
+                                <TextBlock Text="{i:Loc Main.Beta}" />
+                            </Border>
+                        </Button>
                     </Panel>
                     <TextBlock Name="Wordmark" Classes="h2 wide" Text="Hearthpulse" FontSize="21" Margin="12,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>

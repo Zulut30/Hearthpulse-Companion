@@ -95,6 +95,11 @@ internal static partial class OffscreenRenderer
             await RenderShareAsync(host, folder);
         }
 
+        if (RenderOnly("report"))
+        {
+            await RenderReportProblemAsync(main, view, host, folder);
+        }
+
         if (RenderOnly("sharecards"))
         {
             await RenderShareCardsAsync(host, folder);

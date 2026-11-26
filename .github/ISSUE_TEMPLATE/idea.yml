@@ -1,0 +1,45 @@
+name: Idea / Идея
+description: Something Hearthpulse could do or do better. / Что Hearthpulse мог бы делать или делать лучше.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One idea per issue, please: it is easier to discuss and to track. / Одна идея на issue: так её проще обсудить и отследить.
+
+        Hearthpulse shows only what you can see in the game: it never reveals the opponent's hand or deck. / Hearthpulse показывает только то, что видно в игре: руку и колоду соперника он не раскрывает.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like / Что вы хотите
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: How it helps you in a game / Чем это поможет в игре
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Game mode / Режим игры
+      multiple: true
+      options:
+        - Standard or Wild / Стандартный или Вольный
+        - Twist or Classic / Твист или Классический
+        - Battlegrounds / Поля сражений
+        - Battlegrounds Duos / Поля сражений, дуэты
+        - Arena / Арена
+        - Tavern Brawl / Потасовка
+        - Outside a game (main window, settings) / Вне игры (главное окно, настройки)
+  - type: input
+    id: version
+    attributes:
+      label: Hearthpulse version / Версия Hearthpulse
+      description: Settings → About, for example 0.16.0. / Настройки → О программе, например 0.16.0.
+      placeholder: "0.16.0"
+  - type: textarea
+    id: example
+    attributes:
+      label: Example, sketch or another app that does it / Пример, набросок или приложение, где так сделано
