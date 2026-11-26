@@ -73,6 +73,8 @@ public sealed partial class Fight
             Trace($"{(side.IsOpponent ? "theirs" : "ours")}: teammate enters with {side}");
         }
 
+        // The player who fights now brings their own "Your Undead have +X Attack" (StartFight gave the first board its own).
+        UndeadArmy(side);
         StartSide(side);
         BaselineAuras(side);
         RefreshAuras();

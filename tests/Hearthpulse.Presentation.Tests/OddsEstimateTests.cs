@@ -90,6 +90,36 @@ public sealed class OddsEstimateTests : IDisposable
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void A_duos_second_board_never_seen_is_named_as_left_out_and_a_seen_one_as_last_seen(bool wpf)
+    {
+        // TASK-2026-11-26 P3 Q1: a second board never seen is not in the odds (its estimate holds no minions,
+        // SimInputs.IsUnseenBoard); one seen in an earlier fight is, as last seen. Our side's and the opponent's, ru and en.
+        static EstimatedItem Unseen(string input, bool opponent) => new(input, 0, 0, "not seen yet: the fight has no second board", opponent);
+        static EstimatedItem Seen(string input, bool opponent) => new(input, 4, 3, "the board as last seen on turn 4", opponent);
+
+        Loc.Instance.SetLanguage(Loc.Russian);
+        var model = Model(wpf, View(Odds(estimated: 2), [Unseen(SimInputs.DuosPartnerBoard, false), Unseen(SimInputs.DuosOpponentTeammate, true)]));
+        Assert.Equal(
+            "Шансы с оценкой — эти значения неизвестны точно:\n• Второй борт вашей команды (ещё не виден — шансы без него)\n"
+            + "• Борт напарника соперника (ещё не виден — шансы без него)",
+            (string)model.OddsEstimatedTip);
+
+        model = Model(wpf, View(Odds(estimated: 2), [Seen(SimInputs.DuosPartnerBoard, false), Seen(SimInputs.DuosOpponentTeammate, true)]));
+        Assert.Equal(
+            "Шансы с оценкой — эти значения неизвестны точно:\n• Второй борт вашей команды (последний увиденный)\n• Борт напарника соперника (последний увиденный)",
+            (string)model.OddsEstimatedTip);
+
+        Loc.Instance.SetLanguage(Loc.English);
+        model = Model(wpf, View(Odds(estimated: 2), [Unseen(SimInputs.DuosPartnerBoard, false), Seen(SimInputs.DuosOpponentTeammate, true)]));
+        Assert.Equal(
+            "Odds include estimates — these values aren't known exactly:\n• Your team's second board (not seen yet — odds without it)\n"
+            + "• The opponent teammate's board (last seen)",
+            (string)model.OddsEstimatedTip);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void Estimates_and_unsimulated_effects_show_apart_and_together(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.Russian);

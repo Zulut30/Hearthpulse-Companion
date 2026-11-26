@@ -49,6 +49,10 @@ internal static class Program
                     budget, 95 % half-width of win/tie/loss); --rounds n repeats the timed part
           simcold   combat simulator in a cold process: the --captures fights in game order, quick and background pass,
                     then the same fights warm (one process per measurement; HP_BENCH_WARMUP=1: the warm-up first)
+          simlive   the app's live odds path: the Battlegrounds logs (Power*.log at any depth) replayed through GameSession,
+                    waiting for each fight's background pass: per fight odds on screen, in the combat list and in history;
+                    unreadable lines, Diag errors, log-thread batch times, the Battlegrounds page's accuracy line
+                    (HP_BENCH_LOCALE: card language, default the app's)
           simmatrix combat simulator coverage matrix of the current pool (six statuses) -> docs/bg-sim-matrix.md
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
           theme     warm WPF theme switches Shadow -> Frost -> Tavern -> Shadow (--rounds n)
@@ -149,6 +153,8 @@ internal static class Program
                 return SimPerfBench.Run(options);
             case "simcold":
                 return SimColdBench.Run(options);
+            case "simlive":
+                return SimLiveBench.Run(options);
             case "simmatrix":
                 SimMatrix.Run();
                 break;

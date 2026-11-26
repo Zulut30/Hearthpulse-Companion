@@ -128,6 +128,28 @@ public sealed class DuosCombatTests
     }
 
     [Fact]
+    public void A_teammate_that_enters_gives_the_undead_it_summons_its_undead_attack()
+    {
+        // TASK-2026-11-26 AC5: the second board is its own player's, so "Your Undead have +X Attack this game" is that
+        // player's (SimInputs.UndeadAttackBonus: the Undead Army enchantment its Undead show), as on a first board
+        // (BuddiesAndGapsTests.Undead_summoned_in_combat_get_the_players_undead_attack). Their W kills our first board,
+        // our teammate's Harmless Bonehead comes in and dies to W: its two Skeletons are 1/1 + 5 Attack, and one of them
+        // kills W (1/3) and the other survives.
+        var bonehead = Minion(0, 1, cardId: "BG28_300", tribes: Tribe.Undead, mechanics: CardMechanic.Deathrattle) with
+        {
+            Enchantments = [SimInputs.UndeadArmyEnchantment],
+            EnchantmentValues = [new SimEnchantment(SimInputs.UndeadArmyEnchantment) { Attack = 5 }],
+        };
+        var ours = Side(Minion(0, 1, cardId: "FIRST")) with { Teammate = Side(bonehead) };
+
+        var result = Fight(ours, Side(Minion(1, 3, cardId: "W")), oursFirst: false);
+
+        Assert.Equal(1, result.Outcome);
+        var skeleton = Assert.Single(result.Ours);
+        Assert.Equal((Tokens.SkeletonId, 6, 1), (skeleton.CardId, skeleton.Attack, skeleton.Health));
+    }
+
+    [Fact]
     public void A_teammate_board_holds_at_most_seven_minions()
     {
         var eight = Enumerable.Range(0, 8).Select(i => Minion(1, 1, cardId: "T" + i)).ToArray();

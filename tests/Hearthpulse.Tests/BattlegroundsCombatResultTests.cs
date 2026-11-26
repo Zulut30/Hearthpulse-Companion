@@ -1,3 +1,5 @@
+using Hearthpulse.Core.Power;
+using Hearthpulse.Core.Tracking;
 using static Hearthpulse.Tests.BattlegroundsReplayTests;
 
 namespace Hearthpulse.Tests;
@@ -115,6 +117,46 @@ public sealed class BattlegroundsCombatResultTests
         Assert.Empty(tracker.Combats);
         Assert.DoesNotContain(recorder.Events, e => e.StartsWith("f ", StringComparison.Ordinal));
         Assert.Contains("R 8", recorder.Events);
+    }
+
+    [Fact]
+    public void A_fight_of_two_empty_boards_is_a_sure_tie_on_screen_and_in_its_record()
+    {
+        // TASK-2026-11-26 P3 Q4 (coordinator's decision): no minion on either side, so no attack and no capture at a first
+        // attack; the fight still shows odds - a sure tie, no damage - while the client plays it, and is recorded with them.
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        var tracker = new BattlegroundsTracker();
+        parser.AddListener(tracker);
+        string[] fight =
+        [
+            .. Setup,
+            Game("TURN", 2),
+            Game("BOARD_VISUAL_STATE", 2),
+            Tag(3, "BACON_CURRENT_COMBAT_PLAYER_ID", Opponent),
+            Tag(50, "ZONE", "REMOVEDFROMGAME"), Tag(51, "ZONE", "REMOVEDFROMGAME"), Tag(52, "ZONE", "REMOVEDFROMGAME"),
+            Game("STEP", "MAIN_READY"),
+            Start("TRIGGER", 46),
+            Tag(30, "ZONE", "SETASIDE"),
+            .. Entity(110, "BG20_HERO_102", Bob, "PLAY", "HERO", "HEALTH=30", $"PLAYER_ID={Opponent}"),
+            End,
+            Game("STEP", "MAIN_START"),
+            Game("BOARD_VISUAL_STATE", 1),
+        ];
+        foreach (var body in fight)
+        {
+            parser.Feed("D 12:30:00.0000000 GameState." + body);
+        }
+
+        // The client plays the fight on screen after the server wrote its end (its PowerTaskList replay).
+        parser.Feed("D 12:30:01.0000000 PowerTaskList.DebugPrintPower() -     TAG_CHANGE Entity=GameEntity tag=BOARD_VISUAL_STATE value=2 ");
+        parser.Flush();
+
+        var view = tracker.BuildView(parser.Game!);
+        Assert.True(view.InCombat);
+        Assert.Equal((0.0, 1.0, 0.0), (view.CombatOdds!.Win, view.CombatOdds.Tie, view.CombatOdds.Loss));
+        var combat = Assert.Single(tracker.Combats);
+        Assert.Equal(("Tie", 0, 0, Opponent), (combat.Result, combat.DamageTaken, combat.DamageDealt, combat.OpponentPlayerId));
+        Assert.Equal(1.0, combat.Odds!.Tie);
     }
 
     /// <summary>Turn 1 ends, the combat starts against lobby player 4: our 4/6 against their hero and a 1/2.</summary>
