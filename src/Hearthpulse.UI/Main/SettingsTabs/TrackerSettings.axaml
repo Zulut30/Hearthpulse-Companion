@@ -50,9 +50,12 @@
                           ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolTip}" />
                 <!-- The card pool's two ways in, both off with the switch above: a card in hand (with Ctrl by default) and the
                      player's own Discover. Each radio's Tag is applied in MainView.Settings.cs. The card under the mouse is read
-                     from game memory, Windows only: elsewhere the hover row would do nothing, so it is not shown. -->
+                     from the game client, Windows only: elsewhere the hover row would do nothing, so it is not shown; with
+                     reading the client off (Settings → Data) the row is off too and says so. A Discover comes from the logs. -->
+                <StackPanel Name="CardPoolHoverBlock" IsVisible="{x:Static mem:HearthstoneMemory.IsSupported}"
+                            IsEnabled="{Binding $parent[UserControl].((m:MainViewModel)DataContext).ReadGameMemory}">
                 <Grid Name="CardPoolHoverRow" Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14"
-                      IsEnabled="{Binding #CardPoolSetting.IsChecked}" IsVisible="{x:Static mem:HearthstoneMemory.IsSupported}">
+                      IsEnabled="{Binding #CardPoolSetting.IsChecked}">
                     <TextBlock Text="{i:Loc Settings.Tracker.CardPoolHover}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolHoverTip}" />
                     <Border Classes="segmentBar choice">
                         <WrapPanel>
@@ -68,6 +71,9 @@
                         </WrapPanel>
                     </Border>
                 </Grid>
+                <TextBlock Name="CardPoolHoverOffNote" Text="{i:Loc Settings.Tracker.CardPoolHoverOff}" Classes="caption" TextWrapping="Wrap" Margin="0,-8,0,14"
+                           IsVisible="{Binding $parent[UserControl].((m:MainViewModel)DataContext).GameMemoryOff}" />
+                </StackPanel>
                 <CheckBox Name="CardPoolDiscoverSetting" Classes="switch" Content="{i:Loc Settings.Tracker.CardPoolDiscover}" IsChecked="{Binding CardPoolOnDiscover}"
                           Margin="0,0,0,14" IsEnabled="{Binding #CardPoolSetting.IsChecked}" />
                 <CheckBox Classes="switch" Content="{i:Loc Arena.Settings.Show}" IsChecked="{Binding ShowArenaDraft}" Margin="0,0,0,14"

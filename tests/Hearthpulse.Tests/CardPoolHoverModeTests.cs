@@ -220,6 +220,41 @@ public sealed class CardPoolHoverModeTests : IDisposable
         Assert.Equal(0, Volatile.Read(ref _reads));
     }
 
+    /// <summary>
+    /// AC4 with the "Read data from the game client" switch (P5, AC7): off, Ctrl held over a card with a pool reads nothing
+    /// and shows nothing; turned off while a hovered card's pool shows, the card is forgotten at once and not read again.
+    /// </summary>
+    [Fact]
+    public void With_reading_the_client_off_ctrl_over_a_card_reads_nothing()
+    {
+        StartGame(new AppSettings { ReadGameMemory = false }, "GEN_A");
+        _underMouse = "GEN_A";
+
+        _session.SetCardPoolControl(true);
+        Assert.False(_session.HoverReadsWanted);
+        Assert.False(_session.ReadHover());
+        Publish();
+        Assert.Equal(0, Volatile.Read(ref _reads));
+        Assert.Null(View.CardPool);
+
+        // Reading on again: Ctrl over the card reads it and its pool shows.
+        _session.ApplySettings(new AppSettings());
+        Publish();
+        Assert.True(_session.HoverReadsWanted);
+        Assert.True(_session.ReadHover());
+        Publish();
+        Assert.Equal("GEN_A", View.CardPool?.SourceCardId);
+
+        // Off with Ctrl still held: forgotten at once, no read since.
+        _session.SetGameMemoryEnabled(false);
+        Assert.False(_session.HoverReadsWanted);
+        var reads = Volatile.Read(ref _reads);
+        Assert.False(_session.ReadHover());
+        Publish();
+        Assert.Null(View.CardPool);
+        Assert.Equal(reads, Volatile.Read(ref _reads));
+    }
+
     [Fact]
     public void A_card_with_only_related_cards_opens_no_panel_and_is_not_read_for()
     {

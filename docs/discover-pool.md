@@ -206,8 +206,11 @@ nothing):
 | "When you point at a card in hand": With Ctrl · Always · Off | `CardPoolHover` (`Ctrl`, `Always`, `Off`) | `Ctrl` | Ctrl: only while Ctrl is held over it; Always: on any hover; Off: never |
 | "During a Discover" | `CardPoolOnDiscover` | on | - |
 
-Both rows are disabled (the choice row dimmed) while "Card pool" is off. A settings file from before has neither key and
-reads as `Ctrl` and on, the same as a new install. Ctrl, not Shift (five Shift presses turn on Windows' Sticky Keys) or
+Both rows are disabled (the choice row dimmed) while "Card pool" is off. With "Read data from the game client" off
+(Settings → Data, `AppSettings.ReadGameMemory`, docs/adr/0006) the card under the mouse is never read: the hover row is
+off too, with the line "The card under the mouse is read from the game client, and reading it is off…"; the Discover
+switch stays, a Discover comes from the logs. The hover row is not shown where game memory is not read at all (macOS,
+Linux). A settings file from before has neither key and reads as `Ctrl` and on, the same as a new install. Ctrl, not Shift (five Shift presses turn on Windows' Sticky Keys) or
 Alt (it moves the game window's focus); Ctrl already arms the overlay's panels for moving, and no panel stands over the
 hand.
 
@@ -233,10 +236,11 @@ raises `CardPoolControlChanged` on each change and the host hands it to `GameSes
 pool that the session still has just after Ctrl came up is not shown again (the session forgets the card at once).
 
 **Game memory** is read only while a card in hand could show something and the mode allows it now
-(`GameSession.HoverReadsWanted`): setting on, catalog loaded, a supported mode (Ranked, Casual, Friendly) and format, a
-card with a pool or a "this game" list in your hand, and the hover mode - with Ctrl only while Ctrl is held, never when
-"Off". The read runs on its own thread every 250 ms (`GameSession.HoverInterval`); Ctrl going down wakes it, so the first
-read does not wait out the interval. The thread ends after 10 s without a read. Its read errors do not change the memory
+(`GameSession.HoverReadsWanted`): reading the client on, setting on, catalog loaded, a supported mode (Ranked, Casual,
+Friendly) and format, a card with a pool or a "this game" list in your hand, and the hover mode - with Ctrl only while
+Ctrl is held, never when "Off"; the read itself goes through `GameSession.CanReadClient`. The read runs on its own
+thread every 250 ms (`GameSession.HoverInterval`); Ctrl going down wakes it, so the first read does not wait out the
+interval. Turning reading off forgets the card read before. The thread ends after 10 s without a read. Its read errors do not change the memory
 status shown in the app. Cards on the board and the opponent's cards show nothing.
 
 The compact panel lets clicks through to the game on every desktop but for its "All cards · N" button, the one part

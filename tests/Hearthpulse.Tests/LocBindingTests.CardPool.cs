@@ -99,7 +99,7 @@ public sealed partial class LocBindingTests
             Assert.True(row.IsEnabled);
             Assert.True(discover.IsEnabled);
             // The card under the mouse comes from game memory (Windows): elsewhere the hover row is not shown.
-            Assert.Equal(Core.Memory.HearthstoneMemory.IsSupported, row.IsVisible);
+            Assert.Equal(Core.Memory.HearthstoneMemory.IsSupported, Named<StackPanel>(view, "CardPoolHoverBlock").IsVisible);
 
             Named<RadioButton>(view, "CardPoolHoverAlwaysOption").IsChecked = true;
             Dispatcher.UIThread.RunJobs();
@@ -117,6 +117,24 @@ public sealed partial class LocBindingTests
             Assert.False(settings.ShowCardPool);
             Assert.False(row.IsEnabled);
             Assert.False(discover.IsEnabled);
+
+            // Reading the game client off (Settings → Data, P5): the hover row is off and says so; the Discover switch
+            // stays, a Discover comes from the logs.
+            pool.IsChecked = true;
+            Dispatcher.UIThread.RunJobs();
+            var note = Named<TextBlock>(view, "CardPoolHoverOffNote");
+            Assert.True(row.IsEffectivelyEnabled);
+            Assert.False(note.IsVisible);
+            model.ReadGameMemory = false;
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(row.IsEffectivelyEnabled);
+            Assert.True(note.IsVisible);
+            Assert.Equal(Loc.T("Settings.Tracker.CardPoolHoverOff"), note.Text);
+            Assert.True(discover.IsEffectivelyEnabled);
+            model.ReadGameMemory = true;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(row.IsEffectivelyEnabled);
+            Assert.False(note.IsVisible);
         }
         finally
         {

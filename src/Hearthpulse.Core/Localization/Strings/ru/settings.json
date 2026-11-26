@@ -111,6 +111,7 @@
   "Settings.Tracker.CardPoolHover.Always": "Всегда",
   "Settings.Tracker.CardPoolHover.Off": "Выкл.",
   "Settings.Tracker.CardPoolHoverTip": "Удерживайте Ctrl и наведите на карту в руке — панель покажет, что карта может дать. «Всегда» — панель открывается от любого наведения.",
+  "Settings.Tracker.CardPoolHoverOff": "Карта под курсором читается из клиента игры, а чтение выключено. Включите его, чтобы видеть пул при наведении (Настройки → Данные).",
   "Settings.Tracker.CardPoolDiscover": "Во время Раскопки",
   "Settings.Tracker.Summary": "Итоги игры",
   "Settings.Tracker.OverlayLink": "Главный переключатель оверлея, его размер и расстановка панелей — на вкладке «Оверлей».",
