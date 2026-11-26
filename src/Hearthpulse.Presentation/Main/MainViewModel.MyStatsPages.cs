@@ -126,19 +126,22 @@ public sealed partial class MainViewModel
     {
         var (all, format, period, cards) = (_allGames, _ctFormat, _ctPeriod, _cards);
         var meta = ConstructedMetaFor(format);
+        var readingOff = GameMemoryOff;
         _statsCards = cards;
-        RunStatsBuild(1, () => BuildConstructedStats(all, format, period, cards, meta));
+        RunStatsBuild(1, () => BuildConstructedStats(all, format, period, cards, meta, readingOff));
     }
 
-    private Action BuildConstructedStats(IReadOnlyList<GameRecord> all, string format, StatsPeriod period, CardDb cards, ConstructedMeta? meta)
+    private Action BuildConstructedStats(IReadOnlyList<GameRecord> all, string format, StatsPeriod period, CardDb cards, ConstructedMeta? meta, bool readingOff)
     {
         var games = StatsFilter.Apply(all.Where(g => StatsFilter.IsConstructed(g, format)), period, DateTime.Now);
         var summary = ConstructedStats.Summary(games);
+        // No rank in the period: ranked games show it, or (reading the client off) none is read.
+        var noRank = Loc.T(readingOff ? "Main.Tile.ReadingOff" : "Stats.Ct.RankHidden");
         IReadOnlyList<StatTile> tiles =
         [
             new StatTile(Loc.T("Stats.WinRate"), Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
             new StatTile(Loc.T("Stats.TotalGames"), summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
-            new StatTile(Loc.T("Stats.Ct.Rank"), summary.LatestRank ?? "—", summary.BestRank is { } best ? Loc.F("Stats.Ct.BestRank", best) : Loc.T("Stats.Ct.RankHidden")),
+            new StatTile(Loc.T("Stats.Ct.Rank"), summary.LatestRank ?? "—", summary.BestRank is { } best ? Loc.F("Stats.Ct.BestRank", best) : noRank),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed),
                 summary.AverageDuration is { } avg ? Loc.F("Stats.Ct.AverageGame", avg.TotalMinutes, summary.AverageTurns) : "—"),
             new StatTile(Loc.T("Stats.Ct.OnPlay"), Percent(summary.OnPlay.WinRate), Loc.F("Stats.Ct.OnPlayDetail", summary.OnPlay.Wins, summary.OnPlay.Losses)),

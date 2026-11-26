@@ -5,6 +5,7 @@ using Hearthpulse.Core.Collection;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Progression;
+using Hearthpulse.Core.Stats;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Tests;
@@ -80,10 +81,12 @@ public sealed class GameMemorySwitchTests
     {
         using var memory = new HearthstoneMemory();
         var now = Noon;
-        // The session may read memory here: only the player's setting stands between it and the client.
-        var session = Session(memory, () => now, readsMemory: true);
+        // The session may read memory here: only the player's setting stands between it and the client. Its reader
+        // starts no thread even if a request came, so a regression never reads a game running on this machine.
+        var session = ManualSession(memory, () => now);
         session.ApplySettings(new AppSettings { ReadGameMemory = false });
         Assert.False(session.GameMemoryEnabled);
+        Assert.True(memory.Blocked);
 
         session.OnSessionStarted("Hearthstone_2026_11_26_12_00_00", Noon, attachedMidSession: false);
         session.OnLines("Power.log", BattlegroundsFixtureTests.Lines().ToList(), catchingUp: false);
@@ -96,12 +99,163 @@ public sealed class GameMemorySwitchTests
         // The game is tracked from Power.log as always.
         Assert.NotNull(session.Current.Battlegrounds);
         Assert.True(session.Current.HearthstoneRunning);
-        // The reader never started and holds no request; the game was never opened.
-        Assert.False(session.MemoryReader.Started);
+        // Not one request was made; the game was never opened.
+        Assert.Equal(0, session.MemoryReader.Posted);
         Assert.Null(session.MemoryReader.Pending);
         Assert.False(memory.IsAttached);
         Assert.False(session.CanReadClient);
         Assert.False(session.Current.MemoryAttached);
+    }
+
+    [Fact]
+    public void Turned_off_the_rating_read_for_now_is_forgotten_and_a_later_game_is_recorded_without_one()
+    {
+        using var memory = new HearthstoneMemory();
+        var now = Noon;
+        var history = HistoryStore.InMemory();
+        var session = ManualSession(memory, () => now, history);
+        session.OnSessionStarted("Hearthstone_2026_11_26_12_00_00", Noon, attachedMidSession: false);
+        void Poll(IEnumerable<string> lines)
+        {
+            session.OnLines("Power.log", lines.ToList(), catchingUp: false);
+            now = now.AddMilliseconds(100);
+            session.OnTick();
+        }
+
+        // Reading on: the client gives a rating of 6,000, and a game starts with it.
+        session.OnTick();
+        session.MemoryReader.Deliver(Reading(session.BuildMemoryRequest(), rating: new BattlegroundsRating(6000, 0)));
+        now = now.AddSeconds(1);
+        session.OnTick();
+        Assert.Equal(6000, session.Current.Rating?.Solo);
+        var first = BgGame("12:30:00");
+        var lost = first.FindIndex(l => l.Contains("tag=PLAYSTATE value=LOST", StringComparison.Ordinal));
+        Poll(first.Take(lost));
+
+        // Off in the middle of it: the rating read for now goes at once, and the game's end asks the client for nothing
+        // (no rating after it is waited for).
+        session.SetGameMemoryEnabled(false);
+        var posted = session.MemoryReader.Posted;
+        Poll(first.Skip(lost));
+        now = now.AddSeconds(3);
+        session.OnTick();
+        Assert.Null(session.Current.Rating);
+        Assert.Equal(posted, session.MemoryReader.Posted);
+        Assert.Null(session.MemoryReader.Pending);
+        // That game began while reading was on: it keeps the rating read at its start.
+        var kept = Assert.Single(history.Recent());
+        Assert.Equal(6000, kept.RatingBefore);
+
+        // A game started after the switch has no rating at all, and no earlier one stands in for it.
+        Poll(BgGame("13:30:00"));
+        now = now.AddSeconds(3);
+        session.OnTick();
+        var later = Assert.Single(history.Recent(), g => g.Key != kept.Key);
+        Assert.Null(later.RatingBefore);
+        Assert.Null(later.RatingAfter);
+        Assert.Empty(BattlegroundsStats.RatingTimeline(history.Recent()));
+        Assert.Equal(posted, session.MemoryReader.Posted);
+    }
+
+    [Fact]
+    public void Turned_off_the_tavern_buttons_cost_read_for_now_is_forgotten()
+    {
+        using var memory = new HearthstoneMemory();
+        var now = Noon;
+        var session = ManualSession(memory, () => now);
+        session.OnSessionStarted("Hearthstone_2026_11_26_12_00_00", Noon, attachedMidSession: false);
+        session.OnLines("Power.log", BattlegroundsFixtureTests.Lines().ToList(), catchingUp: false);
+        now = now.AddSeconds(1);
+        session.OnTick();
+        var inGame = session.BuildMemoryRequest();
+        Assert.True(inGame is { InGame: true, Battlegrounds: true });
+
+        session.MemoryReader.Deliver(Reading(inGame, buttons: new BattlegroundsButtonCosts(0, 1, 5, null)));
+        now = now.AddSeconds(1);
+        session.OnTick();
+        Assert.Equal(5, session.Current.Battlegrounds!.TavernUpgradeCost);
+
+        // Off: the advisor works out the upgrade's cost from the log again, not from the last price read.
+        session.SetGameMemoryEnabled(false);
+        now = now.AddSeconds(1);
+        session.OnTick();
+        Assert.NotNull(session.Current.Battlegrounds);
+        Assert.Null(session.Current.Battlegrounds!.TavernUpgradeCost);
+        Assert.Null(session.Current.Battlegrounds.ButtonCosts);
+    }
+
+    [Fact]
+    public void A_reading_taken_before_the_switch_is_never_applied_after_it()
+    {
+        using var memory = new HearthstoneMemory();
+        var now = Noon;
+        var session = ManualSession(memory, () => now);
+        session.SetBgOpponentMmrEnabled(true);
+        session.OnSessionStarted("Hearthstone_2026_11_26_12_00_00", Noon, attachedMidSession: false);
+        session.OnLines("Power.log", BattlegroundsFixtureTests.Lines().ToList(), catchingUp: false);
+        now = now.AddSeconds(1);
+        session.OnTick();
+        var opponent = session.Current.Battlegrounds!.Opponents[0].PlayerId;
+        var names = new Dictionary<int, string> { [opponent] = "Alpha" };
+        var asked = session.BuildMemoryRequest() with { WantLobbyNames = true };
+        string? Name() => session.Current.Battlegrounds!.Opponents.Single(o => o.PlayerId == opponent).PlayerName;
+
+        // Reading on: a finished scan is applied.
+        session.MemoryReader.Deliver(Reading(asked, rating: new BattlegroundsRating(7450, 0), lobby: names));
+        now = now.AddSeconds(1);
+        session.OnTick();
+        Assert.Equal("Alpha", Name());
+        Assert.Equal(7450, session.Current.Rating?.Solo);
+
+        // A scan under way at the switch finishes after it: dropped, the names and the rating stay forgotten.
+        session.MemoryReader.Deliver(Reading(asked, rating: new BattlegroundsRating(7450, 0), lobby: names));
+        session.SetGameMemoryEnabled(false);
+        now = now.AddSeconds(1);
+        session.OnTick();
+        Assert.Null(Name());
+        Assert.Null(session.Current.Rating);
+        Assert.All(session.Current.Battlegrounds!.Opponents, o => Assert.Equal(BgMmrStatus.Unknown, o.Mmr!.Status));
+
+        // Nor once reading is back on: that scan was asked for before the switch.
+        session.MemoryReader.Deliver(Reading(asked, rating: new BattlegroundsRating(7450, 0), lobby: names));
+        session.SetGameMemoryEnabled(true);
+        now = now.AddSeconds(1);
+        session.OnTick();
+        Assert.Null(Name());
+        Assert.Null(session.Current.Rating);
+    }
+
+    [Fact]
+    public void Turned_off_nothing_attaches_and_no_value_is_read_not_even_under_the_mouse()
+    {
+        var source = new CountingSource(HoveredTileImage("TB_BaconShop_HERO_01"));
+        using var memory = ClientImage.Attach(source);
+        var session = Session(memory, () => Noon, readsMemory: true);
+        session.SetGameMemoryEnabled(false);
+        Assert.True(memory.Blocked);
+
+        // A read that passed its check just before the switch, and a scan under way: from their next value on they read
+        // nothing, and nothing attaches.
+        var reads = source.Reads;
+        Assert.Null(memory.GetHoveredLeaderboardHero());
+        Assert.Null(memory.GetHoveredCardId());
+        Assert.Null(memory.GetBattlegroundsRating());
+        Assert.Null(memory.GetBattlegroundsLobbyNames());
+        Assert.False(memory.EnsureAttached());
+        Assert.Equal(reads, source.Reads);
+
+        // The reader let go between its scans (MemoryPoller.Release); on again, a read under the mouse never attaches by
+        // itself: only the reader does (checked where no game runs, so a regression cannot open a live one).
+        memory.Detach();
+        session.SetGameMemoryEnabled(true);
+        Assert.False(memory.Blocked);
+        if (System.Diagnostics.Process.GetProcessesByName("Hearthstone").Length == 0)
+        {
+            Assert.Null(memory.GetHoveredLeaderboardHero());
+            Assert.Null(memory.GetHoveredCardId());
+            Assert.False(memory.IsAttached);
+            Assert.Equal(reads, source.Reads);
+        }
     }
 
     [Fact]
@@ -134,30 +288,40 @@ public sealed class GameMemorySwitchTests
     }
 
     [Fact]
-    public void Turning_reading_off_keeps_the_collection_as_saved_and_on_again_reads_it_once()
+    public void Turning_reading_off_keeps_the_collection_cosmetics_and_achievements_as_saved_and_on_again_reads_each_once()
     {
         using var memory = new HearthstoneMemory();
         var now = Noon;
         var session = Session(memory, () => now, readsMemory: false);
-        var watch = session.CollectionWatch;
+        var collection = session.CollectionWatch;
+        var cosmetics = session.CosmeticsWatch;
+        var achievements = session.AchievementsWatch;
         session.OnTick();
-        var ticket = watch.Ticket(now, inGame: false);
-        Assert.NotEqual(0, ticket);
-        watch.Apply(new CardCollection(new Dictionary<string, OwnedCopies>(StringComparer.Ordinal), 100, now), ticket, now);
+        var tickets = (collection.Ticket(now, inGame: false), cosmetics.Ticket(now, inGame: false), achievements.Ticket(now, inGame: false));
+        Assert.DoesNotContain(0, new[] { tickets.Item1, tickets.Item2, tickets.Item3 });
+        collection.Apply(new CardCollection(new Dictionary<string, OwnedCopies>(StringComparer.Ordinal), 100, now), tickets.Item1, now);
+        cosmetics.Apply(Cosmetics(now), tickets.Item2, now);
+        achievements.Apply(AchievementsScene.Build(now, confirmed: false), tickets.Item3, now);
         Assert.True(session.Collection!.Confirmed);
+        Assert.True(session.Cosmetics!.Confirmed);
+        Assert.True(session.Achievements!.Confirmed);
 
         // Off: what is known stays, as saved data, and no read is wanted.
         session.SetGameMemoryEnabled(false);
         now = now.AddMinutes(1);
         session.OnTick();
         Assert.False(session.Collection!.Confirmed);
-        Assert.Equal(0, watch.Ticket(now, inGame: false));
+        Assert.False(session.Cosmetics!.Confirmed);
+        Assert.False(session.Achievements!.Confirmed);
+        Assert.Equal((0, 0, 0), (collection.Ticket(now, inGame: false), cosmetics.Ticket(now, inGame: false), achievements.Ticket(now, inGame: false)));
 
-        // On again with the client running: one read, as at the client's start.
+        // On again with the client running: one read of each, as at the client's start.
         session.SetGameMemoryEnabled(true);
         now = now.AddMinutes(1);
         session.OnTick();
-        Assert.NotEqual(0, watch.Ticket(now, inGame: false));
+        Assert.NotEqual(0, collection.Ticket(now, inGame: false));
+        Assert.NotEqual(0, cosmetics.Ticket(now, inGame: false));
+        Assert.NotEqual(0, achievements.Ticket(now, inGame: false));
     }
 
     [Fact]
@@ -243,16 +407,45 @@ public sealed class GameMemorySwitchTests
         }
     }
 
-    private static GameSession Session(HearthstoneMemory memory, Func<DateTime> clock, bool readsMemory) => new(HistoryStore.InMemory(), memory)
+    private static GameSession Session(HearthstoneMemory memory, Func<DateTime> clock, bool readsMemory, HistoryStore? history = null) =>
+        new(history ?? HistoryStore.InMemory(), memory)
+        {
+            Clock = clock,
+            IsHearthstoneRunning = () => true,
+            ReadsMemory = readsMemory,
+            CollectionWatch = new CollectionWatch(null),
+            CosmeticsWatch = new CosmeticsWatch(null),
+            AchievementsWatch = new AchievementsWatch(null),
+            Trimmer = new MemoryTrimmer(() => { }),
+        };
+
+    /// <summary>
+    /// A session that may read memory, whose reader starts no thread: its requests are only counted, and readings come in
+    /// by hand (<see cref="MemoryPoller.Deliver"/>) as a finished scan leaves them. No game on this machine is ever read.
+    /// </summary>
+    private static GameSession ManualSession(HearthstoneMemory memory, Func<DateTime> clock, HistoryStore? history = null)
     {
-        Clock = clock,
-        IsHearthstoneRunning = () => true,
-        ReadsMemory = readsMemory,
-        CollectionWatch = new CollectionWatch(null),
-        CosmeticsWatch = new CosmeticsWatch(null),
-        AchievementsWatch = new AchievementsWatch(null),
-        Trimmer = new MemoryTrimmer(() => { }),
-    };
+        var session = Session(memory, clock, readsMemory: true, history);
+        session.MemoryReader.Manual = true;
+        return session;
+    }
+
+    /// <summary>What a scan of <paramref name="asked"/> found: the values given, nothing else.</summary>
+    private static MemoryReading Reading(MemoryRequest asked, BattlegroundsRating? rating = null, BattlegroundsButtonCosts? buttons = null,
+        IReadOnlyDictionary<int, string>? lobby = null) => new(asked, rating, null, null, buttons, null, LobbyNames: lobby);
+
+    /// <summary>A whole Battlegrounds game (5th place) whose lines are dated <paramref name="time"/>.</summary>
+    private static List<string> BgGame(string time) =>
+        [.. BattlegroundsReplayTests.Game5th().Select(body => $"D {time}.0000000 GameState." + body)];
+
+    private static CosmeticsCollection Cosmetics(DateTime readAt) => new(
+        [new CosmeticCardBack(0, "Classic", string.Empty, CardBackCategory.Base, 0)],
+        new HashSet<int> { 0 },
+        new HashSet<int>(),
+        [],
+        new HashSet<int>(),
+        new HashSet<int>(),
+        readAt);
 
     /// <summary>A ranked Standard game in the client's line shapes: you are player 1 with <paramref name="handCard"/> in hand.</summary>
     private static List<string> ConstructedGame(string handCard) =>

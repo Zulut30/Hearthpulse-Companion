@@ -338,7 +338,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
         _gameDeck = _queuedDeck;
         _constructed.Deck = null;
-        _ratingAtGameStart = _catchingUp ? null : _rating;
+        // With reading the client off a game starts without a rating: none is read, and no older one stands in for it.
+        _ratingAtGameStart = _catchingUp || !_gameMemoryEnabled ? null : _rating;
     }
 
     public void OnGameEnded(GameState game) => RecordIfFinished(game, force: true);

@@ -20,12 +20,18 @@ public sealed partial class GameSession
     // Whether the collection, cosmetics and achievements watches have a client they may read (tracking thread).
     private bool _clientReadable;
 
+    // How many times reading the client was turned off: a reading asked for before the last time is never applied.
+    private int _memoryEpoch;
+
     /// <summary>
-    /// The "Read data from the game client" setting (<see cref="AppSettings.ReadGameMemory"/>, docs/adr/0006). Off: the
-    /// memory reader gets no more requests and lets go of the game process, the card under the mouse is not read, the
-    /// lobby names read so far are forgotten, and what is known of the collection, cosmetics and achievements stays as
-    /// saved data, no longer confirmed. The tracking from the logs is not touched. On again with the client running: it
-    /// is read as at the client's start.
+    /// The "Read data from the game client" setting (<see cref="AppSettings.ReadGameMemory"/>, docs/adr/0006). Off: nothing
+    /// attaches to the game or reads it any more (<see cref="HearthstoneMemory.Blocked"/>), the memory reader gets no
+    /// more requests and lets go of the game process, a scan still under way is never applied, and what was read for
+    /// now is forgotten: the Battlegrounds rating and this session's start rating, the tavern buttons' costs, the
+    /// lobby names (opponents' MMR), the Arena draft offer, and the wait for a rating after a game. Later games are
+    /// recorded without a rating; the game in progress keeps the rating read at its start. What is known of the
+    /// collection, cosmetics and achievements stays as saved data, no longer confirmed. The tracking from the logs is
+    /// not touched. On again with the client running: it is read as at the client's start.
     /// </summary>
     public void SetGameMemoryEnabled(bool enabled)
     {
@@ -37,19 +43,32 @@ public sealed partial class GameSession
             }
 
             _gameMemoryEnabled = enabled;
+            _memory.Blocked = !enabled;
             if (!enabled)
             {
                 // At once, not on the next tick.
+                _memoryEpoch++;
                 _memoryPoller.Release();
                 _cardPoolHoverWanted = false;
-                _lobbyNames = null;
-                _lobbyNamesGeneration = -1;
+                ForgetMemoryValues();
             }
 
             _dirty = true;
         }
 
         Diag.Info($"Reading the game client turned {(enabled ? "on" : "off")}");
+    }
+
+    /// <summary>What was read from the game for now goes: nothing read before the switch passes for current after it.</summary>
+    private void ForgetMemoryValues()
+    {
+        _rating = null;
+        _sessionStartRating = null;
+        _awaitingRatingKey = null;
+        _battlegrounds.LiveButtonCosts = null;
+        _lobbyNames = null;
+        _lobbyNamesGeneration = -1;
+        ForgetDraftOffers();
     }
 
     /// <summary>The setting of <see cref="SetGameMemoryEnabled"/>, for tests.</summary>
@@ -122,8 +141,15 @@ public sealed partial class GameSession
             CollectionTicket: CollectionTicket(inGame),
             CosmeticsTicket: CosmeticsTicket(inGame),
             AchievementsTicket: AchievementsTicket(inGame),
-            AchievementsCatalog: _achievementsWatch.SessionCatalog);
+            AchievementsCatalog: _achievementsWatch.SessionCatalog,
+            Epoch: _memoryEpoch);
     }
+
+    /// <summary>
+    /// Whether a reading may be applied: reading the client is on and the reading was asked for after it was last turned
+    /// off (a scan under way at the switch, or one asked for before an off and on, is dropped).
+    /// </summary>
+    private bool MayApply(MemoryReading reading) => MemoryOn && reading.Request.Epoch == _memoryEpoch;
 
     /// <summary>Applies a memory reading on the tracking thread. Values read for an earlier game are dropped.</summary>
     private void ApplyMemory(MemoryReading reading)

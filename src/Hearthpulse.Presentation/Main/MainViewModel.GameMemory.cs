@@ -1,8 +1,3 @@
-#if HEARTHPULSE_WPF
-using Hearthpulse.App.Infrastructure;
-#else
-using Hearthpulse.UI.Infrastructure;
-#endif
 using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Memory;
@@ -16,8 +11,13 @@ namespace Hearthpulse.UI.Main;
 /// <summary>
 /// The "Read data from the game client" switch (Settings → Data, <see cref="AppSettings.ReadGameMemory"/>,
 /// docs/adr/0006-client-read-only.md) and what follows from it on the pages that show values read from the client: with
-/// reading off, the collection, the achievements and the Battlegrounds rating say so and where to turn it back on,
-/// instead of waiting for a read that will not come.
+/// reading off, the collection, the achievements, the Battlegrounds rating and the Constructed rank say so and where to
+/// turn it back on, instead of waiting for a read that will not come.
+/// <para>
+/// A rating or rank block keeps one reason line while reading is off: <see cref="RatingOffReason"/> and
+/// <see cref="RankOffReason"/> (the coordinator's rule for blocks hidden for having no rating: with reading off they stay,
+/// with this line alone).
+/// </para>
 /// </summary>
 public sealed partial class MainViewModel
 {
@@ -36,13 +36,18 @@ public sealed partial class MainViewModel
             Raise();
             Raise(nameof(GameMemoryOff));
             Raise(nameof(GameMemorySwitchShown));
+            Raise(nameof(RatingOffReason));
+            Raise(nameof(RankOffReason));
             Raise(nameof(BgRatingEmpty));
             Raise(nameof(BgRatingOffShown));
+            Raise(nameof(HomeRatingOffShown));
+            Raise(nameof(CtRankEmpty));
+            Raise(nameof(CtRankOffShown));
             RaiseCollectionStatus();
             RaiseAchievementsStatus();
             RebuildBattlegroundsStats();
-            // The home page's rating tile.
-            RefreshAsync().Forget("History refresh");
+            RebuildConstructedStats();
+            ShowSoloRatingTile();
             GameMemoryChanged?.Invoke();
         }
     }
@@ -59,9 +64,38 @@ public sealed partial class MainViewModel
     /// <summary>The switch changed: the host tells the session at once and saves the settings.</summary>
     public event Action? GameMemoryChanged;
 
-    /// <summary>The rating chart's empty state: play rated games, or (reading the client off) why no rating comes.</summary>
-    public string BgRatingEmpty => Loc.T(GameMemoryOff ? "Stats.Bg.RatingOff" : "Stats.Bg.RatingEmpty");
+    /// <summary>Why a Battlegrounds rating block has no new rating, with the way back; empty while reading is on.</summary>
+    public string RatingOffReason => GameMemoryOff ? Loc.T("Stats.Bg.RatingOff") : string.Empty;
 
-    /// <summary>The chart has the rating of earlier games while reading the client is off: a line says new games add none.</summary>
+    /// <summary>Why a Constructed rank block has no new rank, with the way back; empty while reading is on.</summary>
+    public string RankOffReason => GameMemoryOff ? Loc.T("Stats.Ct.RankOff") : string.Empty;
+
+    /// <summary>The empty rating charts (home, My stats): play rated games, or with reading off <see cref="RatingOffReason"/>.</summary>
+    public string BgRatingEmpty => GameMemoryOff ? RatingOffReason : Loc.T("Stats.Bg.RatingEmpty");
+
+    /// <summary>My stats' MMR chart has earlier games' points while reading is off: <see cref="RatingOffReason"/> stands over them.</summary>
     public bool BgRatingOffShown => GameMemoryOff && _bgRatingChart.Count > 0;
+
+    /// <summary>Home's rating chart draws earlier games while reading is off (two points or more): the reason stands over it.</summary>
+    public bool HomeRatingOffShown => GameMemoryOff && _ratingPoints.Count >= 2;
+
+    /// <summary>The empty rank chart: play ranked games, or with reading off <see cref="RankOffReason"/>.</summary>
+    public string CtRankEmpty => GameMemoryOff ? RankOffReason : Loc.T("Stats.Ct.RankEmpty");
+
+    /// <summary>The rank chart has earlier games' points while reading is off: <see cref="RankOffReason"/> stands over them.</summary>
+    public bool CtRankOffShown => GameMemoryOff && _ctRankChart.Count > 0;
+
+    /// <summary>Home's solo rating tile: the session's change, or with reading off that the rating is not read.</summary>
+    private StatTile SoloRatingTile() => GameMemoryOff
+        ? new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, Loc.T("Main.Tile.ReadingOff"))
+        : new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, SessionDelta, SessionDeltaValue);
+
+    /// <summary>The switch moved: home's first tile follows in place, without reading the history again.</summary>
+    private void ShowSoloRatingTile()
+    {
+        if (OverviewTiles.Count > 0)
+        {
+            OverviewTiles = [SoloRatingTile(), .. OverviewTiles.Skip(1)];
+        }
+    }
 }

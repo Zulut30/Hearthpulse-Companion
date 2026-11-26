@@ -328,7 +328,17 @@ public sealed partial class MainViewModel
     /// <summary>The rest, under «Подробнее»: going first and on the coin.</summary>
     public IReadOnlyList<StatTile> CtMoreTiles { get => _ctMoreTiles; private set => Set(ref _ctMoreTiles, value); }
 
-    public IReadOnlyList<IChartValue> CtRankChart { get => _ctRankChart; private set => Set(ref _ctRankChart, value); }
+    public IReadOnlyList<IChartValue> CtRankChart
+    {
+        get => _ctRankChart;
+        private set
+        {
+            if (Set(ref _ctRankChart, value))
+            {
+                Raise(nameof(CtRankOffShown));
+            }
+        }
+    }
 
     // The class and archetype tables sort by their column heads (most played first until one is clicked).
     public TableSort CtClassesSort => _ctClassesSort ??= GroupSort(() => CtClasses = CtClassesSort.Apply(CtClasses, (r, c) => r.SortValue(c)));

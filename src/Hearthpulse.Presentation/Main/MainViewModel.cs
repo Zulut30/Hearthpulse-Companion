@@ -164,7 +164,17 @@ public sealed partial class MainViewModel : Observable
         RaisePageHero();
     }
     public IReadOnlyList<StatTile> OverviewTiles { get => _overviewTiles; private set => Set(ref _overviewTiles, value); }
-    public IReadOnlyList<RatingPoint> RatingPoints { get => _ratingPoints; private set => Set(ref _ratingPoints, value); }
+    public IReadOnlyList<RatingPoint> RatingPoints
+    {
+        get => _ratingPoints;
+        private set
+        {
+            if (Set(ref _ratingPoints, value))
+            {
+                Raise(nameof(HomeRatingOffShown));
+            }
+        }
+    }
 
     /// <summary>Home shows the Battlegrounds rating and placement cards only once the mode has games to draw.</summary>
     public bool HasBgGames { get => _hasBgGames; private set => Set(ref _hasBgGames, value); }
@@ -350,9 +360,7 @@ public sealed partial class MainViewModel : Observable
         // the rating is not read: the solo tile says so instead of a session change.
         OverviewTiles =
         [
-            GameMemoryOff
-                ? new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, Loc.T("Main.Tile.ReadingOff"))
-                : new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, SessionDelta, SessionDeltaValue),
+            SoloRatingTile(),
             .. (DuosRating == "—" ? (StatTile[])[] : [new StatTile(Loc.T("Main.Tile.DuosRating"), DuosRating, string.Empty)]),
             new StatTile(Loc.T("Main.Tile.Today"), today.Count.ToString(CultureInfo.CurrentCulture),
                 todayBg.Count > 0 ? Loc.F("Main.Tile.BgAvg", todayBg.Average(g => g.Placement)) : today.Count > 0 ? $"{today.Count(g => g.Result == "Win")}–{today.Count(g => g.Result == "Loss")}" : string.Empty),

@@ -129,7 +129,7 @@
   "Main.Tile.BgAvg": "ср. место {0:0.0}",
   "Main.Tile.AllTime": "За всё время",
   "Main.Tile.GamesTracked": "игр записано",
-  "Main.Tile.ReadingOff": "чтение клиента выключено",
+  "Main.Tile.ReadingOff": "не читается",
   "Main.Bg.ModeTip": "Соло или дуэты: ваши результаты и список героев",
   "Main.Bg.Solo": "Соло",
   "Main.Bg.Heroes": "Герои",

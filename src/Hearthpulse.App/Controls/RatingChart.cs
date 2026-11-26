@@ -14,6 +14,10 @@ public sealed class RatingChart : FrameworkElement
         nameof(Points), typeof(IReadOnlyList<RatingPoint>), typeof(RatingChart),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
 
+    public static readonly DependencyProperty EmptyTextProperty = DependencyProperty.Register(
+        nameof(EmptyText), typeof(string), typeof(RatingChart),
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
     public RatingChart()
     {
         // The empty text is drawn here, so it follows a language switch only by redrawing. WPF may raise Loaded again
@@ -30,6 +34,13 @@ public sealed class RatingChart : FrameworkElement
     {
         get => (IReadOnlyList<RatingPoint>?)GetValue(PointsProperty);
         set => SetValue(PointsProperty, value);
+    }
+
+    /// <summary>What the chart says with fewer than two points; null: play a few rated games (Stats.Bg.RatingEmpty).</summary>
+    public string? EmptyText
+    {
+        get => (string?)GetValue(EmptyTextProperty);
+        set => SetValue(EmptyTextProperty, value);
     }
 
     protected override void OnRender(DrawingContext dc)
@@ -52,7 +63,7 @@ public sealed class RatingChart : FrameworkElement
         var points = Points;
         if (points is null || points.Count < 2)
         {
-            var empty = new FormattedText(Loc.T("Stats.Bg.RatingEmpty"), CultureInfo.CurrentCulture,
+            var empty = new FormattedText(EmptyText ?? Loc.T("Stats.Bg.RatingEmpty"), CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight, typeface, 12, faint, dpi);
             empty.MaxTextWidth = Math.Max(10, w - 20);
             empty.TextAlignment = TextAlignment.Center;

@@ -116,9 +116,10 @@ public sealed partial class HearthstoneMemory
 
     /// <summary>
     /// Card id of the hero whose Battlegrounds leaderboard tile is under the mouse, or null. Read straight from the
-    /// game's leaderboard so it works at any resolution or aspect ratio.
+    /// game's leaderboard so it works at any resolution or aspect ratio; only from a game the memory reader holds (never
+    /// attaches itself).
     /// </summary>
-    public string? GetHoveredLeaderboardHero() => Safe(rt =>
+    public string? GetHoveredLeaderboardHero() => Safe(attach: false, read: rt =>
     {
         var manager = Instance(rt, "PlayerLeaderboardManager", "PlayerLeaderboardManager");
         var hovered = Field(manager.Class, "leaderboardHovered", ["m_isMousedOver"]);

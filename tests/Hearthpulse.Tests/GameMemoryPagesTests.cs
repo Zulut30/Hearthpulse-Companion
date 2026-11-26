@@ -20,9 +20,9 @@ public sealed class GameMemoryPagesTests
 
     public GameMemoryPagesTests() => LocBindingTests.Headless.Run(() => Loc.Instance.SetLanguage(Loc.Russian));
 
-    private static MainViewModel Model(AppSettings? settings = null)
+    private static MainViewModel Model(AppSettings? settings = null, HistoryStore? history = null)
     {
-        var vm = new MainViewModel(HistoryStore.InMemory(), settings ?? new AppSettings(), TestDataFolder.App)
+        var vm = new MainViewModel(history ?? HistoryStore.InMemory(), settings ?? new AppSettings(), TestDataFolder.App)
         {
             Background = BackgroundWork.Inline,
             CollectionReadable = true,
@@ -133,4 +133,79 @@ public sealed class GameMemoryPagesTests
         Assert.Equal(Loc.T("Stats.Bg.RatingNotRead"), Assert.Single(vm.BgStatTiles, t => t.Label == Loc.T("Stats.Bg.HighestMmr")).Detail);
         Assert.NotEqual(Loc.T("Main.Tile.ReadingOff"), Assert.Single(vm.OverviewTiles, t => t.Label == Loc.T("Main.Tile.SoloRating")).Detail);
     });
+
+    /// <summary>Review M1: the Constructed rank is read from the client only; with reading off its card and tile say so.</summary>
+    [Fact]
+    public void With_reading_off_the_constructed_rank_says_why_none_comes() => LocBindingTests.Headless.Run(() =>
+    {
+        var vm = Model(new AppSettings { ReadGameMemory = false });
+
+        Assert.Equal(Loc.T("Stats.Ct.RankOff"), vm.CtRankEmpty);
+        Assert.Equal(Loc.T("Stats.Ct.RankOff"), vm.RankOffReason);
+        Assert.Contains("Настройки → Данные", vm.CtRankEmpty, StringComparison.Ordinal);
+        Assert.Equal(Loc.T("Main.Tile.ReadingOff"), Assert.Single(vm.CtStatTiles, t => t.Label == Loc.T("Stats.Ct.Rank")).Detail);
+        Assert.False(vm.CtRankOffShown);
+
+        vm.ReadGameMemory = true;
+        Assert.Equal(Loc.T("Stats.Ct.RankEmpty"), vm.CtRankEmpty);
+        Assert.Equal(string.Empty, vm.RankOffReason);
+        Assert.Equal(Loc.T("Stats.Ct.RankHidden"), Assert.Single(vm.CtStatTiles, t => t.Label == Loc.T("Stats.Ct.Rank")).Detail);
+    });
+
+    /// <summary>
+    /// QA Q2, Q6c and the coordinator's rule for P2: earlier games' rating (home and My stats) and rank stay on screen with
+    /// one reason line over them while reading is off; on again, the line goes.
+    /// </summary>
+    [Fact]
+    public void With_reading_off_earlier_ratings_and_ranks_stay_under_one_reason_line() => LocBindingTests.Headless.Run(() =>
+    {
+        var history = HistoryStore.InMemory();
+        var start = DateTime.Now.AddDays(-2);
+        history.Add(Bg("bg1", start, 6000, 6050));
+        history.Add(Bg("bg2", start.AddHours(1), 6050, 6100));
+        history.Add(Ranked("ct1", start, 20));
+        history.Add(Ranked("ct2", start.AddHours(1), 21));
+        var vm = Model(new AppSettings { ReadGameMemory = false }, history);
+
+        Assert.NotEmpty(vm.RatingPoints);
+        Assert.NotEmpty(vm.BgRatingChart);
+        Assert.NotEmpty(vm.CtRankChart);
+        Assert.Equal(Loc.T("Stats.Bg.RatingOff"), vm.RatingOffReason);
+        Assert.Equal(Loc.T("Stats.Ct.RankOff"), vm.RankOffReason);
+        Assert.True(vm.HomeRatingOffShown);
+        Assert.True(vm.BgRatingOffShown);
+        Assert.True(vm.CtRankOffShown);
+
+        vm.ReadGameMemory = true;
+        Assert.False(vm.HomeRatingOffShown);
+        Assert.False(vm.BgRatingOffShown);
+        Assert.False(vm.CtRankOffShown);
+        Assert.Equal((string.Empty, string.Empty), (vm.RatingOffReason, vm.RankOffReason));
+    });
+
+    private static GameRecord Bg(string key, DateTime start, int before, int after) => new()
+    {
+        Key = key,
+        StartedAt = start,
+        EndedAt = start.AddMinutes(20),
+        Mode = "Battlegrounds",
+        HeroCardId = "TB_BaconShop_HERO_72",
+        Placement = 3,
+        RatingBefore = before,
+        RatingAfter = after,
+    };
+
+    private static GameRecord Ranked(string key, DateTime start, int stars) => new()
+    {
+        Key = key,
+        StartedAt = start,
+        EndedAt = start.AddMinutes(10),
+        Mode = "Ranked",
+        Format = "FT_STANDARD",
+        Result = "Win",
+        Turns = 8,
+        RankStarLevel = stars,
+        PlayerClass = "MAGE",
+        OpponentClass = "PRIEST",
+    };
 }

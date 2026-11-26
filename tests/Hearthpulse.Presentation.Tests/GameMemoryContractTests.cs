@@ -41,6 +41,9 @@ public sealed class GameMemoryContractTests
         Assert.Equal(Loc.T("Collection.Status.Off"), (string)model.CollectionStatus);
         Assert.Equal(Loc.T("Achievements.Empty.Off"), (string)model.AchievementsEmpty);
         Assert.Equal(Loc.T("Stats.Bg.RatingOff"), (string)model.BgRatingEmpty);
+        Assert.Equal(Loc.T("Stats.Ct.RankOff"), (string)model.CtRankEmpty);
+        Assert.Equal(Loc.T("Stats.Bg.RatingOff"), (string)model.RatingOffReason);
+        Assert.Equal(Loc.T("Stats.Ct.RankOff"), (string)model.RankOffReason);
         Assert.EndsWith("(Settings → Data).", (string)model.AchievementsEmpty, StringComparison.Ordinal);
 
         model.ReadGameMemory = true;
@@ -49,6 +52,8 @@ public sealed class GameMemoryContractTests
         Assert.Equal(Loc.T("Collection.Status.None"), (string)model.CollectionStatus);
         Assert.Equal(Loc.T("Achievements.Empty.None"), (string)model.AchievementsEmpty);
         Assert.Equal(Loc.T("Stats.Bg.RatingEmpty"), (string)model.BgRatingEmpty);
+        Assert.Equal(Loc.T("Stats.Ct.RankEmpty"), (string)model.CtRankEmpty);
+        Assert.Equal((string.Empty, string.Empty), ((string)model.RatingOffReason, (string)model.RankOffReason));
     }
 
     [Theory]

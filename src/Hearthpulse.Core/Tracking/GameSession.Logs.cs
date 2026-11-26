@@ -266,7 +266,8 @@ public sealed partial class GameSession
         _achievementsWatch.Tick(now);
         // The memory is read on its own thread; this thread only says what it needs and applies what came back.
         _memoryPoller.Post(_hearthstoneRunning && MemoryOn ? BuildMemoryRequest() : null);
-        if (_memoryPoller.Take() is { } reading)
+        // Taken either way; one read before reading the client was turned off is dropped, never applied after it.
+        if (_memoryPoller.Take() is { } reading && MayApply(reading))
         {
             ApplyMemory(reading);
         }

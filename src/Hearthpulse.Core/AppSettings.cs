@@ -194,10 +194,12 @@ public sealed partial class AppSettings
 
     /// <summary>
     /// Read what the logs lack from the game client's memory, read only (docs/adr/0006-client-read-only.md): the
-    /// Battlegrounds rating, ranks, the collection, card backs, coins and achievements, the Battlegrounds lobby's tribes,
-    /// the Arena draft offer and the card under the mouse for the card pool. On by default (Settings → Data); off,
-    /// nothing is read from the client and the tracking from the logs works in full. In no settings group: like the
-    /// sharing choices, a reset or an imported settings file leaves it as the player set it.
+    /// Battlegrounds rating, both players' ranked medals, the collection and dust, card backs, coins and achievements, the
+    /// Battlegrounds lobby's tribes and tavern button costs, the lobby's names for opponents' MMR (when that is on), the
+    /// Arena draft offer, the card under the mouse for the card pool and the leaderboard tile under the mouse. On by
+    /// default (Settings → Data); off, nothing is read from the client, what was read for now is forgotten, and the
+    /// tracking from the logs works in full. In no settings group: like the sharing choices, a reset or an imported
+    /// settings file leaves it as the player set it.
     /// </summary>
     public bool ReadGameMemory { get; set; } = true;
 

@@ -171,7 +171,7 @@
   "Settings.Data.CrashReportsNote": "Sent: the app and system versions, the language, the error type and text and where in the code it happened. Names, BattleTags, e-mails, paths, quoted values and long numbers are cut out of the text; your account, history and game logs are never sent. Off: a report goes only when you press “Send report” in the error window; turning it off deletes reports waiting to go.",
   "Settings.Data.ClientTitle": "Game client",
   "Settings.Data.GameMemory": "Read data from the game client",
-  "Settings.Data.GameMemoryNote": "The app only reads and changes nothing in the game. Without reading there is no rating or rank, collection, coins, card backs or achievements, Battlegrounds lobby tribes, Arena draft offer or card pool when you hover a card in hand. The tracker and your game history work from the game's logs either way.",
+  "Settings.Data.GameMemoryNote": "The app only reads and changes nothing in the game. Without reading there is no rating or rank, collection, coins, card backs or achievements, confirmed Battlegrounds lobby tribes, Arena draft offer or card pool when you hover a card in hand. The tracker and your game history work from the game's logs either way.",
   "Settings.Tab.Appearance": "Appearance",
   "Settings.Search.Placeholder": "Search settings…",
   "Settings.Search.Name": "Search settings",

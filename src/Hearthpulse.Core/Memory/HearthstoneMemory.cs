@@ -56,11 +56,29 @@ public sealed partial class HearthstoneMemory : IDisposable
 
     public string Status { get; private set; } = IsSupported ? "Waiting for Hearthstone" : "Memory reading is only available on Windows";
 
-    /// <summary>Attaches to a running Hearthstone process; cheap to call repeatedly.</summary>
+    private volatile bool _blocked;
+
+    /// <summary>
+    /// Reading the client is turned off (<see cref="AppSettings.ReadGameMemory"/>): while set nothing attaches and nothing
+    /// is read. <see cref="EnsureAttached"/> gives false, an attach under way lets go of what it opened, and every read
+    /// gives nothing from its next value on; the memory reader closes the handle between its scans (<see cref="Detach"/>).
+    /// </summary>
+    public bool Blocked
+    {
+        get => _blocked;
+        set => _blocked = value;
+    }
+
+    /// <summary>Attaches to a running Hearthstone process; cheap to call repeatedly. Never while <see cref="Blocked"/>.</summary>
     public bool EnsureAttached()
     {
         lock (_gate)
         {
+            if (_blocked)
+            {
+                return false;
+            }
+
             if (_runtime is not null && _memory is { HasExited: false })
             {
                 return true;
@@ -101,6 +119,14 @@ public sealed partial class HearthstoneMemory : IDisposable
         lock (_gate)
         {
             _attaching = false;
+            if (_blocked)
+            {
+                // Reading the client was turned off while this attach ran: what it opened is let go at once.
+                result.Memory?.Dispose();
+                Status = "Detached";
+                return false;
+            }
+
             Status = result.Status;
             if (result.Runtime is null)
             {
@@ -348,12 +374,16 @@ public sealed partial class HearthstoneMemory : IDisposable
     }
 
     /// <param name="quiet">A failed read does not change <see cref="Status"/> (frequent reads from another thread would make it flicker).</param>
-    private T? Safe<T>(Func<MonoRuntime, T?> read, bool quiet = false) => Safe(read, quiet, ScanReadBudget, ScanTimeBudget);
+    /// <param name="attach">
+    /// False for the reads under the mouse: they read only a game the memory reader already holds, never attach themselves
+    /// (attaching walks the whole class table, and is the reader's to do or not).
+    /// </param>
+    private T? Safe<T>(Func<MonoRuntime, T?> read, bool quiet = false, bool attach = true) => Safe(read, quiet, ScanReadBudget, ScanTimeBudget, attach);
 
     /// <param name="maxReads">The scan's read budget; a read of a long list (the collection) needs more than a usual scan.</param>
-    private T? Safe<T>(Func<MonoRuntime, T?> read, bool quiet, int maxReads, TimeSpan maxTime)
+    private T? Safe<T>(Func<MonoRuntime, T?> read, bool quiet, int maxReads, TimeSpan maxTime, bool attach = true)
     {
-        if (!EnsureAttached())
+        if (attach ? !EnsureAttached() : _blocked || !IsAttached)
         {
             return default;
         }
