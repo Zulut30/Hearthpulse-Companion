@@ -16,6 +16,8 @@ internal static class Program
 
           cards     load the card database: time, allocations, live heap, LOH
           replay    replay kept Power logs through GameSession: parse and publish timings, allocations
+          parser    the Power.log parser alone on the kept logs (no network): lines/s, and what the spectator marker check
+                    costs per line and the look-behind for a marker when the app joins a log at its last game
           overlay   replay snapshots into the WPF and Avalonia OverlayViewModel: time and bytes per Update, PropertyChanged
           tick      the WPF overlay tick's click-through hit test and hover along cursor paths, game window lookup
           frames    the shown WPF overlay at 1080p and 4K: process and UI-thread CPU idle, at 10 snapshots/s, a small change
@@ -102,6 +104,9 @@ internal static class Program
                 break;
             case "replay":
                 CoreBench.Replay(options);
+                break;
+            case "parser":
+                ParserBench.Run(options);
                 break;
             case "overlay":
                 WpfBench.Overlay(options);
