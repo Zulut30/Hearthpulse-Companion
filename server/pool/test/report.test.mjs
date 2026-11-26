@@ -26,18 +26,15 @@ const CARDS = ['CARD_M1', 'CARD_M2', 'CARD_M3', 'CARD_M4', 'CARD_W1', 'CARD_W2',
   'CARD_H1', 'CARD_H2', 'CARD_H3', 'CARD_D1', 'CARD_D2', 'CARD_D3', 'BG_HERO_A', 'BG_HERO_B'];
 const M = ['CARD_M1', 'CARD_M2', 'CARD_M3'];
 
-/**
- * The hand-checked pool: [install id, stored row] pairs. Main records are 3 days old; 60-day-old ones never count;
- * `edges` adds a record on the first day of a 30-day window (counted), the day before it and tomorrow (not counted).
- */
-function records(today, { edges }) {
-  const out = [];
+/** Record builders on `today`: each adds an [install id, stored row] pair to `rows`, 3 days old unless told. */
+function recorder(today) {
+  const rows = [];
   let serial = 0;
   const at = day => (day === undefined ? {} : { day });
   const game = (iid, fields) => {
     const row = validateEvent({ id: (++serial).toString(16).padStart(32, '0'), day: today - 3, res: 'W', ...fields }, today);
     assert.ok(row, 'a fixture record is valid');
-    out.push([iid, row]);
+    rows.push([iid, row]);
   };
   const ranked = (iid, cls, offered, extra = {}) => game(iid, {
     mode: 'ranked', fmt: 'standard', rank: 'gold', cls, hero: 'HERO_01', deck: DECKS[cls],
@@ -46,13 +43,21 @@ function records(today, { edges }) {
   const bg = (iid, mode, mmr, placement = 2, day = undefined) => game(iid, {
     mode, ...at(day), bg: { placement, offered: ['BG_HERO_A', 'BG_HERO_B'], picked: 'BG_HERO_A', ...(mmr === undefined ? {} : { mmr }) },
   });
-  // Contract К1 stores a finished Arena run as mode arena_run with fmt null and no result.
+  // Contract K1 stores a finished Arena run as mode arena_run with fmt null and no result.
   const run = (iid, kind, cls, wins, losses) => {
     const id = (++serial).toString(16).padStart(32, '0');
     const body = { id, day: today - 3, mode: 'arena_run', run: { kind, cls, wins, losses } };
-    out.push([iid, { id, day: body.day, mode: 'arena_run', fmt: null, body: JSON.stringify(body) }]);
+    rows.push([iid, { id, day: body.day, mode: 'arena_run', fmt: null, body: JSON.stringify(body) }]);
   };
+  return { rows, game, ranked, bg, run };
+}
 
+/**
+ * The hand-checked pool. Main records are 3 days old; 60-day-old ones never count; `edges` adds a record on the first
+ * day of a 30-day window (counted), the day before it and tomorrow (not counted).
+ */
+function records(today, { edges }) {
+  const { rows, game, ranked, bg, run } = recorder(today);
   // Ranked Standard Mage: 10 games, 2 of each of I1..I5; each install's coin hand adds a fourth card, CARD_M4.
   for (const iid of [I1, I2, I3, I4, I5]) {
     ranked(iid, 'MAGE', M);
@@ -72,13 +77,15 @@ function records(today, { edges }) {
   ranked(I7, 'MAGE', M, { fmt: 'classic' });
   ranked(I6, 'MAGE', M, { mode: 'casual' });
   game(I7, { mode: 'arena', cls: 'MAGE' });
-  // Battlegrounds solo: I1..I5 twice at 6500, I6 at 8000, I7 without a rating, I1 once at 3500.
+  // Battlegrounds solo: I1..I5 twice at 6500, I6 at 8000 and once without a rating, I1 once at 3500.
   for (const iid of [I1, I2, I3, I4, I5]) for (let i = 0; i < 2; i++) bg(iid, 'bg', 6500);
   bg(I6, 'bg', 8000);
-  bg(I7, 'bg', undefined);
+  bg(I6, 'bg', undefined);
   bg(I1, 'bg', 3500);
-  // Duos: I1..I4 twice at 4000; I5's duos record placed 6th is not counted (four teams).
+  // Duos: I1..I4 twice at 4000; of I5's duos records the one placed 4th counts, 5th and 6th do not (four teams).
   for (const iid of [I1, I2, I3, I4]) for (let i = 0; i < 2; i++) bg(iid, 'duos', 4000);
+  bg(I5, 'duos', 4000, 4);
+  bg(I5, 'duos', 4000, 5);
   bg(I5, 'duos', 4000, 6);
   // Arena runs: one Mage run of each of I1..I5, an Underground Paladin run of I6.
   for (const iid of [I1, I2, I3, I4, I5]) run(iid, 'arena', 'MAGE', 7, 3);
@@ -92,16 +99,25 @@ function records(today, { edges }) {
     ranked(I6, 'DRUID', ['CARD_D1', 'CARD_D2', 'CARD_D3'], { day: today + 1 });
     bg(I7, 'bg', 6500, 1, today - 30);
   }
-  return out;
+  return rows;
 }
 
-/** A data folder whose pool.sqlite (the service's own schema, WAL) holds the records; the writer is left open. */
-function pool(t, today, options) {
+/** Two installations, four records: each family holds one or two installations and games. */
+function fewRecords(today) {
+  const { rows, ranked, bg, run } = recorder(today);
+  ranked(I1, 'MAGE', M);
+  ranked(I2, 'MAGE', [...M, 'CARD_M4']);
+  bg(I1, 'bg', 6500);
+  run(I2, 'arena', 'MAGE', 3, 3);
+  return rows;
+}
+
+/** A data folder whose pool.sqlite (the service's own schema, WAL) holds the rows; the writer is left open. */
+function pool(t, rows) {
   const dir = fs.mkdtempSync(path.join(tmpdir(), 'hp-report-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const store = openDatabase(path.join(dir, 'pool.sqlite'));
   const insert = store.sqlite.prepare('INSERT INTO e (id, iid, day, mode, fmt, v, body) VALUES (?, ?, ?, ?, ?, 1, ?)');
-  const rows = records(today, options);
   for (const [iid, r] of rows) insert.run(r.id, iid, r.day, r.mode, r.fmt, r.body);
   return { dir, store, rows };
 }
@@ -122,25 +138,25 @@ const numbers = f => ({ installs: f.installs, games: f.games, cells: f.cells });
 
 // The hand count of the 30 days up to T with the edge records (comments in records()).
 const BY_HAND_30 = {
-  all: { installs: 7, records: 75 },
+  all: { installs: 7, records: 77 },
   // Mage 10 + Warrior 9 + Priest 12 + Hunter 10 + Rogue 1 + Druid on T-29 1; cells: >=5 installs Mage, Warrior,
   // Hunter; also >=10 games Mage, Hunter.
   ranked: counts(7, 43, 6, 3, 2),
   // Every class but Rogue; cells M1-M3 (10 games, 5 installs), M4 (5, 5), W1-W3 (9, 5), P1-P3 (12, 4), H1-H3 (10, 5),
   // D1-D3 (1, 1).
   'ranked-mulligan': counts(6, 42, 16, 10, 6),
-  // Solo 13 + duos 8; cells solo|all (13, 7), solo|6000-7999 (10, 5), solo|8000+, solo|0-3999, duos|all (8, 4),
-  // duos|4000-5999 (8, 4).
-  bg: counts(7, 21, 6, 2, 2),
+  // Solo 13 + duos 9 (I5's 4th place in, its 5th and 6th out); cells solo|all (13, 6), solo|6000-7999 (10, 5),
+  // solo|8000+, solo|0-3999, duos|all (9, 5), duos|4000-5999 (9, 5).
+  bg: counts(6, 22, 6, 4, 2),
   // arena|MAGE (5 runs, 5 installs), underground|PALADIN (1, 1).
   arena: counts(6, 6, 2, 1, 0),
 };
-// The 7 days up to T: the Druid game of T-29 (I7's only Ranked one) drops out. The same counts as the 30 days of the
-// set without edge records, which the command reads.
-const BY_HAND_7 = { ...BY_HAND_30, all: { installs: 7, records: 74 }, ranked: counts(6, 42, 5, 3, 2), 'ranked-mulligan': counts(5, 41, 13, 10, 6) };
+// The 7 days up to T: the Druid game of T-29 (I7's only Ranked one) drops out, and I7 counts in the all-records line
+// only. The same counts as the 30 days of the set without edge records, which the command reads.
+const BY_HAND_7 = { ...BY_HAND_30, all: { installs: 7, records: 76 }, ranked: counts(6, 42, 5, 3, 2), 'ranked-mulligan': counts(5, 41, 13, 10, 6) };
 
 test('AC9 each family counts installs, games and cells as the hand count does', t => {
-  const { dir, store } = pool(t, T, { edges: true });
+  const { dir, store } = pool(t, records(T, { edges: true }));
   store.close();
   const db = openPool(dir);
   try {
@@ -162,45 +178,77 @@ test('AC9 each family counts installs, games and cells as the hand count does', 
   }
 });
 
-test('AC9 Battlegrounds ratings fall into the MMR ranges of К3', () => {
+test('AC9 Battlegrounds ratings fall into the MMR ranges of K3', () => {
   assert.deepEqual([0, 3500, 4000, 5500, 6000, 7500, 8000, 10_000, null, undefined, '6500'].map(mmrRange),
     ['0-3999', '0-3999', '4000-5999', '4000-5999', '6000-7999', '6000-7999', '8000+', '8000+', null, null, null]);
 });
 
-test('AC9 every count under 5 prints as "<5", in JSON and in text', t => {
-  assert.deepEqual([0, 1, 4, 5, 6, 43].map(shown), ['<5', '<5', '<5', 5, 6, 43]);
-  const { dir, store } = pool(t, T, { edges: true });
+test('AC9 installs and games from 1 to 4 print as "<5"; zero and every cell count print exactly', t => {
+  assert.deepEqual([0, 1, 4, 5, 6, 43].map(shown), [0, '<5', '<5', 5, 6, 43]);
+  const { dir, store } = pool(t, records(T, { edges: true }));
   store.close();
   const db = openPool(dir);
   let report;
   try { report = buildReport(db, { today: T, days: 30 }); } finally { db.close(); }
 
   const json = publicReport(report);
-  assert.deepEqual(json.all, { installs: 7, records: 75 });
+  assert.deepEqual(json.all, { installs: 7, records: 77 });
   assert.deepEqual(json.thresholds, { minInstalls: 5, minGames: 10, exactFrom: 5 });
   assert.deepEqual(json.families.map(numbers), [
-    counts(7, 43, 6, '<5', '<5'),
+    counts(7, 43, 6, 3, 2),
     counts(6, 42, 16, 10, 6),
-    counts(7, 21, 6, '<5', '<5'),
-    counts(6, 6, '<5', '<5', '<5'),
+    counts(6, 22, 6, 4, 2),
+    counts(6, 6, 2, 1, 0),
   ]);
 
   const text = renderText(report);
   const table = text.split('\n').filter(line => /^(family|ranked|bg|arena)\b/.test(line)).map(line => line.split(/ {2,}/));
   assert.deepEqual(table, [
     ['family', 'cell', 'installs', 'games', 'cells', '>=5 installs', 'publishable'],
-    ['ranked', 'format x class', '7', '43', '6', '<5', '<5'],
+    ['ranked', 'format x class', '7', '43', '6', '3', '2'],
     ['ranked-mulligan', 'format x class x card', '6', '42', '16', '10', '6'],
-    ['bg', 'mode x MMR range', '7', '21', '6', '<5', '<5'],
-    ['arena', 'kind x class (runs)', '6', '6', '<5', '<5', '<5'],
+    ['bg', 'mode x MMR range', '6', '22', '6', '4', '2'],
+    ['arena', 'kind x class (runs)', '6', '6', '2', '1', '0'],
   ]);
   assert.match(text, /game records of 2026-10-28\.\.2026-11-26 \(30 days\)/);
-  assert.match(text, /All records in the window: installs 7, records 75\./);
+  assert.match(text, /All records in the window: installs 7, records 77\./);
+});
+
+test('AC9 a pool of two installations and an empty pool: "<5" and 0 in every family and the all-records line', { timeout: 60_000 }, async t => {
+  const today = Math.floor(Date.now() / DAY);
+  const few = pool(t, fewRecords(today));
+  few.store.close();
+  const none = pool(t, []);
+  none.store.close();
+  const cases = [
+    // Ranked: standard|MAGE of I1 and I2, whose hands offer M1-M3 and M4; one solo game at 6500 (all and 6000-7999);
+    // one Arena run. Every family and the window hold 1 to 4 installs and games; no cell reaches 5 installs.
+    [few.dir, { installs: '<5', records: '<5' },
+      [counts('<5', '<5', 1, 0, 0), counts('<5', '<5', 4, 0, 0), counts('<5', '<5', 2, 0, 0), counts('<5', '<5', 1, 0, 0)]],
+    [none.dir, { installs: 0, records: 0 }, Array(4).fill(counts(0, 0, 0, 0, 0))],
+  ];
+  for (const [dir, all, families] of cases) {
+    const json = await command('--data', dir, '--format', 'json');
+    const text = await command('--data', dir);
+    for (const output of [json, text]) {
+      assert.equal(output.code, 0, output.stderr);
+      assert.equal(output.stderr, '');
+    }
+    const report = JSON.parse(json.stdout);
+    assert.deepEqual(report.all, all);
+    assert.deepEqual(report.families.map(f => f.family), ['ranked', 'ranked-mulligan', 'bg', 'arena']);
+    assert.deepEqual(report.families.map(numbers), families);
+
+    assert.ok(text.stdout.includes(`All records in the window: installs ${all.installs}, records ${all.records}.`), text.stdout);
+    const table = text.stdout.split('\n').filter(line => /^(ranked|bg|arena)\b/.test(line)).map(line => line.split(/ {2,}/).slice(2));
+    assert.deepEqual(table, families.map(f => [f.installs, f.games, f.cells.total, f.cells.enoughInstalls, f.cells.publishable].map(String)));
+    assert.doesNotMatch(text.stdout, /NaN|undefined|null/);
+  }
 });
 
 test('AC9 the command beside a running service: counts only, no install id, record id or deck code', { timeout: 60_000 }, async t => {
   const today = Math.floor(Date.now() / DAY);
-  const { dir, store, rows } = pool(t, today, { edges: false });
+  const { dir, store, rows } = pool(t, records(today, { edges: false }));
   // The service as it runs: its single-writer lock held, and a write it has not committed yet (5 more installs).
   const lock = new DatabaseSync(path.join(dir, 'instance.lock.sqlite'));
   lock.exec('CREATE TABLE IF NOT EXISTS service(pid INTEGER); BEGIN EXCLUSIVE;');
@@ -226,14 +274,14 @@ test('AC9 the command beside a running service: counts only, no install id, reco
   const report = JSON.parse(json.stdout);
   assert.deepEqual(report.window, { days: 30, fromDay: today - 29, toDay: today,
     from: new Date((today - 29) * DAY).toISOString().slice(0, 10), to: new Date(today * DAY).toISOString().slice(0, 10) });
-  assert.deepEqual(report.all, { installs: 7, records: 74 }, 'the uncommitted records are not read');
+  assert.deepEqual(report.all, { installs: 7, records: 76 }, 'the uncommitted records are not read');
   assert.deepEqual(report.families.map(numbers), [
-    counts(6, 42, 5, '<5', '<5'),
+    counts(6, 42, 5, 3, 2),
     counts(5, 41, 13, 10, 6),
-    counts(7, 21, 6, '<5', '<5'),
-    counts(6, 6, '<5', '<5', '<5'),
+    counts(6, 22, 6, 4, 2),
+    counts(6, 6, 2, 1, 0),
   ]);
-  assert.match(text.stdout, /^ranked {2,}format x class {2,}6 {2,}42 {2,}5 {2,}<5 {2,}<5$/m);
+  assert.match(text.stdout, /^ranked {2,}format x class {2,}6 {2,}42 {2,}5 {2,}3 {2,}2$/m);
 
   const secrets = [...INSTALLS, ...pending, ...rows.map(([, r]) => r.id), ...Object.values(DECKS), ...CARDS, ...Object.keys(DECKS), 'PALADIN'];
   for (const output of [json.stdout, text.stdout]) {
@@ -242,7 +290,7 @@ test('AC9 the command beside a running service: counts only, no install id, reco
 });
 
 test('AC9 the report only reads: writes refused, the file unchanged, no lock and no database created', { timeout: 60_000 }, async t => {
-  const { dir, store } = pool(t, T, { edges: true });
+  const { dir, store } = pool(t, records(T, { edges: true }));
   store.close();
   const file = path.join(dir, 'pool.sqlite');
   const digest = () => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
