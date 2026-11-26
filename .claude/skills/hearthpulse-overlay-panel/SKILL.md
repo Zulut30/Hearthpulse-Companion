@@ -134,9 +134,12 @@ The window passes every click to the game except over elements marked interactiv
   Avalonia: `src/Hearthpulse.Desktop/OverlayWindow.cs` `Tick()` asks `OverlayView.IsInteractiveAt` and calls
   `IOverlayPlatform.SetClickThrough` (Windows `WS_EX_TRANSPARENT`, macOS `setIgnoresMouseEvents:`, X11 input shape).
 - A panel that must react to the pointer **without** blocking the game (the card pool): keep it non-interactive and
-  read the pointer from the platform layer - WPF `PoolInput.Cursor()` / `IsDown` polled in `CardPoolPanel.xaml.cs`,
-  Avalonia `IOverlayPlatform.MouseButtons()` passed through `OverlayView.UpdateCardPoolPointer` -> `CardPoolPanel.UpdatePointer`
-  (commit `dfd9a97`). Copy that pattern; check it on every desktop or say which ones you only compiled.
+  read the pointer from the platform layer - WPF `PoolInput.Cursor()` polled in `CardPoolPanel.xaml.cs`, Avalonia
+  `IOverlayPlatform.PointerPosition()` passed through `OverlayView.UpdateCardPoolPointer` -> `CardPoolPanel.UpdatePointer`
+  (commit `dfd9a97`); a key held over the game (Ctrl for the pool) comes from the overlay tick the same way
+  (`OverlayViewModel.UpdateCardPoolKeys`). Only a button the player presses is `OverlayHit.Interactive` (the pool's
+  "All cards"), never by right-click: the game gets that click too. Copy that pattern; check it on every desktop or say
+  which ones you only compiled.
 - Interactive areas over Discover cards, the hand or End Turn steal the player's clicks - a review major.
 
 ## Render scene
