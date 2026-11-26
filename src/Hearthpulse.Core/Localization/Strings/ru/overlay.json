@@ -166,6 +166,8 @@
   "Overlay.Odds.Estimated.LobbyTribes": "Расы лобби (ещё не считаны)",
   "Overlay.Odds.Estimated.DuosOpponentTeammate": "Борт напарника соперника (последний увиденный)",
   "Overlay.Odds.Estimated.DuosPartnerBoard": "Второй борт вашей команды (последний увиденный)",
+  "Overlay.Odds.Estimated.DuosOpponentTeammateUnseen": "Борт напарника соперника (ещё не виден — шансы без него)",
+  "Overlay.Odds.Estimated.DuosPartnerBoardUnseen": "Второй борт вашей команды (ещё не виден — шансы без него)",
   "Overlay.Odds.Estimated.OpponentSecrets": "Секреты соперника (известно только, сколько их)",
   "Overlay.Odds.Estimated.ProgressLeft": "Прогресс соперника на карте «после N…»",
   "Overlay.Odds.Estimated.HeroPowerUsed": "Использована ли сила героя «в следующем бою»",

@@ -331,6 +331,11 @@ public sealed partial class BattlegroundsTracker : IPowerListener
 
                 if (_inCombat)
                 {
+                    if (!_boardCaptured)
+                    {
+                        TieWithoutAttacks(game);
+                    }
+
                     EndCombat(game);
                 }
 

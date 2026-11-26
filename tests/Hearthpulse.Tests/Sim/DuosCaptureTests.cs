@@ -145,6 +145,11 @@ public sealed class DuosCaptureTests
         Assert.Equal(PartnerId, capture.Ours.PlayerId);
         Assert.Empty(capture.Ours.Hand);
         Assert.Empty(capture.Ours.Tags);
+        // TASK-2026-11-26 P3 Q2: we left the tavern with no minions, so the team has no second board, and that is known,
+        // not estimated: no second board and no mark for it.
+        Assert.Null(capture.Ours.Teammate);
+        Assert.DoesNotContain(capture.Ours.Estimates, e => e.Input == SimInputs.DuosPartnerBoard);
+        Assert.DoesNotContain(CombatSimulator.ExplainEstimates(capture.Ours, isOpponent: false), e => e.Input == SimInputs.DuosPartnerBoard);
     }
 
     [Fact]
@@ -183,9 +188,43 @@ public sealed class DuosCaptureTests
         Assert.Equal(OwnId, second.PlayerId);
         Assert.Equal(new[] { (5, 5), (3, 3) }, second.Minions.Select(m => (m.Attack, m.Health)));
         Assert.Equal("BG32_236", Assert.Single(second.Hand).CardId);
-        var estimate = Assert.Single(second.Estimates, e => e.Input == SimInputs.DuosPartnerBoard);
-        Assert.Equal(2, estimate.Value1);
+        // P3 m2: this board is exact (taken this turn as the combat began), so it is no "last seen" estimate.
+        Assert.DoesNotContain(second.Estimates, e => e.Input == SimInputs.DuosPartnerBoard);
+        Assert.DoesNotContain(CombatSimulator.ExplainEstimates(capture.Ours, isOpponent: false), e => e.Input == SimInputs.DuosPartnerBoard);
     }
+
+    [Fact]
+    public void Our_second_board_keeps_our_card_values_and_no_minion_of_it_counts_as_summoned_in_combat()
+    {
+        // TASK-2026-11-26 P3 Q3: the board we left the tavern with brings our player cards' values (a trinket's number,
+        // SimSide.ExtraTags), and none of its minions is "summoned in combat": when the combat begins Bob's offer is still in
+        // play with ids below the minion we bought this turn, which BuildSide would otherwise take for a Start of Combat summon.
+        var log = Game(duos: true).Turn(1)
+            .Trinket(60, Trinket, Me, ("TAG_SCRIPT_DATA_NUM_1", "3"))
+            .Minion(70, "BG25_001", Them, 1, 1, 1)
+            .Minion(71, "BG32_236", Me, 1, 5, 5)
+            .CombatStarts(30, FirstOpponentId)
+            // Bob's offer goes; our partner fights first: our minion and trinket leave (as on the real log).
+            .Leaves(70, Them)
+            .Leaves(71, Me)
+            .Leaves(60, Me)
+            .ShowsHero(Me, 32, PartnerId)
+            .Minion(41, "BG25_001", Me, 1, 4, 4)
+            .Minion(52, "BG25_001", Them, 1, 5, 5)
+            .Attack(41, Me);
+
+        var second = log.Replay().LastCapture!.Ours.Teammate!;
+
+        Assert.Equal(OwnId, second.PlayerId);
+        Assert.Contains(Trinket, second.Extras);
+        Assert.Equal(3, second.ExtraTag(Trinket, "TAG_SCRIPT_DATA_NUM_1"));
+        var minion = Assert.Single(second.Minions);
+        Assert.Equal(71, minion.EntityId);
+        Assert.False(minion.SummonedInCombat);
+    }
+
+    /// <summary>A trinket with an effect that reads its captured number (Fang Anklet: "+X/+X", TAG_SCRIPT_DATA_NUM_1/2).</summary>
+    private const string Trinket = "BG35_MagicItem_701";
 
     [Fact]
     public void A_fight_before_our_partners_board_was_seen_marks_our_missing_second_board()
@@ -271,6 +310,9 @@ public sealed class DuosCaptureTests
                    [("ZONE_POSITION", position.ToString()), ("ATK", attack.ToString()), ("HEALTH", health.ToString()), .. tags]);
 
         public PowerLog Hand(int id, string cardId, int controller) => Entity(id, cardId, controller, "HAND", "MINION", ("ATK", "2"), ("HEALTH", "2"));
+
+        public PowerLog Trinket(int id, string cardId, int controller, params (string Tag, string Value)[] tags) =>
+            Entity(id, cardId, controller, "PLAY", "BATTLEGROUND_TRINKET", tags);
 
         public PowerLog Turn(int bgTurn) => Power($"TAG_CHANGE Entity=GameEntity tag=TURN value={(bgTurn * 2) - 1} ");
 

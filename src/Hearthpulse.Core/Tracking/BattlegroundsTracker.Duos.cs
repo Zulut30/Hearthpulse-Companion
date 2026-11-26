@@ -154,8 +154,15 @@ public sealed partial class BattlegroundsTracker
             return (null, false);
         }
 
-        // Our own board left the tavern empty (OwnTavernBoard): the team has no second board, and that is no estimate.
-        return (seen.Side.Minions.Count == 0 ? null : LastSeenSide(seen, SimInputs.DuosPartnerBoard, turn), true);
+        if (seen.Side.Minions.Count == 0)
+        {
+            // Our own board left the tavern empty (OwnTavernBoard): the team has no second board, and that is no estimate.
+            return (null, true);
+        }
+
+        // Our own board as we left the tavern this turn (OwnTavernBoard) is exact; our partner's is the one last seen.
+        var exact = mateId == _duosOwnId && seen.Turn == turn;
+        return (exact ? seen.Side with { Teammate = null, Turn = turn } : LastSeenSide(seen, SimInputs.DuosPartnerBoard, turn), true);
     }
 
     private SimSide OpponentTeammate(GameState game, SimSide theirs, int theirId)

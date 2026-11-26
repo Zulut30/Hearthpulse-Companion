@@ -319,14 +319,18 @@ public static partial class CombatSimulator
 
     public static CombatOdds Run(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs, SimOptions? options = null)
     {
-        if (options?.PostGame == true)
+        options ??= SimOptions.Default;
+        if (options.PostGame)
         {
             (ours, theirs) = (PostGameTeam(ours), PostGameTeam(theirs));
         }
 
         var estimated = EstimateCount(ours) + EstimateCount(theirs);
+        // Hero damage and lethal are the teams': each one's shared health and Ice Block (DamageRules.TeamHealth,
+        // TeamHasIceBlock), read before a first board without minions gives way to its teammate's.
+        var rules = new DamageRule(ours, theirs, options.DamageCap, options.CountDamage);
         (ours, theirs) = (StartingBoard(ours), StartingBoard(theirs));
-        return RunFights(ours, theirs, firstAttackerIsOurs, options) with { Estimated = estimated };
+        return RunFights(ours, theirs, firstAttackerIsOurs, options, rules) with { Estimated = estimated };
     }
 
     /// <summary>The inputs of a side the fight was simulated with an estimate for, and what each estimate rests on.</summary>
@@ -334,12 +338,10 @@ public static partial class CombatSimulator
         side.Estimates.Concat(side.Teammate?.Estimates ?? [])
             .Select(e => new EstimatedItem(e.Input, e.Value1, e.Value2, e.Basis, isOpponent)).ToList();
 
-    private static CombatOdds RunFights(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs, SimOptions? options)
+    private static CombatOdds RunFights(SimSide ours, SimSide theirs, bool? firstAttackerIsOurs, SimOptions options, DamageRule rules)
     {
-        options ??= SimOptions.Default;
         var effects = options.Effects ?? EffectRegistry.Default;
         var unsimulated = Unsimulated(ours, isOpponent: false, effects) + Unsimulated(theirs, isOpponent: true, effects);
-        var rules = new DamageRule(ours, theirs, options.DamageCap, options.CountDamage);
         if (ours.Minions.Count == 0 || theirs.Minions.Count == 0)
         {
             var win = ours.Minions.Count > 0 ? 1.0 : 0;

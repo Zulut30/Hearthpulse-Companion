@@ -96,6 +96,20 @@ public sealed class DuosDamageTests
     }
 
     [Fact]
+    public void A_team_whose_first_board_is_empty_keeps_its_ice_block()
+    {
+        // P3 m3: our first board is empty at the start, so our teammate fights the whole fight; the Ice Block on our side still
+        // guards the team's shared 5 health against their tier 6 and a tier-4 survivor (10): no fight is lethal.
+        var ours = Side() with { Health = 5, Secrets = [DamageRules.IceBlock], Teammate = Side(Tiered(1, 1, 1)) with { TavernTier = 1 } };
+        var theirs = Side(Tiered(50, 50, 4)) with { TavernTier = 6, Health = 30 };
+
+        var odds = CombatSimulator.Run(ours, theirs, firstAttackerIsOurs: true, new SimOptions { Runs = 100 });
+
+        Assert.Equal(1.0, odds.Loss);
+        Assert.Equal(0.0, odds.LethalTaken);
+    }
+
+    [Fact]
     public void Ice_block_of_either_member_guards_the_team()
     {
         var withIceBlock = Side(Tiered(1, 1, 1)) with { Secrets = [DamageRules.IceBlock] };

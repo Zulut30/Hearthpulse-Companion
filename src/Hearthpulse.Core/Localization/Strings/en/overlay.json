@@ -166,6 +166,8 @@
   "Overlay.Odds.Estimated.LobbyTribes": "Lobby tribes (not read yet)",
   "Overlay.Odds.Estimated.DuosOpponentTeammate": "The opponent teammate's board (last seen)",
   "Overlay.Odds.Estimated.DuosPartnerBoard": "Your team's second board (last seen)",
+  "Overlay.Odds.Estimated.DuosOpponentTeammateUnseen": "The opponent teammate's board (not seen yet — odds without it)",
+  "Overlay.Odds.Estimated.DuosPartnerBoardUnseen": "Your team's second board (not seen yet — odds without it)",
   "Overlay.Odds.Estimated.OpponentSecrets": "The opponent's Secrets (only how many is known)",
   "Overlay.Odds.Estimated.ProgressLeft": "The opponent's progress on an \"after N…\" card",
   "Overlay.Odds.Estimated.HeroPowerUsed": "Whether a \"next combat\" hero power was used",
