@@ -7,11 +7,8 @@ using Hearthpulse.Core;
 namespace Hearthpulse.App;
 
 /// <summary>
-/// <c>--render-ui</c>, group <c>report</c> (roadmap E1, TASK-2026-11-26-release-cleanup P4): Settings → About scrolled to
-/// the Feedback card (<c>main-settings-feedback.png</c>) and the "Report a problem" window on the data copy: as it opens
-/// (<c>report-window.png</c>), with the game logs on when the copy's Hearthstone has a log session
-/// (<c>report-window-logs.png</c>), after a save (<c>report-window-saved.png</c>; the archive goes to a temporary file,
-/// deleted after) and after a refused one (<c>report-window-error.png</c>). Nothing is sent or opened.
+/// <c>--render-ui</c>, group <c>report</c> (shots: hearthpulse-visual-check): the Feedback card and the "Report a problem"
+/// window on the data copy. The saved archive is a temporary file, deleted after; nothing is sent or opened.
 /// </summary>
 public partial class App
 {

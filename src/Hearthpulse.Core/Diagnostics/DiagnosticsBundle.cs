@@ -75,13 +75,8 @@ public sealed record GameLogsLookup(bool InstallFound, string? Session)
 }
 
 /// <summary>
-/// The diagnostics archive of "Report a problem" (roadmap E1, docs/report-a-problem.md): a zip the player saves and
-/// attaches to a GitHub issue by hand. It holds <c>system.txt</c> (version, OS, monitors), Hearthpulse's two logs,
-/// <c>settings.json</c> without keys, tokens and passwords, the crash reports waiting to be sent and, only when asked,
-/// the logs of the newest Hearthstone session. Never <c>account.dat</c>, the history, replays or the collection. Every
-/// BattleTag and Battle.net account number becomes a stand-in of the archive's one map (<see cref="ArchiveScrubber"/>),
-/// so a game log still replays; the user's folder, e-mails and tokens are cut everywhere, the account name from
-/// Hearthpulse's own files. Nothing here sends anything.
+/// The diagnostics archive of "Report a problem" (docs/report-a-problem.md): a zip the player saves and attaches to a
+/// GitHub issue by hand. It sends nothing; players and accounts in it are stand-ins (<see cref="ArchiveScrubber"/>).
 /// </summary>
 /// <param name="dataFolder">Hearthpulse's data folder.</param>
 /// <param name="gameLogs">Where the newest Hearthstone log session is (<see cref="GameLogsLookup.Find"/>).</param>
@@ -167,16 +162,16 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
                     continue;
                 }
 
-                if (!File.Exists(item.Source))
+                if (item.Source is not { } path || !File.Exists(path))
                 {
                     // Gone since it was measured (the game started a new session): the archive goes without it.
                     Diag.Info($"Report a problem: {item.Entry.Name} is gone, left out");
                     continue;
                 }
 
-                using var source = OpenShared(item.Source!);
-                using var copy = Open(zip, item.Entry.Name, stamp);
-                written.Add(item.Entry with { Bytes = CopyGameLog(source, item.Start, copy, scrubber) });
+                using var source = OpenShared(path);
+                using var gameLog = Open(zip, item.Entry.Name, stamp);
+                written.Add(item.Entry with { Bytes = CopyGameLog(source, item.Start, gameLog, scrubber) });
             }
         }
 
@@ -190,13 +185,13 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
         return entry.Open();
     }
 
-    /// <summary>One file of the archive: its bytes (text files, read and cleaned now) or a range of a game log.</summary>
-    private sealed record Item(DiagnosticsEntry Entry, byte[]? Content, string? Source = null, long Start = 0);
+    /// <summary>One file of the archive: its bytes (text files, read and cleaned now) or where a game log is cut.</summary>
+    private sealed record ArchiveFile(DiagnosticsEntry Entry, byte[]? Content, string? Source = null, long Start = 0);
 
-    private List<Item> Prepare(bool includeGameLogs, ArchiveScrubber scrubber)
+    private List<ArchiveFile> Prepare(bool includeGameLogs, ArchiveScrubber scrubber)
     {
         var notes = new List<string>();
-        var items = new List<Item>();
+        var items = new List<ArchiveFile>();
         AddAppLog(items, notes, AppLogFile, DiagnosticsPart.AppLog, scrubber);
         AddAppLog(items, notes, OldAppLogFile, DiagnosticsPart.OldAppLog, scrubber);
         AddSettings(items, notes, scrubber);
@@ -207,11 +202,11 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
         }
 
         var system = Encoding.UTF8.GetBytes(SystemText(includeGameLogs, notes));
-        items.Insert(0, new Item(new DiagnosticsEntry(SystemFile, DiagnosticsPart.System, system.Length), system));
+        items.Insert(0, new ArchiveFile(new DiagnosticsEntry(SystemFile, DiagnosticsPart.System, system.Length), system));
         return items;
     }
 
-    private void AddAppLog(List<Item> items, List<string> notes, string name, DiagnosticsPart part, ArchiveScrubber scrubber)
+    private void AddAppLog(List<ArchiveFile> items, List<string> notes, string name, DiagnosticsPart part, ArchiveScrubber scrubber)
     {
         var path = Path.Combine(dataFolder, name);
         if (!File.Exists(path))
@@ -228,7 +223,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
             var bytes = new byte[total - start];
             var read = stream.ReadAtLeast(bytes, bytes.Length, throwOnEndOfStream: false);
             var content = Encoding.UTF8.GetBytes(scrubber.Own(Encoding.UTF8.GetString(bytes, 0, read)));
-            items.Add(new Item(new DiagnosticsEntry(name, part, content.Length), content));
+            items.Add(new ArchiveFile(new DiagnosticsEntry(name, part, content.Length), content));
             if (start > 0)
             {
                 notes.Add(Cut(name, total - start, total));
@@ -240,7 +235,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
         }
     }
 
-    private void AddSettings(List<Item> items, List<string> notes, ArchiveScrubber scrubber)
+    private void AddSettings(List<ArchiveFile> items, List<string> notes, ArchiveScrubber scrubber)
     {
         var path = Path.Combine(dataFolder, SettingsFile);
         string json;
@@ -276,14 +271,14 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
         }
 
         var content = Encoding.UTF8.GetBytes(copy.Json);
-        items.Add(new Item(new DiagnosticsEntry(SettingsFile, DiagnosticsPart.Settings, content.Length), content));
+        items.Add(new ArchiveFile(new DiagnosticsEntry(SettingsFile, DiagnosticsPart.Settings, content.Length), content));
         if (copy.Unknown > 0)
         {
             notes.Add(string.Create(CultureInfo.InvariantCulture, $"{SettingsFile}: {copy.Unknown} field(s) this version does not read left out"));
         }
     }
 
-    private void AddCrashReports(List<Item> items, List<string> notes, ArchiveScrubber scrubber)
+    private void AddCrashReports(List<ArchiveFile> items, List<string> notes, ArchiveScrubber scrubber)
     {
         var folder = Path.Combine(dataFolder, CrashReporter.FolderName);
         FileInfo[] files;
@@ -310,7 +305,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
                 using var stream = OpenShared(file.FullName);
                 using var reader = new StreamReader(stream, Encoding.UTF8);
                 var content = Encoding.UTF8.GetBytes(scrubber.Own(reader.ReadToEnd()));
-                items.Add(new Item(new DiagnosticsEntry(CrashReportsFolder + file.Name, DiagnosticsPart.CrashReport, content.Length), content));
+                items.Add(new ArchiveFile(new DiagnosticsEntry(CrashReportsFolder + file.Name, DiagnosticsPart.CrashReport, content.Length), content));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -319,7 +314,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
         }
     }
 
-    private void AddGameLogs(List<Item> items, List<string> notes)
+    private void AddGameLogs(List<ArchiveFile> items, List<string> notes)
     {
         foreach (var path in GameLogPaths())
         {
@@ -329,7 +324,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
                 using var stream = OpenShared(path);
                 var total = stream.Length;
                 var start = TailStart(stream, total, GameLogCap);
-                items.Add(new Item(new DiagnosticsEntry(GameLogsFolder + name, DiagnosticsPart.GameLog, total - start), null, path, start));
+                items.Add(new ArchiveFile(new DiagnosticsEntry(GameLogsFolder + name, DiagnosticsPart.GameLog, total - start), null, path, start));
                 if (start > 0)
                 {
                     notes.Add(Cut(GameLogsFolder + name, total - start, total));

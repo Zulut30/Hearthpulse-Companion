@@ -15,10 +15,9 @@ using Hearthpulse.UI.Main.SettingsTabs;
 namespace Hearthpulse.Tests;
 
 /// <summary>
-/// "Report a problem" (roadmap E1, AC6 of TASK-2026-11-26-release-cleanup) in the Avalonia views: the Feedback card of
-/// Settings → About with its button, and the window - the file list in its height-limited ScrollViewer, the game logs
-/// switch and its note, the save button, the status line that is there before its text, and after a save the form's
-/// button (no folder button without a local path). The model's work runs on this thread (BackgroundWork.Inline).
+/// "Report a problem" (AC6 of TASK-2026-11-26-release-cleanup) in the Avalonia views: the Feedback card with its button,
+/// and the window's file list, game logs switch and note, save button, status line and, after a save, the form's button.
+/// The model's work runs on this thread (BackgroundWork.Inline).
 /// </summary>
 public sealed partial class LocBindingTests
 {

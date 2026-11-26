@@ -374,11 +374,53 @@ public sealed class DiagnosticsBundleTests : IDisposable
         return parser.Game!;
     }
 
+    [Fact]
+    public void Two_battletags_with_one_name_get_two_stand_ins_and_the_archive_replays_the_same_game()
+    {
+        // Alex#1234 the opponent, Alex#5678 the local player (review Q9); a bare "Alex" could be either: a number of its own.
+        string[] lines =
+        [
+            "D 18:02:11.4402560 GameState.DebugPrintPower() - CREATE_GAME",
+            "D 18:02:11.4402560 GameState.DebugPrintPower() -     GameEntity EntityID=1",
+            "D 18:02:11.4402560 GameState.DebugPrintPower() -         tag=CARDTYPE value=GAME",
+            "D 18:02:11.4402560 GameState.DebugPrintPower() -     Player EntityID=2 PlayerID=1 GameAccountId=[hi=144115198130930503 lo=37660911]",
+            "D 18:02:11.4402560 GameState.DebugPrintPower() -         tag=CONTROLLER value=1",
+            "D 18:02:11.4402560 GameState.DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+            "D 18:02:11.4402560 GameState.DebugPrintPower() -     Player EntityID=3 PlayerID=2 GameAccountId=[hi=144115198130930503 lo=52004477]",
+            "D 18:02:11.4402560 GameState.DebugPrintPower() -         tag=CONTROLLER value=2",
+            "D 18:02:11.4402560 GameState.DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+            "D 18:02:11.4402560 GameState.DebugPrintGame() - GameType=GT_RANKED",
+            "D 18:02:12.0000000 GameState.DebugPrintGame() - PlayerID=1, PlayerName=Alex#1234",
+            "D 18:02:12.0000000 GameState.DebugPrintGame() - PlayerID=2, PlayerName=Alex#5678",
+            "D 18:02:12.1000000 GameState.DebugPrintEntityChoices() - id=1 Player=Alex#5678 TaskList= ChoiceType=MULLIGAN CountMin=0 CountMax=3",
+            "D 18:02:13.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Alex#1234 tag=RESOURCES value=1 ",
+            "D 18:02:13.1000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Alex#5678 tag=RESOURCES value=2 ",
+            "D 18:02:13.2000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Alex#5678 tag=MULLIGAN_STATE value=DONE ",
+            "D 18:02:14.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Alex tag=NUM_TURNS_IN_PLAY value=1 ",
+            "D 18:02:15.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Alex#1234 tag=PLAYSTATE value=CONCEDED ",
+        ];
+
+        var scrubbed = ThroughArchive(lines);
+
+        Assert.DoesNotContain(scrubbed, line => line.Contains("Alex", StringComparison.Ordinal));
+        Assert.Contains("D 18:02:12.0000000 GameState.DebugPrintGame() - PlayerID=1, PlayerName=Player1#1001", scrubbed);
+        Assert.Contains("D 18:02:12.0000000 GameState.DebugPrintGame() - PlayerID=2, PlayerName=Player2#1002", scrubbed);
+        Assert.Contains("D 18:02:14.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Player3 tag=NUM_TURNS_IN_PLAY value=1 ", scrubbed);
+        var before = Parse(lines);
+        var after = Parse(scrubbed);
+        Assert.Equal(2, before.LocalPlayerId);
+        Assert.Equal(before.LocalPlayerId, after.LocalPlayerId);
+        Assert.Equal(EntityTags(before), EntityTags(after));
+    }
+
+    /// <summary>Every entity's tags by id, the names left out: what the parser read of the game.</summary>
+    private static List<string> EntityTags(GameState game) => [.. game.Entities.OrderBy(e => e.Key).Select(e => e.Key + ": " +
+        string.Join(", ", e.Value.Tags.OrderBy(t => t.Key, StringComparer.Ordinal).Select(t => t.Key + "=" + t.Value)))];
+
     /// <summary>
-    /// Battlegrounds and Duos as Power.log writes them (shapes of the owner's log of 2026-11-15 and a Duos log; names made
-    /// up): the stand-in opponent renamed to each combat's opponent with no "#", its PlayerName at the start, blocks, tag
-    /// changes and a source naming it, the teammate, a hero's name as an entity, a short name that is also part of other
-    /// words, a card in brackets, the game entity and an entity by number.
+    /// Battlegrounds and Duos lines in Power.log's shapes (owner's log of 2026-11-15, a Duos log; names made up): the stand-in
+    /// opponent renamed bare before each combat, the teammate, a hero's name as an entity, a short name inside other words,
+    /// a card in brackets, the game entity, an entity by number and a META_DATA that names a player.
     /// </summary>
     private static readonly string[] BattlegroundsLines =
     [
@@ -399,16 +441,21 @@ public sealed class DiagnosticsBundleTests : IDisposable
         "D 20:41:13.0000000 GameState.DebugPrintPower() -     TAG_CHANGE Entity=Somebody77 tag=PLAYSTATE value=LOST ",
         "D 20:41:13.1000000 GameState.DebugPrintPower() -                 Source = Somebody77 ",
         "D 20:41:13.2000000 GameState.DebugPrintEntityChoices() - id=4 Player=Teammate TaskList= ChoiceType=GENERAL CountMin=1 CountMax=1",
+        "D 20:57:14.4107603 GameState.DebugPrintPower() -         META_DATA - Meta=CONTROLLER_AND_ZONE_CHANGE Data=0 InfoCount=4",
+        "D 20:57:14.4107603 GameState.DebugPrintPower() -                     Info[0] = [entityName=Вертлявый разведчик id=389 zone=PLAY zonePos=1 cardId=BG32_330 player=9]",
+        "D 20:57:14.4107603 GameState.DebugPrintPower() -                     Info[1] = 9",
+        "D 20:57:14.4107603 GameState.DebugPrintPower() -                     Info[2] = GameEntity",
+        "D 20:57:14.4107603 GameState.DebugPrintPower() -                     Info[3] = Ванесса ван Клиф",
     ];
 
-    /// <summary>The values where a line puts a player by name (the places the parser reads and a block's source).</summary>
+    /// <summary>The values where a line puts a player by name (the places the parser reads, a block's source, a META_DATA's Info).</summary>
     private static IEnumerable<string> PlayerValues(IEnumerable<string> lines) => lines.SelectMany(line => PlayerPlace.Matches(line))
         .Select(m => m.Groups["name"].Value.TrimEnd())
         .Where(v => v.Length > 0 && v[0] != '[' && v != "GameEntity" && v != GameState.UnknownPlayerName && !v.All(char.IsAsciiDigit));
 
     private static readonly Regex PlayerPlace = new(
         @"(?:\bTAG_CHANGE Entity=|\bBLOCK_START BlockType=\w+ Entity=)(?<name>.+?)(?= tag=| EffectCardId=)|\bPlayerName=(?<name>[^\r\n]+)" +
-        @"|\bid=\d+ Player=(?<name>.+?)(?= TaskList=| EntitiesCount=)|\bSource = (?<name>[^\r\n]+)");
+        @"|\bid=\d+ Player=(?<name>.+?)(?= TaskList=| EntitiesCount=)|\bSource = (?<name>[^\r\n]+)|\bInfo\[\d+\] = (?<name>[^\r\n]+)");
 
     /// <summary>The game log as the archive writes it, through a session folder of this test's install.</summary>
     private List<string> ThroughArchive(IEnumerable<string> lines)
@@ -446,6 +493,11 @@ public sealed class DiagnosticsBundleTests : IDisposable
         Assert.Contains("id=4 Player=Player3 TaskList=", power, StringComparison.Ordinal);
         Assert.Contains("TAG_CHANGE Entity=Player4 tag=BACON_CURRENT_COMBAT_PLAYER_ID value=3 ", power, StringComparison.Ordinal);
         Assert.Contains("TAG_CHANGE Entity=Player5 tag=NUM_TURNS_IN_PLAY", power, StringComparison.Ordinal);
+        // A META_DATA's Info line names a player too (review Q10); an entity, a number and the game entity there stay.
+        Assert.Contains("Info[3] = Player5\r\n", power, StringComparison.Ordinal);
+        Assert.Contains("Info[0] = [entityName=Вертлявый разведчик id=389", power, StringComparison.Ordinal);
+        Assert.Contains("Info[1] = 9\r\n", power, StringComparison.Ordinal);
+        Assert.Contains("Info[2] = GameEntity\r\n", power, StringComparison.Ordinal);
         // A short name is replaced only where the log names a player: other text, cards, the game entity and numbers stay.
         Assert.Contains("[taskListId=2094].StartPowerSpell() - FAILED", power, StringComparison.Ordinal);
         Assert.Contains("entity=[entityName=Таверна Боба id=69", power, StringComparison.Ordinal);
