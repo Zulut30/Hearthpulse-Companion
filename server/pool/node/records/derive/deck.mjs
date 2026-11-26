@@ -9,11 +9,19 @@
 // - The canonical code (DeckString.Encode) has the class's default hero, the record's format, the cards by copies in
 //   dbf order and no sideboard. A rare hero skin in a published code could single a player out (card, decision 17).
 //
+// Deck rules (coordinator, 2026-11-26; views C1 and C3 count on them). A record of ranked or casual (`rec.mode`) in
+// Standard or Wild (`rec.fmt`) keeps its list only when every card has at most 2 copies and the deck has exactly 30
+// cards, or 40 (Prince Renathal): the game queues no other deck there. Any other list gives `cards` and `deckKey` null,
+// as a broken code does. The pool knows no rarities, so a Legendary's single copy is not checked. Other modes (arena,
+// brawl) and formats (classic, twist, none) have no such rule - an Arena deck may hold more copies - and keep any list
+// the code reads.
+//
 // On every code the game writes, the reader gives the list Cards/DeckString.TryDecode gives; derive-deck.test.mjs and
 // DeckKeyAgreementTests hold both to test/fixtures/deckcodes.json. On codes no game writes it is stricter than the
-// client, and such a code is broken here (null): base64 that Convert.FromBase64String refuses (Node's own decoder
-// skips bad characters), a varint longer than 5 bytes or above 2^31 - 1 (C# wraps it, a count into a negative one), a
-// dbf id or copy count under 1, a main deck without cards.
+// client, and such a code is broken here (null) in every mode: base64 that Convert.FromBase64String refuses (Node's own
+// decoder skips bad characters), a varint longer than 5 bytes or above 2^31 - 1, copies of one card that add up past
+// 2^31 - 1 (C# wraps either, a count into a negative one), a dbf id or copy count under 1, a main deck without cards.
+// A record has a list only with its key: `cards` and `deckKey` are both set or both null.
 
 /** Format byte of a code -> the record's `fmt` (DeckString: 1 Wild, 2 Standard, 3 Classic, 4 Twist). */
 const FORMATS = [null, 'wild', 'standard', 'classic', 'twist'];
@@ -71,7 +79,10 @@ class Reader {
     return value;
   }
 
-  /** The three groups of a list - cards x1, x2 and xN (dbf, copies) - with `owner` read after each card. */
+  /**
+   * The three groups of a list - cards x1, x2 and xN (dbf, copies) - with `owner` read after each card. A card written
+   * twice adds up, never past 2^31 - 1.
+   */
   groups(owner = false) {
     const list = new Map();
     for (let group = 1; group <= 3; group++) {
@@ -79,7 +90,9 @@ class Reader {
         const dbf = this.positive();
         const copies = group === 3 ? this.positive() : group;
         if (owner) this.varint();
-        list.set(dbf, (list.get(dbf) ?? 0) + copies);
+        const total = (list.get(dbf) ?? 0) + copies;
+        if (total > MAX_INT) throw new Broken();
+        list.set(dbf, total);
       }
     }
     return byDbf(list);
@@ -169,21 +182,37 @@ export function encodeDeck(cards, cls, fmt) {
   return varints(values).toString('base64');
 }
 
+const RULED_MODES = new Set(['ranked', 'casual']);
+const RULED_FORMATS = new Set(['standard', 'wild']);
+
+/** Whether a main deck keeps the deck rules of its record's mode and format (see the header). */
+function keepsRules(cards, rec) {
+  if (!RULED_MODES.has(rec.mode) || !RULED_FORMATS.has(rec.fmt)) return true;
+  let size = 0;
+  for (const copies of cards.values()) {
+    if (copies > 2) return false;
+    size += copies;
+  }
+  return size === 30 || size === 40;
+}
+
 export const name = 'deck';
 export const order = 10;
 export const version = 'deck-1';
 
 /**
  * Fills `rec.d.cards` (the main deck of `rec.body.deck`, dbf id -> copies) and `rec.d.deckKey`; both null when the
- * record has no code or a broken one. The list does not depend on the window, so `ctx` is not read. Never throws.
+ * record has no code, a broken one, or a list outside the deck rules of its mode and format. The list does not depend
+ * on the window, so `ctx` is not read. Never throws.
  */
 export function derive(rec, ctx) {
   if (rec === null || typeof rec !== 'object') return;
   try {
     if (rec.d === null || typeof rec.d !== 'object') rec.d = {};
     const deck = decodeDeck(rec.body?.deck);
-    rec.d.cards = deck?.cards ?? null;
-    rec.d.deckKey = deck ? deckKey(deck.cards) : null;
+    const key = deck !== null && keepsRules(deck.cards, rec) ? deckKey(deck.cards) : null;
+    rec.d.cards = key === null ? null : deck.cards;
+    rec.d.deckKey = key;
   } catch {
     try { rec.d.cards = null; rec.d.deckKey = null; } catch { /* a frozen record keeps what it has */ }
   }

@@ -105,7 +105,8 @@ public sealed class DeckKeyAgreementTests
 
     /// <summary>
     /// What only the server refuses: codes no game writes (a count running past the cards, no cards, no copies, a
-    /// six-byte varint, hero dbf 0). The client reads them as the fixture records, so the two differ only there.
+    /// six-byte varint, hero dbf 0, a varint or the copies of one card past a C# int). The client reads them as the
+    /// fixture records, so the two differ only there.
     /// </summary>
     [Theory]
     [MemberData(nameof(StricterCodes))]
@@ -113,9 +114,11 @@ public sealed class DeckKeyAgreementTests
     {
         var c = Case("stricter", name);
         var code = c.GetProperty("code").GetString()!;
+        // CardListKey writes with the current culture: a number the client wrapped negative has that culture's minus sign.
+        var client = c.GetProperty("client").GetString()!.Replace("-", NumberFormatInfo.CurrentInfo.NegativeSign, StringComparison.Ordinal);
 
         Assert.NotNull(DeckString.TryDecode(code));
-        Assert.Equal(c.GetProperty("client").GetString(), DeckRecords.CardListKey(code));
+        Assert.Equal(client, DeckRecords.CardListKey(code));
     }
 
     [Fact]

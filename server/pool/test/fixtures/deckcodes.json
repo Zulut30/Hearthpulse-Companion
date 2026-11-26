@@ -7,8 +7,9 @@
     "group: the cases of one group are one list; different groups are different lists.",
     "sideboard: the sideboard cards in the same form, \"\" without one, null when the code has one that does not read (SideboardUnread).",
     "canonical: the code deck.mjs encodeDeck and DeckString.Encode write for the list with the class and record format given.",
-    "stricter: codes no game writes that the client still reads (client: its CardListKey) and the server refuses.",
-    "heroes: class -> default hero (DeckString.ClassHero) and its dbf id in HearthstoneJSON enUS cards.collectible.json, read 2026-11-26."
+    "stricter: codes no game writes that the client still reads (client: its CardListKey, a minus sign written as '-') and the server refuses.",
+    "heroes: class -> default hero (DeckString.ClassHero) and its dbf id in HearthstoneJSON enUS cards.collectible.json, read 2026-11-26.",
+    "skins: hero dbf id -> card id and class of the hero skins the cases name, from HearthstoneJSON cards.json (ruRU, the app's cache of 2026-11-15). With heroes they give the class of every case's hero, which is the class of its canonical code."
   ],
   "heroes": {
     "WARRIOR": {"id":"HERO_01","dbf":7},
@@ -22,6 +23,11 @@
     "PRIEST": {"id":"HERO_09","dbf":813},
     "DEMONHUNTER": {"id":"HERO_10","dbf":56550},
     "DEATHKNIGHT": {"id":"HERO_11","dbf":78065}
+  },
+  "skins": {
+    "60238": {"id":"HERO_10a","cls":"DEMONHUNTER"},
+    "103776": {"id":"HERO_03af","cls":"ROGUE"},
+    "130933": {"id":"HERO_10br","cls":"DEMONHUNTER"}
   },
   "cases": [
     {
@@ -113,15 +119,15 @@
       "canonical": {"cls":"ROGUE","fmt":"standard","code":"AAECAaIHCIaoB4eoB4ioB+WvB7ayB6XYB4jZB8OLCAv3nwTZogbBlwe0wQfFwQfVxQeryQek2AeR2QeN2ge88gcAAA=="}
     },
     {
-      "name": "hunter-standard-skin",
-      "made": "real: tests/Hearthpulse.Tests/DeckRecordsTests.cs (a real Decks.log, October 2026); the hero is a Hunter skin",
-      "group": "hunter-skin",
+      "name": "dh-standard-skin",
+      "made": "real: tests/Hearthpulse.Tests/DeckRecordsTests.cs (a real Decks.log, October 2026); the hero is a Demon Hunter skin (HERO_10br, dbf 130933)",
+      "group": "dh-skin",
       "code": "AAECAfX+BwSongbDgweD2gfziQgN4fgF0J4G3v8GtpcHlb8HxN0Hxt0Hx90HteEHt+EHqvoHvoEI+4kIAAA=",
       "fmt": "standard",
       "heroes": [130933],
       "key": "97377x2,102184x1,102224x2,114654x2,115139x1,117686x2,122773x2,126211x1,126660x2,126662x2,126663x2,127157x2,127159x2,130346x2,131262x2,132339x1,132347x2",
       "sideboard": "",
-      "canonical": {"cls":"HUNTER","fmt":"standard","code":"AAECAR8EqJ4Gw4MHg9oH84kIDeH4BdCeBt7/BraXB5W/B8TdB8bdB8fdB7XhB7fhB6r6B76BCPuJCAAA"}
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5AwSongbDgweD2gfziQgN4fgF0J4G3v8GtpcHlb8HxN0Hxt0Hx90HteEHt+EHqvoHvoEI+4kIAAA="}
     },
     {
       "name": "dh-reordered",
@@ -267,6 +273,17 @@
       "canonical": {"cls":"WARRIOR","fmt":"wild","code":"AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAA=="}
     },
     {
+      "name": "warrior-sideboard-flag-2",
+      "made": "warrior-wild-etc-zilliax with the sideboard flag 2, which neither reader knows: the tail is not read",
+      "group": "warrior",
+      "code": "AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAgagzgL9xAXD6gL9xAXRngb9xAX1swbHpAb3swbHpAbu3gbHpAYAAA==",
+      "fmt": "wild",
+      "heroes": [7],
+      "key": "75x1,46031x1,53756x1,56504x1,59151x1,59411x1,67193x1,71781x1,72588x1,75631x1,76302x1,76984x1,79767x1,86626x1,90749x1,97697x1,100875x1,101367x1,102175x1,102225x1,102983x1,103441x1,103471x1,103660x1,104528x1,105813x1,106382x1,106682x1,107770x1,107891x1,111914x1,113321x1,115139x1,116718x1,117723x1,118163x1,119786x1,120828x1,126100x1,129245x1",
+      "sideboard": null,
+      "canonical": {"cls":"WARRIOR","fmt":"wild","code":"AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAA=="}
+    },
+    {
       "name": "dh-one-card-swapped",
       "made": "dh-standard with x1 dbf 102227 swapped for dbf 127067",
       "group": "dh-swapped",
@@ -378,6 +395,24 @@
       "made": "priest-standard with the hero dbf 0",
       "code": "AAECAQACqJYH3OAHDsWUB+SeB9KvB5u/B7LFB6/JB7DfB9XgB9ngB/TgB+jxB+H6B+T6B9z7BwAA",
       "client": "117317x2,117544x1,118628x2,120786x2,122779x2,123570x2,124079x2,126896x2,127061x2,127065x2,127068x1,127092x2,129256x2,130401x2,130404x2,130524x2"
+    },
+    {
+      "name": "copies-past-int-in-xn-twice",
+      "made": "hero 637, dbf 5 written twice in the xN group with 2^31 - 1 copies each (QA B2, Q1): the copies add up past a C# int",
+      "code": "AAECAf0EAAACBf////8HBf////8HAA==",
+      "client": "5x-2"
+    },
+    {
+      "name": "copies-past-int-x1-and-xn",
+      "made": "hero 637, dbf 5 x1 and again in the xN group with 2^31 - 1 copies (QA B2, Q1): one copy past a C# int",
+      "code": "AAECAf0EAQUAAQX/////BwA=",
+      "client": "5x-2147483648"
+    },
+    {
+      "name": "five-byte-varint-past-int",
+      "made": "hero 637, an x1 card with dbf 2^31 in a 5-byte varint (QA B2, Q2): past a C# int, which the client wraps negative",
+      "code": "AAECAf0EAYCAgIAIAAAA",
+      "client": "-2147483648x1"
     }
   ]
 }

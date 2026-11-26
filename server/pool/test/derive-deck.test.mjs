@@ -1,6 +1,7 @@
-// TASK-2026-11-26-pro-collection B2 (AC10): producer `deck` - the main list of a record's deck code, its key and the
-// canonical code. test/fixtures/deckcodes.json is shared with DeckKeyAgreementTests, which holds the client's
-// DeckString and DeckRecords.CardListKey to the same lists, keys and canonical codes.
+// TASK-2026-11-26-pro-collection B2 (AC10): producer `deck` - the main list of a record's deck code, its key, the
+// canonical code and the deck rules of ranked and casual Standard and Wild. test/fixtures/deckcodes.json is shared with
+// DeckKeyAgreementTests, which holds the client's DeckString and DeckRecords.CardListKey to the same lists, keys and
+// canonical codes.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -16,6 +17,40 @@ const listOf = key => new Map(key === '' ? [] : key.split(',').map(entry => entr
 const sideboardKey = side => (side === null ? null : side.size === 0 ? '' : deckKey(side));
 const record = (body, d = {}) => ({ iid: 'i1', day: 20418, mode: body.mode ?? 'ranked', fmt: body.fmt ?? null, body, d });
 const byName = name => fixture.cases.find(c => c.name === name);
+/** `rec.d` after derive for a record of `mode` and `fmt` with the deck `code`. */
+const derived = (code, mode, fmt) => {
+  const rec = record({ mode, fmt, deck: code });
+  derive(rec, {});
+  return rec.d;
+};
+/** The deck rules of ranked and casual Standard and Wild, counted from a key apart from the module. */
+const withinRules = key => {
+  const copies = key.split(',').map(entry => Number(entry.split('x')[1]));
+  const size = copies.reduce((sum, n) => sum + n, 0);
+  return copies.every(n => n <= 2) && (size === 30 || size === 40);
+};
+/** A copy of a list with one of its cards at `copies`; 0 takes the card out. */
+const withCopies = (list, dbf, copies) => {
+  const next = new Map(list);
+  if (copies === 0) next.delete(dbf); else next.set(dbf, copies);
+  return next;
+};
+/** Lists one copy off the rules: dh-standard has 30 cards (97377 x2, 102227 x1), the warrior 40 (75 x1). */
+const offByOne = () => {
+  const dh = listOf(byName('dh-standard').key);
+  const warrior = listOf(byName('warrior-wild-etc-zilliax').key);
+  return [
+    ['dh-3-copies-in-30-cards', withCopies(withCopies(dh, 97377, 3), 102227, 0), 'DEMONHUNTER'],
+    ['dh-29-cards', withCopies(dh, 102227, 0), 'DEMONHUNTER'],
+    ['dh-31-cards', withCopies(dh, 102227, 2), 'DEMONHUNTER'],
+    ['warrior-39-cards', withCopies(warrior, 75, 0), 'WARRIOR'],
+    ['warrior-41-cards', withCopies(warrior, 75, 2), 'WARRIOR'],
+  ].map(([name, list, cls]) => ({
+    name,
+    key: [...list].map(([dbf, copies]) => `${dbf}x${copies}`).join(','),
+    code: encodeDeck(list, cls, 'wild'),
+  }));
+};
 
 test('the module keeps contract К2: producer deck, order 10, version deck-1', () => {
   assert.equal(producer.name, 'deck');
@@ -99,6 +134,18 @@ test('the default heroes are those of HearthstoneJSON the fixture records', () =
   assert.ok(Object.isFrozen(CLASS_HEROES));
 });
 
+test('the class of every list is the class of the hero its code names', () => {
+  const classes = new Map(Object.entries(fixture.heroes).map(([cls, hero]) => [hero.dbf, cls]));
+  for (const [dbf, skin] of Object.entries(fixture.skins)) {
+    // A skin's card id extends its class's default hero id: HERO_10br is a skin of HERO_10.
+    assert.ok(skin.id.startsWith(fixture.heroes[skin.cls].id), `skin ${dbf}: ${skin.id} is not ${skin.cls}`);
+    classes.set(Number(dbf), skin.cls);
+  }
+  for (const c of valid) {
+    for (const hero of c.heroes) assert.equal(classes.get(hero), c.canonical.cls, `${c.name}: hero ${hero}`);
+  }
+});
+
 test('a broken code gives cards: null, deckKey: null (AC10)', () => {
   for (const c of broken) {
     assert.equal(decodeDeck(c.code), null, c.name);
@@ -109,14 +156,52 @@ test('a broken code gives cards: null, deckKey: null (AC10)', () => {
   for (const value of [undefined, null, 42, {}, [], true]) assert.equal(decodeDeck(value), null, String(value));
 });
 
-test('codes no game writes are broken here, though the client still reads them', () => {
-  assert.ok(fixture.stricter.length >= 5);
+test('codes no game writes are broken here in every mode, though the client still reads them', () => {
+  assert.ok(fixture.stricter.length >= 8);
   for (const c of fixture.stricter) {
     assert.equal(typeof c.client, 'string', c.name);
     assert.equal(decodeDeck(c.code), null, c.name);
-    const rec = record({ deck: c.code });
-    derive(rec, {});
-    assert.deepEqual(rec.d, { cards: null, deckKey: null }, c.name);
+    // Modes and formats without deck rules too: there the reader alone refuses such a code.
+    for (const [mode, fmt] of [['ranked', 'standard'], ['ranked', null], ['arena', null], ['brawl', 'wild'], ['casual', 'classic']]) {
+      assert.deepEqual(derived(c.code, mode, fmt), { cards: null, deckKey: null }, `${c.name} ${mode} ${fmt}`);
+    }
+  }
+});
+
+test('ranked and casual Standard and Wild keep a list only within the deck rules: 2 copies a card, 30 or 40 cards', () => {
+  // The rules as the test counts them: the real 30 and 40 cards pass; x3 and x4 cards, a 20-card list and lists one
+  // copy off do not.
+  assert.ok(withinRules(byName('dh-standard').key) && withinRules(byName('warrior-wild-etc-zilliax').key));
+  assert.ok(!withinRules(byName('shaman-xn').key) && !withinRules(byName('priest-wild-etc').key));
+  const near = offByOne();
+  assert.ok(near.every(c => !withinRules(c.key)));
+
+  let kept = 0;
+  for (const c of [...valid, ...near]) {
+    for (const mode of ['ranked', 'casual']) {
+      for (const fmt of ['standard', 'wild']) {
+        const d = derived(c.code, mode, fmt);
+        const label = `${c.name} ${mode} ${fmt}`;
+        if (withinRules(c.key)) {
+          kept++;
+          assert.equal(d.deckKey, c.key, label);
+          assert.deepEqual([...d.cards], [...listOf(c.key)], label);
+        } else {
+          assert.deepEqual(d, { cards: null, deckKey: null }, label);
+        }
+      }
+    }
+  }
+  assert.ok(kept > 0);
+});
+
+test('other modes and formats have no deck rules: they keep any list the code reads', () => {
+  for (const c of [byName('shaman-xn'), byName('priest-wild-etc'), ...offByOne()]) {
+    for (const [mode, fmt] of [['arena', null], ['arena', 'standard'], ['brawl', 'wild'], ['ranked', 'classic'], ['casual', 'twist'], ['ranked', null]]) {
+      const d = derived(c.code, mode, fmt);
+      assert.equal(d.deckKey, c.key, `${c.name} ${mode} ${fmt}`);
+      assert.deepEqual([...d.cards], [...listOf(c.key)], `${c.name} ${mode} ${fmt}`);
+    }
   }
 });
 
