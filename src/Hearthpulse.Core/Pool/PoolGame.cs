@@ -179,7 +179,10 @@ public sealed record PoolGame(string GameId, string Mode, int Bracket, IReadOnly
 
     internal static int Today => (int)(DateTime.UtcNow - DateTime.UnixEpoch).TotalDays;
 
-    /// <summary>The record for a finished game, or null when it is not a Battlegrounds game with a placement.</summary>
+    /// <summary>
+    /// The record for a finished game, or null when it is not a Battlegrounds game of public matchmaking with a placement
+    /// (a friendly lobby or a game against the AI stays on this PC: <see cref="GameRecords.IsPrivateBattlegrounds"/>).
+    /// </summary>
     public static PoolGame? From(
         GameOutcome outcome,
         Func<string, string> baseHero,
@@ -187,6 +190,11 @@ public sealed record PoolGame(string GameId, string Mode, int Bracket, IReadOnly
         bool details = false,
         string? secret = null)
     {
+        if (GameRecords.IsPrivateBattlegrounds(outcome.GameType))
+        {
+            return null;
+        }
+
         var game = Basic(outcome.Mode, outcome.Placement, outcome.HeroCardId, outcome.RatingBefore, outcome.OfferedHeroes, outcome.Key, baseHero, secret);
         return game is null ? null : game with { Details = details && outcome.Details is { } d ? PoolDetails.From(d, races) : null };
     }
@@ -194,8 +202,9 @@ public sealed record PoolGame(string GameId, string Mode, int Bracket, IReadOnly
     /// <summary>A game from the local history, sent once when the player agrees to share.</summary>
     public static PoolGame? FromHistory(GameRecord record, string secret, Func<string, string> baseHero, Func<string, IReadOnlyList<string>>? races = null)
     {
-        // Games brought over from another tracker stay on this PC (docs/migration.md).
-        if (record.FromOtherTracker)
+        // Games brought over from another tracker stay on this PC (docs/migration.md), and so do friendly lobbies and
+        // games against the AI.
+        if (record.FromOtherTracker || GameRecords.IsPrivateBattlegrounds(record.GameType))
         {
             return null;
         }

@@ -4,6 +4,7 @@ using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Replay;
+using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.GameStats;
 
@@ -88,8 +89,9 @@ public static class GameStatsRecord
         : "choice";
 
     /// <summary>
-    /// The record of a finished game, or null for a game that is not sent: another mode, no result (abandoned), or a
-    /// Battlegrounds game without its placement.
+    /// The record of a finished game, or null for a game that is not sent: another mode, no result (abandoned), a
+    /// Battlegrounds game outside public matchmaking (<see cref="GameRecords.IsPrivateBattlegrounds"/>), or one without
+    /// its placement.
     /// </summary>
     /// <param name="game">The game's history row.</param>
     /// <param name="id">The record id (<see cref="GameStatsClient.RecordId"/>).</param>
@@ -99,7 +101,7 @@ public static class GameStatsRecord
     /// <param name="appVersion">The app's version, x.y.z.</param>
     public static JsonObject? Build(GameRecord game, string id, string? replayText, PoolGame? pool, CardDb? cards, string? appVersion)
     {
-        if (ModeOf(game.Mode) is not { } mode || ResultOf(game.Result) is not { } result)
+        if (ModeOf(game.Mode) is not { } mode || ResultOf(game.Result) is not { } result || GameRecords.IsPrivateBattlegrounds(game.GameType))
         {
             return null;
         }

@@ -37,7 +37,10 @@ Built from the game's history row and its saved replay, after the game, off the 
 | `app` | app version | |
 
 Not sent: Friendly, Practice, Mercenaries and other modes; abandoned games and games without a result; games brought
-over from another tracker. Lists are cut at the server's limits (400 plays, 120 choices, 300 draws, 6 mulligan cards).
+over from another tracker. Battlegrounds games outside public matchmaking (a friendly lobby or a game against the AI:
+every type with `BATTLEGROUNDS` but `GT_BATTLEGROUNDS`, `_DUO` and `_DUOS`) stay in History and My Stats but are sent
+neither as records nor as shared games nor to the profile (`GameRecords.IsPrivateBattlegrounds`, owner 2026-11-26).
+Lists are cut at the server's limits (400 plays, 120 choices, 300 draws, 6 mulligan cards).
 
 **Only what the player saw** (ADR 0005). A Constructed replay is read with `MatchReplay.ParseSeen`, which leaves out the
 post-game part (`N`/`K` lines: what the log revealed at the end about card backs), so an opponent card that was never

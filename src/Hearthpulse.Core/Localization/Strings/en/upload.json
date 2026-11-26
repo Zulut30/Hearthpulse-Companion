@@ -1,5 +1,5 @@
 {
-  "Upload.What": "After each game: mode, start time and duration, number of turns, result, place or rank, rating, heroes and classes, your deck name and code, the lobby's tribes and anomaly, tavern tier, final board, combats, the heroes you were offered, who went first, your Arena score (wins, losses, game number) and the opponent's archetype when the cards they played showed it. Never your BattleTag, your opponent's name or anything hidden in the game.",
+  "Upload.What": "After each game: mode, start time and duration, number of turns, result, place or rank, rating, heroes and classes, your deck name, code and archetype, the lobby's tribes and anomaly, tavern tier, final board, combats, the heroes you were offered, who went first, your Arena score (wins, losses, game number) and the opponent's archetype when the cards they played showed it. Never your BattleTag, your opponent's name or anything hidden in the game.",
   "Upload.Switch": "Send games to my profile",
   "Upload.Intro": "For “My statistics” on hearthpulse.net. Games are sent automatically while you are signed in; turn this off to stop.",
   "Upload.Privacy": "Privacy policy",

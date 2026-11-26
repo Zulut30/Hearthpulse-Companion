@@ -88,7 +88,10 @@ Common to all games:
 | `result` | `result` | `Win/Loss/Tie` → `win/loss/tie`; Constructed and Arena games with `Unknown` are not sent; not sent for Battlegrounds (the site derives it from the place) |
 
 Not sent at all: games dated before 2014-01-01 (a broken clock; the site ignores them), `Abandoned` games, Brawl, Practice, Friendly, Mercenaries, Other, and Constructed formats other than
-`FT_STANDARD`/`FT_WILD` (Classic, Twist).
+`FT_STANDARD`/`FT_WILD` (Classic, Twist). Battlegrounds games outside public matchmaking (a friendly lobby, a game
+against the AI: every `game_type` with `BATTLEGROUNDS` but `GT_BATTLEGROUNDS`, `GT_BATTLEGROUNDS_DUO` and
+`GT_BATTLEGROUNDS_DUOS`, `GameRecords.IsPrivateBattlegrounds`) stay in History and My Stats only (owner, 2026-11-26),
+and so do games brought over from HDT or Firestone (`docs/migration.md`).
 
 ### `battlegrounds_match` (modes Battlegrounds, Duos)
 
@@ -117,18 +120,24 @@ Not sent (not stored): `offers` (Discover, trinket and quest choices).
 | `heroCardId`, `opponentHeroCardId` | `hero`, `opponent_hero` | the opponent's hero is on the board for everyone |
 | `deckCode` | `deck_code` | only if it matches `^[A-Za-z0-9+/=_-]{4,256}$` |
 | `deckName` | `deck_name` | control and bidi characters removed, trimmed, at most 80 characters; left out (the game still goes) when the raw or the cleaned text holds something shaped like a BattleTag (`#` + 3-6 digits), which the site refuses |
+| `archetype` | `deck_archetype` | the archetype the own deck matched in the community stats of the game's format when the game was saved (`ConstructedStats.ArchetypeOf`, a deck of the game's class only), as its English HSGuru name (`MetaArchetype.Key`, the name the site compares every player's games by), never the interface-language name; same text rules as `deckName` |
 | `opponentArchetype` | `opponent_archetype` | only a clear call from the opponent's played cards (`ArchetypeGuess`); same text rules as `deckName` |
 | `wentFirst` | `went_first` | `false` = the coin, null when unknown |
 | `rankBefore` | `rank_star_level`, `rank_legend` | Ranked only: `{starLevel}` (Legend: 51 + `legendRank`) |
 
-Not sent: `archetype` (the own deck's archetype is not stored), `rankBefore.stars` (stars within a level are not read),
-`rankAfter` (the rank is read only during a game), `playerMulligan` and `opponentDeck` (v1 lists, not used by the
-statistics).
+`archetype` is left out when the game had no deck, no community stats of its format were loaded, or the deck matched
+no archetype. Games saved before `deck_archetype` existed (2026-11-26) have none, and games the site already has never
+get one: it keeps the first copy of an event.
+
+Not sent: `rankBefore.stars` (stars within a level are not read), `rankAfter` (the rank is read only during a game),
+`playerMulligan` and `opponentDeck` (v1 lists, not used by the statistics).
 
 ### `arena_match` and `arena_run` (mode Arena)
 
 Runs are split as My Stats splits them (`ArenaStats.Runs`: by Decks.log deck id, else same class until the win or loss
-limit). When an Arena game ends, its `arena_match` and the run's new `arena_run` go together.
+limit), from the app's own games only: games brought over from HDT or Firestone are left out before the split, so a
+run begun there starts on the site with its first game recorded by Hearthpulse (`docs/migration.md`). When an Arena
+game ends, its `arena_match` and the run's new `arena_run` go together.
 
 | Payload | From | Notes |
 |---|---|---|
@@ -146,8 +155,9 @@ The site accepts at most 3 losses; Underground Arena runs with more (the app ass
 
 Never in a payload: the player's and the opponent's BattleTags (`player_name`, `opponent_name`), not even hashed into
 the event id; log lines; anything the player did not see (the opponent's hand, deck or secrets). The opponent's
-archetype is only the history's guess from cards the opponent played face up. Tokens go only in the `Authorization`
-header and are never logged.
+archetype is only the history's guess from cards the opponent played face up; the own deck's archetype is the community
+stats' name for a list the deck code already carries. Tokens go only in the `Authorization` header and are never
+logged.
 
 ## Checking by hand
 
