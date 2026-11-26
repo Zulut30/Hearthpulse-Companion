@@ -152,7 +152,10 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     /// <summary>Whether the Hearthstone process runs; tests replace it.</summary>
     internal Func<bool> IsHearthstoneRunning { get; set; } = HearthstoneInstall.IsRunning;
 
-    /// <summary>False in tests: a client running on the developer's machine must not leak its memory into them.</summary>
+    /// <summary>
+    /// False in tests: a client running on the developer's machine must not leak its memory into them. The player's own
+    /// switch is <see cref="SetGameMemoryEnabled"/>; memory is read only while both allow it.
+    /// </summary>
     internal bool ReadsMemory { get; set; } = true;
 
     /// <summary>Warms the combat simulator up when a live Battlegrounds game is seen; tests pass one with a counter.</summary>
@@ -335,7 +338,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
         _gameDeck = _queuedDeck;
         _constructed.Deck = null;
-        _ratingAtGameStart = _catchingUp ? null : _rating;
+        // With reading the client off a game starts without a rating: none is read, and no older one stands in for it.
+        _ratingAtGameStart = _catchingUp || !_gameMemoryEnabled ? null : _rating;
     }
 
     public void OnGameEnded(GameState game) => RecordIfFinished(game, force: true);
@@ -437,7 +441,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         Current = new LiveSnapshot(
             _scene,
             _hearthstoneRunning,
-            _memory.IsAttached,
+            CanReadClient,
             _memory.Status,
             inGame ? game!.GameType : null,
             inGame,

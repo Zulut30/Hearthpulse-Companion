@@ -19,6 +19,15 @@
     <StackPanel>
         <!-- Moving over from HDT / Firestone (Main/Migration) -->
         <mg:MigrationCard DataContext="{Binding Migration}" Full="True" Margin="0,0,0,16" />
+        <!-- Reading the game client (AppSettings.ReadGameMemory, docs/adr/0006-client-read-only.md): on by default; off, the
+             pages that need it say so and send the player here -->
+        <Border x:Name="GameClientCard" Style="{StaticResource Card}" Margin="0,0,0,16" Visibility="{Binding GameMemorySwitchShown, Converter={StaticResource Vis}}">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.Data.ClientTitle}" Icon="&#xF0208;" Size="13" Margin="0,0,0,14" />
+                <CheckBox x:Name="GameMemorySwitch" Style="{StaticResource Switch}" Content="{i:Loc Settings.Data.GameMemory}" IsChecked="{Binding ReadGameMemory}" Margin="0,0,0,4" />
+                <TextBlock Text="{i:Loc Settings.Data.GameMemoryNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Data.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />

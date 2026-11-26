@@ -303,7 +303,17 @@ public sealed partial class MainViewModel
     /// <summary>Share of games per final place (index 0 = 1st) as one bar per place, empty without games.</summary>
     public IReadOnlyList<BgPlaceRow> BgPlaces { get => _bgPlaces; private set => Set(ref _bgPlaces, value); }
 
-    public IReadOnlyList<IChartValue> BgRatingChart { get => _bgRatingChart; private set => Set(ref _bgRatingChart, value); }
+    public IReadOnlyList<IChartValue> BgRatingChart
+    {
+        get => _bgRatingChart;
+        private set
+        {
+            if (Set(ref _bgRatingChart, value))
+            {
+                Raise(nameof(BgRatingOffShown));
+            }
+        }
+    }
 
     /// <summary>«Результаты героев»: the combat win rate and pick rate columns; off by default.</summary>
     public bool BgHeroAllColumns { get => _bgHeroAllColumns; set => Set(ref _bgHeroAllColumns, value); }
@@ -318,7 +328,17 @@ public sealed partial class MainViewModel
     /// <summary>The rest, under «Подробнее»: going first and on the coin.</summary>
     public IReadOnlyList<StatTile> CtMoreTiles { get => _ctMoreTiles; private set => Set(ref _ctMoreTiles, value); }
 
-    public IReadOnlyList<IChartValue> CtRankChart { get => _ctRankChart; private set => Set(ref _ctRankChart, value); }
+    public IReadOnlyList<IChartValue> CtRankChart
+    {
+        get => _ctRankChart;
+        private set
+        {
+            if (Set(ref _ctRankChart, value))
+            {
+                Raise(nameof(CtRankOffShown));
+            }
+        }
+    }
 
     // The class and archetype tables sort by their column heads (most played first until one is clicked).
     public TableSort CtClassesSort => _ctClassesSort ??= GroupSort(() => CtClasses = CtClassesSort.Apply(CtClasses, (r, c) => r.SortValue(c)));

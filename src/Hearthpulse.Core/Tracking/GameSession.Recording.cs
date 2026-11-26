@@ -156,7 +156,7 @@ public sealed partial class GameSession
                 _awaitingRatingKey = record.Key;
                 _awaitingDuos = duos;
                 _awaitingRatingUntil = Clock().AddSeconds(120);
-                if (_hearthstoneRunning && ReadsMemory)
+                if (_hearthstoneRunning && MemoryOn)
                 {
                     _memoryPoller.Post(BuildMemoryRequest());
                     _memoryPoller.Wake();

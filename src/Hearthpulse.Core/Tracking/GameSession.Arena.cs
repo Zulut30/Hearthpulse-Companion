@@ -246,6 +246,19 @@ public sealed partial class GameSession
         }
     }
 
+    /// <summary>
+    /// Reading the client was turned off: the offers read from it are forgotten, so neither the draft panel nor a pick's
+    /// record takes one read before the switch.
+    /// </summary>
+    private void ForgetDraftOffers()
+    {
+        _draftOffer = null;
+        _pickedOffer = null;
+        _pickedWithoutOffer = null;
+        _offerOfAnotherRun = null;
+        _replacedOffers.Clear();
+    }
+
     private void ApplyArenaMemory(MemoryReading reading)
     {
         // Off the draft screen the offer is not read; dropping it keeps an old one from showing for a moment on return.

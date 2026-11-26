@@ -514,6 +514,29 @@ public sealed class BgOpponentMmrTests : IDisposable
         Assert.All(Opponents(), o => Assert.Null(o.PlayerName));
     }
 
+    /// <summary>
+    /// TASK-2026-11-26 AC7: reading the game client turned off forgets the names read from it, and every opponent says
+    /// "unknown" (no scan is coming), never "loading"; the game itself is still tracked from the log.
+    /// </summary>
+    [Fact]
+    public void Reading_the_client_turned_off_forgets_the_names_and_leaves_every_opponent_unknown()
+    {
+        _session.SetBgLeaderboards(SourceWith(new BgLeaderboard([("Alpha", 9000)])));
+        _session.SetBgOpponentMmrEnabled(true);
+        StartGame();
+        var id = Opponents()[0].PlayerId;
+        _session.SetLobbyNames(new Dictionary<int, string> { [id] = "Alpha" });
+        Tick();
+        Assert.Equal(BgMmrStatus.Found, Opponents().Single(o => o.PlayerId == id).Mmr!.Status);
+
+        _session.SetGameMemoryEnabled(false);
+        Tick();
+
+        Assert.NotEmpty(Opponents());
+        Assert.All(Opponents(), o => Assert.Null(o.PlayerName));
+        Assert.All(Opponents(), o => Assert.Equal(BgMmrStatus.Unknown, o.Mmr!.Status));
+    }
+
     [Fact]
     public void Names_and_ratings_never_reach_the_history_or_the_log()
     {

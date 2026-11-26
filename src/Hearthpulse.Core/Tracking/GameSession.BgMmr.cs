@@ -151,8 +151,9 @@ public sealed partial class GameSession
 
         if (!namesRead)
         {
-            // The first scan is a few seconds away while the game can be read; without memory there will be none.
-            return new BgOpponentMmr(ReadsMemory && _memory.IsAttached ? BgMmrStatus.Loading : BgMmrStatus.Unknown, null);
+            // The first scan is a few seconds away while the game can be read; without memory (or with reading the client
+            // turned off) there will be none.
+            return new BgOpponentMmr(CanReadClient ? BgMmrStatus.Loading : BgMmrStatus.Unknown, null);
         }
 
         if (name is null)

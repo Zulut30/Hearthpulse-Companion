@@ -8,6 +8,7 @@ public sealed partial class GameSession
     /// </summary>
     public void ApplySettings(AppSettings settings)
     {
+        SetGameMemoryEnabled(settings.ReadGameMemory);
         // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
         // version is no longer read from the settings).
         SetCompMode(CompMode.Manual, null);

@@ -104,4 +104,5 @@ public sealed record RankInfo(string Format, int LeagueId, int StarLevel, int Le
     }
 }
 
-public sealed record MatchPlayerInfo(string? Name, RankInfo? Standard, RankInfo? Wild, RankInfo? Classic, RankInfo? Twist);
+/// <summary>A player's ranked medals in the current game, by format; the player's name is not read.</summary>
+public sealed record MatchPlayerInfo(RankInfo? Standard, RankInfo? Wild, RankInfo? Classic, RankInfo? Twist);

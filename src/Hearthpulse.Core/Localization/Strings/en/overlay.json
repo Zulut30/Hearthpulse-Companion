@@ -91,6 +91,7 @@
   "Overlay.Bar.TribesTip": "Tribes in this lobby. Comps that need other tribes are left out.",
   "Overlay.Bar.TribeFilterTip": "Click to show only this tribe in the tier list; again for every tribe",
   "Overlay.Bar.ReadingLobby": "Reading the lobby…",
+  "Overlay.Bar.LobbyReadingOff": "Client reading is off",
   "Overlay.Bar.Tavern": "Tavern",
   "Overlay.Bar.Fights": "Fights",
   "Overlay.Bar.TribesLine": "Tribes: {0}",

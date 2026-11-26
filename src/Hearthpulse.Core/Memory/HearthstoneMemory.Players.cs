@@ -11,7 +11,7 @@ public sealed partial class HearthstoneMemory
     /// is dragged this is the card under the cursor (a target), not the dragged one. Hidden cards (opponent's hand) have
     /// no id and give null.
     /// </summary>
-    public string? GetHoveredCardId() => Safe(quiet: true, read: rt =>
+    public string? GetHoveredCardId() => Safe(quiet: true, attach: false, read: rt =>
     {
         var input = rt.FindClass("InputManager")?.GetStatic("s_instance") ?? default;
         var card = input.IsNull ? default : input["m_mousedOverCard"];
@@ -87,8 +87,8 @@ public sealed partial class HearthstoneMemory
             }
         }
 
-        var nameField = Field(player.Class, "name", ["m_name"]);
-        return new MatchPlayerInfo(nameField is null ? null : player.String(nameField), standard, wild, classic, twist);
+        // Only the medals: the player's name is not read (nothing uses it; data minimisation, LEGAL L-m6 2026-11-26).
+        return new MatchPlayerInfo(standard, wild, classic, twist);
     }
 
     private static string FormatName(int format) => format switch
