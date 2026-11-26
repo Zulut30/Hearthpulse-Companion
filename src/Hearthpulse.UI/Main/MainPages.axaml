@@ -21,25 +21,35 @@
         </Border>
     </DataTemplate>
 
-    <!-- A recent game: the hero in a gold ring, its name over the mode and one line of details, the date, the result on a
-         pill in its own colour and the rating change. Fixed columns, so Battlegrounds and Constructed rows line up. -->
+    <!-- A recent game: the hero in a gold ring, its name over the mode and one line of details, then the facts: the date,
+         the result on a pill in its own colour and the rating change. A row of 560 and more has the facts in fixed cells
+         (120, 112, 56) beside the name, so Battlegrounds and Constructed rows line up; the details wrap under the name
+         rather than end in an ellipsis. Narrower (tight, i:Tight: compact, or the narrowest wide window), the facts flow on
+         a line under the name and the details and wrap rather than run the date into the result (bug-hunt #4). The places
+         and widths are styles (Grid.gameRow in Pages/OverviewPage.axaml, the list that shows this row). -->
     <DataTemplate x:Key="GameRowTemplate" x:DataType="m:GameRow">
         <Border Classes="row">
-            <Grid ColumnDefinitions="52,*,120,112,56">
-                <Border Width="40" Height="40" CornerRadius="20" Background="{StaticResource Surface3}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1.5"
+            <Grid Classes="gameRow" i:Tight.Below="560" ColumnDefinitions="52,*,Auto" RowDefinitions="Auto,Auto">
+                <Border Classes="gamePortrait" Width="40" Height="40" CornerRadius="20" Background="{StaticResource Surface3}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1.5"
                         HorizontalAlignment="Left" ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,16,0">
+                <StackPanel Classes="gameTitle" Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Hero}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Hero}" />
-                    <TextBlock Text="{Binding Summary}" Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Summary}" />
+                    <TextBlock Text="{Binding Summary}" Classes="caption gameSummary" ToolTip.Tip="{Binding Summary}" />
                 </StackPanel>
-                <TextBlock Grid.Column="2" Text="{Binding When}" Classes="caption" VerticalAlignment="Center" />
-                <Border Grid.Column="3" CornerRadius="{StaticResource RadiusLarge}" Padding="12,4" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="1"
-                        Background="{Binding ResultKey, Converter={StaticResource KeyBrush}, ConverterParameter=soft}"
-                        BorderBrush="{Binding ResultKey, Converter={StaticResource KeyBrush}}">
-                    <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
-                </Border>
-                <TextBlock Grid.Column="4" Text="{Binding Rating}" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"
-                           Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip.Tip="{i:Loc Main.Game.RatingChange}" />
+                <WrapPanel Classes="gameFacts" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding When}" Classes="caption gameWhen" VerticalAlignment="Center" />
+                    <Panel Classes="gameResult" VerticalAlignment="Center">
+                        <Border CornerRadius="{StaticResource RadiusLarge}" Padding="12,4" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="1"
+                                Background="{Binding ResultKey, Converter={StaticResource KeyBrush}, ConverterParameter=soft}"
+                                BorderBrush="{Binding ResultKey, Converter={StaticResource KeyBrush}}">
+                            <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
+                        </Border>
+                    </Panel>
+                    <!-- .none: no rating change (most Constructed games); a tight row leaves the empty cell out of its line -->
+                    <TextBlock Text="{Binding Rating}" Classes="gameRating" Classes.none="{Binding Rating, Converter={StaticResource Truthy}, ConverterParameter=!}"
+                               FontWeight="SemiBold" TextAlignment="Right" VerticalAlignment="Center"
+                               Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip.Tip="{i:Loc Main.Game.RatingChange}" />
+                </WrapPanel>
             </Grid>
         </Border>
     </DataTemplate>
