@@ -99,12 +99,12 @@ arena            kind x class (runs)           6      6      2             1    
 - One query reads the window: each record once, whatever its mode (index on `day`), with a few `json_extract` fields
   of the records a family needs. The families and the all-records line come from it, so they agree with each other.
   The install ids of each cell are held in memory to count them and never printed.
-- **The service waits for the report.** At the end of its minute's upkeep, and after each source-capture worker job,
-  the service truncates its WAL (`PRAGMA wal_checkpoint(TRUNCATE)`). The truncation waits while a read that began
-  before it is still open, the report's too, for up to the service's `busy_timeout` of 5 s, and the service runs on
-  one thread: during that wait it takes no upload and answers no request. A read that outlasts the 5 s makes the
-  truncation give up for that minute, with no log line, and the WAL keeps its frames until the next one, the frames
-  of a forget too.
+- **The service waits for the report.** At the end of its minute's upkeep, after each source-capture worker job and
+  after a source-capture forget, the service truncates its WAL (`PRAGMA wal_checkpoint(TRUNCATE)`). The truncation
+  waits while a read that began before it is still open, the report's too, for up to the service's `busy_timeout` of
+  5 s, and the service runs on one thread: during that wait it takes no upload and answers no request. A read that
+  outlasts the 5 s makes the truncation give up, with no log line, and the WAL keeps its frames until the next one,
+  the frames of a forget too.
 - Cost: about 1 s per 10,000 records in the window. On a desktop PC (Windows 11, Node 24), a pool of 120,000
   synthetic records (430 MB, bodies of 1 KB on average) took 9 s with 90,000 of them in the window and 13 s with
   `--days 180`: a run on a pool that size outlasts the service's 5 s.
