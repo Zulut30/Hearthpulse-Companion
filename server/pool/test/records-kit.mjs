@@ -95,9 +95,8 @@ export function recordsKit({ views = [], derivers = [], patches = NO_PATCHES, no
 const HIDDEN_SLICE = Object.freeze({ games: null, installs: null, quality: 'small_sample', suppressed: null, rows: Object.freeze([]) });
 
 /**
- * A small view for tests, and the pattern for real ones: per format and rank bucket, games, wins and installs by
- * class. Every threshold comes from ctx.stats. A slice whose totals are hidden publishes no number at all (not how
- * many rows it hides either) and is left out of the snapshot; `slice` answers it as a slice nobody played.
+ * A small view for tests and the pattern for real ones: per format and rank bucket, games, wins and installs by
+ * class. A slice with hidden totals is left out of the snapshot and answered as a slice nobody played.
  * data: {games, installs, quality, suppressed, rows: [{cls, games, installs, winrate: RATE, quality}]}.
  */
 export function winrateView(o = {}) {

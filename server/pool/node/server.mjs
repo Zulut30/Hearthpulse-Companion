@@ -58,9 +58,8 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
   maxRequests = 4, archive: archiveOptions = {}, legacyEnv = {}, schedule = true, records: recordsOptions = {} } = {}) {
   if (!dataDir || !path.isAbsolute(dataDir) || !int(port, 0, 65535) || !int(maxRequests, 1, 32)) throw new Error('invalid_service_config');
   thresholds(); // An invalid ANALYTICS_MIN_* stops the start instead of failing every later rebuild silently.
-  // A malformed balance-patches.json switches the record views off (one line records_patches_invalid): windows read
-  // from a misread file would publish numbers under the wrong patch. Everything else runs, the intake of records
-  // included; the pass, with no view, removes the rows they had published. A broken view or deriver only leaves itself out.
+  // A malformed balance-patches.json switches the record views off (records_patches_invalid), and only them: windows
+  // read from a misread file would publish numbers under the wrong patch. A broken view or deriver leaves itself out.
   const recordLog = recordsOptions.log ?? console.error;
   let patches = recordsOptions.patches ?? null;
   if (patches === null) {
