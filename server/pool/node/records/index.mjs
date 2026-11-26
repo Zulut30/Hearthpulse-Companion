@@ -20,7 +20,7 @@ export const REBUILD_AFTER = 30 * 60_000;
 const STATE = 'records';
 const rowOf = key => RECORD_VIEWS + key;
 const LIKE = RECORD_VIEWS + '%';
-// 32 lowercase hex characters or more: where an install id would show if a view published one.
+// 32 lowercase hex characters or more: where an install id or a record id would show if a view published one.
 const HEX_RUN = /[0-9a-f]{32,}/g;
 
 const memos = new WeakMap();
@@ -75,12 +75,16 @@ function due(state, rows, { sig, today, now, count, views }) {
   return views.some(v => { const r = rows.get(v.key); return (!r || r.size === 0) && !failed.has(v.key); });
 }
 
-/** Whether a serialized snapshot holds an install id of the pass: such a view is not published. */
-function leaks(text, iids) {
+/** Which id of the pass a serialized snapshot holds: 'install_id', 'record_id' or null. Such a view is not published. */
+function leak(text, iids, ids) {
   for (const [run] of text.matchAll(HEX_RUN)) {
-    for (let i = 0; i + 32 <= run.length; i++) if (iids.has(run.slice(i, i + 32))) return true;
+    for (let i = 0; i + 32 <= run.length; i++) {
+      const part = run.slice(i, i + 32);
+      if (iids.has(part)) return 'install_id';
+      if (ids.has(part)) return 'record_id';
+    }
   }
-  return false;
+  return null;
 }
 
 /** Runs every view over the records of the pass; returns the snapshots to publish and the views that failed. */
@@ -105,12 +109,14 @@ function build(db, { modules, patches, today, now, thresholds, log }) {
   const modes = [...new Set(modules.views.flatMap(v => v.modes))];
   const counts = { read: 0, skipped: 0 };
   const iids = new Set();
+  const ids = new Set();
   const deriveFailures = new Map();
   const deriveCtx = Object.freeze({ today, now });
   for (const rec of scan(db, { today, patches, modes, counts })) {
     const takers = runs.filter(r => !r.failed && r.view.line === rec.line && r.modes.has(rec.mode));
     if (takers.length === 0) continue;
     iids.add(rec.iid);
+    ids.add(rec.body.id);
     for (const d of modules.derivers) {
       try { d.derive(rec, deriveCtx); } catch { deriveFailures.set(d.name, (deriveFailures.get(d.name) ?? 0) + 1); }
     }
@@ -141,7 +147,8 @@ function build(db, { modules, patches, today, now, thresholds, log }) {
       }));
       const text = JSON.stringify({ v: 1, view: run.view.key, metric: run.view.metric, rules: run.view.rules, derivers, thresholds,
         day: today, latest: latestPatch(patches, run.view.line), windows });
-      if (leaks(text, iids)) fail(run, 'install_id');
+      const found = leak(text, iids, ids);
+      if (found) fail(run, found);
       else published.push({ key: run.view.key, text });
     } catch { fail(run, 'finish'); }
   }
@@ -151,7 +158,7 @@ function build(db, { modules, patches, today, now, thresholds, log }) {
 /**
  * The pass (K0). Runs when due (see `due`) or with `force`, in one transaction: a failure leaves every published row
  * as it was and throws (the timer reports records_refresh_failed). A view that throws, or whose snapshot would hold an
- * install id, logs records_view_failed with its key and keeps its previous row; the others publish. Returns
+ * install id or a record id, logs records_view_failed with its key and keeps its previous row; the others publish. Returns
  * {built: false} when nothing was due, else {built: true, views, failed, records}.
  */
 export function refresh(db, { modules, patches, now = Date.now(), force = false, thresholds = recordThresholds(), log = console.error } = {}) {

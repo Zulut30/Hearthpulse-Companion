@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { catalogProblems, loadModules, readCatalog } from '../node/records/loader.mjs';
-import { createStats } from '../node/records/stats.mjs';
+import { THRESHOLDS, createStats } from '../node/records/stats.mjs';
 import { DAY, TODAY, install, ranked, recordsKit, traceView, winrateView } from './records-kit.mjs';
 
 /** The Wilson score interval worked out by hand, apart from the code under test (z = 1.96). */
@@ -83,6 +83,45 @@ test('Q1: a mean and a placement need 5 installations behind them, and 10 observ
   assert.deepEqual(s.mean(Array(10).fill(3), 5), { n: 10, mean: 3, low: 3, high: 3, rankable: false }, 'ten values: the mean');
   assert.deepEqual(s.placement(Array(9).fill(4), 5), { n: 9, mean: null, low: null, high: null, dist: null, rankable: false }, 'nine places: no distribution');
   assert.deepEqual(s.placement(Array(10).fill(4), 5), { n: 10, mean: 4, low: 4, high: 4, dist: [0, 0, 0, 10, 0, 0, 0, 0], rankable: true });
+});
+
+test('Q5: the K3 thresholds are the foundation\'s: 5 installations, 10 games, 50 games behind a deck row', () => {
+  assert.deepEqual(THRESHOLDS, { minInstalls: 5, minGames: 10, minDeckGames: 50 });
+  const s = createStats();
+  assert.deepEqual([s.minInstalls, s.minGames, s.minDeckGames], [5, 10, 50]);
+  // AC14's three decks: 50 games of 5 installations, 49 of 5, 60 of 4.
+  const decks = [{ key: 'a', games: 50, installs: 5 }, { key: 'b', games: 49, installs: 5 }, { key: 'c', games: 60, installs: 4 }];
+  assert.deepEqual(s.deckRows(decks, d => ({ key: d.key })), { rows: [{ key: 'a' }], suppressed: 2 });
+  assert.deepEqual(s.rows(decks, d => ({ key: d.key })), { rows: [{ key: 'a' }, { key: 'b' }], suppressed: 1 }, 'other rows need no 50 games');
+  assert.deepEqual(s.deckRows([{ key: 'x', installs: 9 }], d => d), { rows: [], suppressed: 1 }, 'a deck cell without its games is no row');
+
+  // A view reads them from its ctx, as the pass sets them.
+  const kit = recordsKit({ views: [traceView({ finish: (acc, ctx) => ({ ...ctx.thresholds, minDeckGames: ctx.stats.minDeckGames }) })] });
+  kit.refresh();
+  assert.deepEqual(kit.answer('test-trace').data, { minInstalls: 5, minGames: 10, minDeckGames: 50 });
+});
+
+test('m2: the totals of a slice are numbers too: null under 5 installations, small_sample under 10 games', () => {
+  const s = createStats();
+  assert.deepEqual(s.totals(40, 4), { games: null, installs: null, quality: 'small_sample' });
+  assert.deepEqual(s.totals(2, new Set(['a'])), { games: null, installs: null, quality: 'small_sample' });
+  assert.deepEqual(s.totals(9, 5), { games: 9, installs: 5, quality: 'small_sample' });
+  assert.deepEqual(s.totals(10, new Set(['a', 'b', 'c', 'd', 'e'])), { games: 10, installs: 5, quality: 'ok' });
+
+  // The example view: a slice of one installation answers as a slice nobody played, with no number at all.
+  const kit = recordsKit({ views: [winrateView()] });
+  kit.add(1, ranked({ cls: 'DEMONHUNTER', rank: 'legend' }), ranked({ cls: 'DEMONHUNTER', rank: 'legend' }));
+  spread(kit, { cls: 'MAGE', games: 10, installs: 5, wins: 6, first: 11 });
+  kit.refresh();
+  const hidden = { games: null, installs: null, quality: 'small_sample', suppressed: null, rows: [] };
+  assert.deepEqual(kit.answer('test-winrate', { rank: 'legend' }).data, hidden, 'two games of one installation at legend');
+  assert.deepEqual(kit.answer('test-winrate', { rank: 'bronze' }).data, hidden, 'nobody at bronze');
+  const gold = kit.answer('test-winrate', { rank: 'gold' }).data;
+  assert.deepEqual([gold.games, gold.installs, gold.quality, gold.suppressed], [10, 5, 'ok', 0]);
+  const all = kit.answer('test-winrate').data;
+  assert.deepEqual([all.games, all.installs, all.quality, all.suppressed], [12, 6, 'ok', 1], 'the legend player\'s class is a hidden row of a slice of six');
+  assert.equal(kit.db.prepare("SELECT body FROM snap WHERE mode = 'records:test-winrate'").get().body.includes('legend'), false,
+    'a hidden slice is not in the snapshot');
 });
 
 test('AC6: a forget withdraws every view in its own batch; the next pass has lost that install; a clean-up that deletes nothing withdraws nothing', async () => {
@@ -194,7 +233,13 @@ test('the envelope of K4: fields, an unknown or repeated parameter, a bad value,
   assert.deepEqual(Object.keys(a), ['v', 'source', 'view', 'metric', 'rulesVersion', 'derivers', 'available', 'reason', 'published', 'stale',
     'thresholds', 'period', 'windows', 'data']);
   assert.equal(a.published, kit.now);
-  assert.deepEqual(a.data, { games: 1, installs: 1, suppressed: 1, rows: [] });
+  assert.deepEqual(a.data, { games: null, installs: null, quality: 'small_sample', suppressed: null, rows: [] }, 'one installation: no totals (m2)');
+  // m4: an answer with nothing to serve has published null; no_window serves the snapshot's time and window list.
+  const unsupported = kit.answer('test-modes', { kind: 'b' });
+  assert.deepEqual([unsupported.reason, unsupported.published, unsupported.period, unsupported.windows, unsupported.data],
+    ['unsupported_mode', null, null, [], null]);
+  const none = kit.answer('test-winrate', { patch: 'P0' });
+  assert.deepEqual([none.reason, none.published, none.period, none.windows, none.data], ['no_window', kit.now, null, [{ patch: 'unknown', window: '30d' }], null]);
   for (const query of [{ cls: 'MAGE' }, { fmt: 'classic' }, { rank: 'd5' }, { window: '14d' }, { patch: 'p 1' }, { fmt: 'STANDARD' }]) {
     assert.deepEqual(kit.request('test-winrate', query), { status: 400, body: { ok: false, error: 'invalid_query' } }, JSON.stringify(query));
   }
@@ -220,6 +265,19 @@ test('a view that throws logs its key and nothing else; a view that would publis
   assert.equal(kit.answer('test-leaky').reason, 'not_published');
   assert.equal(kit.refresh().built, false, 'a view that failed is not retried until something changes');
   assert.equal(kit.status().failed, 2);
+});
+
+test('Q2: a view that would publish a record id is held back as one with an install id is', () => {
+  const leaky = traceView({ key: 'test-record-id', add: (acc, rec) => { acc.push([`id:${rec.body.id}`, rec.day]); } });
+  const kit = recordsKit({ views: [winrateView(), leaky] });
+  const game = ranked();
+  kit.add(1, game);
+  assert.deepEqual(kit.refresh().failed, ['test-record-id']);
+  assert.deepEqual(kit.logs, [{ ok: false, error: 'records_view_failed', view: 'test-record-id', stage: 'record_id' }]);
+  assert.equal(kit.answer('test-record-id').reason, 'not_published');
+  assert.equal(kit.answer('test-winrate').available, true, 'the other view publishes');
+  const rows = JSON.stringify(kit.db.prepare('SELECT mode, body FROM snap').all());
+  assert.equal(rows.includes(game.id), false, 'the record id is in no published row');
 });
 
 test('derivers run in order and fill rec.d once for every view; one that throws is counted, and the pass goes on', () => {

@@ -45,8 +45,8 @@ is due, never in a request:
   `built` = publication time, `body` = the snapshot) and the state row `records` (count, time, signature, failed
   views). Rows of views that no longer load are deleted.
 
-A view that throws in `start`, `add` or `finish`, or whose snapshot would hold an install id of the pass, is not
-published: one line `records_view_failed` with its key and the stage, its previous row stays (served with
+A view that throws in `start`, `add` or `finish`, or whose snapshot would hold an install id or a record id of the
+pass, is not published: one line `records_view_failed` with its key and the stage, its previous row stays (served with
 `stale: true` when records changed since), the other views publish, and it is not retried until the records, the day
 or a version change. A deriver that throws leaves its fields of that record unset and is reported once a pass
 (`records_derive_failed` with the count). A failure of the pass itself rolls everything back (`records_refresh_failed`).
@@ -93,8 +93,12 @@ view received in that window, or `null`.
 
 ## Numbers (`ctx.stats`)
 
-Thresholds come from the analytics settings (`ANALYTICS_MIN_SOURCES` 5 installations, `ANALYTICS_MIN_CELL` 10 games;
-production keeps the defaults) and travel in every envelope as `thresholds: {minInstalls, minGames}`.
+The thresholds of K3 are the foundation's (`stats.mjs`, `THRESHOLDS`): 5 installations behind every number
+(`minInstalls`), 10 games behind a value (`minGames`) and 50 games behind a deck row (`minDeckGames`). The first two
+come from the analytics settings (`ANALYTICS_MIN_SOURCES`, `ANALYTICS_MIN_CELL`, same defaults; production keeps them)
+and travel in every envelope as `thresholds: {minInstalls, minGames}`. A view writes no threshold of its own: it uses
+the helpers below, and where its `data` names a threshold it reads `ctx.stats.minInstalls`, `minGames` or
+`minDeckGames` (`constructed-decks` has `minGames: ctx.stats.minDeckGames`).
 
 - `rate(num, den, installs)` → `RATE {num, den, value, low, high, rankable}`: Wilson interval, z = 1.96.
 - `mean(values | Moments, installs, kind)` → `MEAN {n, mean, low, high, rankable}`: mean ± 1.96·s/√n; `kind`
@@ -104,8 +108,15 @@ production keeps the defaults) and travel in every envelope as `thresholds: {min
 - Each returns `null` under `minInstalls` distinct installations among its own observations (`installs` is a Set of
   `rec.iid` or a count); with the installations but a denominator under `minGames` it keeps its counts and the
   value, interval and distribution are `null`. Values are rounded to 3 decimals.
+- `totals(games, installs)` → `{games, installs, quality}`: the totals of a slice are numbers too. Under
+  `minInstalls` both are `null` and `quality` is `'small_sample'`; under `minGames` games `quality` is
+  `'small_sample'`; else `'ok'`. A slice whose totals are hidden publishes no other number either (`suppressed: null`,
+  no rows): the view leaves it out of the snapshot and its `slice` answers it as a slice nobody played, so the two
+  cannot be told apart (`winrateView` in the kit is the pattern).
 - `rankable`: the interval's half-width is at most 5 points for a share, 0.3 for a place, 0.3 for wins.
 - `rows(cells, makeRow)` → `{rows, suppressed}`: cells under `minInstalls` are not rows, only counted.
+- `deckRows(cells, makeRow)`: as `rows`, and each cell also needs `cell.games` ≥ `minDeckGames`. A deck code is
+  published only from 50 games of 5 installations (AC14); a cell without `games` is no row.
 - `quality(...numbers)` → `'ok'` when every number has a value, else `'small_sample'`.
 - `rankFirst(rows, isRankable, compare)`: rankable rows first, so an unrankable row never sorts above a rankable one.
 
@@ -172,9 +183,14 @@ from the published row, parsed once per build and kept in memory; `cache-control
 | 404 `not_found` | any other path under `/v2` (nginx passes the whole `/stats/v2/analytics/` prefix) |
 | 405 | not GET (behind nginx: 403) |
 
-An unavailable answer has `data: null`, `period: null` and `published: null` (`no_window` keeps `published`, `stale`
-and `windows`). No answer holds an install id, a record id or a deck code of a single game: the pass refuses to
-publish a snapshot in which any install id of the pass appears.
+`published` is the build time (ms since 1970, UTC) of the snapshot an answer serves. An answer that serves none
+(`not_published`, `rebuilding`, `unsupported_mode`) has `published: null`, `data: null`, `period: null` and
+`windows: []`; `no_window` serves the snapshot's `published`, `stale` and `windows` with `data: null` and
+`period: null`. A reader (A5, K6) takes `published: null` as "not published": not an error, not a time 0.
+
+No answer holds an install id or a record id: the pass refuses to publish a snapshot in which an install id or a
+record id of the pass appears (`records_view_failed`, `stage: install_id` or `record_id`). A deck code of a single
+game is the view's rule, not the pass's: deck rows come from `ctx.stats.deckRows` (50 games, 5 installations).
 
 ## Deletion
 

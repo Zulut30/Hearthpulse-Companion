@@ -91,9 +91,14 @@ export function recordsKit({ views = [], derivers = [], patches = NO_PATCHES, no
   return kit;
 }
 
+/** The data of a slice under the installation threshold, or of one nobody played: the two answer the same. */
+const HIDDEN_SLICE = Object.freeze({ games: null, installs: null, quality: 'small_sample', suppressed: null, rows: Object.freeze([]) });
+
 /**
- * A small view for tests: per format and rank bucket, games, wins and installs by class.
- * data: {games, installs, suppressed, rows: [{cls, games, installs, winrate: RATE, quality}]}.
+ * A small view for tests, and the pattern for real ones: per format and rank bucket, games, wins and installs by
+ * class. Every threshold comes from ctx.stats. A slice whose totals are hidden publishes no number at all (not how
+ * many rows it hides either) and is left out of the snapshot; `slice` answers it as a slice nobody played.
+ * data: {games, installs, quality, suppressed, rows: [{cls, games, installs, winrate: RATE, quality}]}.
  */
 export function winrateView(o = {}) {
   return {
@@ -115,16 +120,18 @@ export function winrateView(o = {}) {
     finish(acc, ctx) {
       const body = {};
       for (const [key, slice] of acc) {
+        const totals = ctx.stats.totals(slice.games, slice.installs);
+        if (totals.games === null) continue;
         const { rows, suppressed } = ctx.stats.rows(slice.classes.values(), cell => {
           const winrate = ctx.stats.rate(cell.wins, cell.games, cell.installs);
           return { cls: cell.cls, games: cell.games, installs: cell.installs.size, winrate, quality: ctx.stats.quality(winrate) };
         });
-        body[key] = { games: slice.games, installs: slice.installs.size, suppressed,
+        body[key] = { ...totals, suppressed,
           rows: ctx.stats.rankFirst(rows, r => ctx.stats.rankable(r.winrate), (a, b) => b.games - a.games || (a.cls < b.cls ? -1 : 1)) };
       }
       return body;
     },
-    slice: (body, p) => body[`${p.fmt}|${p.rank}`] ?? { games: 0, installs: 0, suppressed: 0, rows: [] },
+    slice: (body, p) => body[`${p.fmt}|${p.rank}`] ?? HIDDEN_SLICE,
     ...o,
   };
 }

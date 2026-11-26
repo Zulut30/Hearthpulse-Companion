@@ -2,8 +2,14 @@
 // ±1.96·s/√n, placements with their distribution, the publication thresholds and the ranking rule. Every number needs
 // minInstalls distinct installations among its own observations, else it is null; above that, a denominator under
 // minGames keeps its counts and hides the value. A number is `rankable` when its interval is narrow enough to order
-// rows by it.
+// rows by it. Views take every threshold from here (ctx.stats), never as a literal of their own.
 import { wilson } from '../analytics.mjs';
+
+/**
+ * The thresholds of contract K3: installations behind every number, games behind a value, games behind a deck row (a
+ * deck code is published from minDeckGames games, as ConstructedMeta.MinDeckGames of the external lists).
+ */
+export const THRESHOLDS = Object.freeze({ minInstalls: 5, minGames: 10, minDeckGames: 50 });
 
 /** Largest interval half-width a rankable number may have: 5 points of a share, 0.3 of a place, 0.3 of a win. */
 export const LIMITS = Object.freeze({ rate: 0.05, place: 0.3, wins: 0.3 });
@@ -28,8 +34,8 @@ export class Moments {
   }
 }
 
-/** The numbers of one pass, bound to its thresholds (ctx.stats of a view). */
-export function createStats({ minInstalls = 5, minGames = 10 } = {}) {
+/** The numbers of one pass, bound to its thresholds (ctx.stats of a view); a threshold not given is THRESHOLDS'. */
+export function createStats({ minInstalls = THRESHOLDS.minInstalls, minGames = THRESHOLDS.minGames, minDeckGames = THRESHOLDS.minDeckGames } = {}) {
   const enough = installs => size(installs) >= minInstalls;
 
   /** RATE {num, den, value, low, high, rankable}: num of den observations, made by `installs` (a Set or a count). */
@@ -70,31 +76,46 @@ export function createStats({ minInstalls = 5, minGames = 10 } = {}) {
     return { n: m.n, mean: m.mean, low: m.low, high: m.high, dist, rankable: m.rankable };
   }
 
+  /**
+   * The totals of a slice, {games, installs, quality}: counts like any other number, so both are null under
+   * minInstalls installations; `quality` is 'small_sample' then and under minGames games, else 'ok'.
+   */
+  function totals(games, installs) {
+    if (!enough(installs)) return { games: null, installs: null, quality: 'small_sample' };
+    return { games, installs: size(installs), quality: games >= minGames ? 'ok' : 'small_sample' };
+  }
+
   /** Whether a number (RATE, MEAN or PLACEMENT, or null) may order rows. */
   const rankable = x => x?.rankable === true;
 
   /** 'ok' when every number is published with a value, else 'small_sample'. */
   const quality = (...numbers) => (numbers.every(x => x && (x.value ?? x.mean) !== null && (x.value ?? x.mean) !== undefined) ? 'ok' : 'small_sample');
 
-  /**
-   * Rows of the cells with minInstalls installations or more (`cell.installs`, a Set or a count), each made by
-   * `makeRow(cell)` (null leaves it out); the cells under the threshold are only counted in `suppressed`.
-   */
-  function rows(cells, makeRow) {
+  /** The cells of at least minInstalls installations and `floor` games (`cell.games`, when floor > 0) as rows. */
+  function collect(cells, makeRow, floor) {
     let suppressed = 0;
     const out = [];
     for (const cell of cells) {
-      if (!enough(cell.installs)) { suppressed++; continue; }
+      if (!enough(cell.installs) || (floor > 0 && !(cell.games >= floor))) { suppressed++; continue; }
       const row = makeRow(cell);
       if (row) out.push(row);
     }
     return { rows: out, suppressed };
   }
 
+  /**
+   * Rows of the cells with minInstalls installations or more (`cell.installs`, a Set or a count), each made by
+   * `makeRow(cell)` (null leaves it out); the cells under the threshold are only counted in `suppressed`.
+   */
+  const rows = (cells, makeRow) => collect(cells, makeRow, 0);
+
+  /** Rows of deck cells: as `rows`, and each cell also needs minDeckGames games (`cell.games`) to show its deck. */
+  const deckRows = (cells, makeRow) => collect(cells, makeRow, minDeckGames);
+
   /** Rankable rows first, each group in `compare` order (stable): an unrankable row never sorts above a rankable one. */
   function rankFirst(list, isRankable, compare) {
     return [...list].sort((a, b) => (isRankable(b) ? 1 : 0) - (isRankable(a) ? 1 : 0) || compare(a, b));
   }
 
-  return Object.freeze({ minInstalls, minGames, enough, rate, mean, placement, rankable, quality, rows, rankFirst, Moments });
+  return Object.freeze({ minInstalls, minGames, minDeckGames, enough, rate, mean, placement, totals, rankable, quality, rows, deckRows, rankFirst, Moments });
 }

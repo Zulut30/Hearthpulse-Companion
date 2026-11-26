@@ -237,7 +237,7 @@ start (`startup_failed`): the deploy checks catch it, roll back and fix the file
 | Code | Meaning | What waits |
 |---|---|---|
 | `records_refresh_failed` | the pass itself failed (`cause` is the error message, cut to 200 characters); rolled back | every view keeps its previous row; the next minute tries again |
-| `records_view_failed` | one view threw (`view`, `stage`: start, add, finish, slice) or would have published an install id (`stage: install_id`) | that view keeps its previous row (or none); the others publish; retried when records, the day or a version change |
+| `records_view_failed` | one view threw (`view`, `stage`: start, add, finish, slice) or would have published an install id or a record id (`stage: install_id`, `record_id`) | that view keeps its previous row (or none); the others publish; retried when records, the day or a version change |
 | `records_derive_failed` | a deriver threw on `records` records of the pass (`deriver`) | those records lack its fields in this pass; a code bug |
 | `records_module_rejected` | at start, a module under `node/records/derive` or `views` did not load or broke the contract (`module`, `reason`) | that module is left out until a fixed deploy |
 
