@@ -15,7 +15,7 @@
   "Report.File.CrashReports": "Отчёты о сбоях, ждущие отправки: {0}",
   "Report.File.GameLogs": "Логи Hearthstone: {0}",
   "Report.GameLogs": "Приложить логи игры",
-  "Report.GameLogsNote": "Логи последнего сеанса Hearthstone помогают разобрать ошибку в матче. В них есть BattleTag — ваш и соперников, а issue на GitHub видят все.",
+  "Report.GameLogsNote": "Логи последнего сеанса Hearthstone помогают разобрать ошибку в матче. BattleTag и номера аккаунтов Battle.net в них — ваши и соперников — заменяются условными. Issue на GitHub видят все, а приложенный файл остаётся доступен по ссылке.",
   "Report.GameLogsMissing": "Hearthstone не найден на этом компьютере: логи игры приложить нельзя.",
   "Report.GameLogsNone": "В папке Hearthstone пока нет логов игры. Они появятся после запуска игры.",
   "Report.Save": "Сохранить архив…",

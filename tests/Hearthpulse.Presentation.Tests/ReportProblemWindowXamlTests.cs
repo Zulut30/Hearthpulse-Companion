@@ -48,10 +48,10 @@ public sealed class ReportProblemWindowXamlTests
 
         var data = Directory.CreateTempSubdirectory("hp-report-wpf-").FullName;
         File.WriteAllText(Path.Combine(data, "hearthpulse.log"), "INFO Started\n");
-        var report = new WpfReport(data, null, "0.16.0") { FindGameLogs = _ => GameLogsLookup.NotFound };
+        var report = new WpfReport(data, null, "0.16.0") { FindGameLogs = _ => GameLogsLookup.NotFound, Background = BackgroundWork.Inline };
         var window = new WpfReportWindow(report);
+        // The model's work runs on this thread (BackgroundWork.Inline): the list is read when the call returns.
         var load = window.LoadAsync();
-        Pump(() => load.IsCompleted);
         Assert.True(load.IsCompletedSuccessfully);
         Layout((FrameworkElement)window.Content, 640, 900);
 
@@ -63,16 +63,18 @@ public sealed class ReportProblemWindowXamlTests
         Assert.False(logs.IsEnabled);
         Assert.Equal(Loc.T("Report.GameLogsMissing"), ((TextBlock)window.FindName("GameLogsNoteLine")).Text);
         Assert.True(((Button)window.FindName("SaveButton")).IsEnabled);
-        Assert.Equal(Visibility.Collapsed, ((TextBlock)window.FindName("StatusLine")).Visibility);
+        // The status line is in the tree before it has text, so a screen reader hears the text arrive.
+        var status = (TextBlock)window.FindName("StatusLine");
+        Assert.Equal(Visibility.Visible, status.Visibility);
+        Assert.Equal(string.Empty, status.Text);
+        Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(status));
 
         var save = report.SaveAsync(() => Task.FromResult<Stream>(new MemoryStream()), "report.zip");
-        Pump(() => save.IsCompleted);
         Assert.True(save.IsCompletedSuccessfully);
         Layout((FrameworkElement)window.Content, 640, 900);
 
-        var status = (TextBlock)window.FindName("StatusLine");
-        Assert.Equal(Visibility.Visible, status.Visibility);
         Assert.Equal(report.Status, status.Text);
+        Assert.StartsWith("Archive saved: report.zip (", status.Text, StringComparison.Ordinal);
         Assert.Same(window.FindResource("Text"), status.Foreground);
         Assert.Equal(Visibility.Visible, ((WrapPanel)window.FindName("SavedActions")).Visibility);
         Assert.Equal(Loc.T("Report.OpenForm"), ((Button)window.FindName("OpenFormButton")).Content);
@@ -81,31 +83,57 @@ public sealed class ReportProblemWindowXamlTests
         Directory.Delete(data, recursive: true);
     });
 
+    /// <summary>
+    /// Review M1: the window never grows past the screen. The list sits in a ScrollViewer with a height limit, and with
+    /// every row of the archive (six) and a save's status, a window held to 560 high (150 % on 1080p leaves 688) keeps
+    /// the save button inside it: only the list's row gives way and scrolls.
+    /// </summary>
+    [Fact]
+    public void A_short_screen_shrinks_the_list_not_the_buttons() => OnSta(() =>
+    {
+        Loc.Instance.SetLanguage(Loc.Russian);
+        var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        app.Resources.MergedDictionaries.Clear();
+        app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Tavern", 0, 0, 1)));
+        var root = Directory.CreateTempSubdirectory("hp-report-wpf-short-").FullName;
+        var data = Path.Combine(root, "data");
+        Directory.CreateDirectory(Path.Combine(data, "crash-reports"));
+        File.WriteAllText(Path.Combine(data, "hearthpulse.log"), "INFO\n");
+        File.WriteAllText(Path.Combine(data, "hearthpulse.old.log"), "INFO\n");
+        File.WriteAllText(Path.Combine(data, "settings.json"), "{ \"Theme\": \"Tavern\" }");
+        File.WriteAllText(Path.Combine(data, "crash-reports", "a.json"), "{}");
+        var session = Path.Combine(root, "Hearthstone_2026_11_25_18_02_11");
+        Directory.CreateDirectory(session);
+        File.WriteAllText(Path.Combine(session, "Power.log"), "D CREATE_GAME\n");
+        var report = new WpfReport(data, null, "0.16.0") { FindGameLogs = _ => new GameLogsLookup(true, session), Background = BackgroundWork.Inline };
+        var window = new WpfReportWindow(report);
+        Assert.True(window.LoadAsync().IsCompletedSuccessfully);
+        report.IncludeGameLogs = true;
+        Assert.True(report.SaveAsync(() => Task.FromResult<Stream>(new MemoryStream()), "report.zip").IsCompletedSuccessfully);
+
+        var content = (FrameworkElement)window.Content;
+        Layout(content, 640, 560);
+
+        var scroll = (ScrollViewer)window.FindName("FileScroll");
+        Assert.Equal(6, ((ItemsControl)window.FindName("FileList")).Items.Count);
+        Assert.True(scroll.MaxHeight < 560, scroll.MaxHeight.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Assert.True(scroll.ScrollableHeight > 0, "the list scrolls in a short window");
+        var save = (Button)window.FindName("SaveButton");
+        var bottom = save.TranslatePoint(new Point(0, save.ActualHeight), content).Y;
+        Assert.InRange(bottom, 1, 560);
+        window.Close();
+        Directory.Delete(root, recursive: true);
+    });
+
     private static void Layout(FrameworkElement root, double width, double height)
     {
         root.Measure(new Size(width, height));
         root.Arrange(new Rect(0, 0, width, height));
-        Pump(() => true);
+        // One pass of the dispatcher for the templates the layout queued; no waiting on the model.
+        var frame = new DispatcherFrame();
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        Dispatcher.PushFrame(frame);
         root.UpdateLayout();
-    }
-
-    /// <summary>Runs the dispatcher until <paramref name="done"/>: the model's work goes to the pool and comes back here.</summary>
-    private static void Pump(Func<bool> done)
-    {
-        var until = DateTime.UtcNow.AddSeconds(10);
-        do
-        {
-            var frame = new DispatcherFrame();
-            _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
-            Dispatcher.PushFrame(frame);
-            if (done())
-            {
-                return;
-            }
-
-            Thread.Sleep(5);
-        }
-        while (DateTime.UtcNow < until);
     }
 
     private static void OnSta(Action check)

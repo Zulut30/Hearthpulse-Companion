@@ -15,5 +15,6 @@ namespace Hearthpulse.UI.Main;
 public sealed partial class MainViewModel
 {
     /// <summary>A model for one "Report a problem" window: this data folder, the configured game folder, this version.</summary>
-    public ReportProblemViewModel ReportProblem() => new(DataFolder, Settings.HearthstonePath, UpdateService.CurrentVersion);
+    public ReportProblemViewModel ReportProblem() =>
+        new(DataFolder, Settings.HearthstonePath, UpdateService.CurrentVersion) { Background = Background };
 }

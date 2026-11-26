@@ -72,7 +72,7 @@
              archive holds and saves it for a GitHub issue. Same card as the WPF AboutSettings.xaml. -->
         <Border Name="FeedbackCard" Classes="card">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Report.Card.Title}" Icon="&#xF0A30;" Size="13" Margin="0,0,0,10" />
+                <c:Ornament Text="{i:Loc Report.Card.Title}" Icon="&#xF0A30;" Size="13" Margin="0,0,0,12" />
                 <TextBlock Text="{i:Loc Report.Card.Text}" TextWrapping="Wrap" Classes="caption" />
                 <Button Name="ReportProblemButton" Classes="ghost" Content="{i:Loc Report.Open}" Click="OnReportProblem"
                         ToolTip.Tip="{i:Loc Report.OpenTip}" HorizontalAlignment="Left" Margin="0,12,0,0" />

@@ -5,9 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        The fastest way to a fix is the diagnostics archive: **Settings → About → Report a problem → Save archive…**, then drag the `.zip` into the field below. It has no passwords, keys or tokens. Game logs (they contain BattleTags) go in only if you turn on "Attach game logs", and anyone can read this issue.
+        The fastest way to a fix is the diagnostics archive: **Settings → About → Report a problem → Save archive…**, then drag the `.zip` into the field below. It has no passwords, keys or tokens. Game logs go in only if you turn on "Attach game logs"; BattleTags and Battle.net account numbers in them are replaced with stand-ins. Anyone can read this issue, and an attached file stays available by its link. We use the archive only to look into this problem.
 
-        Быстрее всего поможет архив диагностики: **Настройки → О программе → Сообщить о проблеме → Сохранить архив…**, затем перетащите `.zip` в поле ниже. Паролей, ключей и токенов в нём нет. Логи игры (в них есть BattleTag) попадают в архив, только если включить «Приложить логи игры», а этот issue видят все.
+        Быстрее всего поможет архив диагностики: **Настройки → О программе → Сообщить о проблеме → Сохранить архив…**, затем перетащите `.zip` в поле ниже. Паролей, ключей и токенов в нём нет. Логи игры попадают в архив, только если включить «Приложить логи игры»; BattleTag и номера аккаунтов Battle.net в них заменяются условными. Этот issue видят все, а приложенный файл остаётся доступен по ссылке. Архив используем только для разбора этой проблемы.
 
         A security problem? Don't post it here: see [SECURITY.md](https://github.com/Zulut30/Hearthpulse-Companion/blob/main/SECURITY.md). / Уязвимость? Не пишите о ней здесь: см. SECURITY.md.
   - type: input

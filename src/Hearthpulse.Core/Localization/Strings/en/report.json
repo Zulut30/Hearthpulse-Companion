@@ -15,7 +15,7 @@
   "Report.File.CrashReports": "Crash reports waiting to be sent: {0}",
   "Report.File.GameLogs": "Hearthstone logs: {0}",
   "Report.GameLogs": "Attach game logs",
-  "Report.GameLogsNote": "Logs of the latest Hearthstone session help us check a problem in a match. They contain BattleTags, yours and your opponents’, and anyone can read an issue on GitHub.",
+  "Report.GameLogsNote": "Logs of the latest Hearthstone session help us check a problem in a match. BattleTags and Battle.net account numbers in them, yours and your opponents’, are replaced with stand-ins. Anyone can read an issue on GitHub, and an attached file stays available by its link.",
   "Report.GameLogsMissing": "Hearthstone wasn’t found on this computer, so there are no game logs to attach.",
   "Report.GameLogsNone": "There are no game logs in the Hearthstone folder yet. They appear after the game runs.",
   "Report.Save": "Save archive…",

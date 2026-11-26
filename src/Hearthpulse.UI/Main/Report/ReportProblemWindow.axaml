@@ -4,10 +4,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:i="using:Hearthpulse.UI.Infrastructure"
         xmlns:r="using:Hearthpulse.UI.Main.Report"
-        Title="{i:Loc Report.Title}" Width="640" SizeToContent="Height" MinWidth="520"
+        Title="{i:Loc Report.Title}" Width="640" SizeToContent="Height" MinWidth="520" MinHeight="320"
         Background="{StaticResource Bg}" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
     <!-- "Report a problem" (roadmap E1, docs/report-a-problem.md), as WPF's Main/Report/ReportProblemWindow.xaml: what the
-         diagnostics archive holds, the switch for the game's logs, saving it, then the folder and GitHub's form. -->
+         diagnostics archive holds, the switch for the game's logs, saving it, then the folder and GitHub's form. Shown once
+         the list is read and never taller than the screen's work area (code-behind): only the list's row gives way. -->
     <Window.Styles>
         <Style Selector="TextBlock.size">
             <Setter Property="FontFeatures">
@@ -24,49 +25,51 @@
         </Style>
     </Window.Styles>
 
-    <StackPanel Margin="24">
+    <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
         <TextBlock Text="{i:Loc Report.Title}" Classes="h2" FontSize="{StaticResource FontSizeSubhead}" Margin="0,0,0,8" />
-        <TextBlock Text="{i:Loc Report.Intro}" Classes="caption" TextWrapping="Wrap" />
+        <TextBlock Grid.Row="1" Text="{i:Loc Report.Intro}" Classes="caption" TextWrapping="Wrap" />
 
-        <TextBlock Text="{i:Loc Report.Contents}" Classes="label" Margin="0,20,0,8" />
+        <TextBlock Grid.Row="2" Text="{i:Loc Report.Contents}" Classes="label" Margin="0,24,0,8" />
         <!-- The files in a groove like the sidebar's cards: name and what it holds on the left, size on the right -->
-        <Border Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
-                CornerRadius="{StaticResource RadiusMedium}" Padding="14,6">
-            <ItemsControl Name="FileList" ItemsSource="{Binding Files}" AutomationProperties.Name="{i:Loc Report.Contents}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="r:ReportFileRow">
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,5">
-                            <StackPanel>
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding Description}" Classes="caption" TextWrapping="Wrap" />
-                            </StackPanel>
-                            <TextBlock Grid.Column="1" Text="{Binding Size}" Classes="caption size" Margin="16,1,0,0" VerticalAlignment="Top" />
-                        </Grid>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+        <Border Grid.Row="3" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
+                CornerRadius="{StaticResource RadiusMedium}" Padding="16,8">
+            <ScrollViewer Name="FileScroll" MaxHeight="288" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl Name="FileList" ItemsSource="{Binding Files}" AutomationProperties.Name="{i:Loc Report.Contents}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="r:ReportFileRow">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Description}" Classes="caption" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding Size}" Classes="caption size" Margin="16,1,0,0" VerticalAlignment="Top" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Border>
-        <TextBlock Name="SummaryLine" Text="{Binding Summary}" Classes="caption size" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite" />
+        <TextBlock Name="SummaryLine" Grid.Row="4" Text="{Binding Summary}" Classes="caption size" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite" />
 
-        <CheckBox Name="GameLogsSwitch" Classes="switch" Content="{i:Loc Report.GameLogs}" IsChecked="{Binding IncludeGameLogs}"
-                  IsEnabled="{Binding GameLogsAvailable}" AutomationProperties.HelpText="{Binding GameLogsNote}" Margin="0,20,0,0" />
-        <TextBlock Name="GameLogsNoteLine" Text="{Binding GameLogsNote}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0"
+        <CheckBox Name="GameLogsSwitch" Grid.Row="5" Classes="switch" Content="{i:Loc Report.GameLogs}" IsChecked="{Binding IncludeGameLogs}"
+                  IsEnabled="{Binding CanChangeGameLogs}" AutomationProperties.HelpText="{Binding GameLogsNote}" Margin="0,24,0,0" />
+        <TextBlock Name="GameLogsNoteLine" Grid.Row="6" Text="{Binding GameLogsNote}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0"
                    IsVisible="{Binding GameLogsNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
-        <!-- After a save: what was written, then the two next steps; a failed save says why in the error colour -->
-        <TextBlock Name="StatusLine" Text="{Binding Status}" Classes="caption status" Classes.error="{Binding StatusIsError}" TextWrapping="Wrap"
-                   Margin="0,20,0,0" AutomationProperties.LiveSetting="Polite"
-                   IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-        <WrapPanel Name="SavedActions" Margin="0,8,0,0" IsVisible="{Binding Saved}">
+        <!-- After a save: what was written, then the two next steps; a failed save says why in the error colour. The line is
+             always there, so a screen reader hears its text change. -->
+        <TextBlock Name="StatusLine" Grid.Row="7" Text="{Binding Status}" Classes="caption status" Classes.error="{Binding StatusIsError}" TextWrapping="Wrap"
+                   Margin="0,16,0,0" AutomationProperties.LiveSetting="Polite" />
+        <WrapPanel Name="SavedActions" Grid.Row="8" Margin="0,8,0,0" IsVisible="{Binding Saved}">
             <Button Name="OpenFormButton" Classes="ghost" Content="{i:Loc Report.OpenForm}" Command="{Binding OpenIssueForm}"
                     ToolTip.Tip="{i:Loc Report.OpenFormTip}" Margin="0,0,8,0" />
             <Button Name="OpenFolderButton" Classes="ghost" Content="{i:Loc Report.OpenFolder}" Command="{Binding OpenFolder}"
                     IsVisible="{Binding CanOpenFolder}" />
         </WrapPanel>
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,24,0,0">
+        <StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,24,0,0">
             <Button Name="SaveButton" Classes="primary" Content="{i:Loc Report.Save}" Click="OnSave" IsDefault="True" IsEnabled="{Binding CanSave}" />
             <Button Name="CloseButton" Classes="ghost" Content="{i:Loc Report.Close}" Click="OnClose" IsCancel="True" />
         </StackPanel>
-    </StackPanel>
+    </Grid>
 </Window>

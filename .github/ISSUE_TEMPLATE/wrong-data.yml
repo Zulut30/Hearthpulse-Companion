@@ -5,9 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Tell us where you saw it and how you know it's wrong: a screenshot next to the game, the replay or another source. The diagnostics archive (**Settings → About → Report a problem**) shows what the app read; for a number from a match, turn on "Attach game logs" (they contain BattleTags, and anyone can read this issue).
+        Tell us where you saw it and how you know it's wrong: a screenshot next to the game, the replay or another source. The diagnostics archive (**Settings → About → Report a problem**) shows what the app read; for a number from a match, turn on "Attach game logs" (BattleTags and Battle.net account numbers in them are replaced with stand-ins). Anyone can read this issue, and an attached file stays available by its link. We use the archive only to look into this problem.
 
-        Расскажите, где вы это увидели и откуда знаете, что это неверно: скриншот рядом с игрой, реплей или другой источник. Архив диагностики (**Настройки → О программе → Сообщить о проблеме**) показывает, что прочитало приложение; для числа из матча включите «Приложить логи игры» (в них есть BattleTag, а этот issue видят все).
+        Расскажите, где вы это увидели и откуда знаете, что это неверно: скриншот рядом с игрой, реплей или другой источник. Архив диагностики (**Настройки → О программе → Сообщить о проблеме**) показывает, что прочитало приложение; для числа из матча включите «Приложить логи игры» (BattleTag и номера аккаунтов Battle.net в них заменяются условными). Этот issue видят все, а приложенный файл остаётся доступен по ссылке. Архив используем только для разбора этой проблемы.
   - type: input
     id: version
     attributes:

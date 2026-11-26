@@ -53,7 +53,7 @@
              archive holds and saves it for a GitHub issue. Same card as the Avalonia AboutSettings.axaml. -->
         <Border x:Name="FeedbackCard" Style="{StaticResource Card}">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Report.Card.Title}" Icon="&#xF0A30;" Size="13" Margin="0,0,0,10" />
+                <c:Ornament Text="{i:Loc Report.Card.Title}" Icon="&#xF0A30;" Size="13" Margin="0,0,0,12" />
                 <TextBlock Text="{i:Loc Report.Card.Text}" TextWrapping="Wrap" Style="{StaticResource Caption}" />
                 <Button x:Name="ReportProblemButton" Style="{StaticResource GhostButton}" Content="{i:Loc Report.Open}" Click="OnReportProblem"
                         ToolTip="{i:Loc Report.OpenTip}" HorizontalAlignment="Left" Margin="0,12,0,0" />

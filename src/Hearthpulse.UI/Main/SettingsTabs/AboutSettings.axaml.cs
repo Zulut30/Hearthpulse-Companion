@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Hearthpulse.Core;
 using Hearthpulse.UI.Main.Report;
 
 namespace Hearthpulse.UI.Main.SettingsTabs;
@@ -14,7 +15,7 @@ public partial class AboutSettings : UserControl
     {
         if (DataContext is MainViewModel model)
         {
-            ReportProblemWindow.Open(this, model.ReportProblem());
+            ReportProblemWindow.OpenAsync(this, model.ReportProblem()).Forget("Report a problem: opening");
         }
     }
 }

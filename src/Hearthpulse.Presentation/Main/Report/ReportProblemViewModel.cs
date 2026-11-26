@@ -70,12 +70,22 @@ public sealed class ReportProblemViewModel : Observable
     public string Summary => !_loaded ? Loc.T("Report.Loading")
         : Loc.P("Report.Total", _entries.Count, SizeText(_entries.Sum(e => e.Bytes)));
 
-    /// <summary>The newest Hearthstone session's logs go in too (off each time the window opens: they name players).</summary>
+    /// <summary>
+    /// The newest Hearthstone session's logs go in too, players and accounts as stand-ins (off each time the window opens).
+    /// Held still while a save writes the archive.
+    /// </summary>
     public bool IncludeGameLogs
     {
         get => _includeGameLogs;
         set
         {
+            if (_busy)
+            {
+                // A save is writing the archive as it was listed: the switch stays where it was (the views disable it too).
+                Raise();
+                return;
+            }
+
             if (Set(ref _includeGameLogs, value && _gameLogsAvailable))
             {
                 ClearResult();
@@ -85,7 +95,20 @@ public sealed class ReportProblemViewModel : Observable
     }
 
     /// <summary>The switch can be turned on: the newest session has the logs Hearthpulse reads.</summary>
-    public bool GameLogsAvailable { get => _gameLogsAvailable; private set => Set(ref _gameLogsAvailable, value); }
+    public bool GameLogsAvailable
+    {
+        get => _gameLogsAvailable;
+        private set
+        {
+            if (Set(ref _gameLogsAvailable, value))
+            {
+                Raise(nameof(CanChangeGameLogs));
+            }
+        }
+    }
+
+    /// <summary>The switch can be used now: the logs are there and no save is writing the archive.</summary>
+    public bool CanChangeGameLogs => _gameLogsAvailable && !_busy;
 
     /// <summary>Under the switch: what the game's logs hold, or why there are none; empty while they are looked for.</summary>
     public string GameLogsNote => _gameLogs switch
@@ -142,6 +165,9 @@ public sealed class ReportProblemViewModel : Observable
         }
     });
 
+    /// <summary>Where the reading and writing run: the pool in the app, the caller in tests (as MainViewModel's).</summary>
+    internal BackgroundWork Background { get; set; } = BackgroundWork.Pool;
+
     /// <summary>Finds the game's logs (the tracker's lookup), swapped in tests.</summary>
     internal Func<string?, GameLogsLookup> FindGameLogs { get; set; } = GameLogsLookup.Find;
 
@@ -163,10 +189,10 @@ public sealed class ReportProblemViewModel : Observable
         ArgumentNullException.ThrowIfNull(displays);
         var find = FindGameLogs;
         var install = _configuredInstall;
-        var gameLogs = await Task.Run(() => find(install));
+        var gameLogs = await Background.RunAsync(() => find(install));
         _bundle = new DiagnosticsBundle(_dataFolder, gameLogs, new DiagnosticsContext(_version, _ui, Loc.Instance.Language, displays, windowScale));
         var bundle = _bundle;
-        GameLogsAvailable = await Task.Run(() => bundle.HasGameLogs);
+        GameLogsAvailable = await Background.RunAsync(() => bundle.HasGameLogs);
         _gameLogs = gameLogs;
         Raise(nameof(GameLogsNote));
         await ListAsync();
@@ -222,7 +248,7 @@ public sealed class ReportProblemViewModel : Observable
                     output.SetLength(0);
                 }
 
-                written = await Task.Run(() => bundle.Write(output, include));
+                written = await Background.RunAsync(() => bundle.Write(output, include));
                 size = output.CanSeek ? output.Length : -1;
             }
 
@@ -242,7 +268,8 @@ public sealed class ReportProblemViewModel : Observable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {
-            Diag.Error("Report a problem: the archive was not saved", ex);
+            // The file's name only: the exception's text carries its whole path (docs/report-a-problem.md, Signals).
+            Diag.Info(string.Create(CultureInfo.InvariantCulture, $"Report a problem: {fileName} not saved ({ex.GetType().Name}, 0x{ex.HResult:X8})"));
             if (opened)
             {
                 RemovePartial(localPath);
@@ -269,7 +296,7 @@ public sealed class ReportProblemViewModel : Observable
         var generation = ++_generation;
         var include = IncludeGameLogs;
         SetLoaded(false);
-        var entries = await Task.Run(() => bundle.Plan(include));
+        var entries = await Background.RunAsync(() => bundle.Plan(include));
         if (generation != _generation)
         {
             return; // the switch changed again while this list was read
@@ -332,6 +359,7 @@ public sealed class ReportProblemViewModel : Observable
     {
         _busy = busy;
         Raise(nameof(CanSave));
+        Raise(nameof(CanChangeGameLogs));
     }
 
     private void ClearResult()
@@ -384,7 +412,7 @@ public sealed class ReportProblemViewModel : Observable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Win32Exception or InvalidOperationException)
         {
-            Diag.Error("Report a problem: the folder did not open", ex);
+            Diag.Info($"Report a problem: the folder did not open ({ex.GetType().Name})");
             return false;
         }
     }

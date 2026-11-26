@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using Hearthpulse.App.Main.Report;
+using Hearthpulse.Core;
 
 namespace Hearthpulse.App.Main.SettingsTabs;
 
@@ -14,7 +15,7 @@ public partial class AboutSettings : UserControl
     {
         if (DataContext is MainViewModel model)
         {
-            ReportProblemWindow.Open(Window.GetWindow(this), model.ReportProblem());
+            ReportProblemWindow.OpenAsync(Window.GetWindow(this), model.ReportProblem()).Forget("Report a problem: opening");
         }
     }
 }

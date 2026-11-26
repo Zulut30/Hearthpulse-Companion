@@ -78,9 +78,10 @@ public sealed record GameLogsLookup(bool InstallFound, string? Session)
 /// The diagnostics archive of "Report a problem" (roadmap E1, docs/report-a-problem.md): a zip the player saves and
 /// attaches to a GitHub issue by hand. It holds <c>system.txt</c> (version, OS, monitors), Hearthpulse's two logs,
 /// <c>settings.json</c> without keys, tokens and passwords, the crash reports waiting to be sent and, only when asked,
-/// the logs of the newest Hearthstone session. Never <c>account.dat</c>, the history, replays or the collection. The
-/// user's folder and name, e-mails, BattleTags and tokens are cut from Hearthpulse's own files; the game's logs go as
-/// the game wrote them (the preview says they name players). Nothing here sends anything.
+/// the logs of the newest Hearthstone session. Never <c>account.dat</c>, the history, replays or the collection. Every
+/// BattleTag and Battle.net account number becomes a stand-in of the archive's one map (<see cref="ArchiveScrubber"/>),
+/// so a game log still replays; the user's folder, e-mails and tokens are cut everywhere, the account name from
+/// Hearthpulse's own files. Nothing here sends anything.
 /// </summary>
 /// <param name="dataFolder">Hearthpulse's data folder.</param>
 /// <param name="gameLogs">Where the newest Hearthstone log session is (<see cref="GameLogsLookup.Find"/>).</param>
@@ -134,8 +135,11 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
     /// <summary>The newest session has at least one of the logs Hearthpulse asks the game for.</summary>
     public bool HasGameLogs => GameLogPaths().Any();
 
-    /// <summary>What the archive would hold now, for the preview: the same files and sizes <see cref="Write"/> writes.</summary>
-    public IReadOnlyList<DiagnosticsEntry> Plan(bool includeGameLogs) => [.. Prepare(includeGameLogs).Select(i => i.Entry)];
+    /// <summary>
+    /// What the archive would hold now, for the preview: the files <see cref="Write"/> writes, with their sizes (a game log's
+    /// as the game wrote it: its stand-in names change it by a few bytes).
+    /// </summary>
+    public IReadOnlyList<DiagnosticsEntry> Plan(bool includeGameLogs) => [.. Prepare(includeGameLogs, NewScrubber()).Select(i => i.Entry)];
 
     /// <summary>
     /// Writes the archive to <paramref name="output"/> (left open) and returns what went in, sizes before compression.
@@ -145,7 +149,9 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
     public IReadOnlyList<DiagnosticsEntry> Write(Stream output, bool includeGameLogs)
     {
         ArgumentNullException.ThrowIfNull(output);
-        var items = Prepare(includeGameLogs);
+        // One map of stand-ins for the whole archive: a player is the same Player1#1001 in every file.
+        var scrubber = NewScrubber();
+        var items = Prepare(includeGameLogs, scrubber);
         // Zip keeps local time without a zone: the archive shows the player's clock.
         var stamp = new DateTimeOffset(DateTime.SpecifyKind(UtcNow(), DateTimeKind.Utc)).ToLocalTime();
         var written = new List<DiagnosticsEntry>(items.Count);
@@ -170,7 +176,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
 
                 using var source = OpenShared(item.Source!);
                 using var copy = Open(zip, item.Entry.Name, stamp);
-                written.Add(item.Entry with { Bytes = CopyRange(source, item.Start, item.Entry.Bytes, copy) });
+                written.Add(item.Entry with { Bytes = CopyGameLog(source, item.Start, copy, scrubber) });
             }
         }
 
@@ -187,14 +193,14 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
     /// <summary>One file of the archive: its bytes (text files, read and cleaned now) or a range of a game log.</summary>
     private sealed record Item(DiagnosticsEntry Entry, byte[]? Content, string? Source = null, long Start = 0);
 
-    private List<Item> Prepare(bool includeGameLogs)
+    private List<Item> Prepare(bool includeGameLogs, ArchiveScrubber scrubber)
     {
         var notes = new List<string>();
         var items = new List<Item>();
-        AddAppLog(items, notes, AppLogFile, DiagnosticsPart.AppLog);
-        AddAppLog(items, notes, OldAppLogFile, DiagnosticsPart.OldAppLog);
-        AddSettings(items, notes);
-        AddCrashReports(items, notes);
+        AddAppLog(items, notes, AppLogFile, DiagnosticsPart.AppLog, scrubber);
+        AddAppLog(items, notes, OldAppLogFile, DiagnosticsPart.OldAppLog, scrubber);
+        AddSettings(items, notes, scrubber);
+        AddCrashReports(items, notes, scrubber);
         if (includeGameLogs)
         {
             AddGameLogs(items, notes);
@@ -205,7 +211,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
         return items;
     }
 
-    private void AddAppLog(List<Item> items, List<string> notes, string name, DiagnosticsPart part)
+    private void AddAppLog(List<Item> items, List<string> notes, string name, DiagnosticsPart part, ArchiveScrubber scrubber)
     {
         var path = Path.Combine(dataFolder, name);
         if (!File.Exists(path))
@@ -221,7 +227,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
             stream.Position = start;
             var bytes = new byte[total - start];
             var read = stream.ReadAtLeast(bytes, bytes.Length, throwOnEndOfStream: false);
-            var content = Encoding.UTF8.GetBytes(Scrub(Encoding.UTF8.GetString(bytes, 0, read)));
+            var content = Encoding.UTF8.GetBytes(scrubber.Own(Encoding.UTF8.GetString(bytes, 0, read)));
             items.Add(new Item(new DiagnosticsEntry(name, part, content.Length), content));
             if (start > 0)
             {
@@ -234,7 +240,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
         }
     }
 
-    private void AddSettings(List<Item> items, List<string> notes)
+    private void AddSettings(List<Item> items, List<string> notes, ArchiveScrubber scrubber)
     {
         var path = Path.Combine(dataFolder, SettingsFile);
         string json;
@@ -263,7 +269,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
             return;
         }
 
-        if (SettingsCopy(json, Scrub) is not { } copy)
+        if (SettingsCopy(json, scrubber.Own) is not { } copy)
         {
             notes.Add(string.Create(CultureInfo.InvariantCulture, $"{SettingsFile}: not included, not valid JSON ({json.Length} characters)"));
             return;
@@ -277,7 +283,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
         }
     }
 
-    private void AddCrashReports(List<Item> items, List<string> notes)
+    private void AddCrashReports(List<Item> items, List<string> notes, ArchiveScrubber scrubber)
     {
         var folder = Path.Combine(dataFolder, CrashReporter.FolderName);
         FileInfo[] files;
@@ -303,7 +309,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
 
                 using var stream = OpenShared(file.FullName);
                 using var reader = new StreamReader(stream, Encoding.UTF8);
-                var content = Encoding.UTF8.GetBytes(Scrub(reader.ReadToEnd()));
+                var content = Encoding.UTF8.GetBytes(scrubber.Own(reader.ReadToEnd()));
                 items.Add(new Item(new DiagnosticsEntry(CrashReportsFolder + file.Name, DiagnosticsPart.CrashReport, content.Length), content));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -386,7 +392,7 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
             return "no log session in the Hearthstone folder";
         }
 
-        return $"newest session {Path.GetFileName(session)}, {(includeGameLogs ? "included" : "not included")}";
+        return $"newest session {Path.GetFileName(session)}, {(includeGameLogs ? "included, BattleTags and account numbers replaced" : "not included")}";
     }
 
     private static void Line(StringBuilder text, string name, string value) => text.Append(name).Append(": ").AppendLine(value);
@@ -423,24 +429,54 @@ public sealed partial class DiagnosticsBundle(string dataFolder, GameLogsLookup 
         return newline >= 0 ? start + newline + 1 : start;
     }
 
-    /// <summary>Copies <paramref name="count"/> bytes from <paramref name="start"/>, fewer when the file is shorter now.</summary>
-    private static long CopyRange(FileStream source, long start, long count, Stream target)
+    /// <summary>
+    /// Copies the game log from <paramref name="start"/> to its end now, line by line through
+    /// <see cref="ArchiveScrubber.Game"/> (line ends kept); returns the bytes written.
+    /// </summary>
+    private static long CopyGameLog(FileStream source, long start, Stream target, ArchiveScrubber scrubber)
     {
         source.Position = start;
-        var buffer = new byte[81920];
-        var left = count;
-        while (left > 0)
+        // Decoded and written here, not through a StreamReader/StreamWriter: both streams belong to the caller.
+        var decoder = Encoding.UTF8.GetDecoder();
+        var bytes = new byte[81920];
+        var chars = new char[Encoding.UTF8.GetMaxCharCount(bytes.Length)];
+        var line = new StringBuilder();
+        var atStart = start == 0;
+        long written = 0;
+        int read;
+        while ((read = source.Read(bytes, 0, bytes.Length)) > 0)
         {
-            var read = source.Read(buffer, 0, (int)Math.Min(buffer.Length, left));
-            if (read == 0)
+            var count = decoder.GetChars(bytes, 0, read, chars, 0);
+            // A log read from its first byte may open with a byte order mark: it is not part of the first line.
+            var from = atStart && count > 0 && chars[0] == '﻿' ? 1 : 0;
+            atStart = false;
+            for (var i = from; i < count; i++)
             {
-                break;
+                if (chars[i] == '\n')
+                {
+                    line.Append(chars, from, i - from + 1);
+                    written += Emit(target, scrubber.Game(line.ToString()));
+                    line.Clear();
+                    from = i + 1;
+                }
             }
 
-            target.Write(buffer, 0, read);
-            left -= read;
+            line.Append(chars, from, count - from);
         }
 
-        return count - left;
+        line.Append(chars, 0, decoder.GetChars(bytes, 0, 0, chars, 0, flush: true));
+        if (line.Length > 0)
+        {
+            written += Emit(target, scrubber.Game(line.ToString()));
+        }
+
+        return written;
+    }
+
+    private static int Emit(Stream target, string text)
+    {
+        var bytes = Encoding.UTF8.GetBytes(text);
+        target.Write(bytes);
+        return bytes.Length;
     }
 }

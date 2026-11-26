@@ -1,4 +1,5 @@
 using Avalonia.Interactivity;
+using Hearthpulse.Core;
 using Hearthpulse.UI.Main.Report;
 
 namespace Hearthpulse.UI.Main;
@@ -10,7 +11,7 @@ public partial class MainView
     {
         if (_viewModel is { } model)
         {
-            ReportProblemWindow.Open(this, model.ReportProblem());
+            ReportProblemWindow.OpenAsync(this, model.ReportProblem()).Forget("Report a problem: opening");
         }
     }
 }

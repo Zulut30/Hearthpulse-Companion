@@ -30,10 +30,11 @@ internal static partial class OffscreenRenderer
 
             var model = host.Main.ReportProblem();
             var window = new ReportProblemWindow(model, main);
-            window.Show();
             try
             {
+                // As the app does: the list is read before the window shows.
                 await window.LoadAsync();
+                window.Show();
                 await Save(window, Path.Combine(folder, "report-window.png"));
                 if (model.GameLogsAvailable)
                 {

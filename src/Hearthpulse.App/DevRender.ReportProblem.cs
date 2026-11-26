@@ -33,10 +33,11 @@ public partial class App
             {
                 Owner = _main, WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000, ShowActivated = false,
             };
-            window.Show();
             try
             {
+                // As the app does: the list is read before the window shows.
                 await window.LoadAsync();
+                window.Show();
                 await ShotAsync(window, folder, "report-window.png");
                 if (model.GameLogsAvailable)
                 {

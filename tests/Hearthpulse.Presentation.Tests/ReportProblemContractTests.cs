@@ -60,13 +60,20 @@ public sealed class ReportProblemContractTests : IDisposable
             return true;
         });
         model.Now = new Func<DateTime>(() => new DateTime(2026, 11, 26, 15, 30, 0, DateTimeKind.Local));
+        // The reading and writing run on the test's thread: each call has finished when it returns, no clock or pool.
+        if (wpf)
+        {
+            model.Background = Hearthpulse.App.Infrastructure.BackgroundWork.Inline;
+        }
+        else
+        {
+            model.Background = Hearthpulse.UI.Infrastructure.BackgroundWork.Inline;
+        }
+
         return model;
     }
 
     private static Task Load(dynamic model) => (Task)model.LoadAsync(new List<DisplayInfo> { new(1920, 1080, 1.25, true) }, 1.25);
-
-    /// <summary>The switch lists the files again off the UI thread: wait until "Save archive…" works again.</summary>
-    private static void WaitListed(dynamic model) => Assert.True(SpinWait.SpinUntil(() => (bool)model.CanSave, TimeSpan.FromSeconds(10)));
 
     private static List<(string Name, string Description, string Size)> Rows(dynamic model) =>
         ((IEnumerable<object>)model.Files).Select(r => ((string)((dynamic)r).Name, (string)((dynamic)r).Description, (string)((dynamic)r).Size)).ToList();
@@ -116,7 +123,7 @@ public sealed class ReportProblemContractTests : IDisposable
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task Game_logs_go_in_only_when_switched_on_and_the_note_says_they_name_players(bool wpf)
+    public async Task Game_logs_go_in_only_when_switched_on_and_the_note_says_names_are_replaced(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.English);
         Put("data/hearthpulse.log", "INFO\n");
@@ -128,17 +135,17 @@ public sealed class ReportProblemContractTests : IDisposable
 
         Assert.True((bool)model.GameLogsAvailable);
         Assert.False((bool)model.IncludeGameLogs);
-        Assert.Contains("BattleTags, yours and your opponents’", (string)model.GameLogsNote, StringComparison.Ordinal);
+        Assert.Contains("BattleTags and Battle.net account numbers in them, yours and your opponents’, are replaced with stand-ins",
+            (string)model.GameLogsNote, StringComparison.Ordinal);
+        Assert.Contains("an attached file stays available by its link", (string)model.GameLogsNote, StringComparison.Ordinal);
         List<(string Name, string Description, string Size)> before = Rows(model);
         Assert.DoesNotContain(before, r => r.Name == "game-logs/");
 
         model.IncludeGameLogs = true;
-        WaitListed(model);
         List<(string Name, string Description, string Size)> withLogs = Rows(model);
         Assert.Equal("Hearthstone logs: Power.log, Decks.log", withLogs.Single(r => r.Name == "game-logs/").Description);
 
         model.IncludeGameLogs = false;
-        WaitListed(model);
         List<(string Name, string Description, string Size)> withoutLogs = Rows(model);
         Assert.DoesNotContain(withoutLogs, r => r.Name == "game-logs/");
     }
@@ -258,6 +265,83 @@ public sealed class ReportProblemContractTests : IDisposable
         Assert.True((bool)model.StatusIsError);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task The_game_logs_switch_holds_still_while_a_save_writes_the_archive(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var model = WithGameLogs(wpf);
+        await Load(model);
+        Assert.True((bool)model.CanChangeGameLogs);
+        var opening = new TaskCompletionSource<Stream>();
+        var output = new MemoryStream();
+
+        var save = Save((object)model, () => opening.Task, "report.zip");
+        Assert.False((bool)model.CanChangeGameLogs);
+        model.IncludeGameLogs = true;
+        Assert.False((bool)model.IncludeGameLogs);
+        opening.SetResult(output);
+        await save;
+
+        // The archive is the one the list showed (no game logs), and the switch works again.
+        using (var zip = new ZipArchive(new MemoryStream(output.ToArray()), ZipArchiveMode.Read))
+        {
+            Assert.DoesNotContain(zip.Entries, e => e.FullName.StartsWith("game-logs/", StringComparison.Ordinal));
+        }
+
+        Assert.True((bool)model.Saved);
+        Assert.True((bool)model.CanChangeGameLogs);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task An_archive_over_githubs_25_mb_says_to_drop_the_game_logs(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var model = Model(wpf);
+        await Load(model);
+        const long limit = 25L * 1024 * 1024;
+
+        await Save((object)model, () => Task.FromResult<Stream>(new SizedStream(limit + 1)), "big.zip");
+        Assert.Equal(Loc.F("Report.SavedTooLarge", "big.zip", WpfReport.SizeText(limit + 1)), (string)model.Status);
+        Assert.StartsWith("Archive saved: big.zip (", (string)model.Status, StringComparison.Ordinal);
+        Assert.Contains("GitHub takes files up to 25 MB", (string)model.Status, StringComparison.Ordinal);
+        Assert.True((bool)model.Saved);
+        Assert.False((bool)model.StatusIsError);
+
+        // Exactly 25 MB still goes.
+        await Save((object)model, () => Task.FromResult<Stream>(new SizedStream(limit)), "fits.zip");
+        Assert.Equal(Loc.F("Report.Saved", "fits.zip", WpfReport.SizeText(limit)), (string)model.Status);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_new_choice_of_game_logs_clears_the_result_of_the_last_save(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var model = WithGameLogs(wpf);
+        await Load(model);
+        await Save((object)model, () => Task.FromResult<Stream>(new MemoryStream()), "report.zip");
+        Assert.True((bool)model.Saved);
+
+        model.IncludeGameLogs = true;
+
+        // The saved archive no longer matches the list: no "Archive saved", no form or folder for it.
+        Assert.True((bool)model.IncludeGameLogs);
+        Assert.False((bool)model.Saved);
+        Assert.Equal(string.Empty, (string)model.Status);
+    }
+
+    private dynamic WithGameLogs(bool wpf)
+    {
+        Put("data/hearthpulse.log", "INFO\n");
+        var session = Path.GetDirectoryName(Put("hs/Logs/Hearthstone_2026_11_25_18_02_11/Power.log", "D CREATE_GAME\n"))!;
+        return Model(wpf, new GameLogsLookup(true, session));
+    }
+
     [Fact]
     public void Sizes_read_in_the_interface_language()
     {
@@ -283,6 +367,41 @@ public sealed class ReportProblemContractTests : IDisposable
         Assert.Matches(@"^hearthpulse-diagnostics-\d{4}-\d{2}-\d{2}-\d{4}\.zip$", (string)report.SuggestedFileName);
         Assert.False((bool)report.CanSave);
         report.Detach();
+    }
+
+    /// <summary>A destination that keeps nothing and says it holds <paramref name="length"/> bytes.</summary>
+    private sealed class SizedStream(long length) : Stream
+    {
+        private long _position;
+
+        public override bool CanRead => false;
+
+        public override bool CanSeek => true;
+
+        public override bool CanWrite => true;
+
+        public override long Length => length;
+
+        public override long Position { get => _position; set => _position = value; }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override long Seek(long offset, SeekOrigin origin) => _position = origin switch
+        {
+            SeekOrigin.Begin => offset,
+            SeekOrigin.Current => _position + offset,
+            _ => length + offset,
+        };
+
+        public override void SetLength(long value)
+        {
+        }
+
+        public override void Write(byte[] buffer, int offset, int count) => _position += count;
     }
 
     /// <summary>A disk that fills up while the archive is written.</summary>

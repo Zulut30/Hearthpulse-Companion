@@ -38,7 +38,8 @@ updates on.
 ## Out of scope
 
 - Hearthstone, Battle.net and other Blizzard services: report those to Blizzard.
-- Third-party data the app reads (HearthstoneJSON, HSReplay, HSGuru).
+- Data from third-party sources (HearthstoneJSON, hsbg.cards and the sources behind Hearthpulse data): report wrong numbers
+  as wrong data, not as a vulnerability.
 - Attacks that need an already compromised computer or administrator rights on it.
 - Social engineering, denial of service by volume, and scanner output without a demonstrated impact.
 
@@ -59,6 +60,7 @@ issue, обсуждениях и pull request и не публикуйте по�
 настройки, отчёты о сбоях, записи игр, пул статистики, очистка архива диагностики), код этого репозитория (включая
 `server/pool`), hearthpulse.net и API данных Hearthpulse.
 
-Не входит: Hearthstone и сервисы Blizzard (о них сообщайте Blizzard), сторонние данные (HearthstoneJSON, HSReplay,
-HSGuru), атаки на уже взломанный компьютер или с правами администратора, социальная инженерия, отказ в обслуживании
-объёмом запросов и отчёты сканеров без показанного вреда.
+Не входит: Hearthstone и сервисы Blizzard (о них сообщайте Blizzard), данные сторонних источников (HearthstoneJSON,
+hsbg.cards и источники Hearthpulse data — о неверных числах сообщайте как о неверных данных, а не как об уязвимости),
+атаки на уже взломанный компьютер или с правами администратора, социальная инженерия, отказ в обслуживании объёмом
+запросов и отчёты сканеров без показанного вреда.

@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
@@ -6,6 +7,7 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Diagnostics;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 using Hearthpulse.UI.Main.Report;
 using Hearthpulse.UI.Main.SettingsTabs;
@@ -14,8 +16,9 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// "Report a problem" (roadmap E1, AC6 of TASK-2026-11-26-release-cleanup) in the Avalonia views: the Feedback card of
-/// Settings → About with its button, and the window - the file list, the game logs switch and its note, the save
-/// button, and after a save the status line with the form's button (no folder button without a local path).
+/// Settings → About with its button, and the window - the file list in its height-limited ScrollViewer, the game logs
+/// switch and its note, the save button, the status line that is there before its text, and after a save the form's
+/// button (no folder button without a local path). The model's work runs on this thread (BackgroundWork.Inline).
 /// </summary>
 public sealed partial class LocBindingTests
 {
@@ -33,7 +36,7 @@ public sealed partial class LocBindingTests
         var main = new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, $"hp-report-{Guid.NewGuid():N}.db")), new AppSettings(), TestDataFolder.App);
         var about = new AboutSettings { DataContext = main };
         var aboutWindow = new Window { Width = 780, Height = 1600, Content = about };
-        var model = new ReportProblemViewModel(data, null, "0.16.0") { FindGameLogs = _ => GameLogsLookup.NotFound };
+        var model = new ReportProblemViewModel(data, null, "0.16.0") { FindGameLogs = _ => GameLogsLookup.NotFound, Background = BackgroundWork.Inline };
         var window = new ReportProblemWindow(model);
         try
         {
@@ -44,10 +47,10 @@ public sealed partial class LocBindingTests
             Assert.Equal(Loc.T("Report.Open"), open.Content);
             Assert.Equal(Loc.T("Report.OpenTip"), ToolTip.GetTip(open));
 
+            // As the app does: the list is read before the window shows.
+            Assert.True(window.LoadAsync().IsCompletedSuccessfully);
             Show(window);
-            var load = window.LoadAsync();
-            Pump(() => load.IsCompleted);
-            Assert.True(load.IsCompletedSuccessfully);
+            Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
 
             Assert.Equal(Loc.T("Report.Title"), window.Title);
@@ -55,6 +58,10 @@ public sealed partial class LocBindingTests
             Assert.Equal(model.Files, list.ItemsSource!.Cast<ReportFileRow>());
             Assert.Equal(["system.txt", "hearthpulse.log", "settings.json"], model.Files.Select(f => f.Name));
             Assert.Contains(list.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == Loc.T("Report.File.Settings"));
+            // Review M1: the list scrolls within a limit instead of pushing the buttons off a short screen.
+            var scroll = Named<ScrollViewer>(window, "FileScroll");
+            Assert.Contains(list, scroll.GetLogicalDescendants());
+            Assert.InRange(scroll.MaxHeight, 1, 400);
             Assert.Equal(model.Summary, Named<TextBlock>(window, "SummaryLine").Text);
             var logs = Named<CheckBox>(window, "GameLogsSwitch");
             Assert.False(logs.IsEnabled);
@@ -62,16 +69,17 @@ public sealed partial class LocBindingTests
             Assert.True(Named<TextBlock>(window, "GameLogsNoteLine").IsEffectivelyVisible);
             Assert.Equal(Loc.T("Report.GameLogsMissing"), Named<TextBlock>(window, "GameLogsNoteLine").Text);
             Assert.True(Named<Button>(window, "SaveButton").IsEnabled);
-            Assert.False(Named<TextBlock>(window, "StatusLine").IsEffectivelyVisible);
-            Assert.False(Named<Button>(window, "OpenFormButton").IsEffectivelyVisible);
-
-            var save = model.SaveAsync(() => Task.FromResult<Stream>(new MemoryStream()), "report.zip");
-            Pump(() => save.IsCompleted);
-            Assert.True(save.IsCompletedSuccessfully);
-            window.UpdateLayout();
-
+            // The status line is in the tree before it has text, so a screen reader hears the text arrive.
             var status = Named<TextBlock>(window, "StatusLine");
             Assert.True(status.IsEffectivelyVisible);
+            Assert.True(string.IsNullOrEmpty(status.Text));
+            Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(status));
+            Assert.False(Named<Button>(window, "OpenFormButton").IsEffectivelyVisible);
+
+            Assert.True(model.SaveAsync(() => Task.FromResult<Stream>(new MemoryStream()), "report.zip").IsCompletedSuccessfully);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+
             Assert.StartsWith(Loc.F("Report.Saved", "report.zip", "§").Split('§')[0], status.Text, StringComparison.Ordinal);
             Assert.DoesNotContain("error", status.Classes);
             Assert.True(Named<Button>(window, "OpenFormButton").IsEffectivelyVisible);
@@ -87,17 +95,4 @@ public sealed partial class LocBindingTests
             Directory.Delete(data, recursive: true);
         }
     });
-
-    /// <summary>Runs the UI thread's queue until <paramref name="done"/> (the model's work goes to the pool and back).</summary>
-    private static void Pump(Func<bool> done)
-    {
-        var until = DateTime.UtcNow.AddSeconds(10);
-        while (!done() && DateTime.UtcNow < until)
-        {
-            Dispatcher.UIThread.RunJobs();
-            Thread.Sleep(5);
-        }
-
-        Dispatcher.UIThread.RunJobs();
-    }
 }

@@ -2,12 +2,13 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
-        Title="{i:Loc Report.Title}" Width="640" SizeToContent="Height" MinWidth="520"
+        Title="{i:Loc Report.Title}" Width="640" SizeToContent="Height" MinWidth="520" MinHeight="320"
         Background="{StaticResource Bg}" Icon="/Hearthpulse;component/Assets/hearthpulse.ico"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" UseLayoutRounding="True" Style="{StaticResource AppWindow}">
     <!-- "Report a problem" (roadmap E1, docs/report-a-problem.md): what the diagnostics archive holds, the switch for the
          game's logs, saving it, then the folder and GitHub's form. Same tree as the Avalonia ReportProblemWindow.axaml.
-         DataContext: ReportProblemViewModel. -->
+         The window is shown once the list is read and never grows past the screen's work area (code-behind): only the
+         list's row gives way, and its ScrollViewer scrolls. DataContext: ReportProblemViewModel. -->
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -16,42 +17,57 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <StackPanel Margin="24">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
         <TextBlock Text="{i:Loc Report.Title}" Style="{StaticResource H2}" FontSize="{StaticResource FontSizeSubhead}" Margin="0,0,0,8" />
-        <TextBlock Text="{i:Loc Report.Intro}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+        <TextBlock Grid.Row="1" Text="{i:Loc Report.Intro}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
 
-        <TextBlock Text="{i:Loc Report.Contents}" Style="{StaticResource SettingGroup}" Margin="0,20,0,8" />
+        <TextBlock Grid.Row="2" Text="{i:Loc Report.Contents}" Style="{StaticResource SettingGroup}" Margin="0,24,0,8" />
         <!-- The files in a groove like the sidebar's cards: name and what it holds on the left, size on the right -->
-        <Border Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
-                CornerRadius="{StaticResource RadiusMedium}" Padding="14,6">
-            <ItemsControl x:Name="FileList" ItemsSource="{Binding Files}" Focusable="False" AutomationProperties.Name="{i:Loc Report.Contents}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Grid Margin="0,5">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Text="{Binding Name}" Style="{StaticResource Base}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding Description}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
-                            </StackPanel>
-                            <TextBlock Grid.Column="1" Text="{Binding Size}" Style="{StaticResource Caption}" Margin="16,1,0,0" VerticalAlignment="Top" />
-                        </Grid>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+        <Border Grid.Row="3" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
+                CornerRadius="{StaticResource RadiusMedium}" Padding="16,8">
+            <ScrollViewer x:Name="FileScroll" MaxHeight="288" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl x:Name="FileList" ItemsSource="{Binding Files}" Focusable="False" AutomationProperties.Name="{i:Loc Report.Contents}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource Base}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Description}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding Size}" Style="{StaticResource Caption}" Margin="16,1,0,0" VerticalAlignment="Top" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Border>
-        <TextBlock x:Name="SummaryLine" Text="{Binding Summary}" Style="{StaticResource Caption}" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite" />
+        <TextBlock x:Name="SummaryLine" Grid.Row="4" Text="{Binding Summary}" Style="{StaticResource Caption}" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite" />
 
-        <CheckBox x:Name="GameLogsSwitch" Style="{StaticResource Switch}" Content="{i:Loc Report.GameLogs}" IsChecked="{Binding IncludeGameLogs}"
-                  IsEnabled="{Binding GameLogsAvailable}" AutomationProperties.HelpText="{Binding GameLogsNote}" Margin="0,20,0,0" />
-        <TextBlock x:Name="GameLogsNoteLine" Text="{Binding GameLogsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
+        <CheckBox x:Name="GameLogsSwitch" Grid.Row="5" Style="{StaticResource Switch}" Content="{i:Loc Report.GameLogs}" IsChecked="{Binding IncludeGameLogs}"
+                  IsEnabled="{Binding CanChangeGameLogs}" AutomationProperties.HelpText="{Binding GameLogsNote}" Margin="0,24,0,0" />
+        <TextBlock x:Name="GameLogsNoteLine" Grid.Row="6" Text="{Binding GameLogsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
                    Visibility="{Binding GameLogsNote, Converter={StaticResource Vis}}" />
 
-        <!-- After a save: what was written, then the two next steps; a failed save says why in the error colour -->
-        <TextBlock x:Name="StatusLine" Text="{Binding Status}" TextWrapping="Wrap" Margin="0,20,0,0" AutomationProperties.LiveSetting="Polite"
-                   Visibility="{Binding Status, Converter={StaticResource Vis}}">
+        <!-- After a save: what was written, then the two next steps; a failed save says why in the error colour. The line is
+             always in the tree, so a screen reader hears it change (the code-behind raises LiveRegionChanged). -->
+        <TextBlock x:Name="StatusLine" Grid.Row="7" Text="{Binding Status}" TextWrapping="Wrap" Margin="0,16,0,0" AutomationProperties.LiveSetting="Polite">
             <TextBlock.Style>
                 <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
                     <Setter Property="Foreground" Value="{StaticResource Text}" />
@@ -63,17 +79,17 @@
                 </Style>
             </TextBlock.Style>
         </TextBlock>
-        <WrapPanel x:Name="SavedActions" Margin="0,8,0,0" Visibility="{Binding Saved, Converter={StaticResource Vis}}">
+        <WrapPanel x:Name="SavedActions" Grid.Row="8" Margin="0,8,0,0" Visibility="{Binding Saved, Converter={StaticResource Vis}}">
             <Button x:Name="OpenFormButton" Style="{StaticResource GhostButton}" Content="{i:Loc Report.OpenForm}" Command="{Binding OpenIssueForm}"
                     ToolTip="{i:Loc Report.OpenFormTip}" Margin="0,0,8,0" />
             <Button x:Name="OpenFolderButton" Style="{StaticResource GhostButton}" Content="{i:Loc Report.OpenFolder}" Command="{Binding OpenFolder}"
                     Visibility="{Binding CanOpenFolder, Converter={StaticResource Vis}}" />
         </WrapPanel>
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+        <StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
             <Button x:Name="SaveButton" Style="{StaticResource PrimaryButton}" Content="{i:Loc Report.Save}" Click="OnSave" IsDefault="True"
                     IsEnabled="{Binding CanSave}" />
             <Button x:Name="CloseButton" Style="{StaticResource GhostButton}" Content="{i:Loc Report.Close}" Click="OnClose" IsCancel="True" Margin="8,0,0,0" />
         </StackPanel>
-    </StackPanel>
+    </Grid>
 </Window>
