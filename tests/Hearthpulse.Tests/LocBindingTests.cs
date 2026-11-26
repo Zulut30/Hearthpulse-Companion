@@ -53,7 +53,7 @@ public sealed partial class LocBindingTests
             Assert.Contains(game.Hero, texts);
             // The mode and the details on one line under the hero
             Assert.Contains(game.Summary, texts);
-            Assert.Equal("Ranked · Against Warrior", game.Summary);
+            Assert.Equal("Ranked" + GameRow.Separator + "Against Warrior", game.Summary);
             Assert.Contains(game.Result, texts);
             Assert.Contains(game.Rating, texts);
             Assert.DoesNotContain(game.ToString(), texts);

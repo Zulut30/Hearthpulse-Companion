@@ -48,6 +48,8 @@ You implement one package of a task card in both UIs. The brief gives the card `
 ## Finish
 
 - Self-check the diff with `interface-review` (the reviewer runs the same pass) and fix what it finds.
+- Last pass before the commit: `hearthpulse-unslop` on your own diff, behaviour unchanged, the scoped check green
+  again.
 - Commit to your `claude/*` branch only: message in a file, UTF-8 without BOM, `git commit -F`, with no
   `Co-Authored-By` or other Claude attribution (owner, 2026-11-19). Never push, never merge.
 - Write `$task\handover-P<n>.md` (format: `hearthpulse-parallel-work` §5).

@@ -25,9 +25,17 @@
             <StackPanel>
                 <TextBlock Text="{Binding Label}" Classes="label" TextTrimming="CharacterEllipsis" />
                 <Border Width="22" Height="2" CornerRadius="1" Background="{StaticResource AccentLine}" HorizontalAlignment="Left" Margin="0,4,0,0" />
-                <TextBlock Text="{Binding Value}" Classes="stat statsValue" Margin="0,4,0,2" TextTrimming="CharacterEllipsis"
-                           Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
-                <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                <!-- The value scales down (never up) to the card's width instead of being cut ("8 ч 32 мин" in a quarter of the
+                     narrowest wide page), as in WPF; the unseen copy keeps its line's height -->
+                <Grid Margin="0,4,0,2">
+                    <TextBlock Text="0" Classes="stat statsValue" Opacity="0" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
+                    <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Value}" Classes="stat statsValue"
+                                   Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
+                    </Viewbox>
+                </Grid>
+                <!-- On as many lines as it needs: StatsStyles.axaml -->
+                <TextBlock Text="{Binding Detail}" Classes="caption tileDetail" />
             </StackPanel>
         </Border>
     </DataTemplate>
@@ -36,13 +44,14 @@
          table's TableSort (none: plain heads); a hairline under them. The ContentControl sits first in a panel of the
          head and the rows and takes c:StickyHeader.IsEnabled, so it stays in view. -->
     <DataTemplate x:Key="StatsTableHead" x:DataType="sys:String">
-        <Border BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="8,0,8,4" Margin="-8,0,-8,4">
+        <!-- As wide as its rows and tight with them (i:Tight, StatRowStyles.axaml): the record's head goes with its column -->
+        <Border Classes="groupHead" i:Tight.Below="400" BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="8,0,8,4" Margin="-8,0,-8,4">
             <Grid ColumnDefinitions="*,Auto,Auto">
                 <c:SortHeader Text="{Binding}" Column="Name" HorizontalAlignment="Left" ToolTip.Tip="{i:Loc Stats.Table.NameTip}"
                               Sort="{Binding $parent[ContentControl].Tag}" />
                 <c:SortHeader Grid.Column="1" Text="{i:Loc Stats.Table.Record}" Column="Games" Classes="wide" Width="64" HorizontalAlignment="Right"
                               ToolTip.Tip="{i:Loc Stats.Table.RecordTip}" Sort="{Binding $parent[ContentControl].Tag}" />
-                <c:SortHeader Grid.Column="2" Text="{i:Loc Stats.Table.WinRate}" Column="WinRate" Width="132" HorizontalAlignment="Right"
+                <c:SortHeader Grid.Column="2" Text="{i:Loc Stats.Table.WinRate}" Column="WinRate" Classes="groupWin" HorizontalAlignment="Right"
                               ToolTip.Tip="{i:Loc Stats.Table.WinRateTip}" Sort="{Binding $parent[ContentControl].Tag}" />
             </Grid>
         </Border>
@@ -69,23 +78,24 @@
         </StackPanel>
     </DataTemplate>
 
-    <!-- A group row: class / opponent / archetype / game length -->
+    <!-- A group row: class / opponent / archetype / game length. Below 400 (a narrow card) it is tight: StatRowStyles.axaml -->
     <DataTemplate x:Key="StatGroupRowTemplate" x:DataType="m:StatGroupRow">
-        <Border Classes="row" Padding="8,8" Margin="-8,0,-8,2">
+        <Border Classes="row groupRow" i:Tight.Below="400" Padding="8,8" Margin="-8,0,-8,2">
             <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                 <Border Width="30" Height="30" CornerRadius="15" Margin="0,0,8,0" Background="{StaticResource Surface4}" ClipToBounds="True"
                         VerticalAlignment="Center" i:CardArt.Portrait="{Binding CardId}"
                         IsVisible="{Binding CardId, Converter={StaticResource Truthy}}" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Games}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Label}" Classes="groupText" FontWeight="SemiBold" ToolTip.Tip="{Binding Label}" />
+                    <TextBlock Text="{Binding Games}" Classes="caption groupText" FontSize="{StaticResource FontSizeLabel}" ToolTip.Tip="{Binding Games}" />
                 </StackPanel>
                 <TextBlock Grid.Column="2" Text="{Binding Record}" Classes="caption wide" Width="64" TextAlignment="Right" VerticalAlignment="Center"
                            ToolTip.Tip="{i:Loc Stats.RecordTip}" />
-                <StackPanel Grid.Column="3" Width="132" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <!-- Its width and the compact layout: StatRowStyles.axaml -->
+                <StackPanel Grid.Column="3" Classes="groupWin" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <!-- The win rate on a 0–100 % bar in its colour, a tick at 50 % -->
-                        <Panel Width="64" Height="11" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Panel Classes="groupBar" Width="64" Height="11" VerticalAlignment="Center" Margin="0,0,8,0">
                             <Border Height="7" CornerRadius="2" Background="{StaticResource Surface3}" />
                             <Border Height="7" HorizontalAlignment="Left" CornerRadius="2" Background="{Binding WinSign, Converter={StaticResource SignBrush}}"
                                     Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />

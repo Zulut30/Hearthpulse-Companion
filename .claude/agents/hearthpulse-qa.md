@@ -48,7 +48,10 @@ You decide whether a package does what its card says, with evidence. You do not 
 5. Edge cases the feature implies: no data, API offline, game not running, mode switch (Constructed / BG / Arena),
    reconnect mid-game, empty history, Russian and English UI. Say which are handled and which are not.
 6. User-facing: present in both UIs (`.xaml` and `.axaml`), texts through Loc keys in ru and en, nothing hidden shown
-   during a game.
+   during a game. Agent-ready (`hearthpulse-agent-ready`): every control the package adds has a name in both UIs,
+   unique in its view and carrying its row in a row template; a dangerous action asks first with a confirm named
+   apart from its trigger; `AgentReadyNameTests` is green. A new page or reworked flow has an agent test in each UI,
+   or "агентский тест отсутствует" goes under "Вернуть разработчику".
 7. Only when the package touches them: statistics or the pool - `hearthpulse-analytics` (thresholds, availability
    states); anything uploaded or stored about the player - `hearthpulse-privacy`.
 

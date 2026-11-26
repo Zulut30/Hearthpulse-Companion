@@ -55,6 +55,10 @@ or a choice row runs out of room.
   <Style Selector="m|MainView.compact Grid.choiceRow"> … </Style>
   ```
 
+  A part that breaks in a narrow card whatever the window (one of two cards side by side at 1040 is as narrow as
+  compact) takes `i:Tight.Below="<px>"` (`Infrastructure/Tight.cs`): the class `tight` while it is narrower than
+  that, styled like a compact rule, e.g. `<Style Selector="Grid.gameRow.tight > WrapPanel.gameFacts">`.
+
 - **WPF** has no compact mode; its `MinWidth="1040" MinHeight="660"` is the floor. Check new content at that size.
 - **The overlay** scales as a whole (`OverlayScale`: 0.7-1.4 on the Settings slider, clamped to 0.6-1.6 in code) and per panel (0.6-1.6). Check the panel at both ends:
   text must stay readable at 0.6 and the panel must stay on screen at 1.6 (`MovablePanel.KeepOnScreen` pulls it back,

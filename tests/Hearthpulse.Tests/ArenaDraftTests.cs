@@ -484,6 +484,37 @@ public sealed class ArenaDraftTests : IDisposable
         Assert.Null(draft.Session.Current.ArenaDraft);
     }
 
+    /// <summary>
+    /// TASK-2026-11-26 AC7 (QA m7): reading the client turned off forgets the offers read from it. The panel shows none,
+    /// and a pick logged after the switch takes nothing from them: neither the offer on screen nor one the memory read
+    /// had already moved past brings its package.
+    /// </summary>
+    [Fact]
+    public void Reading_the_client_turned_off_forgets_the_offers_read_from_it()
+    {
+        using var draft = Session();
+        IReadOnlyList<IReadOnlyList<string>> packages = [[], ["BE_085", "TIME_063"], []];
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["BE_193", "BE_090", "VAC_301"], true, packages));
+        draft.Tick();
+        // The memory read moves on to the next offer before the pick from the first reaches Arena.log.
+        draft.Session.SetDraftOffer(["BE_193", "BE_085", "TIME_063"]);
+        draft.Tick();
+        Assert.Equal(3, draft.Session.Current.ArenaDraft!.Options.Count);
+        var before = draft.Session.Current.ArenaDraft.Picks;
+
+        draft.Session.SetGameMemoryEnabled(false);
+        draft.Tick();
+        Assert.Empty(draft.Session.Current.ArenaDraft!.Options);
+
+        // The pick from the first offer arrives after the switch: the legendary comes alone, without the package read
+        // before it.
+        draft.Session.OnLines("Arena.log", ["D 21:01:00.0000000 Client chooses: Big Warlock Card (BE_090)"], catchingUp: false);
+        draft.Tick();
+        var view = draft.Session.Current.ArenaDraft!;
+        Assert.Equal(before + 1, view.Picks);
+        Assert.DoesNotContain(view.Deck, c => c.CardId == "TIME_063");
+    }
+
     /// <summary>A session on the draft screen with the helper on, three cards drafted (<see cref="DraftLog"/>).</summary>
     private static DraftSession Session()
     {

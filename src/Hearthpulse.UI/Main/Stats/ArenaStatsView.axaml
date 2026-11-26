@@ -152,7 +152,7 @@
         <ItemsControl ItemsSource="{Binding ArenaStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
 
         <!-- The runs (and «Подробнее» under them) beside the latest run's deck score and the community class win rates -->
-        <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
+        <Grid Classes="statsPair" i:Tight.Below="760" Margin="0,0,0,16" RowDefinitions="Auto,Auto">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="16" />

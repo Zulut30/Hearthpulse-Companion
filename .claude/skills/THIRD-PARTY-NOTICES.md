@@ -256,6 +256,38 @@ anthropics/knowledge-work-plugins: Apache License 2.0, full text in
 plugin's `data/LICENSE` at the commit above (it matches the canonical text). The two project files derived from it
 say in their source note what was changed, as section 4(b) of the licence asks.
 
+## vercel-labs/ui imported 2026-11-26
+
+- Source: https://github.com/vercel-labs/ui, commit `e9085baf8f02ccbabebfbd743546532cff74943f` (2026-11-26, on
+  `main`; the revision the task pinned)
+- Licence: Apache-2.0, Copyright 2026 Vercel, Inc. (the repository's `LICENSE`; its tree at that commit has no
+  `NOTICE` file)
+
+Two project skills and the decisions log (task TASK-2026-11-26-release-cleanup, package P8). Read whole at the commit:
+`packages/core/skills/ui-sdk/SKILL.md` and its `references/agent-ready.md`, `testing.md`, `build-interface.md`;
+`.agents/skills/README.md`, `ui-sdk-unslop/SKILL.md`, `ui-sdk-expert-review/SKILL.md`;
+`.agents/experts/react/decisions.md` and `vue/decisions.md`. Only Markdown was read, fetched with `gh api` into a scratch folder; no code, script, package or
+asset was taken, and nothing was copied whole. Taken under the repository's Apache-2.0 licence only, as the behaviors
+port of the app was (`docs/ui-behaviors.md`, at an earlier revision of the same repository).
+
+| Project path | Source path | Changes |
+|---|---|---|
+| `hearthpulse-agent-ready/SKILL.md`, `hearthpulse-agent-ready/agent-test.md` | `packages/core/skills/ui-sdk/references/agent-ready.md`, `testing.md` | kept as method, retold: a name on every control, unique where it sits; a verb and the row in row actions; items and tabs by their visible text; decoration hidden; state through the component's own API; a confirmation whose button is named apart from its trigger; secrets an agent may fill but not read; a way into content behind closed tabs and sections; the agent test (walk, check names, find by the words a person uses, act, assert, break it once on purpose). Replaced: `createAgent`, `snapshot`/`act`/`query`, WebMCP and the `data-agent-*` attributes by UI Automation peers and patterns in WPF and Avalonia, jsdom by the Windows suite and Avalonia Headless. Added: the naming table measured on WPF for .NET 10 and Avalonia 12.1.4, the markup ratchet `AgentReadyNameTests`, this project's confirmations and settings search. Dropped: framework code, `definePrimitive` agent keys, server rendering, right to left |
+| `hearthpulse-unslop/SKILL.md` | `.agents/skills/ui-sdk-unslop/SKILL.md` | kept: what goes (comments that restate or explain the design, comments over three lines, history narration, banners, docs that repeat the name, hedge words, checks the types rule out, unexplained casts, one-call helpers, vague names, unused options, logs and commented-out code), what stays, the six steps. Replaced: TypeScript, JSDoc and `pnpm` by C# with nullable types, XML docs, XAML/AXAML, Loc files and `tools/dev/check.ps1`; where null really arrives here; the project's conventions that stay (`<summary>` on public members, `Justification`, pointers to the twin view). Dropped: the rule for example files, the lint scripts |
+| `interface-review/SKILL.md` (steps 5 and 8, report sections), `hearthpulse-review/SKILL.md` (a ground rule, report sections), `docs/ui-decisions.md` | `.agents/skills/ui-sdk-expert-review/SKILL.md` ("After triage"), `.agents/experts/react/decisions.md`, `vue/decisions.md` | the idea only, no text: a log with "Settled" and "Known and open" that a reviewer reads before reporting, the three ways a triaged finding goes, recorded the same turn, and a last-reviewed mark; rewritten in Russian for this project's reviewer roles, with the project's own decisions as entries |
+
+`better-accessibility/SKILL.md`, `better-accessibility/names-and-announcements.md`, the agent files
+`hearthpulse-ui-dev`, `hearthpulse-core-dev`, `hearthpulse-qa` and `CLAUDE.md` changed only to point at the two new
+skills (the naming correction in `better-accessibility` comes from our own measurement, not from the source).
+
+### Licence text
+
+vercel-labs/ui: Apache License 2.0, full text with Vercel's copyright line in
+[hearthpulse-agent-ready/LICENSE-Apache-2.0.txt](hearthpulse-agent-ready/LICENSE-Apache-2.0.txt) and
+[hearthpulse-unslop/LICENSE-Apache-2.0.txt](hearthpulse-unslop/LICENSE-Apache-2.0.txt), copied byte for byte from the
+repository's `LICENSE` at the commit above (SHA-256 `85dc930b9f77edd477ceddd7658dd3a4bb4411186718d19e137a7a5724ee7007`).
+Every project file derived from it says in its source note what was changed, as section 4(b) of the licence asks.
+
 ## Ideas only, no text copied
 
 These shaped our own wording in `hearthpulse-team/reference/task-template.md`, `.claude/agents/hearthpulse-lead.md`,

@@ -269,10 +269,12 @@
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="Margin" Value="0,10,0,0" />
         </Style>
-        <Style Selector="m|MainView.compact :is(Control).statsLeft">
+        <!-- Side-by-side cards stack in compact, and in a pair grid narrower than 760 (Grid.statsPair, i:Tight): at the
+             narrowest wide window (1040) half a page leaves a card's rows and title too little room -->
+        <Style Selector="m|MainView.compact :is(Control).statsLeft, Grid.statsPair.tight > :is(Control).statsLeft">
             <Setter Property="Grid.ColumnSpan" Value="3" />
         </Style>
-        <Style Selector="m|MainView.compact :is(Control).statsRight">
+        <Style Selector="m|MainView.compact :is(Control).statsRight, Grid.statsPair.tight > :is(Control).statsRight">
             <Setter Property="Grid.Column" Value="0" />
             <Setter Property="Grid.ColumnSpan" Value="3" />
             <Setter Property="Grid.Row" Value="1" />
