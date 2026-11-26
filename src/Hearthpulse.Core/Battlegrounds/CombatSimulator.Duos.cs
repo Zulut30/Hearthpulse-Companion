@@ -18,10 +18,13 @@ public sealed partial record SimSide
 
 public static partial class CombatSimulator
 {
-    /// <summary>The side a fight starts with: in Duos a first board without minions gives way to its teammate's at once.</summary>
+    /// <summary>
+    /// The side a fight starts with: in Duos a first board without minions gives way to its teammate's at once. The team's
+    /// shared health stays with the fight (<see cref="DamageRules.TeamHealth"/>: the board that started it carries it).
+    /// </summary>
     internal static SimSide StartingBoard(SimSide side) =>
         side.Minions.Count == 0 && side.Teammate is { } teammate
-            ? teammate with { Estimates = [.. side.Estimates, .. teammate.Estimates] }
+            ? teammate with { Estimates = [.. side.Estimates, .. teammate.Estimates], Health = DamageRules.TeamHealth(side) }
             : side;
 
     /// <summary>

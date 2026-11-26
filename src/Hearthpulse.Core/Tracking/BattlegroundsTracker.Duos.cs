@@ -17,8 +17,10 @@ namespace Hearthpulse.Core.Tracking;
 /// <c>BACON_DUO_TEAM_ID</c> on the leaderboard heroes.</para>
 /// <para>A second board not on the log at capture is the one the player last saw in a fight (at its first attack), from
 /// an earlier combat: an estimate (<see cref="SimInputs.DuosOpponentTeammate"/>, <see cref="SimInputs.DuosPartnerBoard"/>).
-/// Never seen, the fight has no second board and says so with the same estimate. Player-level values (Blood Gems, Tavern
-/// spell bonus...), hand and secrets of a board that is not ours are treated like an opponent's: estimates, none.</para>
+/// Never seen, the fight has no second board and says so with the same estimate. Our own board, second when our partner
+/// fights first, is the one we left the tavern with this turn (taken when the combat begins), with our hand and values.
+/// Player-level values (Blood Gems, Tavern spell bonus...), hand and secrets of a board that is not ours are treated like an
+/// opponent's: estimates, none.</para>
 /// </remarks>
 public sealed partial class BattlegroundsTracker
 {
@@ -44,7 +46,25 @@ public sealed partial class BattlegroundsTracker
         if (game.LocalHero?.GetInt(GameTag.PlayerId) is > 0 and var id)
         {
             _duosOwnId = id;
+            _duosSides[id] = new SeenSide(game.BattlegroundsTurn, OwnTavernBoard(game));
         }
+    }
+
+    /// <summary>
+    /// Our board as we leave the tavern, with our hand and player values: the team's second board when our partner fights
+    /// first. A real Duos log (build 221908, docs/bg-combat-sim.md "Duos") keeps our tavern minions in play when the board
+    /// switches to combat; they leave when our partner's board comes in under our controller and come back as they were.
+    /// Taken as the combat begins, so nothing of the fight is in it; an empty board means the team has no second board.
+    /// </summary>
+    private SimSide OwnTavernBoard(GameState game)
+    {
+        var side = BuildSide(game, game.LocalPlayerId, isOpponent: false, Enchantments(game));
+        return side with
+        {
+            // Nothing was summoned in this fight yet (BuildSide would tell Start of Combat summons by the shop's ids here).
+            Minions = [.. side.Minions.Select(m => m with { SummonedInCombat = false })],
+            ExtraTags = ExtraTagsOf(game, game.LocalPlayerId, side.Extras),
+        };
     }
 
     /// <summary>
@@ -97,11 +117,23 @@ public sealed partial class BattlegroundsTracker
             _duosSides[ours.PlayerId] = new SeenSide(turn, ours.PlayerId == _duosOwnId ? AsTeammate(game, ours, enchantments) : ours);
         }
 
-        ours = ours with { Teammate = OurTeammate(game, ours, enchantments, turn) };
+        var (teammate, known) = OurTeammate(game, ours, enchantments, turn);
+        ours = ours with { Teammate = teammate };
+        if (!known)
+        {
+            // Our partner's board shows only while it fights: until then the fight has no second board, and says so.
+            ours = ours with
+            {
+                Estimates = [.. ours.Estimates,
+                    new SimEstimate(SimInputs.DuosPartnerBoard, 0, 0, "our partner's board was not seen yet: the fight has no second board")],
+            };
+        }
+
         return (ours, OpponentTeammate(game, theirs, theirId));
     }
 
-    private SimSide? OurTeammate(GameState game, SimSide ours, ILookup<int, Entity> enchantments, int turn)
+    /// <summary>Our team's second board, and whether it is known at all (never seen: no board, an estimate).</summary>
+    private (SimSide? Board, bool Known) OurTeammate(GameState game, SimSide ours, ILookup<int, Entity> enchantments, int turn)
     {
         // The fallback model: our partner as a player of the game, their minions under their own controller.
         var slot = game.PartnerPlayerId;
@@ -113,11 +145,17 @@ public sealed partial class BattlegroundsTracker
                 _duosSides[side.PlayerId] = new SeenSide(turn, side);
             }
 
-            return side;
+            return (side, true);
         }
 
         var mateId = ours.PlayerId == _duosOwnId || _duosOwnId == 0 ? TeammateOf(game, ours.PlayerId) : _duosOwnId;
-        return mateId > 0 && _duosSides.TryGetValue(mateId, out var seen) ? LastSeenSide(seen, SimInputs.DuosPartnerBoard, turn) : null;
+        if (mateId <= 0 || !_duosSides.TryGetValue(mateId, out var seen))
+        {
+            return (null, false);
+        }
+
+        // Our own board left the tavern empty (OwnTavernBoard): the team has no second board, and that is no estimate.
+        return (seen.Side.Minions.Count == 0 ? null : LastSeenSide(seen, SimInputs.DuosPartnerBoard, turn), true);
     }
 
     private SimSide OpponentTeammate(GameState game, SimSide theirs, int theirId)

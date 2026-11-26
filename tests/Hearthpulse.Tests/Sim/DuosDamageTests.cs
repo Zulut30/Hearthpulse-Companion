@@ -80,6 +80,22 @@ public sealed class DuosDamageTests
     }
 
     [Fact]
+    public void A_team_whose_first_board_is_empty_keeps_its_shared_health_for_lethal()
+    {
+        // TASK-2026-11-26 AC5: their first board is empty at the start, so their teammate fights the whole fight
+        // (CombatSimulator.StartingBoard); the health lethal is measured against is still the team's, which the board that
+        // started the fight carries (DamageRules.TeamHealth). Our tier 6 and a tier-4 survivor: 10 against their 8.
+        var ours = Side(Tiered(50, 50, 4)) with { TavernTier = 6, Health = 30 };
+        var theirs = Side() with { Health = 8, Teammate = Side(Tiered(1, 1, 1)) with { TavernTier = 3 } };
+
+        var odds = CombatSimulator.Run(ours, theirs, firstAttackerIsOurs: true, new SimOptions { Runs = 100 });
+
+        Assert.Equal(1.0, odds.Win);
+        Assert.Equal(10, odds.DamageDealt!.Mean);
+        Assert.Equal(1.0, odds.LethalDealt);
+    }
+
+    [Fact]
     public void Ice_block_of_either_member_guards_the_team()
     {
         var withIceBlock = Side(Tiered(1, 1, 1)) with { Secrets = [DamageRules.IceBlock] };
