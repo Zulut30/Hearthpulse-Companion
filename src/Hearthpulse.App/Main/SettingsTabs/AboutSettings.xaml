@@ -49,8 +49,7 @@
                            Visibility="{Binding ParseErrorsText, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
-        <!-- "Report a problem" (roadmap E1, docs/report-a-problem.md): the button opens the window that shows what the diagnostics
-             archive holds and saves it for a GitHub issue. Same card as the Avalonia AboutSettings.axaml. -->
+        <!-- "Report a problem" (docs/report-a-problem.md); Avalonia twin: AboutSettings.axaml -->
         <Border x:Name="FeedbackCard" Style="{StaticResource Card}">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Report.Card.Title}" Icon="&#xF0A30;" Size="13" Margin="0,0,0,12" />

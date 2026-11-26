@@ -68,8 +68,7 @@
                            IsVisible="{Binding ParseErrorsText, Converter={StaticResource Truthy}}" />
             </StackPanel>
         </Border>
-        <!-- "Report a problem" (roadmap E1, docs/report-a-problem.md): the button opens the window that shows what the diagnostics
-             archive holds and saves it for a GitHub issue. Same card as the WPF AboutSettings.xaml. -->
+        <!-- "Report a problem" (docs/report-a-problem.md); WPF twin: AboutSettings.xaml -->
         <Border Name="FeedbackCard" Classes="card">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Report.Card.Title}" Icon="&#xF0A30;" Size="13" Margin="0,0,0,12" />

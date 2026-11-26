@@ -6,9 +6,8 @@
         xmlns:r="using:Hearthpulse.UI.Main.Report"
         Title="{i:Loc Report.Title}" Width="640" SizeToContent="Height" MinWidth="520" MinHeight="320"
         Background="{StaticResource Bg}" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
-    <!-- "Report a problem" (roadmap E1, docs/report-a-problem.md), as WPF's Main/Report/ReportProblemWindow.xaml: what the
-         diagnostics archive holds, the switch for the game's logs, saving it, then the folder and GitHub's form. Shown once
-         the list is read and never taller than the screen's work area (code-behind): only the list's row gives way. -->
+    <!-- "Report a problem" (docs/report-a-problem.md); WPF twin: Main/Report/ReportProblemWindow.xaml. On a short screen only
+         the list's row gives way (the code-behind caps the window at the work area). -->
     <Window.Styles>
         <Style Selector="TextBlock.size">
             <Setter Property="FontFeatures">
@@ -30,7 +29,6 @@
         <TextBlock Grid.Row="1" Text="{i:Loc Report.Intro}" Classes="caption" TextWrapping="Wrap" />
 
         <TextBlock Grid.Row="2" Text="{i:Loc Report.Contents}" Classes="label" Margin="0,24,0,8" />
-        <!-- The files in a groove like the sidebar's cards: name and what it holds on the left, size on the right -->
         <Border Grid.Row="3" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
                 CornerRadius="{StaticResource RadiusMedium}" Padding="16,8">
             <ScrollViewer Name="FileScroll" MaxHeight="288" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -56,8 +54,7 @@
         <TextBlock Name="GameLogsNoteLine" Grid.Row="6" Text="{Binding GameLogsNote}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0"
                    IsVisible="{Binding GameLogsNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
-        <!-- After a save: what was written, then the two next steps; a failed save says why in the error colour. The line is
-             always there, so a screen reader hears its text change. -->
+        <!-- Always in the tree: a screen reader hears its text change -->
         <TextBlock Name="StatusLine" Grid.Row="7" Text="{Binding Status}" Classes="caption status" Classes.error="{Binding StatusIsError}" TextWrapping="Wrap"
                    Margin="0,16,0,0" AutomationProperties.LiveSetting="Polite" />
         <WrapPanel Name="SavedActions" Grid.Row="8" Margin="0,8,0,0" IsVisible="{Binding Saved}">

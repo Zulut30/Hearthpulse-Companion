@@ -92,8 +92,8 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="24,12,0,18">
                         <!-- The logo with the BETA flag on its lower edge (owner's pick E, 2026-11-07): a small outlined tag over the
-                             sidebar fill, accent capitals; the wordmark's line stays clean. The flag is a button that opens "Report a
-                             problem" (roadmap E1, K2); its tip says so. -->
+                             sidebar fill, accent capitals; the wordmark's line stays clean. The flag is the "Report a problem"
+                             button (roadmap K2). -->
                         <Grid Width="42" Height="42">
                             <Image Source="{StaticResource HearthpulseLogo}" />
                             <Button x:Name="BetaLink" Style="{StaticResource BareRow}" Margin="0,0,0,-8" HorizontalAlignment="Center" VerticalAlignment="Bottom"

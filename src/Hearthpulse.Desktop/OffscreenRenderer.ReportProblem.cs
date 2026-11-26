@@ -8,11 +8,8 @@ using Hearthpulse.UI.Main.Report;
 namespace Hearthpulse.Desktop;
 
 /// <summary>
-/// <c>--render-ui</c>, group <c>report</c> (roadmap E1, TASK-2026-11-26-release-cleanup P4), as WPF's
-/// <c>DevRender.ReportProblem.cs</c>: Settings → About scrolled to the Feedback card (<c>main-settings-feedback.png</c>) and
-/// the "Report a problem" window on the data copy: as it opens (<c>report-window.png</c>), with the game logs on when the
-/// copy's Hearthstone has a log session (<c>report-window-logs.png</c>), after a save (<c>report-window-saved.png</c>; the
-/// archive goes to a temporary file, deleted after) and after a refused one (<c>report-window-error.png</c>).
+/// <c>--render-ui</c>, group <c>report</c>, as WPF's <c>DevRender.ReportProblem.cs</c> (shots: hearthpulse-visual-check).
+/// The saved archive is a temporary file, deleted after; nothing is sent or opened.
 /// </summary>
 internal static partial class OffscreenRenderer
 {

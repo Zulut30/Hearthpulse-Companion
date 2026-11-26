@@ -21,10 +21,8 @@ namespace Hearthpulse.UI.Main.Report;
 public sealed record ReportFileRow(string Name, string Description, string Size);
 
 /// <summary>
-/// "Report a problem" (roadmap E1, docs/report-a-problem.md), opened from Settings → About and the BETA flag: what the
-/// diagnostics archive holds (<see cref="DiagnosticsBundle"/>), the switch for the game's logs, saving the archive where
-/// the player picks, then the folder and GitHub's issue form. Nothing is sent: the player attaches the file themselves.
-/// The window shows the save dialog and hands over the picked file (<see cref="SaveAsync(string)"/>).
+/// "Report a problem" (docs/report-a-problem.md): what the archive holds, the game logs switch, saving where the player
+/// picks, then the folder and GitHub's form. Nothing is sent; the window shows the save dialog.
 /// </summary>
 public sealed class ReportProblemViewModel : Observable
 {
@@ -144,7 +142,7 @@ public sealed class ReportProblemViewModel : Observable
     /// <summary>The saved file has a path on this computer to show it in its folder.</summary>
     public bool CanOpenFolder => _saved && _savedPath is not null;
 
-    /// <summary>The name the save dialog suggests.</summary>
+    /// <summary><c>hearthpulse-diagnostics-yyyy-MM-dd-HHmm.zip</c> at the local time, for the save dialog.</summary>
     public string SuggestedFileName => DiagnosticsBundle.FileName(Now());
 
     /// <summary>Shows the saved archive in its folder (selected where the system can).</summary>
@@ -238,6 +236,7 @@ public sealed class ReportProblemViewModel : Observable
         {
             IReadOnlyList<DiagnosticsEntry> written;
             long size;
+            // Only SaveAsync(path) comes without an opener, and it gives the path.
             var output = open is null ? CreateFile(localPath!) : await open();
             opened = true;
             await using (output)

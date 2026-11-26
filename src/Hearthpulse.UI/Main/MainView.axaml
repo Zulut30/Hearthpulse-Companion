@@ -298,7 +298,7 @@
                 <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
                     <Panel Width="42" Height="42">
                         <Image Source="{StaticResource HearthpulseLogo}" />
-                        <!-- The flag is a button that opens "Report a problem" (roadmap E1, K2); its tip says so -->
+                        <!-- The flag is the "Report a problem" button (roadmap K2) -->
                         <Button Name="BetaLink" Classes="bare betaLink" Click="OnReportProblem" ToolTip.Tip="{i:Loc Main.BetaTip}"
                                 AutomationProperties.Name="{i:Loc Main.BetaReport}">
                             <Border Name="BetaBadge" Classes="beta">

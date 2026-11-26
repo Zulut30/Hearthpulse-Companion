@@ -10,9 +10,8 @@ using Hearthpulse.Core.Power;
 namespace Hearthpulse.Core.Diagnostics;
 
 /// <summary>
-/// What the settings copy keeps: only the fields this version reads, with every key, token, password and similar value of
-/// a settings field replaced. A dictionary's keys (a panel's id, a counter's id) are data, not field names: the panel
-/// <c>secrets</c> keeps its place.
+/// The settings copy: fields this version reads, any key, token or password value removed. A dictionary's keys (panel
+/// and counter ids) are data, not field names: the panel <c>secrets</c> keeps its place.
 /// </summary>
 public sealed partial class DiagnosticsBundle
 {
@@ -51,10 +50,8 @@ public sealed partial class DiagnosticsBundle
     internal ArchiveScrubber NewScrubber() => new(UserProfile, UserProfileShort, UserName);
 
     /// <summary>
-    /// The settings copy: only the top-level fields <see cref="AppSettings"/> has (counted in <c>Unknown</c> otherwise);
-    /// a value whose field name says secret is <see cref="Removed"/> at any depth (a true/false switch stays: it holds
-    /// none), a dictionary's keys are kept as they are, every text goes through <paramref name="scrub"/>. Null when
-    /// <paramref name="json"/> is not a JSON object.
+    /// Fields of <see cref="AppSettings"/> only (others counted in <c>Unknown</c>); a secret-named value is
+    /// <see cref="Removed"/> unless true/false; texts go through <paramref name="scrub"/>. Null when not a JSON object.
     /// </summary>
     internal static (string Json, int Unknown)? SettingsCopy(string json, Func<string, string> scrub)
     {
@@ -184,27 +181,18 @@ public sealed partial class DiagnosticsBundle
 }
 
 /// <summary>
-/// Cuts what identifies people from the archive's texts, with one map for the whole archive: each player's name becomes
-/// <c>Player1#1001</c> as a BattleTag and <c>Player1</c> where the game writes it bare (the Battlegrounds and Duos
-/// opponent the game renames its stand-in player to before each combat, the lobby's names), and each account number
-/// (the <c>lo</c> of <c>GameAccountId=[hi=… lo=…]</c>, not 0, and Achievements.log's <c>PlayerID</c>) becomes 1,
-/// 2..., in order of first sight, so the same player is the same stand-in in every file and a game log still replays the
-/// same game. A bare name is replaced only where the log puts a player (<c>Entity=</c> of TAG_CHANGE and BLOCK_START,
-/// <c>PlayerName=</c>, the choices' <c>Player=</c>, <c>Source = </c>), never as a word of other text: a short name could
-/// be part of one. The account's <c>hi</c> (its region and type, the same for every account of a region) and
-/// <c>lo=0</c> (no account) stay. Everywhere: tokens (JWT, "Bearer …"), credentials and secret query values in addresses,
-/// e-mails and the user's home folder (long and 8.3 forms, with forward slashes, JSON-escaped; only the whole folder).
-/// In Hearthpulse's own files the account name too, as a word; never in a game log, where it could be part of a card's
-/// name.
+/// One archive's stand-ins, the same in every file: a player is <c>Player1#1001</c> as a BattleTag and <c>Player1</c>
+/// where a game log writes the name bare, an account number is 1, 2... (rules: docs/report-a-problem.md).
 /// </summary>
 internal sealed partial class ArchiveScrubber
 {
-    /// <summary>A player's number by name: a BattleTag's name part, or the bare name the game wrote.</summary>
-    private readonly Dictionary<string, int> _players = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _tags = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _bareNames = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _accounts = new(StringComparer.Ordinal);
     private readonly List<Regex> _home = [];
     private readonly string _homeText = OperatingSystem.IsWindows() ? "%USERPROFILE%" : "~";
     private readonly Regex? _user;
+    private int _players;
 
     public ArchiveScrubber(string userProfile, string? userProfileShort, string userName)
     {
@@ -265,10 +253,17 @@ internal sealed partial class ArchiveScrubber
         return scrubbed;
     }
 
-    /// <summary>A BattleTag's stand-in: <c>Player1#1001</c>, the number shared with the name's bare form.</summary>
+    /// <summary>A BattleTag's stand-in, <c>Player1#1001</c>: one number per BattleTag, two players named alike stay two.</summary>
     private string Name(string tag)
     {
-        var n = PlayerNumber(tag[..tag.IndexOf('#', StringComparison.Ordinal)]);
+        if (!_tags.TryGetValue(tag, out var n))
+        {
+            // A bare name seen before is this player's while no other BattleTag has that name.
+            var name = NamePart(tag);
+            n = _bareNames.TryGetValue(name, out var bare) && !_tags.Keys.Any(t => NamePart(t) == name) ? bare : ++_players;
+            _tags[tag] = n;
+        }
+
         return string.Create(CultureInfo.InvariantCulture, $"Player{n}#{1000 + n}");
     }
 
@@ -284,19 +279,18 @@ internal sealed partial class ArchiveScrubber
             return name;
         }
 
-        return string.Create(CultureInfo.InvariantCulture, $"Player{PlayerNumber(name)}");
-    }
-
-    private int PlayerNumber(string name)
-    {
-        if (!_players.TryGetValue(name, out var n))
+        if (!_bareNames.TryGetValue(name, out var n))
         {
-            n = _players.Count + 1;
-            _players[name] = n;
+            // The number of the one BattleTag with this name; with two (Alex#1234, Alex#5678) it could be either: its own.
+            var owners = _tags.Where(t => NamePart(t.Key) == name).Select(t => t.Value).Take(2).ToList();
+            n = owners.Count == 1 ? owners[0] : ++_players;
+            _bareNames[name] = n;
         }
 
-        return n;
+        return string.Create(CultureInfo.InvariantCulture, $"Player{n}");
     }
+
+    private static string NamePart(string tag) => tag[..tag.IndexOf('#', StringComparison.Ordinal)];
 
     private string Account(string lo)
     {
@@ -340,15 +334,15 @@ internal sealed partial class ArchiveScrubber
     [GeneratedRegex(@"[\p{L}\p{N}_]{2,24}#\d{3,6}", RegexOptions.CultureInvariant)]
     private static partial Regex BattleTag();
 
-    // Where Power.log puts a player by name (the parser reads the same places, PowerLine and PowerParser): TAG_CHANGE's
-    // and BLOCK_START's Entity=, DebugPrintGame's PlayerName=, the choices' Player=, a block's "Source = ". An entity in
-    // brackets ([entityName=… id=…], a card) never starts with a name.
+    // Where Power.log puts a player by name: the places the parser reads (PowerLine, PowerParser), a block's "Source = "
+    // and a META_DATA's "Info[N] = ". An entity in brackets ([entityName=… id=…], a card) never starts with a name.
     [GeneratedRegex(
         @"(?<head>\bTAG_CHANGE Entity=)(?<name>[^\[\r\n].*?)(?= tag=)" +
         @"|(?<head>\bBLOCK_START BlockType=\w+ Entity=)(?<name>[^\[\r\n].*?)(?= EffectCardId=)" +
         @"|(?<head>\bPlayerName=)(?<name>[^\r\n]+)" +
         @"|(?<head>\bid=\d+ Player=)(?<name>[^\[\r\n].*?)(?= TaskList=| EntitiesCount=)" +
-        @"|(?<head>\bSource = )(?<name>[^\[\r\n][^\r\n]*)",
+        @"|(?<head>\bSource = )(?<name>[^\[\r\n][^\r\n]*)" +
+        @"|(?<head>\bInfo\[\d+\] = )(?<name>[^\[\r\n][^\r\n]*)",
         RegexOptions.CultureInvariant)]
     private static partial Regex PlayerReference();
 
