@@ -5,6 +5,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Hearthpulse.Core.Power;
 
 namespace Hearthpulse.Core.Diagnostics;
 
@@ -183,18 +184,23 @@ public sealed partial class DiagnosticsBundle
 }
 
 /// <summary>
-/// Cuts what identifies people from the archive's texts, with one map for the whole archive: each BattleTag becomes
-/// <c>Player1#1001</c>, <c>Player2#1002</c>... and each Battle.net account number (the <c>lo</c> of
-/// <c>GameAccountId=[hi=… lo=…]</c>, not 0) becomes 1, 2..., in order of first sight, so the same player is the same
-/// stand-in in every file and a game log still replays the same game. The account's <c>hi</c> (its region and type, the
-/// same for every account of a region) and <c>lo=0</c> (no account) stay. Everywhere: tokens (JWT, "Bearer …"),
-/// credentials and secret query values in addresses, e-mails and the user's home folder (long and 8.3 forms, with
-/// forward slashes, JSON-escaped; only the whole folder). In Hearthpulse's own files the account name too, as a word;
-/// never in a game log, where it could be part of a card's name.
+/// Cuts what identifies people from the archive's texts, with one map for the whole archive: each player's name becomes
+/// <c>Player1#1001</c> as a BattleTag and <c>Player1</c> where the game writes it bare (the Battlegrounds and Duos
+/// opponent the game renames its stand-in player to before each combat, the lobby's names), and each account number
+/// (the <c>lo</c> of <c>GameAccountId=[hi=… lo=…]</c>, not 0, and Achievements.log's <c>PlayerID</c>) becomes 1,
+/// 2..., in order of first sight, so the same player is the same stand-in in every file and a game log still replays the
+/// same game. A bare name is replaced only where the log puts a player (<c>Entity=</c> of TAG_CHANGE and BLOCK_START,
+/// <c>PlayerName=</c>, the choices' <c>Player=</c>, <c>Source = </c>), never as a word of other text: a short name could
+/// be part of one. The account's <c>hi</c> (its region and type, the same for every account of a region) and
+/// <c>lo=0</c> (no account) stay. Everywhere: tokens (JWT, "Bearer …"), credentials and secret query values in addresses,
+/// e-mails and the user's home folder (long and 8.3 forms, with forward slashes, JSON-escaped; only the whole folder).
+/// In Hearthpulse's own files the account name too, as a word; never in a game log, where it could be part of a card's
+/// name.
 /// </summary>
 internal sealed partial class ArchiveScrubber
 {
-    private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
+    /// <summary>A player's number by name: a BattleTag's name part, or the bare name the game wrote.</summary>
+    private readonly Dictionary<string, int> _players = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _accounts = new(StringComparer.Ordinal);
     private readonly List<Regex> _home = [];
     private readonly string _homeText = OperatingSystem.IsWindows() ? "%USERPROFILE%" : "~";
@@ -225,8 +231,22 @@ internal sealed partial class ArchiveScrubber
         return _user is null ? scrubbed : _user.Replace(scrubbed, "<user>");
     }
 
-    /// <summary>A line of a game log: names and account numbers by the archive's map, folders, e-mails and tokens.</summary>
-    public string Game(string line) => Common(line);
+    /// <summary>
+    /// A line of a game log: names (BattleTags anywhere, bare names where the log puts a player) and account numbers by
+    /// the archive's map, folders, e-mails and tokens.
+    /// </summary>
+    public string Game(string line)
+    {
+        var scrubbed = Common(line);
+        scrubbed = PlayerReference().Replace(scrubbed, m =>
+        {
+            // A name the line ends with may carry the line's trailing spaces: they stay outside the name.
+            var raw = m.Groups["name"].Value;
+            var name = raw.TrimEnd();
+            return m.Groups["head"].Value + BareName(name) + raw[name.Length..];
+        });
+        return AchievementPlayer().Replace(scrubbed, m => m.Groups["head"].Value + Account(m.Groups["id"].Value));
+    }
 
     private string Common(string text)
     {
@@ -245,16 +265,37 @@ internal sealed partial class ArchiveScrubber
         return scrubbed;
     }
 
+    /// <summary>A BattleTag's stand-in: <c>Player1#1001</c>, the number shared with the name's bare form.</summary>
     private string Name(string tag)
     {
-        if (!_names.TryGetValue(tag, out var standIn))
+        var n = PlayerNumber(tag[..tag.IndexOf('#', StringComparison.Ordinal)]);
+        return string.Create(CultureInfo.InvariantCulture, $"Player{n}#{1000 + n}");
+    }
+
+    /// <summary>
+    /// A bare player name's stand-in: <c>Player1</c>. Not a name: an entity number, the game entity, the unknown opponent,
+    /// a BattleTag (already replaced, it holds a "#").
+    /// </summary>
+    private string BareName(string name)
+    {
+        if (name.Length == 0 || name.Contains('#', StringComparison.Ordinal) || name is "GameEntity" or GameState.UnknownPlayerName
+            || name.All(char.IsAsciiDigit) || (name[0] == '-' && name.Length > 1 && name[1..].All(char.IsAsciiDigit)))
         {
-            var n = _names.Count + 1;
-            standIn = string.Create(CultureInfo.InvariantCulture, $"Player{n}#{1000 + n}");
-            _names[tag] = standIn;
+            return name;
         }
 
-        return standIn;
+        return string.Create(CultureInfo.InvariantCulture, $"Player{PlayerNumber(name)}");
+    }
+
+    private int PlayerNumber(string name)
+    {
+        if (!_players.TryGetValue(name, out var n))
+        {
+            n = _players.Count + 1;
+            _players[name] = n;
+        }
+
+        return n;
     }
 
     private string Account(string lo)
@@ -298,4 +339,20 @@ internal sealed partial class ArchiveScrubber
 
     [GeneratedRegex(@"[\p{L}\p{N}_]{2,24}#\d{3,6}", RegexOptions.CultureInvariant)]
     private static partial Regex BattleTag();
+
+    // Where Power.log puts a player by name (the parser reads the same places, PowerLine and PowerParser): TAG_CHANGE's
+    // and BLOCK_START's Entity=, DebugPrintGame's PlayerName=, the choices' Player=, a block's "Source = ". An entity in
+    // brackets ([entityName=… id=…], a card) never starts with a name.
+    [GeneratedRegex(
+        @"(?<head>\bTAG_CHANGE Entity=)(?<name>[^\[\r\n].*?)(?= tag=)" +
+        @"|(?<head>\bBLOCK_START BlockType=\w+ Entity=)(?<name>[^\[\r\n].*?)(?= EffectCardId=)" +
+        @"|(?<head>\bPlayerName=)(?<name>[^\r\n]+)" +
+        @"|(?<head>\bid=\d+ Player=)(?<name>[^\[\r\n].*?)(?= TaskList=| EntitiesCount=)" +
+        @"|(?<head>\bSource = )(?<name>[^\[\r\n][^\r\n]*)",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex PlayerReference();
+
+    // Achievements.log names the account by a number that never changes: "OnAchieveNotification PlayerID=123456 ID=…".
+    [GeneratedRegex(@"(?<head>\bOnAchieveNotification PlayerID=)(?<id>\d+)", RegexOptions.CultureInvariant)]
+    private static partial Regex AchievementPlayer();
 }

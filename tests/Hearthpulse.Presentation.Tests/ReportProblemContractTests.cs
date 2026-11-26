@@ -135,7 +135,7 @@ public sealed class ReportProblemContractTests : IDisposable
 
         Assert.True((bool)model.GameLogsAvailable);
         Assert.False((bool)model.IncludeGameLogs);
-        Assert.Contains("BattleTags and Battle.net account numbers in them, yours and your opponents’, are replaced with stand-ins",
+        Assert.Contains("BattleTags and Battle.net account numbers in them, yours and other players’, are replaced with stand-ins",
             (string)model.GameLogsNote, StringComparison.Ordinal);
         Assert.Contains("an attached file stays available by its link", (string)model.GameLogsNote, StringComparison.Ordinal);
         List<(string Name, string Description, string Size)> before = Rows(model);

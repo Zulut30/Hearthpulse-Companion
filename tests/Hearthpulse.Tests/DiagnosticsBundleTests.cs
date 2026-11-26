@@ -1,8 +1,10 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
+using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Diagnostics;
 using Hearthpulse.Core.Power;
+using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Tests;
 
@@ -292,6 +294,9 @@ public sealed class DiagnosticsBundleTests : IDisposable
         "D 18:02:11.4402560 GameState.DebugPrintPower() -     Player EntityID=3 PlayerID=2 GameAccountId=[hi=144115198130930503 lo=52004477]",
         "D 18:02:11.4402560 GameState.DebugPrintPower() -         tag=CONTROLLER value=2",
         "D 18:02:11.4402560 GameState.DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+        "D 18:02:11.4402560 GameState.DebugPrintPower() -     Player EntityID=4 PlayerID=3 GameAccountId=[hi=0 lo=0]",
+        "D 18:02:11.4402560 GameState.DebugPrintPower() -         tag=CONTROLLER value=3",
+        "D 18:02:11.4402560 GameState.DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
         "D 18:02:11.4402560 PowerTaskList.DebugPrintPower() -         Player EntityID=2 PlayerID=1 GameAccountId=[hi=144115198130930503 lo=37660911]",
         "D 18:02:11.4402560 PowerTaskList.DebugPrintPower() -         Player EntityID=3 PlayerID=2 GameAccountId=[hi=144115198130930503 lo=52004477]",
         "D 18:02:11.4402560 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=20 CardID=HERO_09",
@@ -338,6 +343,8 @@ public sealed class DiagnosticsBundleTests : IDisposable
         Assert.Equal(2, Regex.Matches(power, Regex.Escape("GameAccountId=[hi=144115198130930503 lo=1]")).Count);
         Assert.Equal(2, Regex.Matches(power, Regex.Escape("GameAccountId=[hi=144115198130930503 lo=2]")).Count);
         Assert.EndsWith("value=DONE \r\n", power, StringComparison.Ordinal);
+        // No account (an AI or the Battlegrounds stand-in) stays no account: lo=0 is kept as it is (review Q7).
+        Assert.Contains("Player EntityID=4 PlayerID=3 GameAccountId=[hi=0 lo=0]\r\n", power, StringComparison.Ordinal);
 
         // The parser reads the same game: players, ids, regions, accounts present, the local player, the entities.
         var before = Parse(PowerLines);
@@ -349,8 +356,9 @@ public sealed class DiagnosticsBundleTests : IDisposable
             Assert.Equal(player.HasAccount, after.Players[id].HasAccount);
         }
 
-        Assert.Equal(["Player2#1002", "Player1#1001"], after.Players.OrderBy(p => p.Key).Select(p => p.Value.Name));
-        Assert.Equal([1UL, 2UL], after.Players.OrderBy(p => p.Key).Select(p => p.Value.AccountLo));
+        Assert.Equal(["Player2#1002", "Player1#1001", string.Empty], after.Players.OrderBy(p => p.Key).Select(p => p.Value.Name));
+        Assert.Equal([1UL, 2UL, 0UL], after.Players.OrderBy(p => p.Key).Select(p => p.Value.AccountLo));
+        Assert.False(after.Players[3].HasAccount);
         Assert.Equal(before.LocalPlayerId, after.LocalPlayerId);
         Assert.Equal(before.Entities.Count, after.Entities.Count);
     }
@@ -364,6 +372,161 @@ public sealed class DiagnosticsBundleTests : IDisposable
         }
 
         return parser.Game!;
+    }
+
+    /// <summary>
+    /// Battlegrounds and Duos as Power.log writes them (shapes of the owner's log of 2026-11-15 and a Duos log; names made
+    /// up): the stand-in opponent renamed to each combat's opponent with no "#", its PlayerName at the start, blocks, tag
+    /// changes and a source naming it, the teammate, a hero's name as an entity, a short name that is also part of other
+    /// words, a card in brackets, the game entity and an entity by number.
+    /// </summary>
+    private static readonly string[] BattlegroundsLines =
+    [
+        "D 20:36:50.0000000 GameState.DebugPrintPower() - CREATE_GAME",
+        "D 20:36:50.0000000 GameState.DebugPrintPower() -     Player EntityID=5 PlayerID=2 GameAccountId=[hi=144115198130930503 lo=37660911]",
+        "D 20:36:50.0000000 GameState.DebugPrintPower() -     Player EntityID=6 PlayerID=10 GameAccountId=[hi=0 lo=0]",
+        "D 20:36:50.0000000 GameState.DebugPrintGame() - PlayerID=2, PlayerName=Зулу#2345",
+        "D 20:36:50.0000000 GameState.DebugPrintGame() - PlayerID=10, PlayerName=Teammate",
+        "D 20:41:12.3000000 GameState.DebugPrintPower() -     TAG_CHANGE Entity=Somebody77 tag=BACON_CURRENT_COMBAT_PLAYER_ID value=7 ",
+        "D 20:41:12.3000000 PowerTaskList.DebugPrintPower() -     TAG_CHANGE Entity=Somebody77 tag=BACON_CURRENT_COMBAT_PLAYER_ID value=7 ",
+        "D 20:41:12.4000000 GameState.DebugPrintPower() - BLOCK_START BlockType=TRIGGER Entity=Somebody77 EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=-1 Target=0 SubOption=-1 TriggerKeyword=TAG_NOT_SET",
+        "D 20:41:12.5000000 GameState.DebugPrintPower() -     TAG_CHANGE Entity=Star tag=BACON_CURRENT_COMBAT_PLAYER_ID value=3 ",
+        "D 20:41:12.6000000 PowerSpellController [taskListId=2094].StartPowerSpell() - FAILED to attach task list to spell Bacon_MinionSwap",
+        "D 20:41:12.7000000 GameState.DebugPrintPower() -     TAG_CHANGE Entity=Ванесса ван Клиф tag=NUM_TURNS_IN_PLAY value=1 ",
+        "D 20:41:12.8000000 GameState.DebugPrintOptions() -     target 8 entity=[entityName=Таверна Боба id=69 zone=PLAY zonePos=0 cardId=TB_BaconShopBob player=10]",
+        "D 20:41:12.9000000 GameState.DebugPrintPower() -     TAG_CHANGE Entity=GameEntity tag=TURN value=3 ",
+        "D 20:41:12.9000000 GameState.DebugPrintPower() -     TAG_CHANGE Entity=6 tag=BACON_DUO_TEAMMATE_PLAYER_ID value=2 ",
+        "D 20:41:13.0000000 GameState.DebugPrintPower() -     TAG_CHANGE Entity=Somebody77 tag=PLAYSTATE value=LOST ",
+        "D 20:41:13.1000000 GameState.DebugPrintPower() -                 Source = Somebody77 ",
+        "D 20:41:13.2000000 GameState.DebugPrintEntityChoices() - id=4 Player=Teammate TaskList= ChoiceType=GENERAL CountMin=1 CountMax=1",
+    ];
+
+    /// <summary>The values where a line puts a player by name (the places the parser reads and a block's source).</summary>
+    private static IEnumerable<string> PlayerValues(IEnumerable<string> lines) => lines.SelectMany(line => PlayerPlace.Matches(line))
+        .Select(m => m.Groups["name"].Value.TrimEnd())
+        .Where(v => v.Length > 0 && v[0] != '[' && v != "GameEntity" && v != GameState.UnknownPlayerName && !v.All(char.IsAsciiDigit));
+
+    private static readonly Regex PlayerPlace = new(
+        @"(?:\bTAG_CHANGE Entity=|\bBLOCK_START BlockType=\w+ Entity=)(?<name>.+?)(?= tag=| EffectCardId=)|\bPlayerName=(?<name>[^\r\n]+)" +
+        @"|\bid=\d+ Player=(?<name>.+?)(?= TaskList=| EntitiesCount=)|\bSource = (?<name>[^\r\n]+)");
+
+    /// <summary>The game log as the archive writes it, through a session folder of this test's install.</summary>
+    private List<string> ThroughArchive(IEnumerable<string> lines)
+    {
+        FullDataFolder();
+        var session = Install();
+        Put("hs/Logs/Hearthstone_2026_11_25_18_02_11/Power.log", string.Join("\r\n", lines) + "\r\n");
+        var (_, files) = Archive(Bundle(new GameLogsLookup(true, session)), includeGameLogs: true);
+        return [.. files["game-logs/Power.log"].Split("\r\n", StringSplitOptions.RemoveEmptyEntries)];
+    }
+
+    [Fact]
+    public void Battlegrounds_and_duos_names_without_a_number_become_stand_ins_where_the_log_names_a_player()
+    {
+        FullDataFolder();
+        // The lobby player in Hearthpulse's own log, as a BattleTag: the same number as its bare form in the game's log.
+        Put("data/hearthpulse.log", "INFO Somebody77#4242 in the lobby\n");
+        var session = Install();
+        Put("hs/Logs/Hearthstone_2026_11_25_18_02_11/Power.log", string.Join("\r\n", BattlegroundsLines) + "\r\n");
+
+        var (_, files) = Archive(Bundle(new GameLogsLookup(true, session)), includeGameLogs: true);
+
+        var power = files["game-logs/Power.log"];
+        var lines = power.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+        string[] names = ["Somebody77", "Teammate", "Star", "Ванесса ван Клиф", "Зулу#2345"];
+        Assert.Equal(names.Order(), PlayerValues(BattlegroundsLines).Distinct().Order());
+        Assert.DoesNotContain(PlayerValues(lines), names.Contains);
+        Assert.Contains("INFO Player1#1001 in the lobby", files["hearthpulse.log"], StringComparison.Ordinal);
+        Assert.Contains("TAG_CHANGE Entity=Player1 tag=BACON_CURRENT_COMBAT_PLAYER_ID value=7 ", power, StringComparison.Ordinal);
+        Assert.Contains("BLOCK_START BlockType=TRIGGER Entity=Player1 EffectCardId=", power, StringComparison.Ordinal);
+        Assert.Contains("TAG_CHANGE Entity=Player1 tag=PLAYSTATE value=LOST ", power, StringComparison.Ordinal);
+        Assert.Contains("Source = Player1 \r\n", power, StringComparison.Ordinal);
+        Assert.Contains("PlayerName=Player2#1002", power, StringComparison.Ordinal);
+        Assert.Contains("PlayerName=Player3\r\n", power, StringComparison.Ordinal);
+        Assert.Contains("id=4 Player=Player3 TaskList=", power, StringComparison.Ordinal);
+        Assert.Contains("TAG_CHANGE Entity=Player4 tag=BACON_CURRENT_COMBAT_PLAYER_ID value=3 ", power, StringComparison.Ordinal);
+        Assert.Contains("TAG_CHANGE Entity=Player5 tag=NUM_TURNS_IN_PLAY", power, StringComparison.Ordinal);
+        // A short name is replaced only where the log names a player: other text, cards, the game entity and numbers stay.
+        Assert.Contains("[taskListId=2094].StartPowerSpell() - FAILED", power, StringComparison.Ordinal);
+        Assert.Contains("entity=[entityName=Таверна Боба id=69", power, StringComparison.Ordinal);
+        Assert.Contains("TAG_CHANGE Entity=GameEntity tag=TURN value=3 ", power, StringComparison.Ordinal);
+        Assert.Contains("TAG_CHANGE Entity=6 tag=BACON_DUO_TEAMMATE_PLAYER_ID value=2 ", power, StringComparison.Ordinal);
+        Assert.Contains("Player EntityID=6 PlayerID=10 GameAccountId=[hi=0 lo=0]\r\n", power, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_battlegrounds_game_replays_the_same_combats_opponents_and_places_with_stand_in_names()
+    {
+        var folder = Path.Combine(AppContext.BaseDirectory, "Fixtures", "BattlegroundsGame");
+        var original = BattlegroundsFixtureTests.Lines().ToList();
+        var names = PlayerValues(original).ToHashSet(StringComparer.Ordinal);
+        // The real game's forms: the player's BattleTag, the stand-in opponent's bare names, a hero's name as an entity.
+        Assert.Superset(new HashSet<string>(["Player#1000", "Innkeeper", "Opponent", "Ванесса ван Клиф"], StringComparer.Ordinal), names);
+
+        var scrubbed = ThroughArchive(original);
+
+        Assert.DoesNotContain(PlayerValues(scrubbed), names.Contains);
+        var text = string.Join("\n", scrubbed);
+        Assert.DoesNotContain("Opponent", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Innkeeper", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Player#1000", text, StringComparison.Ordinal);
+        CardDb cards;
+        using (var gz = new GZipStream(File.OpenRead(Path.Combine(folder, "cards.json.gz")), CompressionMode.Decompress))
+        {
+            cards = CardDb.Parse("ruRU", gz);
+        }
+
+        var before = BattlegroundsReplay.Run(original, new DateOnly(2026, 10, 23), cards);
+        var after = BattlegroundsReplay.Run(scrubbed, new DateOnly(2026, 10, 23), cards);
+
+        Assert.NotNull(after.Final);
+        Assert.NotEmpty(after.Final!.Combats);
+        Assert.Equal(7, after.Final.Opponents.Count);
+        Assert.Equal(Shape(before.Final), Shape(after.Final));
+        Assert.Equal(Shape(before.HeroPick), Shape(after.HeroPick));
+    }
+
+    [Fact]
+    public void A_duos_game_replays_the_same_with_its_teammate_and_the_opponents_as_stand_ins()
+    {
+        // The Duos golden log, its stand-in opponent named bare as the game names it before a combat.
+        var original = File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Replay", "Golden", "duos-partner.log"))
+            .Select(line => line.Replace("Rival#4321", "Rival", StringComparison.Ordinal)).ToList();
+        var names = PlayerValues(original).ToHashSet(StringComparer.Ordinal);
+        Assert.Superset(new HashSet<string>(["Me#1234", "Pal#5555", "Rival"], StringComparer.Ordinal), names);
+
+        var scrubbed = ThroughArchive(original);
+
+        Assert.DoesNotContain(PlayerValues(scrubbed), names.Contains);
+        var before = BattlegroundsReplay.Run(original, new DateOnly(2026, 11, 1), CardDb.Empty);
+        var after = BattlegroundsReplay.Run(scrubbed, new DateOnly(2026, 11, 1), CardDb.Empty);
+        Assert.NotNull(after.Final);
+        Assert.True(after.Final!.IsDuos);
+        Assert.Equal(Shape(before.Final), Shape(after.Final));
+    }
+
+    /// <summary>What a Battlegrounds view says about the game, without the names: turn, place, hero, combats, opponents.</summary>
+    private static string Shape(BattlegroundsView? view) => view is null ? "none" : string.Join(" | ",
+        $"turn {view.Turn}, place {view.Place}, hero {view.HeroCardId}, health {view.Health}, duos {view.IsDuos}, options {view.HeroOptions.Count}",
+        string.Join("; ", view.Combats.Select(c => $"{c.Turn}/{c.OpponentPlayerId}/{c.OpponentHeroCardId}/{c.Result}/{c.DamageTaken}/{c.DamageDealt}")),
+        string.Join("; ", view.Opponents.OrderBy(o => o.PlayerId)
+            .Select(o => $"{o.PlayerId}/{o.HeroCardId}/{o.Health}/{o.Place}/{o.Dead}/{o.LastBoard.Count}/{o.LastResult}")));
+
+    [Fact]
+    public void Achievements_log_names_the_account_by_a_stand_in_number()
+    {
+        var session = Install();
+        Put("hs/Logs/Hearthstone_2026_11_25_18_02_11/Achievements.log",
+            "D 18:10:00.0000000 OnAchieveNotification PlayerID=482913 ID=110 Complete=False New=False Remove=False Amount=1\r\n" +
+            "D 18:12:00.0000000 OnAchieveNotification PlayerID=482913 ID=218 Complete=False New=False Remove=False Amount=1\r\n");
+        FullDataFolder();
+
+        var (_, files) = Archive(Bundle(new GameLogsLookup(true, session)), includeGameLogs: true);
+
+        var achievements = files["game-logs/Achievements.log"];
+        Assert.DoesNotContain("482913", achievements, StringComparison.Ordinal);
+        Assert.Equal(2, Regex.Matches(achievements, Regex.Escape("OnAchieveNotification PlayerID=1 ID=")).Count);
+        Assert.Contains("ID=218 Complete=False New=False Remove=False Amount=1\r\n", achievements, StringComparison.Ordinal);
     }
 
     [Fact]
