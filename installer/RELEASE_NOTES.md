@@ -1,43 +1,42 @@
-## Hearthpulse 0.15.0
+## Hearthpulse 0.16.0
 
 ### What's new
-- **Safer updates.** A download installs only when it matches the checksum published with the release, and builds that carry the project's update key also check the release's signature. If an install fails, the app puts the old version back and tells you on the next start. Settings → About has **Check now** and **What's new**.
-- **Your collection and dust.** The app reads your collection and dust from the running game (it stays on your PC). Top decks show whether you can build each deck and how much dust is missing, with a "Can build" filter; your deck page lists the cards you lack.
-- **Replay library.** History keeps your games as replays in Recent, Saved and Imported tabs: star a game, share it, import one, or upload it to hearthpulse.net to share a link. Export any replay step as a picture.
-- **Move over from HDT or Firestone.** Bring your past games and decks from Hearthstone Deck Tracker or Firestone into History, My Stats and your deck library.
-- **New overlay panels.** The opponent's likely deck, a graveyard for both sides, how much damage each board can deal to the enemy hero, and related cards next to the card you hover. Unlock the panels to move them with the mouse during a game.
-- **Battlegrounds.** A clearer bar with turn, tavern tiers and fights, one-row combat odds with damage ranges, an opponent popup at the top, the Duos partner's board and the final board after the game. The tier tabs (heroes, comps, trinkets, cards) show the site's lists by MMR, for Solo and Duos.
-- **Arena and Brawl.** An Arena draft helper (beta, off by default) and rewards for each run; Arena and Underground Arena counted apart. A new Tavern Brawl page with the best classes of the week.
+- **Collection, Achievements and Recap.** New pages: set completion and dust, hero skins, card backs and coins; your Hearthstone achievements with points and the ones nearly done; a recap of your month or year. On Windows the app reads them from the running game, and they stay on your PC.
+- **More of Battlegrounds in the combat odds.** Spells, hero powers, trinkets, quests and rewards, buddies, Secrets, Timewarped minions and the anomalies that act in combat now play out in simulated fights, and Duos fights include your partner's board. Odds that rest on an estimate of something the game hides are marked with "≈".
+- **Your data.** Game statistics are on by default, and the in-app notice about them is gone: Settings → Data has a switch for each kind of sending and lists every field; turning game records off deletes what was sent. After a Battlegrounds game the journal now also holds its fights, used only to measure the simulator. New: "Read data from the game client" in Settings turns off every read of the game's memory. Privacy policy: hearthpulse.net/privacy
+- **Smaller updates.** The installed Windows app now updates from 0.15.0 by downloading only the files that changed.
+- **Smoother.** Pages and tabs cross-fade, a theme changes without the window blinking, and content stays in place while it loads.
 
 ### More
-- Meta and mulligan advice for your rank, not only Legend; the mulligan guide matches your exact decklist.
-- A card page in the main window: open any card from a list.
-- Your own Battlegrounds hero statistics on the Heroes tab, and History export to CSV.
-- A new look: a gold frame, a new logo, a theme gallery with live preview, more themes, accent, font and density settings, and settings search.
-- Session recap and deck pictures to post, YouTube timestamps, an OBS session window, streamer mode, and a Discord status (off by default).
-- Your account in one place: sign-in, your profile and what your plan includes.
-- Crash reports: off by default, sent only when you agree.
-- The app's logo carries a BETA mark: this is a beta version, please tell us about bugs.
+- The match page has "View in browser": it opens your game on hearthpulse.net and, when the game is not there yet, asks first and uploads it. A replay uploaded from the library opens its page too.
+- Cleaner screens: overlay panels fit the screen at a large overlay size, counters sit lower, under the opponent's panel, and empty tiers are gone from the tier lists.
+- Hearthpulse now comes with a full licence agreement (LICENSE.txt); the Windows setup asks you to accept it.
 
 ### Faster
-- Pages open faster and the app starts faster from a warm start; replay steps are 15–20 % quicker.
-- An option to reduce motion in the interface.
-- From 0.15.0 on, the Windows app can update by downloading only the files that changed.
+- The combat simulator runs fights on several threads and warms up when a Battlegrounds game starts.
+- The Arena, Tavern Brawl and Settings pages are built when you first open them; Settings shows its open tab first and builds the others in the background.
+- Themes apply faster, and card art already in memory is not decoded again.
 
 ### Fixes
-- Battlegrounds: fight results, odds and the final board show correctly in more cases.
-- Overlay panels keep their place at the screen edges and stay readable at low opacity.
-- Share pictures fill their space and long names no longer get cut.
-- Many smaller fixes in History, the replay player, settings and the card pool.
+- Tracking no longer mixes up you and your opponent when the opponent's Start of Game card is shown from the deck.
+- Battlegrounds: combat rules corrected from real fights.
+- Achievements: when the page cannot be put together, it shows an error with "Try again" instead of loading forever.
+- Replays: replay cards and the match header show the class hero and no format for Arena games; imported replays keep the order of Bob's offers.
+- Overlay: trinket badges show their update delay in full, and counter names wrap.
+- Windows app: the tray menu takes the theme's colours, and rounded shapes keep their corners at any size.
+- Names cut short in tier lists, and on the deck page of the macOS and Linux app, show in full in a tooltip; in a narrow window that app gives hero names two lines.
+- Many smaller layout fixes in both apps.
 
 ### Known issues
-- The first update that downloads only changed files is 0.15.0 → 0.16.0; updating to 0.15.0 uses the full setup.
-- The Windows setup is not code-signed yet, so Windows SmartScreen may warn when you download it by hand. Choose "More info" → "Run anyway".
+- The Windows setup and app have no Authenticode signature, so Windows SmartScreen may warn when you download the setup by hand. Choose "More info" → "Run anyway".
+- Only an update from 0.15.0 downloads just the changed files; an update from 0.14.0 or older uses the full setup.
 - macOS packages are not notarized: open the app with right-click → Open the first time.
 - Linux packages do not update themselves: download the new package and install it as before.
-- Release notes are in English only.
+- On macOS and Linux the app reads nothing from the game's memory: rating, collection, card backs, coins and achievements stay empty.
+- When a board has a card whose effect the simulator does not model yet, the odds are approximate and say how many effects were not simulated; odds marked "≈" rest on estimates.
+- The Arena draft helper is still a beta and off by default.
 
 ### Other
-- Data: Hearthpulse data, HearthstoneJSON (card data and art), Blizzard's public Battlegrounds leaderboard (opponents' MMR, off by default), bg.hs-manacost.ru (the Battlegrounds tier tabs), hs-manacost.ru (the Brawl article), icons from game-icons.net (CC BY 3.0). The update signature check is ported from RFC 8032. Full list in THIRD-PARTY-NOTICES.txt next to the app.
+- Data: Hearthpulse data, HearthstoneJSON (card data and art), hsbg.cards (Battlegrounds card details), Blizzard's public Battlegrounds leaderboard (opponents' MMR, off by default), bg.hs-manacost.ru (the Battlegrounds tier tabs), hs-manacost.ru (the Brawl article), icons from game-icons.net (CC BY 3.0). Keyboard and focus behaviours are ported from UI SDK (Apache 2.0) and the update signature check from RFC 8032. Every data source is named in the setup's notice (README.txt on macOS and Linux); fonts and third-party code are in THIRD-PARTY-NOTICES.txt next to the app.
 - Hearthpulse is proprietary software (All rights reserved).
 - Hearthpulse is not affiliated with or endorsed by Blizzard Entertainment. Hearthstone is a trademark of Blizzard Entertainment, Inc. Use it at your own risk.
