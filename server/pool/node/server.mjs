@@ -52,17 +52,22 @@ function takeLock(root) {
 
 /**
  * Starts a single-writer Linux/Windows Node service. Port 0 is supported for isolated loopback tests. `records` may
- * give tests their own record views and patches: {modules: {views, derivers}, patches, dir, log}.
+ * give tests their own record views and patches: {modules: {views, derivers}, patches, patchesFile, dir, log}.
  */
 export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, operatorToken = '',
   maxRequests = 4, archive: archiveOptions = {}, legacyEnv = {}, schedule = true, records: recordsOptions = {} } = {}) {
   if (!dataDir || !path.isAbsolute(dataDir) || !int(port, 0, 65535) || !int(maxRequests, 1, 32)) throw new Error('invalid_service_config');
   thresholds(); // An invalid ANALYTICS_MIN_* stops the start instead of failing every later rebuild silently.
-  // A malformed balance-patches.json stops the start too (the deploy's checks see it and roll back): windows read
-  // from a misread file would publish numbers under the wrong patch. A broken view or deriver only leaves itself out.
+  // A malformed balance-patches.json switches the record views off (one line records_patches_invalid): windows read
+  // from a misread file would publish numbers under the wrong patch. Everything else runs, the intake of records
+  // included; the pass, with no view, removes the rows they had published. A broken view or deriver only leaves itself out.
   const recordLog = recordsOptions.log ?? console.error;
-  const patches = recordsOptions.patches ?? readPatches();
-  const modules = recordsOptions.modules ?? await loadModules({ dir: recordsOptions.dir, log: recordLog });
+  let patches = recordsOptions.patches ?? null;
+  if (patches === null) {
+    try { patches = readPatches(recordsOptions.patchesFile); } catch (e) { reportFailure('records_patches_invalid', recordLog)(e); }
+  }
+  const modules = patches === null ? { views: [], derivers: [], rejected: [] }
+    : recordsOptions.modules ?? await loadModules({ dir: recordsOptions.dir, log: recordLog });
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   const unlock = takeLock(dataDir);
   const queue = new SerialQueue();

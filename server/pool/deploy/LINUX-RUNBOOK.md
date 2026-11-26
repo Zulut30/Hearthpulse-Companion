@@ -229,8 +229,10 @@ view needs no proxy change. The same TLS server serves the data API:
 **Balance patches.** `server/pool/data/balance-patches.json` is kept by hand ([data/README.md](../data/README.md)): after
 a Hearthstone patch that changes cards, append an entry with the patch's first build and day to each line it changed,
 run `node --test server/pool/test/records-periods.test.mjs`, commit and deploy the pool. A forgotten entry merges two
-patches in the numbers; it is part of the deploy checklist after every patch. A malformed file stops the service at
-start (`startup_failed`): the deploy checks catch it, roll back and fix the file.
+patches in the numbers; it is part of the deploy checklist after every patch. A malformed file switches the views off
+and nothing else: one journal line `records_patches_invalid` at start, every `/v2/analytics/records/<view>` answers
+404 `unknown_view`, the next pass removes the published view rows, and the service runs on, the intake of records
+included. Fix the file and deploy again; the views rebuild within a minute of the restart.
 
 **Log codes** (one JSON line each, in the journal; codes, keys and counts only, never a record or an id):
 
@@ -240,5 +242,6 @@ start (`startup_failed`): the deploy checks catch it, roll back and fix the file
 | `records_view_failed` | one view threw (`view`, `stage`: start, add, finish, slice) or would have published an install id or a record id (`stage: install_id`, `record_id`) | that view keeps its previous row (or none); the others publish; retried by the next pass due anyway (new records 30 minutes after the last pass, a new day or version), so a broken view shows once in 30 minutes, not every minute |
 | `records_derive_failed` | a deriver threw on `records` records of the pass (`deriver`) | those records lack its fields in this pass; a code bug |
 | `records_module_rejected` | at start, a module under `node/records/derive` or `views` did not load or broke the contract (`module`, `reason`) | that module is left out until a fixed deploy |
+| `records_patches_invalid` | at start, `server/pool/data/balance-patches.json` is missing or malformed (`cause: invalid_balance_patches`) | every view is off until a deploy with a fixed file; the rest of the service runs |
 
 A code that repeats every minute is a stuck step, as for the upkeep codes above.

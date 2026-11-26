@@ -2,8 +2,11 @@
 // before and after a pass, the refusals, the routes that were there before, the minute's upkeep, /healthz, and the
 // nginx include that opens the route.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
+import { startPool } from '../node/server.mjs';
 import { DAY, ID, setup } from './capture-fixture.mjs';
 import { traceView, winrateView } from './records-kit.mjs';
 
@@ -96,6 +99,43 @@ test('AC6 on the service: the minute upkeep that deletes nothing keeps the views
   assert.equal((await f.pool.refreshRecords()).built, true, 'a withdrawn view rebuilds on the next pass');
   const rebuilt = await (await get(f.pool, '/v2/analytics/records/test-winrate')).json();
   assert.deepEqual([rebuilt.data.rows[0].games, rebuilt.data.rows[0].installs], [10, 5]);
+});
+
+test('N5: a malformed balance-patches.json switches the views off with its own line; the service starts and takes records', async t => {
+  const f = await setup(t, { records: RECORDS });
+  await seed(f.pool);
+  await f.pool.refreshRecords();
+  assert.equal((await (await get(f.pool, '/v2/analytics/records/test-winrate')).json()).available, true);
+  await f.pool.close();
+
+  // The next deploy ships a file cut short: the service starts, says why in one line, and keeps its other work.
+  const dir = mkdtempSync(path.join(tmpdir(), 'hp-records-patches-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const patchesFile = path.join(dir, 'balance-patches.json');
+  writeFileSync(patchesFile, '{ "v": 1, "lines": { "constructed": [ { "id": "b1", "fromBuild": ');
+  const lines = [];
+  const pool = await startPool({ dataDir: f.dataDir, port: 0, schedule: false, archive: { minFreeBytes: 0 },
+    records: { modules: RECORDS.modules, patchesFile, log: line => lines.push(JSON.parse(line)) } });
+  // Closed here, before the fixture removes the data folder it holds.
+  try {
+    assert.deepEqual(lines, [{ ok: false, error: 'records_patches_invalid', cause: 'invalid_balance_patches' }], 'a code, nothing of the file');
+    assert.deepEqual(pool.recordModules.views, [], 'no view loads');
+
+    const stored = await post(pool, '/v1/events', { v: 1, iid: iid(20), games: [game(20), game(21)] });
+    assert.deepEqual([stored.status, await stored.json()], [200, { ok: true, stored: 2 }], 'the intake works');
+    assert.equal((await (await get(pool, '/v1/events/summary')).json()).games, 14);
+    assert.deepEqual(await pool.refreshRecords(), { built: true, views: 0, failed: [], records: 0 }, 'the pass reads nothing');
+    for (const view of ['test-winrate', 'test-trace']) {
+      const off = await get(pool, `/v2/analytics/records/${view}`);
+      assert.deepEqual([off.status, await off.json()], [404, { ok: false, error: 'unknown_view' }], view);
+    }
+    assert.equal(pool.store.sqlite.prepare("SELECT COUNT(*) AS n FROM snap WHERE mode LIKE 'records:%'").get().n, 0,
+      'the rows published under the old file are gone');
+    const health = await (await get(pool, '/healthz')).json();
+    assert.deepEqual({ ...health.records, built: typeof health.records.built }, { built: 'number', views: 0, published: 0, withdrawn: 0, failed: 0 });
+  } finally {
+    await pool.close();
+  }
 });
 
 test('the shipped service loads the views of this checkout and answers an unknown view with the service own 404', async t => {

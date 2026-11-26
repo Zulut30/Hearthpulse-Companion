@@ -220,6 +220,9 @@ refuses an `arena_run`, so the pool ships before an app that sends one).
   the catalogue check there. The check runs in CI (`records-framework.test.mjs`, "the views in this checkout agree").
   In a full checkout an unreadable catalogue is one line `records_catalog_unreadable` and the views load unchecked:
   a docs file never stops the service.
+- A missing or malformed `data/balance-patches.json` switches every view off (one line `records_patches_invalid` at
+  start; the route answers 404 `unknown_view` and the pass removes the published rows); the service and the intake
+  of records run on.
 - nginx: one prefix `location ^~ /stats/v2/analytics/` (GET only, zone `hearthpulse_stats_read`) serves every view
   ([LINUX-RUNBOOK](../server/pool/deploy/LINUX-RUNBOOK.md), "Record views"). Until the first view is merged the route
   has no view: `GET /stats/v2/analytics/records/<anything>` answers the service's 404 `{"ok":false,"error":"unknown_view"}`.

@@ -28,9 +28,9 @@ allowed in advance for this program (TASK-2026-11-26-pro-collection, "Депло
 - The views show the newest patch (whole, last 7 days, last 30 days) and the previous one (whole). A forgotten entry
   merges two patches; an entry at the wrong build splits one. Both only move numbers between windows; nothing is lost.
 - How to add one: append the entry to each line whose cards changed, keep every list in build order (the service
-  refuses a later build with an earlier day, a repeated id or build, or an unknown line, and does not start),
-  run `node --test server/pool/test/records-periods.test.mjs`, commit, deploy the pool. The views rebuild within a
-  minute of the restart (the file is part of their signature).
+  refuses a later build with an earlier day, a repeated id or build, or an unknown line, and then runs with every view
+  switched off: `records_patches_invalid` in the journal), run `node --test server/pool/test/records-periods.test.mjs`,
+  commit, deploy the pool. The views rebuild within a minute of the restart (the file is part of their signature).
 - Find the build: HearthstoneJSON lists the builds (`https://api.hearthstonejson.com/v1/`; the newest folder is the
   newest build, the `Last-Modified` of its `enUS/cards.json` is near its release), or a fresh `Power.log`.
 - The first entry (2026-11-26) is build 256589, HearthstoneJSON's newest on that day, released 2026-11-03 (day 20760),
