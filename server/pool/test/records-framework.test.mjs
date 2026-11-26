@@ -74,6 +74,17 @@ test('the numbers of a pass: thresholds per number, mean and placement intervals
   assert.deepEqual(ranked.map(x => x.v), [5, 1, 9], 'an unrankable row never sorts above a rankable one');
 });
 
+test('Q1: a mean and a placement need 5 installations behind them, and 10 observations for a value', () => {
+  const s = createStats({ minInstalls: 5, minGames: 10 });
+  assert.equal(s.mean(Array(10).fill(3), 4), null, 'four installs: no mean, not even its count');
+  assert.equal(s.mean(Array(10).fill(3), new Set(['a', 'b', 'c', 'd'])), null);
+  assert.equal(s.placement(Array(10).fill(4), 4), null, 'four installs: no placement, not even its count');
+  assert.deepEqual(s.mean(Array(9).fill(3), 5), { n: 9, mean: null, low: null, high: null, rankable: false }, 'nine values: the count only');
+  assert.deepEqual(s.mean(Array(10).fill(3), 5), { n: 10, mean: 3, low: 3, high: 3, rankable: false }, 'ten values: the mean');
+  assert.deepEqual(s.placement(Array(9).fill(4), 5), { n: 9, mean: null, low: null, high: null, dist: null, rankable: false }, 'nine places: no distribution');
+  assert.deepEqual(s.placement(Array(10).fill(4), 5), { n: 10, mean: 4, low: 4, high: 4, dist: [0, 0, 0, 10, 0, 0, 0, 0], rankable: true });
+});
+
 test('AC6: a forget withdraws every view in its own batch; the next pass has lost that install; a clean-up that deletes nothing withdraws nothing', async () => {
   const kit = recordsKit({ views: [winrateView(), traceView()] });
   spread(kit, { cls: 'MAGE', games: 12, installs: 6, wins: 8, first: 1 });
@@ -116,6 +127,17 @@ test('AC6: the clean-up that deletes records older than 180 days withdraws the v
   assert.equal(kit.db.prepare('SELECT COUNT(*) AS n FROM e').get().n, 1);
   assert.equal(kit.refresh().built, true);
   assert.equal(kit.answer('test-trace').available, true);
+});
+
+test('Q4: a record exactly 180 days old is kept, and the clean-up that keeps it withdraws nothing', async () => {
+  const kit = recordsKit({ views: [traceView()] });
+  kit.add(1, ranked({ day: TODAY - 10 }));
+  kit.add(2, ranked({ day: TODAY - 180 }));
+  assert.equal(kit.refresh().built, true);
+  await kit.prune();
+  assert.equal(kit.db.prepare('SELECT COUNT(*) AS n FROM e').get().n, 2, 'T-180 is within the 180 days');
+  assert.equal(kit.answer('test-trace').available, true, 'nothing deleted, nothing withdrawn');
+  assert.equal(kit.refresh().built, false, 'and no pass is due');
 });
 
 test('a pass is due only when something changed: new records wait 30 minutes, a version or the patches rebuild at once', () => {

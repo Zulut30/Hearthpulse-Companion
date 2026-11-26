@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { checkPatches, patchOf, readPatches, windowsOf } from '../node/records/periods.mjs';
 import { coinOf, mmrOf, ranksOf } from '../node/records/buckets.mjs';
+import { validateEvent } from '../src/events.js';
 import { DAY, NO_PATCHES, TODAY, battlegrounds, ranked, recordsKit, traceView } from './records-kit.mjs';
 
 const T = TODAY;
@@ -140,4 +141,13 @@ test('rank buckets, MMR ranges and the coin of a record', () => {
   assert.deepEqual(coinOf({ first: true }), ['any', 'first']);
   assert.deepEqual(coinOf({ first: false }), ['any', 'coin']);
   assert.deepEqual(coinOf({}), ['any']);
+});
+
+test('Q3: a stored rating of 8000 is in 8000+, 7500 in 6000-7999', () => {
+  // A record holds its rating rounded down to 500 (validateEvent), so 7500 and 8000 are the real values at the edge.
+  const stored = mmr => JSON.parse(validateEvent(battlegrounds({ mmr }), TODAY).body);
+  assert.deepEqual(mmrOf('bg', stored(7500)), ['all', '6000-7999']);
+  assert.deepEqual(mmrOf('bg', stored(8000)), ['all', '8000+']);
+  assert.deepEqual(mmrOf('duos', stored(10_000)), ['all', '8000+']);
+  assert.deepEqual(mmrOf('bg', stored(8250)), ['all'], 'not a multiple of 500: the record keeps no rating');
 });
