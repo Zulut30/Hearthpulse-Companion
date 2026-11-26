@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "lines": {
+    "constructed": [
+      { "id": "b256589", "fromBuild": 256589, "fromDay": 20760 }
+    ],
+    "battlegrounds": [
+      { "id": "b256589", "fromBuild": 256589, "fromDay": 20760 }
+    ],
+    "arena": [
+      { "id": "b256589", "fromBuild": 256589, "fromDay": 20760 }
+    ]
+  }
+}

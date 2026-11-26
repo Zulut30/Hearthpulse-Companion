@@ -9,6 +9,9 @@
 // installs or more. The same build makes the opening-hand pair table (/v1/events/mulligan-pairs, metric
 // mulligan.pair_winrate of docs/analytics-metrics.md). Records are pseudonymous personal data (ADR 0011): one install's
 // records are never published, and a forget or a clean-up withdraws both published views with the records.
+// A finished Arena run is one record of its own (mode "arena_run", contract K1 of TASK-2026-11-26-pro-collection). The
+// Node service also builds the views of node/records from the records (docs/analytics-records.md): a deletion
+// withdraws them in its batch too, but only when it deletes a record.
 
 const CARD = /^[A-Za-z0-9_]{3,64}$/;
 const TRIBE = /^[A-Z0-9_]{2,24}$/;
@@ -16,7 +19,11 @@ const HEX32 = /^[0-9a-f]{32}$/;
 const CLASS = /^[A-Z]{4,14}$/;
 const DECK = /^[A-Za-z0-9+/=]{8,200}$/;
 const ARCHETYPE = /^[\p{L}\p{N}' .&-]{2,48}$/u;
-const MODES = new Set(["ranked", "casual", "arena", "brawl", "bg", "duos"]);
+const MODES = new Set(["ranked", "casual", "arena", "brawl", "bg", "duos", "arena_run"]);
+// The game's build (GameState.BuildNumber): it places a record in a balance patch (server/pool/data).
+const MAX_BUILD = 99_999_999;
+// The loss limit of each kind of Arena: a run is over at 12 wins or at its loss limit, and only then sent.
+const RUN_LOSSES = new Map([["arena", 3], ["underground", 5]]);
 const FORMATS = new Set(["standard", "wild", "classic", "twist"]);
 const RANKS = new Set(["bronze", "silver", "gold", "platinum", "diamond", "legend"]);
 const RESULTS = new Set(["W", "L", "T"]);
@@ -45,6 +52,12 @@ const MAX_PAIRS = 200;
 const PAIR_FORMATS = new Set(["standard", "wild"]);
 // Every published view built from the records: withdrawn together whenever records are deleted.
 const WITHDRAW = "DELETE FROM snap WHERE mode IN ('events', 'mull-pairs')";
+// The views of the Node service's record pass are `snap` rows with this prefix (node/records/index.mjs; none in D1).
+// A deletion empties them, so they answer "rebuilding" until the next pass, in the batch that deletes the records and
+// only when it deletes one: the minute's clean-up that finds nothing old leaves them published. The condition is read
+// before the delete, in the same batch.
+export const RECORD_VIEWS = "records:";
+const WITHDRAW_RECORDS = `UPDATE snap SET body = '' WHERE mode LIKE '${RECORD_VIEWS}%' AND EXISTS (SELECT 1 FROM e WHERE `;
 // The deletion fence. D1 gives a build no transaction across its reads, so a forget can land between the moment a
 // build read the records and the moment it publishes. Row 'events-rev' of `snap` counts deletions (in last_row): every
 // batch that deletes records raises it, a build notes it before its first read, and PUBLISH writes only while it is
@@ -98,6 +111,8 @@ function battlegrounds(b) {
   if (int(b.mmr, 0, 30_000) && b.mmr % 500 === 0) out.mmr = Math.min(b.mmr, MAX_MMR);
   if (card(b.anomaly)) out.anomaly = b.anomaly;
   if (Array.isArray(b.tribes) && b.tribes.length <= 8 && b.tribes.every((t) => typeof t === "string" && TRIBE.test(t))) out.tribes = [...new Set(b.tribes)];
+  // The main tribe of the final board (PoolGame.MainTribe): a tribe or MIXED.
+  if (typeof b.comp === "string" && TRIBE.test(b.comp)) out.comp = b.comp;
   if (int(b.tier, 1, 7)) out.tier = b.tier;
   if (int(b.triples, 0, 60)) out.triples = b.triples;
   const tierups = rows(b.tierups, 8, (r) => turn(r[0]) && int(r[1], 2, 7), (r) => [r[0], r[1]]);
@@ -125,15 +140,41 @@ function battlegrounds(b) {
   return out;
 }
 
+/** The fields every record may carry next to its own: the app version and the game's build. */
+function common(g, out) {
+  if (typeof g.app === "string" && /^\d{1,3}\.\d{1,3}\.\d{1,4}$/.test(g.app)) out.app = g.app;
+  if (int(g.build, 1, MAX_BUILD)) out.build = g.build;
+}
+
+/**
+ * A finished Arena run (contract K1): {id, day, mode: "arena_run", app?, build?, run: {kind, cls, wins, losses, deck?}},
+ * no result of its own. A run that is not over (fewer than 12 wins and fewer losses than its limit), or that claims
+ * both ends at once, is not a run summary: null. Stored with no format.
+ */
+function arenaRun(g, day) {
+  const r = g.run;
+  if (!r || typeof r !== "object" || Array.isArray(r)) return null;
+  const limit = RUN_LOSSES.get(r.kind);
+  if (!limit || typeof r.cls !== "string" || !CLASS.test(r.cls) || !int(r.wins, 0, 12) || !int(r.losses, 0, limit)) return null;
+  if ((r.wins === 12) === (r.losses === limit)) return null;
+  const out = { id: g.id, day, mode: "arena_run" };
+  common(g, out);
+  out.run = { kind: r.kind, cls: r.cls, wins: r.wins, losses: r.losses };
+  if (typeof r.deck === "string" && DECK.test(r.deck)) out.run.deck = r.deck;
+  return { id: g.id, day, mode: "arena_run", fmt: null, body: JSON.stringify(out) };
+}
+
 /**
  * The record as stored ({id, day, mode, fmt, body}), or null when a core field is missing or out of range, or the
  * record is too big. Bad optional parts are dropped; unknown fields never reach the database.
  */
 export function validateEvent(g, today) {
   if (!g || typeof g !== "object" || Array.isArray(g)) return null;
-  if (typeof g.id !== "string" || !HEX32.test(g.id) || !MODES.has(g.mode) || !RESULTS.has(g.res)) return null;
+  if (typeof g.id !== "string" || !HEX32.test(g.id) || !MODES.has(g.mode)) return null;
   const day = g.day ?? today;
   if (!int(day, today - 400, today + 1)) return null;
+  if (g.mode === "arena_run") return arenaRun(g, day);
+  if (!RESULTS.has(g.res)) return null;
   if (g.fmt !== undefined && g.fmt !== null && !FORMATS.has(g.fmt)) return null;
   if (g.turns !== undefined && !int(g.turns, 0, MAX.turns)) return null;
   if (g.secs !== undefined && !int(g.secs, 0, 6 * 3600)) return null;
@@ -143,7 +184,7 @@ export function validateEvent(g, today) {
   if (g.fmt) out.fmt = g.fmt;
   if (g.turns !== undefined) out.turns = g.turns;
   if (g.secs !== undefined) out.secs = g.secs;
-  if (typeof g.app === "string" && /^\d{1,3}\.\d{1,3}\.\d{1,4}$/.test(g.app)) out.app = g.app;
+  common(g, out);
 
   if (bgMode) {
     const b = battlegrounds(g.bg);
@@ -151,6 +192,8 @@ export function validateEvent(g, today) {
     out.bg = b;
   } else {
     if (RANKS.has(g.rank)) out.rank = g.rank;
+    // Diamond 4 to 1 (star level 47 to 50) of a Ranked game: the "d4-1" rank bucket.
+    if (g.mode === "ranked" && out.rank === "diamond" && g.band === "d4-1") out.band = g.band;
     for (const key of ["cls", "ocls"]) if (typeof g[key] === "string" && CLASS.test(g[key])) out[key] = g[key];
     if (card(g.hero)) out.hero = g.hero;
     if (typeof g.deck === "string" && DECK.test(g.deck)) out.deck = g.deck;
@@ -202,7 +245,8 @@ export async function forgetEvents(body, env, reply) {
   if (typeof body?.iid !== "string" || !HEX32.test(body.iid)) return reply({ error: "send {iid}" }, 400);
   // One batch (a transaction in D1 and in the Node service): the records and every view built from them go together,
   // and the fence rises with them, so a build that read these records before the delete cannot publish them after it.
-  const [result] = await env.DB.batch([
+  const [, result] = await env.DB.batch([
+    env.DB.prepare(WITHDRAW_RECORDS + "iid = ?1)").bind(body.iid),
     env.DB.prepare("DELETE FROM e WHERE iid = ?1").bind(body.iid),
     env.DB.prepare(WITHDRAW),
     env.DB.prepare(DELETED).bind(Date.now()),
@@ -213,6 +257,7 @@ export async function forgetEvents(body, env, reply) {
 /** Deletes records older than KEEP_DAYS and the events' old daily counters. */
 export async function pruneEvents(env, today = Math.floor(Date.now() / DAY)) {
   await env.DB.batch([
+    env.DB.prepare(WITHDRAW_RECORDS + "day < ?1)").bind(today - KEEP_DAYS),
     env.DB.prepare("DELETE FROM e WHERE day < ?1").bind(today - KEEP_DAYS),
     env.DB.prepare("DELETE FROM equota WHERE day < ?1").bind(today - 7),
     env.DB.prepare(WITHDRAW),
