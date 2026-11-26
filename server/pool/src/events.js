@@ -305,9 +305,13 @@ async function buildOnce(env, force) {
      WHERE e.day >= ?1 AND json_extract(c.value, '$[1]') IN ('discover', 'adapt', 'chooseone', 'dredge')
      GROUP BY kind, card HAVING COUNT(DISTINCT e.id) >= ?2 AND COUNT(DISTINCT e.iid) >= ?4 ORDER BY picked DESC, offered DESC LIMIT ?3`)
     .bind(since, MIN_CELL, TOP, MIN_PLAYERS).all()).results;
+  // Copies count one by one (the app sends one entry per copy, validateEvent keeps duplicates): the i-th offered copy
+  // of a card is kept when the hand kept at least i copies of it. A game so keeps min(offered, kept) copies, and a
+  // kept list longer than the offer adds nothing. The floor still counts games and installs, not copies.
   const mulligan = (await env.DB.prepare(
     `SELECT o.value AS card, COUNT(*) AS offered,
-            SUM(EXISTS (SELECT 1 FROM json_each(e.body, '$.mull.k') k WHERE k.value = o.value)) AS kept
+            SUM((SELECT COUNT(*) FROM json_each(e.body, '$.mull.o') p WHERE p.value = o.value AND p.key <= o.key)
+             <= (SELECT COUNT(*) FROM json_each(e.body, '$.mull.k') k WHERE k.value = o.value)) AS kept
      FROM e, json_each(e.body, '$.mull.o') o
      WHERE e.day >= ?1 GROUP BY card HAVING COUNT(DISTINCT e.id) >= ?2 AND COUNT(DISTINCT e.iid) >= ?4 ORDER BY offered DESC LIMIT ?3`)
     .bind(since, MIN_CELL, TOP, MIN_PLAYERS).all()).results;

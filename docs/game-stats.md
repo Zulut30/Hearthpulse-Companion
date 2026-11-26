@@ -188,7 +188,9 @@ to production when `PoolEndpoint` is removed. Each queue therefore belongs to on
 - `POST /v1/events/forget` `{"iid":"…"}` → `{"ok":true,"deleted":n}`.
 - `GET /v1/events/summary` → `{window, updated, games, days:[{day, mode, fmt, games}], discover:[{kind, card, offered,
   picked, rate}], mulligan:[{card, offered, kept, rate}]}` over the last 30 days, each cell from 10 games and 5
-  installs or more;
+  installs or more. A mulligan row's `offered` and `kept` count copies: two copies in one opening hand are two offers,
+  and a game counts at most as many kept copies as it was offered (min of the two), so a longer kept list adds
+  nothing; the floor counts games, not copies;
   rebuilt by the 6-hourly cron job when new records came in (the Node service builds it on a read), never cached
   (`no-store`): a forget must not leave totals behind.
 - `GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>` → `{v, metric, rules, fmt, cls, window, updated,
