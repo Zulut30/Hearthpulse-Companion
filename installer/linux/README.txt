@@ -36,9 +36,9 @@ the cards you are offered.
 Community stats: Hearthpulse data (api.kolodahearthstone.com; the Battlegrounds tier tabs read the site's open
 statistics service, bg.hs-manacost.ru: that server sees your IP address and the time of the request, and gets no
 account data, no cookie and nothing about your games). Russian archetype names: the Hearthpulse archetype
-dictionary (api.blizzcore.ru). Card data and art: HearthstoneJSON. Battlegrounds card details (tavern tiers, text,
-the current pool): hsbg.cards. The Brawl page's article: hs-manacost.ru (its "Потасовка" posts and cover pictures,
-opened in the browser).
+dictionary (api.blizzcore.ru). Card data and art: HearthstoneJSON. Battlegrounds card details and pictures
+HearthstoneJSON lacks: hsbg.cards. The Brawl page's article: hs-manacost.ru (its "Потасовка" posts and cover
+pictures, opened in the browser).
 Navigation icons from game-icons.net (CC BY 3.0, https://creativecommons.org/licenses/by/3.0/), drawn in gold:
 "house", "trophy-cup" and "present" by Delapouite; "beer-stein", "poker-hand", "vine-leaf", "crossed-swords",
 "fist", "hourglass", "open-book" and "cog" by Lorc. Fonts and libraries: THIRD-PARTY-NOTICES.txt.
@@ -49,7 +49,7 @@ GAME STATISTICS
   and shows no notice first. They go to Hearthpulse's statistics service
   (api.kolodahearthstone.com/stats). Each has its own switch in Settings >
   Data; once a switch is off, nothing more of its kind is sent. Privacy
-  policy: https://hearthpulse.net/privacy/
+  policy: https://hearthpulse.net/privacy/ (in Russian)
 - "Send my games to Hearthpulse statistics": compact game records and a
   sanitized journal of observed games and Arena draft choices: ordered
   visible offers and choices, played/drawn cards, buys, sells, shop

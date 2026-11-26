@@ -38,9 +38,10 @@ HOW IT WORKS
     draft helper (beta, off by default) and, while game statistics are on,
     for the journal of draft choices (see GAME STATISTICS);
   - to find these, the names and layout of the game's classes.
-- Turn off "Read data from the game client" in Settings to stop all of
-  these reads. Tracking from the log files keeps working; your rating,
-  collection, achievements and the other values above stay empty.
+- Turn off "Read data from the game client" in Settings > Data to stop all
+  of these reads. Tracking from the log files keeps working; the values
+  above are no longer read or updated, and what was read before stays on
+  this computer, shown as saved data.
 - It never changes the game, never sends input to it and never shows hidden
   information such as your opponent's hand or deck.
 - Hearthpulse is not affiliated with or endorsed by Blizzard Entertainment.
@@ -70,7 +71,7 @@ GAME STATISTICS
   and shows no notice first. They go to Hearthpulse's statistics service
   (api.kolodahearthstone.com/stats). Each has its own switch in Settings >
   Data; once a switch is off, nothing more of its kind is sent. Privacy
-  policy: https://hearthpulse.net/privacy/
+  policy: https://hearthpulse.net/privacy/ (in Russian)
 - "Send my games to Hearthpulse statistics": compact game records and a
   sanitized journal of observed games and Arena draft choices: ordered
   visible offers and choices, played/drawn cards, buys, sells, shop
@@ -156,8 +157,8 @@ DATA AND CREDITS
   about your games.
 - The Brawl page's article: hs-manacost.ru (its "Потасовка" posts and their
   cover pictures; the article opens in the browser).
-- Card data and art: HearthstoneJSON. Battlegrounds card details (tavern
-  tiers, text, the current pool): hsbg.cards. The mana gem picture is cut
+- Card data and art: HearthstoneJSON. Battlegrounds card details and
+  pictures HearthstoneJSON lacks: hsbg.cards. The mana gem picture is cut
   from a HearthstoneJSON card render; it is (c) Blizzard Entertainment, Inc.
 - Fonts: Montserrat (SIL Open Font License 1.1), Inter (SIL Open Font
   License 1.1), Material Design Icons (Pictogrammers, Apache 2.0).

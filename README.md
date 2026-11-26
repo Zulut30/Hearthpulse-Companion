@@ -125,15 +125,15 @@ release downloads only the changed files.
   leave it.
 - On Windows Hearthpulse reads the game's memory to get your rank and rating, collection, card backs, coins,
   achievements and lobby data. It only reads: nothing is written into the game. The "Read data from the game client"
-  switch in **Settings** turns these reads off; tracking from the logs keeps working.
+  switch in **Settings → Data** turns these reads off; tracking from the logs keeps working.
 - Game records go to Hearthpulse statistics by default, without your name, BattleTag or account, and so do shared
   games for the public stats pool. Each has its own switch in **Settings → Data** that lists every field it sends;
-  turning game records off also deletes the ones already sent.
+  turning game records off also asks the server to delete what was sent (Settings → Data shows when it is done).
 - When you sign in with a hearthpulse.net account, finished games go to your profile on the site. A switch in the
   **Settings → Hearthpulse account** turns this off.
 - Crash reports are off by default and are sent only when you agree.
 
-Details: [privacy policy](https://hearthpulse.net/privacy/), [docs/game-stats.md](docs/game-stats.md),
+Details: [privacy policy](https://hearthpulse.net/privacy/) (in Russian), [docs/game-stats.md](docs/game-stats.md),
 [docs/source-capture.md](docs/source-capture.md), [docs/profile-upload.md](docs/profile-upload.md),
 [docs/crash-reports.md](docs/crash-reports.md).
 
@@ -180,7 +180,7 @@ obligation. Portions are based on HeartLens by Dev-NotAqua and are used with the
 ## Credits
 
 - Card data and card art: [HearthstoneJSON](https://hearthstonejson.com/).
-- Battlegrounds tiers and card text: [hsbg.cards](https://hsbg.cards/).
+- Battlegrounds card details and pictures HearthstoneJSON lacks: [hsbg.cards](https://hsbg.cards/).
 - Meta, mulligan and Battlegrounds numbers: Hearthpulse data.
 - Icons: [game-icons.net](https://game-icons.net/) (CC BY 3.0) and Material Design Icons; fonts and other
   components are listed in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
