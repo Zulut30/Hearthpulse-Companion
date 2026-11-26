@@ -47,6 +47,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [profile-upload.md](profile-upload.md) | Finished games sent to the hearthpulse.net profile |
 | [usage-limits.md](usage-limits.md) | Daily free limits of our own analytics (stats pool in the BG overlay), soft mode |
 | [crash-reports.md](crash-reports.md) | Crash reports on the player's consent: what is sent, what is cut out, the queue |
+| [report-a-problem.md](report-a-problem.md) | "Report a problem": the diagnostics archive the player saves for a GitHub issue, what it holds and cuts, issue templates, SECURITY.md |
 | [game-stats.md](game-stats.md) | Game records of every mode for our own statistics: the record, the opt-out switches, queue, server, deletion |
 | [analytics-api.md](analytics-api.md) | Analytics from source v2: checked facts, idempotent and deletable contribution, snapshot, `/stats/v2/analytics/bg/heroes` |
 | [source-capture.md](source-capture.md) | Safe game sources, durable upload, server reprocessing and capture completeness |

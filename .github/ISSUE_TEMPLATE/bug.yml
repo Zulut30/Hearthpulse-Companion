@@ -1,0 +1,79 @@
+name: Bug / Ошибка
+description: Something in Hearthpulse doesn't work, shows nothing or crashes. / Что-то в Hearthpulse не работает, ничего не показывает или падает.
+labels: ["bug", "beta"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The fastest way to a fix is the diagnostics archive: **Settings → About → Report a problem → Save archive…**, then drag the `.zip` into the field below. It has no passwords, keys or tokens. Game logs go in only if you turn on "Attach game logs"; BattleTags and Battle.net account numbers in them are replaced with stand-ins. Anyone can read this issue, and an attached file stays available by its link. We use the archive only to look into this problem.
+
+        Быстрее всего поможет архив диагностики: **Настройки → О программе → Сообщить о проблеме → Сохранить архив…**, затем перетащите `.zip` в поле ниже. Паролей, ключей и токенов в нём нет. Логи игры попадают в архив, только если включить «Приложить логи игры»; BattleTag и номера аккаунтов Battle.net в них заменяются условными. Этот issue видят все, а приложенный файл остаётся доступен по ссылке. Архив используем только для разбора этой проблемы.
+
+        A security problem? Don't post it here: see [SECURITY.md](https://github.com/Zulut30/Hearthpulse-Companion/blob/main/SECURITY.md). / Уязвимость? Не пишите о ней здесь: см. SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: Hearthpulse version / Версия Hearthpulse
+      description: Settings → About, for example 0.16.0. / Настройки → О программе, например 0.16.0.
+      placeholder: "0.16.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Game mode / Режим игры
+      options:
+        - Standard or Wild / Стандартный или Вольный
+        - Twist or Classic / Твист или Классический
+        - Battlegrounds / Поля сражений
+        - Battlegrounds Duos / Поля сражений, дуэты
+        - Arena / Арена
+        - Tavern Brawl / Потасовка
+        - Outside a game (main window, settings) / Вне игры (главное окно, настройки)
+        - Other / Другое
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system / Операционная система
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Как повторить
+      placeholder: |
+        1. Start a Battlegrounds game / Начать игру в Полях сражений
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What you expected and what happened / Что ожидали и что произошло
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: How much does it get in the way? / Насколько мешает?
+      options:
+        - Crash, lost history or an update that won't install / Падение, потеря истории или обновление не ставится
+        - A feature doesn't work in one mode / Функция не работает в одном режиме
+        - Looks wrong, text, small things / Внешний вид, тексты, мелочи
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics archive / Архив диагностики
+      description: Drag hearthpulse-diagnostics-….zip here (GitHub takes up to 25 MB). / Перетащите сюда hearthpulse-diagnostics-….zip (GitHub принимает до 25 МБ).
+      placeholder: hearthpulse-diagnostics-2026-11-26-1530.zip
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or video / Скриншоты или видео

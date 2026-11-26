@@ -79,6 +79,11 @@ public partial class App
             await RenderShareAsync(folder);
         }
 
+        if (RenderOnly("report"))
+        {
+            await RenderReportProblemAsync(folder);
+        }
+
         if (RenderOnly("sharecards"))
         {
             await RenderShareCardsAsync(folder);

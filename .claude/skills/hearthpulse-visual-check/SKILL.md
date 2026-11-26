@@ -95,6 +95,10 @@ Collection page (`docs/collection-page.md`): each tab on the data copy's own `co
 `-readingoff`, `-nocards`). Frames of a player's own data go only to the task folder, never into the repository.
 `HEARTHPULSE_RENDER_ONLY=datahealth` renders `main-datahealth-settings` (Settings, Data with the "Data status" card) and
 `main-datahealth-arena` (the Arena page with the delay line) on the made-up summary of `Core/Api/DataHealthScene.cs`.
+`HEARTHPULSE_RENDER_ONLY=report` (`DevRender.ReportProblem.cs` / `OffscreenRenderer.ReportProblem.cs`) renders "Report a
+problem" (`docs/report-a-problem.md`): `main-settings-feedback` (Settings, About scrolled to the Feedback card) and the window
+on the data copy: `report-window`, `-logs` (only when the copy's Hearthstone has a log session), `-saved` (the archive goes
+to a temporary file, deleted after), `-error`.
 `HEARTHPULSE_RENDER_ONLY=library` (`DevRender.Library.cs` / `OffscreenRenderer.Library.cs`; writes to the history, so only
 with `HEARTHPULSE_DATA`) adds the made-up Arena runs and the baseline games and renders the replay library:
 `main-library`, `-onsite` (the first card with a file shown as uploaded, a made-up link), `-scrolled`, `-end`, `-1040`
