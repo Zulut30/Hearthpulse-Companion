@@ -133,7 +133,8 @@ public sealed partial class MainViewModel
 
             // Saved data is always named with its full date: it is "as of then".
             return new LibraryStatus(GlyphSaved,
-                Loc.F(!_achievementsReadable ? "Achievements.Status.SavedUnsupported" : HearthstoneRunning ? "Achievements.Status.SavedNotRead" : "Achievements.Status.Saved",
+                Loc.F(!_achievementsReadable ? "Achievements.Status.SavedUnsupported" : AchievementsReadOff ? "Achievements.Status.SavedOff"
+                    : HearthstoneRunning ? "Achievements.Status.SavedNotRead" : "Achievements.Status.Saved",
                     Loc.F("Collection.When.Date", read)),
                 Loc.T("Achievements.Mark.Saved"), Loc.T("Achievements.Mark.SavedTip"));
         }

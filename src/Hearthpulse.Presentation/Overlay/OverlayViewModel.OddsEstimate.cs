@@ -70,8 +70,11 @@ public sealed partial class OverlayViewModel
         SimInputs.TavernSpellBonus => Loc.T("Overlay.Odds.Estimated.TavernSpells"),
         SimInputs.TrinketValue => Loc.T("Overlay.Odds.Estimated.Trinket"),
         SimInputs.LobbyTribes => Loc.T("Overlay.Odds.Estimated.LobbyTribes"),
-        SimInputs.DuosOpponentTeammate => Loc.T("Overlay.Odds.Estimated.DuosOpponentTeammate"),
-        SimInputs.DuosPartnerBoard => Loc.T("Overlay.Odds.Estimated.DuosPartnerBoard"),
+        // A second board never seen is not in the odds at all: the line says so, not "last seen".
+        SimInputs.DuosOpponentTeammate => Loc.T(SimInputs.IsUnseenBoard(item)
+            ? "Overlay.Odds.Estimated.DuosOpponentTeammateUnseen" : "Overlay.Odds.Estimated.DuosOpponentTeammate"),
+        SimInputs.DuosPartnerBoard => Loc.T(SimInputs.IsUnseenBoard(item)
+            ? "Overlay.Odds.Estimated.DuosPartnerBoardUnseen" : "Overlay.Odds.Estimated.DuosPartnerBoard"),
         SimInputs.OpponentSecrets => Loc.T("Overlay.Odds.Estimated.OpponentSecrets"),
         SimInputs.ProgressLeft => Loc.T("Overlay.Odds.Estimated.ProgressLeft"),
         SimInputs.HeroPowerUsed => Loc.T("Overlay.Odds.Estimated.HeroPowerUsed"),

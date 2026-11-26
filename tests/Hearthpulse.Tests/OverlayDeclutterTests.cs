@@ -132,4 +132,24 @@ public sealed class OverlayDeclutterTests : IDisposable
         var row = new DeckRow("key", name, className, 3, "2–1", "67%", 0.67, "10 нояб.", null);
         Assert.Equal(caption, row.Caption);
     }
+
+    /// <summary>
+    /// O-20 with reading the client off (P5): the session panel's reason line takes the rating's place in both apps. A WPF
+    /// binding with a wrong path fails silently; this pins the path and the swap.
+    /// </summary>
+    [Theory]
+    [InlineData("src/Hearthpulse.App/Overlay/SessionPanel.xaml", "Visibility")]
+    [InlineData("src/Hearthpulse.UI/Overlay/SessionPanel.axaml", "IsVisible")]
+    public void The_session_panel_says_reading_is_off_in_place_of_the_rating(string file, string visibility)
+    {
+        var elements = System.Xml.Linq.XDocument.Load(Path.Combine(RepoFiles.Root, file)).Root!.Descendants().ToList();
+
+        var reason = Assert.Single(elements, e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Text") == "{Binding SessionOffReason}");
+        Assert.StartsWith("{Binding SessionOffReason", (string?)reason.Attribute(visibility), StringComparison.Ordinal);
+        var rating = Assert.Single(elements, e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Text") == "{Binding SessionRating}");
+        var group = rating.Parent!;
+        Assert.Equal("StackPanel", group.Name.LocalName);
+        Assert.Contains("SessionOffReason", (string?)group.Attribute(visibility), StringComparison.Ordinal);
+        Assert.EndsWith("ConverterParameter=!}", (string?)group.Attribute(visibility), StringComparison.Ordinal);
+    }
 }

@@ -54,7 +54,7 @@ public sealed partial class PowerParser
     {
         if (!PowerLine.TrySplit(line, out var time, out var methodRange, out var bodyRange))
         {
-            TrackCombatOnScreen(line);
+            ReadOtherLine(line);
             return;
         }
 
@@ -456,7 +456,7 @@ public sealed partial class PowerParser
         }
 
         _gameClock = (_date, _lastTime);
-        Game = new GameState { StartedAt = LastTimestamp, LastActivity = LastTimestamp };
+        Game = new GameState { StartedAt = LastTimestamp, LastActivity = LastTimestamp, IsSpectated = Spectating };
         foreach (var listener in _listeners) listener.OnGameStarted(Game);
     }
 

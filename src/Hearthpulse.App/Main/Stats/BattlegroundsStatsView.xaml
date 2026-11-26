@@ -14,19 +14,27 @@
         <ItemsControl ItemsSource="{Binding BgStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
 
         <!-- Rating over time beside where you finish; the places card keeps room for its Russian title at the minimum
-             window width (1040), the chart gives it up. Without a rating the places card takes the row. -->
+             window width (1040), the chart gives it up. Without a rating the places card takes the row, unless reading the game
+             client is off: then the rating card stays with its reason line (BgRatingShown). -->
         <Grid Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="*" MinWidth="300" />
             </Grid.ColumnDefinitions>
-            <Border Style="{StaticResource Card}" Visibility="{Binding BgHasRating, Converter={StaticResource Vis}}">
+            <Border Style="{StaticResource Card}" Visibility="{Binding BgRatingShown, Converter={StaticResource Vis}}">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
                     </Grid>
-                    <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}" />
+                    <!-- Reading the game client is off: the earlier games' rating stays under the one reason line, new games add none -->
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding RatingOffReason}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Visibility="{Binding BgRatingOffShown, Converter={StaticResource Vis}}" />
+                    <!-- No games in the period: one line instead of a tall empty chart, so the tier lists stay in view -->
+                    <ContentControl DockPanel.Dock="Top" Style="{DynamicResource EmptyState}" Tag="&#xF012A;" Content="{Binding BgRatingEmpty}"
+                                    Visibility="{Binding BgRatingChart, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}"
+                                      EmptyText="{Binding BgRatingEmpty}" Visibility="{Binding BgRatingChart, Converter={StaticResource Vis}}" />
                 </DockPanel>
             </Border>
             <Border>
@@ -34,7 +42,7 @@
                     <Style TargetType="Border" BasedOn="{StaticResource Card}">
                         <Setter Property="Grid.Column" Value="2" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding BgHasRating}" Value="False">
+                            <DataTrigger Binding="{Binding BgRatingShown}" Value="False">
                                 <Setter Property="Grid.Column" Value="0" />
                                 <Setter Property="Grid.ColumnSpan" Value="3" />
                             </DataTrigger>

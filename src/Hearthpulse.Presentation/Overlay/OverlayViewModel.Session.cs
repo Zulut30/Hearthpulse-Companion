@@ -9,7 +9,7 @@ namespace Hearthpulse.UI.Overlay;
 
 /// <summary>
 /// The "session" panel: "MMR 6,751 → 6,779 +28" and the places of the session's games, while the player picks a hero
-/// and only once a rating is known. "Now" is the same rating the Battlegrounds bar reads (<c>snapshot.Rating</c>), so
+/// and only once a rating is known, or with reading the client off, then with <see cref="SessionOffReason"/> instead. "Now" is the same rating the Battlegrounds bar reads (<c>snapshot.Rating</c>), so
 /// the two never disagree; the change is now minus the session's start. Duos has no session start of its own: its
 /// rating alone, without a change.
 /// </summary>
@@ -18,12 +18,19 @@ public sealed partial class OverlayViewModel
     private string _sessionDelta = string.Empty;
     private int _sessionDeltaValue;
     private bool _sessionRated;
+    private string _sessionOffReason = string.Empty;
 
     /// <summary>"+28" / "−12" since the session's start; empty without a start, at the start, and in Duos.</summary>
     public string SessionDelta { get => _sessionDelta; private set => Set(ref _sessionDelta, value); }
 
     /// <summary>The number behind <see cref="SessionDelta"/>, for its colour.</summary>
     public int SessionDeltaValue { get => _sessionDeltaValue; private set => Set(ref _sessionDeltaValue, value); }
+
+    /// <summary>
+    /// Reading the game client is off and no rating is known: the line in place of "MMR —" (no rating will come until it
+    /// is on again); empty otherwise.
+    /// </summary>
+    public string SessionOffReason { get => _sessionOffReason; private set => Set(ref _sessionOffReason, value); }
 
     private void UpdateSession(BattlegroundsView view, LiveSnapshot snapshot)
     {

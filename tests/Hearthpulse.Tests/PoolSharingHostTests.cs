@@ -12,8 +12,9 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// <see cref="PoolSharingHost"/>, what both apps send to the stats pool: on by default,
-/// nothing after the player turned it off, never before a live host started it, and the earlier games once. No
-/// network: a handler that records the requests.
+/// nothing after the player turned it off, never before a live host started it, and the earlier games once. A finished
+/// game goes through the queue of shared games: queued, then sent by a pass of its sender (<see cref="PoolOutbox"/>;
+/// the queue itself: <see cref="PoolOutboxTests"/>). No network: a handler that records the requests.
 /// </summary>
 public sealed class PoolSharingHostTests : IDisposable
 {
@@ -22,6 +23,7 @@ public sealed class PoolSharingHostTests : IDisposable
     private readonly HistoryStore _history;
     private readonly Recorder _pool = new();
     private readonly HttpClient _http;
+    private readonly List<PoolSharingHost> _hosts = [];
 
     public PoolSharingHostTests()
     {
@@ -32,6 +34,11 @@ public sealed class PoolSharingHostTests : IDisposable
 
     public void Dispose()
     {
+        foreach (var host in _hosts)
+        {
+            host.Dispose();
+        }
+
         _http.Dispose();
         TestDataFolder.TryDelete(_dir);
     }
@@ -42,13 +49,22 @@ public sealed class PoolSharingHostTests : IDisposable
 
     private PoolSharingHost Host(AppSettings settings, CardDb? cards = null, bool start = true)
     {
-        var host = new PoolSharingHost(settings, _http, _history, () => cards ?? CardDb.Empty) { Delay = _ => Task.CompletedTask };
+        var host = new PoolSharingHost(settings, _http, _history, () => cards ?? CardDb.Empty, Path.Combine(_dir, "pool-outbox")) { Delay = _ => Task.CompletedTask };
+        host.Outbox.Delay = TimeSpan.Zero;
+        _hosts.Add(host);
         if (start)
         {
             host.Start();
         }
 
         return host;
+    }
+
+    /// <summary>A finished game as the session hands it over: queued, then a pass of the sender (the started loop may run one too).</summary>
+    private static async Task Share(PoolSharingHost host, GameOutcome outcome)
+    {
+        await host.QueueAsync(outcome);
+        await host.Outbox.PassAsync(CancellationToken.None);
     }
 
     private static GameOutcome Battlegrounds(int? ratingAfter = null) =>
@@ -83,7 +99,7 @@ public sealed class PoolSharingHostTests : IDisposable
         var host = Host(settings);
         host.SettingsChanged += () => saves++;
 
-        await host.ShareAsync(Battlegrounds());
+        await Share(host, Battlegrounds());
 
         var request = Assert.Single(_pool.Requests);
         Assert.Equal((HttpMethod.Post, Endpoint + "/v1/games"), (request.Method, request.Url));
@@ -107,7 +123,7 @@ public sealed class PoolSharingHostTests : IDisposable
     {
         var host = Host(Noticed());
 
-        await host.ShareAsync(Constructed());
+        await Share(host, Constructed());
 
         var request = Assert.Single(_pool.Requests);
         Assert.Equal((HttpMethod.Post, Endpoint + "/v1/constructed"), (request.Method, request.Url));
@@ -126,8 +142,8 @@ public sealed class PoolSharingHostTests : IDisposable
         host.SettingsChanged += () => saves++;
         Assert.True(_history.Add(Earlier(0)));
 
-        await host.ShareAsync(Battlegrounds());
-        await host.ShareAsync(Constructed());
+        await Share(host, Battlegrounds());
+        await Share(host, Constructed());
         await host.ShareHistoryAsync();
 
         Assert.Empty(_pool.Requests);
@@ -153,7 +169,7 @@ public sealed class PoolSharingHostTests : IDisposable
         Assert.True(_history.Add(Earlier(0)));
         Assert.Null(settings.PoolSecret);
 
-        await host.ShareAsync(Battlegrounds());
+        await Share(host, Battlegrounds());
         await host.ShareHistoryAsync();
 
         Assert.Equal(shares ? 2 : 0, _pool.Requests.Count);
@@ -171,8 +187,8 @@ public sealed class PoolSharingHostTests : IDisposable
         var host = Host(settings, Cards());
         Assert.True(_history.Add(Earlier(0)));
 
-        await host.ShareAsync(Battlegrounds());
-        await host.ShareAsync(Constructed());
+        await Share(host, Battlegrounds());
+        await Share(host, Constructed());
         await host.ShareHistoryAsync();
 
         Assert.Empty(_pool.Requests);
@@ -184,13 +200,16 @@ public sealed class PoolSharingHostTests : IDisposable
     {
         var host = Host(Noticed());
 
-        await host.ShareAsync(Battlegrounds());
-        await host.ShareAsync(Battlegrounds(ratingAfter: 7050));
+        await Share(host, Battlegrounds());
+        await Share(host, Battlegrounds(ratingAfter: 7050));
 
         Assert.Single(_pool.Requests);
     }
 
-    /// <summary>An off-screen render builds the services and never starts the host.</summary>
+    /// <summary>
+    /// An off-screen render builds the services and never starts the host. A finished game is queued (a live host's
+    /// catch-up finds one before it starts) and waits there unsent; the queue's own test sends it after the start.
+    /// </summary>
     [Fact]
     public async Task Before_a_live_host_starts_it_nothing_is_sent()
     {
@@ -198,14 +217,13 @@ public sealed class PoolSharingHostTests : IDisposable
         var host = Host(settings, Cards(), start: false);
         Assert.True(_history.Add(Earlier(0)));
 
-        await host.ShareAsync(Battlegrounds());
-        await host.ShareAsync(Constructed());
-        host.OnGameFinished(Battlegrounds());
+        await Share(host, Battlegrounds());
+        await Share(host, Constructed());
         await host.ShareHistoryAsync();
 
         Assert.Empty(_pool.Requests);
-        Assert.Null(settings.PoolSecret);
         Assert.False(settings.PoolHistoryShared);
+        Assert.Equal(2, host.Outbox.Pending);
     }
 
     [Fact]
@@ -312,6 +330,24 @@ public sealed class PoolSharingHostTests : IDisposable
 
         Assert.Equal(2, _pool.Requests.Count);
         Assert.True(settings.PoolHistoryShared);
+    }
+
+    /// <summary>The Settings → Data switch as both hosts hand it over: off sends nothing, on again shares the earlier games.</summary>
+    [Fact]
+    public void Turning_the_switch_on_again_shares_the_earlier_games()
+    {
+        Assert.True(_history.Add(Earlier(0)));
+        var settings = Noticed(consent: false);
+        var host = Host(settings, Cards());
+
+        host.SharingChanged();
+        Assert.Empty(_pool.Requests);
+
+        settings.PoolConsent = true;
+        host.SharingChanged();
+
+        Assert.True(SpinWait.SpinUntil(() => settings.PoolHistoryShared, TimeSpan.FromSeconds(30)), "the earlier games were shared");
+        Assert.Equal(Endpoint + "/v1/games", Assert.Single(_pool.Requests).Url);
     }
 
     [Fact]

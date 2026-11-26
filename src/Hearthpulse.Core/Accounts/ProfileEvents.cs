@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Stats;
+using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.Accounts;
 
@@ -66,11 +67,12 @@ public static partial class ProfileEvents
 
     /// <summary>
     /// The event of one finished game, or null when it is not one the site keeps (Brawl, Practice, Classic, Twist...),
-    /// was left before its end, or lacks a required field. Arena games need their run: see <see cref="ForArena"/>.
+    /// is a Battlegrounds game outside public matchmaking (<see cref="GameRecords.IsPrivateBattlegrounds"/>), was left
+    /// before its end, or lacks a required field. Arena games need their run: see <see cref="ForArena"/>.
     /// </summary>
     public static ProfileEvent? ForGame(GameRecord game, Func<string, string>? baseHero = null)
     {
-        if (game.IsAbandoned || game.StartedAt.ToUniversalTime() < EarliestGame)
+        if (game.IsAbandoned || game.StartedAt.ToUniversalTime() < EarliestGame || GameRecords.IsPrivateBattlegrounds(game.GameType))
         {
             return null;
         }
@@ -86,12 +88,15 @@ public static partial class ProfileEvents
     /// <summary>
     /// The events of Arena games: one <c>arena_match</c> per game of <paramref name="only"/> (every game when null) and an
     /// <c>arena_run</c> with the score of each run those games belong to. Runs are split as My Stats splits them
-    /// (<see cref="ArenaStats.Runs"/>), so pass every Arena game of the history (or at least the recent ones).
+    /// (<see cref="ArenaStats.Runs"/>), so pass every Arena game of the history (or at least the recent ones). Games
+    /// brought over from another tracker are left out first: they stay on this PC (docs/migration.md), so they are no
+    /// match and no part of a run's score, and a run begun in HDT or Firestone starts on the site with its first game
+    /// recorded here.
     /// </summary>
     public static IReadOnlyList<ProfileEvent> ForArena(IEnumerable<GameRecord> arenaGames, ISet<string>? only = null)
     {
         var events = new List<ProfileEvent>();
-        foreach (var run in ArenaStats.Runs(arenaGames))
+        foreach (var run in ArenaStats.Runs(arenaGames.Where(g => !g.FromOtherTracker)))
         {
             var touched = false;
             var runId = RunId(run);
@@ -245,6 +250,12 @@ public static partial class ProfileEvents
         if (Text(game.DeckName) is { } deckName)
         {
             payload["deckName"] = deckName;
+        }
+
+        // The English HSGuru key the history saved, so the site can set the deck beside every player's games of it.
+        if (Text(game.DeckArchetype) is { } archetype)
+        {
+            payload["archetype"] = archetype;
         }
 
         if (Text(game.OpponentArchetype) is { } opponentArchetype)

@@ -16,13 +16,18 @@
         <StackPanel>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{i:Loc Overlay.Session.Title}" Style="{StaticResource OverlayHeaderNote}" VerticalAlignment="Center" Margin="0" />
-                <TextBlock Text="{i:Loc Overlay.Session.Mmr}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
-                           Margin="12,0,6,0" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding SessionRating}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Foreground="{StaticResource Text}"
-                           Typography.NumeralAlignment="Tabular" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding SessionDelta}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"
-                           Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}"
-                           Visibility="{Binding SessionDelta, Converter={StaticResource Vis}}" />
+                <!-- The rating; with reading the game client off and none known, one reason line in its place -->
+                <StackPanel Orientation="Horizontal" Visibility="{Binding SessionOffReason, Converter={StaticResource Vis}, ConverterParameter=!}">
+                    <TextBlock Text="{i:Loc Overlay.Session.Mmr}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                               Margin="12,0,6,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding SessionRating}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Foreground="{StaticResource Text}"
+                               Typography.NumeralAlignment="Tabular" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding SessionDelta}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"
+                               Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}"
+                               Visibility="{Binding SessionDelta, Converter={StaticResource Vis}}" />
+                </StackPanel>
+                <TextBlock Text="{Binding SessionOffReason}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="12,0,0,0"
+                           VerticalAlignment="Center" Visibility="{Binding SessionOffReason, Converter={StaticResource Vis}}" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding SessionPlaces, Converter={StaticResource Vis}}">
                 <TextBlock Text="{i:Loc Overlay.Session.Places}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,0,8,0"

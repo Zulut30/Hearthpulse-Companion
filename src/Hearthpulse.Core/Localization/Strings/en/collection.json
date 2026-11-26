@@ -32,6 +32,8 @@
   "Collection.Status.None": "No collection yet. Start Hearthstone and the app will read it from the game.",
   "Collection.Status.NotRead": "Couldn't read the collection from the game yet. Open Collection in Hearthstone and the app will try again.",
   "Collection.Status.Unsupported": "The collection is read from the game client on Windows. This system has no \"can build\" labels.",
+  "Collection.Status.Off": "The collection is read from the game client, and reading it is off (Settings → Data): no \"can build\" labels.",
+  "Collection.Status.SavedOff": "Saved collection from {0}. Reading the game client is off: turn it on to update it (Settings → Data).",
   "Collection.When.Today": "today at {0:t}",
   "Collection.When.Date": "{0:MMMM d, yyyy} at {0:t}",
   "Collection.Filter.CanBuild": "Can build",

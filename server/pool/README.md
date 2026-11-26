@@ -145,7 +145,8 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
   `migrations/0007_events.sql` on an existing pool): `POST /v1/events` with `{"v":1,"iid":"<32 hex>","games":[...]}`
   (1 to 20 records, each rebuilt from known fields only, at most 24 KB; 8,000 a day), `POST /v1/events/forget` with
   `{"iid":...}` deletes every record of that install, `GET /v1/events/summary` returns games per day, the most picked
-  Discover options and the mulligan keep rate per card (10 games or more a card). Records are kept 180 days.
+  Discover options and the mulligan keep rate per card (10 games or more a card). The keep rate's `offered` and `kept`
+  count copies, a game keeping at most the copies it was offered; the floor counts games. Records are kept 180 days.
 - `GET /v1/events/mulligan-pairs?fmt=standard|wild&cls=<CLASS>` (metric `mulligan.pair_winrate`, rules
   `mull-pairs-1`, [docs/analytics-metrics.md](../../docs/analytics-metrics.md)): pairs of different cards offered
   together in the opening hand of Ranked games of that format and class over the last 30 days, each as

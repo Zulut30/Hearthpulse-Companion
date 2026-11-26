@@ -310,16 +310,18 @@ public sealed partial class MainViewModel
         {
             if (Set(ref _bgRatingChart, value))
             {
-                Raise(nameof(BgHasRating));
+                Raise(nameof(BgRatingShown));
+                Raise(nameof(BgRatingOffShown));
             }
         }
     }
 
     /// <summary>
-    /// A rated game in the period: the rating card shows beside where you finish. Without one (no rating read from the
-    /// client yet) the places card takes the row; an empty chart said nothing.
+    /// The rating card shows beside where you finish: with a rated game in the period, or with reading the client off
+    /// (the card then keeps its one reason line, <see cref="RatingOffReason"/>). Otherwise (no rating read from the client
+    /// yet) the places card takes the row; an empty chart said nothing.
     /// </summary>
-    public bool BgHasRating => _bgRatingChart.Count > 0;
+    public bool BgRatingShown => _bgRatingChart.Count > 0 || GameMemoryOff;
 
     /// <summary>«Результаты героев»: the combat win rate and pick rate columns; off by default.</summary>
     public bool BgHeroAllColumns { get => _bgHeroAllColumns; set => Set(ref _bgHeroAllColumns, value); }
@@ -334,7 +336,17 @@ public sealed partial class MainViewModel
     /// <summary>The rest, under «Подробнее»: going first and on the coin.</summary>
     public IReadOnlyList<StatTile> CtMoreTiles { get => _ctMoreTiles; private set => Set(ref _ctMoreTiles, value); }
 
-    public IReadOnlyList<IChartValue> CtRankChart { get => _ctRankChart; private set => Set(ref _ctRankChart, value); }
+    public IReadOnlyList<IChartValue> CtRankChart
+    {
+        get => _ctRankChart;
+        private set
+        {
+            if (Set(ref _ctRankChart, value))
+            {
+                Raise(nameof(CtRankOffShown));
+            }
+        }
+    }
 
     // The class and archetype tables sort by their column heads (most played first until one is clicked).
     public TableSort CtClassesSort => _ctClassesSort ??= GroupSort(() => CtClasses = CtClassesSort.Apply(CtClasses, (r, c) => r.SortValue(c)));

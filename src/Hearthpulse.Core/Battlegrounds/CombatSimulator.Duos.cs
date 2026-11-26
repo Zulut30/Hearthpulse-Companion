@@ -18,7 +18,11 @@ public sealed partial record SimSide
 
 public static partial class CombatSimulator
 {
-    /// <summary>The side a fight starts with: in Duos a first board without minions gives way to its teammate's at once.</summary>
+    /// <summary>
+    /// The side a fight starts with: in Duos a first board without minions gives way to its teammate's at once. The team's
+    /// shared health and Ice Block are read from the team before that (<see cref="Run(SimSide, SimSide, bool?, SimOptions?)"/>:
+    /// the damage rule), so the first board's Secrets never act as the entering player's.
+    /// </summary>
     internal static SimSide StartingBoard(SimSide side) =>
         side.Minions.Count == 0 && side.Teammate is { } teammate
             ? teammate with { Estimates = [.. side.Estimates, .. teammate.Estimates] }

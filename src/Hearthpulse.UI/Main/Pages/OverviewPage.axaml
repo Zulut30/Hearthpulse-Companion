@@ -184,7 +184,10 @@
             <Border Classes="card" Margin="0,16,0,0" IsVisible="{Binding HasBgGames}">
                 <DockPanel>
                     <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
-                    <c:RatingChart Points="{Binding RatingPoints}" Height="200" />
+                    <!-- Reading the game client is off: one reason line over the earlier games' rating; without them the chart says it -->
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding RatingOffReason}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,8"
+                               IsVisible="{Binding HomeRatingOffShown}" />
+                    <c:RatingChart Points="{Binding RatingPoints}" EmptyText="{Binding BgRatingEmpty}" Height="200" />
                 </DockPanel>
             </Border>
         </StackPanel>

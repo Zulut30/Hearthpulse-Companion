@@ -117,7 +117,7 @@ public sealed class DeckLookContractTests
         Assert.Equal(0.5.ToString("P0", System.Globalization.CultureInfo.CurrentCulture), (string)rows[0].Share);
         // Rated games: the highest MMR leads the tiles and the rating card stands beside the places (the chart is set
         // right after the places, in the same pass).
-        Assert.True(SpinWait.SpinUntil(() => (bool)model.BgHasRating, TimeSpan.FromSeconds(5)));
+        Assert.True(SpinWait.SpinUntil(() => (bool)model.BgRatingShown, TimeSpan.FromSeconds(5)));
         Assert.Equal(Hearthpulse.Core.Localization.Loc.T("Stats.Bg.HighestMmr"), (string)((IEnumerable<object>)model.BgStatTiles).Cast<dynamic>().First().Label);
     }
 
@@ -142,7 +142,7 @@ public sealed class DeckLookContractTests
         dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         await Changed((INotifyPropertyChanged)model, "BgPlaces", () => model.RefreshAsync());
         Assert.Equal(8, ((IEnumerable<object>)model.BgPlaces).Count());
-        Assert.False((bool)model.BgHasRating);
+        Assert.False((bool)model.BgRatingShown);
         var labels = ((IEnumerable<object>)model.BgStatTiles).Cast<dynamic>().Select(t => (string)t.Label).ToList();
         Assert.DoesNotContain(Hearthpulse.Core.Localization.Loc.T("Stats.Bg.HighestMmr"), labels);
         Assert.Equal(3, labels.Count);

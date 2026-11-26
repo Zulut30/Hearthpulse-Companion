@@ -354,6 +354,7 @@ public sealed partial class MainViewModel
         if (_collection is null)
         {
             return !_collectionReadable ? (Loc.T("CollectionPage.Empty.Unsupported"), CollectionGlyphs.Unsupported)
+                : CollectionReadOff ? (Loc.T("CollectionPage.Empty.Off"), CollectionGlyphs.ReadingOff)
                 : HearthstoneRunning ? (Loc.T("CollectionPage.Empty.NotRead"), CollectionGlyphs.Waiting)
                 : (Loc.T("CollectionPage.Empty.None"), CollectionGlyphs.Empty);
         }
@@ -380,6 +381,7 @@ public sealed partial class MainViewModel
     private (string Text, string Glyph) CosmeticsEmpty() =>
         _cosmetics is { } c && (_collectionTab == "Coins" ? c.Coins.Count : c.CardBacks.Count) > 0 ? (string.Empty, string.Empty)
         : !_collectionReadable ? (Loc.T("CollectionPage.Empty.CosmeticsUnsupported"), CollectionGlyphs.Unsupported)
+        : CollectionReadOff ? (Loc.T("CollectionPage.Empty.CosmeticsOff"), CollectionGlyphs.ReadingOff)
         : HearthstoneRunning ? (Loc.T("CollectionPage.Empty.CosmeticsNotRead"), CollectionGlyphs.Waiting)
         : (Loc.T("CollectionPage.Empty.NoCosmetics"), CollectionGlyphs.Empty);
 
@@ -394,6 +396,7 @@ public sealed partial class MainViewModel
         }
 
         var key = !_collectionReadable ? "CollectionPage.Status.SavedUnsupported"
+            : CollectionReadOff ? "CollectionPage.Status.SavedOff"
             : HearthstoneRunning ? cosmetics ? "CollectionPage.Status.CosmeticsSavedNotRead" : "CollectionPage.Status.SavedNotRead"
             : "CollectionPage.Status.Saved";
         return new LibraryStatus(CollectionGlyphs.Saved, Loc.F(key, Loc.F("Collection.When.Date", read)), Loc.T("CollectionPage.Mark.Saved"), Loc.T("CollectionPage.Mark.SavedTip"));

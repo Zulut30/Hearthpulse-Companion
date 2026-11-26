@@ -19,6 +19,7 @@ public sealed partial class OverlayViewModel
     private bool _showBgLobby;
     private IReadOnlyList<TribeIcon> _lobbyTribes = [];
     private bool _lobbyTribesUnconfirmed;
+    private string _lobbyWaitText = string.Empty;
 
     public bool ShowBgLobby { get => _showBgLobby; private set => Set(ref _showBgLobby, value); }
 
@@ -27,9 +28,16 @@ public sealed partial class OverlayViewModel
     /// <summary>The game has not told the lobby's tribes yet: these are the ones seen in the tavern so far.</summary>
     public bool LobbyTribesUnconfirmed { get => _lobbyTribesUnconfirmed; private set => Set(ref _lobbyTribesUnconfirmed, value); }
 
+    /// <summary>
+    /// The line in place of the lobby's tribes (the lobby panel and the Battlegrounds bar) while none is known: the lobby is
+    /// being read, or reading the client is off (then the tribes come only as the tavern shows them).
+    /// </summary>
+    public string LobbyWaitText { get => _lobbyWaitText; private set => Set(ref _lobbyWaitText, value); }
+
     private void UpdateBgLobby(BattlegroundsView? view, AppSettings settings)
     {
         ShowBgLobby = view is not null && settings.ShowBgLobbyPanel;
+        LobbyWaitText = Loc.T(settings.ReadGameMemory ? "Overlay.Bar.ReadingLobby" : "Overlay.Bar.LobbyReadingOff");
         if (view is null)
         {
             return;

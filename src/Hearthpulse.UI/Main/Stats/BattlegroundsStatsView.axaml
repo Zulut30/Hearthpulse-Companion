@@ -15,7 +15,7 @@
     </UserControl.Resources>
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
-        <!-- Without a rating the places card takes the whole row (it is then neither statsRight nor beside a chart) -->
+        <!-- Without the rating card the places card takes the whole row (it is then neither statsRight nor beside a chart) -->
         <Style Selector="Border.statsAll">
             <Setter Property="Grid.ColumnSpan" Value="3" />
         </Style>
@@ -25,22 +25,30 @@
         <!-- Highest MMR, average placement, games, time played -->
         <ItemsControl ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
 
-        <!-- Rating over time beside where you finish; without a rating the places card takes the row -->
+        <!-- Rating over time beside where you finish; without a rating the places card takes the row, unless reading the game
+             client is off: then the rating card stays with its reason line (BgRatingShown) -->
         <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="*" MinWidth="250" />
             </Grid.ColumnDefinitions>
-            <Border Classes="card statsLeft" IsVisible="{Binding BgHasRating}">
+            <Border Classes="card statsLeft" IsVisible="{Binding BgRatingShown}">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
                     </Grid>
-                    <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}" />
+                    <!-- Reading the game client is off: the earlier games' rating stays under the one reason line, new games add none -->
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding RatingOffReason}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,8"
+                               IsVisible="{Binding BgRatingOffShown}" />
+                    <!-- No games in the period: one line instead of a tall empty chart, so the tier lists stay in view -->
+                    <ContentControl DockPanel.Dock="Top" Classes="emptyState" Tag="&#xF012A;" Content="{Binding BgRatingEmpty}"
+                                    IsVisible="{Binding BgRatingChart, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}"
+                                      EmptyText="{Binding BgRatingEmpty}" IsVisible="{Binding BgRatingChart, Converter={StaticResource Truthy}}" />
                 </DockPanel>
             </Border>
-            <Border Classes="card" Classes.statsRight="{Binding BgHasRating}" Classes.statsAll="{Binding !BgHasRating}">
+            <Border Classes="card" Classes.statsRight="{Binding BgRatingShown}" Classes.statsAll="{Binding !BgRatingShown}">
                 <StackPanel ToolTip.Tip="{i:Loc Stats.Bg.PlacementsTip}">
                     <c:Ornament Text="{i:Loc Stats.Bg.PlacesTitle}" Icon="&#xF0128;" Size="13" Margin="0,0,0,12" />
                     <ItemsControl ItemsSource="{Binding BgPlaces}" ItemTemplate="{StaticResource BgPlaceRowTemplate}" />

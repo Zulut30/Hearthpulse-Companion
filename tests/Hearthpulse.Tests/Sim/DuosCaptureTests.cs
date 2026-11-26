@@ -145,6 +145,104 @@ public sealed class DuosCaptureTests
         Assert.Equal(PartnerId, capture.Ours.PlayerId);
         Assert.Empty(capture.Ours.Hand);
         Assert.Empty(capture.Ours.Tags);
+        // TASK-2026-11-26 P3 Q2: we left the tavern with no minions, so the team has no second board, and that is known,
+        // not estimated: no second board and no mark for it.
+        Assert.Null(capture.Ours.Teammate);
+        Assert.DoesNotContain(capture.Ours.Estimates, e => e.Input == SimInputs.DuosPartnerBoard);
+        Assert.DoesNotContain(CombatSimulator.ExplainEstimates(capture.Ours, isOpponent: false), e => e.Input == SimInputs.DuosPartnerBoard);
+    }
+
+    [Fact]
+    public void When_our_partner_fights_first_our_second_board_is_the_one_we_left_the_tavern_with()
+    {
+        // A real Duos log (build 221908, third-party test data; docs/bg-combat-sim.md "Duos"): our tavern minions stay in
+        // play when the board switches to combat, leave when our partner's board comes in under our controller, and come
+        // back as they were once that board is cleared. So our second board is the one we left the tavern with this turn,
+        // with our hand, not the one an earlier fight showed.
+        var log = Game(duos: true).Turn(1)
+            // Fight 1: we fight first with a 2/2.
+            .Minion(40, "BG32_236", Me, 1, 2, 2)
+            .Minion(50, "BG25_001", Them, 1, 2, 1)
+            .CombatStarts(30, FirstOpponentId)
+            .Attack(40, Me)
+            .CombatEnds()
+            // Turn 2: we sold the 2/2 and play a 5/5 and a 3/3, holding a third minion.
+            .Turn(2)
+            .Dies(40, Me)
+            .Minion(42, "BG32_236", Me, 1, 5, 5)
+            .Minion(43, "BG25_001", Me, 2, 3, 3)
+            .Hand(45, "BG32_236", Me)
+            .CombatStarts(33, FirstOpponentId)
+            // Our partner fights first: our minions leave, the partner's hero and minion come in under our controller.
+            .Leaves(42, Me)
+            .Leaves(43, Me)
+            .ShowsHero(Me, 32, PartnerId)
+            .Minion(41, "BG25_001", Me, 1, 4, 4)
+            .Minion(52, "BG25_001", Them, 1, 5, 5)
+            .Attack(41, Me);
+
+        var capture = log.Replay().LastCapture!;
+
+        Assert.Equal(PartnerId, capture.Ours.PlayerId);
+        var second = capture.Ours.Teammate!;
+        Assert.Equal(OwnId, second.PlayerId);
+        Assert.Equal(new[] { (5, 5), (3, 3) }, second.Minions.Select(m => (m.Attack, m.Health)));
+        Assert.Equal("BG32_236", Assert.Single(second.Hand).CardId);
+        // P3 m2: this board is exact (taken this turn as the combat began), so it is no "last seen" estimate.
+        Assert.DoesNotContain(second.Estimates, e => e.Input == SimInputs.DuosPartnerBoard);
+        Assert.DoesNotContain(CombatSimulator.ExplainEstimates(capture.Ours, isOpponent: false), e => e.Input == SimInputs.DuosPartnerBoard);
+    }
+
+    [Fact]
+    public void Our_second_board_keeps_our_card_values_and_no_minion_of_it_counts_as_summoned_in_combat()
+    {
+        // TASK-2026-11-26 P3 Q3: the board we left the tavern with brings our player cards' values (a trinket's number,
+        // SimSide.ExtraTags), and none of its minions is "summoned in combat": when the combat begins Bob's offer is still in
+        // play with ids below the minion we bought this turn, which BuildSide would otherwise take for a Start of Combat summon.
+        var log = Game(duos: true).Turn(1)
+            .Trinket(60, Trinket, Me, ("TAG_SCRIPT_DATA_NUM_1", "3"))
+            .Minion(70, "BG25_001", Them, 1, 1, 1)
+            .Minion(71, "BG32_236", Me, 1, 5, 5)
+            .CombatStarts(30, FirstOpponentId)
+            // Bob's offer goes; our partner fights first: our minion and trinket leave (as on the real log).
+            .Leaves(70, Them)
+            .Leaves(71, Me)
+            .Leaves(60, Me)
+            .ShowsHero(Me, 32, PartnerId)
+            .Minion(41, "BG25_001", Me, 1, 4, 4)
+            .Minion(52, "BG25_001", Them, 1, 5, 5)
+            .Attack(41, Me);
+
+        var second = log.Replay().LastCapture!.Ours.Teammate!;
+
+        Assert.Equal(OwnId, second.PlayerId);
+        Assert.Contains(Trinket, second.Extras);
+        Assert.Equal(3, second.ExtraTag(Trinket, "TAG_SCRIPT_DATA_NUM_1"));
+        var minion = Assert.Single(second.Minions);
+        Assert.Equal(71, minion.EntityId);
+        Assert.False(minion.SummonedInCombat);
+    }
+
+    /// <summary>A trinket with an effect that reads its captured number (Fang Anklet: "+X/+X", TAG_SCRIPT_DATA_NUM_1/2).</summary>
+    private const string Trinket = "BG35_MagicItem_701";
+
+    [Fact]
+    public void A_fight_before_our_partners_board_was_seen_marks_our_missing_second_board()
+    {
+        // Our partner's board shows only while it fights: until then our team's fight has no second board, and the odds
+        // say so, as for the opponent's (The_first_fight_marks_the_unseen_opponent_teammate_as_an_estimate).
+        var log = Game(duos: true).Turn(1)
+            .Minion(40, "BG32_236", Me, 1, 2, 2)
+            .Minion(50, "BG25_001", Them, 1, 2, 1)
+            .CombatStarts(30, FirstOpponentId)
+            .Attack(40, Me);
+
+        var capture = log.Replay().LastCapture!;
+
+        Assert.Null(capture.Ours.Teammate);
+        var estimate = Assert.Single(capture.Ours.Estimates, e => e.Input == SimInputs.DuosPartnerBoard);
+        Assert.Contains("not seen", estimate.Basis, StringComparison.Ordinal);
+        Assert.Contains(CombatSimulator.ExplainEstimates(capture.Ours, isOpponent: false), e => e.Input == SimInputs.DuosPartnerBoard);
     }
 
     private static PowerLog Game(bool duos) => new PowerLog()
@@ -213,6 +311,9 @@ public sealed class DuosCaptureTests
 
         public PowerLog Hand(int id, string cardId, int controller) => Entity(id, cardId, controller, "HAND", "MINION", ("ATK", "2"), ("HEALTH", "2"));
 
+        public PowerLog Trinket(int id, string cardId, int controller, params (string Tag, string Value)[] tags) =>
+            Entity(id, cardId, controller, "PLAY", "BATTLEGROUND_TRINKET", tags);
+
         public PowerLog Turn(int bgTurn) => Power($"TAG_CHANGE Entity=GameEntity tag=TURN value={(bgTurn * 2) - 1} ");
 
         /// <summary>The fight begins: the opponent's combat hero copy (a set-aside hero would be a leaderboard one), its id named.</summary>
@@ -242,6 +343,10 @@ public sealed class DuosCaptureTests
 
         public PowerLog Dies(int id, int controller) =>
             Power($"TAG_CHANGE Entity=[entityName=X id={id} zone=PLAY zonePos=1 cardId=BG32_236 player={controller}] tag=ZONE value=GRAVEYARD ");
+
+        /// <summary>A minion is set aside (our tavern board while our partner's board fights).</summary>
+        public PowerLog Leaves(int id, int controller) =>
+            Power($"TAG_CHANGE Entity=[entityName=X id={id} zone=PLAY zonePos=1 cardId=BG32_236 player={controller}] tag=ZONE value=SETASIDE ");
 
         public BattlegroundsTracker Replay()
         {

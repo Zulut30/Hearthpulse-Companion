@@ -14,12 +14,18 @@ public sealed class RatingChart : Control
     public static readonly StyledProperty<IReadOnlyList<RatingPoint>?> PointsProperty =
         AvaloniaProperty.Register<RatingChart, IReadOnlyList<RatingPoint>?>(nameof(Points));
 
+    public static readonly StyledProperty<string?> EmptyTextProperty =
+        AvaloniaProperty.Register<RatingChart, string?>(nameof(EmptyText));
+
     static RatingChart()
     {
-        AffectsRender<RatingChart>(PointsProperty);
+        AffectsRender<RatingChart>(PointsProperty, EmptyTextProperty);
     }
 
     public IReadOnlyList<RatingPoint>? Points { get => GetValue(PointsProperty); set => SetValue(PointsProperty, value); }
+
+    /// <summary>What the chart says with fewer than two points; null: play a few rated games (Stats.Bg.RatingEmpty).</summary>
+    public string? EmptyText { get => GetValue(EmptyTextProperty); set => SetValue(EmptyTextProperty, value); }
 
     // The empty text is drawn here, so it follows a language switch only by redrawing.
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -54,7 +60,7 @@ public sealed class RatingChart : Control
         var points = Points;
         if (points is null || points.Count < 2)
         {
-            var empty = new FormattedText(Loc.T("Stats.Bg.RatingEmpty"), CultureInfo.CurrentCulture,
+            var empty = new FormattedText(EmptyText ?? Loc.T("Stats.Bg.RatingEmpty"), CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight, typeface, 12, faint);
             empty.MaxTextWidth = Math.Max(10, w - 20);
             empty.TextAlignment = TextAlignment.Center;

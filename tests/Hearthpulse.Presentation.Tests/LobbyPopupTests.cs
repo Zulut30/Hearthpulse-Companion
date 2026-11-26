@@ -266,5 +266,17 @@ public sealed class LobbyPopupTests
         // The setting still turns it off.
         model.Update(rated, Cards, new AppSettings { ShowSessionPanel = false }, null, null);
         Assert.False((bool)model.ShowSession);
+
+        // Reading the client off: no rating will come, so the panel stays at the pick with the reason in place of "MMR —"
+        // (the coordinator's rule for rating blocks with reading off, P5); a rating still known shows as before.
+        var off = new AppSettings { ReadGameMemory = false };
+        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, off, null, null);
+        Assert.True((bool)model.ShowSession);
+        Assert.Equal(Loc.T("Overlay.Session.ReadingOff"), (string)model.SessionOffReason);
+        model.Update(rated, Cards, off, null, null);
+        Assert.True((bool)model.ShowSession);
+        Assert.Equal(string.Empty, (string)model.SessionOffReason);
+        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, settings, null, null);
+        Assert.Equal(string.Empty, (string)model.SessionOffReason);
     }
 }

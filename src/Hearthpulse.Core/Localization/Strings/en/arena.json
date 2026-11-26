@@ -15,7 +15,7 @@
   "Arena.Panel.Classes": "Class win rates",
   "Arena.Panel.Deck": "Cards picked",
   "Arena.Settings.Show": "Arena draft helper (beta)",
-  "Arena.Settings.ShowTip": "Beta, off by default: not yet checked on a real draft. On the Arena draft screen: a score badge over each offered card (class win rate over each hero), the best one in gold, and a panel with your picks, mana curve and average score.",
+  "Arena.Settings.ShowTip": "Beta, off by default: not yet checked on a real draft. On the Arena draft screen: a score badge over each offered card (class win rate over each hero), the best one in gold, and a panel with your picks, mana curve and average score. The offered cards are read from the game client: with reading off there are no badges (Settings → Data).",
   "Arena.Page.DeckTitle": "Deck score",
   "Arena.Page.DeckNote": "Average score over {0} of {1} cards",
   "Arena.Page.DeckEmpty": "Draft an Arena run with the tracker on: the deck of your latest run gets a score here.",

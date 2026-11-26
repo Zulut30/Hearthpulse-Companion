@@ -380,8 +380,11 @@ public sealed partial class OverlayViewModel : Observable
         }
 
         // The session's rating and places while picking a hero, and only with a rating to show: during the game they
-        // change no decision, and "MMR —" said nothing all game.
-        ShowSession = bg is { IsHeroSelection: true } && settings.ShowSessionPanel && _sessionRated;
+        // change no decision, and "MMR —" said nothing all game. With reading the client off no rating will come: the
+        // panel stays at the pick with one line saying why, as the main window's rating blocks do (P5).
+        var readingOff = !settings.ReadGameMemory;
+        SessionOffReason = readingOff && !_sessionRated ? Loc.T("Overlay.Session.ReadingOff") : string.Empty;
+        ShowSession = bg is { IsHeroSelection: true } && settings.ShowSessionPanel && (_sessionRated || readingOff);
 
         UpdateBgBadges(overlayBg, settings);
         if (bg is null)
@@ -441,6 +444,7 @@ public sealed partial class OverlayViewModel : Observable
 
     public void ShowOutcome(GameOutcome outcome)
     {
+        if (outcome.Recovered) return;
         _lastOutcome = outcome;
         ToastTexts(outcome);
         ShowToast = true;

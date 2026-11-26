@@ -75,7 +75,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
+                    <TextBlock Text="{Binding LobbyWaitText}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
                                IsVisible="{Binding TribeChips, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                 </Panel>
                 <ScrollViewer MaxHeight="760" VerticalScrollBarVisibility="Auto">

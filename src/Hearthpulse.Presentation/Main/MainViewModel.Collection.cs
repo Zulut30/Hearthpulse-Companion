@@ -61,6 +61,12 @@ public sealed partial class MainViewModel
         }
     }
 
+    /// <summary>
+    /// This system can read the client, but reading it is turned off (Settings → Data): the texts say so and where to
+    /// turn it back on, instead of waiting for a read that will not come.
+    /// </summary>
+    private bool CollectionReadOff => _collectionReadable && !Settings.ReadGameMemory;
+
     /// <summary>A collection is known, confirmed or saved.</summary>
     public bool HasCollection => _collection is not null;
 
@@ -69,7 +75,7 @@ public sealed partial class MainViewModel
 
     /// <summary>
     /// Where the collection's numbers come from and of what time, or why there are none: read from the game today at
-    /// 14:05; a saved collection of a date; none yet; not read; a system without the read.
+    /// 14:05; a saved collection of a date; none yet; not read; a system without the read; reading the client off.
     /// </summary>
     public string CollectionStatus
     {
@@ -77,7 +83,8 @@ public sealed partial class MainViewModel
         {
             if (_collection is not { } collection)
             {
-                return Loc.T(!_collectionReadable ? "Collection.Status.Unsupported" : HearthstoneRunning ? "Collection.Status.NotRead" : "Collection.Status.None");
+                return Loc.T(!_collectionReadable ? "Collection.Status.Unsupported" : CollectionReadOff ? "Collection.Status.Off"
+                    : HearthstoneRunning ? "Collection.Status.NotRead" : "Collection.Status.None");
             }
 
             var read = collection.ReadAt.Kind == DateTimeKind.Local ? collection.ReadAt : DateTime.SpecifyKind(collection.ReadAt, DateTimeKind.Utc).ToLocalTime();
@@ -88,7 +95,8 @@ public sealed partial class MainViewModel
 
             // A saved collection is always named with its full date: it is "as of then", whoever's it was.
             return Loc.F(
-                !_collectionReadable ? "Collection.Status.SavedUnsupported" : HearthstoneRunning ? "Collection.Status.SavedNotRead" : "Collection.Status.Saved",
+                !_collectionReadable ? "Collection.Status.SavedUnsupported" : CollectionReadOff ? "Collection.Status.SavedOff"
+                : HearthstoneRunning ? "Collection.Status.SavedNotRead" : "Collection.Status.Saved",
                 Loc.F("Collection.When.Date", read));
         }
     }
@@ -101,7 +109,7 @@ public sealed partial class MainViewModel
     public bool CanBuildAvailable => _collection is { Confirmed: true };
 
     /// <summary>Why the filter is off limits, shown beside it; empty while it can be used or the status line says it all.</summary>
-    public string CanBuildNote => CanBuildAvailable || !_collectionReadable ? string.Empty
+    public string CanBuildNote => CanBuildAvailable || !_collectionReadable || CollectionReadOff ? string.Empty
         : Loc.T(_collection is null ? "Collection.Filter.NeedsCollection" : "Collection.Filter.NeedsConfirmed");
 
     public bool HasCanBuildNote => CanBuildNote.Length > 0;

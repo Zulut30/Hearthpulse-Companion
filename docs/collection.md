@@ -416,6 +416,8 @@ collection nobody vouches for now, the app does not state "you can build this" a
 | none, client not running | «Коллекции пока нет. Запустите Hearthstone: приложение прочитает её из игры.» |
 | none, client running (not read yet, or the read fails) | «Прочитать коллекцию из игры пока не удалось. Откройте раздел «Коллекция» в Hearthstone: чтение повторится.» |
 | a system without the read (`!HearthstoneMemory.IsSupported`) | «Коллекция читается из клиента игры на Windows. На этой системе меток «могу собрать» нет.» |
+| none, reading the client turned off (`AppSettings.ReadGameMemory`) | «Коллекция читается из клиента игры, а чтение выключено (Настройки → Данные): меток «могу собрать» нет.» |
+| saved, reading the client turned off | «Сохранённая коллекция от <дата>. Чтение клиента игры выключено: включите его, чтобы обновить (Настройки → Данные).» |
 
 The view model cannot tell "not read yet" from "the read fails": the session gives no reason, so one text covers
 both, and it names the step that asks for a new read (opening the collection screen).

@@ -35,6 +35,13 @@ public static class SimInputs
     /// <summary>Duos: our teammate's board, when it was not on the log at capture: as last seen (or none).</summary>
     public const string DuosPartnerBoard = "duos_partner_board";
 
+    /// <summary>
+    /// A Duos second board (<see cref="DuosOpponentTeammate"/>, <see cref="DuosPartnerBoard"/>) never seen: the fight has no
+    /// second board. Such an estimate holds no minions (<see cref="SimEstimate.Value2"/> 0); a board seen in an earlier fight
+    /// holds the turn it was seen on and its minions (Tracking/BattlegroundsTracker.Duos.cs).
+    /// </summary>
+    public static bool IsUnseenBoard(EstimatedItem item) => (item.Input is DuosOpponentTeammate or DuosPartnerBoard) && item.Value2 == 0;
+
     /// <summary>The crew of the opponent's Timewarped Nellie's Ship: a Discover pick the player does not see.</summary>
     public const string ShipCrew = "ship_crew";
 

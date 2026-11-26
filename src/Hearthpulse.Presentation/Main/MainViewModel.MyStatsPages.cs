@@ -27,23 +27,29 @@ public sealed partial class MainViewModel
     private void RebuildBattlegroundsStats()
     {
         var (all, mode, period, sort, minGames, cards, meta, metaFailed) = (_allGames, BgMode, _bgPeriod, _bgSort, _bgMinGames, _cards, _meta, _bgMetaFailed);
+        var readingOff = GameMemoryOff;
         _statsBgMode = mode;
         _statsCards = cards;
-        RunStatsBuild(0, () => BuildBattlegroundsStats(all, mode == "Duos", period, sort, minGames, cards, meta, metaFailed));
+        RunStatsBuild(0, () => BuildBattlegroundsStats(all, mode == "Duos", period, sort, minGames, cards, meta, metaFailed, readingOff));
     }
 
-    private Action BuildBattlegroundsStats(IReadOnlyList<GameRecord> all, bool duos, StatsPeriod period, BgHeroSort sort, int minGames, CardDb cards, BattlegroundsMeta? meta, bool metaFailed)
+    private Action BuildBattlegroundsStats(IReadOnlyList<GameRecord> all, bool duos, StatsPeriod period, BgHeroSort sort, int minGames, CardDb cards, BattlegroundsMeta? meta, bool metaFailed,
+        bool readingOff)
     {
         var games = StatsFilter.Apply(all.Where(g => BattlegroundsStats.IsGame(g, duos)), period, DateTime.Now);
         var summary = BattlegroundsStats.Summary(games, duos);
         var timed = Math.Max(1, games.Count(g => g.Duration > TimeSpan.Zero));
-        // The highest MMR only with a rating: without one (none read from the client yet) the tile was a dash.
+        // The highest MMR with a rating. Without one the tile goes (it was a dash), unless reading the client is off: then
+        // it stays and says why no rating comes.
+        var readingOffNote = readingOff ? Loc.T("Main.Tile.ReadingOff") : string.Empty;
         IReadOnlyList<StatTile> tiles =
         [
             .. summary.HighestRating is { } top
                 ? [new StatTile(Loc.T("Stats.Bg.HighestMmr"), top.ToString("N0", CultureInfo.CurrentCulture),
-                    summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : string.Empty, Math.Sign(summary.NetRating ?? 0))]
-                : (StatTile[])[],
+                    summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : readingOffNote, Math.Sign(summary.NetRating ?? 0))]
+                : readingOff
+                    ? [new StatTile(Loc.T("Stats.Bg.HighestMmr"), "—", readingOffNote)]
+                    : (StatTile[])[],
             new StatTile(Loc.T("Stats.Bg.AvgPlacement"), summary.AveragePlacement is { } avg ? avg.ToString("0.00", CultureInfo.CurrentCulture) : "—", string.Empty),
             new StatTile(Loc.T("Stats.TotalGames"), summary.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), summary.Games > 0 ? Loc.F("Stats.Bg.MinPerGame", summary.TimePlayed.TotalMinutes / timed) : "—"),
@@ -125,19 +131,22 @@ public sealed partial class MainViewModel
     {
         var (all, format, period, cards) = (_allGames, _ctFormat, _ctPeriod, _cards);
         var meta = ConstructedMetaFor(format);
+        var readingOff = GameMemoryOff;
         _statsCards = cards;
-        RunStatsBuild(1, () => BuildConstructedStats(all, format, period, cards, meta));
+        RunStatsBuild(1, () => BuildConstructedStats(all, format, period, cards, meta, readingOff));
     }
 
-    private Action BuildConstructedStats(IReadOnlyList<GameRecord> all, string format, StatsPeriod period, CardDb cards, ConstructedMeta? meta)
+    private Action BuildConstructedStats(IReadOnlyList<GameRecord> all, string format, StatsPeriod period, CardDb cards, ConstructedMeta? meta, bool readingOff)
     {
         var games = StatsFilter.Apply(all.Where(g => StatsFilter.IsConstructed(g, format)), period, DateTime.Now);
         var summary = ConstructedStats.Summary(games);
+        // No rank in the period: ranked games show it, or (reading the client off) none is read.
+        var noRank = Loc.T(readingOff ? "Main.Tile.ReadingOff" : "Stats.Ct.RankHidden");
         IReadOnlyList<StatTile> tiles =
         [
             new StatTile(Loc.T("Stats.WinRate"), Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
             new StatTile(Loc.T("Stats.TotalGames"), summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
-            new StatTile(Loc.T("Stats.Ct.Rank"), summary.LatestRank ?? "—", summary.BestRank is { } best ? Loc.F("Stats.Ct.BestRank", best) : Loc.T("Stats.Ct.RankHidden")),
+            new StatTile(Loc.T("Stats.Ct.Rank"), summary.LatestRank ?? "—", summary.BestRank is { } best ? Loc.F("Stats.Ct.BestRank", best) : noRank),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed),
                 summary.AverageDuration is { } avg ? Loc.F("Stats.Ct.AverageGame", avg.TotalMinutes, summary.AverageTurns) : "—"),
             new StatTile(Loc.T("Stats.Ct.OnPlay"), Percent(summary.OnPlay.WinRate), Loc.F("Stats.Ct.OnPlayDetail", summary.OnPlay.Wins, summary.OnPlay.Losses)),

@@ -198,7 +198,7 @@ public partial class App : Application
         _mainViewModel.PoolSharingChanged += () =>
         {
             _settingsDebounce.Kick();
-            _services.PoolSharing.ShareHistoryAsync().Forget("Sharing earlier games");
+            _services.PoolSharing.SharingChanged();
         };
         // The install's secret or "earlier games shared" is new in the settings; raised off the UI thread.
         _services.PoolSharing.SettingsChanged += () => _ = Dispatcher.BeginInvoke(() => _settingsDebounce.Kick());
@@ -491,7 +491,7 @@ public partial class App : Application
         var overlay = new OverlayWindow(_overlayViewModel, _settings);
         overlay.LayoutChanged += OnSettingsChanged;
         overlay.PanelLockChanged += () => _main?.SyncOverlaySwitch();
-        overlay.HoveredHero = () => _memory.IsAttached ? _memory.GetHoveredLeaderboardHero() : null;
+        overlay.HoveredHero = _session.HoveredLeaderboardHero;
         return overlay;
     }
 

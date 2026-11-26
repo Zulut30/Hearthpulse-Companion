@@ -136,21 +136,20 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
   try {
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, host, resolve); });
   } catch (e) { store.close(); unlock(); throw e; }
+  // The minute's upkeep; on the descriptor too, so a test runs the very pass the timer runs.
+  const maintenance = log => maintenanceTick({ archive, queue, env, cache }, log);
   const timers = [];
   if (schedule) {
     timers.push(setInterval(() => { archive.tick().catch(() => {}); }, 1000));
     // At most once a minute, and only when nothing is published, the snapshot is stale/withdrawn or the day moved.
     timers.push(setInterval(() => { archive.refreshAnalytics().catch(reportFailure('analytics_refresh_failed')); }, 60_000));
-    timers.push(setInterval(() => {
-      archive.maintain().then(() => queue.run(async () => {
-        await prune(env); await pruneEvents(env); cache.clear();
-      })).catch(() => {});
-    }, 60_000));
+    // Each step reports its own failure; this is the last guard, as an unhandled rejection stops Node 24.
+    timers.push(setInterval(() => { maintenance().catch(reportFailure('maintenance_failed')); }, 60_000));
     for (const t of timers) t.unref();
   }
   let closePromise;
   return {
-    server, archive, store,
+    server, archive, store, maintenance,
     url: `http://${host === '::1' ? '[::1]' : host}:${server.address().port}`,
     close() {
       return closePromise ??= (async () => {
@@ -168,6 +167,20 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
 /** Logs a background failure as one technical line: a code and the error name/message, never source content. */
 export function reportFailure(code, log = console.error) {
   return error => log(JSON.stringify({ ok: false, error: code, cause: String(error?.message ?? error).slice(0, 200) }));
+}
+
+/**
+ * One pass of the minute's upkeep. The retention deletes run first, each on its own: shared games and picks after 60
+ * days, game records after 180. A failed step is one reportFailure line with its code and stops neither the other
+ * delete nor the archive. The archive's maintenance runs last: its WAL checkpoint frees the pages the deletes released.
+ */
+export async function maintenanceTick({ archive, queue, env, cache }, log = console.error) {
+  await queue.run(async () => {
+    await prune(env).catch(reportFailure('shared_prune_failed', log));
+    await pruneEvents(env).catch(reportFailure('records_prune_failed', log));
+    cache.clear();
+  });
+  await archive.maintain().catch(reportFailure('archive_maintain_failed', log));
 }
 
 function envInt(name, fallback, min, max) {

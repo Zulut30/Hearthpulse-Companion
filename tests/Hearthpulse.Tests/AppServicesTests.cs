@@ -77,6 +77,14 @@ public sealed class AppServicesTests
         });
 
     [Fact]
+    public Task Shared_games_wait_in_the_data_folder_given() =>
+        With(new AppSettings(), (services, _) =>
+        {
+            Assert.Equal(Path.Combine(services.Data.Root, "pool-outbox"), services.PoolSharing.Outbox.Root);
+            return Task.CompletedTask;
+        });
+
+    [Fact]
     public Task A_change_of_the_account_wakes_the_profile_upload() =>
         With(new AppSettings(), (services, _) =>
         {

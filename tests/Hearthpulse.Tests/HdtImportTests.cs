@@ -405,6 +405,12 @@ public sealed class HdtImportTests : IDisposable
     [Fact]
     public void Transferred_games_are_never_sent_to_the_profile_or_the_stats_pool()
     {
+        // The fixture's games plus the start of a Mage Arena run (2-0) that HDT saw.
+        File.WriteAllText(Path.Combine(_hdt, "DeckStats.xml"), DeckStats(
+            Game("aaaaaaaa-0000-0000-0000-000000000001", "2026-10-20T18:00:00.1234567+03:00", "Win", version: "1", coin: false),
+            Game("aaaaaaaa-0000-0000-0000-000000000002", "2026-10-21T18:00:00+03:00", "Loss", version: "2", coin: true),
+            Game("aaaaaaaa-0000-0000-0000-000000000021", "2026-10-24T10:00:00+03:00", "Win", mode: "Arena", type: "GT_ARENA"),
+            Game("aaaaaaaa-0000-0000-0000-000000000022", "2026-10-24T10:20:00+03:00", "Win", mode: "Arena", type: "GT_ARENA")));
         Import();
         _history.Add(new GameRecord { Key = "20261024120000|Player#1000|GT_RANKED", StartedAt = new DateTime(2026, 10, 24, 12, 0, 0), GameType = "GT_RANKED", Mode = "Ranked", Result = "Win" });
 
@@ -413,6 +419,28 @@ public sealed class HdtImportTests : IDisposable
         Assert.Equal(["live"], upload.Select(g => g.Source));
         var bg = _history.Recent(10).Single(g => g.IsBattlegrounds);
         Assert.Null(Core.Pool.PoolGame.FromHistory(bg, "secret", id => id));
+
+        // The run goes on in Hearthpulse: on the profile it starts with that game, without HDT's two wins.
+        var arena = _history.Recent(int.MaxValue, "Arena");
+        Assert.Equal(["hdt", "hdt"], arena.Select(g => g.Source));
+        Assert.Empty(Core.Accounts.ProfileEvents.ForArena(arena));
+        var own = arena.Max(g => g.StartedAt).AddMinutes(20);
+        Assert.True(_history.Add(new GameRecord
+        {
+            Key = $"{own:yyyyMMddHHmmss}|Player#1000|GT_ARENA",
+            StartedAt = own,
+            EndedAt = own.AddMinutes(9),
+            GameType = "GT_ARENA",
+            Mode = "Arena",
+            PlayerClass = "MAGE",
+            OpponentClass = "WARRIOR",
+            Result = "Loss",
+        }));
+        var events = Core.Accounts.ProfileEvents.ForArena(_history.Recent(int.MaxValue, "Arena"));
+        var match = Assert.Single(events, e => e.Type == Core.Accounts.ProfileEvents.ArenaMatch).Payload;
+        Assert.Equal((1, 0, 0), ((int)match["gameNumber"]!, (int)match["winsBefore"]!, (int)match["lossesBefore"]!));
+        var run = Assert.Single(events, e => e.Type == Core.Accounts.ProfileEvents.ArenaRun).Payload;
+        Assert.Equal((0, 1), ((int)run["wins"]!, (int)run["losses"]!));
     }
 
     [Fact]
