@@ -46,7 +46,9 @@ read: `config.xml`, `hsreplay_oauth`, `upload_token_history.txt`, a game's `Serv
   app records itself later (live, from the logs) replaces a transferred row of it (`HistoryStore.Add`). Transferring
   again adds only what is new.
 - **Stays on this PC:** games with `source` `hdt` or `firestone` are never sent with the profile upload or to the stats
-  pool (`HistoryStore.PageForUpload`, `PoolGame.FromHistory`).
+  pool (`HistoryStore.PageForUpload`, `ProfileEvents.ForArena`, `PoolGame.FromHistory`). An Arena run begun in HDT or
+  Firestone and finished in Hearthpulse starts on the site with its first game recorded here: the transferred games
+  are neither sent nor counted in the run's score there (My Stats still counts the whole run).
 - **Decks:** every deck but Arena runs, Dungeon and Duels decks goes to `saved_decks` (`source = "hdt"`, HDT's deck id):
   name, class, the code of the current list (we build it: `DeckString.Encode`, the class's default hero, the format of
   the deck's last game, else Wild), tags (without HDT's own `All`, `Favorite`, `None`), note, archived, last edit. The

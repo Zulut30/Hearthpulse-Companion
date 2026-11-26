@@ -122,6 +122,7 @@ public sealed partial class HistoryStore
         ("replay", "TEXT NULL"),
         ("combat_odds", "TEXT NULL"),
         ("scenario_id", "INTEGER NULL"),
+        ("deck_archetype", "TEXT NULL"),
     ];
 
     /// <summary>The deck page's per-game card columns: large JSON, read only for the games of an open deck (<see cref="WithCards"/>).</summary>
@@ -292,6 +293,7 @@ public sealed partial class HistoryStore
                     CardsPlayed = NullableString(reader, "cards_played"),
                     OpponentCards = NullableString(reader, "opponent_cards"),
                     OpponentArchetype = NullableString(reader, "opponent_archetype"),
+                    DeckArchetype = NullableString(reader, "deck_archetype"),
                     Replay = NullableString(reader, "replay"),
                 });
             }

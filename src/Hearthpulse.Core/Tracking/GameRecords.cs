@@ -26,6 +26,21 @@ public static class GameRecords
         _ => "Other",
     };
 
+    /// <summary>The Battlegrounds game types of public matchmaking (names as HearthSim python-hearthstone's GameType, MIT).</summary>
+    private static readonly HashSet<string> PublicBattlegrounds = new(StringComparer.Ordinal)
+    {
+        "GT_BATTLEGROUNDS", "GT_BATTLEGROUNDS_DUO", "GT_BATTLEGROUNDS_DUOS",
+    };
+
+    /// <summary>
+    /// True for a Battlegrounds game outside public matchmaking: a friendly lobby (<c>GT_BATTLEGROUNDS_FRIENDLY</c>,
+    /// <c>GT_BATTLEGROUNDS_DUO_FRIENDLY</c>) or a game against the AI. It stays in History and My Stats (<see cref="ModeOf"/>
+    /// still files it under Battlegrounds or Duos) but goes nowhere: not to the profile, the stats pool or the game records
+    /// (owner, 2026-11-26). An empty type (a game built without one) is not private.
+    /// </summary>
+    public static bool IsPrivateBattlegrounds(string? gameType) =>
+        gameType is { Length: > 0 } && gameType.Contains("BATTLEGROUNDS", StringComparison.Ordinal) && !PublicBattlegrounds.Contains(gameType);
+
     public static string KeyOf(GameState game) =>
         string.Create(CultureInfo.InvariantCulture,
             $"{game.StartedAt:yyyyMMddHHmmss}|{game.LocalPlayer?.Name}|{game.GameType}");
@@ -120,6 +135,7 @@ public static class GameRecords
         var cardFacts = mode is "Ranked" or "Casual" or "Friendly" or "Practice" ? facts : null;
         var mulligan = cardFacts?.Mulligan(game);
         var opponentPlayed = cardFacts?.OpponentPlayed(game) ?? [];
+        var deckFits = deck is not null && DeckFits(deck, playerClass, cards);
         return new GameRecord
         {
             Key = KeyOf(game),
@@ -150,13 +166,18 @@ public static class GameRecords
             RankLegend = rankInfo is { LegendRank: > 0 } ? rankInfo.LegendRank : null,
             WentFirst = WentFirst(game),
             ScenarioId = game.ScenarioId > 0 ? game.ScenarioId : null,
-            DeckId = deck is { DeckId: > 0 } && DeckFits(deck, playerClass, cards) ? deck.DeckId : null,
+            DeckId = deck is { DeckId: > 0 } && deckFits ? deck.DeckId : null,
             Mulligan = GameCards.MulliganJson(mulligan),
             CardsDrawn = mulligan is null ? null : GameCards.TurnsJson(cardFacts!.Drawn(game)),
             CardsPlayed = mulligan is null ? null : GameCards.TurnsJson(cardFacts!.Played(game)),
             OpponentCards = GameCards.TurnsJson(opponentPlayed),
             OpponentArchetype = ArchetypeGuess.FitsFormat(meta, game.FormatType)
                 ? ArchetypeGuess.FromSeenCards(meta, opponentClass, opponentPlayed.Select(c => c.CardId))?.Name
+                : null,
+            // The English HSGuru key, never the interface-language name: the site compares the deck with every player's
+            // games of that archetype by this key.
+            DeckArchetype = mode is "Ranked" or "Casual" && deckFits && ArchetypeGuess.FitsFormat(meta, game.FormatType)
+                ? ConstructedStats.ArchetypeOf(deck!.Code, playerClass, meta, cards)?.Key
                 : null,
         };
     }

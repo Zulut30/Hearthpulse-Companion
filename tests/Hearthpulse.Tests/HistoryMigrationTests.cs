@@ -54,6 +54,8 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
         Assert.Null(old.WentFirst);
         Assert.Null(old.DeckId);
         Assert.Null(old.Replay);
+        Assert.Null(old.DeckArchetype);
+        Assert.Null(Assert.Single(store.PageForUpload(0, 10)).DeckArchetype);
 
         // Opening again is a no-op (the columns are there now).
         store = new HistoryStore(path);
@@ -114,6 +116,7 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
             WentFirst = false,
             DeckId = 2774348185,
             Replay = "20261020220000-abc.hpr",
+            DeckArchetype = "Blood Death Knight",
         }));
 
         var games = store.Recent().ToDictionary(g => g.Key);
@@ -129,13 +132,19 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
         Assert.Equal(2774348185, games["ranked"].DeckId);
         Assert.Equal("20261020220000-abc.hpr", games["ranked"].Replay);
         Assert.Null(games["bg"].Replay);
+        Assert.Equal("Blood Death Knight", games["ranked"].DeckArchetype);
+        Assert.Null(games["bg"].DeckArchetype);
 
-        // A re-import fills a missing replay without touching one already saved.
+        // A re-import fills a missing replay or archetype without touching one already saved.
+        Assert.True(store.Add(new GameRecord { Key = "casual", StartedAt = at.AddHours(2), EndedAt = at.AddHours(2).AddMinutes(7), Mode = "Casual", Result = "Win" }));
         Assert.True(store.FillMissingFields(new GameRecord { Key = "bg", Replay = "bg.hpr" }));
-        Assert.False(store.FillMissingFields(new GameRecord { Key = "ranked", Replay = "other.hpr" }));
+        Assert.False(store.FillMissingFields(new GameRecord { Key = "ranked", Replay = "other.hpr", DeckArchetype = "Frost Death Knight" }));
+        Assert.True(store.FillMissingFields(new GameRecord { Key = "casual", DeckArchetype = "Frost Death Knight" }));
         games = store.Recent().ToDictionary(g => g.Key);
         Assert.Equal("bg.hpr", games["bg"].Replay);
         Assert.Equal("20261020220000-abc.hpr", games["ranked"].Replay);
+        Assert.Equal("Blood Death Knight", games["ranked"].DeckArchetype);
+        Assert.Equal("Frost Death Knight", games["casual"].DeckArchetype);
         SqliteConnection.ClearAllPools();
         File.Delete(path);
     }
