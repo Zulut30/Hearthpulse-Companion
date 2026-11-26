@@ -150,6 +150,8 @@ internal sealed class DesktopApp : HearthpulseApp
         {
             _overlay = new OverlayWindow(_host, _platform);
             _overlay.PanelLockChanged += () => _main?.View.SyncOverlaySwitch();
+            // The overlay reads Ctrl on its tick: the card pool's hover reads follow it (GameSession.SetCardPoolControl).
+            _host.Overlay.CardPoolControlChanged += _host.Session.SetCardPoolControl;
             _overlay.Show();
             _overlay.Opened += (_, _) =>
             {

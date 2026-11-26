@@ -139,6 +139,17 @@ public partial class App
             await RenderCombatOddsAsync(folder);
         }
 
+        if (RenderOnly("cardpool"))
+        {
+            // The card pool panel and browser (App.CardPool.cs), then Settings → Tracker with the pool's rows.
+            await RenderCardPoolAsync(folder);
+            _main.ShowPage("Settings");
+            _main.ShowSettingsTab("Tracker");
+            await Task.Delay(800);
+            _main.UpdateLayout();
+            Save(_main, Path.Combine(folder, "main-settings-tracker.png"));
+        }
+
         if (RenderOnly("account"))
         {
             // The account center (Settings → Hearthpulse account) and the connection light, signed in as the in-memory

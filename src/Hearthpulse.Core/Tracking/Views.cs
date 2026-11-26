@@ -71,23 +71,17 @@ public sealed record ConstructedView(
     /// <summary>Win rate of the deck's archetype in community stats; null without stats or a matching archetype.</summary>
     public DeckMetaStat? DeckMeta { get; init; }
 
-    /// <summary>The pool of the generator being discovered from, hovered or just played; null when none.</summary>
+    /// <summary>The pool of the generator being discovered from or hovered in hand; null when none.</summary>
     public CardPool.CardPoolView? CardPool { get; init; }
 
-    /// <summary>Where the card of <see cref="CardPool"/> sits (hand, board, Discover options), to show the pool beside it; null otherwise.</summary>
+    /// <summary>Where the card of <see cref="CardPool"/> sits (the Discover options), to show the pool beside it; null at the panel's own spot.</summary>
     public CardPool.CardPoolAnchor? CardPoolAnchor { get; init; }
 
     /// <summary>
-    /// The cards of this game the hovered card in hand looks back at ("a friendly minion that died this game"), shown
-    /// beside it (at <see cref="CardPoolAnchor"/>) above its pool or on its own; null otherwise.
+    /// The cards of this game the hovered card in hand looks back at ("a friendly minion that died this game"), shown in
+    /// the pool panel above its pool or on its own; null otherwise.
     /// </summary>
     public CardPool.MatchListView? MatchList { get; init; }
-
-    /// <summary>
-    /// The hovered card's related cards (tokens, Choose One options, Old God abilities, named cards) when its "this game"
-    /// list took <see cref="MatchList"/>; null otherwise (a card without a rule still has them in MatchList).
-    /// </summary>
-    public CardPool.MatchListView? RelatedList { get; init; }
 
     /// <summary>The minions that died this game on each side (the Graveyard panel); null before the first death.</summary>
     public GraveyardView? Graveyard { get; init; }

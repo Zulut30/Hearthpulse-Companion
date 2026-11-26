@@ -168,6 +168,7 @@ public partial class App : Application
         _session.ApplySettings(_settings);
         _overlayViewModel.SecretToggleRequested += _session.ToggleSecret;
         _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;
+        _overlayViewModel.CardPoolControlChanged += _session.SetCardPoolControl;
         _overlayViewModel.CounterModeRequested += (id, mode) =>
         {
             _mainViewModel.ApplyCounterMode(id, mode);

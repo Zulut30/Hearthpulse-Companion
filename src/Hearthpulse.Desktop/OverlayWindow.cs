@@ -117,7 +117,9 @@ internal sealed class OverlayWindow : Window
             }
 
             _platform.SetClickThrough(true);
-            _view.UpdateCardPoolPointer(null, default);
+            _view.UpdateCardPoolPointer(null);
+            // Ctrl held in another window is not meant for the game: no card pool read for it.
+            vm.UpdateCardPoolKeys(false);
             return;
         }
 
@@ -152,7 +154,8 @@ internal sealed class OverlayWindow : Window
         // until the button is up.
         var buttons = _platform.MouseButtons();
         _view.EndReleasedDrags(buttons);
-        var armed = _view.UpdateDragArm(local, _platform.ControlDown(), DateTime.UtcNow);
+        var controlDown = _platform.ControlDown();
+        var armed = _view.UpdateDragArm(local, controlDown, DateTime.UtcNow);
         var interactive = armed || (local is { } point && (vm.LayoutEditing || _view.IsInteractiveAt(point)));
         _platform.SetClickThrough(!interactive);
         if (!interactive)
@@ -171,7 +174,9 @@ internal sealed class OverlayWindow : Window
         }
 
         _view.UpdateLeaderboardHover(local, _hoverReader.Hero);
-        _view.UpdateCardPoolPointer(local, buttons);
+        _view.UpdateCardPoolPointer(local);
+        // Ctrl over a card in hand shows its pool in the "with Ctrl" mode; the tick is also the pool's linger clock.
+        vm.UpdateCardPoolKeys(controlDown);
     }
 
     /// <summary>Reads the hovered leaderboard hero from the game (Windows memory reader) at most four times a second.</summary>

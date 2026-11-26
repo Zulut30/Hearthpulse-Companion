@@ -4,8 +4,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Interop;
-using System.Windows.Threading;
-using Hearthpulse.App.Infrastructure;
 using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
 using Hearthpulse.Core.CardPool;
@@ -17,108 +15,173 @@ using AvaOverlay = Hearthpulse.UI.Overlay.OverlayViewModel;
 namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
-/// The pool popup next to a hovered card: holding it, opening the browser with a right-click (the shipped WPF panel in a
-/// hidden window, nothing on screen), letting go of it, and its compact lines - in both compiled view models.
+/// TASK-2026-11-26 AC4 in both compiled view models: a card in hand shows its pool at the panel's own spot only as the
+/// hover mode says (with Ctrl held by default, always, or never) and goes a moment after nothing keeps it; the player's
+/// own Discover shows its pool beside the options and it goes with the pick; "All cards" opens the browser; the panel's
+/// content (P-1..P-14). The WPF panel is laid out in a hidden window, nothing on screen.
 /// </summary>
 public sealed class CardPoolPopupTests
 {
-    private static readonly DateTime T0 = new(2026, 10, 28, 12, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime T0 = new(2026, 11, 26, 12, 0, 0, DateTimeKind.Utc);
 
-    private static readonly TimeSpan Rested = OverlayViewModel.CardPoolHoldDelay + TimeSpan.FromMilliseconds(50);
-
-    [Fact]
-    public void Right_click_on_a_held_popup_opens_the_browser_in_the_wpf_overlay() => WpfThread.RunThemed(() =>
-    {
-        var vm = new OverlayViewModel();
-        var panel = new CardPoolPanel { Anchored = true, DataContext = vm };
-        panel.SetBinding(UIElement.VisibilityProperty, new Binding(nameof(OverlayViewModel.ShowCardPoolPopup)) { Converter = new BooleanToVisibilityConverter() });
-        var root = new Canvas { Width = 1920, Height = 1080 };
-        root.Children.Add(panel);
-        // A window that is never shown: the panel is in a live visual tree (IsVisible and its hide handler work).
-        using var source = new HwndSource(new HwndSourceParameters("pool popup test", 1920, 1080) { WindowStyle = 0 }) { RootVisual = root };
-        vm.Update(Snapshot(Pool("TEST_GEN", 40)), CardDb.Empty, new AppSettings(), null, null);
-        root.UpdateLayout();
-        Assert.True(panel.IsVisible);
-
-        vm.UpdateCardPoolPointer(true, false, false, T0);
-        vm.UpdateCardPoolPointer(true, false, false, T0 + Rested);
-        Assert.True(vm.CardPoolHeld);
-
-        // Opening hides the popup, and its hide handler reports the pointer gone (held pool released) while the browser
-        // opens: the browser must stay open (it used to close at once, on the turn it was not opened in yet).
-        vm.UpdateCardPoolPointer(true, false, true, T0 + Rested);
-        Assert.True(vm.CardPoolBrowserOpen);
-        Assert.False(panel.IsVisible);
-        Assert.False(vm.ShowCardPoolPanel);
-    });
+    private static TimeSpan Ms(int ms) => TimeSpan.FromMilliseconds(ms);
 
     [Fact]
-    public void Both_view_models_open_the_browser_from_a_held_popup_even_when_the_hide_reenters()
+    public void Without_ctrl_a_hand_cards_pool_does_not_show_in_both_view_models()
     {
         foreach (var vm in Models())
         {
+            vm.Keys(false, T0);
             vm.Show(Pool("TEST_GEN", 40));
-            // As the WPF panel does: hiding reports the pointer gone, from inside the property change.
-            vm.Changed += name =>
-            {
-                if (name == "ShowCardPoolPopup" && !vm.Popup)
-                {
-                    vm.Pointer(false, false, false, T0 + Rested);
-                }
-            };
-            vm.Pointer(true, false, false, T0);
-            vm.Pointer(true, false, false, T0 + Rested);
-            vm.Pointer(true, false, true, T0 + Rested);
-            Assert.True(vm.BrowserOpen, vm.Name);
+            Assert.False(vm.Panel, vm.Name);
+            Assert.False(vm.Popup, vm.Name);
+            vm.Show(null, List());
+            Assert.False(vm.Panel, vm.Name);
         }
     }
 
     [Fact]
-    public void An_open_browser_stays_open_until_the_player_closes_it_in_both_view_models()
+    public void With_ctrl_a_hand_cards_pool_shows_at_the_panels_own_spot_and_goes_150_ms_after_ctrl_is_let_go()
+    {
+        foreach (var vm in Models())
+        {
+            vm.Keys(true, T0);
+            Assert.Equal([true], vm.ControlChanges);
+            vm.Show(Pool("TEST_GEN", 40));
+            Assert.True(vm.Panel, vm.Name);
+            Assert.False(vm.Popup, vm.Name);
+
+            // The pointer goes on along the hand with Ctrl held: another card's pool takes the same panel, a card with
+            // nothing to show (or the way to the panel) keeps the last one.
+            vm.Show(Pool("OTHER_GEN", 30));
+            Assert.Equal("Generator OTHER_GEN", vm.Title);
+            vm.Show(null);
+            vm.Keys(true, T0 + Ms(2000));
+            Assert.True(vm.Panel, vm.Name);
+            Assert.Equal("Generator OTHER_GEN", vm.Title);
+
+            // Ctrl let go with the pointer off the panel: gone 150 ms later, not before.
+            vm.Keys(false, T0 + Ms(3000));
+            Assert.Equal([true, false], vm.ControlChanges);
+            vm.Keys(false, T0 + Ms(3100));
+            Assert.True(vm.Panel, vm.Name);
+            vm.Keys(false, T0 + Ms(3160));
+            Assert.False(vm.Panel, vm.Name);
+
+            // A pool the session still hands just after Ctrl came up is not shown again.
+            vm.Show(Pool("TEST_GEN", 40));
+            Assert.False(vm.Panel, vm.Name);
+        }
+    }
+
+    [Fact]
+    public void The_pointer_on_the_panel_keeps_it_without_ctrl_and_it_goes_after_the_pointer_leaves()
+    {
+        foreach (var vm in Models())
+        {
+            vm.Keys(true, T0);
+            vm.Show(Pool("TEST_GEN", 40));
+            vm.Pointer(true, T0 + Ms(500));
+            Assert.True(vm.Held, vm.Name);
+            vm.Keys(false, T0 + Ms(600));
+            vm.Show(null);
+            vm.Keys(false, T0 + Ms(5000));
+            Assert.True(vm.Panel, vm.Name);
+
+            vm.Pointer(false, T0 + Ms(5000));
+            Assert.False(vm.Held, vm.Name);
+            vm.Keys(false, T0 + Ms(5100));
+            Assert.True(vm.Panel, vm.Name);
+            vm.Keys(false, T0 + Ms(5160));
+            Assert.False(vm.Panel, vm.Name);
+        }
+    }
+
+    [Fact]
+    public void Always_shows_without_ctrl_and_goes_300_ms_after_the_card_is_left_unless_ctrl_keeps_it()
+    {
+        foreach (var vm in Models(new AppSettings { CardPoolHover = CardPoolHover.Always }))
+        {
+            vm.Keys(false, T0);
+            vm.Show(Pool("TEST_GEN", 40));
+            Assert.True(vm.Panel, vm.Name);
+            vm.Keys(false, T0 + Ms(100));
+
+            // The card is left: the panel stays 300 ms (the way to it is long; Ctrl or the pointer on it keep it).
+            vm.Show(null);
+            vm.Keys(false, T0 + Ms(350));
+            Assert.True(vm.Panel, vm.Name);
+            vm.Keys(false, T0 + Ms(410));
+            Assert.False(vm.Panel, vm.Name);
+
+            vm.Show(Pool("TEST_GEN", 40));
+            vm.Keys(true, T0 + Ms(1000));
+            vm.Show(null);
+            vm.Keys(true, T0 + Ms(3000));
+            Assert.True(vm.Panel, vm.Name);
+        }
+    }
+
+    [Fact]
+    public void Off_never_shows_a_hand_cards_pool()
+    {
+        foreach (var vm in Models(new AppSettings { CardPoolHover = CardPoolHover.Off }))
+        {
+            vm.Keys(true, T0);
+            vm.Show(Pool("TEST_GEN", 40));
+            Assert.False(vm.Panel, vm.Name);
+            vm.Show(null, List());
+            Assert.False(vm.Panel, vm.Name);
+        }
+    }
+
+    [Fact]
+    public void A_discover_pool_stands_beside_the_options_and_goes_with_the_pick()
+    {
+        foreach (var vm in Models())
+        {
+            vm.Keys(true, T0);
+            vm.Show(Pool("DISCOVER_GEN", 40) with { Trigger = PoolTrigger.Choice }, anchor: new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3));
+            Assert.True(vm.Popup, vm.Name);
+            Assert.False(vm.Panel, vm.Name);
+
+            // Not held by the pointer, nor kept by Ctrl: the pick ends it at once.
+            vm.Pointer(true, T0 + Ms(500));
+            Assert.False(vm.Held, vm.Name);
+            vm.Show(null);
+            Assert.False(vm.Popup, vm.Name);
+            Assert.False(vm.Panel, vm.Name);
+        }
+    }
+
+    [Fact]
+    public void The_all_cards_button_opens_the_browser_and_a_small_pool_lists_every_card_instead()
     {
         var previous = Loc.Instance.Language;
         try
         {
             Loc.Instance.SetLanguage(Loc.English);
-            var list = new MatchListView("OTHER_LIST", "Other", "Your minions that died", 1, [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 1)]);
             foreach (var vm in Models())
             {
+                vm.Keys(true, T0);
                 vm.Show(Pool("TEST_GEN", 40));
-                vm.Pointer(true, false, false, T0);
-                vm.Pointer(true, false, false, T0 + Rested);
-                vm.Pointer(true, false, true, T0 + Rested);
-                Assert.True(vm.BrowserOpen, vm.Name);
-                vm.Pointer(false, false, false, T0 + Rested * 2);
+                Assert.Equal((true, "All cards · 40"), vm.AllCards);
 
-                // (a) The wiki list comes for the same card: the pool's count changes, the browser shows the new list.
-                vm.Show(Pool("TEST_GEN", 42));
+                // The button: the browser opens on the shown pool and the compact panel hides while it is open.
+                vm.OpenAll();
                 Assert.True(vm.BrowserOpen, vm.Name);
-                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
-
-                // (b) The hovered card's linger ran out: no pool, no list.
-                vm.Show(null);
-                Assert.True(vm.BrowserOpen, vm.Name);
-
-                // (c) The pointer crossed another hand card with a pool, or with only a "this game" list.
-                vm.Show(Pool("OTHER_GEN", 12));
-                Assert.True(vm.BrowserOpen, vm.Name);
-                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
-                vm.Show(null, list);
-                Assert.True(vm.BrowserOpen, vm.Name);
-                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
-
-                // A Discover of another card starts while the browser is open: the browser keeps its pool (the coordinator's
-                // decision, 2026-11-09); the Discover panel shows once the player closes it.
-                vm.Show(Pool("DISCOVER_GEN", 9) with { Trigger = PoolTrigger.Choice });
-                Assert.True(vm.BrowserOpen, vm.Name);
-                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
-                Assert.False(vm.Popup, vm.Name);
-                vm.Show(null, list);
-
-                // Only the player closes it (×, Esc, right-click again, the turn): then the current card's pool is back.
+                Assert.False(vm.Panel, vm.Name);
+                Assert.Contains("40", vm.BrowserTitle, StringComparison.Ordinal);
                 vm.Close();
                 Assert.False(vm.BrowserOpen, vm.Name);
-                Assert.True(vm.Popup, vm.Name);
+                // Ctrl still held: the panel is back.
+                Assert.True(vm.Panel, vm.Name);
+
+                // Twelve cards or fewer: every card, by cost then name, and no button.
+                vm.Show(View("SMALL", [Card("S_C", "MINION", 3, 1, 1), Card("S_A", "SPELL", 1, null, null), Card("S_B", "SPELL", 1, null, null)], new Dictionary<string, int>()));
+                Assert.Equal((false, "All cards · 3"), vm.AllCards);
+                Assert.Equal("Every card in the pool", vm.RowsTitle);
+                Assert.Equal([("S_A", ""), ("S_B", ""), ("S_C", "")], vm.Rows);
             }
         }
         finally
@@ -128,45 +191,7 @@ public sealed class CardPoolPopupTests
     }
 
     [Fact]
-    public void A_held_pool_lets_go_on_a_left_press_and_when_the_pointer_leaves()
-    {
-        foreach (var vm in Models())
-        {
-            vm.Show(Pool("TEST_GEN", 40));
-            // Crossing the popup quickly holds nothing; resting on it does.
-            vm.Pointer(true, false, false, T0);
-            vm.Pointer(true, false, false, T0 + TimeSpan.FromMilliseconds(100));
-            Assert.False(vm.Held, vm.Name);
-            vm.Pointer(true, false, false, T0 + Rested);
-            Assert.True(vm.Held, vm.Name);
-
-            // The hovered card is gone (played, or the linger ran out): the held popup stays while the player reads it.
-            vm.Show(null);
-            Assert.True(vm.Popup, vm.Name);
-
-            // A left press is the game's (playing a card, aiming through the panel): the hold ends and the popup goes.
-            vm.Pointer(true, true, false, T0 + Rested * 2);
-            Assert.False(vm.Held, vm.Name);
-            Assert.False(vm.Popup, vm.Name);
-
-            // Resting with the left button held (dragging a card over it) never holds.
-            vm.Show(Pool("TEST_GEN", 40));
-            vm.Pointer(true, true, false, T0);
-            vm.Pointer(true, true, false, T0 + Rested * 3);
-            Assert.False(vm.Held, vm.Name);
-
-            // Held, then the pointer leaves: the popup goes with the pool.
-            vm.Pointer(true, false, false, T0 + Rested * 3);
-            vm.Pointer(true, false, false, T0 + Rested * 5);
-            Assert.True(vm.Held, vm.Name);
-            vm.Show(null);
-            vm.Pointer(false, false, false, T0 + Rested * 6);
-            Assert.False(vm.Popup, vm.Name);
-        }
-    }
-
-    [Fact]
-    public void The_popup_shows_averages_in_the_summary_and_the_most_played_cards_as_rows()
+    public void The_panel_names_the_card_its_size_and_classes_and_lists_the_most_played_cards_without_shares()
     {
         var previous = Loc.Instance.Language;
         var culture = CultureInfo.CurrentCulture;
@@ -174,26 +199,21 @@ public sealed class CardPoolPopupTests
         {
             Loc.Instance.SetLanguage(Loc.English);
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-            var cards = new List<PoolCard>
-            {
-                Card("A", "SPELL", 2, null, null),
-                Card("B", "MINION", 4, 3, 5),
-                Card("C", "MINION", 9, 6, 6),
-                Card("D", "WEAPON", 3, 4, 2),
-            };
-            var meta = new Dictionary<string, int> { ["B"] = 300, ["C"] = 100 };
+            var cards = Enumerable.Range(0, 20).Select(i => Card($"C{i:00}", "MINION", i % 9, 1, 1)).ToList();
+            var meta = new Dictionary<string, int> { ["C05"] = 300, ["C02"] = 100 };
             foreach (var vm in Models())
             {
+                vm.Keys(true, T0);
                 vm.Show(View("TEST_GEN", cards, meta));
-                // Mana over all 4 cards, attack over the minions and the weapon, health over the minions.
-                Assert.Equal([("Average cost", "4.5"), ("Average attack", "4.3"), ("Average health", "5.5")], vm.Averages());
-                // The whole name and the share of the pool's meta-deck games.
-                Assert.Equal([("B", "Card B with a long name", 4, "75%"), ("C", "Card C with a long name", 9, "25%")], vm.Top());
+                Assert.Equal(("Generator TEST_GEN", "20 cards · Mage + Neutral"), (vm.Title, vm.Note));
+                Assert.Equal("Most played in meta decks", vm.RowsTitle);
+                // In order of meta-deck games, and no share: the order says "most played".
+                Assert.Equal([("C05", ""), ("C02", "")], vm.Rows);
 
-                // Spells only: no attack or health.
-                vm.Show(View("SPELLS", [Card("S1", "SPELL", 1, null, null), Card("S2", "SPELL", 2, null, null)], new Dictionary<string, int>()));
-                Assert.Equal([("Average cost", "1.5")], vm.Averages());
-                Assert.Empty(vm.Top());
+                // Without meta data there is nothing to list; the button stays.
+                vm.Show(View("PLAIN_GEN", cards, new Dictionary<string, int>()));
+                Assert.Empty(vm.Rows);
+                Assert.True(vm.AllCards.Shown, vm.Name);
             }
         }
         finally
@@ -210,32 +230,27 @@ public sealed class CardPoolPopupTests
         try
         {
             Loc.Instance.SetLanguage(Loc.English);
-            var list = new MatchListView("JAIL_940", "Undeath Sentence", "Your minions that died · Deathrattle", 3,
-                [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 2), new MatchListRow("DR_2", "Abomination", 5, "RARE", 1)]);
+            var list = List();
             foreach (var vm in Models())
             {
-                // No pool: the popup is the list, its header names it and the card.
-                vm.Show(null, list);
-                Assert.True(vm.Popup, vm.Name);
-                Assert.Equal(("Your minions that died · Deathrattle: 3", "Undeath Sentence", ""), vm.ListHeader());
-                Assert.Equal([("DR_1", "×2"), ("DR_2", "")], vm.ListRows());
+                vm.Keys(true, T0);
 
-                // With the card's own pool: the list sits above it under its own label.
+                // No pool: the panel names the card, the section names the list.
+                vm.Show(null, list);
+                Assert.True(vm.Panel, vm.Name);
+                Assert.Equal(("Undeath Sentence", ""), (vm.Title, vm.Note));
+                Assert.Equal("Your minions that died · Deathrattle: 3", vm.ListTitle);
+                Assert.Equal([("DR_1", "×2"), ("DR_2", "")], vm.ListRows);
+                Assert.False(vm.AllCards.Shown, vm.Name);
+
+                // With the card's own pool: the list sits above it under the same label.
                 vm.Show(Pool("JAIL_940", 12), list);
-                Assert.Equal(("Pool of 12 cards", "Generator JAIL_940", "Your minions that died · Deathrattle: 3"), vm.ListHeader());
+                Assert.Equal(("Generator JAIL_940", "Your minions that died · Deathrattle: 3"), (vm.Title, vm.ListTitle));
 
                 // Nothing died yet: an empty list says so.
                 vm.Show(null, list with { Total = 0, Rows = [] });
-                Assert.Empty(vm.ListRows());
-                Assert.Equal("None this game yet", vm.ListNote());
-
-                // Held while the list is read, then gone with the pointer.
-                vm.Pointer(true, false, false, T0);
-                vm.Pointer(true, false, false, T0 + Rested);
-                vm.Show(null);
-                Assert.True(vm.Popup, vm.Name);
-                vm.Pointer(false, false, false, T0 + Rested * 2);
-                Assert.False(vm.Popup, vm.Name);
+                Assert.Empty(vm.ListRows);
+                Assert.Equal("None this game yet", vm.ListNote);
             }
         }
         finally
@@ -245,117 +260,7 @@ public sealed class CardPoolPopupTests
     }
 
     [Fact]
-    public void Related_cards_get_a_zone_of_their_own_under_the_pool_in_both_view_models()
-    {
-        var previous = Loc.Instance.Language;
-        try
-        {
-            Loc.Instance.SetLanguage(Loc.English);
-            // A card without a "this game" rule: the view hands its related cards in MatchList, titled "Related cards".
-            var related = Related("TEST_GEN", 1);
-            foreach (var vm in Models())
-            {
-                // With the card's pool: no "this game" block above the pool, the related cards at the bottom.
-                vm.Show(Pool("TEST_GEN", 40), related);
-                Assert.False(vm.ShowList, vm.Name);
-                var (title, rows, note) = vm.Related();
-                Assert.Equal("Related cards: 1", title);
-                Assert.Equal(["REL_0"], rows);
-                Assert.Equal(string.Empty, note);
-
-                // Nothing else: the related cards are the panel (its title), no zone of their own.
-                vm.Show(null, Related("SPELL", 2));
-                Assert.True(vm.Popup, vm.Name);
-                Assert.True(vm.ShowList, vm.Name);
-                Assert.Equal("Related cards: 2", vm.ListHeader().Item1);
-                (title, rows, note) = vm.Related();
-                Assert.Equal(string.Empty, title);
-                Assert.Empty(rows);
-
-                // More than six: six rows and "+N more" (the card preview shows them all).
-                vm.Show(Pool("TEST_GEN", 40), Related("TEST_GEN", 8));
-                (_, rows, note) = vm.Related();
-                Assert.Equal(6, rows.Count);
-                Assert.Equal("+2 more", note);
-            }
-        }
-        finally
-        {
-            Loc.Instance.SetLanguage(previous);
-        }
-    }
-
-    [Fact]
-    public void A_this_game_list_and_related_cards_show_as_two_blocks_in_both_view_models()
-    {
-        var previous = Loc.Instance.Language;
-        try
-        {
-            Loc.Instance.SetLanguage(Loc.English);
-            // N'Zoth in hand, two Deathrattle minions summoned: the rule's list on top, its four abilities in their zone.
-            var list = new MatchListView("BE_017", "N'Zoth", "Minions you summoned · Deathrattle", 2,
-                [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 1), new MatchListRow("DR_2", "Abomination", 5, "RARE", 1)]);
-            var related = Related("BE_017", 4) with { Rows = [.. new[] { "BE_017t3", "BE_017t4", "BE_017t5", "BE_017t6" }.Select(id => new MatchListRow(id, id, 0, "", 1))] };
-            foreach (var vm in Models())
-            {
-                vm.Show(null, list, related);
-                Assert.True(vm.Popup, vm.Name);
-                Assert.Equal("Minions you summoned · Deathrattle: 2", vm.ListHeader().Item1);
-                Assert.Equal([("DR_1", ""), ("DR_2", "")], vm.ListRows());
-                var (title, rows, _) = vm.Related();
-                Assert.Equal("Related cards: 4", title);
-                Assert.Equal(["BE_017t3", "BE_017t4", "BE_017t5", "BE_017t6"], rows);
-            }
-        }
-        finally
-        {
-            Loc.Instance.SetLanguage(previous);
-        }
-    }
-
-    [Fact]
-    public void The_popup_header_names_classes_and_format_and_the_movable_panel_names_the_card_too()
-    {
-        var previous = Loc.Instance.Language;
-        try
-        {
-            Loc.Instance.SetLanguage(Loc.English);
-            foreach (var vm in Models())
-            {
-                vm.Show(Pool("TEST_GEN", 40));
-                Assert.Equal(("Mage + Neutral · Standard", "Generator TEST_GEN · Mage + Neutral · Standard"), vm.Notes());
-            }
-        }
-        finally
-        {
-            Loc.Instance.SetLanguage(previous);
-        }
-    }
-
-    private static MatchListView Related(string source, int count) =>
-        new(source, "Generator " + source, Loc.T("Related.Title"), count,
-            [.. Enumerable.Range(0, count).Select(i => new MatchListRow($"REL_{i}", $"Related {i}", 0, "COMMON", 1))]);
-
-    [Fact]
-    public void The_wpf_popup_lays_out_a_this_game_list() => WpfThread.RunThemed(() =>
-    {
-        var vm = new OverlayViewModel();
-        var panel = new CardPoolPanel { Anchored = true, DataContext = vm };
-        panel.SetBinding(UIElement.VisibilityProperty, new Binding(nameof(OverlayViewModel.ShowCardPoolPopup)) { Converter = new BooleanToVisibilityConverter() });
-        var root = new Canvas { Width = 1920, Height = 1080 };
-        root.Children.Add(panel);
-        using var source = new HwndSource(new HwndSourceParameters("pool popup test", 1920, 1080) { WindowStyle = 0 }) { RootVisual = root };
-        var list = new MatchListView("JAIL_940", "Undeath Sentence", "Your minions that died · Deathrattle", 2, [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 2)]);
-        vm.Update(Snapshot(null, list), CardDb.Empty, new AppSettings(), null, null);
-        root.UpdateLayout();
-
-        Assert.True(panel.IsVisible);
-        // Header, one row, the bottom space: a short tooltip.
-        Assert.InRange(panel.ActualHeight, 60, 160);
-    });
-
-    [Fact]
-    public void An_excavate_pool_shows_the_next_tier_as_rows_and_the_others_on_a_line_each_in_both_view_models()
+    public void An_excavate_pool_shows_its_tier_and_the_next_tiers_rows_only_in_both_view_models()
     {
         var previous = Loc.Instance.Language;
         try
@@ -365,24 +270,15 @@ public sealed class CardPoolPopupTests
             var view = Excavate(new ExcavateState(2, 4));
             foreach (var vm in Models())
             {
+                vm.Keys(true, T0);
                 vm.Show(view);
-                Assert.True(vm.Popup, vm.Name);
-                var (title, next, rows, tiers, sections) = vm.Excavate();
-                Assert.Equal("Excavate: tier 2 of 4", title);
-                Assert.Equal("Next treasure · rare", next);
-                Assert.Equal(Hearthpulse.Core.CardPool.Excavate.TierTreasures(2, "DEATHKNIGHT").Select(t => t.Id).Order(), rows.Order());
-                Assert.Equal(["T3", "T4", "T1"], tiers.Select(t => t.Label));
-                Assert.Equal("The Azerite Rat", tiers[1].Names);
-                Assert.False(sections, vm.Name);
-                Assert.Empty(vm.Averages());
-
-                // A pool from a deck row (no game): every tier on its line, no next one.
-                vm.Show(Excavate(null));
-                (title, next, rows, tiers, _) = vm.Excavate();
-                Assert.Equal("Excavate: 4 tiers", title);
-                Assert.Equal(string.Empty, next);
-                Assert.Empty(rows);
-                Assert.Equal(["T1", "T2", "T3", "T4"], tiers.Select(t => t.Label));
+                Assert.True(vm.Panel, vm.Name);
+                Assert.Equal("Excavate: tier 2 of 4", vm.Note);
+                Assert.Equal("Next treasure · rare", vm.ExcavateNext);
+                Assert.Equal(Hearthpulse.Core.CardPool.Excavate.TierTreasures(2, "DEATHKNIGHT").Select(t => t.Id).Order(), vm.ExcavateRows.Order());
+                // The other tiers are the browser's sections; the panel lists no pool rows of its own.
+                Assert.Empty(vm.Rows);
+                Assert.Equal((true, $"All cards · {view.Count}"), vm.AllCards);
             }
         }
         finally
@@ -392,122 +288,247 @@ public sealed class CardPoolPopupTests
     }
 
     [Fact]
-    public void The_wpf_popup_lays_out_an_excavate_pool() => WpfThread.RunThemed(() =>
+    public void An_open_browser_stays_open_until_the_player_closes_it_in_both_view_models()
+    {
+        var previous = Loc.Instance.Language;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            foreach (var vm in Models())
+            {
+                vm.Keys(true, T0);
+                vm.Show(Pool("TEST_GEN", 40));
+                vm.OpenAll();
+                Assert.True(vm.BrowserOpen, vm.Name);
+
+                // The wiki list comes for the same card: the browser shows the new count.
+                vm.Show(Pool("TEST_GEN", 42));
+                Assert.True(vm.BrowserOpen, vm.Name);
+                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
+
+                // Ctrl let go, another card with a pool or a list, a Discover of another card: the browser keeps its pool.
+                vm.Keys(false, T0 + Ms(1000));
+                vm.Show(null);
+                vm.Keys(false, T0 + Ms(2000));
+                Assert.True(vm.BrowserOpen, vm.Name);
+                vm.Show(Pool("OTHER_GEN", 30));
+                vm.Show(null, List());
+                vm.Show(Pool("DISCOVER_GEN", 9) with { Trigger = PoolTrigger.Choice }, anchor: new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3));
+                Assert.True(vm.BrowserOpen, vm.Name);
+                Assert.Contains("42", vm.BrowserTitle, StringComparison.Ordinal);
+                Assert.False(vm.Popup, vm.Name);
+
+                // Only the player closes it (×, Esc, the turn): then what the game shows now - the Discover's pool.
+                vm.Close();
+                Assert.False(vm.BrowserOpen, vm.Name);
+                Assert.True(vm.Popup, vm.Name);
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(previous);
+        }
+    }
+
+    [Fact]
+    public void The_wpf_panel_lays_out_a_this_game_list() => WpfThread.RunThemed(() =>
+    {
+        var (vm, panel, source) = WpfPanel();
+        using (source)
+        {
+            vm.UpdateCardPoolKeys(true, T0);
+            vm.Update(Snapshot(null, List()), CardDb.Empty, new AppSettings(), null, null);
+            ((FrameworkElement)source.RootVisual).UpdateLayout();
+
+            Assert.True(panel.IsVisible);
+            // Header, the section, two rows, the bottom space: a short panel.
+            Assert.InRange(panel.ActualHeight, 80, 180);
+        }
+    });
+
+    [Fact]
+    public void The_wpf_panel_lays_out_an_excavate_pool() => WpfThread.RunThemed(() =>
+    {
+        var (vm, panel, source) = WpfPanel();
+        using (source)
+        {
+            vm.UpdateCardPoolKeys(true, T0);
+            vm.Update(Snapshot(Excavate(new ExcavateState(1, 4))), CardDb.Empty, new AppSettings(), null, null);
+            ((FrameworkElement)source.RootVisual).UpdateLayout();
+
+            Assert.True(panel.IsVisible);
+            // Header, six rows of the next tier and the button: no taller than a pool with its top cards.
+            Assert.InRange(panel.ActualHeight, 200, 330);
+        }
+    });
+
+    [Fact]
+    public void The_wpf_all_cards_button_is_the_panels_one_interactive_part_and_opens_the_browser() => WpfThread.RunThemed(() =>
+    {
+        var (vm, panel, source) = WpfPanel();
+        using (source)
+        {
+            vm.UpdateCardPoolKeys(true, T0);
+            vm.Update(Snapshot(Pool("TEST_GEN", 40)), CardDb.Empty, new AppSettings(), null, null);
+            ((FrameworkElement)source.RootVisual).UpdateLayout();
+
+            var button = (Button)panel.FindName("AllCards");
+            Assert.Equal(Visibility.Visible, button.Visibility);
+            Assert.True(OverlayHit.GetInteractive(button));
+            Assert.Same(panel.FindResource("LockButton"), button.Style);
+            // Nothing else of the panel takes the mouse: clicks reach the game.
+            Assert.Equal(new DependencyObject[] { button }, Descendants(panel).Where(OverlayHit.GetInteractive));
+
+            button.Command.Execute(button.CommandParameter);
+            Assert.True(vm.CardPoolBrowserOpen);
+            Assert.False(panel.IsVisible);
+        }
+    });
+
+    private static (OverlayViewModel Vm, CardPoolPanel Panel, HwndSource Source) WpfPanel()
     {
         var vm = new OverlayViewModel();
-        var panel = new CardPoolPanel { Anchored = true, DataContext = vm };
-        panel.SetBinding(UIElement.VisibilityProperty, new Binding(nameof(OverlayViewModel.ShowCardPoolPopup)) { Converter = new BooleanToVisibilityConverter() });
+        // The movable panel's content, shown as the "card-pool" panel shows it.
+        var panel = new CardPoolPanel { DataContext = vm };
+        panel.SetBinding(UIElement.VisibilityProperty, new Binding(nameof(OverlayViewModel.ShowCardPoolPanel)) { Converter = new BooleanToVisibilityConverter() });
         var root = new Canvas { Width = 1920, Height = 1080 };
         root.Children.Add(panel);
-        using var source = new HwndSource(new HwndSourceParameters("pool popup test", 1920, 1080) { WindowStyle = 0 }) { RootVisual = root };
-        vm.Update(Snapshot(Excavate(new ExcavateState(1, 4))), CardDb.Empty, new AppSettings(), null, null);
-        root.UpdateLayout();
+        // A window that is never shown: the panel is in a live visual tree (IsVisible works).
+        return (vm, panel, new HwndSource(new HwndSourceParameters("pool panel test", 1920, 1080) { WindowStyle = 0 }) { RootVisual = root });
+    }
 
-        Assert.True(panel.IsVisible);
-        // Header, six rows of the next tier, three quiet lines and the hint: no taller than a pool with its top cards.
-        Assert.InRange(panel.ActualHeight, 200, 360);
-    });
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject node)
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(node); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(node, i);
+            yield return child;
+            foreach (var below in Descendants(child))
+            {
+                yield return below;
+            }
+        }
+    }
 
     private static CardPoolView Excavate(ExcavateState? state) =>
         new CardPoolEngine(CardPoolCatalog.Empty, CardDb.Empty)
             .Build("WW_001t", new PoolContext("FT_WILD", "DEATHKNIGHT", "WARRIOR") { Excavate = state }, PoolTrigger.Hover)!;
 
+    private static MatchListView List() =>
+        new("JAIL_940", "Undeath Sentence", "Your minions that died · Deathrattle", 3,
+            [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 2), new MatchListRow("DR_2", "Abomination", 5, "RARE", 1)]);
+
     /// <summary>The same calls on the WPF and the Avalonia build of the shared view model.</summary>
     private sealed class Model
     {
         public required string Name { get; init; }
-        public required Action<CardPoolView?, MatchListView?, MatchListView?> ShowWith { get; init; }
-        public required Action<bool, bool, bool, DateTime> Pointer { get; init; }
+        public required Action<CardPoolView?, MatchListView?, CardPoolAnchor?> ShowWith { get; init; }
+        public required Action<bool, DateTime> Keys { get; init; }
+        public required Action<bool, DateTime> Pointer { get; init; }
         public required Func<bool> HeldNow { get; init; }
-        public required Func<bool> BrowserNow { get; init; }
+        public required Func<bool> PanelNow { get; init; }
         public required Func<bool> PopupNow { get; init; }
+        public required Func<bool> BrowserNow { get; init; }
         public required Func<string> BrowserTitleNow { get; init; }
+        public required Action OpenBrowser { get; init; }
         public required Action CloseBrowser { get; init; }
-        public required Func<IReadOnlyList<(string, string)>> Averages { get; init; }
-        public required Func<IReadOnlyList<(string, string, int, string)>> Top { get; init; }
-        public required Func<(string, string, string)> ListHeader { get; init; }
-        public required Func<IReadOnlyList<(string, string)>> ListRows { get; init; }
-        public required Func<string> ListNote { get; init; }
-        public required Func<bool> ShowListNow { get; init; }
-        public required Func<(string Title, IReadOnlyList<string> Rows, string Note)> Related { get; init; }
-        public required Func<(string Popup, string Panel)> Notes { get; init; }
-        public required Func<(string Title, string Next, IReadOnlyList<string> Rows, IReadOnlyList<(string Label, string Names)> Tiers, bool Sections)> Excavate { get; init; }
-        public event Action<string?>? Changed;
+        public required Func<(string Title, string Note)> Header { get; init; }
+        public required Func<IReadOnlyList<(string, string)>> RowsNow { get; init; }
+        public required Func<string> RowsTitleNow { get; init; }
+        public required Func<(bool Shown, string Text)> AllCardsNow { get; init; }
+        public required Func<string> ListTitleNow { get; init; }
+        public required Func<IReadOnlyList<(string, string)>> ListRowsNow { get; init; }
+        public required Func<string> ListNoteNow { get; init; }
+        public required Func<(string Next, IReadOnlyList<string> Rows)> ExcavateNow { get; init; }
+        public List<bool> ControlChanges { get; } = [];
 
-        public void Show(CardPoolView? pool, MatchListView? list = null, MatchListView? related = null) => ShowWith(pool, list, related);
+        public void Show(CardPoolView? pool, MatchListView? list = null, CardPoolAnchor? anchor = null) => ShowWith(pool, list, anchor);
 
         public bool Held => HeldNow();
-        public bool BrowserOpen => BrowserNow();
+        public bool Panel => PanelNow();
         public bool Popup => PopupNow();
+        public bool BrowserOpen => BrowserNow();
         public string BrowserTitle => BrowserTitleNow();
-        public bool ShowList => ShowListNow();
+        public string Title => Header().Title;
+        public string Note => Header().Note;
+        public IReadOnlyList<(string, string)> Rows => RowsNow();
+        public string RowsTitle => RowsTitleNow();
+        public (bool Shown, string Text) AllCards => AllCardsNow();
+        public string ListTitle => ListTitleNow();
+        public IReadOnlyList<(string, string)> ListRows => ListRowsNow();
+        public string ListNote => ListNoteNow();
+        public string ExcavateNext => ExcavateNow().Next;
+        public IReadOnlyList<string> ExcavateRows => ExcavateNow().Rows;
+
+        public void OpenAll() => OpenBrowser();
 
         public void Close() => CloseBrowser();
-
-        public void Raise(string? name) => Changed?.Invoke(name);
     }
 
-    private static IEnumerable<Model> Models()
+    private static IEnumerable<Model> Models(AppSettings? settings = null)
     {
+        var wpfSettings = settings ?? new AppSettings();
         var wpf = new OverlayViewModel();
         var a = new Model
         {
             Name = "WPF",
-            ShowWith = (pool, list, related) => wpf.Update(Snapshot(pool, list, related), CardDb.Empty, new AppSettings(), null, null),
+            ShowWith = (pool, list, anchor) => wpf.Update(Snapshot(pool, list, anchor), CardDb.Empty, wpfSettings, null, null),
+            Keys = wpf.UpdateCardPoolKeys,
             Pointer = wpf.UpdateCardPoolPointer,
             HeldNow = () => wpf.CardPoolHeld,
-            BrowserNow = () => wpf.CardPoolBrowserOpen,
+            PanelNow = () => wpf.ShowCardPoolPanel,
             PopupNow = () => wpf.ShowCardPoolPopup,
+            BrowserNow = () => wpf.CardPoolBrowserOpen,
             BrowserTitleNow = () => wpf.CardPoolBrowserTitle,
+            OpenBrowser = () => wpf.OpenCardPoolBrowser.Execute(null),
             CloseBrowser = () => wpf.CloseCardPoolBrowser.Execute(null),
-            Averages = () => wpf.CardPoolAverages.Select(x => (x.Label, x.Value)).ToList(),
-            Top = () => wpf.CardPoolTopCards.Select(x => (x.CardId, x.Name, x.Cost, x.CountText)).ToList(),
-            ListHeader = () => (wpf.CardPoolTitle, wpf.CardPoolPhrase, wpf.CardPoolListTitle),
-            ListRows = () => wpf.CardPoolList.Select(x => (x.CardId, x.CountText)).ToList(),
-            ListNote = () => wpf.CardPoolListNote,
-            ShowListNow = () => wpf.ShowCardPoolList,
-            Related = () => (wpf.CardPoolRelatedTitle, wpf.CardPoolRelated.Select(r => r.CardId).ToList(), wpf.CardPoolRelatedNote),
-            Notes = () => (wpf.CardPoolMeta, wpf.CardPoolSourceNote),
-            Excavate = () => (wpf.CardPoolTitle, wpf.CardPoolExcavateNext, wpf.CardPoolExcavateRows.Select(r => r.CardId).ToList(),
-                wpf.CardPoolExcavateTiers.Select(t => (t.Label, t.Names)).ToList(), wpf.ShowCardPoolPanelSections),
+            Header = () => (wpf.CardPoolTitle, wpf.CardPoolNote),
+            RowsNow = () => wpf.CardPoolRows.Select(r => (r.CardId, r.CountText)).ToList(),
+            RowsTitleNow = () => wpf.CardPoolRowsTitle,
+            AllCardsNow = () => (wpf.ShowCardPoolAllCards, wpf.CardPoolAllCardsText),
+            ListTitleNow = () => wpf.CardPoolListTitle,
+            ListRowsNow = () => wpf.CardPoolList.Select(r => (r.CardId, r.CountText)).ToList(),
+            ListNoteNow = () => wpf.CardPoolListNote,
+            ExcavateNow = () => (wpf.CardPoolExcavateNext, wpf.CardPoolExcavateRows.Select(r => r.CardId).ToList()),
         };
-        ((INotifyPropertyChanged)wpf).PropertyChanged += (_, e) => a.Raise(e.PropertyName);
+        wpf.CardPoolControlChanged += a.ControlChanges.Add;
         yield return a;
 
+        var avaSettings = settings ?? new AppSettings();
         var ava = new AvaOverlay();
         var b = new Model
         {
             Name = "Avalonia",
-            ShowWith = (pool, list, related) => ava.Update(Snapshot(pool, list, related), CardDb.Empty, new AppSettings(), null, null),
+            ShowWith = (pool, list, anchor) => ava.Update(Snapshot(pool, list, anchor), CardDb.Empty, avaSettings, null, null),
+            Keys = ava.UpdateCardPoolKeys,
             Pointer = ava.UpdateCardPoolPointer,
             HeldNow = () => ava.CardPoolHeld,
-            BrowserNow = () => ava.CardPoolBrowserOpen,
+            PanelNow = () => ava.ShowCardPoolPanel,
             PopupNow = () => ava.ShowCardPoolPopup,
+            BrowserNow = () => ava.CardPoolBrowserOpen,
             BrowserTitleNow = () => ava.CardPoolBrowserTitle,
+            OpenBrowser = () => ava.OpenCardPoolBrowser.Execute(null),
             CloseBrowser = () => ava.CloseCardPoolBrowser.Execute(null),
-            Averages = () => ava.CardPoolAverages.Select(x => (x.Label, x.Value)).ToList(),
-            Top = () => ava.CardPoolTopCards.Select(x => (x.CardId, x.Name, x.Cost, x.CountText)).ToList(),
-            ListHeader = () => (ava.CardPoolTitle, ava.CardPoolPhrase, ava.CardPoolListTitle),
-            ListRows = () => ava.CardPoolList.Select(x => (x.CardId, x.CountText)).ToList(),
-            ListNote = () => ava.CardPoolListNote,
-            ShowListNow = () => ava.ShowCardPoolList,
-            Related = () => (ava.CardPoolRelatedTitle, ava.CardPoolRelated.Select(r => r.CardId).ToList(), ava.CardPoolRelatedNote),
-            Notes = () => (ava.CardPoolMeta, ava.CardPoolSourceNote),
-            Excavate = () => (ava.CardPoolTitle, ava.CardPoolExcavateNext, ava.CardPoolExcavateRows.Select(r => r.CardId).ToList(),
-                ava.CardPoolExcavateTiers.Select(t => (t.Label, t.Names)).ToList(), ava.ShowCardPoolPanelSections),
+            Header = () => (ava.CardPoolTitle, ava.CardPoolNote),
+            RowsNow = () => ava.CardPoolRows.Select(r => (r.CardId, r.CountText)).ToList(),
+            RowsTitleNow = () => ava.CardPoolRowsTitle,
+            AllCardsNow = () => (ava.ShowCardPoolAllCards, ava.CardPoolAllCardsText),
+            ListTitleNow = () => ava.CardPoolListTitle,
+            ListRowsNow = () => ava.CardPoolList.Select(r => (r.CardId, r.CountText)).ToList(),
+            ListNoteNow = () => ava.CardPoolListNote,
+            ExcavateNow = () => (ava.CardPoolExcavateNext, ava.CardPoolExcavateRows.Select(r => r.CardId).ToList()),
         };
-        ((INotifyPropertyChanged)ava).PropertyChanged += (_, e) => b.Raise(e.PropertyName);
+        ava.CardPoolControlChanged += b.ControlChanges.Add;
         yield return b;
     }
 
-    private static LiveSnapshot Snapshot(CardPoolView? pool, MatchListView? list = null, MatchListView? related = null)
+    private static LiveSnapshot Snapshot(CardPoolView? pool, MatchListView? list = null, CardPoolAnchor? anchor = null)
     {
         var constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
         {
             CardPool = pool,
             MatchList = list,
-            RelatedList = related,
-            CardPoolAnchor = pool is null && list is null ? null : new CardPoolAnchor(PoolAnchorZone.Hand, 1, 5),
+            CardPoolAnchor = anchor,
         };
         return LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
     }
@@ -522,6 +543,6 @@ public sealed class CardPoolPopupTests
     {
         var (cost, attack, health) = PoolStats.Histograms(cards);
         var entries = cards.Select(c => new PoolEntry(c.Id, c.Name, c.Cost, c.Attack, c.Health, c.Type, c.Rarity, "MAGE", meta.GetValueOrDefault(c.Id))).ToList();
-        return new CardPoolView(id, "Generator " + id, PoolTrigger.Hover, "Discover a minion", "Mage + Neutral · Standard", cards.Count, cost, attack, health, [], null, null, entries);
+        return new CardPoolView(id, "Generator " + id, PoolTrigger.Hover, "Discover a minion", "Mage + Neutral", cards.Count, cost, attack, health, [], null, null, entries);
     }
 }

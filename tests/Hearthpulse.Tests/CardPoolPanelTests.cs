@@ -200,13 +200,15 @@ public sealed class CardPoolPanelTests
         parser.Flush();
         var game = parser.Game!;
 
-        tracker.SetHovered("CORE_GIL_836", DateTime.UtcNow);
+        tracker.SetHovered("CORE_GIL_836");
         var hand = tracker.BuildView(game, cards)!;
         Assert.Equal(PoolTrigger.Hover, hand.Trigger);
-        Assert.Equal(new CardPoolAnchor(PoolAnchorZone.Hand, 1, 3), tracker.AnchorOf(game, hand));
+        // A hand card's pool shows at the panel's own spot (TASK-2026-11-26); the slot is still known to the geometry.
+        Assert.Null(tracker.AnchorOf(game, hand));
+        Assert.Equal(new CardPoolAnchor(PoolAnchorZone.Hand, 1, 3), CardPoolTracker.HandAnchor(game, "CORE_GIL_836"));
 
         // A generator on your board shows no pool on hover; only the hand counts for memory reads too.
-        tracker.SetHovered("CORE_KAR_069", DateTime.UtcNow);
+        tracker.SetHovered("CORE_KAR_069");
         Assert.Null(tracker.BuildView(game, cards));
         Assert.True(tracker.HandHasPool(game, cards));
 

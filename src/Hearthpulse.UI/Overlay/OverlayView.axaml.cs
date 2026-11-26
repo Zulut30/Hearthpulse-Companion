@@ -305,11 +305,11 @@ public partial class OverlayView : UserControl
     }
 
     /// <summary>
-    /// The card pool panel lets clicks through on every desktop: the host passes the pointer (view coordinates, null
-    /// when outside) and the mouse buttons it reads globally, for hover and right-click on the panel.
+    /// The card pool panel lets clicks through on every desktop but for its "All cards" button: the host passes the
+    /// pointer (view coordinates, null when outside) it reads globally, for the hold and the rows' card previews.
     /// </summary>
-    public void UpdateCardPoolPointer(Point? pointer, (bool Left, bool Right) buttons) =>
-        (CardPoolPopup.IsEffectivelyVisible ? CardPoolPopup : CardPool).UpdatePointer(this, pointer, buttons);
+    public void UpdateCardPoolPointer(Point? pointer) =>
+        (CardPoolPopup.IsEffectivelyVisible ? CardPoolPopup : CardPool).UpdatePointer(this, pointer);
 
     /// <summary>
     /// Updates the opponent-board popup from the pointer position (view coordinates, null when outside) and the hero the

@@ -197,7 +197,7 @@ public sealed class CardPoolTests
         Assert.InRange(view.Mechanics.Count, 1, PoolStats.MaxMechanics);
         Assert.Equal("BE_014", view.Featured!.CardId);
         Assert.Equal("Discover a Battlecry minion", view.Phrase);
-        Assert.Equal("Shaman + Neutral · Standard", view.Description);
+        Assert.Equal("Shaman + Neutral", view.Description);
         Assert.Equal(156, view.Cost.Count);
         Assert.Equal(view.Cards.OrderBy(c => c.Cost).Select(c => c.Cost), view.Cards.Select(c => c.Cost));
         // A named group the catalog does not mark has no cards, only the reason (the "Pool not computed" panel).
@@ -282,13 +282,13 @@ public sealed class CardPoolTests
         Assert.Null(tracker.BuildView(game, cards));
 
         // Hovered in hand.
-        tracker.SetHovered("CORE_GIL_836", DateTime.UtcNow);
+        tracker.SetHovered("CORE_GIL_836");
         var hovered = tracker.BuildView(game, cards)!;
         Assert.Equal(PoolTrigger.Hover, hovered.Trigger);
         Assert.Equal(156, hovered.Count);
-        Assert.Equal("Mage + Neutral · Standard", hovered.Description);
-        tracker.SetHovered(null, DateTime.UtcNow - CardPoolTracker.HoverLinger - TimeSpan.FromSeconds(1));
-        tracker.SetHovered(null, DateTime.UtcNow);
+        // The classes only: Standard or Wild is the format the player is in (TASK-2026-11-26, P-5).
+        Assert.Equal("Mage + Neutral", hovered.Description);
+        tracker.SetHovered(null);
 
         // Played: a card that left the hand shows no pool, not even for a few seconds.
         foreach (var line in new[]
@@ -330,7 +330,7 @@ public sealed class CardPoolTests
         Assert.Null(tracker.BuildView(game, cards));
 
         // Hover counts only for cards in your hand: the played Blazing Invocation is not.
-        tracker.SetHovered("CORE_GIL_836", DateTime.UtcNow);
+        tracker.SetHovered("CORE_GIL_836");
         Assert.Null(tracker.BuildView(game, cards));
     }
 
@@ -397,7 +397,7 @@ public sealed class CardPoolTests
     }
 
     [Fact]
-    public void The_scion_discover_of_a_real_game_shows_its_rune_pool_and_a_hovered_named_group_says_why_it_has_none()
+    public void The_scion_discover_of_a_real_game_shows_its_rune_pool_and_a_hovered_named_group_shows_no_panel()
     {
         // Lines from Hearthstone_2026_10_23_18_17_17 (18:29:16): Scion of Insight offers an Unholy, a Frost and a Blood card.
         var cards = CardDb.Parse("enUS", new MemoryStream("""
@@ -474,11 +474,12 @@ public sealed class CardPoolTests
         }
 
         parser.Flush();
-        tracker.SetHovered("EDR_841", DateTime.UtcNow);
-        var hovered = tracker.BuildView(game, cards)!;
-        Assert.Equal(PoolTrigger.Hover, hovered.Trigger);
-        Assert.Equal("EDR_841", hovered.SourceCardId);
-        Assert.Equal("a named group of cards that the catalog does not mark", hovered.Uncomputed);
+        // A pool the catalog cannot answer opens no panel (TASK-2026-11-26, P-8: the reason is only logged) and is no reason
+        // to read the card under the mouse.
+        tracker.SetHovered("EDR_841");
+        Assert.Equal("a named group of cards that the catalog does not mark", tracker.Engine!.Build("EDR_841", CardPoolTracker.ContextOf(game, cards), PoolTrigger.Hover)?.Uncomputed);
+        Assert.Null(tracker.BuildView(game, cards));
+        Assert.False(tracker.HandHasPool(game, cards));
 
         // Once played it shows nothing.
         foreach (var line in new[]

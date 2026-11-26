@@ -171,7 +171,7 @@ public sealed class CardPoolEngine
 
             var sections = wiki.Count > 1 ? wiki.Select(w => (w.Pool.Label, w.Cards)).ToList() : [];
             var phrase = parse.Generator?.Phrase ?? string.Join(", ", wiki.Select(w => w.Pool.Name));
-            var description = parse.Generator is { } g ? Describe(g, context) : $"{OwnClass(context)} · {Loc.T("Pool.Format.Standard")}";
+            var description = parse.Generator is { } g ? Describe(g, context) : OwnClass(context);
             return View(cardId, trigger, phrase, description, listed, sections, WikiPools.Source);
         }
 
@@ -187,7 +187,7 @@ public sealed class CardPoolEngine
             var what = parse.Status switch
             {
                 PoolParseStatus.Unrecognized => "not understood",
-                PoolParseStatus.Uncomputed => "pool not computed (panel says so)",
+                PoolParseStatus.Uncomputed => "pool not computed (no panel)",
                 _ => "has no catalog pool",
             };
             LogOnce(cardId, $"Card pool: {NameOf(cardId)} ({cardId}) {what}: {parse.Detail} | {TextOf(cardId)}");
@@ -350,7 +350,10 @@ public sealed class CardPoolEngine
         : (card ?? Catalog.Get(cardId)) is { } c ? (_cards.Locale == "ruRU" && c.NameRu is { Length: > 0 } ru ? ru : c.Name)
         : cardId;
 
-    /// <summary>"Battlecry minions · your class + Neutral · Standard".</summary>
+    /// <summary>
+    /// The pool's classes: "Mage + Neutral", "any class", plus "from the past" for Wild-only sets. Standard or Wild is the
+    /// format the player is in, so the panel does not say it (2026-11-26).
+    /// </summary>
     internal static string Describe(PoolGenerator generator, PoolContext context)
     {
         var q = generator.Query;
@@ -363,8 +366,7 @@ public sealed class CardPoolEngine
             ClassScope.Opponent => context.OpponentClass is { } opponent ? Title(opponent) : Loc.T("Pool.Scope.OpponentClass"),
             _ => generator.Verb == PoolVerb.Discover ? Loc.F("Pool.Scope.PlusNeutral", OwnClass(context)) : Loc.T("Pool.Scope.AnyClass"),
         };
-        var format = q.Past ? Loc.T("Pool.Format.Past") : context.IsStandard ? Loc.T("Pool.Format.Standard") : Loc.T("Pool.Format.Wild");
-        return string.Join(" · ", new[] { classes, format }.Where(s => s is not null));
+        return q.Past ? $"{classes} · {Loc.T("Pool.Format.Past")}" : classes;
     }
 
     private static string OwnClass(PoolContext context) => context.OwnClass is { } own ? Title(own) : Loc.T("Pool.Scope.YourClass");

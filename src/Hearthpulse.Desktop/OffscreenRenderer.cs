@@ -186,6 +186,11 @@ internal static partial class OffscreenRenderer
         {
             overlayView.Fit(1920, 1080);
             return Save(overlay, path);
+        }, async (path, width, height) =>
+        {
+            var (sized, _) = OpenOverlay(host, settings, width, height);
+            await Save(sized, path);
+            sized.Close();
         });
 
         await RenderWidgetsAsync(host, settings, overlayView, overlay, folder);

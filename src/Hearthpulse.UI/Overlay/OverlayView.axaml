@@ -134,19 +134,19 @@
                     </Border>
                 </o:MovablePanel>
 
-                <!-- ============ Constructed: card pool of a Discover / random generator ============ -->
+                <!-- ============ Constructed: card pool of a card in hand (with Ctrl by default), at the panel's own spot ============ -->
                 <o:MovablePanel Id="card-pool" Title="{i:Loc Overlay.Panel.CardPool}" Shown="{Binding ShowCardPoolPanel}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,76,0,0">
                     <o:CardPoolPanel x:Name="CardPool" />
                 </o:MovablePanel>
 
-                <!-- ============ Constructed: card pool browser (every card; right-click on the pool panel) ============ -->
+                <!-- ============ Constructed: card pool browser (every card; the pool panel's "All cards" button) ============ -->
                 <!-- Left edge by default: on the right it would cover the End Turn button. -->
                 <o:MovablePanel Id="card-pool-browser" Title="{i:Loc Overlay.Panel.CardPoolBrowser}" Shown="{Binding CardPoolBrowserOpen}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,148,0,0">
                     <o:CardPoolBrowser />
                 </o:MovablePanel>
 
-                <!-- ============ Constructed: the same card pool panel next to its card (hand, board, Discover options) ============ -->
-                <!-- Not a MovablePanel: it follows the card, placed by PoolPlacement in CardPoolPanel.axaml.cs. -->
+                <!-- ============ Constructed: the same card pool panel beside the options of the player's own Discover ============ -->
+                <!-- Not a MovablePanel: it stands beside the options, placed by PoolPlacement in CardPoolPanel.axaml.cs. -->
                 <Canvas>
                     <o:CardPoolPanel x:Name="CardPoolPopup" Anchored="True" IsVisible="{Binding ShowCardPoolPopup}" />
                 </Canvas>

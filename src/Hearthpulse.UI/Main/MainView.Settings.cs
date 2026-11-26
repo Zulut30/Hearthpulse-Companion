@@ -108,6 +108,9 @@ public partial class MainView
             case ["PickHints", var name] when Enum.TryParse<PickHints>(name, out var hints) && settings.PickHints != hints:
                 settings.PickHints = hints;
                 return true;
+            case ["CardPoolHover", var name] when Enum.TryParse<CardPoolHover>(name, out var hover) && settings.CardPoolHover != hover:
+                settings.CardPoolHover = hover;
+                return true;
             case ["Language", var language] when settings.Language != language:
                 settings.Language = language;
                 Loc.Instance.SetLanguage(settings.InterfaceLanguage());

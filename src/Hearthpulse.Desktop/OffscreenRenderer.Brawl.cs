@@ -145,6 +145,27 @@ internal static partial class OffscreenRenderer
             overlay.Close();
         }
 
+        if (RenderOnly("cardpool"))
+        {
+            // The card pool panel and browser (CardPoolRender.cs), then Settings → Tracker with the pool's rows.
+            var (overlay, overlayView) = OpenOverlay(host, host.Settings);
+            await CardPoolRender.RenderAsync(host, host.Settings, folder, path =>
+            {
+                overlayView.Fit(1920, 1080);
+                return Save(overlay, path);
+            }, async (path, width, height) =>
+            {
+                var (sized, _) = OpenOverlay(host, host.Settings, width, height);
+                await Save(sized, path);
+                sized.Close();
+            });
+            overlay.Close();
+            view.ShowPage("Settings");
+            view.ShowSettingsTab("Tracker");
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            await Save(main, Path.Combine(folder, "main-settings-tracker.png"));
+        }
+
         if (RenderOnly("account"))
         {
             // The account center (Settings → Hearthpulse account) and the connection light, signed in as the in-memory

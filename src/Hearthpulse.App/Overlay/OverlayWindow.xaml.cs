@@ -189,6 +189,8 @@ public partial class OverlayWindow : Window
                 ViewModel.HoverLeaderboard(0);
             }
 
+            // Ctrl held in another window is not meant for the game: no card pool read for it.
+            ViewModel.UpdateCardPoolKeys(false, now);
             return;
         }
 
@@ -239,7 +241,10 @@ public partial class OverlayWindow : Window
         FadeBackdrops(OverlayViewModel.SurfaceOpacity(_settings));
 
         Native.GetCursorPos(out var cursor);
-        UpdateClickThrough(cursor, r, now);
+        var controlDown = PoolInput.IsDown(ControlKey);
+        UpdateClickThrough(cursor, r, now, controlDown);
+        // Ctrl over a card in hand shows its pool in the "with Ctrl" mode; the tick is also the pool's linger clock.
+        ViewModel.UpdateCardPoolKeys(controlDown, now);
         UpdateLeaderboardHover(cursor, r);
         UpdateGuides(r);
         ViewModel.ArrangeLeaderboard(Surface.Width, Surface.Height, _settings);
@@ -322,11 +327,11 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void UpdateClickThrough(Native.POINT cursor, Native.RECT r, DateTime now)
+    private void UpdateClickThrough(Native.POINT cursor, Native.RECT r, DateTime now, bool controlDown)
     {
         var inside = cursor.X >= r.Left && cursor.X < r.Right && cursor.Y >= r.Top && cursor.Y < r.Bottom;
         var point = new Point((cursor.X - r.Left) / _dpi, (cursor.Y - r.Top) / _dpi);
-        var interactive = UpdateDragArm(inside ? point : null, PoolInput.IsDown(ControlKey), now) || Mouse.Captured is not null;
+        var interactive = UpdateDragArm(inside ? point : null, controlDown, now) || Mouse.Captured is not null;
         if (!interactive && inside)
         {
             var hit = Root.InputHitTest(point) as DependencyObject;
