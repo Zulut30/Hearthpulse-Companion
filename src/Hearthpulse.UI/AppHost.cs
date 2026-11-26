@@ -115,7 +115,7 @@ public sealed partial class AppHost : IDisposable
         Main.PoolSharingChanged += () =>
         {
             _settingsDebounce.Kick();
-            _services.PoolSharing.ShareHistoryAsync().Forget("Sharing earlier games");
+            _services.PoolSharing.SharingChanged();
         };
         // The install's secret or "earlier games shared" is new in the settings; raised off the UI thread.
         _services.PoolSharing.SettingsChanged += () => Dispatcher.UIThread.Post(() => _settingsDebounce.Kick());

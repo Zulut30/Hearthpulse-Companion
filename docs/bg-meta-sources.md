@@ -65,7 +65,9 @@ Duos: the API has `/api/bg/heroes/duos` (top 50%), but the app's meta has no Duo
   has none. The pool's comps join the external ones; a pool trinket with 50 picks or more goes in front of the
   external row of the same card (never blended with it: one is a count, the other a lower bound), and the external
   row stays behind it for a game the daily limit closes. `Source` then reads "… + Hearthpulse stats pool" - **only
-  when the pool's answer holds at least one row or game**: an empty pool changes nothing and is not named.
+  when the pool's answer holds at least one row** (a hero, card, trinket, comp, tribe or MMR floor). An empty pool,
+  or one with only a count of shared games (`games` with every list empty, as the deployed pool answered on
+  2026-11-26), changes nothing: not the numbers, the source line, the date, nor the advisor's "N shared games".
 - Without the API (offline, no cache) the pool's meta is used alone; with neither, the pages show their empty states.
 
 ## 3. What the server could add (not done; the server is not changed from here)

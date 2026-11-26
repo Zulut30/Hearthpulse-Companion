@@ -27,7 +27,9 @@ public static partial class PoolClient
         if (!HasData(pool))
         {
             // A pool that answers without a single row adds nothing: the base keeps its numbers, its date and its
-            // source line, which must not name a pool none of the numbers came from.
+            // source line, which must not name a pool none of the numbers came from. A game count alone is no row: the
+            // pool answered "7 games" with every list empty on 2026-11-26, and the overlay named it for numbers that
+            // were all the API's.
             return baseMeta;
         }
 
@@ -81,9 +83,12 @@ public static partial class PoolClient
         };
     }
 
-    /// <summary>True when the pool's answer holds at least one row or game.</summary>
+    /// <summary>
+    /// True when the pool's answer holds at least one row (a hero, card, trinket, comp, tribe or MMR floor). The number of
+    /// shared games behind it (<see cref="BattlegroundsMeta.SharedGames"/>) is not one: it changes no number on screen.
+    /// </summary>
     private static bool HasData(BattlegroundsMeta pool) =>
-        pool.SharedGames > 0 || pool.Comps.Count > 0 || pool.Trinkets.Count > 0 || pool.Tribes.Count > 0 || pool.Percentiles.Count > 0
+        pool.Comps.Count > 0 || pool.Trinkets.Count > 0 || pool.Tribes.Count > 0 || pool.Percentiles.Count > 0
         || pool.SharedHeroRows.Count > 0 || pool.HeroesByBracket.Values.Any(h => h.Count > 0) || pool.CardsByBracket.Values.Any(c => c.Count > 0);
 
     /// <summary>
