@@ -10,8 +10,10 @@ public enum OwnStatsState
     NotConfigured,
 
     /// <summary>
-    /// The pool did not answer: a network error or a timeout, an error status (404, 500...), a body over 4 MB, or one
-    /// that is not this view's answer. There is no older copy behind it: a copy past its age is deleted, never shown.
+    /// The pool did not answer: a network error or a timeout, an error status (500, 400, a 404 that is not the pool's own
+    /// <c>unknown_view</c>), a body over 4 MB or one that breaks as it is read, or one that is not this view's answer.
+    /// There is no older copy behind it: a copy past its age is deleted, never shown. After a 404 or a 400 the pool is not
+    /// asked again for an hour.
     /// </summary>
     Offline,
 
@@ -28,8 +30,10 @@ public enum OwnStatsState
     NoWindow,
 
     /// <summary>
-    /// The pool does not serve the view for the mode asked (<c>unsupported_mode</c>), or the request is not one this
-    /// client sends (a view or a parameter that is not a key) and nothing was asked: the block is hidden.
+    /// The view is not counted for what was asked: the pool does not serve it for that mode (<c>unsupported_mode</c>),
+    /// does not know the view at all (its own 404 <c>unknown_view</c>: the app is newer than the pool; asked again after
+    /// an hour), or the request is not one this client sends (a view or a parameter that is not a key) and nothing was
+    /// asked. The block stays, with its chips, and says these statistics are not counted for this mode.
     /// </summary>
     Unsupported,
 
@@ -69,10 +73,11 @@ public sealed record OwnWindow(string Patch, string Window);
 /// <summary>
 /// One load of a view. <see cref="Data"/> and <see cref="Period"/> are set exactly when <see cref="State"/> is
 /// <see cref="OwnStatsState.Ok"/>; <see cref="Metric"/>, <see cref="RulesVersion"/>, <see cref="Published"/> (Unix
-/// milliseconds, 0 when never), <see cref="Stale"/> and <see cref="Windows"/> are what the pool said, also when the
-/// numbers are not available. <see cref="FetchedAt"/> (UTC) is when the pool gave this answer, which may be a copy
-/// kept on disk for a few hours; <c>default</c> when nothing was answered (<see cref="OwnStatsState.NotConfigured"/>,
-/// <see cref="OwnStatsState.Offline"/>, a request that was not sent).
+/// milliseconds of the snapshot, null when there is none), <see cref="Stale"/> and <see cref="Windows"/> are what the
+/// pool said, also when the numbers are not available. <see cref="FetchedAt"/> (UTC) is when the pool gave this answer,
+/// which may be a copy kept for a while (on disk up to six hours, a 404 in memory for an hour); <c>default</c> when
+/// nothing was answered (<see cref="OwnStatsState.NotConfigured"/>, <see cref="OwnStatsState.Offline"/>, a request that
+/// was not sent).
 /// </summary>
-public sealed record OwnStatsAnswer<T>(OwnStatsState State, string View, string? Metric, string? RulesVersion, long Published,
+public sealed record OwnStatsAnswer<T>(OwnStatsState State, string View, string? Metric, string? RulesVersion, long? Published,
     bool Stale, OwnPeriod? Period, IReadOnlyList<OwnWindow> Windows, T? Data, DateTime FetchedAt) where T : class;

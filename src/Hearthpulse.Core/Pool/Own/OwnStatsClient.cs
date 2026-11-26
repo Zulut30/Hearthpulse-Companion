@@ -18,13 +18,15 @@ namespace Hearthpulse.Core.Pool.Own;
 /// A deletion of a player's games must reach the screen: a copy answers for <see cref="MaxAge"/> after it was fetched,
 /// never later, and there is no older copy while the pool is down. A copy past its age, dated in the future or
 /// unreadable is deleted before the pool is asked; one that cannot be deleted is never read again in this process.
-/// "Not published" and "rebuilding" are asked again after <see cref="PendingAge"/>. One fetch at a time per request, in
-/// the order asked. Each pool address and request has its copy (<c>own-&lt;view&gt;-&lt;hash&gt;.json</c>); copies older
-/// than <see cref="MaxAge"/> go whenever a new one is kept.
+/// "Not published" and "rebuilding" are asked again after <see cref="PendingAge"/>; a 404 or a 400 is kept in memory and
+/// not asked again for <see cref="ErrorAge"/>. One fetch at a time per request, in the order asked. Each pool address
+/// and request has its copy (<c>own-&lt;view&gt;-&lt;hash&gt;.json</c>); copies older than <see cref="MaxAge"/> go
+/// whenever a new one is kept.
 /// </para>
 /// <para>
-/// A request names the view and its parameters (format, rank bucket, class or archetype, coin, MMR range, Arena kind,
-/// window, patch), no id of the player or the installation. Log lines name the view and the event, never a value or a body.
+/// A request names the view and its parameters (format, rank bucket, class or archetype, coin, Battlegrounds mode, MMR
+/// range, matchup grouping, Arena kind, window, patch), no id of the player or the installation. Log lines name the view
+/// and the event, never a value or a body.
 /// </para>
 /// </summary>
 public sealed partial class OwnStatsClient
@@ -37,6 +39,12 @@ public sealed partial class OwnStatsClient
     /// either, and a page opened at that moment should not wait six hours for the numbers.
     /// </summary>
     internal static readonly TimeSpan PendingAge = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// A 404 or a 400 is not asked for again for this long: a view the pool does not know and a request it does not take
+    /// stay so until the pool is deployed again. Kept in memory, never on disk.
+    /// </summary>
+    internal static readonly TimeSpan ErrorAge = TimeSpan.FromHours(1);
 
     /// <summary>The pool gets this long to answer; then the block is offline.</summary>
     internal static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
@@ -53,6 +61,9 @@ public sealed partial class OwnStatsClient
 
     /// <summary>Files holding an expired copy that could not be deleted: not read again until a new answer replaces them.</summary>
     private static readonly ConcurrentDictionary<string, bool> Unreadable = new(StringComparer.Ordinal);
+
+    /// <summary>The last 404 or 400 per copy file, across every instance of the process: when it came and what it says.</summary>
+    private static readonly ConcurrentDictionary<string, (long Fetched, OwnStatsState State)> Errors = new(StringComparer.Ordinal);
 
     private readonly HttpClient _http;
     private readonly Func<string?> _endpoint;
@@ -96,10 +107,11 @@ public sealed partial class OwnStatsClient
     /// <summary>Deletes a copy; false when it is still there. Replaced by tests of a failing disk.</summary>
     internal Func<string, bool> DeleteFile { get; init; } = Delete;
 
-    [GeneratedRegex("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")]
+    // "\z", not "$": a "$" also matches before a last line break, which would reach the URL and the log.
+    [GeneratedRegex(@"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\z")]
     private static partial Regex ViewKey();
 
-    [GeneratedRegex("^[a-z][A-Za-z0-9]{0,31}$")]
+    [GeneratedRegex(@"^[a-z][A-Za-z0-9]{0,31}\z")]
     private static partial Regex ParameterName();
 
     /// <summary>
@@ -125,9 +137,9 @@ public sealed partial class OwnStatsClient
             return Unanswered<T>(OwnStatsState.NotConfigured, view);
         }
 
-        if (PathOf(view, query) is not { } path)
+        if (PathOf(view, query, out var refused) is not { } path)
         {
-            Diag.Info("Own statistics: a request that is not a key was not sent");
+            Diag.Info(refused);
             return Unanswered<T>(OwnStatsState.Unsupported, view);
         }
 
@@ -145,6 +157,18 @@ public sealed partial class OwnStatsClient
 
         try
         {
+            // A 404 or a 400 of the last hour answers again; the pool is not asked.
+            if (Errors.TryGetValue(file, out var error))
+            {
+                var age = _time.GetUtcNow().ToUnixTimeMilliseconds() - error.Fetched;
+                if (age >= 0 && age <= (long)ErrorAge.TotalMilliseconds)
+                {
+                    return ErrorAnswer<T>(error.State, view, error.Fetched);
+                }
+
+                Errors.TryRemove(file, out _);
+            }
+
             if (!Unreadable.ContainsKey(file) && File.Exists(file))
             {
                 if (ReadFresh(file, url, view, parseData) is { } fresh)
@@ -156,12 +180,18 @@ public sealed partial class OwnStatsClient
                 Discard(file, view);
             }
 
-            if (await FetchAsync(url, view, cancellationToken).ConfigureAwait(false) is not { } text)
+            if (await FetchAsync(url, view, cancellationToken).ConfigureAwait(false) is not { } reply)
             {
                 return Unanswered<T>(OwnStatsState.Offline, view);
             }
 
             var fetched = _time.GetUtcNow().ToUnixTimeMilliseconds();
+            if (!reply.Success)
+            {
+                return ErrorOf<T>(reply, file, view, fetched);
+            }
+
+            var text = reply.Text;
             if (Read(text, view, parseData, fetched) is not { } answer)
             {
                 Diag.Info($"Own statistics: {view}: the answer is not the view's");
@@ -193,12 +223,15 @@ public sealed partial class OwnStatsClient
     /// <summary>
     /// The request's path and query, the parameters in name order (one copy whatever order they came in); null when
     /// the view or a parameter name is not a key, a name repeats, or a value is empty, longer than 64 characters or
-    /// holds a control or surrogate character (no format, rank, class, archetype or patch has one).
+    /// holds a control or surrogate character (no format, rank, class, archetype or patch has one). Then
+    /// <paramref name="refused"/> is the log line: it names the view and the parameter where they are keys, never a value.
     /// </summary>
-    internal static string? PathOf(string view, IReadOnlyList<KeyValuePair<string, string>> query)
+    internal static string? PathOf(string view, IReadOnlyList<KeyValuePair<string, string>> query, out string refused)
     {
+        refused = string.Empty;
         if (view.Length > MaxViewLength || !ViewKey().IsMatch(view))
         {
+            refused = "Own statistics: a view that is not a key was not asked";
             return null;
         }
 
@@ -207,9 +240,16 @@ public sealed partial class OwnStatsClient
         for (var i = 0; i < sorted.Count; i++)
         {
             var (name, value) = (sorted[i].Key, sorted[i].Value);
-            if (name is null || !ParameterName().IsMatch(name) || (i > 0 && string.Equals(name, sorted[i - 1].Key, StringComparison.Ordinal))
-                || string.IsNullOrEmpty(value) || value.Length > MaxValueLength || value.Any(c => char.IsControl(c) || char.IsSurrogate(c)))
+            if (name is null || !ParameterName().IsMatch(name))
             {
+                refused = $"Own statistics: {view}: not asked, a parameter name is not a key";
+                return null;
+            }
+
+            if ((i > 0 && string.Equals(name, sorted[i - 1].Key, StringComparison.Ordinal)) || string.IsNullOrEmpty(value)
+                || value.Length > MaxValueLength || value.Any(c => char.IsControl(c) || char.IsSurrogate(c)))
+            {
+                refused = $"Own statistics: {view}: not asked, the parameter {name} is given twice or its value cannot be sent";
                 return null;
             }
 
@@ -220,7 +260,49 @@ public sealed partial class OwnStatsClient
     }
 
     private static OwnStatsAnswer<T> Unanswered<T>(OwnStatsState state, string view) where T : class =>
-        new(state, view, null, null, 0, false, null, [], null, default);
+        new(state, view, null, null, null, false, null, [], null, default);
+
+    /// <summary>
+    /// What an error status says. The pool's own 404 <c>unknown_view</c> is <see cref="OwnStatsState.Unsupported"/>: the
+    /// app is newer than the pool. Any other error is offline. A 404 or a 400 stays so until the pool is deployed again
+    /// and is kept for <see cref="ErrorAge"/>; a 5xx or a 429 may pass any minute and is asked again at the next load.
+    /// </summary>
+    private static OwnStatsAnswer<T> ErrorOf<T>(Reply reply, string file, string view, long fetched) where T : class
+    {
+        var state = reply.Status == 404 && IsUnknownView(reply.Text) ? OwnStatsState.Unsupported : OwnStatsState.Offline;
+        Diag.Info(state == OwnStatsState.Unsupported
+            ? $"Own statistics: {view}: the pool does not know the view (404)"
+            : $"Own statistics: {view}: the pool answered {reply.Status}");
+        if (reply.Status is 404 or 400)
+        {
+            Errors[file] = (fetched, state);
+        }
+
+        return ErrorAnswer<T>(state, view, fetched);
+    }
+
+    /// <summary>An error answer: the pool's word that it does not know the view, with the time it said so, or offline.</summary>
+    private static OwnStatsAnswer<T> ErrorAnswer<T>(OwnStatsState state, string view, long fetched) where T : class =>
+        state == OwnStatsState.Unsupported
+            ? new(state, view, null, null, null, false, null, [], null, DateTimeOffset.FromUnixTimeMilliseconds(fetched).UtcDateTime)
+            : Unanswered<T>(state, view);
+
+    /// <summary>
+    /// Whether a 404 is the pool's own word that it does not know the view (<c>"error":"unknown_view"</c>), not a page of
+    /// a server in front of it.
+    /// </summary>
+    private static bool IsUnknownView(string text)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            return doc.RootElement.ValueKind == JsonValueKind.Object && Text(doc.RootElement, "error") == "unknown_view";
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
 
     /// <summary>The copy of one request to one pool: the address and the request together pick the file.</summary>
     private string CopyOf(string view, string url) =>
@@ -278,7 +360,7 @@ public sealed partial class OwnStatsClient
         }
 
         var fetchedAt = DateTimeOffset.FromUnixTimeMilliseconds(fetched).UtcDateTime;
-        var (metric, rules, published) = (Text(root, "metric"), Text(root, "rulesVersion"), Int64(root, "published") ?? 0);
+        var (metric, rules, published) = (Text(root, "metric"), Text(root, "rulesVersion"), Int64(root, "published"));
         var stale = root.TryGetProperty("stale", out var flag) && flag.ValueKind == JsonValueKind.True;
         if (state != OwnStatsState.Ok)
         {
@@ -370,8 +452,12 @@ public sealed partial class OwnStatsClient
         return windows;
     }
 
-    /// <summary>The answer's text, or null on a network error, a timeout, an error status or a body over <see cref="MaxBytes"/>.</summary>
-    private async Task<string?> FetchAsync(string url, string view, CancellationToken cancellationToken)
+    /// <summary>
+    /// The pool's status with the body of a success or a 404 (empty for any other status); null on a network error, a
+    /// timeout, a body over <see cref="MaxBytes"/> or one that breaks as it is read. Only the caller's own cancellation
+    /// is thrown.
+    /// </summary>
+    private async Task<Reply?> FetchAsync(string url, string view, CancellationToken cancellationToken)
     {
         using var timeout = new CancellationTokenSource(Timeout, _time);
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
@@ -379,10 +465,10 @@ public sealed partial class OwnStatsClient
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, limit.Token).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            var status = (int)response.StatusCode;
+            if (!response.IsSuccessStatusCode && status != 404)
             {
-                Diag.Info($"Own statistics: {view}: the pool answered {(int)response.StatusCode}");
-                return null;
+                return new Reply(status, false, string.Empty);
             }
 
             if (response.Content.Headers.ContentLength > MaxBytes)
@@ -407,14 +493,19 @@ public sealed partial class OwnStatsClient
                 await buffer.WriteAsync(block.AsMemory(0, read), limit.Token).ConfigureAwait(false);
             }
 
-            return Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
+            return new Reply(status, response.IsSuccessStatusCode, Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length));
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
+            // A broken compressed body (InvalidDataException, InvalidOperationException from brotli), a disposed client and
+            // the like fail the load as a network error does; the caller's own cancellation goes up to LoadAsync.
             Diag.Info($"Own statistics: {view}: the pool did not answer ({ex.GetType().Name})");
             return null;
         }
     }
+
+    /// <summary>A status of the pool and its body: read for a success and for a 404, empty for any other status.</summary>
+    private readonly record struct Reply(int Status, bool Success, string Text);
 
     private void Discard(string file, string view)
     {

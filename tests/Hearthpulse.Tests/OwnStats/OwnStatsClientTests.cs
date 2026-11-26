@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -11,9 +12,9 @@ namespace Hearthpulse.Tests.OwnStats;
 /// <summary>
 /// <see cref="OwnStatsClient"/>, the one reader of Hearthpulse's own numbers (task pro-collection, package A5, AC19),
 /// over a fake pool: the state of every answer, the six-hour copy and what takes its place (no older copy while the
-/// pool is down, a clock set back, a failing disk, a withdrawal), requests that are never sent, the 4 MB and ten-second
-/// limits, the number objects of contract K4, the log lines, and the app's wiring. The answers are synthetic, in the
-/// envelope of contract K4; the clock is the test's.
+/// pool is down, a clock set back, a failing disk, a withdrawal), the hour a 404 or a 400 is kept, requests that are
+/// never sent, the 4 MB and ten-second limits, bodies that break as they are read, the number objects of contract K4,
+/// the log lines, and the app's wiring. The answers are synthetic, in the envelope of contract K4; the clock is the test's.
 /// </summary>
 public sealed class OwnStatsClientTests : IDisposable
 {
@@ -24,9 +25,15 @@ public sealed class OwnStatsClientTests : IDisposable
     // The builds deliberately out of order: the period names the first and the last.
     private const string Period = """{"line":"constructed","patch":"34.2.0","builds":[231577,231000],"window":"patch","fromDay":20400,"toDay":20418}""";
     private const string Windows = """[{"patch":"34.2.0","window":"patch"},{"patch":"34.2.0","window":"7d"},{"patch":"unknown","window":"30d"}]""";
-    private const string SliceData = """{"games":412,"installs":7,"base":{"num":230,"den":412,"value":0.558,"low":0.51,"high":0.606,"rankable":true},"suppressed":0,"cards":[]}""";
+    private const string SliceData = """{"games":412,"installs":7,"base":{"num":230,"den":412,"value":0.558,"low":0.51,"high":0.606,"rankable":true},"suppressed":0,"quality":"ok","cards":[]}""";
+
+    /// <summary>The pool's own 404 for a view it does not know (<c>answer()</c> in <c>server/pool/node/records</c>).</summary>
+    private const string UnknownView = """{"ok":false,"error":"unknown_view"}""";
 
     private static readonly DateTimeOffset Noon = new(2026, 11, 15, 12, 0, 0, TimeSpan.Zero);
+
+    /// <summary><see cref="SliceData"/> as the test view reads it.</summary>
+    private static readonly Slice SliceRead = new(412, 7, 0, "ok", new OwnRate(230, 412, 0.558, 0.51, 0.606, true));
 
     /// <summary>The parameters of the test view, deliberately not in name order.</summary>
     private static readonly KeyValuePair<string, string>[] Query =
@@ -48,7 +55,7 @@ public sealed class OwnStatsClientTests : IDisposable
         Assert.Equal((View, "mulligan.card", "mull-card-1", 1794740400000L, false), (answer.View, answer.Metric, answer.RulesVersion, answer.Published, answer.Stale));
         Assert.Equal(new OwnPeriod("constructed", "34.2.0", 231000, 231577, "patch", 20400, 20418), answer.Period);
         Assert.Equal([new OwnWindow("34.2.0", "patch"), new OwnWindow("34.2.0", "7d"), new OwnWindow("unknown", "30d")], answer.Windows);
-        Assert.Equal(new Slice(412, new OwnRate(230, 412, 0.558, 0.51, 0.606, true)), answer.Data);
+        Assert.Equal(SliceRead, answer.Data);
         Assert.Equal(Noon.UtcDateTime, answer.FetchedAt);
         Assert.Equal(["GET " + Url], pool.Requests);
         Assert.StartsWith("own-constructed-mulligan-", Path.GetFileName(Assert.Single(Files())), StringComparison.Ordinal);
@@ -68,18 +75,41 @@ public sealed class OwnStatsClientTests : IDisposable
         Assert.Null(answer.Data);
         Assert.Null(answer.Period);
         // "No window" serves the snapshot's time and the windows it has (what the block can offer instead); an answer that
-        // serves no snapshot has "published": null, read as never published, not as an error.
+        // serves no snapshot has "published": null, read as never published (no time at all), not as an error.
         var noWindow = reason == "no_window";
-        Assert.Equal(noWindow ? 1794740400000L : 0, answer.Published);
+        Assert.Equal(noWindow ? 1794740400000L : (long?)null, answer.Published);
         Assert.Equal(noWindow ? 3 : 0, answer.Windows.Count);
         Assert.Equal(("mulligan.card", "mull-card-1", Noon.UtcDateTime), (answer.Metric, answer.RulesVersion, answer.FetchedAt));
         Assert.Single(Files());
     }
 
+    [Theory]
+    [InlineData("\"published\":null,")]
+    [InlineData("")]
+    public async Task Numbers_without_the_time_of_their_snapshot_have_no_time_rather_than_the_start_of_1970(string published)
+    {
+        var body = Published().Replace("\"published\":1794740400000,", published, StringComparison.Ordinal);
+        Assert.NotEqual(Published(), body);
+        var pool = new FakePool(body);
+        var client = Client(pool);
+
+        var answer = await Load(client);
+        Assert.Equal(OwnStatsState.Ok, answer.State);
+        Assert.Null(answer.Published);
+
+        // And so from the copy.
+        var copy = await Load(client);
+        Assert.Equal(OwnStatsState.Ok, copy.State);
+        Assert.Null(copy.Published);
+        Assert.Single(pool.Requests);
+    }
+
     public static TheoryData<int, string> NotTheViewsAnswer => new()
     {
-        { 404, """{"error":"unknown_view"}""" },
-        { 400, """{"error":"invalid_query"}""" },
+        // A 404 that is not the pool's own word about the view: a server in front of it, or another error of the pool.
+        { 404, "<html><head><title>404 Not Found</title></head><body><center><h1>404 Not Found</h1></center><hr><center>nginx</center></body></html>" },
+        { 404, """{"ok":false,"error":"not_found"}""" },
+        { 400, """{"ok":false,"error":"invalid_query"}""" },
         { 500, Published() },
         { 503, string.Empty },
         { 200, "not json" },
@@ -99,9 +129,11 @@ public sealed class OwnStatsClientTests : IDisposable
         { 200, Envelope(SliceData, period: "null") },
         { 200, Envelope(SliceData, period: Period.Replace(",\"window\":\"patch\"", string.Empty, StringComparison.Ordinal)) },
         { 200, Envelope(SliceData, period: Period.Replace("\"fromDay\":20400", "\"fromDay\":\"20400\"", StringComparison.Ordinal)) },
-        // Data the view cannot read: no games, games as text, a list where an object belongs.
+        // Data the view cannot read: no games, games as text, as a fraction or past int, a list where an object belongs.
         { 200, Envelope("""{"cards":[]}""") },
         { 200, Envelope("""{"games":"412","base":null}""") },
+        { 200, Envelope("""{"games":412.5,"installs":7,"suppressed":0,"quality":"ok","base":null}""") },
+        { 200, Envelope("""{"games":4294967296,"installs":7,"suppressed":0,"quality":"ok","base":null}""") },
         { 200, Envelope("[]") },
     };
 
@@ -119,6 +151,57 @@ public sealed class OwnStatsClientTests : IDisposable
         Assert.Equal(default, answer.FetchedAt);
         Assert.Single(pool.Requests);
         Assert.Empty(Files());
+    }
+
+    [Fact]
+    public async Task A_view_the_pool_does_not_know_is_unsupported_rather_than_offline()
+    {
+        // An app newer than its pool: the pool's own 404 says the view is unknown. Nothing is wrong with the connection,
+        // so the block says the view is not counted here instead of offering a retry.
+        var pool = new FakePool(UnknownView) { Status = HttpStatusCode.NotFound };
+
+        var answer = await Load(Client(pool));
+
+        Assert.Equal(OwnStatsState.Unsupported, answer.State);
+        Assert.Null(answer.Data);
+        Assert.Null(answer.Published);
+        Assert.Empty(answer.Windows);
+        Assert.Equal(Noon.UtcDateTime, answer.FetchedAt);
+        Assert.Empty(Files());
+        Assert.Contains($"Own statistics: {View}: the pool does not know the view (404)", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+    }
+
+    public static TheoryData<int, string, OwnStatsState, bool> ErrorAnswers => new()
+    {
+        // A view the pool does not know, or a request it does not take, stays so until the pool is deployed again.
+        { 404, UnknownView, OwnStatsState.Unsupported, true },
+        { 404, "<html><body>404 Not Found</body></html>", OwnStatsState.Offline, true },
+        { 404, string.Empty, OwnStatsState.Offline, true },
+        { 400, """{"ok":false,"error":"invalid_query"}""", OwnStatsState.Offline, true },
+        // A pool that is down or busy may be back any minute: a retry asks it again.
+        { 500, """{"ok":false,"error":"internal"}""", OwnStatsState.Offline, false },
+        { 503, string.Empty, OwnStatsState.Offline, false },
+        { 429, string.Empty, OwnStatsState.Offline, false },
+    };
+
+    [Theory]
+    [MemberData(nameof(ErrorAnswers))]
+    public async Task A_404_or_a_400_is_kept_for_an_hour_and_another_error_is_asked_again_at_once(int status, string body, OwnStatsState state, bool kept)
+    {
+        var pool = new FakePool(body) { Status = (HttpStatusCode)status };
+        Assert.Equal(state, (await Load(Client(pool))).State);
+
+        _time.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(state, (await Load(Client(pool))).State);
+        Assert.Equal(kept ? 1 : 2, pool.Requests.Count);
+        // Kept in memory: nothing but an answer of the view goes to disk.
+        Assert.Empty(Files());
+
+        // After the hour the pool is asked, and a view deployed meanwhile is there at once.
+        _time.Advance(TimeSpan.FromMinutes(1));
+        (pool.Status, pool.Body) = (HttpStatusCode.OK, Published());
+        Assert.Equal(OwnStatsState.Ok, (await Load(Client(pool))).State);
+        Assert.Equal(kept ? 2 : 3, pool.Requests.Count);
     }
 
     [Theory]
@@ -155,7 +238,54 @@ public sealed class OwnStatsClientTests : IDisposable
         var answer = await Client(new FakePool(Published())).LoadAsync<Slice>(View, Query, _ => null!);
 
         Assert.Equal(OwnStatsState.Offline, answer.State);
+        // Nothing of the pool's answer stands, its time neither.
+        Assert.Null(answer.Published);
         Assert.Empty(Files());
+    }
+
+    [Fact]
+    public async Task A_slice_of_too_few_installations_is_published_without_its_totals_and_read_as_such()
+    {
+        // Under five installations the pool hides a slice's totals (K3): a view reads them as int?, so the block can say
+        // "too little data" where a reading as int would make the whole answer offline.
+        const string small = """{"games":null,"installs":null,"base":null,"suppressed":null,"quality":"small_sample","cards":[]}""";
+        var pool = new FakePool(Envelope(small));
+        var client = Client(pool);
+
+        var answer = await Load(client);
+        Assert.Equal(OwnStatsState.Ok, answer.State);
+        Assert.Equal(new Slice(null, null, null, "small_sample", null), answer.Data);
+        Assert.Single(Files());
+
+        // And so from the copy.
+        Assert.Equal(answer.Data, (await Load(client)).Data);
+        Assert.Single(pool.Requests);
+    }
+
+    [Fact]
+    public async Task Numbers_the_pool_is_about_to_update_say_so_and_so_does_their_copy()
+    {
+        // New games came in after the snapshot: the block notes that the numbers will be updated soon.
+        var pool = new FakePool(Published().Replace("\"stale\":false", "\"stale\":true", StringComparison.Ordinal));
+        var client = Client(pool);
+
+        var answer = await Load(client);
+        Assert.Equal(OwnStatsState.Ok, answer.State);
+        Assert.True(answer.Stale);
+        Assert.True((await Load(client)).Stale);
+        Assert.Single(pool.Requests);
+    }
+
+    [Fact]
+    public async Task A_window_entry_that_is_not_a_patch_with_its_window_is_left_out_and_the_answer_stands()
+    {
+        var body = Published().Replace(Windows, """[1,"7d",null,[],{"patch":"34.2.0"},{"patch":"34.2.0","window":"7d"}]""", StringComparison.Ordinal);
+        Assert.NotEqual(Published(), body);
+
+        var answer = await Load(Client(new FakePool(body)));
+
+        Assert.Equal(OwnStatsState.Ok, answer.State);
+        Assert.Equal([new OwnWindow("34.2.0", "7d")], answer.Windows);
     }
 
     [Theory]
@@ -235,6 +365,20 @@ public sealed class OwnStatsClientTests : IDisposable
     }
 
     [Fact]
+    public async Task A_view_or_a_parameter_name_that_ends_in_a_line_break_never_reaches_the_pool()
+    {
+        // Kept out of the theory's data as well. A "$" in a pattern also matches before a last "\n": a key ends where its text does.
+        var pool = new FakePool(Published());
+        var client = Client(pool);
+
+        Assert.Equal(OwnStatsState.Unsupported, (await client.LoadAsync(View + "\n", Query, ParseSlice)).State);
+        Assert.Equal(OwnStatsState.Unsupported, (await client.LoadAsync(View, [new("fmt\n", "standard")], ParseSlice)).State);
+
+        Assert.Empty(pool.Requests);
+        Assert.Empty(Files());
+    }
+
+    [Fact]
     public async Task A_parameter_given_twice_never_reaches_the_pool()
     {
         var pool = new FakePool(Published());
@@ -279,7 +423,7 @@ public sealed class OwnStatsClientTests : IDisposable
         Assert.Equal(OwnStatsState.Ok, copy.State);
         // The copy's own date, not the time it was read.
         Assert.Equal(Noon.UtcDateTime, copy.FetchedAt);
-        Assert.Equal(new Slice(412, new OwnRate(230, 412, 0.558, 0.51, 0.606, true)), copy.Data);
+        Assert.Equal(SliceRead, copy.Data);
         Assert.Single(pool.Requests);
         Assert.Single(Files());
         Assert.Empty(Directory.GetFiles(_cache, "*.tmp"));
@@ -511,6 +655,31 @@ public sealed class OwnStatsClientTests : IDisposable
         pool.Hold!.SetResult();
     }
 
+    [Fact]
+    public async Task A_body_that_breaks_as_it_is_read_or_a_closed_client_is_offline_and_throws_nothing()
+    {
+        // What the app's handler gives for a broken gzip or brotli body: a stream that throws as it is decompressed.
+        byte[] gzip = [0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff];
+        var pool = new FakePool(Published()) { Content = () => new StreamContent(new GZipStream(new MemoryStream(gzip), CompressionMode.Decompress)) };
+        var client = Client(pool);
+        Assert.Equal(OwnStatsState.Offline, (await Load(client)).State);
+
+        pool.Content = () => new StreamContent(new BrotliStream(new MemoryStream("not brotli"u8.ToArray()), CompressionMode.Decompress));
+        Assert.Equal(OwnStatsState.Offline, (await Load(client)).State);
+
+        // The app is closing and its client is gone.
+        var closed = new HttpClient(pool, disposeHandler: false);
+        closed.Dispose();
+        Assert.Equal(OwnStatsState.Offline, (await Load(new OwnStatsClient(closed, () => Pool, _cache, _time))).State);
+        Assert.Empty(Files());
+
+        // Nothing is kept or left waiting: the next load of the same request is answered.
+        pool.Content = null;
+        Assert.Equal(OwnStatsState.Ok, (await Load(client)).State);
+        Assert.Equal(3, pool.Requests.Count);
+        Assert.Contains($"Own statistics: {View}: the pool did not answer (InvalidDataException)", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(false, 1, OwnStatsState.Offline)]
     [InlineData(true, 1, OwnStatsState.Offline)]
@@ -610,10 +779,21 @@ public sealed class OwnStatsClientTests : IDisposable
         (pool.Status, pool.Body) = (HttpStatusCode.OK, """{"v":2,"note":"Zqownbody5150"}""");
         Assert.Equal(OwnStatsState.Offline, (await Client(pool).LoadAsync(view, query, ParseSlice)).State);
 
+        // Requests the client does not send: a view and a parameter name that are keys are named, a value never is, and a
+        // view that is not a key is not written at all.
+        Assert.Equal(OwnStatsState.Unsupported, (await Client(pool).LoadAsync(view, [new("arch", "Zqownvalue\u0001")], ParseSlice)).State);
+        Assert.Equal(OwnStatsState.Unsupported, (await Client(pool).LoadAsync(view, [new("Zqownname", "standard")], ParseSlice)).State);
+        Assert.Equal(OwnStatsState.Unsupported, (await Client(pool).LoadAsync("Zqownview", query, ParseSlice)).State);
+
         var log = TestDataFolder.ReadLog();
         Assert.Contains($"Own statistics: {view}: the pool answered 500", log, StringComparison.Ordinal);
         Assert.Contains($"Own statistics: {view}: the answer is not the view's", log, StringComparison.Ordinal);
+        Assert.Contains($"Own statistics: {view}: not asked, the parameter arch is given twice or its value cannot be sent", log, StringComparison.Ordinal);
+        Assert.Contains($"Own statistics: {view}: not asked, a parameter name is not a key", log, StringComparison.Ordinal);
+        Assert.Contains("Own statistics: a view that is not a key was not asked", log, StringComparison.Ordinal);
         Assert.DoesNotContain("Zqownvalue", log, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Zqownname", log, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Zqownview", log, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Zqownbody", log, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -635,10 +815,20 @@ public sealed class OwnStatsClientTests : IDisposable
         });
     }
 
-    /// <summary>What the test view's data holds: its games and the base rate (how a mulligan slice begins).</summary>
-    private sealed record Slice(int Games, OwnRate? Base);
+    /// <summary>
+    /// How a view's data begins, here a mulligan slice: its totals with their quality, and the base rate. The pattern for
+    /// a view package's own reading: a total is <c>int?</c> (null in a slice of fewer than five installations, quality
+    /// <c>small_sample</c>), a number object goes through <see cref="OwnStatsClient.Rate"/>, <see cref="OwnStatsClient.Mean"/>
+    /// or <see cref="OwnStatsClient.Placement"/>, and a shape the view does not know throws, so the answer is offline.
+    /// </summary>
+    private sealed record Slice(int? Games, int? Installs, int? Suppressed, string? Quality, OwnRate? Base);
 
-    private static Slice ParseSlice(JsonElement data) => new(data.GetProperty("games").GetInt32(), OwnStatsClient.Rate(data.GetProperty("base")));
+    private static Slice ParseSlice(JsonElement data) => new(Total(data, "games"), Total(data, "installs"), Total(data, "suppressed"),
+        data.GetProperty("quality").GetString(), OwnStatsClient.Rate(data.GetProperty("base")));
+
+    /// <summary>A total of the slice: null where the pool hid it; a missing key, text or a number that is not a whole int throws.</summary>
+    private static int? Total(JsonElement data, string name) =>
+        data.GetProperty(name) is { ValueKind: JsonValueKind.Null } ? null : data.GetProperty(name).GetInt32();
 
     /// <summary>A reader of the pool with the test's clock, or with a clock of its own (a restart at another time).</summary>
     private OwnStatsClient Client(FakePool pool, DateTimeOffset? now = null) =>
@@ -693,6 +883,9 @@ public sealed class OwnStatsClientTests : IDisposable
 
         public string Body { get; set; } = body;
 
+        /// <summary>Makes each answer's body in place of <see cref="Body"/>: one whose stream breaks as it is read.</summary>
+        public Func<HttpContent>? Content { get; set; }
+
         public TaskCompletionSource? Hold { get; set; }
 
         /// <summary>Only the first request waits for <see cref="Hold"/>.</summary>
@@ -708,7 +901,7 @@ public sealed class OwnStatsClientTests : IDisposable
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var (status, text) = (Status, Body);
+            var (status, text, content) = (Status, Body, Content);
             int order;
             lock (Requests)
             {
@@ -728,7 +921,10 @@ public sealed class OwnStatsClientTests : IDisposable
             }
 
             var bytes = Encoding.UTF8.GetBytes(text);
-            return new HttpResponseMessage(code) { Content = UnknownLength ? new StreamContent(new Unseekable(bytes)) : new ByteArrayContent(bytes) };
+            return new HttpResponseMessage(code)
+            {
+                Content = content is { } make ? make() : UnknownLength ? new StreamContent(new Unseekable(bytes)) : new ByteArrayContent(bytes),
+            };
         }
     }
 
