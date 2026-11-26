@@ -15,6 +15,9 @@
             <i:LocalImage x:Key="LocalImage" />
         </ResourceDictionary>
     </UserControl.Resources>
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatRowStyles.axaml" />
+    </UserControl.Styles>
     <Grid Margin="0,0,0,24" RowDefinitions="Auto,Auto">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -60,7 +63,9 @@
             </Border>
             <Border Classes="card">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Brawl.Mine}" Icon="&#xF0004;" Size="13" Margin="0,0,0,8" />
+                <c:Ornament Name="BrawlMineTitle" Classes="wide" Text="{i:Loc Brawl.Mine}" Icon="&#xF0004;" Size="13" Margin="0,0,0,8" />
+                <!-- Compact: the same heading without its icon, so the long Russian title is whole (bug-hunt #23) -->
+                <c:Ornament Name="BrawlMineTitleCompact" Classes="narrow" Text="{i:Loc Brawl.Mine}" Size="13" Margin="0,0,0,8" />
                 <TextBlock Text="{Binding BrawlMineNote}" Classes="caption cardNote" IsVisible="{Binding BrawlMineNote, Converter={StaticResource Truthy}}" />
                 <ContentControl Content="{i:Loc Stats.Table.Class}" Tag="{Binding BrawlMineSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}"
                                 IsVisible="{Binding BrawlMine, Converter={StaticResource Truthy}}" />

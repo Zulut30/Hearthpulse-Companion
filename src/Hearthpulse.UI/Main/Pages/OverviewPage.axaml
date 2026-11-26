@@ -17,6 +17,61 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
+    <UserControl.Styles>
+        <!-- A recent game (GameRowTemplate, MainPages.axaml): one line of fixed cells; compact (MainView), the date,
+             the result and the rating move under the hero's name and details, which take the row's whole width. -->
+        <Style Selector="Grid.gameRow > StackPanel.gameTitle">
+            <Setter Property="Margin" Value="4,0,16,0" />
+        </Style>
+        <Style Selector="Grid.gameRow > TextBlock.gameWhen">
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="Width" Value="120" />
+        </Style>
+        <Style Selector="Grid.gameRow > Panel.gameResult">
+            <Setter Property="Grid.Column" Value="3" />
+            <Setter Property="Width" Value="112" />
+        </Style>
+        <Style Selector="Grid.gameRow > TextBlock.gameRating">
+            <Setter Property="Grid.Column" Value="4" />
+            <Setter Property="Width" Value="56" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.gameRow > StackPanel.gameTitle">
+            <Setter Property="Grid.ColumnSpan" Value="4" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.gameRow > TextBlock.gameWhen">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="4,4,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.gameRow > Panel.gameResult">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="12,4,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.gameRow > TextBlock.gameRating">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="3" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="12,4,0,0" />
+        </Style>
+        <!-- Your decks: three banners in a row; compact, one under the other, so the name, the line and the curve keep
+             their room beside the art (two columns left the art alone, bug-hunt #29). -->
+        <Style Selector="UniformGrid.homeDecks">
+            <Setter Property="Columns" Value="3" />
+        </Style>
+        <Style Selector="m|MainView.compact UniformGrid.homeDecks">
+            <Setter Property="Columns" Value="1" />
+        </Style>
+        <Style Selector="Button.homeDeck">
+            <Setter Property="Margin" Value="0,0,12,0" />
+        </Style>
+        <Style Selector="m|MainView.compact Button.homeDeck">
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+    </UserControl.Styles>
     <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
@@ -135,12 +190,13 @@
                     <ItemsControl ItemsSource="{Binding HomeDecks}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid Columns="3" />
+                                <!-- "fixed": the columns are the styles above, not MainView's two-column compact tiles -->
+                                <UniformGrid Classes="fixed homeDecks" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:HomeDeck">
-                                <Button Classes="bare" Margin="0,0,12,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                <Button Classes="bare homeDeck" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                                         ToolTip.Tip="{i:Loc Main.Home.OpenDeckTip}" AutomationProperties.Name="{Binding Name}"
                                         Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).OpenDeck}" CommandParameter="{Binding Key}">
                                     <!-- The key card's art in a square at its own proportions (256 px art in 104): never stretched -->
@@ -183,7 +239,9 @@
             <!-- Battlegrounds rating over time; where you finish is on the Battlegrounds page (My stats) -->
             <Border Classes="card" Margin="0,16,0,0" IsVisible="{Binding HasBgGames}">
                 <DockPanel>
-                    <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                    <c:Ornament Name="BgRatingTitle" Classes="wide" DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                    <!-- Compact: the same heading without its icon, which leaves the long Russian title its room (bug-hunt #30) -->
+                    <c:Ornament Name="BgRatingTitleCompact" Classes="narrow" DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Size="13" Margin="0,0,0,12" />
                     <c:RatingChart Points="{Binding RatingPoints}" Height="200" />
                 </DockPanel>
             </Border>

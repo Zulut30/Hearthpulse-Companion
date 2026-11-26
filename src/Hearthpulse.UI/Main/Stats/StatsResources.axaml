@@ -27,7 +27,8 @@
                 <Border Width="22" Height="2" CornerRadius="1" Background="{StaticResource AccentLine}" HorizontalAlignment="Left" Margin="0,4,0,0" />
                 <TextBlock Text="{Binding Value}" Classes="stat statsValue" Margin="0,4,0,2" TextTrimming="CharacterEllipsis"
                            Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
-                <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                <!-- Cut on a wide row (the card's tooltip is the whole line), wraps in compact: StatsStyles.axaml -->
+                <TextBlock Text="{Binding Detail}" Classes="caption tileDetail" />
             </StackPanel>
         </Border>
     </DataTemplate>
@@ -77,15 +78,16 @@
                         VerticalAlignment="Center" i:CardArt.Portrait="{Binding CardId}"
                         IsVisible="{Binding CardId, Converter={StaticResource Truthy}}" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Games}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Label}" Classes="groupText" FontWeight="SemiBold" ToolTip.Tip="{Binding Label}" />
+                    <TextBlock Text="{Binding Games}" Classes="caption groupText" FontSize="{StaticResource FontSizeLabel}" ToolTip.Tip="{Binding Games}" />
                 </StackPanel>
                 <TextBlock Grid.Column="2" Text="{Binding Record}" Classes="caption wide" Width="64" TextAlignment="Right" VerticalAlignment="Center"
                            ToolTip.Tip="{i:Loc Stats.RecordTip}" />
-                <StackPanel Grid.Column="3" Width="132" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <!-- Its width and the compact layout: StatRowStyles.axaml -->
+                <StackPanel Grid.Column="3" Classes="groupWin" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <!-- The win rate on a 0–100 % bar in its colour, a tick at 50 % -->
-                        <Panel Width="64" Height="11" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Panel Classes="wide" Width="64" Height="11" VerticalAlignment="Center" Margin="0,0,8,0">
                             <Border Height="7" CornerRadius="2" Background="{StaticResource Surface3}" />
                             <Border Height="7" HorizontalAlignment="Left" CornerRadius="2" Background="{Binding WinSign, Converter={StaticResource SignBrush}}"
                                     Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />

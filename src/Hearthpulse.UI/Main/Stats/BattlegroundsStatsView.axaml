@@ -52,10 +52,12 @@
 
         <Border Classes="card" Margin="0,0,0,24">
             <StackPanel>
-                <!-- The essential columns; the switch adds the combat win rate and the pick rate -->
-                <Grid>
-                    <c:Ornament Text="{i:Loc Stats.Bg.HeroPerf}" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" VerticalAlignment="Center" />
-                    <CheckBox Classes="switch" Content="{i:Loc Deck.AllColumns}" IsChecked="{Binding BgHeroAllColumns}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                <!-- The essential columns; the switch adds the combat win rate and the pick rate. The title and the switch
+                     share a row (cardHead, MainView); compact, the switch drops under the title instead of covering it
+                     (bug-hunt #6). -->
+                <Grid Classes="cardHead" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                    <c:Ornament Name="BgHeroPerfTitle" Text="{i:Loc Stats.Bg.HeroPerf}" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <CheckBox Name="BgHeroAllColumnsSwitch" Classes="switch headActions" Content="{i:Loc Deck.AllColumns}" IsChecked="{Binding BgHeroAllColumns}"
                               FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Muted}" />
                 </Grid>
                 <Grid Margin="0,8,0,12">
@@ -70,7 +72,7 @@
                             </StackPanel>
                         </Border>
                         <TextBlock Text="{i:Loc Stats.Bg.SortBy}" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <Border Classes="segmentBar statsBar">
+                        <Border Name="BgSortBar" Classes="segmentBar statsBar sortBar">
                             <StackPanel Orientation="Horizontal">
                                 <RadioButton Classes="segment" Content="{i:Loc Stats.Bg.SortGames}" GroupName="BgSort" IsChecked="True" Command="{Binding SetBgSort}" CommandParameter="Games" />
                                 <RadioButton Classes="segment" Content="{i:Loc Stats.Bg.SortAvgPlace}" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="AveragePlacement" />
