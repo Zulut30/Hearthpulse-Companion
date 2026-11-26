@@ -95,7 +95,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
 
     private bool Ready(GameState game)
     {
-        if (!_enabled || _catchingUp || _stopped || !ReferenceEquals(_game, game) || game.LocalPlayerId == 0) return false;
+        // A game watched in spectator mode is somebody else's: never a source (nothing more of it once it turns out so).
+        if (!_enabled || _catchingUp || _stopped || game.IsSpectated || !ReferenceEquals(_game, game) || game.LocalPlayerId == 0) return false;
         if (_capture is not null) return true;
         var mode = Mode(game);
         if (mode is null) return false;
@@ -388,6 +389,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
     public void OnGameEnded(GameState game)
     {
         if (!ReferenceEquals(game, _game) || _capture is null || _kind != "game") return;
+        // Begun before a spectator marker in the middle of the game: sealed without the watched player's result or fights.
+        if (game.IsSpectated) { Stop("unsupported"); return; }
         // _stopped also gates FINAL_GAMEOVER reveals; allow only the final result now.
         _stopped = false;
         var result = game.LocalPlayerEntity?.GetString("PLAYSTATE") switch { "WON" => "W", "LOST" or "CONCEDED" => "L", "TIED" => "T", _ => null };

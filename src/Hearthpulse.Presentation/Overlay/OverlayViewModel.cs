@@ -475,6 +475,7 @@ public sealed partial class OverlayViewModel : Observable
 
     public void ShowOutcome(GameOutcome outcome)
     {
+        if (outcome.Recovered) return;
         _lastOutcome = outcome;
         ToastTexts(outcome);
         ShowToast = true;

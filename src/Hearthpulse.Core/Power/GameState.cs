@@ -3,6 +3,14 @@ namespace Hearthpulse.Core.Power;
 /// <summary>An open BLOCK_START … BLOCK_END section of Power.log.</summary>
 public sealed record PowerBlock(string Type, Entity? Source);
 
+/// <summary>A spectator marker line of Power.log (<see cref="PowerParser.Spectating"/>).</summary>
+internal enum SpectatorMarker
+{
+    None,
+    Begin,
+    End,
+}
+
 public sealed class PlayerSlot
 {
     public int PlayerId { get; init; }
@@ -68,6 +76,12 @@ public sealed class GameState
     public DateTime? EndedAt { get; internal set; }
 
     public bool IsComplete => EndedAt is not null;
+
+    /// <summary>
+    /// The client showed this game in spectator mode (a marker line before it or during it, see
+    /// <see cref="PowerParser.Spectating"/>): somebody else's game, never recorded, replayed, captured or shared.
+    /// </summary>
+    public bool IsSpectated { get; internal set; }
 
     public int LocalPlayerId { get; internal set; }
 
@@ -180,6 +194,9 @@ public sealed class GameState
     }
 
     public Entity? LocalPlayerEntity => LocalPlayer is { } p ? Entities.GetValueOrDefault(p.EntityId) : null;
+
+    /// <summary>The local player has a result (won, lost, tied, conceded): the game is over for us, even if not for the lobby.</summary>
+    public bool LocalPlayerFinished => LocalPlayerEntity?.GetString(GameTag.PlayState) is "WON" or "LOST" or "TIED" or "CONCEDED";
 
     public Entity? OpponentPlayerEntity => OpponentPlayer is { } p ? Entities.GetValueOrDefault(p.EntityId) : null;
 

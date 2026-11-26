@@ -136,6 +136,12 @@ public static class LogBackfill
     {
         public void OnGameEnded(GameState game)
         {
+            // A game watched in spectator mode is somebody else's: not imported, no replay either.
+            if (game.IsSpectated)
+            {
+                return;
+            }
+
             if (GameRecords.Build(game, battlegrounds, cards, null, "backfill", facts: facts) is { } record)
             {
                 records.Add(replays is null ? record : Replay.ReplayCapture.Attach(record, game, recorder, battlegrounds, replays));
