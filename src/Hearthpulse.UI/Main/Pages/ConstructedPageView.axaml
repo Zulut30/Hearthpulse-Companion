@@ -25,6 +25,42 @@
     </UserControl.Resources>
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+        <!-- A deck row: name and details, the record (70) and the win rate (150) on one line, the name and the meta line
+             cut (the name with its tip); a tight row (narrower than 560, i:Tight: compact, or the narrowest wide window)
+             has the record and the win rate drop under the name, which keeps the row's width and wraps instead
+             (bug-hunt #3) -->
+        <Style Selector="Grid.deckRow TextBlock.deckText">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style Selector="Grid.deckRow.tight TextBlock.deckText">
+            <Setter Property="TextTrimming" Value="None" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="Grid.deckRow > TextBlock.deckRecord">
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Width" Value="70" />
+        </Style>
+        <Style Selector="Grid.deckRow > Panel.deckWin">
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="Width" Value="150" />
+        </Style>
+        <Style Selector="Grid.deckRow.tight > StackPanel.deckTitle">
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+        </Style>
+        <!-- Still right-aligned: the record stands by its bar and win rate, as on a wide row -->
+        <Style Selector="Grid.deckRow.tight > TextBlock.deckRecord">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+        </Style>
+        <Style Selector="Grid.deckRow.tight > Panel.deckWin">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Margin" Value="12,6,0,0" />
+        </Style>
     </UserControl.Styles>
     <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
         <StackPanel>
@@ -101,22 +137,24 @@
                                     <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                                             Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).OpenDeck}" CommandParameter="{Binding}">
                                         <Border Classes="row" Padding="13,9" Margin="0,0,0,3">
-                                            <Grid ColumnDefinitions="*,70,150,22">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <Grid Classes="deckRow" i:Tight.Below="560" ColumnDefinitions="*,Auto,Auto,22" RowDefinitions="Auto,Auto">
+                                                <StackPanel Classes="deckTitle">
+                                                    <TextBlock Text="{Binding Name}" Classes="deckText" FontWeight="SemiBold" ToolTip.Tip="{Binding Name}" />
                                                     <TextBlock Classes="caption"><Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" /></TextBlock>
                                                     <TextBlock Text="{Binding Versions}" Classes="caption" Foreground="{StaticResource Info}"
                                                                IsVisible="{Binding Versions, Converter={StaticResource Truthy}}" ToolTip.Tip="{i:Loc Main.Ct.VersionsTip}" />
-                                                    <TextBlock Text="{Binding Meta}" Classes="caption" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
+                                                    <TextBlock Text="{Binding Meta}" Classes="caption deckText" Foreground="{StaticResource Accent}"
                                                                IsVisible="{Binding Meta, Converter={StaticResource Truthy}}" ToolTip.Tip="{i:Loc Main.Ct.MetaTip}" />
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="1" Text="{Binding Record}" VerticalAlignment="Center" HorizontalAlignment="Right" Classes="caption"
+                                                <TextBlock Text="{Binding Record}" VerticalAlignment="Center" TextAlignment="Right" Classes="caption deckRecord"
                                                            ToolTip.Tip="{i:Loc Main.Ct.RecordTip}" />
-                                                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Main.Table.WinRate}">
-                                                    <c:WinBar Width="80" Height="8" VerticalAlignment="Center" Fraction="{Binding WinFraction}" Games="{Binding Games}" Few="{Binding Few}" />
-                                                    <TextBlock Text="{Binding WinRate}" Width="50" TextAlignment="Right" FontWeight="Bold" />
-                                                </StackPanel>
-                                                <TextBlock Grid.Column="3" Text="&#xF0142;" Classes="icon" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                <Panel Classes="deckWin" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Main.Table.WinRate}">
+                                                        <c:WinBar Width="80" Height="8" VerticalAlignment="Center" Fraction="{Binding WinFraction}" Games="{Binding Games}" Few="{Binding Few}" />
+                                                        <TextBlock Text="{Binding WinRate}" Width="50" TextAlignment="Right" FontWeight="Bold" />
+                                                    </StackPanel>
+                                                </Panel>
+                                                <TextBlock Grid.Column="3" Grid.RowSpan="2" Text="&#xF0142;" Classes="icon" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                             </Grid>
                                         </Border>
                                     </Button>

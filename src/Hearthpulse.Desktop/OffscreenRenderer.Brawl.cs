@@ -49,6 +49,7 @@ internal static partial class OffscreenRenderer
         if (RenderOnly("bgown")) await RenderBgOwnAsync(main, view, host, folder);
         if (RenderOnly("collection")) await RenderCollectionAsync(main, view, host, folder);
         if (RenderOnly("collectionpage")) await RenderCollectionPageAsync(main, view, host, folder);
+        if (RenderOnly("narrow")) await RenderNarrowPagesAsync(main, view, host, folder);
         if (RenderOnly("sourcecapture"))
         {
             view.ShowPage("Settings");

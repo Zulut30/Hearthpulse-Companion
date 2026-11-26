@@ -127,8 +127,21 @@ public sealed class Ornament : Control
         return _cut;
     }
 
-    /// <summary>The room the title has: the width less the icon and the gap before the rule, or the rules' diamonds when centered.</summary>
-    private double TitleRoom(double width) => Centered ? width - 40 : width - (Icon.Length > 0 ? IconSize + 10 : 0) - 12;
+    /// <summary>
+    /// The room the title has: the width less the icon and the gap before the rule, or the rules' diamonds when centered.
+    /// A title that is whole only without the rule takes the gap too (no room is left for the rule anyway), rather than
+    /// end in an ellipsis a few pixels short (a long Russian title in a compact card).
+    /// </summary>
+    private double TitleRoom(double width)
+    {
+        if (Centered)
+        {
+            return width - 40;
+        }
+
+        var room = width - (Icon.Length > 0 ? IconSize + 10 : 0);
+        return Format().Width <= room - 12 ? room - 12 : room;
+    }
 
     protected override Size ArrangeOverride(Size finalSize)
     {

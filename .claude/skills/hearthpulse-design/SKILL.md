@@ -178,7 +178,10 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
   FontSize 14 (Avalonia adds a 26px Scallop + glyph). Filters (SegmentBar) sit top-right of the header grid.
 - Card spacing: `Margin="0,0,0,24"` between cards; Ornament section headings above groups.
 - Avalonia compact mode: `MainView` gets class `compact` below 900 px (`CompactWidth` in `MainView.axaml.cs`):
-  icon-only nav, `.wide` elements hidden, choice rows stack.
+  icon-only nav, `.wide` elements hidden, choice rows stack. What must change in a narrow card at any window width
+  (one of two cards side by side at 1040 is as narrow as compact) goes by its own width: `i:Tight.Below="<px>"`
+  (`Infrastructure/Tight.cs`) gives the element the class `tight` while it is narrower (recent games, deck rows, group
+  rows, the `Grid.statsPair` pairs of cards).
 - Overlay: laid out on a 1080-unit-high reference surface and scaled to the game client (`ReferenceHeight = 1080` in
   `OverlayWindow.xaml.cs` and `OverlayView.axaml.cs`).
 

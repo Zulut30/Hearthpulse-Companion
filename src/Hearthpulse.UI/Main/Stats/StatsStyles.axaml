@@ -45,6 +45,20 @@
         <Setter Property="Rows" Value="0" />
         <Setter Property="Columns" Value="2" />
     </Style>
+    <!-- A KPI card's caption (StatsTile) wraps where the card is narrow - a half-width card in compact, a quarter of the
+         narrowest wide page - rather than being cut ("9 мин, 8,7 хода за игру", bug-hunt #24); the row's cards keep one
+         height -->
+    <Style Selector="TextBlock.tileDetail">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- The hero table's sort bar has four long segments: compact, a little less padding keeps the last one's right
+         edge inside the card (bug-hunt #25; MainView gives every compact stats bar 8,5) -->
+    <Style Selector="m|MainView.compact Border.sortBar RadioButton.segment /template/ Border#Bd">
+        <Setter Property="Padding" Value="6,5" />
+    </Style>
+
+    <!-- Group rows (StatGroupRowTemplate) -->
+    <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatRowStyles.axaml" />
 
     <!-- A number cell of a sortable table: .best is the column's best (green plate), .worst its worst (red plate).
          The plate's padding hangs past the column edge, so the number keeps the numbers' right edge. -->

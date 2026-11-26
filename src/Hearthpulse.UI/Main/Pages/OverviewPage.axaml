@@ -17,6 +17,66 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
+    <UserControl.Styles>
+        <!-- A recent game (GameRowTemplate, MainPages.axaml): the name and details (which wrap, so a long one takes a second
+             line instead of an ellipsis), then the facts in fixed cells; a tight row (narrower than 560) has the facts
+             (date, result, rating) flow on a line under the name and the details, which take the row's whole width, and
+             wrap when the date and the result do not fit side by side. -->
+        <Style Selector="Grid.gameRow > StackPanel.gameTitle">
+            <Setter Property="Margin" Value="4,0,16,0" />
+        </Style>
+        <Style Selector="Grid.gameRow TextBlock.gameSummary">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <!-- Each fact in a slot as high as the portrait, so it centres on the row as the cells of one grid row did -->
+        <Style Selector="Grid.gameRow > WrapPanel.gameFacts">
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="ItemHeight" Value="40" />
+        </Style>
+        <Style Selector="WrapPanel.gameFacts > TextBlock.gameWhen">
+            <Setter Property="Width" Value="120" />
+        </Style>
+        <Style Selector="WrapPanel.gameFacts > Panel.gameResult">
+            <Setter Property="Width" Value="112" />
+        </Style>
+        <Style Selector="WrapPanel.gameFacts > TextBlock.gameRating">
+            <Setter Property="Width" Value="56" />
+        </Style>
+        <Style Selector="Grid.gameRow.tight > Border.gamePortrait">
+            <Setter Property="Grid.RowSpan" Value="2" />
+        </Style>
+        <Style Selector="Grid.gameRow.tight > StackPanel.gameTitle">
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+        </Style>
+        <Style Selector="Grid.gameRow.tight > WrapPanel.gameFacts">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="4,4,0,0" />
+            <Setter Property="ItemHeight" Value="NaN" />
+            <Setter Property="ItemSpacing" Value="12" />
+            <Setter Property="LineSpacing" Value="4" />
+        </Style>
+        <Style Selector="Grid.gameRow.tight > WrapPanel.gameFacts > :is(Control)">
+            <Setter Property="Width" Value="NaN" />
+        </Style>
+        <Style Selector="Grid.gameRow.tight > WrapPanel.gameFacts > TextBlock.gameRating.none">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- Your decks: as many banners in a row as keep their name, line and curve beside the art (code-behind, three at
+             most; bug-hunt #29), 8 between rows. One alone takes the whole row. -->
+        <Style Selector="UniformGrid.homeDecks">
+            <Setter Property="Columns" Value="3" />
+        </Style>
+        <Style Selector="Button.homeDeck">
+            <Setter Property="Margin" Value="0,0,12,8" />
+        </Style>
+        <Style Selector="ItemsControl.single Button.homeDeck">
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+    </UserControl.Styles>
     <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
@@ -132,15 +192,17 @@
             <Border Classes="card" Margin="0,16,0,0" IsVisible="{Binding HomeDecks, Converter={StaticResource Truthy}}">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Main.Home.YourDecks}" Icon="&#xF063A;" Size="13" Margin="0,0,0,12" />
-                    <ItemsControl ItemsSource="{Binding HomeDecks}">
+                    <!-- -8 below: the banners' row gap stays inside the list -->
+                    <ItemsControl ItemsSource="{Binding HomeDecks}" Margin="0,0,0,-8" SizeChanged="OnHomeDecksSizeChanged">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid Columns="3" />
+                                <!-- "fixed": the columns follow the list's width (code-behind), not MainView's two-column compact tiles -->
+                                <UniformGrid Classes="fixed homeDecks" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:HomeDeck">
-                                <Button Classes="bare" Margin="0,0,12,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                <Button Classes="bare homeDeck" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                                         ToolTip.Tip="{i:Loc Main.Home.OpenDeckTip}" AutomationProperties.Name="{Binding Name}"
                                         Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).OpenDeck}" CommandParameter="{Binding Key}">
                                     <!-- The key card's art in a square at its own proportions (256 px art in 104): never stretched -->
@@ -153,8 +215,9 @@
                                                     <Border DockPanel.Dock="Left" Width="24" Height="24" CornerRadius="{StaticResource RadiusLarge}" Margin="0,0,8,0" ClipToBounds="True"
                                                             BorderBrush="{StaticResource AccentLine}" BorderThickness="1" Background="{StaticResource Surface3}"
                                                             i:CardArt.Portrait="{Binding HeroCardId}" />
-                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
-                                                               VerticalAlignment="Center" ToolTip.Tip="{Binding Name}" />
+                                                    <!-- Cut in the middle: the end ("Охотник на демонов 3" and "… 2") tells two versions apart -->
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}"
+                                                               TextTrimming="PrefixCharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding Name}" />
                                                 </DockPanel>
                                                 <TextBlock Text="{Binding Line}" Classes="caption" Margin="0,4,0,8" />
                                                 <!-- The mana curve, 0 to 7+ -->
@@ -183,7 +246,9 @@
             <!-- Battlegrounds rating over time; where you finish is on the Battlegrounds page (My stats) -->
             <Border Classes="card" Margin="0,16,0,0" IsVisible="{Binding HasBgGames}">
                 <DockPanel>
-                    <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                    <c:Ornament Name="BgRatingTitle" Classes="wide" DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                    <!-- Compact: the same heading without its icon, which leaves the long Russian title its room (bug-hunt #30) -->
+                    <c:Ornament Name="BgRatingTitleCompact" Classes="narrow" DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Size="13" Margin="0,0,0,12" />
                     <!-- Reading the game client is off: one reason line over the earlier games' rating; without them the chart says it -->
                     <TextBlock DockPanel.Dock="Top" Text="{Binding RatingOffReason}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,8"
                                IsVisible="{Binding HomeRatingOffShown}" />

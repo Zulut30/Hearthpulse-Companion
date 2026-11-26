@@ -376,14 +376,16 @@ public sealed partial class MainViewModel : Observable
         var top = g.Mode == "Duos" ? 2 : 4;
         // An abandoned game has no placement or result: it is shown as such, in the muted colour.
         var resultKey = g.IsAbandoned ? g.Result : bg ? (g.Placement is > 0 && g.Placement <= top ? "Win" : "Loss") : g.Result;
+        // Each short fact ("Silver 1", "7 turns", "vs Paladin") stays on one line when the details wrap; a deck name
+        // breaks where it must.
         var detail = bg
-            ? Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)
-            : string.Join(" · ", new[]
+            ? string.Join(GameRow.Separator, Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier).Split(" · ").Select(Unbroken))
+            : string.Join(GameRow.Separator, new[]
             {
                 g.DeckName is { Length: > 0 } deck ? Hearthpulse.Core.Stats.DeckName.Display(deck) : null,
-                string.IsNullOrEmpty(g.OpponentClass) ? null : Loc.F("Main.Game.Vs", OverlayViewModel.ClassName(g.OpponentClass)),
-                RankInfo.Localize(g.Rank),
-                Loc.P("Main.Game.Turns", g.Turns),
+                string.IsNullOrEmpty(g.OpponentClass) ? null : Unbroken(Loc.F("Main.Game.Vs", OverlayViewModel.ClassName(g.OpponentClass))),
+                RankInfo.Localize(g.Rank) is { } rank ? Unbroken(rank) : null,
+                Unbroken(Loc.P("Main.Game.Turns", g.Turns)),
             }.Where(x => !string.IsNullOrEmpty(x)));
         // A game recorded without its hero (an Arena or Underground Arena record that kept only the class) shows the
         // class's default hero, as a deck does, instead of an empty portrait and no name.
@@ -400,6 +402,12 @@ public sealed partial class MainViewModel : Observable
             g.RatingDelta ?? 0,
             g.Key);
     }
+
+    /// <summary>
+    /// A short piece of text ("Platinum 5", "7 turns") with no-break spaces, so a line that wraps keeps it whole
+    /// ("Platinum / 5" read as two facts).
+    /// </summary>
+    internal static string Unbroken(string text) => text.Replace(' ', '\u00A0');
 
     /// <summary>
     /// The length of an average-place bar among others (0..1): full for the best place, 15 % for the worst, full for all

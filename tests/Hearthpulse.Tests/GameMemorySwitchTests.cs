@@ -228,6 +228,40 @@ public sealed class GameMemorySwitchTests
         Assert.Null(session.Current.Rating);
     }
 
+    /// <summary>
+    /// QA m6: off and on again, the scan of what the session asks for after the switch is applied as before. Only a
+    /// reading asked for before the switch is dropped: the request carries the switch's count (<see cref="MemoryRequest.Epoch"/>).
+    /// </summary>
+    [Fact]
+    public void Turned_off_and_on_again_the_next_reading_is_applied()
+    {
+        using var memory = new HearthstoneMemory();
+        var now = Noon;
+        var session = ManualSession(memory, () => now);
+        session.OnSessionStarted("Hearthstone_2026_11_26_12_00_00", Noon, attachedMidSession: false);
+        session.OnTick();
+        var first = session.MemoryReader.Pending;
+        Assert.NotNull(first);
+        session.MemoryReader.Deliver(Reading(first, rating: new BattlegroundsRating(6000, 0)));
+        now = now.AddSeconds(1);
+        session.OnTick();
+        Assert.Equal(6000, session.Current.Rating?.Solo);
+
+        session.SetGameMemoryEnabled(false);
+        session.SetGameMemoryEnabled(true);
+        now = now.AddSeconds(1);
+        session.OnTick();
+        Assert.Null(session.Current.Rating);
+
+        // The request the session posted after the switch, scanned as the reader scans it: its reading is current.
+        var asked = session.MemoryReader.Pending;
+        Assert.NotNull(asked);
+        session.MemoryReader.Deliver(Reading(asked, rating: new BattlegroundsRating(6150, 0)));
+        now = now.AddSeconds(1);
+        session.OnTick();
+        Assert.Equal(6150, session.Current.Rating?.Solo);
+    }
+
     [Fact]
     public void Turned_off_nothing_attaches_and_no_value_is_read_not_even_under_the_mouse()
     {
@@ -248,15 +282,19 @@ public sealed class GameMemorySwitchTests
         Assert.Equal(reads, source.Reads);
 
         // The reader let go between its scans (MemoryPoller.Release); on again, a read under the mouse never attaches by
-        // itself: only the reader does (checked where no game runs, so a regression cannot open a live one).
+        // itself: only the reader does. Checked where no game runs, so a regression cannot open a live one. With no game
+        // an attach fails anyway; trying at all leaves its reason in Status ("Hearthstone not running", off Windows "only
+        // available on Windows"), so Status shows whether one was tried.
         memory.Detach();
         session.SetGameMemoryEnabled(true);
         Assert.False(memory.Blocked);
+        Assert.Equal("Detached", memory.Status);
         if (System.Diagnostics.Process.GetProcessesByName("Hearthstone").Length == 0)
         {
             Assert.Null(memory.GetHoveredLeaderboardHero());
             Assert.Null(memory.GetHoveredCardId());
             Assert.False(memory.IsAttached);
+            Assert.Equal("Detached", memory.Status);
             Assert.Equal(reads, source.Reads);
         }
     }
