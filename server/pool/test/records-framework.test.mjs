@@ -267,6 +267,24 @@ test('a view that throws logs its key and nothing else; a view that would publis
   assert.equal(kit.status().failed, 2);
 });
 
+test('m1: a view that keeps failing is retried 30 minutes after the pass, as new records are, not by a pass a minute', () => {
+  const broken = traceView({ key: 'test-broken', start: () => { throw new Error('boom'); } });
+  const kit = recordsKit({ views: [winrateView(), broken] });
+  kit.add(1, ranked());
+  assert.equal(kit.refresh().built, true);
+  for (let minute = 1; minute < 30; minute++) {
+    kit.advance(60_000);
+    kit.add(2, ranked());
+    assert.equal(kit.refresh().built, false, `a record a minute: minute ${minute}`);
+  }
+  kit.advance(60_000);
+  kit.add(2, ranked());
+  assert.deepEqual(kit.refresh(), { built: true, views: 1, failed: ['test-broken'], records: 31 }, '30 minutes after the pass');
+  assert.deepEqual(kit.logs.map(l => l.error), ['records_view_failed', 'records_view_failed'], 'one line a pass');
+  kit.advance(DAY);
+  assert.equal(kit.refresh().built, true, 'a new day retries it at once');
+});
+
 test('Q2: a view that would publish a record id is held back as one with an install id is', () => {
   const leaky = traceView({ key: 'test-record-id', add: (acc, rec) => { acc.push([`id:${rec.body.id}`, rec.day]); } });
   const kit = recordsKit({ views: [winrateView(), leaky] });

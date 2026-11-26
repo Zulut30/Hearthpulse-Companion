@@ -65,13 +65,14 @@ function viewRows(db) {
 
 /**
  * Whether a pass is due: nothing built yet, a new signature or day, a withdrawn or missing view, or new records
- * REBUILD_AFTER after the last build. A view that failed in the last pass is not retried for being missing until the
- * records, the day or a version change.
+ * REBUILD_AFTER after the last pass. A view that failed in the last pass never makes one due for being missing: it is
+ * retried by the next pass due for another reason (new records REBUILD_AFTER after the last pass, a new day, a new
+ * version), so a broken view costs one pass in REBUILD_AFTER, not one a minute.
  */
 function due(state, rows, { sig, today, now, count, views }) {
   if (!state || state.sig !== sig || state.day !== today) return true;
   if (count !== state.count && now - state.built >= REBUILD_AFTER) return true;
-  const failed = new Set(count === state.count ? state.failed : []);
+  const failed = new Set(state.failed);
   return views.some(v => { const r = rows.get(v.key); return (!r || r.size === 0) && !failed.has(v.key); });
 }
 

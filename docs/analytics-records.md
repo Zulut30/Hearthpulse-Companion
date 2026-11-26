@@ -34,7 +34,8 @@ server/pool/
 `refresh()` runs in the service's queue (nothing else writes meanwhile), in one transaction, every 60 seconds when it
 is due, never in a request:
 
-- due when nothing was built yet; a view row is missing or withdrawn; the day changed; the signature changed (a view's
+- due when nothing was built yet; a view row is missing or withdrawn (not the row of a view that failed in the last
+  pass); the day changed; the signature changed (a view's
   key, metric, rules, line or modes, a deriver's name, order or version, the patches file, the thresholds); or the
   number of records changed and the last build is 30 minutes old or more;
 - reads the records of the last 90 days up to today (`day` in [T − 89, T]; a record dated tomorrow waits), of the
@@ -47,8 +48,9 @@ is due, never in a request:
 
 A view that throws in `start`, `add` or `finish`, or whose snapshot would hold an install id or a record id of the
 pass, is not published: one line `records_view_failed` with its key and the stage, its previous row stays (served with
-`stale: true` when records changed since), the other views publish, and it is not retried until the records, the day
-or a version change. A deriver that throws leaves its fields of that record unset and is reported once a pass
+`stale: true` when records changed since), the other views publish. A failed view never makes a pass due by being
+missing: it is retried by the next pass due for another reason (new records 30 minutes after the last pass, a new day,
+a new version), so a broken view costs one pass in 30 minutes, not one a minute. A deriver that throws leaves its fields of that record unset and is reported once a pass
 (`records_derive_failed` with the count). A failure of the pass itself rolls everything back (`records_refresh_failed`).
 
 ## A record as views see it (K2)
