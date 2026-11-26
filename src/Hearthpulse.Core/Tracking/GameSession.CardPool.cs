@@ -182,9 +182,7 @@ public sealed partial class GameSession
     /// <summary>Adds the current pool to a Constructed view; called while publishing.</summary>
     private ConstructedView WithCardPool(ConstructedView view, GameState game)
     {
-        // Memory is read only when a hover can show something: reading the client on, setting on, catalog loaded, a mode
-        // and format with a known pool, the hover not turned off, and a card with a pool or a "this game" list in your
-        // hand; with Ctrl, only while Ctrl is held (HoverReadsWanted).
+        // Memory is read only when a hover can show something, and with Ctrl only while it is held (HoverReadsWanted).
         var engine = _cardPoolEnabled ? CardPoolEngineNow() : null;
         var context = CardPoolTracker.ContextOf(game, _cards);
         _cardPoolHoverPossible = _gameMemoryEnabled && engine is not null && _cardPoolHover != CardPoolHover.Off && HoverSupported
@@ -212,7 +210,10 @@ public sealed partial class GameSession
             var list = hovered is not null && (pool is null || pool.SourceCardId == hovered) && MatchRuleOf(hovered) is { } rule
                 ? MatchLists.Build(hovered, rule, game, _constructed.Counters, _cards)
                 : null;
-            return view with { CardPool = pool, CardPoolAnchor = _cardPool.AnchorOf(game, pool), MatchList = list, DiscoverPicks = PicksOf(game, pool) };
+            var picks = PicksOf(game, pool);
+            // A Discover whose pool the catalog cannot answer shows only its pick hint, and nothing without one.
+            pool = pool is { Uncomputed: not null } && picks is null ? null : pool;
+            return view with { CardPool = pool, CardPoolAnchor = _cardPool.AnchorOf(game, pool), MatchList = list, DiscoverPicks = picks };
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException)
         {
@@ -284,9 +285,9 @@ public sealed partial class GameSession
     }, this);
 
     /// <summary>
-    /// The pick hint while the player's own choice is open and its pool is up: from the card's choices in memory (the
-    /// first publish of a choice starts loading them, so a choice never waits on the server). Null outside a choice,
-    /// in other formats and for cards the API has no numbers for.
+    /// The pick hint while the player's own choice is open and its pool is up (computed or not): from the card's choices
+    /// in memory (the first publish of a choice starts loading them, so a choice never waits on the server). Null outside
+    /// a choice, in other formats and for cards the API has no numbers for.
     /// </summary>
     private DiscoverPicksView? PicksOf(GameState game, CardPoolView? pool)
     {
@@ -397,8 +398,14 @@ public sealed partial class GameSession
     {
         var read = HoverReadsWanted && Current.Constructed is not null;
         var hovered = read ? (HoverReader ?? ReadHoveredFromGame)() : null;
-        // Ctrl may have come up while the game was read: that card is not shown.
+        // Ctrl may have come up while the game was read: that card is not shown. Nor when reading the client was turned off
+        // meanwhile: the switch sets its flag before it forgets the card, so checking after this one closes the race.
         if (_cardPool.SetHovered(HoverReadAllowed ? hovered : null))
+        {
+            _dirty = true;
+        }
+
+        if (!_gameMemoryEnabled && _cardPool.SetHovered(null))
         {
             _dirty = true;
         }

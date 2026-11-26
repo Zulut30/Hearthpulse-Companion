@@ -4,10 +4,8 @@
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
              xmlns:c="clr-namespace:Hearthpulse.App.Controls">
-    <!-- The compact card pool panel (300 wide): at its own spot (MovablePanel "card-pool", a card in hand) or beside the
-         options of the player's own Discover (the card pool layer). Header with the card's name, the cards of this game a
-         hovered card looks back at, the Excavate tier, the pick hint, the pool's cards as tracker rows, and the "All cards"
-         button that opens the pool browser. DataContext is the OverlayViewModel. Same tree as the Avalonia CardPoolPanel.axaml. -->
+    <!-- The compact card pool panel: at its own spot (MovablePanel "card-pool") or beside the options of the player's own
+         Discover. DataContext is the OverlayViewModel. Avalonia twin: Overlay/CardPoolPanel.axaml. -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -126,7 +124,7 @@
             <Button x:Name="AllCards" Style="{StaticResource LockButton}" Command="{Binding OpenCardPoolBrowser}" HorizontalAlignment="Center" Margin="12,8,12,12"
                     o:OverlayHit.Interactive="True" AutomationProperties.Name="{Binding CardPoolAllCardsText}"
                     Visibility="{Binding ShowCardPoolAllCards, Converter={StaticResource Vis}}">
-                <TextBlock Text="{Binding CardPoolAllCardsText}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding CardPoolAllCardsText}" FontSize="{StaticResource FontSizeSmall}" FontWeight="Bold" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center" />
             </Button>
             <Border Height="8" Visibility="{Binding ShowCardPoolAllCards, Converter={StaticResource Vis}, ConverterParameter=!}" />
         </StackPanel>

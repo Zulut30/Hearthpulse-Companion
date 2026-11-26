@@ -74,7 +74,8 @@ public sealed partial class OverlayViewModel
     private string _cardPoolNote = string.Empty;
     private IReadOnlyList<PoolListRow> _cardPoolRows = [];
     private string _cardPoolRowsTitle = string.Empty;
-    private bool _showCardPoolAllCards;
+    private bool _cardPoolBrowsable;
+    private bool _cardPoolPopupOverChoices;
     private string _cardPoolAllCardsText = string.Empty;
     private IReadOnlyList<PoolListRow> _cardPoolList = [];
     private string _cardPoolListTitle = string.Empty;
@@ -162,6 +163,7 @@ public sealed partial class OverlayViewModel
             if (Set(ref _cardPoolAnchor, value))
             {
                 RaiseCardPoolShown();
+                Raise(nameof(ShowCardPoolAllCards));
             }
         }
     }
@@ -196,8 +198,11 @@ public sealed partial class OverlayViewModel
     /// <summary>"Every card in the pool" over a small pool's rows, else "Most played in meta decks".</summary>
     public string CardPoolRowsTitle { get => _cardPoolRowsTitle; private set => Set(ref _cardPoolRowsTitle, value); }
 
-    /// <summary>The "All cards · N" button that opens the browser: a pool of more than 12 cards (a small one is listed whole).</summary>
-    public bool ShowCardPoolAllCards { get => _showCardPoolAllCards; private set => Set(ref _showCardPoolAllCards, value); }
+    /// <summary>
+    /// The "All cards · N" button that opens the browser: a pool of more than 12 cards (a small one is listed whole). Not
+    /// on the popup while it lies over the Discover options (<see cref="SetCardPoolPopupOverChoices"/>).
+    /// </summary>
+    public bool ShowCardPoolAllCards => _cardPoolBrowsable && !(CardPoolAnchor is not null && _cardPoolPopupOverChoices);
 
     /// <summary>"All cards · 51".</summary>
     public string CardPoolAllCardsText { get => _cardPoolAllCardsText; private set => Set(ref _cardPoolAllCardsText, value); }
@@ -335,6 +340,20 @@ public sealed partial class OverlayViewModel
             RebuildCardPoolBrowser();
         }
     });
+
+    /// <summary>
+    /// The popup's spot, from the panel that places it: whether it lies over the Discover options
+    /// (<see cref="PoolPlacement.CoversChoices"/>). The "All cards" button would take the click meant for an option there,
+    /// so the popup goes without it.
+    /// </summary>
+    public void SetCardPoolPopupOverChoices(bool over)
+    {
+        if (_cardPoolPopupOverChoices != over)
+        {
+            _cardPoolPopupOverChoices = over;
+            Raise(nameof(ShowCardPoolAllCards));
+        }
+    }
 
     /// <summary>The × button or Esc.</summary>
     public RelayCommand CloseCardPoolBrowser => _closeCardPoolBrowser ??= new RelayCommand(CloseCardPoolBrowserCore);

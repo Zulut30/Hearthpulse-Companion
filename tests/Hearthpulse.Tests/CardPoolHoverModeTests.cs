@@ -1,4 +1,6 @@
+using System.Text.RegularExpressions;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Api;
 using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -10,8 +12,9 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// TASK-2026-11-26 AC4: a card in hand shows its pool as the hover mode says, and the card under the mouse is read from
-/// the game only then - with Ctrl (the default) only while Ctrl is held, always, or never; the player's own Discover
-/// shows its pool beside the options unless its switch is off. A fake reader stands in for game memory.
+/// the game only then - with Ctrl (the default) only while Ctrl is held, always, or never; never with the pool off or
+/// outside Ranked, Casual and Friendly; the player's own Discover shows its pool beside the options unless its switch is
+/// off. A fake reader stands in for game memory.
 /// </summary>
 public sealed class CardPoolHoverModeTests : IDisposable
 {
@@ -27,7 +30,9 @@ public sealed class CardPoolHoverModeTests : IDisposable
           {"id":"REL","dbfId":13,"name":"Token Maker","type":"MINION","cost":2,"set":"X","collectible":true},
           {"id":"RELt","dbfId":14,"name":"Token","type":"MINION","cost":1,"set":"X"},
           {"id":"BEAST_1","dbfId":20,"name":"Wolf","type":"MINION","cost":1,"set":"X","collectible":true},
-          {"id":"BEAST_2","dbfId":21,"name":"Bear","type":"MINION","cost":3,"set":"X","collectible":true}
+          {"id":"BEAST_2","dbfId":21,"name":"Bear","type":"MINION","cost":3,"set":"X","collectible":true},
+          {"id":"LIST","dbfId":15,"name":"Fel Counter","type":"MINION","cost":3,"set":"X","collectible":true},
+          {"id":"TLC_464","dbfId":16,"name":"Mountain Map","type":"SPELL","cost":1,"set":"X","collectible":true}
         ]
         """u8.ToArray()));
 
@@ -39,6 +44,9 @@ public sealed class CardPoolHoverModeTests : IDisposable
         Pool("BEAST_1", "Wolf", "A wolf.", "MINION", "BEAST"),
         Pool("BEAST_2", "Bear", "A bear.", "MINION", "BEAST"),
         Pool("DR_2", "Marker", "A minion.", "MINION"),
+        Pool("LIST", "Fel Counter", "Costs (1) less for each Fel spell you've cast this game.", "MINION"),
+        // A pool that depends on the game (CardPoolTables): the catalog cannot answer it.
+        Pool("TLC_464", "Mountain Map", "Discover a minion of a type you haven't played."),
     ], "test", DateTime.UtcNow);
 
     private readonly HearthstoneMemory _memory = new();
@@ -46,6 +54,7 @@ public sealed class CardPoolHoverModeTests : IDisposable
     private DateTime _now = T0;
     private int _reads;
     private volatile string? _underMouse;
+    private string _gameType = "GT_RANKED";
 
     public CardPoolHoverModeTests()
     {
@@ -73,7 +82,7 @@ public sealed class CardPoolHoverModeTests : IDisposable
     private static PoolCard Pool(string id, string name, string text, string type = "SPELL", params string[] races) =>
         new(id, 0, name, text, type, "COMMON", 1, type == "MINION" ? 1 : null, type == "MINION" ? 1 : null, ["NEUTRAL"], races, null, [], [], "X", true);
 
-    /// <summary>A Ranked game of a Priest with <paramref name="hand"/> in hand, published once.</summary>
+    /// <summary>A Ranked game (or <see cref="_gameType"/>) of a Priest with <paramref name="hand"/> in hand, published once.</summary>
     private void StartGame(AppSettings settings, params string[] hand)
     {
         _session.ApplySettings(settings);
@@ -93,7 +102,7 @@ public sealed class CardPoolHoverModeTests : IDisposable
             "DebugPrintPower() -         tag=HERO_ENTITY value=21",
             .. Card(20, "HERO_09", "PLAY", 1, "HERO"),
             .. Card(21, "HERO_01", "PLAY", 2, "HERO"),
-            "DebugPrintGame() - GameType=GT_RANKED",
+            $"DebugPrintGame() - GameType={_gameType}",
             "DebugPrintGame() - FormatType=FT_STANDARD",
             "DebugPrintGame() - PlayerID=1, PlayerName=velox#21276",
             "DebugPrintGame() - PlayerID=2, PlayerName=UNKNOWN HUMAN PLAYER",
@@ -114,6 +123,17 @@ public sealed class CardPoolHoverModeTests : IDisposable
     }
 
     private ConstructedView View => _session.Current.Constructed!;
+
+    /// <summary>The player plays hand card 40, <paramref name="cardId"/>, and its Discover offers the Wolf and the Bear.</summary>
+    private static string[] PlayAndDiscover(string cardId, string name) =>
+    [
+        $"DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName={name} id=40 zone=HAND zonePos=2 cardId={cardId} player=1] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
+        $"DebugPrintPower() -     TAG_CHANGE Entity=[entityName={name} id=40 zone=HAND zonePos=2 cardId={cardId} player=1] tag=ZONE value=PLAY ",
+        "DebugPrintEntityChoices() - id=5 Player=velox#21276 TaskList=570 ChoiceType=GENERAL CountMin=1 CountMax=1",
+        $"DebugPrintEntityChoices() -   Source=[entityName={name} id=40 zone=PLAY zonePos=0 cardId={cardId} player=1]",
+        "DebugPrintEntityChoices() -   Entities[0]=[entityName=Wolf id=60 zone=SETASIDE zonePos=0 cardId=BEAST_1 player=1]",
+        "DebugPrintEntityChoices() -   Entities[1]=[entityName=Bear id=61 zone=SETASIDE zonePos=0 cardId=BEAST_2 player=1]",
+    ];
 
     [Fact]
     public void Without_ctrl_the_card_under_the_mouse_is_not_read_and_no_pool_shows()
@@ -194,15 +214,7 @@ public sealed class CardPoolHoverModeTests : IDisposable
     public void The_players_discover_shows_its_pool_beside_the_options_unless_its_switch_is_off(bool onDiscover)
     {
         StartGame(new AppSettings { CardPoolOnDiscover = onDiscover }, "GEN_A");
-        Feed(
-        [
-            "DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=Beast Caller id=40 zone=HAND zonePos=2 cardId=GEN_A player=1] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
-            "DebugPrintPower() -     TAG_CHANGE Entity=[entityName=Beast Caller id=40 zone=HAND zonePos=2 cardId=GEN_A player=1] tag=ZONE value=PLAY ",
-            "DebugPrintEntityChoices() - id=5 Player=velox#21276 TaskList=570 ChoiceType=GENERAL CountMin=1 CountMax=1",
-            "DebugPrintEntityChoices() -   Source=[entityName=Beast Caller id=40 zone=PLAY zonePos=0 cardId=GEN_A player=1]",
-            "DebugPrintEntityChoices() -   Entities[0]=[entityName=Wolf id=60 zone=SETASIDE zonePos=0 cardId=BEAST_1 player=1]",
-            "DebugPrintEntityChoices() -   Entities[1]=[entityName=Bear id=61 zone=SETASIDE zonePos=0 cardId=BEAST_2 player=1]",
-        ]);
+        Feed(PlayAndDiscover("GEN_A", "Beast Caller"));
         Publish();
 
         if (onDiscover)
@@ -254,6 +266,91 @@ public sealed class CardPoolHoverModeTests : IDisposable
         Assert.Null(View.CardPool);
         Assert.Equal(reads, Volatile.Read(ref _reads));
     }
+
+    /// <summary>
+    /// TASK-2026-11-26 M1: a Discover whose pool the catalog cannot answer (Mountain Map: it depends on the game) shows only
+    /// its pick hint beside the options, and nothing while the API has no numbers for it.
+    /// </summary>
+    [Fact]
+    public void A_discover_the_catalog_cannot_answer_shows_only_its_pick_hint()
+    {
+        StartGame(new AppSettings(), "TLC_464");
+        Feed(PlayAndDiscover("TLC_464", "Mountain Map"));
+        Publish();
+        Assert.Null(View.CardPool);
+        Assert.Null(View.DiscoverPicks);
+        Assert.Null(View.CardPoolAnchor);
+
+        // The numbers as the API gives them, already in memory: no request is made.
+        var picks = new DiscoverChoiceSource(new HearthpulseData(new HearthpulseApi(new HttpClient(), "https://api.test/"), Path.Combine(TestDataFolder.Path, "card-choices-" + Guid.NewGuid().ToString("N"))))
+        {
+            Start = static (_, _) => { },
+        };
+        picks.Set(
+            [new ChoiceCard("TLC_464", 16, new HashSet<string>(StringComparer.Ordinal) { "standard" }, true)],
+            new CardChoices("TLC_464", "standard", "legend", [new CardChoiceOption("BEAST_1", 20, 0.7, 0.55, false), new CardChoiceOption("BEAST_2", 21, 0.3, 0.5, false)], null));
+        _session.SetDiscoverPicks(picks);
+        Publish();
+
+        Assert.Equal(("TLC_464", PoolTrigger.Choice, 0), (View.CardPool?.SourceCardId, View.CardPool?.Trigger, View.CardPool?.Count));
+        Assert.NotNull(View.CardPool!.Uncomputed);
+        Assert.Equal(["BEAST_1", "BEAST_2"], View.DiscoverPicks?.Rows.Select(r => r.CardId));
+        Assert.Equal(new CardPoolAnchor(PoolAnchorZone.Choice, 0, 2), View.CardPoolAnchor);
+        Assert.Equal(0, Volatile.Read(ref _reads));
+    }
+
+    /// <summary>Q2: a card with only a "this game" list is read for with Ctrl held, and shows its list; not without Ctrl.</summary>
+    [Fact]
+    public void A_card_with_only_a_this_game_list_is_read_with_ctrl_held_and_shows_its_list()
+    {
+        StartGame(new AppSettings(), "LIST", "PLAIN");
+        _underMouse = "LIST";
+
+        Assert.False(_session.ReadHover());
+        Publish();
+        Assert.Equal(0, Volatile.Read(ref _reads));
+        Assert.Null(View.MatchList);
+
+        _session.SetCardPoolControl(true);
+        Assert.True(_session.ReadHover());
+        Publish();
+        Assert.True(Volatile.Read(ref _reads) > 0);
+        Assert.Null(View.CardPool);
+        Assert.Equal("LIST", View.MatchList?.SourceCardId);
+        Assert.Null(View.CardPoolAnchor);
+    }
+
+    /// <summary>Q2: with "Card pool" off, or in a mode the pool does not cover (Arena), Ctrl over a card reads nothing.</summary>
+    [Theory]
+    [InlineData("GT_RANKED", false)]
+    [InlineData("GT_ARENA", true)]
+    public void With_the_pool_off_or_in_arena_ctrl_over_a_card_reads_nothing(string gameType, bool showCardPool)
+    {
+        _gameType = gameType;
+        StartGame(new AppSettings { ShowCardPool = showCardPool }, "GEN_A", "LIST");
+        _underMouse = "GEN_A";
+
+        _session.SetCardPoolControl(true);
+        Assert.False(_session.HoverReadsWanted);
+        Assert.False(_session.ReadHover());
+        _underMouse = "LIST";
+        Assert.False(_session.ReadHover());
+        Publish();
+
+        Assert.Equal(0, Volatile.Read(ref _reads));
+        Assert.Null(View.CardPool);
+        Assert.Null(View.MatchList);
+    }
+
+    /// <summary>
+    /// m3: Ctrl reaches the session only through each host's subscription. Without it the default "with Ctrl" mode would
+    /// quietly never read nor show, and the view-model and session tests would stay green.
+    /// </summary>
+    [Theory]
+    [InlineData("src/Hearthpulse.App/App.xaml.cs")]
+    [InlineData("src/Hearthpulse.Desktop/DesktopApp.cs")]
+    public void Both_hosts_hand_ctrl_to_the_session(string file) =>
+        Assert.Matches(new Regex(@"^\s*[\w.]+\.CardPoolControlChanged \+= [\w.]+\.SetCardPoolControl;", RegexOptions.Multiline), File.ReadAllText(Path.Combine(RepoFiles.Root, file)));
 
     [Fact]
     public void A_card_with_only_related_cards_opens_no_panel_and_is_not_read_for()

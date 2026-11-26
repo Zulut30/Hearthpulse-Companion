@@ -10,11 +10,9 @@ using Hearthpulse.Core.CardPool;
 namespace Hearthpulse.App.Overlay;
 
 /// <summary>
-/// The card pool panel. It lets clicks through to the game except on its "All cards" button: the pointer is read while
-/// it is shown and handed to <see cref="OverlayViewModel.UpdateCardPoolPointer(bool)"/> (resting on the panel holds a
-/// hand card's pool) and to the rows' card previews. With <see cref="Anchored"/> it sits in a Canvas over the whole
-/// surface and stands beside the options of the player's own Discover. It fades in when it first appears
-/// (<see cref="Reveal"/>); another card's pool replaces it without a fade, so the layered overlay window repaints less.
+/// The card pool panel. Clicks go through to the game except on its "All cards" button, so the pointer is polled while
+/// it shows (<see cref="OverlayViewModel.UpdateCardPoolPointer(bool)"/>, the rows' card previews). It fades in only when
+/// it first appears (<see cref="Reveal"/>), so the layered overlay window repaints less.
 /// </summary>
 public partial class CardPoolPanel : UserControl
 {
@@ -174,6 +172,9 @@ public partial class CardPoolPanel : UserControl
         var (x, y) = PoolPlacement.PlaceOnSurface(anchor, layer.ActualWidth, vm.CardPoolOverlayScale, ActualWidth * floor, ActualHeight * floor);
         Canvas.SetLeft(this, x);
         Canvas.SetTop(this, y);
+        // Clamped onto the options (no room beside them): no button, it would take an option's click. Only x decides
+        // it, so the height the button takes or gives back does not flip it.
+        vm.SetCardPoolPopupOverChoices(PoolPlacement.CoversChoicesOnSurface(anchor, layer.ActualWidth, vm.CardPoolOverlayScale, ActualWidth * floor, ActualHeight * floor));
     }
 
     private void Poll()

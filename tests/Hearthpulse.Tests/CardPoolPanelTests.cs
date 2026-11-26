@@ -139,6 +139,56 @@ public sealed class CardPoolPanelTests
         Assert.Equal(gy / 1.25, sy, 6);
     }
 
+    /// <summary>
+    /// TASK-2026-11-26 m1: with no room beside the Discover options the popup is clamped onto them, so it goes without its
+    /// "All cards" button (that would take an option's click): four options on 4:3, three on 4:3 at a large overlay scale,
+    /// five on 16:9 at 1.25 and above. The popup is drawn at least at MinPopupScale, as the panels draw it.
+    /// </summary>
+    [Theory]
+    [InlineData(1440, 4, 0.6)]
+    [InlineData(1440, 4, 1.0)]
+    [InlineData(1440, 3, 1.5)]
+    [InlineData(1440, 3, 1.6)]
+    [InlineData(1920, 5, 1.25)]
+    [InlineData(1920, 5, 1.6)]
+    public void A_popup_with_no_room_beside_the_discover_options_covers_them(double width, int options, double scale) =>
+        Assert.True(PoolPlacement.CoversChoicesOnSurface(new CardPoolAnchor(PoolAnchorZone.Choice, 0, options), width / scale, scale, PanelWidth * PoolPlacement.PopupFloor(scale), PanelHeight));
+
+    /// <summary>
+    /// m1 the other way round: wherever the popup keeps its button it is clear of the options' row (centre ± 150 per
+    /// option, in game units), for 3 to 5 options on 16:9, 16:10 and 4:3 at every overlay scale.
+    /// </summary>
+    [Fact]
+    public void A_popup_that_keeps_its_button_is_clear_of_the_discover_options()
+    {
+        foreach (var width in new[] { 1920.0, 1728, 1440 })
+        {
+            foreach (var options in new[] { 3, 4, 5 })
+            {
+                for (var step = 0; step <= 20; step++)
+                {
+                    var scale = 0.6 + (step * 0.05);
+                    var anchor = new CardPoolAnchor(PoolAnchorZone.Choice, 0, options);
+                    var panel = PanelWidth * PoolPlacement.PopupFloor(scale);
+                    if (PoolPlacement.CoversChoicesOnSurface(anchor, width / scale, scale, panel, PanelHeight))
+                    {
+                        continue;
+                    }
+
+                    var (x, _) = PoolPlacement.PlaceOnSurface(anchor, width / scale, scale, panel, PanelHeight);
+                    var (left, right, half) = (x * scale, (x + panel) * scale, options * 150);
+                    Assert.True(right <= (width / 2) - half || left >= (width / 2) + half, $"{width} wide, {options} options, scale {scale}: {left:0}..{right:0}");
+                }
+            }
+        }
+
+        // The usual Discover keeps it: three options on 16:9 and 16:10 at the default scale.
+        Assert.False(PoolPlacement.CoversChoicesOnSurface(new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3), 1920, 1, PanelWidth, PanelHeight));
+        Assert.False(PoolPlacement.CoversChoicesOnSurface(new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3), 1728, 1, PanelWidth, PanelHeight));
+        // A hand card's pool is not beside any options.
+        Assert.False(PoolPlacement.CoversChoices(new CardPoolAnchor(PoolAnchorZone.Hand, 0, 5), 1440, 1440, PanelHeight));
+    }
+
     [Fact]
     public void The_tracker_anchors_the_pool_to_its_card()
     {

@@ -5,11 +5,8 @@
              xmlns:c="using:Hearthpulse.UI.Controls"
              x:Class="Hearthpulse.UI.Overlay.CardPoolPanel"
              x:DataType="o:OverlayViewModel">
-    <!-- The compact card pool panel (300 wide): at its own spot (MovablePanel "card-pool", a card in hand) or beside the
-         options of the player's own Discover (the card pool layer). Header with the card's name, the cards of this game a
-         hovered card looks back at, the Excavate tier, the pick hint, the pool's cards as tracker rows, and the "All cards"
-         button that opens the pool browser (Button.lockButton, OverlayPanelStyles.axaml). DataContext is the
-         OverlayViewModel. Same tree as the WPF CardPoolPanel.xaml. -->
+    <!-- The compact card pool panel: at its own spot (MovablePanel "card-pool") or beside the options of the player's own
+         Discover; the "All cards" button is Button.lockButton (OverlayPanelStyles.axaml). WPF twin: Overlay/CardPoolPanel.xaml. -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
 
@@ -123,7 +120,7 @@
             <!-- ===== The end: "All cards · N" opens the browser, the one part of the panel that takes the mouse ===== -->
             <Button x:Name="AllCards" Classes="lockButton" Command="{Binding OpenCardPoolBrowser}" HorizontalAlignment="Center" Margin="12,8,12,12"
                     o:OverlayHit.Interactive="True" AutomationProperties.Name="{Binding CardPoolAllCardsText}" IsVisible="{Binding ShowCardPoolAllCards}">
-                <TextBlock Text="{Binding CardPoolAllCardsText}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding CardPoolAllCardsText}" FontSize="{StaticResource FontSizeSmall}" FontWeight="Bold" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center" />
             </Button>
             <Border Height="8" IsVisible="{Binding !ShowCardPoolAllCards}" />
         </StackPanel>

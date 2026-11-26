@@ -20,7 +20,8 @@ public enum PoolParseStatus
 
     /// <summary>
     /// It draws from a pool the catalog cannot answer (an entry of the exception table: a named group of tokens, a
-    /// pool that depends on the game state): the panel says "pool not computed" with the reason instead of nothing.
+    /// pool that depends on the game state): no pool shows and the reason is only logged; an open Discover of it shows
+    /// its pick hint.
     /// </summary>
     Uncomputed,
 }

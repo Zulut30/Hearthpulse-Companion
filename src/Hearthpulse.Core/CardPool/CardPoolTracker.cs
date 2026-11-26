@@ -209,7 +209,9 @@ public sealed class CardPoolTracker : IPowerListener
         }
 
         var context = ContextOf(game, cards);
-        if (choice is not null && OnDiscover && Computed(engine.Build(choice, context, PoolTrigger.Choice)) is { } fromChoice)
+        // The open Discover owns the panel, also when the catalog cannot answer its pool: its pick hint still shows then
+        // (GameSession drops the view when there is no hint).
+        if (choice is not null && OnDiscover && engine.Build(choice, context, PoolTrigger.Choice) is { } fromChoice)
         {
             return fromChoice;
         }
@@ -224,7 +226,8 @@ public sealed class CardPoolTracker : IPowerListener
 
     /// <summary>
     /// A view the panel shows: a computed pool. A generator the catalog cannot answer (<see cref="CardPoolView.Uncomputed"/>)
-    /// shows no panel: the player could do nothing with the reason, so it is only logged (CardPoolEngine).
+    /// shows no pool: the player could do nothing with the reason, so it is only logged (CardPoolEngine). Only an open
+    /// Discover keeps such a view, for its pick hint.
     /// </summary>
     public static CardPoolView? Computed(CardPoolView? view) => view is { Uncomputed: null } ? view : null;
 

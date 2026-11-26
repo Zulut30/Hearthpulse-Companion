@@ -17,7 +17,8 @@ namespace Hearthpulse.Presentation.Tests;
 /// <summary>
 /// TASK-2026-11-26 AC4 in both compiled view models: a card in hand shows its pool at the panel's own spot only as the
 /// hover mode says (with Ctrl held by default, always, or never) and goes a moment after nothing keeps it; the player's
-/// own Discover shows its pool beside the options and it goes with the pick; "All cards" opens the browser; the panel's
+/// own Discover shows its pool beside the options and it goes with the pick, or only its pick hint when the catalog
+/// cannot answer the pool; "All cards" opens the browser, but not from a popup lying over the options; the panel's
 /// content (P-1..P-14). The WPF panel is laid out in a hidden window, nothing on screen.
 /// </summary>
 public sealed class CardPoolPopupTests
@@ -330,6 +331,120 @@ public sealed class CardPoolPopupTests
         }
     }
 
+    /// <summary>
+    /// M1: a Discover whose pool the catalog cannot answer comes with its pick hint only: beside the options, the card's
+    /// name over "What players take", no count, rows or button. Without a hint it shows nothing.
+    /// </summary>
+    [Fact]
+    public void A_discover_the_catalog_cannot_answer_shows_only_its_pick_hint_in_both_view_models()
+    {
+        var map = Pool("TLC_464", 0) with { Trigger = PoolTrigger.Choice, Uncomputed = "the pool depends on the game state" };
+        var picks = new DiscoverPicksView("TLC_464", "legend", [new DiscoverPickRow("OPT_A", "Wolf", 0.7, 0.55, false, true), new DiscoverPickRow("OPT_B", "Bear", 0.3, 0.5, false, false)]);
+        var choice = new CardPoolAnchor(PoolAnchorZone.Choice, 0, 2);
+        foreach (var vm in Models())
+        {
+            vm.Show(map, anchor: choice, picks: picks);
+            Assert.True(vm.Popup, vm.Name);
+            Assert.Equal(("Generator TLC_464", string.Empty), (vm.Title, vm.Note));
+            Assert.Equal(["OPT_A", "OPT_B"], vm.Picks);
+            Assert.Empty(vm.Rows);
+            Assert.Equal(string.Empty, vm.RowsTitle);
+            Assert.Equal((false, string.Empty), vm.AllCards);
+
+            // The pick ends it.
+            vm.Show(null);
+            Assert.False(vm.Popup, vm.Name);
+            Assert.Empty(vm.Picks);
+
+            vm.Show(map, anchor: choice);
+            Assert.False(vm.Popup, vm.Name);
+            Assert.False(vm.Panel, vm.Name);
+        }
+    }
+
+    /// <summary>
+    /// m1: with no room beside the Discover options the popup lies over them (the panel says so, from PoolPlacement) and
+    /// shows without the "All cards" button, which would take an option's click. The panel at its own spot keeps it.
+    /// </summary>
+    [Fact]
+    public void A_popup_over_the_discover_options_goes_without_its_button_in_both_view_models()
+    {
+        foreach (var vm in Models())
+        {
+            vm.Keys(true, T0);
+            vm.Show(Pool("DISCOVER_GEN", 40) with { Trigger = PoolTrigger.Choice }, anchor: new CardPoolAnchor(PoolAnchorZone.Choice, 0, 4));
+            Assert.True(vm.AllCards.Shown, vm.Name);
+
+            vm.Changes.Clear();
+            vm.OverChoices(true);
+            Assert.True(vm.Popup, vm.Name);
+            Assert.False(vm.AllCards.Shown, vm.Name);
+            Assert.Contains(nameof(OverlayViewModel.ShowCardPoolAllCards), vm.Changes);
+            vm.OverChoices(false);
+            Assert.True(vm.AllCards.Shown, vm.Name);
+
+            vm.OverChoices(true);
+            vm.Show(Pool("TEST_GEN", 40));
+            Assert.True(vm.Panel, vm.Name);
+            Assert.True(vm.AllCards.Shown, vm.Name);
+        }
+    }
+
+    /// <summary>Q2: twelve cards are listed whole with no button; thirteen get the button and the most played cards.</summary>
+    [Fact]
+    public void Twelve_cards_are_listed_whole_and_thirteen_get_the_all_cards_button_in_both_view_models()
+    {
+        var previous = Loc.Instance.Language;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            var thirteen = Enumerable.Range(0, 13).Select(i => Card($"T_{i:00}", "SPELL", i % 9, null, null)).ToList();
+            var meta = thirteen.Select((c, i) => (c.Id, Games: 100 - i)).ToDictionary(p => p.Id, p => p.Games, StringComparer.Ordinal);
+            foreach (var vm in Models())
+            {
+                vm.Keys(true, T0);
+                vm.Show(Pool("TWELVE", 12));
+                Assert.Equal((false, "Every card in the pool", 12), (vm.AllCards.Shown, vm.RowsTitle, vm.Rows.Count));
+
+                vm.Show(View("THIRTEEN", thirteen, meta));
+                Assert.Equal((true, "All cards · 13"), vm.AllCards);
+                Assert.Equal("Most played in meta decks", vm.RowsTitle);
+                Assert.Equal(["T_00", "T_01", "T_02", "T_03"], vm.Rows.Select(r => r.Item1));
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(previous);
+        }
+    }
+
+    /// <summary>Q2: a new turn closes the browser, and without Ctrl the hand card's pool does not come back.</summary>
+    [Fact]
+    public void A_new_turn_closes_the_browser_and_without_ctrl_the_panel_stays_away_in_both_view_models()
+    {
+        foreach (var vm in Models())
+        {
+            vm.Keys(true, T0);
+            vm.Show(Pool("TEST_GEN", 40));
+            vm.OpenAll();
+            vm.Keys(false, T0 + Ms(1000));
+            vm.Show(null);
+            Assert.True(vm.BrowserOpen, vm.Name);
+
+            vm.Turn = 6;
+            vm.Show(null);
+            Assert.False(vm.BrowserOpen, vm.Name);
+            Assert.False(vm.Panel, vm.Name);
+            vm.Keys(false, T0 + Ms(3000));
+            Assert.False(vm.Panel, vm.Name);
+
+            // The session still hands the card's pool: without Ctrl it stays away.
+            vm.Show(Pool("TEST_GEN", 40));
+            Assert.False(vm.Panel, vm.Name);
+            Assert.False(vm.BrowserOpen, vm.Name);
+        }
+    }
+
     [Fact]
     public void The_wpf_panel_lays_out_a_this_game_list() => WpfThread.RunThemed(() =>
     {
@@ -422,7 +537,7 @@ public sealed class CardPoolPopupTests
     private sealed class Model
     {
         public required string Name { get; init; }
-        public required Action<CardPoolView?, MatchListView?, CardPoolAnchor?> ShowWith { get; init; }
+        public required Action<CardPoolView?, MatchListView?, CardPoolAnchor?, DiscoverPicksView?, int> ShowWith { get; init; }
         public required Action<bool, DateTime> Keys { get; init; }
         public required Action<bool, DateTime> Pointer { get; init; }
         public required Func<bool> HeldNow { get; init; }
@@ -440,9 +555,16 @@ public sealed class CardPoolPopupTests
         public required Func<IReadOnlyList<(string, string)>> ListRowsNow { get; init; }
         public required Func<string> ListNoteNow { get; init; }
         public required Func<(string Next, IReadOnlyList<string> Rows)> ExcavateNow { get; init; }
+        public required Func<IReadOnlyList<string>> PicksNow { get; init; }
+        public required Action<bool> OverChoices { get; init; }
         public List<bool> ControlChanges { get; } = [];
+        public List<string> Changes { get; } = [];
 
-        public void Show(CardPoolView? pool, MatchListView? list = null, CardPoolAnchor? anchor = null) => ShowWith(pool, list, anchor);
+        /// <summary>The game's turn of the next <see cref="Show"/>.</summary>
+        public int Turn { get; set; } = 5;
+
+        public void Show(CardPoolView? pool, MatchListView? list = null, CardPoolAnchor? anchor = null, DiscoverPicksView? picks = null) =>
+            ShowWith(pool, list, anchor, picks, Turn);
 
         public bool Held => HeldNow();
         public bool Panel => PanelNow();
@@ -459,6 +581,7 @@ public sealed class CardPoolPopupTests
         public string ListNote => ListNoteNow();
         public string ExcavateNext => ExcavateNow().Next;
         public IReadOnlyList<string> ExcavateRows => ExcavateNow().Rows;
+        public IReadOnlyList<string> Picks => PicksNow();
 
         public void OpenAll() => OpenBrowser();
 
@@ -472,7 +595,7 @@ public sealed class CardPoolPopupTests
         var a = new Model
         {
             Name = "WPF",
-            ShowWith = (pool, list, anchor) => wpf.Update(Snapshot(pool, list, anchor), CardDb.Empty, wpfSettings, null, null),
+            ShowWith = (pool, list, anchor, picks, turn) => wpf.Update(Snapshot(pool, list, anchor, picks, turn), CardDb.Empty, wpfSettings, null, null),
             Keys = wpf.UpdateCardPoolKeys,
             Pointer = wpf.UpdateCardPoolPointer,
             HeldNow = () => wpf.CardPoolHeld,
@@ -490,8 +613,11 @@ public sealed class CardPoolPopupTests
             ListRowsNow = () => wpf.CardPoolList.Select(r => (r.CardId, r.CountText)).ToList(),
             ListNoteNow = () => wpf.CardPoolListNote,
             ExcavateNow = () => (wpf.CardPoolExcavateNext, wpf.CardPoolExcavateRows.Select(r => r.CardId).ToList()),
+            PicksNow = () => wpf.CardPoolPicks.Select(r => r.CardId).ToList(),
+            OverChoices = wpf.SetCardPoolPopupOverChoices,
         };
         wpf.CardPoolControlChanged += a.ControlChanges.Add;
+        wpf.PropertyChanged += (_, e) => a.Changes.Add(e.PropertyName ?? string.Empty);
         yield return a;
 
         var avaSettings = settings ?? new AppSettings();
@@ -499,7 +625,7 @@ public sealed class CardPoolPopupTests
         var b = new Model
         {
             Name = "Avalonia",
-            ShowWith = (pool, list, anchor) => ava.Update(Snapshot(pool, list, anchor), CardDb.Empty, avaSettings, null, null),
+            ShowWith = (pool, list, anchor, picks, turn) => ava.Update(Snapshot(pool, list, anchor, picks, turn), CardDb.Empty, avaSettings, null, null),
             Keys = ava.UpdateCardPoolKeys,
             Pointer = ava.UpdateCardPoolPointer,
             HeldNow = () => ava.CardPoolHeld,
@@ -517,18 +643,22 @@ public sealed class CardPoolPopupTests
             ListRowsNow = () => ava.CardPoolList.Select(r => (r.CardId, r.CountText)).ToList(),
             ListNoteNow = () => ava.CardPoolListNote,
             ExcavateNow = () => (ava.CardPoolExcavateNext, ava.CardPoolExcavateRows.Select(r => r.CardId).ToList()),
+            PicksNow = () => ava.CardPoolPicks.Select(r => r.CardId).ToList(),
+            OverChoices = ava.SetCardPoolPopupOverChoices,
         };
         ava.CardPoolControlChanged += b.ControlChanges.Add;
+        ava.PropertyChanged += (_, e) => b.Changes.Add(e.PropertyName ?? string.Empty);
         yield return b;
     }
 
-    private static LiveSnapshot Snapshot(CardPoolView? pool, MatchListView? list = null, CardPoolAnchor? anchor = null)
+    private static LiveSnapshot Snapshot(CardPoolView? pool, MatchListView? list = null, CardPoolAnchor? anchor = null, DiscoverPicksView? picks = null, int turn = 5)
     {
-        var constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
+        var constructed = new ConstructedView(turn, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
         {
             CardPool = pool,
             MatchList = list,
             CardPoolAnchor = anchor,
+            DiscoverPicks = picks,
         };
         return LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
     }

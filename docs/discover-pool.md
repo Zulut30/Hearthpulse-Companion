@@ -40,7 +40,7 @@ used while the API is down. **Fallback**: HearthstoneJSON `cards.collectible.jso
 `data.generated_card_pools[] {pool, cards[{card_id}] | card_ids[], query_url}` (`WikiPools.Parse`, cache
 `cache/api/card-wiki-{id}.json`, 6 h). `WikiPoolSource` loads a card on demand in the background (the first hover, play
 or choice; the deck's generators are asked for when the deck is known) and the overlay rebuilds the pool when it
-arrives. Order in `CardPoolEngine.Build`: wiki pools -> the card text -> "Pool not computed" (no panel, see the
+arrives. Order in `CardPoolEngine.Build`: wiki pools -> the card text -> "Pool not computed" (no pool shows; see the
 exception table). Wiki pools are Standard
 queries for one class (`query_url` `options_format`, `options_heroClasses`): not used in Wild or for another class (a
 stolen generator). Several pools (Scion of Insight: Blood 29, Frost 21, Unholy 33) become sections: chips in the
@@ -128,9 +128,11 @@ them (ids written to `CardPoolTables.Overrides`):
 - `skip` - generates, but the catalog cannot answer: cost from the game state (`with Cost equal to`, `of that Cost`,
   `playable spell`), pool from another card (`of the same Cost/Rarity`), named token groups (Animal Companions,
   Dormant Dreadseeds, Dream cards, Leylines, Shatter, Masks, Rewind cards, Wild Gods, Old Gods, contraband, Mimiron's
-  tech card). Status `Uncomputed`: no panel (since 2026-11-26, P-8: the player could do nothing with the reason, and
-  such a card in hand is no reason to read the card under the mouse); logged once as `pool not computed (no panel)`.
-  `CardPoolTracker.Computed` drops these views for the Discover, the request and the hover alike.
+  tech card). Status `Uncomputed`: no pool shows (since 2026-11-26, P-8: the player could do nothing with the reason,
+  and such a card in hand is no reason to read the card under the mouse); logged once as `pool not computed (not
+  shown)`. `CardPoolTracker.Computed` drops these views for the request and the hover. An open Discover keeps its view
+  for the pick hint, which then shows alone, and `GameSession.WithCardPool` drops it when there are no numbers (see
+  "What players take").
   Rune pools ("Discover a Blood Rune card", "a Blood, Frost or Unholy card") are read by the parser since
   2026-10-23: `PoolQuery.Runes`, rune costs from HearthstoneJSON, any class (only Death Knight cards have runes).
 - `sub` / `text` - parse a corrected text (`2-Cost minion that is Dormant for 2 turns` -> `2-Cost minion`,
@@ -177,7 +179,7 @@ what will come. The panel lists cards instead (`OverlayViewModel.CardPoolRows`):
 
 The full lists are in the pool browser. Everything is built when the pool changes.
 
-The panel fades in (opacity only, 120 ms, cubic ease-out) when it appears or shows another pool, in both UIs, only
+The panel fades in (opacity only, 120 ms, cubic ease-out) when it appears, in both UIs, only
 with Windows' animation setting on (WPF `SystemParameters.ClientAreaAnimation`, Avalonia `PoolInput.AnimationsOn`, so
 not on macOS/Linux). Beside a Discover its position is set before the first frame (WPF measures it on becoming
 visible), so it never shows at the previous spot and never slides. `--render-ui` turns the Avalonia fade off
@@ -193,8 +195,7 @@ nothing appears without the player asking, nothing follows the hand around (TASK
    the setting "During a Discover" is on (`AppSettings.CardPoolOnDiscover`, on by default; `CardPoolTracker.OnDiscover`).
    Off, the Discover shows no pool (and no pick hint). It comes from the log: nothing is read from the game for it.
 2. **Requested**: `GameSession.ShowCardPool(cardId)` / `ShowCardPool(null)` opens the browser for a card. It is the hook
-   for deck rows; today only `--render-ui` calls it. `GameSession.BuildCardPool(cardId, context)` builds a view outside
-   the live game.
+   for deck rows; nothing calls it yet (the render scenes build their views with `CardPoolEngine.Build`).
 3. **A card in hand**: the card under the mouse (game memory, below) when it is in your hand (`GameState` HAND zone) and
    has a pool, an Excavate pool or a "this game" list. Related cards alone open nothing (P-9).
 
@@ -227,7 +228,7 @@ hand.
 | Presses "All cards · N" | The browser opens on the left; the compact panel hides while it is open |
 | Opens a Discover | The panel beside the options by itself (setting on); it goes with the pick, never held |
 | Holds Ctrl over the panel `card-pool` | It arms and moves like every panel; its button still clicks (`MovablePanel.OnTool`) |
-| Esc, a new turn, another pool | The browser closes |
+| ×, Esc, a new turn | The browser closes. Another card's pool or a Discover leaves it open; only a new "show the pool" request replaces it |
 
 The overlay's tick (WPF `OverlayWindow.Tick`, 33 ms; Avalonia `Desktop/OverlayWindow.Tick` through
 `IOverlayPlatform.ControlDown`: Windows, macOS, X11) passes Ctrl to `OverlayViewModel.UpdateCardPoolKeys`, which is also
@@ -262,7 +263,10 @@ marked `OverlayHit.Interactive` (the same plate as the panels' lock button: WPF 
   no game memory: only the option count the log gives). The geometry is measured on 16:9 screenshots in units of a
   1080-high screen centred horizontally, the way Hearthstone lays out its board; the popup undoes the player's overlay
   scale, is drawn no smaller than 0.85 of its size at overlay scale 1 (`PoolPlacement.MinPopupScale`) and is kept on
-  screen. Its fill does not fade with the overlay opacity.
+  screen. Its fill does not fade with the overlay opacity. With no room on either side (four options on 4:3, five
+  options, a large overlay scale) it is clamped onto the row and goes without its "All cards" button, which would take
+  an option's click: the panel checks `PoolPlacement.CoversChoicesOnSurface` as it places itself and tells the view
+  model (`SetCardPoolPopupOverChoices`).
 
 Until 2026-11-26 a hand card's pool stood beside the game's enlarged preview of the card (`PoolPlacement` hand
 geometry, `CardPoolTracker.HandAnchor`), lingered 0.8 s after the mouse left and was kept by a neighbour without a
@@ -315,8 +319,8 @@ from the death events. Slime 'em! (`CAP_805`) sets aside a copy of each minion o
 `CREATOR` = the cast, `COPIED_FROM_ENTITY_ID` = the minion) before destroying it, and gives each player an Ectoplasm
 with the same `CREATOR`. Played, the Ectoplasm summons its player's copies in that order while the board has room.
 The list is the local player's copies (`CONTROLLER`, minions only, with a card id: the opponent's are logged without
-one) of the cast of the leftmost Ectoplasm in hand. The hover gives only the card id, and the panel stands beside the
-leftmost copy. Checked on the four Ectoplasms played in the owner's logs of October 2026: each brought back the start
+one) of the cast of the leftmost Ectoplasm in hand: the hover gives only the card id, so the list is the leftmost
+copy's. Checked on the four Ectoplasms played in the owner's logs of October 2026: each brought back the start
 of its list, cut only by a full board.
 
 ## Related cards (card preview)
@@ -414,6 +418,10 @@ block above the pool's cards, two lines per offered card: its name on its own li
 players took it (bar and percent) and the share of games they won after taking it; the name in gold with a star when
 one option leads the next by 5 points or more. Numbers only, never advice or a click for the player.
 
+A Discover whose pool the catalog cannot answer (Mountain Map, Scrappy Scavenger, Relic Miner: the pool depends on the
+game) shows this block alone, under the card's name: no count, no rows, no button. Without numbers for it there is no
+panel (TASK-2026-11-26 M1; `GameSession.WithCardPool`, `OverlayViewModel.UpdateCardPool`).
+
 - **Data: the Hearthpulse data API** (`api.kolodahearthstone.com/v1/hsreplay/card-choices`, Legend). The legal check
   (`reference/reviews/LEGAL-HeartLens-card-choices.md`, 2026-10-26) marked it a Blocker (L-B1: HSReplay Premium data
   collected without HearthSim's written permission, ToS §8). **The owner accepted that risk on 2026-10-27** and chose
@@ -445,9 +453,10 @@ edge to resize, stored in `AppSettings.CardPoolBrowserWidth`). It starts at the 
 cover the End Turn button (it can be moved in layout mode). Opened by the compact panel's "All cards · N" button
 (`OverlayViewModel.OpenCardPoolBrowser`, a plain left click; a pool of 12 cards or fewer has no button, the panel lists
 it whole) and by `GameSession.ShowCardPool(cardId)`; closed by the × button, Esc, and automatically when the turn
-changes or another generator's pool comes up. No right-click opens or closes it since 2026-11-26 (P-16: the game got
-the same click). Esc: the overlay never takes keyboard focus, so it is read from the keyboard state while the browser is
-open and Hearthstone or Hearthpulse is the foreground window (the game sees the key too).
+changes. Another card's pool or a Discover leaves it open; only a new request replaces its pool. No right-click
+opens or closes it since 2026-11-26 (P-16: the game got the same click). Esc: the overlay never takes keyboard focus,
+so it is read from the keyboard state while the browser is open and Hearthstone or Hearthpulse is the foreground
+window (the game sees the key too).
 
 - Header "<card> Pool: N cards", the pool description, the highlighted card.
 - Filters (collapsible, a gold dot when any is on; sentence case since 2026-11-26): chips for every mechanic some but

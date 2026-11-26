@@ -72,19 +72,22 @@ public sealed partial class OverlayViewModel
         CardPoolAnchor = pool is null && list is null ? null : view?.CardPoolAnchor;
         _cardPoolFromHover = pool is null ? list is not null : pool.Trigger == PoolTrigger.Hover;
         UpdateMatchList(list);
-        if (pool is null)
+        // No pool to list: nothing, a card with only a "this game" list, or a Discover whose pool the catalog cannot
+        // answer, which shows with its pick hint only.
+        if (pool is null || pool.Uncomputed is not null)
         {
             _cardPool = null;
             _lastRequestedPool = null;
             CardPoolBrowserOpen = false;
             UpdateExcavate(null);
             RebuildCardPoolBrowser();
-            if (list is not null)
+            var name = pool is null ? list?.SourceName : CardPoolPicks.Count > 0 ? pool.SourceName : null;
+            if (name is not null)
             {
-                ShowListOnly(list);
+                ShowNameOnly(name);
             }
 
-            ShowCardPool = list is not null;
+            ShowCardPool = name is not null;
             return;
         }
 
@@ -129,7 +132,7 @@ public sealed partial class OverlayViewModel
             : PoolStats.TopCards(pool, TopCardCount);
         CardPoolRows = rows.Select(c => new PoolListRow(c.CardId, c.Name, c.Cost, c.Rarity, string.Empty)).ToList();
         CardPoolRowsTitle = Loc.T(small ? "Pool.AllPoolCards" : "Pool.FeaturedReason");
-        ShowCardPoolAllCards = !small && pool.Count > 0;
+        SetCardPoolBrowsable(!small && pool.Count > 0);
         CardPoolAllCardsText = Loc.F("Pool.AllCards", CardCount(pool.Count));
         CardPoolFeatured = pool.Featured;
         CardPoolFeaturedNote = PoolDisplay.FeaturedReason(pool.FeaturedReason);
@@ -205,21 +208,32 @@ public sealed partial class OverlayViewModel
     /// <summary>"Your minions that died · Deathrattle: 3".</summary>
     private static string ListHeadline(MatchListView list) => $"{list.Title}: {list.Total.ToString(CultureInfo.CurrentCulture)}";
 
-    /// <summary>A card with a "this game" list and no pool: the header names the card, the list's section says the rest.</summary>
-    private void ShowListOnly(MatchListView list)
+    /// <summary>
+    /// The header names the card and its one section says the rest (the "this game" list or the pick hint): no count,
+    /// rows or button.
+    /// </summary>
+    private void ShowNameOnly(string name)
     {
-        CardPoolTitle = list.SourceName;
-        CardPoolSource = list.SourceName;
-        CardPoolPhrase = list.SourceName;
+        CardPoolTitle = name;
+        CardPoolSource = name;
+        CardPoolPhrase = name;
         CardPoolDescription = string.Empty;
         CardPoolNote = string.Empty;
         CardPoolSections = [];
-        UpdateExcavate(null);
         CardPoolRows = [];
         CardPoolRowsTitle = string.Empty;
-        ShowCardPoolAllCards = false;
+        SetCardPoolBrowsable(false);
         CardPoolAllCardsText = string.Empty;
         CardPoolFeatured = null;
         CardPoolFeaturedNote = string.Empty;
+    }
+
+    private void SetCardPoolBrowsable(bool browsable)
+    {
+        if (_cardPoolBrowsable != browsable)
+        {
+            _cardPoolBrowsable = browsable;
+            Raise(nameof(ShowCardPoolAllCards));
+        }
     }
 }

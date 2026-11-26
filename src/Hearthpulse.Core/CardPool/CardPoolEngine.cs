@@ -187,7 +187,7 @@ public sealed class CardPoolEngine
             var what = parse.Status switch
             {
                 PoolParseStatus.Unrecognized => "not understood",
-                PoolParseStatus.Uncomputed => "pool not computed (no panel)",
+                PoolParseStatus.Uncomputed => "pool not computed (not shown)",
                 _ => "has no catalog pool",
             };
             LogOnce(cardId, $"Card pool: {NameOf(cardId)} ({cardId}) {what}: {parse.Detail} | {TextOf(cardId)}");
@@ -304,7 +304,10 @@ public sealed class CardPoolEngine
         };
     }
 
-    /// <summary>The "Pool not computed" view of a generator from the exception table: no cards, only the reason.</summary>
+    /// <summary>
+    /// The view of a generator from the exception table: no cards, the reason for the log. It shows no pool; an open
+    /// Discover of it shows only its pick hint.
+    /// </summary>
     private CardPoolView Uncomputed(string cardId, PoolTrigger trigger, string reason) =>
         new(cardId, NameOf(cardId), trigger, string.Empty, reason, 0, PoolStats.Histogram("Cost", [], 0, 7), null, null, [], null, null, [])
         {

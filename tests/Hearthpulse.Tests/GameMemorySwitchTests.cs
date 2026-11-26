@@ -372,6 +372,8 @@ public sealed class GameMemorySwitchTests
         var now = Noon;
         var session = Session(memory, () => now, readsMemory: false);
         session.Cards = HoverCards;
+        // Only whether a read is wanted is asked: no hover thread (on Windows Ctrl would start one).
+        session.HoverThreadEnabled = false;
         session.SetCardPoolCatalog(HoverCatalog);
         session.OnSessionStarted("Hearthstone_2026_11_26_12_00_00", Noon, attachedMidSession: false);
         session.OnLines("Power.log", ConstructedGame("GEN_1"), catchingUp: false);

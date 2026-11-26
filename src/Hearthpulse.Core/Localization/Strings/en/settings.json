@@ -111,7 +111,7 @@
   "Settings.Tracker.CardPoolHover.Always": "Always",
   "Settings.Tracker.CardPoolHover.Off": "Off",
   "Settings.Tracker.CardPoolHoverTip": "Hold Ctrl and point at a card in hand to see what it can give. Always opens the panel on any hover.",
-  "Settings.Tracker.CardPoolHoverOff": "The card under the mouse is read from the game client, and reading it is off. Turn it on to see a card's pool on hover (Settings → Data).",
+  "Settings.Tracker.CardPoolHoverOff": "The card under the mouse is read from the game client, and reading it is off. Turn it on to see a card's pool on hover (Settings → Data).",
   "Settings.Tracker.CardPoolDiscover": "During a Discover",
   "Settings.Tracker.Summary": "Game summary",
   "Settings.Tracker.OverlayLink": "The overlay switch, its size and the panel layout are on the Overlay tab.",
