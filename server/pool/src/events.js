@@ -17,7 +17,8 @@ const CARD = /^[A-Za-z0-9_]{3,64}$/;
 const TRIBE = /^[A-Z0-9_]{2,24}$/;
 const HEX32 = /^[0-9a-f]{32}$/;
 const CLASS = /^[A-Z]{4,14}$/;
-const DECK = /^[A-Za-z0-9+/=]{8,200}$/;
+// A 40-card deck with E.T.C.'s band and Zilliax's modules is a 224-character code the game writes (B2); 320 leaves room.
+const DECK = /^[A-Za-z0-9+/=]{8,320}$/;
 const ARCHETYPE = /^[\p{L}\p{N}' .&-]{2,48}$/u;
 const MODES = new Set(["ranked", "casual", "arena", "brawl", "bg", "duos", "arena_run"]);
 // The game's build (GameState.BuildNumber): it places a record in a balance patch (server/pool/data).

@@ -104,6 +104,15 @@ test("bad optional parts are dropped, not the record", () => {
   assert.deepEqual(body.choices, [[3, "choice", "CARD_S", ["A_1", "A_2"], ["A_1"]]]);
 });
 
+test("a long deck code the game writes is kept, one past the limit is dropped", () => {
+  // A 40-card deck with E.T.C. and Zilliax is 224 characters (B2): it must not lose its deck.
+  const long = "AAEC" + "A".repeat(220);
+  assert.equal(JSON.parse(validateEvent(ranked({ deck: long }), TODAY).body).deck, long);
+  const limit = "AAEC" + "A".repeat(316);
+  assert.equal(JSON.parse(validateEvent(ranked({ deck: limit }), TODAY).body).deck, limit);
+  assert.equal(JSON.parse(validateEvent(ranked({ deck: limit + "A" }), TODAY).body).deck, undefined);
+});
+
 test("lists are capped", () => {
   const plays = Array.from({ length: 900 }, (_, i) => [1 + (i % 40), "CARD_A", 1, 0]);
   const body = JSON.parse(validateEvent(ranked({ plays }), TODAY).body);
