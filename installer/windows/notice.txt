@@ -116,7 +116,7 @@ HEARTHPULSE.NET ACCOUNT
 - Only if you sign in with a hearthpulse.net account: your Standard, Wild,
   Arena and Battlegrounds games then also go to your profile on the site
   after they end (mode, start time and length, turns, result, place or
-  rank, rating, heroes and classes, your deck name and code, the
+  rank, rating, heroes and classes, your deck name, code and archetype, the
   Battlegrounds lobby's tribes and anomaly, tavern tier, final board and
   fights, the heroes you were offered, who went first, your Arena score and
   the opponent's archetype once their cards showed it). Never your
