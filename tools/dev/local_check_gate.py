@@ -32,6 +32,12 @@ def kernel32():
     return api
 
 
+def last_error():
+    """The calling thread's last Win32 error; 0 where ctypes has no get_last_error (off Windows, in tests)."""
+    get = getattr(ctypes, "get_last_error", None)
+    return get() if get else 0
+
+
 @contextlib.contextmanager
 def held():
     """Owns Hearthpulse.LocalCheck for the block; waits (and says so once) while another check or render holds it."""
@@ -41,14 +47,14 @@ def held():
         return
     handle = api.CreateMutexW(None, False, NAME)
     if not handle:
-        raise OSError(ctypes.get_last_error(), f"CreateMutexW({NAME}) failed")
+        raise OSError(last_error(), f"CreateMutexW({NAME}) failed")
     try:
         state = api.WaitForSingleObject(handle, 0)
         if state == WAIT_TIMEOUT:
             print("Waiting for the current Hearthpulse check or render to finish...", flush=True)
             state = api.WaitForSingleObject(handle, INFINITE)
         if state not in (WAIT_OBJECT_0, WAIT_ABANDONED):
-            raise OSError(ctypes.get_last_error(), f"waiting for {NAME} failed ({state:#x})")
+            raise OSError(last_error(), f"waiting for {NAME} failed ({state:#x})")
         try:
             yield
         finally:
