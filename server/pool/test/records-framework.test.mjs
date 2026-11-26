@@ -298,6 +298,19 @@ test('Q2: a view that would publish a record id is held back as one with an inst
   assert.equal(rows.includes(game.id), false, 'the record id is in no published row');
 });
 
+test('Q6: an id glued to other hex characters is found all the same, a record id and an install id', () => {
+  const gluedRecord = traceView({ key: 'test-glued-record', add: (acc, rec) => { acc.push([`ab${rec.body.id}cd`, rec.day]); } });
+  const gluedInstall = traceView({ key: 'test-glued-install', add: (acc, rec) => { acc.push([`0f${rec.iid}e1`, rec.day]); } });
+  const kit = recordsKit({ views: [winrateView(), gluedRecord, gluedInstall] });
+  kit.add(1, ranked());
+  assert.deepEqual(kit.refresh().failed, ['test-glued-record', 'test-glued-install']);
+  assert.deepEqual(kit.logs, [
+    { ok: false, error: 'records_view_failed', view: 'test-glued-record', stage: 'record_id' },
+    { ok: false, error: 'records_view_failed', view: 'test-glued-install', stage: 'install_id' },
+  ]);
+  assert.equal(kit.answer('test-winrate').available, true, 'the other view publishes');
+});
+
 test('derivers run in order and fill rec.d once for every view; one that throws is counted, and the pass goes on', () => {
   const order = [];
   const deck = { name: 'deck', order: 10, version: 'deck-t1', derive: rec => { order.push('deck'); rec.d.deckKey = `k-${rec.body.cls}`; } };

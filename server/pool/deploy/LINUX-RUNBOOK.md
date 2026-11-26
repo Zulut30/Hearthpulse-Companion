@@ -226,6 +226,19 @@ view needs no proxy change. The same TLS server serves the data API:
    `"error":"unknown_view"` (the service's own body, not nginx's), and `curl -X POST` on it 403.
 5. Rollback: put `<live include>.before-a0` back, `nginx -t`, reload.
 
+**After every deploy of the pool** (not only this one), once a minute has passed since the start, read every failure
+line of the new run, not just the `_failed` codes: a malformed `balance-patches.json` no longer stops the service, so
+only its line tells.
+
+```sh
+sudo journalctl -u hearthpulse-pool --since "$(systemctl show hearthpulse-pool -p ActiveEnterTimestamp --value)" \
+  --no-pager -o cat | grep '"ok":false'
+```
+
+Empty is the pass. `records_patches_invalid` means the views are off: fix the file and deploy again.
+`archive_maintain_failed` may be an old fault that was silent before 2026-11-26: tell the owner, it is not a reason to
+roll back.
+
 **Balance patches.** `server/pool/data/balance-patches.json` is kept by hand ([data/README.md](../data/README.md)): after
 a Hearthstone patch that changes cards, append an entry with the patch's first build and day to each line it changed,
 run `node --test server/pool/test/records-periods.test.mjs`, commit and deploy the pool. The build comes from the live
