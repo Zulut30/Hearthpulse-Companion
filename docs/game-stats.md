@@ -23,7 +23,9 @@ Built from the game's history row and its saved replay, after the game, off the 
 | `id` | keyed hash of the game's history key (32 hex): a record sent twice is stored once | `GameStatsClient.RecordId` |
 | `day`, `secs`, `turns` | day played (days since 1970, UTC), length, turns | history row |
 | `mode`, `fmt` | `ranked` `casual` `arena` `brawl` `bg` `duos`; `standard` `wild` `classic` `twist` | history row |
+| `build` | the client build the game was played on (1 … 99,999,999), every mode; left out when the log gave none | history row (`build`, the log's `BuildNumber`) |
 | `rank` | league only (`bronze` … `diamond`, `legend`), Ranked only; never the legend number | history row |
+| `band` | `d4-1` for a Ranked game at Diamond 4 to Diamond 1 (star level 47-50), else left out; without a star level (memory reading off) never, the rank text is not parsed for it | history row (`rank_star_level`) |
 | `cls`, `hero`, `deck` | your class, base hero, deck code (no deck name) | history row |
 | `ocls`, `oarch` | opponent's class and archetype (the archetype the app named from cards it saw) | history row |
 | `res`, `first` | `W` `L` `T`; whether you went first | history row |
@@ -34,6 +36,7 @@ Built from the game's history row and its saved replay, after the game, off the 
 | `draws` | `[turn, card, created]`: every card that came into your hand after the mulligan | replay |
 | `exc` | `[turn, treasure]`: Excavate treasures that came into your hand | replay + `Excavate.Treasures` |
 | `bg` | Battlegrounds: `placement`, `mmr` (rounded down to 500, at most 10,000), `offered`/`picked` heroes, `anomaly`, `tribes`, `tier`, `triples`, `tierups`, `trinkets` `{o, p}`, `quests`, `board`, `combats`, `choices`, `plays`, `buys`, `sells` | the pool view of the game (`PoolGame`) + the BG replay's buy/sell steps |
+| `bg.comp` | the main tribe of the final board: a tribe at least 4 minions have (amalgams count for every tribe), else `MIXED`; only for a game watched live, not one recovered when the app started | `PoolDetails.MainTribe` of the pool view |
 | `app` | app version | |
 
 Not sent: Friendly, Practice, Mercenaries and other modes; abandoned games and games without a result; games brought

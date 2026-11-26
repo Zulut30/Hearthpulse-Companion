@@ -123,6 +123,7 @@ public sealed partial class HistoryStore
         ("combat_odds", "TEXT NULL"),
         ("scenario_id", "INTEGER NULL"),
         ("deck_archetype", "TEXT NULL"),
+        ("build", "INTEGER NULL"),
     ];
 
     /// <summary>The deck page's per-game card columns: large JSON, read only for the games of an open deck (<see cref="WithCards"/>).</summary>
@@ -287,6 +288,7 @@ public sealed partial class HistoryStore
                     RankLegend = NullableInt(reader, "rank_legend"),
                     WentFirst = NullableInt(reader, "went_first") is { } first ? first != 0 : null,
                     ScenarioId = NullableInt(reader, "scenario_id"),
+                    Build = NullableInt(reader, "build"),
                     DeckId = reader.IsDBNull(reader.GetOrdinal("deck_id")) ? null : reader.GetInt64(reader.GetOrdinal("deck_id")),
                     Mulligan = NullableString(reader, "mulligan"),
                     CardsDrawn = NullableString(reader, "cards_drawn"),

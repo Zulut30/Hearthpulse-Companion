@@ -105,6 +105,12 @@ public sealed record GameRecord
     /// <summary>The log's <c>ScenarioID</c>: tells one week's Tavern Brawl from the next (<c>docs/brawl.md</c>).</summary>
     public int? ScenarioId { get; init; }
 
+    /// <summary>
+    /// The client build the game was played on, the log's <c>BuildNumber</c>; null when the log did not say. The game
+    /// record sends it as <c>build</c>, so the pool can tell one balance patch from the next (docs/game-stats.md).
+    /// </summary>
+    public int? Build { get; init; }
+
     // ---- Deck page fields (Constructed; null in rows saved before them) ----
 
     /// <summary>Local mulligan as JSON (<see cref="GameCards.MulliganJson"/>): offered, replaced and received card ids.</summary>

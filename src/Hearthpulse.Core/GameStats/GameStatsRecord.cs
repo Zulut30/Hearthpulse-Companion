@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.Tracking;
@@ -10,14 +11,16 @@ namespace Hearthpulse.Core.GameStats;
 
 /// <summary>
 /// One finished game as a game record for Hearthpulse's own statistics (docs/game-stats.md, ADR 0011): mode, format,
-/// rank tier, classes, deck code, result, the mulligan, every card played with its turn and mana, every Discover-style
-/// choice, the cards that came into hand and the Excavate treasures; for Battlegrounds the hero pick, lobby, tier-ups,
-/// buys, sells, picks, trinkets, quests, final board and placement.
+/// client build, rank tier (and the Diamond 4-1 band), classes, deck code, result, the mulligan, every card played with
+/// its turn and mana, every Discover-style choice, the cards that came into hand and the Excavate treasures; for
+/// Battlegrounds the hero pick, lobby, tier-ups, buys, sells, picks, trinkets, quests, final board, its main tribe and
+/// placement.
 /// </summary>
 /// <remarks>
 /// Only what the local player saw during the game (ADR 0005): a Constructed replay is read without its post-game part
 /// (<see cref="MatchReplay.ParseSeen"/>), so an opponent card is in the record only once the game showed it. No name,
-/// BattleTag, account, deck name or legend number: the rank is its league, the rating is rounded down to 500.
+/// BattleTag, account, deck name or legend number: the rank is its league (plus one band inside Diamond), the rating is
+/// rounded down to 500.
 /// </remarks>
 public static class GameStatsRecord
 {
@@ -40,6 +43,15 @@ public static class GameStatsRecord
     /// leaderboard (LEGAL-game-stats L-M4).
     /// </summary>
     internal const int MaxMmr = 10_000;
+
+    /// <summary>The largest client build the server takes (<c>build</c>: an integer 1 to 99,999,999).</summary>
+    internal const int MaxBuild = 99_999_999;
+
+    /// <summary>The star level of Diamond 4 (Bronze 10 = 1, Diamond 10 = 41, Diamond 1 = 50).</summary>
+    internal const int DiamondFourStarLevel = 47;
+
+    /// <summary>The rank band of Diamond 4 to Diamond 1, HSReplay's high bucket below Legend.</summary>
+    internal const string DiamondFourToOne = "d4-1";
 
     private static readonly HashSet<string> Treasures = Excavate.Treasures.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
 
@@ -78,6 +90,13 @@ public static class GameStatsRecord
         var league = rank?.Split(' ', 2)[0].ToLowerInvariant();
         return league is "bronze" or "silver" or "gold" or "platinum" or "diamond" or "legend" ? league : null;
     }
+
+    /// <summary>
+    /// The band of a Diamond rank: <see cref="DiamondFourToOne"/> for star levels 47-50 (Diamond 4 to 1), else null. Read
+    /// only from the star level the client gave (none with memory reading off): the rank text is not parsed for it.
+    /// </summary>
+    internal static string? Band(string league, int? starLevel) =>
+        league == "diamond" && starLevel is >= DiamondFourStarLevel and < RankInfo.LegendStarLevel ? DiamondFourToOne : null;
 
     /// <summary>The kind of a Constructed choice from its source card's mechanics.</summary>
     internal static string KindOf(IReadOnlyList<string> mechanics) =>
@@ -120,6 +139,13 @@ public static class GameStatsRecord
             record["app"] = appVersion;
         }
 
+        // The client build tells the server which balance patch the game belongs to; a game whose log gave none goes
+        // without it.
+        if (game.Build is { } build and >= 1 and <= MaxBuild)
+        {
+            record["build"] = build;
+        }
+
         if (mode is "bg" or "duos")
         {
             return Battlegrounds(game, pool, replayText, cards) is { } bg ? With(record, "bg", bg) : null;
@@ -133,6 +159,10 @@ public static class GameStatsRecord
         if (RankTier(game.Rank) is { } rank && mode == "ranked")
         {
             record["rank"] = rank;
+            if (Band(rank, game.RankStarLevel) is { } band)
+            {
+                record["band"] = band;
+            }
         }
 
         Put(record, "cls", game.PlayerClass);
@@ -275,7 +305,9 @@ public static class GameStatsRecord
             var row = PoolClient.Row(pool);
             bg["picked"] = pool.Picked;
             bg["offered"] = Cards(pool.Offered);
-            foreach (var key in new[] { "anomaly", "tier", "triples", "board", "trinkets", "tierups", "combats", "choices", "plays" })
+            // comp: the main tribe of the final board (PoolDetails.MainTribe) or MIXED; only for a game watched live,
+            // since a recovered one has no pool view.
+            foreach (var key in new[] { "anomaly", "tier", "triples", "comp", "board", "trinkets", "tierups", "combats", "choices", "plays" })
             {
                 if (row.TryGetValue(key, out var value) && value is not null)
                 {
