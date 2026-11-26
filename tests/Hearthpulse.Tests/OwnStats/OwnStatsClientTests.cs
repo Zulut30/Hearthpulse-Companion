@@ -67,8 +67,11 @@ public sealed class OwnStatsClientTests : IDisposable
         Assert.Equal(state, answer.State);
         Assert.Null(answer.Data);
         Assert.Null(answer.Period);
-        // The windows the pool has: what a block without its window can offer instead.
-        Assert.Equal(3, answer.Windows.Count);
+        // "No window" serves the snapshot's time and the windows it has (what the block can offer instead); an answer that
+        // serves no snapshot has "published": null, read as never published, not as an error.
+        var noWindow = reason == "no_window";
+        Assert.Equal(noWindow ? 1794740400000L : 0, answer.Published);
+        Assert.Equal(noWindow ? 3 : 0, answer.Windows.Count);
         Assert.Equal(("mulligan.card", "mull-card-1", Noon.UtcDateTime), (answer.Metric, answer.RulesVersion, answer.FetchedAt));
         Assert.Single(Files());
     }
@@ -670,8 +673,12 @@ public sealed class OwnStatsClientTests : IDisposable
 
     private static string Published() => Envelope(SliceData);
 
+    /// <summary>
+    /// An answer without numbers as the pool gives it (docs/analytics-records.md, "Route and envelope"): "no window" with
+    /// the snapshot's time and windows, any other reason with no snapshot behind it.
+    /// </summary>
     private static string Unavailable(string reason) =>
-        $$"""{"v":2,"source":"game_records","view":"{{View}}","metric":"mulligan.card","rulesVersion":"mull-card-1","derivers":{"deck":"deck-1","archetypes":"arch-20261126"},"available":false,"reason":"{{reason}}","published":null,"stale":false,"thresholds":{"minInstalls":5,"minGames":10},"period":null,"windows":{{Windows}},"data":null}""";
+        $$"""{"v":2,"source":"game_records","view":"{{View}}","metric":"mulligan.card","rulesVersion":"mull-card-1","derivers":{"deck":"deck-1","archetypes":"arch-20261126"},"available":false,"reason":"{{reason}}","published":{{(reason == "no_window" ? "1794740400000" : "null")}},"stale":false,"thresholds":{"minInstalls":5,"minGames":10},"period":null,"windows":{{(reason == "no_window" ? Windows : "[]")}},"data":null}""";
 
     /// <summary>
     /// Answers every request with the status and body it had when the request arrived; a null status throws like a
