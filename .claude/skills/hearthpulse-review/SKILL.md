@@ -23,6 +23,11 @@ It is optional external material; if absent, keep the report in the agreed works
   `--artifacts-path` and `HEARTHPULSE_DATA` on a scratch copy.
 - Every finding is verifiable: `file:line`, what the code does, a reproduction (input -> wrong output), the fix, and
   which test should pin it. If you could not check something (Linux, macOS, a live game), say so.
+- Interface findings go through [docs/ui-decisions.md](../../../docs/ui-decisions.md): what «Решено» settles is not
+  reported again (breaking it is a finding against that line), what «Известно, открыто» lists goes under «Известно».
+  Whoever triages records the outcome there the same turn: a read-only reviewer proposes the lines in the report's
+  «В журнал решений», and the coordinator, triaging that report, copies them
+  ([interface-review](../interface-review/SKILL.md), steps 5 and 8).
 - Severity: **Blocker** (wrong/unsafe, must not merge: hidden-information leak, data loss, licence violation,
   CI red), **Major** (feature wrong on real data, missing in one UI, steals game clicks, no tests for the feature),
   **Minor** (edge cases, wording, perf that does not hurt yet), **Nit** (not counted). IDs `B1`, `M1`, `m1`, numbering
@@ -122,9 +127,11 @@ It is optional external material; if absent, keep the report in the agreed works
 ## Лицензии
 ## Скрытая информация (и память)
 ## Дизайн и паритет
+## Известно                   - findings docs/ui-decisions.md already lists: still open / closed here
 ## Тесты
 ## Незакоммиченное в worktree
 ## Сборка и тесты              - head, build warnings, tests X/Y, known failures, what was not run (Linux, macOS, live game)
+## В журнал решений            - proposed «Решено» / «Известно, открыто» lines for the coordinator
 ```
 
 Re-review after fixes: append `## Дельта: <old>..<new>` with a status table of earlier IDs (закрыт / открыт /

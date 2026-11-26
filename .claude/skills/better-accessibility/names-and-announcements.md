@@ -31,7 +31,9 @@ A control that navigates to another page is still a `Button` (or a `NavItem` rad
 
 Name precedence: `AutomationProperties.Name` > `AutomationProperties.LabeledBy` > the control's text content.
 
-- A text `Button`, `CheckBox` or `RadioButton` is named by its `Content`. Add nothing.
+- A `Button`, `CheckBox` or `RadioButton` whose `Content` is a text or one `TextBlock` is named by it. Add nothing.
+  An icon and a label in a `StackPanel` names nothing: WPF reads an empty name, Avalonia the panel's type name. Give
+  it the label's key as `AutomationProperties.Name`; the full table is in `hearthpulse-agent-ready`.
 - An icon-only button (`IconButton` / `icon`, an MDI glyph as content) gets
   `AutomationProperties.Name="{i:Loc Key}"`, the same key in both UIs. The name says the action, never the glyph.
 - WCAG 2.5.3: when a control shows words, its name starts with those words. A button reading "Merge" with the name

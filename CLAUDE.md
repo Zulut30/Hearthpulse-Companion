@@ -39,9 +39,11 @@ brief you write for a session or subagent names the skills it loads first: a fre
 | Slow, stutter, memory: measure, trace, hot paths | `hearthpulse-performance` |
 | Writing and running tests | `hearthpulse-testing` |
 | Which behaviour the tests would miss | `hearthpulse-test-gaps` |
+| Controls an agent drives by name, the agent test | `hearthpulse-agent-ready` |
 | Versions, tags, installers, updater | `hearthpulse-release` |
 | GitHub Actions security: triggers, tokens, pins | `hearthpulse-ci-security` |
 | Reviewing a branch | `hearthpulse-review` |
+| Last pass over your own diff before handover | `hearthpulse-unslop` |
 | Splitting a big task into parallel sessions | `hearthpulse-parallel-work` |
 | Task -> sessions -> merge, push, build, restart, no confirmations | `hearthpulse-ship` |
 | Task -> lead's card -> designer, developers, QA, reviewer | `hearthpulse-team` |
@@ -63,8 +65,8 @@ brief you write for a session or subagent names the skills it loads first: a fre
 
 The rows from `better-interface` to `ui-variant` are UI skills rewritten for WPF/Avalonia from jakubkrehel/skills;
 the last four rows are general practices adapted from mattpocock/skills (all MIT). `hearthpulse-avalonia`,
-`-analytics`, `-privacy`, `-ci-security`, `-observability`, `-performance` and `-test-gaps` are project skills built on
-the method of third-party skills (MIT, one Apache-2.0). Sources, revisions and changes:
+`-analytics`, `-privacy`, `-ci-security`, `-observability`, `-performance`, `-test-gaps`, `-agent-ready` and `-unslop`
+are project skills built on the method of third-party skills (MIT and Apache-2.0). Sources, revisions and changes:
 `.claude/skills/THIRD-PARTY-NOTICES.md`.
 
 Other agents: Codex starts from `AGENTS.md` and finds the same skills through generated stubs in `.agents/skills/`.
