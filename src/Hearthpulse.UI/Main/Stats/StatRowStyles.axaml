@@ -1,23 +1,28 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:m="using:Hearthpulse.UI.Main">
-    <!-- A group row (StatGroupRowTemplate, StatsResources.axaml): class / opponent / archetype on Arena, Brawl and
-         Constructed. Included by StatsStyles.axaml and by BrawlView, which has no other stats styles.
-         Wide: the name and its games line on one line each, cut with the whole text in a tooltip, and the win rate in a
-         132 column with its bar. Compact (MainView): the bar steps aside and the name and its line wrap, so a long
-         class name ("Рыцарь смерти") and the drafts line are read whole (bug-hunt #7). -->
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- A group row (StatGroupRowTemplate, StatsResources.axaml): class / opponent / archetype / game length on Arena,
+         Brawl and Constructed, under its head (StatsTableHead). Included by StatsStyles.axaml and by BrawlView, which has
+         no other stats styles.
+         A row of 400 and more: the name and its games line on one line each, cut with the whole text in a tooltip, the
+         record, and the win rate in a 132 column with its bar. Narrower, the row is tight (i:Tight): one of two cards side
+         by side at the WPF minimum window (1040) is as narrow as a compact card, so the record and the bar step aside and
+         the name and its line wrap; a long class name ("Рыцарь смерти") and the games line are read whole (bug-hunt #7).
+         The head is as wide as its rows and drops the record's head with them. -->
     <Style Selector="TextBlock.groupText">
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
-    <Style Selector="m|MainView.compact TextBlock.groupText">
+    <Style Selector="Border.groupRow.tight TextBlock.groupText">
         <Setter Property="TextTrimming" Value="None" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
-    <Style Selector="StackPanel.groupWin">
+    <Style Selector=":is(Control).groupWin">
         <Setter Property="Width" Value="132" />
     </Style>
-    <Style Selector="m|MainView.compact StackPanel.groupWin">
+    <Style Selector="Border.groupRow.tight :is(Control).groupWin, Border.groupHead.tight :is(Control).groupWin">
         <Setter Property="Width" Value="NaN" />
         <Setter Property="Margin" Value="8,0,0,0" />
+    </Style>
+    <Style Selector="Border.groupRow.tight :is(Control).wide, Border.groupHead.tight :is(Control).wide">
+        <Setter Property="IsVisible" Value="False" />
     </Style>
 </Styles>

@@ -25,8 +25,17 @@
     </UserControl.Resources>
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
-        <!-- A deck row: name and details, the record (70) and the win rate (150) on one line; compact (MainView), the
-             record and the win rate drop under the name, which keeps the row's width (bug-hunt #3) -->
+        <!-- A deck row: name and details, the record (70) and the win rate (150) on one line, the name and the meta line
+             cut (the name with its tip); a tight row (narrower than 560, i:Tight: compact, or the narrowest wide window)
+             has the record and the win rate drop under the name, which keeps the row's width and wraps instead
+             (bug-hunt #3) -->
+        <Style Selector="Grid.deckRow TextBlock.deckText">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style Selector="Grid.deckRow.tight TextBlock.deckText">
+            <Setter Property="TextTrimming" Value="None" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
         <Style Selector="Grid.deckRow > TextBlock.deckRecord">
             <Setter Property="Grid.Column" Value="1" />
             <Setter Property="Width" Value="70" />
@@ -35,17 +44,17 @@
             <Setter Property="Grid.Column" Value="2" />
             <Setter Property="Width" Value="150" />
         </Style>
-        <Style Selector="m|MainView.compact Grid.deckRow > StackPanel.deckTitle">
+        <Style Selector="Grid.deckRow.tight > StackPanel.deckTitle">
             <Setter Property="Grid.ColumnSpan" Value="3" />
         </Style>
-        <Style Selector="m|MainView.compact Grid.deckRow > TextBlock.deckRecord">
+        <!-- Still right-aligned: the record stands by its bar and win rate, as on a wide row -->
+        <Style Selector="Grid.deckRow.tight > TextBlock.deckRecord">
             <Setter Property="Grid.Row" Value="1" />
             <Setter Property="Grid.Column" Value="0" />
             <Setter Property="Width" Value="NaN" />
-            <Setter Property="TextAlignment" Value="Left" />
             <Setter Property="Margin" Value="0,6,0,0" />
         </Style>
-        <Style Selector="m|MainView.compact Grid.deckRow > Panel.deckWin">
+        <Style Selector="Grid.deckRow.tight > Panel.deckWin">
             <Setter Property="Grid.Row" Value="1" />
             <Setter Property="Grid.Column" Value="1" />
             <Setter Property="Grid.ColumnSpan" Value="2" />
@@ -128,13 +137,13 @@
                                     <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                                             Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).OpenDeck}" CommandParameter="{Binding}">
                                         <Border Classes="row" Padding="13,9" Margin="0,0,0,3">
-                                            <Grid Classes="deckRow" ColumnDefinitions="*,Auto,Auto,22" RowDefinitions="Auto,Auto">
+                                            <Grid Classes="deckRow" i:Tight.Below="560" ColumnDefinitions="*,Auto,Auto,22" RowDefinitions="Auto,Auto">
                                                 <StackPanel Classes="deckTitle">
-                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Name}" Classes="deckText" FontWeight="SemiBold" ToolTip.Tip="{Binding Name}" />
                                                     <TextBlock Classes="caption"><Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" /></TextBlock>
                                                     <TextBlock Text="{Binding Versions}" Classes="caption" Foreground="{StaticResource Info}"
                                                                IsVisible="{Binding Versions, Converter={StaticResource Truthy}}" ToolTip.Tip="{i:Loc Main.Ct.VersionsTip}" />
-                                                    <TextBlock Text="{Binding Meta}" Classes="caption" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
+                                                    <TextBlock Text="{Binding Meta}" Classes="caption deckText" Foreground="{StaticResource Accent}"
                                                                IsVisible="{Binding Meta, Converter={StaticResource Truthy}}" ToolTip.Tip="{i:Loc Main.Ct.MetaTip}" />
                                                 </StackPanel>
                                                 <TextBlock Text="{Binding Record}" VerticalAlignment="Center" TextAlignment="Right" Classes="caption deckRecord"

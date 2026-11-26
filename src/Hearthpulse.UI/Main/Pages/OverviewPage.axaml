@@ -18,57 +18,66 @@
         </ResourceDictionary>
     </UserControl.Resources>
     <UserControl.Styles>
-        <!-- A recent game (GameRowTemplate, MainPages.axaml): one line of fixed cells; compact (MainView), the date,
-             the result and the rating move under the hero's name and details, which take the row's whole width. -->
+        <!-- A recent game (GameRowTemplate, MainPages.axaml): the name and details, then the facts in fixed cells; a tight
+             row (narrower than 720) has the facts (date, result, rating) flow on a line under the name and the details,
+             which take the row's whole width (the details wrap), and wrap when the date and the result do not fit side by
+             side. -->
         <Style Selector="Grid.gameRow > StackPanel.gameTitle">
             <Setter Property="Margin" Value="4,0,16,0" />
         </Style>
-        <Style Selector="Grid.gameRow > TextBlock.gameWhen">
+        <Style Selector="Grid.gameRow TextBlock.gameSummary">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style Selector="Grid.gameRow.tight TextBlock.gameSummary">
+            <Setter Property="TextTrimming" Value="None" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <!-- Each fact in a slot as high as the portrait, so it centres on the row as the cells of one grid row did -->
+        <Style Selector="Grid.gameRow > WrapPanel.gameFacts">
             <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="ItemHeight" Value="40" />
+        </Style>
+        <Style Selector="WrapPanel.gameFacts > TextBlock.gameWhen">
             <Setter Property="Width" Value="120" />
         </Style>
-        <Style Selector="Grid.gameRow > Panel.gameResult">
-            <Setter Property="Grid.Column" Value="3" />
+        <Style Selector="WrapPanel.gameFacts > Panel.gameResult">
             <Setter Property="Width" Value="112" />
         </Style>
-        <Style Selector="Grid.gameRow > TextBlock.gameRating">
-            <Setter Property="Grid.Column" Value="4" />
+        <Style Selector="WrapPanel.gameFacts > TextBlock.gameRating">
             <Setter Property="Width" Value="56" />
         </Style>
-        <Style Selector="m|MainView.compact Grid.gameRow > StackPanel.gameTitle">
-            <Setter Property="Grid.ColumnSpan" Value="4" />
+        <Style Selector="Grid.gameRow.tight > Border.gamePortrait">
+            <Setter Property="Grid.RowSpan" Value="2" />
+        </Style>
+        <Style Selector="Grid.gameRow.tight > StackPanel.gameTitle">
+            <Setter Property="Grid.ColumnSpan" Value="2" />
             <Setter Property="Margin" Value="4,0,0,0" />
         </Style>
-        <Style Selector="m|MainView.compact Grid.gameRow > TextBlock.gameWhen">
+        <Style Selector="Grid.gameRow.tight > WrapPanel.gameFacts">
             <Setter Property="Grid.Row" Value="1" />
             <Setter Property="Grid.Column" Value="1" />
-            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="Margin" Value="4,4,0,0" />
+            <Setter Property="ItemHeight" Value="NaN" />
+            <Setter Property="ItemSpacing" Value="12" />
+            <Setter Property="LineSpacing" Value="4" />
         </Style>
-        <Style Selector="m|MainView.compact Grid.gameRow > Panel.gameResult">
-            <Setter Property="Grid.Row" Value="1" />
-            <Setter Property="Grid.Column" Value="2" />
+        <Style Selector="Grid.gameRow.tight > WrapPanel.gameFacts > :is(Control)">
             <Setter Property="Width" Value="NaN" />
-            <Setter Property="Margin" Value="12,4,0,0" />
         </Style>
-        <Style Selector="m|MainView.compact Grid.gameRow > TextBlock.gameRating">
-            <Setter Property="Grid.Row" Value="1" />
-            <Setter Property="Grid.Column" Value="3" />
-            <Setter Property="Width" Value="NaN" />
-            <Setter Property="Margin" Value="12,4,0,0" />
+        <Style Selector="Grid.gameRow.tight > WrapPanel.gameFacts > TextBlock.gameRating.none">
+            <Setter Property="IsVisible" Value="False" />
         </Style>
-        <!-- Your decks: three banners in a row; compact, one under the other, so the name, the line and the curve keep
-             their room beside the art (two columns left the art alone, bug-hunt #29). -->
+        <!-- Your decks: as many banners in a row as keep their name, line and curve beside the art (code-behind, three at
+             most; bug-hunt #29), 8 between rows. One alone takes the whole row. -->
         <Style Selector="UniformGrid.homeDecks">
             <Setter Property="Columns" Value="3" />
         </Style>
-        <Style Selector="m|MainView.compact UniformGrid.homeDecks">
-            <Setter Property="Columns" Value="1" />
-        </Style>
         <Style Selector="Button.homeDeck">
-            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="Margin" Value="0,0,12,8" />
         </Style>
-        <Style Selector="m|MainView.compact Button.homeDeck">
+        <Style Selector="ItemsControl.single Button.homeDeck">
             <Setter Property="Margin" Value="0,0,0,8" />
         </Style>
     </UserControl.Styles>
@@ -187,10 +196,11 @@
             <Border Classes="card" Margin="0,16,0,0" IsVisible="{Binding HomeDecks, Converter={StaticResource Truthy}}">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Main.Home.YourDecks}" Icon="&#xF063A;" Size="13" Margin="0,0,0,12" />
-                    <ItemsControl ItemsSource="{Binding HomeDecks}">
+                    <!-- -8 below: the banners' row gap stays inside the list -->
+                    <ItemsControl ItemsSource="{Binding HomeDecks}" Margin="0,0,0,-8" SizeChanged="OnHomeDecksSizeChanged">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <!-- "fixed": the columns are the styles above, not MainView's two-column compact tiles -->
+                                <!-- "fixed": the columns follow the list's width (code-behind), not MainView's two-column compact tiles -->
                                 <UniformGrid Classes="fixed homeDecks" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>

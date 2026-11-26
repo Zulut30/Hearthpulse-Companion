@@ -18,7 +18,7 @@
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatRowStyles.axaml" />
     </UserControl.Styles>
-    <Grid Margin="0,0,0,24" RowDefinitions="Auto,Auto">
+    <Grid Classes="statsPair" i:Tight.Below="760" Margin="0,0,0,24" RowDefinitions="Auto,Auto">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="16" />

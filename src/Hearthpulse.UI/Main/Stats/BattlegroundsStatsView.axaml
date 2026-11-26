@@ -22,7 +22,7 @@
         <ItemsControl ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
 
         <!-- Rating over time beside where you finish -->
-        <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
+        <Grid Classes="statsPair" i:Tight.Below="760" Margin="0,0,0,16" RowDefinitions="Auto,Auto">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="16" />
@@ -130,7 +130,8 @@
                                     </Grid.ColumnDefinitions>
                                     <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource Surface4}" ClipToBounds="True" VerticalAlignment="Center" HorizontalAlignment="Left" i:CardArt.Portrait="{Binding CardId}" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
+                                                   ToolTip.Tip="{Binding Name}" />
                                         <TextBlock Text="{Binding Games}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" />
                                     </StackPanel>
                                     <TextBlock Grid.Column="2" Text="{Binding Net}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"
@@ -171,7 +172,8 @@
                                     <Border Width="38" Height="38" CornerRadius="19" Margin="0,0,8,0" Background="{StaticResource Surface4}" ClipToBounds="True"
                                             VerticalAlignment="Center" i:CardArt.Portrait="{Binding CardId}" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <!-- A long hero name ends in an ellipsis here; the tip has it whole (pixel-hunt #13) -->
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
                                         <TextBlock Classes="caption" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis">
                                             <Run Text="{Binding Games, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Net, Mode=OneWay}"
                                                 Foreground="{Binding NetValue, Converter={StaticResource SignBrush}}" /><Run Text=" MMR" />
