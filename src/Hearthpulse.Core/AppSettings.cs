@@ -91,8 +91,11 @@ public sealed partial class AppSettings
     /// <summary>The opponent's likely archetype and the cards its lists usually run that it has not shown yet.</summary>
     public bool ShowOpponentArchetype { get; set; } = true;
 
-    /// <summary>The turn timers by the hero portraits: the running turn, the rope warning and the average turn.</summary>
-    public bool ShowTurnTimer { get; set; } = true;
+    /// <summary>
+    /// The turn timers by the hero portraits: the running turn, the rope warning and the average turn. Off by default: the
+    /// game's own rope marks the end of a turn (<see cref="OverlayDefaultsVersion"/> turns it off once in older files).
+    /// </summary>
+    public bool ShowTurnTimer { get; set; }
 
     public bool ShowDrawChance { get; set; } = true;
 
@@ -246,7 +249,11 @@ public sealed partial class AppSettings
     [JsonIgnore]
     public bool LanguageRussian { get => Language == Localization.Loc.Russian; set => SetIf(value, () => Language = Localization.Loc.Russian); }
 
-    public bool ShowGameToasts { get; set; } = true;
+    /// <summary>
+    /// The end-of-game toast (result, place, rating change). Off by default: the game's own results screen says the same
+    /// (<see cref="OverlayDefaultsVersion"/> turns it off once in older files).
+    /// </summary>
+    public bool ShowGameToasts { get; set; }
 
     /// <summary>The overlay told once, over the game, that Ctrl held over a panel moves and resizes it.</summary>
     public bool OverlayMoveTipShown { get; set; }
@@ -257,11 +264,16 @@ public sealed partial class AppSettings
     /// </summary>
     public bool OverlayPanelsUnlocked { get; set; }
 
-    public bool ShowLobbyPanel { get; set; } = true;
+    /// <summary>
+    /// The Battlegrounds lobby list (place, hero, tavern tier, health, last fight). Off by default: the game's leaderboard,
+    /// the tier badges beside it and the opponent under the mouse say the same (<see cref="OverlayDefaultsVersion"/> turns
+    /// it off once in older files).
+    /// </summary>
+    public bool ShowLobbyPanel { get; set; }
 
     /// <summary>
     /// The compact Battlegrounds lobby panel: the lobby's tribes, every player's tavern tier and main tribe. Off by
-    /// default: its player lines repeat the lobby list's (<see cref="ShowLobbyPanel"/>), which is on.
+    /// default: its player lines repeat the lobby list's (<see cref="ShowLobbyPanel"/>).
     /// </summary>
     public bool ShowBgLobbyPanel { get; set; }
 
@@ -367,6 +379,16 @@ public sealed partial class AppSettings
     public const double DefaultLeaderboardSlotHeight = 0.69 / 8;
     public const double DefaultLeaderboardWidth = 0.10;
     private const int CurrentLeaderboardGeometry = 2;
+
+    /// <summary>
+    /// Bumped when overlay panels are turned off by default. A settings file stores every switch, so a new default never
+    /// reaches an existing install by itself: <see cref="Migrate"/> applies it once (absent from older files, so 0), and a
+    /// switch the player turns back on afterwards stays on.
+    /// </summary>
+    public int OverlayDefaultsVersion { get; set; }
+
+    /// <summary>1: the turn timers, the end-of-game toast and the Battlegrounds lobby list went off by default (0.16.0).</summary>
+    private const int CurrentOverlayDefaults = 1;
 
     public bool ShowLeaderboardGuides { get; set; }
 
@@ -533,6 +555,15 @@ public sealed partial class AppSettings
             LeaderboardSlotHeight = DefaultLeaderboardSlotHeight;
             LeaderboardWidth = DefaultLeaderboardWidth;
             LeaderboardGeometryVersion = CurrentLeaderboardGeometry;
+        }
+
+        // Version 1: panels that repeat what the game already shows went off by default; older files still hold "on".
+        if (OverlayDefaultsVersion < CurrentOverlayDefaults)
+        {
+            ShowTurnTimer = false;
+            ShowGameToasts = false;
+            ShowLobbyPanel = false;
+            OverlayDefaultsVersion = CurrentOverlayDefaults;
         }
 
         // The mulligan strip under the cards became bars over them ("mulligan-bars"): its old spot does not fit them, and

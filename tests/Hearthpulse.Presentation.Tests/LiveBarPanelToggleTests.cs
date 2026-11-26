@@ -40,11 +40,13 @@ public sealed class LiveBarPanelToggleTests
         foreach (var toggle in wpf.PanelToggles)
         {
             var property = Assert.Single(bools, p => p.Name == toggle.Id);
-            // Every panel starts shown but the lobby tribes panel, whose player lines repeat the lobby list's, and the
+            // Every panel starts shown but the lobby tribes panel, whose player lines repeat the lobby list's, the
             // Graveyard and the Likely deck, new panels over the game that wait to be turned on (docs/graveyard.md,
-            // docs/opponent-deck.md).
+            // docs/opponent-deck.md), and the panels that repeat what the game shows: the turn timers, the end-of-game
+            // toast and the lobby list (AppSettings.OverlayDefaultsVersion).
             var initial = toggle.IsOn;
-            Assert.Equal(toggle.Id is not (nameof(AppSettings.ShowBgLobbyPanel) or nameof(AppSettings.ShowGraveyard) or nameof(AppSettings.ShowLikelyDeck)), initial);
+            Assert.Equal(toggle.Id is not (nameof(AppSettings.ShowBgLobbyPanel) or nameof(AppSettings.ShowGraveyard) or nameof(AppSettings.ShowLikelyDeck)
+                or nameof(AppSettings.ShowTurnTimer) or nameof(AppSettings.ShowGameToasts) or nameof(AppSettings.ShowLobbyPanel)), initial);
             var before = bools.ToDictionary(p => p.Name, p => (bool)p.GetValue(wpf.Settings)!);
 
             toggle.Toggle.Execute(null);
@@ -66,7 +68,7 @@ public sealed class LiveBarPanelToggleTests
     public void Every_panel_has_a_name_and_a_state_tip()
     {
         Loc.Instance.SetLanguage(Loc.English);
-        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var model = new WpfMain(History(), new AppSettings { ShowTurnTimer = true }, TestApp.Data);
         Assert.All(model.PanelToggles, t => Assert.DoesNotContain("Main.Live.", t.Name, StringComparison.Ordinal));
         Assert.Equal(model.PanelToggles.Count, model.PanelToggles.Select(t => t.Name).Distinct().Count());
         Assert.All(new[] { "Main.Live.Panels", "Main.Live.PanelsTip" }, k => Assert.NotEqual(k, Loc.T(k)));
@@ -111,7 +113,8 @@ public sealed class LiveBarPanelToggleTests
         var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Resources.MergedDictionaries.Clear();
         app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve(ThemePalette.DefaultName, 0, 0, 1)));
-        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        // Every quick panel on, the turn timer too (off by default since 0.16.0), so each button starts checked.
+        var model = new WpfMain(History(), new AppSettings { ShowTurnTimer = true }, TestApp.Data);
         var window = new WpfWindow(model);
         var saves = 0;
         window.SettingsChanged += () => saves++;
