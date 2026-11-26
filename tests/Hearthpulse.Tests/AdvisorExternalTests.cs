@@ -7,6 +7,7 @@ using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Site;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
 
@@ -299,6 +300,33 @@ public sealed class AdvisorExternalTests : IDisposable
         Assert.Same(external, merged);
         Assert.Equal("Hearthpulse data", merged.Source);
         Assert.False(merged.FromPool);
+    }
+
+    /// <summary>
+    /// What the pool answered on 2026-11-26: seven shared games and every list empty. A count is no number on screen:
+    /// the meta, its source line and its date stay the API's, and no "shared games" are mentioned.
+    /// </summary>
+    [Fact]
+    public async Task A_pool_with_only_a_game_count_is_not_named()
+    {
+        var external = await ExternalMetaAsync();
+        var countOnly = new BattlegroundsMeta(new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>(), [], [], new Dictionary<string, MetaTrinket>(),
+            new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(), new DateTime(2026, 11, 26, 18, 0, 0, DateTimeKind.Utc))
+        {
+            Source = BattlegroundsMeta.PoolAttribution,
+            SharedGames = 7,
+        };
+
+        var merged = PoolClient.Merge(external, countOnly);
+        var advice = new BattlegroundsAdvisor { Meta = merged }.Enrich(HeroPick(["QUILBOAR", "ELEMENTAL", "MURLOC", "DEMON", "BEAST"]), 7000, Cards());
+
+        Assert.Same(external, merged);
+        Assert.False(merged.FromPool);
+        Assert.Equal(0, merged.SharedGames);
+        Assert.StartsWith("Hearthpulse data · ", advice.MetaSource, StringComparison.Ordinal);
+        Assert.EndsWith(external.Updated.ToString("dd MMM HH:mm", Loc.DateCulture), advice.MetaSource, StringComparison.Ordinal);
+        Assert.DoesNotContain(Loc.Or("Core.BgMeta.PoolName", BattlegroundsMeta.PoolName), advice.MetaSource, StringComparison.Ordinal);
+        Assert.DoesNotContain(Loc.P("Core.Bg.SharedGames", 7), advice.MetaSource, StringComparison.Ordinal);
     }
 
     [Fact]

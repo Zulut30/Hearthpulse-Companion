@@ -25,10 +25,10 @@ namespace Hearthpulse.Tests;
 /// The collection never leaves the machine, checked by what goes over the wire (docs/collection.md, "Privacy"): the
 /// app's services are built as a host builds them (<see cref="AppServices"/>) on a handler that records every request;
 /// the session holds a collection with a marker card id and a marker dust balance, the main view model shows it; then
-/// the usual senders run - the meta download, a finished game as a game record, shared games and a source capture,
-/// the profile upload, a crash report, the update check - and no request has a marker in its address, a header or its
-/// body (also inside gzip and base64). A check of names in source text cannot see this; a sender that is not run here
-/// is not covered, and the class says which those are.
+/// the usual senders run - the meta download, a finished game as a game record, shared games through their queue and a
+/// source capture, the profile upload, a crash report, the update check - and no request has a marker in its address, a
+/// header or its body (also inside gzip and base64), nor does any file a queue keeps. A check of names in source text
+/// cannot see this; a sender that is not run here is not covered, and the class says which those are.
 /// </summary>
 public sealed partial class CollectionPrivacyTests
 {
@@ -153,7 +153,7 @@ public sealed partial class CollectionPrivacyTests
                 ConstructedPicks = [new ConstructedPick(4, "C_RARE", ["C_COMMON", "C_RARE", "C_EPIC"], ["C_RARE"])],
             };
             services.PoolSharing.Delay = _ => Task.CompletedTask;
-            services.PoolSharing.Start();
+            services.PoolSharing.Outbox.Delay = TimeSpan.Zero;
             foreach (var handler in Handlers(session, nameof(GameSession.GameFinished)))
             {
                 ((Action<GameOutcome>)handler)(outcome);
@@ -161,8 +161,12 @@ public sealed partial class CollectionPrivacyTests
 
             Assert.True(SpinWait.SpinUntil(() => services.GameStats.PendingCount > 0, TimeSpan.FromSeconds(30)), "the game record was queued");
             await services.GameStats.PassAsync(CancellationToken.None);
-            await services.PoolSharing.ShareAsync(outcome);
-            await services.PoolSharing.ShareAsync(Battlegrounds());
+            // The shared games wait in their queue (the Constructed picks of the game above, and a Battlegrounds game);
+            // the pool answers "unavailable", so they are still there for the check of the files at the end.
+            await services.PoolSharing.QueueAsync(Battlegrounds());
+            Assert.True(SpinWait.SpinUntil(() => services.PoolSharing.Outbox.Pending == 2, TimeSpan.FromSeconds(30)), "both shared games were queued");
+            services.PoolSharing.Start();
+            await services.PoolSharing.Outbox.PassAsync(CancellationToken.None);
 
             // The profile: the services' own uploader is signed out (a sign-in is a device flow against the site), so the
             // same uploader class is run with a made-up signed-in session on the same client and the same history.
@@ -196,6 +200,7 @@ public sealed partial class CollectionPrivacyTests
             Talked("game record", r => r.Method == "POST" && r.Url == Pool + "/v1/events" && r.Body.Length > 2);
             Talked("shared Battlegrounds game", r => r.Method == "POST" && r.Url == Pool + "/v1/games" && r.Body.Length > 2);
             Talked("shared Constructed picks", r => r.Method == "POST" && r.Url == Pool + "/v1/constructed" && r.Body.Length > 2);
+            Assert.Equal(2, Directory.EnumerateFiles(Path.Combine(root, "pool-outbox"), "*.json", SearchOption.AllDirectories).Count());
             Talked("source capture", r => r.Method == "POST" && r.Url == Pool + "/v1/captures/chunks" && r.Body.Contains("gzip", StringComparison.Ordinal));
             Talked("profile upload", r => r.Method == "POST" && r.Url == Site + "tracker/events/batch" && r.Headers.Contains("access-token", StringComparison.Ordinal));
             Talked("crash report", r => r.Method == "POST" && r.Url == Site + "crash-reports" && r.Body.Contains("The collection view failed", StringComparison.Ordinal));
@@ -234,6 +239,7 @@ public sealed partial class CollectionPrivacyTests
         {
             await services.SourceCaptures.DisposeAsync();
             services.GameStats.Dispose();
+            services.PoolSharing.Dispose();
             services.Memory.Dispose();
             Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
             TestDataFolder.TryDelete(root);

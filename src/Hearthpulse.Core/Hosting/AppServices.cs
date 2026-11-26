@@ -72,8 +72,9 @@ public sealed class AppServices
         GameStats = new GameStatsUploader(settings, http, History, () => Data.Replays, TryCards, version,
             new GameStatsQueues(Path.Combine(data.Root, "game-stats")));
         Session.GameFinished += GameStats.OnGameFinished;
-        // Shared games are on by default, unless the player turned them off in Settings → Data.
-        PoolSharing = new PoolSharingHost(settings, http, History, cards);
+        // Shared games are on by default, unless the player turned them off in Settings → Data. They wait in the data
+        // folder until the pool takes them.
+        PoolSharing = new PoolSharingHost(settings, http, History, cards, Path.Combine(data.Root, "pool-outbox"));
         Session.GameFinished += PoolSharing.OnGameFinished;
         SourceCaptures = new SourceCaptureHost(settings, http, Session, Path.Combine(data.Root, "source-capture"), settings.SaveRequired);
 

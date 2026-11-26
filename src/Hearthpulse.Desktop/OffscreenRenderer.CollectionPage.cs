@@ -20,7 +20,8 @@ internal static partial class OffscreenRenderer
     /// (<c>main-collection-sets</c>, <c>-skins</c>, <c>-coins</c>, <c>-backs</c>), the golden copies turned on by the
     /// scene's own switch (<c>-sets-golden</c>), the sets in English (<c>-sets-en</c>), the compact layout at 420
     /// (<c>-sets-compact</c>, <c>-backs-compact</c>); then the states on the made-up data of <see cref="CosmeticsScene"/>:
-    /// <c>-none</c>, <c>-saved</c>, <c>-notread</c>, <c>-nocosmetics</c>, <c>-unsupported</c>, <c>-nocards</c>. Tall frames
+    /// <c>-none</c>, <c>-saved</c>, <c>-notread</c>, <c>-nocosmetics</c>, <c>-unsupported</c>, <c>-readingoff</c> (reading the
+    /// client turned off), <c>-nocards</c>. Tall frames
     /// hold the whole page; the card backs show their largest group; the window's size and the session's data come back
     /// afterwards.
     /// </summary>
@@ -98,6 +99,10 @@ internal static partial class OffscreenRenderer
             model.SetCollection(null);
             await Shot("unsupported", 900);
             model.CollectionReadable = true;
+            // Reading the game client turned off (Settings → Data): the page says so and where to turn it back on.
+            model.ReadGameMemory = false;
+            await Shot("readingoff", 900);
+            model.ReadGameMemory = true;
             model.SetCollection(saved.Collection);
             var cards = host.Cards;
             model.SetCards(CardDb.Empty);

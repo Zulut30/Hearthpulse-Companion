@@ -175,6 +175,25 @@ public sealed partial class BattlegroundsTracker
     };
 
     /// <summary>
+    /// A fight that reached its end without a regular attack (TASK-2026-11-26 Q4): no minion on either board could attack -
+    /// both empty - and so no hero attacked either: a tie without damage. Its odds, a sure tie from the simulator's two empty
+    /// boards, show while the client plays the fight and go with its record like any fight's. The boards are not captured:
+    /// by the end line the log has cleared the fight's boards and put our tavern board back.
+    /// </summary>
+    private void TieWithoutAttacks(GameState game)
+    {
+        // The opponent is named after the board switches to combat and cleared only after this line (15.11 log).
+        if (game.OpponentPlayerEntity?.GetInt(GameTag.CurrentCombatPlayerId) is > 0 and var opponent)
+        {
+            _combatOpponent = opponent;
+        }
+
+        var ours = new SimSide([]) { Health = _localHealthAtCombat };
+        var theirs = new SimSide([]) { Health = Durability(LeaderboardHero(game, _combatOpponent)) };
+        _combatOdds = CombatSimulator.Run(ours, theirs, null, QuickPass(SimOptions with { Effects = Effects, DamageCap = DamageCap(game) }));
+    }
+
+    /// <summary>
     /// The local player's player-level cards in play (hero power, trinkets, quest rewards) at capture, by card id: only
     /// the tags effects read (<see cref="CombatEffect.CapturedTags"/>), values that grow over the game (Fang Anklet,
     /// Tentacular...). A card not in play, or without such a tag, has no value, so its effect reports missing_input.

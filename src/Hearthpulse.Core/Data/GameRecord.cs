@@ -122,6 +122,13 @@ public sealed record GameRecord
     /// <summary>The opponent's archetype when its played cards placed it clearly (<c>ArchetypeGuess</c>), else null.</summary>
     public string? OpponentArchetype { get; init; }
 
+    /// <summary>
+    /// Ranked and Casual: the archetype the player's own deck matched in the community stats of the game's format when
+    /// the game was saved, as its English HSGuru key (<c>MetaArchetype.Key</c>, never the interface-language name); null
+    /// without a deck, stats of that format or a match. Sent to the profile as <c>archetype</c> (docs/profile-upload.md).
+    /// </summary>
+    public string? DeckArchetype { get; init; }
+
     /// <summary>File name of the game's match replay in the replays folder (<c>Replay/ReplayStore</c>); null when none was recorded.</summary>
     public string? Replay { get; init; }
 

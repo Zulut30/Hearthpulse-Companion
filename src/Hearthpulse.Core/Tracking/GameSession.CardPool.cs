@@ -39,10 +39,11 @@ public sealed partial class GameSession
     private readonly SemaphoreSlim _hoverWake = new(0, 1);
 
     /// <summary>
-    /// Whether the card under the mouse is being read from the game now: a card in your hand could show something on
-    /// hover and the hover mode allows it now (with Ctrl: only while Ctrl is held). Internal for tests and the bench.
+    /// Whether the card under the mouse is being read from the game now: reading the client is on (the "Read data from
+    /// the game client" setting, <see cref="SetGameMemoryEnabled"/>), a card in your hand could show something on hover and
+    /// the hover mode allows it now (with Ctrl: only while Ctrl is held). Internal for tests and the bench.
     /// </summary>
-    internal bool HoverReadsWanted => _cardPoolHoverPossible && HoverReadAllowed;
+    internal bool HoverReadsWanted => _gameMemoryEnabled && _cardPoolHoverPossible && HoverReadAllowed;
 
     /// <summary>Whether this machine can read the card under the mouse (Windows); tests that drive a fake reader say yes.</summary>
     internal bool HoverSupported { get; set; } = HearthstoneMemory.IsSupported;
@@ -181,13 +182,13 @@ public sealed partial class GameSession
     /// <summary>Adds the current pool to a Constructed view; called while publishing.</summary>
     private ConstructedView WithCardPool(ConstructedView view, GameState game)
     {
-        // Memory is read only when a hover can show something: setting on, catalog loaded, a mode and format with a known
-        // pool, the hover not turned off, and a card with a pool or a "this game" list in your hand; with Ctrl, only while
-        // Ctrl is held (HoverReadsWanted).
+        // Memory is read only when a hover can show something: reading the client on, setting on, catalog loaded, a mode
+        // and format with a known pool, the hover not turned off, and a card with a pool or a "this game" list in your
+        // hand; with Ctrl, only while Ctrl is held (HoverReadsWanted).
         var engine = _cardPoolEnabled ? CardPoolEngineNow() : null;
         var context = CardPoolTracker.ContextOf(game, _cards);
-        _cardPoolHoverPossible = engine is not null && _cardPoolHover != CardPoolHover.Off && HoverSupported && context.IsSupported
-                                 && (_cardPool.HandHasPool(game, _cards) || HandHasMatchList(game));
+        _cardPoolHoverPossible = _gameMemoryEnabled && engine is not null && _cardPoolHover != CardPoolHover.Off && HoverSupported
+                                 && context.IsSupported && (_cardPool.HandHasPool(game, _cards) || HandHasMatchList(game));
         if (HoverReadsWanted)
         {
             EnsureHoverThread();
@@ -405,6 +406,9 @@ public sealed partial class GameSession
         return read;
     }
 
-    /// <summary>The card under the mouse from game memory; attaching is MemoryPoller's job, so only once it is done.</summary>
-    private string? ReadHoveredFromGame() => _memory.IsAttached ? _memory.GetHoveredCardId() : null;
+    /// <summary>
+    /// The card under the mouse from game memory: attaching is MemoryPoller's job, so only once it is done, and never with
+    /// reading the client off (<see cref="CanReadClient"/>).
+    /// </summary>
+    private string? ReadHoveredFromGame() => CanReadClient ? _memory.GetHoveredCardId() : null;
 }

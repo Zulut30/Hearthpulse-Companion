@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Migration;
 
 namespace Hearthpulse.Tests;
 
@@ -55,6 +56,7 @@ public sealed class ProfileEventsContractTests
         Turns = 9,
         DeckCode = "AAECAfHhBAA=",
         DeckName = "Blood DK",
+        DeckArchetype = "Blood Death Knight",
         WentFirst = false,
         RankStarLevel = 46,
     };
@@ -106,10 +108,60 @@ public sealed class ProfileEventsContractTests
         var e = ProfileEvents.ForGame(ConstructedExample())!;
 
         Assert.Equal((string?)expected["occurredAt"], e.OccurredAt);
-        // The history has no own archetype, no stars within a level, no rank after the game (it is only read in game)
-        // and keeps the mulligan for the deck page: those example fields are not sent (docs/profile-upload.md).
-        AssertSameFields(expected["payload"]!.AsObject(), e.Payload, notSent: ["archetype", "rankAfter", "playerMulligan", "rankBefore.stars"]);
+        // The history has no stars within a level, no rank after the game (it is only read in game) and keeps the
+        // mulligan for the deck page: those example fields are not sent (docs/profile-upload.md).
+        AssertSameFields(expected["payload"]!.AsObject(), e.Payload, notSent: ["rankAfter", "playerMulligan", "rankBefore.stars"]);
         Assert.Null(ProfileEventSchema.Validate(e.Type, e.Payload));
+    }
+
+    [Fact]
+    public void The_own_archetype_goes_as_the_saved_english_key_and_passes_the_schema()
+    {
+        var now = new DateTime(2026, 10, 23, 0, 0, 0, DateTimeKind.Utc);
+        var e = ProfileEvents.ForGame(ConstructedExample() with { DeckArchetype = "Blood Death Knight" })!;
+
+        // The site compares by the English HSGuru name the history saved (MetaArchetype.Key), never a shown name.
+        Assert.Equal("Blood Death Knight", (string)e.Payload["archetype"]!);
+        Assert.Null(ProfileEventSchema.Validate(e, now));
+
+        // A game saved before the column, or with no archetype matched, still goes without it.
+        var none = ProfileEvents.ForGame(ConstructedExample() with { DeckArchetype = null })!;
+        Assert.False(none.Payload.ContainsKey("archetype"));
+        Assert.Null(ProfileEventSchema.Validate(none, now));
+
+        // The free-text rules of the other names: a BattleTag shape drops the field, not the game.
+        var tagged = ProfileEvents.ForGame(ConstructedExample() with { DeckArchetype = "Secret#1234 deck" })!;
+        Assert.False(tagged.Payload.ContainsKey("archetype"));
+    }
+
+    [Fact]
+    public void Arena_games_brought_over_from_another_tracker_are_neither_sent_nor_counted_in_the_run()
+    {
+        // HDT and Firestone saw the run's first three games (2-1); Hearthpulse recorded the other six (4-2).
+        var games = ArenaExample().Select((g, i) => i switch
+        {
+            0 => g with { Source = FirestoneImport.Source, DeckId = null },
+            1 or 2 => g with { Source = HdtImport.Source, DeckId = null },
+            _ => g,
+        }).ToList();
+        var imported = games.Take(3).Select(ProfileEvents.GameEventId).ToHashSet(StringComparer.Ordinal);
+
+        var events = ProfileEvents.ForArena(games);
+
+        Assert.DoesNotContain(events, e => imported.Contains(e.EventId));
+        var matches = events.Where(e => e.Type == ProfileEvents.ArenaMatch).ToList();
+        Assert.Equal(6, matches.Count);
+        // On the site the run starts with its first own game: game 1, nothing before it, the run named after it.
+        var first = matches[0].Payload;
+        Assert.Equal((1, 0, 0), ((int)first["gameNumber"]!, (int)first["winsBefore"]!, (int)first["lossesBefore"]!));
+        var run = events.Single(e => e.Type == ProfileEvents.ArenaRun).Payload;
+        Assert.Equal((4, 2, false), ((int)run["wins"]!, (int)run["losses"]!, (bool)run["complete"]!));
+        Assert.Equal("arena-" + games[3].StartedAt.ToString("yyyyMMdd'T'HHmmss'Z'", System.Globalization.CultureInfo.InvariantCulture), (string)run["runId"]!);
+        Assert.All(events, e => Assert.Null(ProfileEventSchema.Validate(e.Type, e.Payload)));
+
+        // Asked for a transferred game alone (as a live game's run is asked for), or with only transferred games: nothing.
+        Assert.Empty(ProfileEvents.ForArena(games, new HashSet<string> { games[1].Key }));
+        Assert.Empty(ProfileEvents.ForArena(games.Take(3)));
     }
 
     [Fact]

@@ -156,7 +156,8 @@ public sealed class GameStatsUploader : IDisposable
 
         var cards = _cards();
         var text = game.Replay is { Length: > 0 } file ? _replays()?.Load(file) : null;
-        var pool = game.IsBattlegrounds && cards is not null
+        // A recovered game (found when the app started) was not watched live: its record is what the history row has.
+        var pool = !outcome.Recovered && game.IsBattlegrounds && cards is not null
             ? PoolGame.From(outcome, cards.BaseHeroId, id => cards.Get(id)?.Races ?? [], details: true, PoolClient.Secret(_settings))
             : null;
         return GameStatsRecord.Build(game, GameStatsClient.RecordId(key, _settings), text, pool, cards, _version);

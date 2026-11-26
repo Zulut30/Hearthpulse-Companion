@@ -1,5 +1,6 @@
 using System.Text;
 using Hearthpulse.Core.Hearthstone;
+using Hearthpulse.Core.Power;
 
 namespace Hearthpulse.Core.Logs;
 
@@ -15,12 +16,20 @@ public sealed class LogTail
 {
     private static readonly byte[] CreateGameMarker = Encoding.ASCII.GetBytes("GameState.DebugPrintPower() - CREATE_GAME");
 
+    private static readonly byte[] SpectatorHint = Encoding.ASCII.GetBytes(PowerParser.SpectatorHint);
+
+    /// <summary>How far before the last game a spectator marker is looked for; a longer watching session is cut off there.</summary>
+    internal const long SpectatorLookBehind = 32L * 1024 * 1024;
+
     private readonly string _fileName;
     private string? _path;
     private long _position;
     private long _seenLength;
     private byte[] _remainder = Array.Empty<byte>();
     private byte[] _buffer = new byte[ReadChunkSize];
+
+    // The spectator marker found before the last game, given out as the first line of the next read.
+    private string? _lead;
 
     /// <summary>
     /// How much is read per chunk. The buffer is reused, so a busy log does not put a fresh multi-megabyte array
@@ -70,6 +79,7 @@ public sealed class LogTail
         _path = Path.Combine(sessionDir, _fileName);
         _remainder = Array.Empty<byte>();
         _seenLength = 0;
+        _lead = null;
         try
         {
             _position = start switch
@@ -78,10 +88,18 @@ public sealed class LogTail
                 TailStart.End when new FileInfo(_path) is { Exists: true } info => info.Length,
                 _ => 0,
             };
+
+            // Whether the player is only watching is said before the games (PowerParser.Spectating): joining at the last
+            // game would skip it, so the nearest marker before that game is read first.
+            if (start == TailStart.LastGame && _position > 0)
+            {
+                _lead = FindSpectatorMarker(_path, _position);
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _position = 0;
+            _lead = null;
         }
     }
 
@@ -117,6 +135,12 @@ public sealed class LogTail
         if (_path is null)
         {
             return lines;
+        }
+
+        if (_lead is { } lead)
+        {
+            lines.Add(lead);
+            _lead = null;
         }
 
         try
@@ -249,6 +273,61 @@ public sealed class LogTail
         {
             return 0;
         }
+    }
+
+    /// <summary>
+    /// The nearest spectator marker line (<see cref="PowerParser.SpectatorMarkerOf"/>) before <paramref name="offset"/>,
+    /// at most <see cref="SpectatorLookBehind"/> back, or null. Scans backwards in 1 MB blocks like
+    /// <see cref="FindLastGameOffset"/>; a "Spectat" inside a game line is passed over.
+    /// </summary>
+    internal static string? FindSpectatorMarker(string path, long offset)
+    {
+        const int chunkSize = 1024 * 1024;
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var floor = Math.Max(0, offset - SpectatorLookBehind);
+        var chunk = new byte[chunkSize + SpectatorHint.Length - 1];
+        var position = offset;
+        while (position > floor)
+        {
+            var size = (int)Math.Min(chunkSize, position - floor);
+            var start = position - size;
+            // A little past the block, so a hint split by the boundary is still seen whole; never into the last game.
+            var count = (int)Math.Min(size + SpectatorHint.Length - 1, offset - start);
+            stream.Seek(start, SeekOrigin.Begin);
+            stream.ReadExactly(chunk, 0, count);
+            var span = chunk.AsSpan(0, count);
+            int index;
+            while ((index = span.LastIndexOf(SpectatorHint)) >= 0)
+            {
+                var line = LineAt(stream, start + index);
+                if (PowerParser.SpectatorMarkerOf(line) != SpectatorMarker.None)
+                {
+                    return line;
+                }
+
+                span = span[..index];
+            }
+
+            position = start;
+        }
+
+        return null;
+    }
+
+    /// <summary>The text of the line that contains <paramref name="offset"/>, up to 4 KB of it (a marker line is short).</summary>
+    private static string LineAt(FileStream stream, long offset)
+    {
+        var start = LineStart(stream, offset);
+        var buffer = new byte[4096];
+        stream.Seek(start, SeekOrigin.Begin);
+        var line = buffer.AsSpan(0, stream.ReadAtLeast(buffer, buffer.Length, throwOnEndOfStream: false));
+        var end = line.IndexOf((byte)'\n');
+        if (end >= 0)
+        {
+            line = line[..end];
+        }
+
+        return Encoding.UTF8.GetString(line.TrimEnd((byte)'\r'));
     }
 
     /// <summary>Start of the line that contains <paramref name="offset"/>.</summary>

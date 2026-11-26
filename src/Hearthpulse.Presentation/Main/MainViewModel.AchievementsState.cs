@@ -18,17 +18,26 @@ namespace Hearthpulse.UI.Main;
 public sealed partial class MainViewModel
 {
     /// <summary>
-    /// The page's empty state: why there is no book (another system, not read yet, none yet), or that the first one is
-    /// being put together. Empty once the page has its content.
+    /// This system can read the client, but reading it is turned off (Settings → Data): the page says so and where to turn
+    /// it back on.
+    /// </summary>
+    private bool AchievementsReadOff => _achievementsReadable && !Settings.ReadGameMemory;
+
+    /// <summary>
+    /// The page's empty state: why there is no book (another system, reading the client off, not read yet, none yet), or
+    /// that the first one is being put together. Empty once the page has its content.
     /// </summary>
     public string AchievementsEmpty => _achievementBook is null
-        ? Loc.T(!_achievementsReadable ? "Achievements.Empty.Unsupported" : HearthstoneRunning ? "Achievements.Empty.NotRead" : "Achievements.Empty.None")
+        ? Loc.T(!_achievementsReadable ? "Achievements.Empty.Unsupported" : AchievementsReadOff ? "Achievements.Empty.Off"
+            : HearthstoneRunning ? "Achievements.Empty.NotRead" : "Achievements.Empty.None")
         : _achievementsData is not null ? string.Empty
         : Loc.T(_achievementsFailed ? "Achievements.Error" : "Achievements.Loading");
 
     public string AchievementsEmptyGlyph => AchievementsFailed ? GlyphFailed
-        : _achievementBook is not null || (_achievementsReadable && HearthstoneRunning) ? GlyphWaiting
-        : !_achievementsReadable ? GlyphUnsupported : GlyphNone;
+        : _achievementBook is not null ? GlyphWaiting
+        : !_achievementsReadable ? GlyphUnsupported
+        : AchievementsReadOff ? CollectionGlyphs.ReadingOff
+        : HearthstoneRunning ? GlyphWaiting : GlyphNone;
 
     /// <summary>
     /// Working the known book out failed: the empty state says so instead of "loading", and <see cref="RetryAchievements"/>

@@ -179,16 +179,19 @@ internal sealed class OverlayWindow : Window
         vm.UpdateCardPoolKeys(controlDown);
     }
 
-    /// <summary>Reads the hovered leaderboard hero from the game (Windows memory reader) at most four times a second.</summary>
+    /// <summary>
+    /// Reads the hovered leaderboard hero from the game (Windows memory reader) at most four times a second; never with
+    /// reading the client turned off.
+    /// </summary>
     private void PollHoveredHero()
     {
-        var memory = _host.Memory;
-        if (!memory.IsAttached)
+        var session = _host.Session;
+        if (!session.CanReadClient)
         {
             _hoverReader.Clear();
             return;
         }
 
-        _hoverReader.Poll(memory.GetHoveredLeaderboardHero, DateTime.UtcNow);
+        _hoverReader.Poll(session.HoveredLeaderboardHero, DateTime.UtcNow);
     }
 }

@@ -28,6 +28,15 @@
     <StackPanel>
         <!-- Moving over from HDT / Firestone (Main/Migration) -->
         <mg:MigrationCard DataContext="{Binding Migration}" Full="True" Margin="0,0,0,16" />
+        <!-- Reading the game client (AppSettings.ReadGameMemory, docs/adr/0006-client-read-only.md): on by default; off, the
+             pages that need it say so and send the player here -->
+        <Border Name="GameClientCard" Classes="card" Margin="0,0,0,16" IsVisible="{Binding GameMemorySwitchShown}">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.Data.ClientTitle}" Icon="&#xF0208;" Size="13" Margin="0,0,0,14" />
+                <CheckBox Name="GameMemorySwitch" Classes="switch" Content="{i:Loc Settings.Data.GameMemory}" IsChecked="{Binding ReadGameMemory}" Margin="0,0,0,4" />
+                <TextBlock Text="{i:Loc Settings.Data.GameMemoryNote}" Classes="caption" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
         <Border Classes="card" Margin="0,0,0,16">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Settings.Data.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />

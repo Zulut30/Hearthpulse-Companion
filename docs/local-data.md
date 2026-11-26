@@ -13,6 +13,25 @@ do yet.
 | `achievements.json` | The same, with texts up to 4 000 characters, and inconsistent (a record pointing at a category, subcategory, section or achievement the file does not hold, a status by another name, a date outside 2000..2100): "no achievements yet"; left as it is and replaced by the next read. Saves as above (`achievements.json.tmp`). | `AchievementsStore.Load`, `Save`, `AchievementsWatch` |
 | `cache/api/*.json` | Younger than 6 hours but not JSON: deleted and asked for again once; when offline, an older readable answer stands in. | `HearthpulseData.FetchAsync` |
 
+## Which games are recorded
+
+- **Watched in spectator mode: never.** A game the player only watches is somebody else's: no history row, match
+  replay, fight capture, game record, profile event, shared game or source capture, live or through the log import.
+  Power.log marks spectator mode with lines of their own (`Begin Spectating` / `Start Spectator` ... `End Spectator`;
+  the words follow the log format, no kept real log has confirmed them yet). `PowerParser.Spectating` keeps the mark
+  across `CREATE_GAME` and gives it to each game (`GameState.IsSpectated`); `GameSession.RecordIfFinished`,
+  `LogBackfill` and `SourceCaptureRecorder` pass such a game over. When the app joins a log at its last game, `LogTail`
+  reads the nearest earlier marker first (at most 32 MB back). Limit: a source capture begun before a marker written
+  in the middle of a game is sealed as incomplete, without the watched player's result and fights, and is still sent;
+  only the capture queue could drop it.
+- **Ended before the app started: sent like any other.** The app catches up with the log from its last `CREATE_GAME`,
+  so it finds at most one game per start. The first time that game is saved, `GameSession.GameFinished` raises it with
+  `GameOutcome.Recovered`: the profile event, the game record (built from the history row, without the live parts)
+  and the shared game go out as for a game played live. It is not counted in the session's results and shows no toast;
+  a game saved before (a restart, a resync) is not raised again. A Battlegrounds game we were out of before the start
+  is such a game too, also when the wait for its final place saves it later. Earlier games of that log session reach
+  History only through the log import.
+
 ## Known limits
 
 - **Settings held longer.** The read is retried for one second and only for `IOException`. A file held longer (a cloud

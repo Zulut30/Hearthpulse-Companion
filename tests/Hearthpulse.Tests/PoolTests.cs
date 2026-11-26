@@ -688,6 +688,27 @@ public sealed class PoolTests
         Assert.Equal(["/v1/meta", "/v1/stats"], handler.Paths.Order(StringComparer.Ordinal));
     }
 
+    /// <summary>
+    /// The deployed pool on 2026-11-26: no base stats, and its shared totals a game count with every list empty. Laid
+    /// over the downloaded meta it changes nothing: not the numbers, the source, the date nor the count of shared games.
+    /// </summary>
+    [Fact]
+    public async Task Overlay_keeps_the_downloaded_meta_when_the_pool_has_only_a_count()
+    {
+        using var handler = new BaseMetaHandler();
+        using var http = new HttpClient(handler);
+        var downloaded = ApiMeta();
+
+        var meta = await PoolClient.OverlayAsync(http, "https://pool.test", downloaded);
+
+        Assert.Same(downloaded, meta);
+        Assert.Equal(BattlegroundsMeta.Attribution, meta!.StoredSource);
+        Assert.False(meta.FromPool);
+        Assert.Equal(0, meta.SharedGames);
+        Assert.Equal(downloaded.Updated, meta.Updated);
+        Assert.Equal(["/v1/meta", "/v1/stats"], handler.Paths.Order(StringComparer.Ordinal));
+    }
+
     [Theory]
     [InlineData("{\"error\":\"temporarily unavailable\"}")]
     [InlineData("<html>Service unavailable</html>")]

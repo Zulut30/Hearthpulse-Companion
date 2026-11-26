@@ -93,6 +93,43 @@ test('events deletion insertion replacement and day rollover cannot serve stale 
   }
 });
 
+test('the minute upkeep deletes expired rows when the archive fails, and a failed step stops neither other step', async t => {
+  const f = await setup(t);
+  const db = f.pool.store.sqlite;
+  const seed = (shared, records, counters) => {
+    for (const day of shared) {
+      db.prepare("INSERT INTO g(id,day,mode,bracket,hero,placement,src) VALUES(?,?,'solo',0,'BG_HERO_A',1,'live')").run(`g${day}`, day);
+      db.prepare("INSERT INTO c(id,day,fmt,won,src,picks) VALUES(?,?,'standard',1,'live','[]')").run(`c${day}`, day);
+      db.prepare('INSERT INTO quota(day,n) VALUES(?,1)').run(day);
+    }
+    for (const day of records) db.prepare("INSERT INTO e(id,iid,day,mode,fmt,v,body) VALUES(?,?,?,'ranked','standard',1,'{}')").run(`e${day}`, ID.iid, day);
+    for (const day of counters) db.prepare('INSERT INTO equota(day,n) VALUES(?,1)').run(day);
+  };
+  const days = table => db.prepare(`SELECT day FROM ${table} ORDER BY day`).all().map(r => r.day);
+  // One day inside each limit (60 days shared, 180 records, 7 record counters) and one past it.
+  seed([DAY - 61, DAY - 59], [DAY - 181, DAY - 179], [DAY - 8, DAY - 6]);
+  f.pool.archive.maintain = async () => { throw new Error('archive_io'); };
+  const lines = [];
+  await f.pool.maintenance(line => lines.push(JSON.parse(line)));
+  for (const table of ['g', 'c', 'quota']) assert.deepEqual(days(table), [DAY - 59], table);
+  assert.deepEqual(days('e'), [DAY - 179]);
+  assert.deepEqual(days('equota'), [DAY - 6]);
+  assert.deepEqual(lines, [{ ok: false, error: 'archive_maintain_failed', cause: 'archive_io' }]);
+
+  db.exec("CREATE TRIGGER shared_io BEFORE DELETE ON c BEGIN SELECT RAISE(ABORT, 'shared_io'); END");
+  seed([DAY - 61], [DAY - 181], []);
+  let maintained = 0;
+  f.pool.archive.maintain = async () => { maintained++; };
+  const second = [];
+  await f.pool.maintenance(line => second.push(JSON.parse(line)));
+  assert.deepEqual(second, [{ ok: false, error: 'shared_prune_failed', cause: 'shared_io' }]);
+  for (const table of ['g', 'c', 'quota']) assert.deepEqual(days(table), [DAY - 61, DAY - 59], `${table}: the shared batch is all or nothing`);
+  assert.deepEqual(days('e'), [DAY - 179], 'the records clean-up ran on its own');
+  assert.equal(maintained, 1);
+  // The timer's last guard: an unhandled rejection would stop Node 24.
+  assert.match(fs.readFileSync(new URL('../node/server.mjs', import.meta.url), 'utf8'), /maintenance\(\)\.catch\(reportFailure\('maintenance_failed'\)\)/);
+});
+
 test('source HTTP rejects caller commands malformed envelopes body overflow and forwarded operator authority', async t => {
   const f = await setup(t, { operatorToken: 'operator-test' });
   const wrongMethod = await fetch(`${f.pool.url}/v1/captures/chunks`);

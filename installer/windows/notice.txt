@@ -14,7 +14,13 @@ HOW IT WORKS
   - your own card collection (card ids, finishes and copy counts) and Arcane
     Dust balance, at startup and when collection or pack screens change;
     these are stored on this computer only and are never sent anywhere;
-  - in a game, both players' names and ranked medals;
+  - the game's card backs, coins and achievements (names and descriptions),
+    which card backs and coins you own or chose as favourites, and your
+    achievement progress and completion dates: once per Hearthstone
+    session, then after a game or when the collection or pack screen
+    closes, at most once a minute and never during a game; these are
+    stored on this computer only and are never sent anywhere;
+  - in a game, both players' ranked medals;
   - in Battlegrounds, the lobby's tribes and the costs on the tavern
     buttons (refresh, freeze, upgrade, Dark Gift);
   - in Battlegrounds with opponent boards on, the leaderboard hero under
@@ -28,9 +34,18 @@ HOW IT WORKS
   - in a Constructed game with the card pool on, the card under your
     mouse, at most four times a second and only while a card in your
     hand has a pool to show;
+  - on the Arena draft screen, the cards you are offered: for the Arena
+    draft helper (beta, off by default) and, while game statistics are on,
+    for the journal of draft choices (see GAME STATISTICS);
   - to find these, the names and layout of the game's classes.
+- Turn off "Read data from the game client" in Settings > Data to stop all
+  of these reads. Tracking from the log files keeps working; the values
+  above are no longer read or updated, and what was read before stays on
+  this computer, shown as saved data.
 - It never changes the game, never sends input to it and never shows hidden
   information such as your opponent's hand or deck.
+- Hearthpulse is not affiliated with or endorsed by Blizzard Entertainment.
+  Use it at your own risk.
 - Your history and settings stay on this computer, in %APPDATA%\Hearthpulse.
 - Moving from Hearthstone Deck Tracker or Firestone (Settings > Data): when
   you ask, it reads the games and decks those apps saved on this computer.
@@ -52,14 +67,17 @@ UPDATES
   Settings > About.
 
 GAME STATISTICS
-- On by default; expanded source sending starts only after the updated in-app
-  notice and a statistics endpoint are available. Turn it off in Settings >
-  Data, "Send my games to Hearthpulse statistics".
-- The app sends compact game records and a sanitized journal of observed games
-  and Arena draft choices to Hearthpulse's private statistics service: ordered
-  visible offers and choices, played/drawn cards, buys, sells, shop refreshes,
-  resources, visible board states and outcomes. Incomplete observations are
-  marked separately. Stored journals can be reprocessed as the parser improves.
+- Both kinds of sending below are on by default: the app asks no question
+  and shows no notice first. They go to Hearthpulse's statistics service
+  (api.kolodahearthstone.com/stats). Each has its own switch in Settings >
+  Data; once a switch is off, nothing more of its kind is sent. Privacy
+  policy: https://hearthpulse.net/privacy/ (in Russian)
+- "Send my games to Hearthpulse statistics": compact game records and a
+  sanitized journal of observed games and Arena draft choices: ordered
+  visible offers and choices, played/drawn cards, buys, sells, shop
+  refreshes, resources, visible board states and outcomes. Incomplete
+  observations are marked separately. Stored journals can be reprocessed as
+  the parser improves.
 - After a Battlegrounds game the journal also holds each of its fights as the
   combat simulator saw it at the first attack: both boards (cards, stats,
   keywords, enchantments and their values, Blood Gem buffs, the card that
@@ -78,21 +96,37 @@ GAME STATISTICS
   are random per installation and generation, separate from the website
   account; only aggregate statistics are published, including in paid
   features. Storage is up to 180 days.
-- Turning sending off clears pending journals and asks the server to delete
-  uploaded data. Pending deletion remains visible until the server confirms it.
-- Shared games for the public statistics pool, also on by default after the
-  same in-app notice: after a Battlegrounds game, the heroes offered and
+- Turning this switch off clears the records and journals waiting to be
+  sent and asks the server to delete the ones this installation sent.
+  Settings > Data shows the deletion as pending until the server confirms
+  it.
+- "Share my games with the stats pool": games for the public statistics
+  pool. After a Battlegrounds game, solo or duos, the heroes offered and
   picked, placement, rating rounded to 500, lobby tribes and anomaly, final
-  board, trinkets, fights, your picks and the cards you played (your
-  Battlegrounds games of the last 30 days once as well); after a Ranked or
-  Casual game, the cards a Discover-style card offered and the one you took.
-  No name, BattleTag, account, deck or anything about other players. The
-  totals are public. Turn it off in Settings > Data, "Share my games with the
-  stats pool", or with "Turn off" on the notice: nothing more is sent. Shared
-  games cannot be deleted on request; they expire after 60 days.
-- The expanded source service is a synthetic pilot in this build; its default
-  endpoint is unset. Public activation requires the matching published privacy
-  policy and verified hosting/backup deletion procedures.
+  board, trinkets, the turns you upgraded the tavern, each fight's result,
+  damage and odds, your picks and the cards you played (your Battlegrounds
+  games of the last 30 days once as well); after a Ranked or Casual game,
+  the cards each Discover-style card offered, the one you took, the format
+  and whether you won. No name, BattleTag, account, deck or anything about
+  other players. The totals are public. Turning this switch off stops all
+  further sending. Shared games cannot be deleted on request; they expire
+  after 60 days.
+
+HEARTHPULSE.NET ACCOUNT
+- Only if you sign in with a hearthpulse.net account: your Standard, Wild,
+  Arena and Battlegrounds games then also go to your profile on the site
+  after they end (mode, start time and length, turns, result, place or
+  rank, rating, heroes and classes, your deck name, code and archetype, the
+  Battlegrounds lobby's tribes and anomaly, tavern tier, final board and
+  fights, the heroes you were offered, who went first, your Arena score and
+  the opponent's archetype once their cards showed it). Never your
+  BattleTag, your opponent's name or anything hidden in the game. On by
+  default while you are signed in; turn it off in Settings > Account, "Send
+  games to my profile". On the site's account page you can see, download or
+  delete what the app sent.
+- A replay goes to the site only when you upload it from History and
+  confirm. It is kept there for 180 days; delete it in History or on the
+  account page.
 
 CRASH REPORTS
 - Off by default. A report of an unexpected error goes to hearthpulse.net only
@@ -110,11 +144,11 @@ SHORTCUTS
 - Ctrl+Shift+L  arrange overlay panels
 
 DATA AND CREDITS
-- Community statistics: Hearthpulse data (api.kolodahearthstone.com), and the
-  Hearthpulse stats pool when it is set up. Russian archetype names: the
-  Hearthpulse archetype dictionary (api.blizzcore.ru). Opponents' MMR:
-  Blizzard's public Battlegrounds leaderboard (8000 and up), through
-  Hearthpulse data.
+- Community statistics: Hearthpulse data (api.kolodahearthstone.com) and the
+  Hearthpulse stats pool (api.kolodahearthstone.com/stats). Russian
+  archetype names: the Hearthpulse archetype dictionary (api.blizzcore.ru).
+  Opponents' MMR: Blizzard's public Battlegrounds leaderboard (8000 and
+  up), through Hearthpulse data.
 - The Battlegrounds tier tabs (heroes, comps, trinkets, cards): the open
   statistics service of the site, bg.hs-manacost.ru, shown as "Hearthpulse
   data". The app asks it for the lists a few times a day and when you pick
@@ -123,8 +157,9 @@ DATA AND CREDITS
   about your games.
 - The Brawl page's article: hs-manacost.ru (its "Потасовка" posts and their
   cover pictures; the article opens in the browser).
-- Card data and art: HearthstoneJSON. The mana gem picture is cut from a
-  HearthstoneJSON card render; it is (c) Blizzard Entertainment, Inc.
+- Card data and art: HearthstoneJSON. Battlegrounds card details and
+  pictures HearthstoneJSON lacks: hsbg.cards. The mana gem picture is cut
+  from a HearthstoneJSON card render; it is (c) Blizzard Entertainment, Inc.
 - Fonts: Montserrat (SIL Open Font License 1.1), Inter (SIL Open Font
   License 1.1), Material Design Icons (Pictogrammers, Apache 2.0).
 - Navigation icons from game-icons.net (CC BY 3.0,

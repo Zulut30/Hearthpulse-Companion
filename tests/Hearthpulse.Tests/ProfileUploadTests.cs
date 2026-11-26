@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Migration;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Tests;
@@ -433,6 +434,62 @@ public sealed class ProfileUploadTests : IDisposable
         Assert.Equal(["arena_match", "arena_run"], events.Select(e => (string)e["type"]!));
         Assert.Equal((2, 1, 0), ((int)events[0]["payload"]!["gameNumber"]!, (int)events[0]["payload"]!["winsBefore"]!, (int)events[0]["payload"]!["lossesBefore"]!));
         Assert.Equal((1, 1), ((int)events[1]["payload"]!["wins"]!, (int)events[1]["payload"]!["losses"]!));
+    }
+
+    [Fact]
+    public async Task An_arena_run_begun_in_hdt_reaches_the_profile_from_its_first_own_game()
+    {
+        // HDT saw the run's first two games (both won); Hearthpulse recorded the next two.
+        var start = new DateTime(2026, 10, 22, 18, 0, 0, DateTimeKind.Utc);
+        GameRecord Arena(int i, string result, string source) => Saved(new GameRecord
+        {
+            Key = $"{start.AddMinutes(i * 15):yyyyMMddHHmmss}|Secret#1234|GT_ARENA",
+            StartedAt = start.AddMinutes(i * 15),
+            EndedAt = start.AddMinutes(i * 15 + 10),
+            Mode = "Arena",
+            GameType = "GT_ARENA",
+            PlayerClass = "PALADIN",
+            OpponentClass = "ROGUE",
+            Result = result,
+            Source = source,
+        });
+        var transferred = new[] { Arena(0, "Win", HdtImport.Source), Arena(1, "Win", HdtImport.Source) }
+            .Select(ProfileEvents.GameEventId).ToHashSet(StringComparer.Ordinal);
+        Arena(2, "Loss", "live");
+        var last = Arena(3, "Win", "live");
+        var uploader = Uploader();
+
+        uploader.OnGameFinished(Outcome(last));
+        await uploader.PassAsync(CancellationToken.None);
+
+        // The transferred wins count neither in the game's place in the run nor in its score.
+        var events = Assert.Single(_site.Requests).Events;
+        Assert.Equal(["arena_match", "arena_run"], events.Select(e => (string)e["type"]!));
+        Assert.Equal((2, 0, 1), ((int)events[0]["payload"]!["gameNumber"]!, (int)events[0]["payload"]!["winsBefore"]!, (int)events[0]["payload"]!["lossesBefore"]!));
+        Assert.Equal((1, 1), ((int)events[1]["payload"]!["wins"]!, (int)events[1]["payload"]!["losses"]!));
+
+        // "Send past games" adds the run's first own game and nothing transferred.
+        Assert.True(uploader.StartBackfill());
+        await uploader.PassAsync(CancellationToken.None);
+        var sent = _site.Requests.SelectMany(r => r.Events).ToList();
+        Assert.DoesNotContain(sent, e => transferred.Contains((string)e["eventId"]!));
+        Assert.Equal([1, 2], sent.Where(e => (string)e["type"]! == "arena_match").Select(e => (int)e["payload"]!["gameNumber"]!).Distinct().Order());
+    }
+
+    [Fact]
+    public async Task Past_games_go_with_the_archetype_of_their_deck()
+    {
+        var matched = Saved(Ranked() with { DeckArchetype = "Blood Death Knight" });
+        var older = Saved(Ranked());
+        var uploader = Uploader();
+
+        Assert.True(uploader.StartBackfill());
+        await uploader.PassAsync(CancellationToken.None);
+
+        // The history's page for the upload reads the column: the key goes as saved, a game without one goes without.
+        var payloads = Assert.Single(_site.Requests).Events.ToDictionary(e => (string)e["eventId"]!, e => e["payload"]!.AsObject());
+        Assert.Equal("Blood Death Knight", (string)payloads[ProfileEvents.GameEventId(matched)]["archetype"]!);
+        Assert.False(payloads[ProfileEvents.GameEventId(older)].ContainsKey("archetype"));
     }
 
     [Fact]

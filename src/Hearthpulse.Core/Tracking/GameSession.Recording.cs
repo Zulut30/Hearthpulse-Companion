@@ -15,12 +15,24 @@ namespace Hearthpulse.Core.Tracking;
 public sealed partial class GameSession
 {
     /// <summary>
+    /// The Battlegrounds game was over for us in lines read while catching up with the log (it ended before the app
+    /// started). Set with <see cref="_localFinishedAt"/>, so it holds for that game only: when the place wait saves it
+    /// later, on a tick, it is still a recovered game.
+    /// </summary>
+    private bool _finishedWhileCatchingUp;
+
+    /// <summary>
     /// Saves a Battlegrounds game that is over for us. The client writes our final place a few milliseconds after our
     /// PLAYSTATE, so a log poll can fall between them: the game waits for the place, at most <see cref="FinalPlaceWait"/>.
     /// </summary>
     private void RecordWhenPlaceKnown(GameState game)
     {
-        _localFinishedAt ??= Clock();
+        if (_localFinishedAt is null)
+        {
+            _localFinishedAt = Clock();
+            _finishedWhileCatchingUp = _catchingUp;
+        }
+
         if (_battlegrounds.FinalPlaceKnown || Clock() - _localFinishedAt >= FinalPlaceWait)
         {
             RecordIfFinished(game, force: false);
@@ -59,6 +71,21 @@ public sealed partial class GameSession
         // A game that never reached its end is kept as abandoned (no result) when the local player had none yet; if it
         // ends after all (the client came back to the same log), the real result replaces that row.
         var abandoned = !game.IsComplete || _endingLeftGame;
+
+        // A game watched in spectator mode is somebody else's: no row, replay, fight capture or event. Left mid-way it is
+        // done with as an abandoned game, so its end, if it comes, is passed over the same way.
+        if (game.IsSpectated)
+        {
+            if (!_recordedAbandoned)
+            {
+                Diag.Info($"Game watched in spectator mode ({game.GameType}): not recorded{(_catchingUp ? " (replayed)" : string.Empty)}");
+            }
+
+            if (force && abandoned) _recordedAbandoned = true;
+            else _recorded = true;
+            return;
+        }
+
         var duos = game.IsDuos;
         int? before = _ratingAtGameStart is { } r ? (duos ? r.Duos : r.Solo) : null;
         var rank = _constructed.LocalRank?.Text;
@@ -89,9 +116,10 @@ public sealed partial class GameSession
         record = SaveReplay(record, game);
         SaveCombatCaptures(record, game);
         Diag.Info($"Game {(record.IsAbandoned ? "abandoned" : "finished")}: {record.Mode}, {record.Result}, place {record.Placement}, {record.Turns} turns{(_catchingUp ? " (replayed)" : string.Empty)}");
+        var saved = false;
         try
         {
-            _history.Add(record);
+            saved = _history.Add(record);
         }
         catch (Exception ex)
         {
@@ -99,8 +127,23 @@ public sealed partial class GameSession
         }
 
         // An abandoned game has no outcome: it does not count in this session's results and is not announced.
-        if (_catchingUp || record.IsAbandoned)
+        if (record.IsAbandoned)
         {
+            _dirty = true;
+            return;
+        }
+
+        // A game that ended before the app started, found while catching up with the log: announced once, when it is first
+        // saved, so the uploads send it. A game saved before (a restart or a resync replaying it) is not announced again,
+        // and nothing of this session (results, rating wait, last outcome) counts it.
+        if (_catchingUp || (_localFinishedAt is not null && _finishedWhileCatchingUp))
+        {
+            if (saved)
+            {
+                Diag.Info($"Recovered game (ended before the app started): {record.Mode}, passed on for the uploads");
+                GameFinished?.Invoke(OutcomeOf(record, recovered: true));
+            }
+
             _dirty = true;
             return;
         }
@@ -113,7 +156,7 @@ public sealed partial class GameSession
                 _awaitingRatingKey = record.Key;
                 _awaitingDuos = duos;
                 _awaitingRatingUntil = Clock().AddSeconds(120);
-                if (_hearthstoneRunning && ReadsMemory)
+                if (_hearthstoneRunning && MemoryOn)
                 {
                     _memoryPoller.Post(BuildMemoryRequest());
                     _memoryPoller.Wake();
@@ -124,8 +167,19 @@ public sealed partial class GameSession
         if (record.Result == "Win") _sessionWins++;
         else if (record.Result == "Loss") _sessionLosses++;
 
-        var offered = _offeredGeneration == _gameGeneration ? _offeredHeroes : null;
-        var details = record.IsBattlegrounds && _bgSeen is { } seen && seen.Generation == _gameGeneration
+        _lastOutcome = OutcomeOf(record, recovered: false);
+        GameFinished?.Invoke(_lastOutcome);
+        _dirty = true;
+    }
+
+    /// <summary>
+    /// What <see cref="GameFinished"/> carries for a saved game. The hero offer and the Battlegrounds details come from the
+    /// views published while the game was played: a recovered game (<see cref="GameOutcome.Recovered"/>) has neither.
+    /// </summary>
+    private GameOutcome OutcomeOf(GameRecord record, bool recovered)
+    {
+        var offered = !recovered && _offeredGeneration == _gameGeneration ? _offeredHeroes : null;
+        var details = !recovered && record.IsBattlegrounds && _bgSeen is { } seen && seen.Generation == _gameGeneration
             ? new BgGameDetails(
                 record.Turns > 0 ? record.Turns : seen.Last.Turn,
                 record.TavernTier > 0 ? record.TavernTier : seen.Last.TechLevel,
@@ -138,15 +192,14 @@ public sealed partial class GameSession
                 seen.Last.TierHistory,
                 seen.Last.Combats) { Choices = seen.Last.Choices, Plays = seen.Last.Plays }
             : null;
-        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId, offered)
+        return new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId, offered)
         {
             Details = details,
             Key = record.Key,
             GameType = record.GameType,
             Format = record.Format,
             ConstructedPicks = record.IsBattlegrounds ? [] : _picks.Picks,
+            Recovered = recovered,
         };
-        GameFinished?.Invoke(_lastOutcome);
-        _dirty = true;
     }
 }

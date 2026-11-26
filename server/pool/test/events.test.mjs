@@ -216,6 +216,28 @@ test("summary cells require ten distinct games even when five installs repeat th
   }
 });
 
+test("the mulligan summary counts copies: a game keeps at most as many copies as it was offered", async () => {
+  // Hand calculation. Every hand offers CARD_A twice and CARD_B once; copies kept per game, A of 2 and B of 1:
+  //   [A, B] x4 -> A 1, B 1;  [A, A] x4 -> A 2, B 0;  [] x1 -> 0, 0;  forged [A, A, A, B] x1 -> A 2 (not 3), B 1.
+  //   A: 4 + 8 + 0 + 2 = 14 of 20 = 0.7 (counting a copy as kept whenever its card was kept gives 18); B: 5 of 10.
+  const kept = [...Array(4).fill(["CARD_A", "CARD_B"]), ...Array(4).fill(["CARD_A", "CARD_A"]), [], ["CARD_A", "CARD_A", "CARD_A", "CARD_B"]];
+  const games = kept.map((k, i) => ranked({ id: (0x2000 + i).toString(16).padStart(32, "0"), mull: { o: ["CARD_A", "CARD_A", "CARD_B"], k, r: [], n: [] } }));
+  const mulligan = async (count) => {
+    const env = sqlite();
+    // Two games an install: ten games of five installs, the ninth game alone on the fifth.
+    for (let i = 0; i < count; i += 2) {
+      const response = await post("/v1/events", { v: 1, iid: (1 + i / 2).toString(16).padStart(32, "0"), games: games.slice(i, Math.min(i + 2, count)) }, env);
+      assert.equal(response.status, 200);
+    }
+    return JSON.parse(await rebuildEvents(env, true)).mulligan;
+  };
+  assert.deepEqual(await mulligan(10), [
+    { card: "CARD_A", offered: 20, kept: 14, rate: 0.7 },
+    { card: "CARD_B", offered: 10, kept: 5, rate: 0.5 },
+  ]);
+  assert.deepEqual(await mulligan(9), [], "18 copies of CARD_A are still 9 games: the floor counts games");
+});
+
 // ---- Opening-hand pairs (metric mulligan.pair_winrate, rules mull-pairs-1) ---------------------------------------
 
 let sequence = 0x1000;

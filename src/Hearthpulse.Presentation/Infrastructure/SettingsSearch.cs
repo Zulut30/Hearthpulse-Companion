@@ -42,6 +42,7 @@ public static class SettingsSearch
         ["Settings.Counters.Show"] = "счётчики counters",
         ["Settings.Account.Title"] = "аккаунт вход профиль войти account login sign profile",
         ["Settings.File.Title"] = "файл экспорт импорт перенос резервная копия file export import backup transfer",
+        ["Settings.Data.GameMemory"] = "память чтение клиент игра memory reading client game",
         ["Settings.Reset.All"] = "сброс по умолчанию reset default defaults",
         ["Stream.Mode.Switch"] = "стрим obs twitch скрыть ники stream hide names",
         ["Twitch.Switch"] = "twitch твич расширение стрим extension stream",

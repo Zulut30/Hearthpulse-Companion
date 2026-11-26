@@ -46,7 +46,8 @@ public sealed class ShareCoverLayoutTests
 
             var curve = Descendants(cover).OfType<ItemsControl>().Single(c => c.ItemsSource is IReadOnlyList<ManaCurveBar>);
             var block = Assert.IsType<StackPanel>(VisualTreeHelper.GetParent(curve));
-            Assert.Equal(270, block.TranslatePoint(default, cover).Y + (block.ActualHeight / 2), 1);
+            // Layout rounding leaves the block's middle half a pixel off 270 at some DPIs (96 on the CI runner).
+            Assert.InRange(block.TranslatePoint(default, cover).Y + (block.ActualHeight / 2), 269, 271);
             Assert.Equal(270, top + (shown / 2), 1);
 
             foreach (var column in columns)
