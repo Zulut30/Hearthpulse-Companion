@@ -403,33 +403,36 @@ public sealed partial class CollectionViewTests : IDisposable
     }
 
     [Fact]
-    public async Task A_long_list_is_priced_off_the_calling_thread_and_shows_its_labels_when_done()
+    public void A_long_list_is_priced_off_the_calling_thread_and_shows_its_labels_when_done()
     {
         var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App) { CollectionReadable = true };
         vm.SetCards(Cards);
         vm.ShowConstructedFormat("FT_STANDARD");
         vm.SetConstructedMeta(Meta(more: MainViewModel.InlineDeckCosts + 20));
-        var labelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        void Watch(object? sender, PropertyChangedEventArgs e)
+
+        // The prices come back on the caller's context, as on the UI thread of both hosts. Without one they came back
+        // on a pool thread in the middle of the asserts below (the rows cleared, not yet filled: CI 45876834441).
+        var context = new QueueContext();
+        var before = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(context);
+        try
         {
-            if (e.PropertyName == nameof(MainViewModel.MetaDecks) && vm.MetaDecks.Any(d => d.Build is not null))
-            {
-                labelled.TrySetResult();
-            }
+            vm.CanBuildOnly = true;
+            vm.SetCollection(Collection());
+
+            // While the prices are being made (and after), the filter does not claim that nothing can be built.
+            Assert.True(vm.DeckCostsPending);
+            Assert.False(vm.MetaCanBuildEmpty);
+            context.RunUntil(() => vm.MetaDecks.Any(d => d.Build is not null));
+
+            Assert.Equal(new[] { Craftable, OtherPrinting, Owned }, vm.MetaDecks.Select(d => d.Code));
+            Assert.Equal("All cards owned", Row(vm, Owned).Build!.Label);
+            Assert.False(vm.MetaCanBuildEmpty);
         }
-
-        vm.PropertyChanged += Watch;
-        vm.CanBuildOnly = true;
-        vm.SetCollection(Collection());
-
-        // While the prices are being made (and after), the filter does not claim that nothing can be built.
-        Assert.False(vm.MetaCanBuildEmpty);
-        await labelled.Task.WaitAsync(TimeSpan.FromSeconds(30));
-        vm.PropertyChanged -= Watch;
-
-        Assert.Equal(new[] { Craftable, OtherPrinting, Owned }, vm.MetaDecks.Select(d => d.Code));
-        Assert.Equal("All cards owned", Row(vm, Owned).Build!.Label);
-        Assert.False(vm.MetaCanBuildEmpty);
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(before);
+        }
     }
 
     // ------------------------------------------------------------------------------------------ the own deck page
