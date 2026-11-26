@@ -228,7 +228,9 @@ view needs no proxy change. The same TLS server serves the data API:
 
 **Balance patches.** `server/pool/data/balance-patches.json` is kept by hand ([data/README.md](../data/README.md)): after
 a Hearthstone patch that changes cards, append an entry with the patch's first build and day to each line it changed,
-run `node --test server/pool/test/records-periods.test.mjs`, commit and deploy the pool. A forgotten entry merges two
+run `node --test server/pool/test/records-periods.test.mjs`, commit and deploy the pool. The build comes from the live
+client (the captures' builds or a fresh `Power.log`), not from HearthstoneJSON's newest folder, which can run ahead
+of it (data/README.md, "Find the build"). A forgotten entry merges two
 patches in the numbers; it is part of the deploy checklist after every patch. A malformed file switches the views off
 and nothing else: one journal line `records_patches_invalid` at start, every `/v2/analytics/records/<view>` answers
 404 `unknown_view`, the next pass removes the published view rows, and the service runs on, the intake of records

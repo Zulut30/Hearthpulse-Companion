@@ -168,8 +168,8 @@ from the published row, parsed once per build and kept in memory; `cache-control
   "derivers": { "deck": "deck-1", "archetypes": "arch-20261126" },
   "available": true, "reason": null, "published": 1764150000000, "stale": false,
   "thresholds": { "minInstalls": 5, "minGames": 10 },
-  "period": { "line": "constructed", "patch": "b256589", "builds": [256589, 256601], "window": "patch", "fromDay": 20760, "toDay": 20783 },
-  "windows": [ { "patch": "b256589", "window": "patch" }, { "patch": "b256589", "window": "7d" }, { "patch": "b256589", "window": "30d" }, { "patch": "unknown", "window": "30d" } ],
+  "period": { "line": "constructed", "patch": "b255790", "builds": [255790, 255790], "window": "patch", "fromDay": 20773, "toDay": 20783 },
+  "windows": [ { "patch": "b255790", "window": "patch" }, { "patch": "b255790", "window": "7d" }, { "patch": "b255790", "window": "30d" }, { "patch": "unknown", "window": "30d" } ],
   "data": { } }
 ```
 

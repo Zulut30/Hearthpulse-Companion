@@ -124,6 +124,16 @@ test('a patches file the pass could misread is refused, and the shipped file is 
   assert.throws(() => readPatches(new URL('./missing-balance-patches.json', import.meta.url)), /invalid_balance_patches/);
 });
 
+test('M1: the shipped file places the live client build 255790 in a patch of every line, from no later than its first confirmed day', () => {
+  // Every production capture of 2026-11-16..26 and every local Power.log of 2026-11-24..25 carry build 255790.
+  const shipped = readPatches();
+  for (const line of ['constructed', 'battlegrounds', 'arena']) {
+    assert.notEqual(patchOf(shipped, line, 255_790), null, `${line}: a record of the live build is not unknown`);
+    const entry = shipped.lines[line].findLast(e => e.fromBuild <= 255_790);
+    assert.ok(entry.fromDay <= 20_773, `${line}: its patch starts no later than 2026-11-16 (day 20773)`);
+  }
+});
+
 test('rank buckets, MMR ranges and the coin of a record', () => {
   assert.deepEqual(ranksOf('ranked', { rank: 'gold' }), ['all', 'gold']);
   assert.deepEqual(ranksOf('ranked', { rank: 'diamond' }), ['all', 'diamond']);

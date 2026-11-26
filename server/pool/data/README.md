@@ -13,7 +13,7 @@ allowed in advance for this program (TASK-2026-11-26-pro-collection, "Депло
 ## balance-patches.json
 
 ```json
-{ "v": 1, "lines": { "constructed": [ { "id": "b256589", "fromBuild": 256589, "fromDay": 20760 } ],
+{ "v": 1, "lines": { "constructed": [ { "id": "b255790", "fromBuild": 255790, "fromDay": 20773 } ],
                      "battlegrounds": [ … ], "arena": [ … ] } }
 ```
 
@@ -31,7 +31,14 @@ allowed in advance for this program (TASK-2026-11-26-pro-collection, "Депло
   refuses a later build with an earlier day, a repeated id or build, or an unknown line, and then runs with every view
   switched off: `records_patches_invalid` in the journal), run `node --test server/pool/test/records-periods.test.mjs`,
   commit, deploy the pool. The views rebuild within a minute of the restart (the file is part of their signature).
-- Find the build: HearthstoneJSON lists the builds (`https://api.hearthstonejson.com/v1/`; the newest folder is the
-  newest build, the `Last-Modified` of its `enUS/cards.json` is near its release), or a fresh `Power.log`.
-- The first entry (2026-11-26) is build 256589, HearthstoneJSON's newest on that day, released 2026-11-03 (day 20760),
-  for all three lines. Records sent before the app writes `build` stay "unknown" for good.
+- Find the build in the client, never in HearthstoneJSON alone: the builds of the pool's own captures (read-only on
+  the pool host: `SELECT build, MIN(day), MAX(day), COUNT(*) FROM source_fact_game GROUP BY build`), or
+  `GameState.DebugPrintGame() - BuildNumber=` in a fresh `Power.log`. HearthstoneJSON
+  (`https://api.hearthstonejson.com/v1/`) is only a hint of a build to come: its newest folder can run ahead of the
+  live client, and a folder's `Last-Modified` is not a release day (on 2026-11-26 its newest folder was 256589,
+  `Last-Modified` 2026-11-03, while every client still played 255790).
+- `fromDay` is the day the build went live by the patch notes, or else the earliest day the captures or logs confirm.
+- The first entry (2026-11-26) is build 255790 for all three lines: every production capture of 2026-11-16 to
+  2026-11-26 and every local `Power.log` of 2026-11-24 to 2026-11-25 carry it. Its release day is not confirmed, so
+  `fromDay` is the earliest confirmed one, 2026-11-16 (day 20773). The version is not known: `id` is `b255790`.
+  Records sent before the app writes `build` stay "unknown" for good.
