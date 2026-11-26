@@ -95,7 +95,7 @@
                 <StackPanel Grid.Column="3" Classes="groupWin" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <!-- The win rate on a 0–100 % bar in its colour, a tick at 50 % -->
-                        <Panel Classes="wide" Width="64" Height="11" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Panel Classes="groupBar" Width="64" Height="11" VerticalAlignment="Center" Margin="0,0,8,0">
                             <Border Height="7" CornerRadius="2" Background="{StaticResource Surface3}" />
                             <Border Height="7" HorizontalAlignment="Left" CornerRadius="2" Background="{Binding WinSign, Converter={StaticResource SignBrush}}"
                                     Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />

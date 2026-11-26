@@ -4,10 +4,11 @@
          Brawl and Constructed, under its head (StatsTableHead). Included by StatsStyles.axaml and by BrawlView, which has
          no other stats styles.
          A row of 400 and more: the name and its games line on one line each, cut with the whole text in a tooltip, the
-         record, and the win rate in a 132 column with its bar. Narrower, the row is tight (i:Tight): one of two cards side
-         by side at the WPF minimum window (1040) is as narrow as a compact card, so the record and the bar step aside and
-         the name and its line wrap; a long class name ("Рыцарь смерти") and the games line are read whole (bug-hunt #7).
-         The head is as wide as its rows and drops the record's head with them. -->
+         record (.wide: compact drops it as before), and the win rate in a 132 column with its bar. Narrower, the row is
+         tight (i:Tight): one of two cards side by side at the WPF minimum window (1040) is as narrow as a compact card, so
+         the record and the bar step aside and the name and its line wrap; a long class name ("Рыцарь смерти") and the
+         games line are read whole (bug-hunt #7). The bar (.groupBar) goes only with a tight row: a compact page as wide as
+         860 keeps it. The head is as wide as its rows and drops the record's head with them. -->
     <Style Selector="TextBlock.groupText">
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
@@ -22,7 +23,7 @@
         <Setter Property="Width" Value="NaN" />
         <Setter Property="Margin" Value="8,0,0,0" />
     </Style>
-    <Style Selector="Border.groupRow.tight :is(Control).wide, Border.groupHead.tight :is(Control).wide">
+    <Style Selector="Border.groupRow.tight :is(Control).wide, Border.groupHead.tight :is(Control).wide, Border.groupRow.tight Panel.groupBar">
         <Setter Property="IsVisible" Value="False" />
     </Style>
 </Styles>

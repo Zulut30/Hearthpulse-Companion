@@ -18,18 +18,14 @@
         </ResourceDictionary>
     </UserControl.Resources>
     <UserControl.Styles>
-        <!-- A recent game (GameRowTemplate, MainPages.axaml): the name and details, then the facts in fixed cells; a tight
-             row (narrower than 720) has the facts (date, result, rating) flow on a line under the name and the details,
-             which take the row's whole width (the details wrap), and wrap when the date and the result do not fit side by
-             side. -->
+        <!-- A recent game (GameRowTemplate, MainPages.axaml): the name and details (which wrap, so a long one takes a second
+             line instead of an ellipsis), then the facts in fixed cells; a tight row (narrower than 560) has the facts
+             (date, result, rating) flow on a line under the name and the details, which take the row's whole width, and
+             wrap when the date and the result do not fit side by side. -->
         <Style Selector="Grid.gameRow > StackPanel.gameTitle">
             <Setter Property="Margin" Value="4,0,16,0" />
         </Style>
         <Style Selector="Grid.gameRow TextBlock.gameSummary">
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-        </Style>
-        <Style Selector="Grid.gameRow.tight TextBlock.gameSummary">
-            <Setter Property="TextTrimming" Value="None" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <!-- Each fact in a slot as high as the portrait, so it centres on the row as the cells of one grid row did -->
@@ -219,8 +215,9 @@
                                                     <Border DockPanel.Dock="Left" Width="24" Height="24" CornerRadius="{StaticResource RadiusLarge}" Margin="0,0,8,0" ClipToBounds="True"
                                                             BorderBrush="{StaticResource AccentLine}" BorderThickness="1" Background="{StaticResource Surface3}"
                                                             i:CardArt.Portrait="{Binding HeroCardId}" />
-                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
-                                                               VerticalAlignment="Center" ToolTip.Tip="{Binding Name}" />
+                                                    <!-- Cut in the middle: the end ("Охотник на демонов 3" and "… 2") tells two versions apart -->
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}"
+                                                               TextTrimming="PrefixCharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding Name}" />
                                                 </DockPanel>
                                                 <TextBlock Text="{Binding Line}" Classes="caption" Margin="0,4,0,8" />
                                                 <!-- The mana curve, 0 to 7+ -->

@@ -34,8 +34,14 @@ public sealed record GameRow(
     int RatingValue,
     string Key = "") : IImmutableView
 {
-    /// <summary>The mode and the game's details on one line: "Battlegrounds · Tier 5 · 11 turns".</summary>
-    public string Summary => Detail.Length > 0 ? Mode + " · " + Detail : Mode;
+    /// <summary>
+    /// "·" between a game's facts, held to the fact before it by a no-break space: details that wrap (Avalonia's
+    /// narrow rows) never start a line with it.
+    /// </summary>
+    public const string Separator = "\u00A0· ";
+
+    /// <summary>The mode and the game's details on one line: "Battlegrounds · Tier 5 · 11 turns" (<see cref="Separator"/>).</summary>
+    public string Summary => Detail.Length > 0 ? MainViewModel.Unbroken(Mode) + Separator + Detail : Mode;
 }
 
 public sealed record HeroRow(string CardId, string Name, int Games, string AveragePlace, double AverageValue, string Top4, string Wins, string Net, int NetValue, string Tier) : IImmutableView;

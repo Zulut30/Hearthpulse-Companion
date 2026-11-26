@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System.ComponentModel;
 using System.Globalization;
 using System.Text;
 using Avalonia;
@@ -11,7 +11,9 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Memory;
 using Hearthpulse.UI.Controls;
+using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
 
 namespace Hearthpulse.Tests;
@@ -20,14 +22,15 @@ namespace Hearthpulse.Tests;
 /// The Avalonia main pages laid out headless at the compact window's narrowest (420), in compact (860), at the
 /// narrowest wide window (900), at the WPF minimum (1040) and at the usual width (1280), in Russian and English: what a
 /// player reads there is not cut and does not run into its neighbour (bug-hunt #3, #4, #6, #7, #23-#25, #29, #30 and
-/// pixel-hunt #12, #13 of TASK-2026-11-25-polish; AC1 of TASK-2026-11-26-release-cleanup). What adapts goes by its own
-/// width (i:Tight), not the window's: a recent game narrower than 720 puts its date, result and rating on a line under
-/// the name and wrapped details that wraps rather than run the date into the result, a deck row narrower than 560 its
-/// record and win rate under a wrapped name and meta line;
-/// Home shows as many deck banners in a row as keep 260 each; two cards side by side stack below 760; a group row
-/// narrower than 400 drops its record and bar and wraps its name and games line. The rating title is whole, the KPI
-/// captions wrap, the "all columns" switch never covers its title, the sort bar stays inside its card and a hero's name
-/// has its tip.
+/// pixel-hunt #12, #13 of TASK-2026-11-25-polish; AC1 of TASK-2026-11-26-release-cleanup and its QA round). What adapts
+/// goes by its own width (i:Tight), not the window's, and gives it back when it widens: a recent game's details wrap,
+/// and a row narrower than 560 puts its date, result and rating on a line under them that wraps rather than run the
+/// date into the result; a deck row narrower than 560 puts its record and win rate under a wrapped name and meta line;
+/// Home shows as many deck banners in a row as keep 260 each, their names cut in the middle; two cards side by side
+/// stack below 760; a group row narrower than 400 drops its record and bar and wraps its name and games line, a wider one
+/// keeps its bar. The rating title is whole, the KPI captions wrap, the "all columns" switch never covers its title, the
+/// sort bar stays inside its card and a hero's name has its tip. A game's details never start a line with "·" or split
+/// a rank.
 /// </summary>
 [Collection(nameof(GlobalLanguage))]
 public sealed class MainCompactLayoutTests
@@ -39,7 +42,7 @@ public sealed class MainCompactLayoutTests
     private const double TightBelow = 400;
 
     /// <summary>The widths under which a recent game, a deck row and a pair of cards are tight.</summary>
-    private const double GameRowBelow = 720, DeckRowBelow = 560, PairBelow = 760;
+    private const double GameRowBelow = 560, DeckRowBelow = 560, PairBelow = 760;
 
     public MainCompactLayoutTests() => LocBindingTests.Headless.Run(() => Loc.Instance.SetLanguage(Loc.English));
 
@@ -72,13 +75,12 @@ public sealed class MainCompactLayoutTests
             var facts = Child<WrapPanel>(row, "gameFacts");
             Assert.True(title.Bounds.Width >= (tight ? row.Bounds.Width - 60 : 220), $"game title {title.Bounds.Width} in {row.Bounds.Width}");
             Assert.Equal(tight, facts.Bounds.Top >= title.Bounds.Bottom - 0.5);
+            // The details wrap on any row, whole; "·" sticks to the fact before it and a rank is never split.
             var summary = title.Children.OfType<TextBlock>().Single(t => t.Classes.Contains("gameSummary"));
             Assert.Equal(summary.Text, ToolTip.GetTip(summary));
-            Assert.Equal(tight ? TextTrimming.None : TextTrimming.CharacterEllipsis, summary.TextTrimming);
-            if (tight)
-            {
-                Whole(summary);
-            }
+            Assert.Equal((TextWrapping.Wrap, TextTrimming.None), (summary.TextWrapping, summary.TextTrimming));
+            Whole(summary);
+            Assert.All(Enumerable.Range(0, summary.Text!.Length).Where(i => summary.Text[i] == '·'), i => Assert.Equal('\u00A0', summary.Text[i - 1]));
 
             Assert.True(facts.Bounds.Right <= row.Bounds.Width + 0.5, $"the facts end at {facts.Bounds.Right} in {row.Bounds.Width}");
             var cells = facts.Children.Where(c => c.IsVisible).ToList();
@@ -99,6 +101,10 @@ public sealed class MainCompactLayoutTests
             Assert.True(!rating.IsVisible || Needs(rating) <= rating.Bounds.Width + 0.5, "the rating is cut");
         }
 
+        var ranked = model.Recent.Single(r => r.Key == "main-compact-0");
+        Assert.Contains(MainViewModel.Unbroken(RankInfo.Localize("Platinum 5")!), ranked.Summary, StringComparison.Ordinal);
+        Assert.Contains(MainViewModel.Unbroken(Loc.P("Main.Game.Turns", 9)), ranked.Summary, StringComparison.Ordinal);
+
         // A tight row leaves an empty rating out of its line instead of keeping a blank cell at its end.
         var empty = rows.Select(r => (Row: r, Rating: Child<TextBlock>(Child<WrapPanel>(r, "gameFacts"), "gameRating")))
             .Where(x => string.IsNullOrEmpty(x.Rating.Text)).ToList();
@@ -118,6 +124,8 @@ public sealed class MainCompactLayoutTests
             Assert.True(Math.Abs(expected - deck.Bounds.Width) <= 1, $"deck banner {deck.Bounds.Width}, expected {expected}");
             var name = deck.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == ((HomeDeck)deck.DataContext!).Name);
             Assert.True(name.Bounds.Width >= 80, $"deck name {name.Bounds.Width}");
+            // Cut in the middle, so "… 2" and "… 3" of one deck stay apart (QA Q5).
+            Assert.Equal(TextTrimming.PrefixCharacterEllipsis, name.TextTrimming);
             Assert.True(Right(name, deck) <= deck.Bounds.Width + 0.5, $"deck name ends at {Right(name, deck)} in {deck.Bounds.Width}");
             Assert.Equal(name.Text, ToolTip.GetTip(name));
         }
@@ -180,8 +188,9 @@ public sealed class MainCompactLayoutTests
         GroupRowsKeepTheirText(view, model.ArenaClasses.Count + model.ArenaOpponents.Count);
         Assert.All(Shown<TextBlock>(view, "tileDetail"), Whole);
 
+        // The Brawl tables are built off the UI thread (no BackgroundWork seam): their change is the signal.
         view.ShowPage("Brawl");
-        Pump(() => model.BrawlMine.Count > 0, "the Brawl rows");
+        Until(model, () => model.BrawlMine.Count > 0, "the Brawl rows");
         Settle(view);
         PairsStackWhenNarrow(view);
         GroupRowsKeepTheirText(view, model.BrawlMine.Count);
@@ -316,6 +325,10 @@ public sealed class MainCompactLayoutTests
                 }
             }
 
+            // The bar goes with a tight row only: a row of 400 and more keeps it, in compact too (QA Q1).
+            var bar = row.GetVisualDescendants().OfType<Panel>().Single(c => c.Classes.Contains("groupBar"));
+            Assert.Equal(!row.Classes.Contains("tight"), bar.IsEffectivelyVisible);
+
             // The win rate stays inside the row.
             var win = row.GetVisualDescendants().OfType<Control>().Single(c => c.Classes.Contains("groupWin"));
             Assert.True(Right(win, row) <= row.Bounds.Width - row.Padding.Right + 0.5, $"win rate ends at {Right(win, row)} in {row.Bounds.Width}");
@@ -323,25 +336,60 @@ public sealed class MainCompactLayoutTests
     }
 
     /// <summary>
+    /// One window narrowed and widened again (1280, 900, 420, 900, 1280): at each width every part that goes by its own
+    /// width has its <c>tight</c> class exactly when it is narrower than its threshold, so the class goes again as the
+    /// window widens, and Home lays out as many deck banners in a row as the width keeps (QA P0 Q2).
+    /// </summary>
+    [Fact]
+    public void Parts_take_tight_and_give_it_back_as_one_window_narrows_and_widens() => LocBindingTests.Headless.Run(() =>
+    {
+        var (window, view, model, theme) = Open(1280, "ru");
+        try
+        {
+            view.ShowPage("Standard");
+            Settle(view);
+            Open(view, "CtMore");
+            foreach (var width in new double[] { 1280, 900, 420, 900, 1280 })
+            {
+                window.Width = width;
+                view.ShowPage("Overview");
+                Settle(view);
+                var games = Shown<Grid>(view, "gameRow");
+                Assert.NotEmpty(games);
+                Assert.All(games, g => Tight(g, GameRowBelow));
+                var decks = Shown<UniformGrid>(view, "homeDecks").Single();
+                Assert.Equal(width >= 1280 ? 3 : 1, decks.Columns);
+
+                view.ShowPage("Standard");
+                Settle(view);
+                var deckRows = Shown<Grid>(view, "deckRow");
+                Assert.NotEmpty(deckRows);
+                Assert.All(deckRows, r => Tight(r, DeckRowBelow));
+                PairsStackWhenNarrow(view);
+                GroupRowsKeepTheirText(view, model.CtClasses.Count + model.CtOpponents.Count + model.CtArchetypes.Count + model.CtLengths.Count);
+            }
+
+            // Back at full width nothing shown is tight any more, on either page.
+            Assert.DoesNotContain(view.GetVisualDescendants().OfType<Control>(), c => c.IsEffectivelyVisible && c.Classes.Contains("tight"));
+            view.ShowPage("Overview");
+            Settle(view);
+            Assert.DoesNotContain(view.GetVisualDescendants().OfType<Control>(), c => c.IsEffectivelyVisible && c.Classes.Contains("tight"));
+        }
+        finally
+        {
+            Close(window, theme);
+        }
+    });
+
+    /// <summary>
     /// Lays out <paramref name="page"/> of a main view of the test history at <paramref name="width"/> in
     /// <paramref name="language"/>, then runs <paramref name="check"/> (view, model, compact).
     /// </summary>
     private static void OnPage(double width, string language, string page, Action<MainView, MainViewModel, bool> check) => LocBindingTests.Headless.Run(() =>
     {
-        var theme = PageRowsPanelAvaloniaTests.Theme();
-        Loc.Instance.SetLanguage(language == "ru" ? Loc.Russian : Loc.English);
-        var cards = Cards();
-        var model = new MainViewModel(History(cards), new AppSettings(), TestDataFolder.App);
-        model.SetCards(cards);
-        var view = new MainView { DataContext = model };
-        var window = new Window { Width = width, Height = 1600 };
-        window.Resources["UiFont"] = FontFamily.Default;
-        window.Resources["DisplayFont"] = FontFamily.Default;
-        window.Content = view;
-        window.Show();
+        var (window, view, model, theme) = Open(width, language);
         try
         {
-            Pump(model.RefreshAsync());
             view.ShowPage(page);
             Settle(view);
             var compact = width < 900;
@@ -350,12 +398,73 @@ public sealed class MainCompactLayoutTests
         }
         finally
         {
-            window.Close();
-            Application.Current!.Styles.Remove(theme);
-            Dispatcher.UIThread.RunJobs();
-            Loc.Instance.SetLanguage(Loc.English);
+            Close(window, theme);
         }
     });
+
+    /// <summary>
+    /// A main view of the test history in a window <paramref name="width"/> wide, in <paramref name="language"/>. The
+    /// history and My stats are read on the caller (<see cref="BackgroundWork.Inline"/>); the deck list is built off the
+    /// UI thread (no seam), and its change is the signal it is in.
+    /// </summary>
+    private static (Window Window, MainView View, MainViewModel Model, Avalonia.Styling.Styles Theme) Open(double width, string language)
+    {
+        var theme = PageRowsPanelAvaloniaTests.Theme();
+        Loc.Instance.SetLanguage(language == "ru" ? Loc.Russian : Loc.English);
+        var cards = Cards();
+        var model = new MainViewModel(History(cards), new AppSettings(), TestDataFolder.App) { Background = BackgroundWork.Inline };
+        model.SetCards(cards);
+        var view = new MainView { DataContext = model };
+        var window = new Window { Width = width, Height = 1600 };
+        window.Resources["UiFont"] = FontFamily.Default;
+        window.Resources["DisplayFont"] = FontFamily.Default;
+        window.Content = view;
+        window.Show();
+        var refresh = model.RefreshAsync();
+        Assert.True(refresh.IsCompletedSuccessfully, "the refresh ran on the caller");
+        Until(model, () => model.HomeDecks.Count > 0 && model.Decks.Count > 0, "the deck list");
+        return (window, view, model, theme);
+    }
+
+    private static void Close(Window window, Avalonia.Styling.Styles theme)
+    {
+        window.Close();
+        Application.Current!.Styles.Remove(theme);
+        Dispatcher.UIThread.RunJobs();
+        Loc.Instance.SetLanguage(Loc.English);
+    }
+
+    /// <summary>
+    /// Runs the UI thread until <paramref name="done"/> holds, checked on every property change of the view model (work
+    /// it does off the UI thread reports back through them); the timer only bounds a hang.
+    /// </summary>
+    private static void Until(MainViewModel model, Func<bool> done, string what)
+    {
+        if (!done())
+        {
+            using var stop = new CancellationTokenSource();
+            void Changed(object? sender, PropertyChangedEventArgs e)
+            {
+                if (done())
+                {
+                    stop.Cancel();
+                }
+            }
+
+            model.PropertyChanged += Changed;
+            try
+            {
+                using var backstop = DispatcherTimer.RunOnce(stop.Cancel, TimeSpan.FromSeconds(10));
+                Dispatcher.UIThread.MainLoop(stop.Token);
+            }
+            finally
+            {
+                model.PropertyChanged -= Changed;
+            }
+        }
+
+        Assert.True(done(), what + " did not come");
+    }
 
     private static void Settle(MainView view) => PageRowsPanelAvaloniaTests.Settle((Window)TopLevel.GetTopLevel(view)!);
 
@@ -404,24 +513,6 @@ public sealed class MainCompactLayoutTests
 
     private static Rect Box(Visual child, Visual ancestor) => new(child.TranslatePoint(default, ancestor)!.Value, child.Bounds.Size);
 
-    private static void Pump(Task task)
-    {
-        Pump(() => task.IsCompleted, "the history");
-        task.GetAwaiter().GetResult();
-    }
-
-    private static void Pump(Func<bool> done, string what)
-    {
-        var until = Stopwatch.StartNew();
-        while (!done() && until.Elapsed < TimeSpan.FromSeconds(30))
-        {
-            Dispatcher.UIThread.RunJobs();
-            Thread.Sleep(15);
-        }
-
-        Assert.True(done(), what + " did not load in time");
-    }
-
     private static CardDb Cards()
     {
         const string json = """
@@ -450,7 +541,7 @@ public sealed class MainCompactLayoutTests
             {
                 Key = "main-compact-" + i, StartedAt = at.AddMinutes(i * 10), EndedAt = at.AddMinutes((i * 10) + 8), Mode = "Ranked", GameType = "GT_RANKED",
                 Format = "FT_STANDARD", Result = i == 1 ? "Loss" : "Win", Turns = 9, PlayerClass = "DEMONHUNTER", OpponentClass = "DEATHKNIGHT",
-                DeckName = "Охотник на демонов на К'Туне с порождениями Бездны", DeckCode = code,
+                DeckName = "Охотник на демонов на К'Туне с порождениями Бездны", DeckCode = code, Rank = i == 0 ? "Platinum 5" : null,
             }));
         }
 
