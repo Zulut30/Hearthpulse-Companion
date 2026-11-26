@@ -110,6 +110,22 @@ and SQL facts are gone. Exercise abrupt restart, interrupted processing, quota 5
 - Permanent SQL capture tombstones stop expired capture IDs returning. Finished source TTL is 180 days maximum;
   unfinished uploads default 24 hours. Maintenance runs every minute and at startup, retries pending deletion,
   expires source/derived together, cleans old quotas and checkpoints WAL. No original logs are retained.
+- The minute's pass (`maintenanceTick`, `node/server.mjs`) first deletes the expired legacy rows, each delete on its
+  own, then maintains the archive last, so its WAL checkpoint frees the pages they released. A failed step does not
+  stop the others; it writes one JSON line to the journal (`journalctl -u hearthpulse-pool`): its code and the error
+  message cut to 200 characters (`reportFailure`). The pass repeats every minute, so a code that repeats is a stuck
+  step:
+
+  | Code | Failed step | What waits |
+  |---|---|---|
+  | `shared_prune_failed` | `g`, `c` and `quota` older than 60 days, one batch | all three keep their old rows (the batch is atomic) |
+  | `records_prune_failed` | `e` older than 180 days, `equota` older than 7, withdrawal of the records' views | the old records and views |
+  | `archive_maintain_failed` | capture expiry, pending deletion, old source quotas, WAL checkpoint | expired captures and the WAL; the deletes above already ran |
+  | `maintenance_failed` | none of the above: the pass itself broke | everything after the break; a service bug, not data |
+
+  `analytics_refresh_failed` is the snapshot build's own line ("Analytics snapshot"). Before 2026-11-26 every failure
+  here was silent and a failed archive step also skipped both deletes, so a first `archive_maintain_failed` after an
+  upgrade can be an old fault becoming visible.
 
 Forget fsyncs the independent tombstone first, stops the matching worker, deletes source receipts/manifests/facts,
 removes the generation directory and checkpoints WAL. Physical cleanup failure answers 202 and keeps the generation
