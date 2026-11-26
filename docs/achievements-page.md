@@ -17,9 +17,11 @@ dispatched to the UI thread, `MainViewModel.SetAchievements`).
 ## What it shows
 
 - **Status line** (`LibraryStatus`, `Main/Pages/LibraryLook`): read from the game today at 14:05, or saved data of a
-  date with the next step (start Hearthstone; not read yet - after a game or leaving the collection; Windows only).
+  date with the next step (start Hearthstone; not read yet - after a game or leaving the collection; Windows only;
+  reading the client turned off - Settings → Data).
   Saved data carries the "from saved data" mark; its bars and glyphs are dimmed (`DeckBuildView.SavedOpacity`), text is
-  not. Without a book there is no line: the empty state says why (none yet, not read yet, another system), and while the
+  not. Without a book there is no line: the empty state says why (none yet, not read yet, another system, reading the
+  client turned off), and while the
   first book is being worked out it says so. When working it out fails, it says that instead (alert glyph) with a
   "Try again" button (`RetryAchievements`); a retry or a newer book clears it.
 - **Summary**: points earned of all (`AchievementBook.Summary`), the share as a bar, completed tiers of all; then each

@@ -193,6 +193,15 @@ public sealed partial class AppSettings
     public bool SendCrashReports { get; set; }
 
     /// <summary>
+    /// Read what the logs lack from the game client's memory, read only (docs/adr/0006-client-read-only.md): the
+    /// Battlegrounds rating, ranks, the collection, card backs, coins and achievements, the Battlegrounds lobby's tribes,
+    /// the Arena draft offer and the card under the mouse for the card pool. On by default (Settings → Data); off,
+    /// nothing is read from the client and the tracking from the logs works in full. In no settings group: like the
+    /// sharing choices, a reset or an imported settings file leaves it as the player set it.
+    /// </summary>
+    public bool ReadGameMemory { get; set; } = true;
+
+    /// <summary>
     /// Sharing games with the stats pool is on by default, with an opt-out (the owner's decision, 2026-11-15):
     /// <c>false</c> is the player's refusal (the Settings → Data switch, "Turn off" on the notice earlier versions
     /// showed, or a "no" to the question older versions asked) and is always kept; <c>true</c> and <c>null</c> both

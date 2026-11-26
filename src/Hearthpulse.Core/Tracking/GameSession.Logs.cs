@@ -232,25 +232,15 @@ public sealed partial class GameSession
             if (running != _hearthstoneRunning)
             {
                 _hearthstoneRunning = running;
-                if (running)
-                {
-                    _collectionWatch.ClientStarted();
-                    _cosmeticsWatch.ClientStarted();
-                    _achievementsWatch.ClientStarted();
-                }
-                else
-                {
-                    _collectionWatch.ClientStopped();
-                    _cosmeticsWatch.ClientStopped();
-                    _achievementsWatch.ClientStopped();
-                }
-
                 _hearthstoneStoppedAt = running ? DateTime.MinValue : now;
                 _dirty = true;
             }
 
             AbandonIfClientGone(now);
         }
+
+        // The client started or closed, or reading it was turned on or off.
+        FollowClientReads();
 
         if (now >= _nextConfigCheck)
         {
@@ -275,7 +265,7 @@ public sealed partial class GameSession
         _cosmeticsWatch.Tick(now);
         _achievementsWatch.Tick(now);
         // The memory is read on its own thread; this thread only says what it needs and applies what came back.
-        _memoryPoller.Post(_hearthstoneRunning && ReadsMemory ? BuildMemoryRequest() : null);
+        _memoryPoller.Post(_hearthstoneRunning && MemoryOn ? BuildMemoryRequest() : null);
         if (_memoryPoller.Take() is { } reading)
         {
             ApplyMemory(reading);

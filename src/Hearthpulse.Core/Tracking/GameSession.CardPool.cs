@@ -31,7 +31,10 @@ public sealed partial class GameSession
     private volatile bool _cardPoolHoverWanted;
     private Thread? _hoverThread;
 
-    /// <summary>Whether the card under the mouse is being read from the game now; internal for tests and the bench.</summary>
+    /// <summary>
+    /// Whether the card under the mouse is wanted from the game now (the hover thread reads it while the client can be
+    /// read); internal for tests and the bench.
+    /// </summary>
     internal bool HoverReadsWanted => _cardPoolHoverWanted;
 
     /// <summary>The collectible card catalog pools are cut from; the host passes it after loading.</summary>
@@ -109,9 +112,9 @@ public sealed partial class GameSession
     private ConstructedView WithCardPool(ConstructedView view, GameState game)
     {
         // Memory is read only when a hover can show a pool: setting on, catalog loaded, a mode and format with a known
-        // pool, and a card with a pool in your hand or on your board.
+        // pool, and a card with a pool in your hand or on your board; never with reading the client turned off.
         var engine = _cardPoolEnabled ? CardPoolEngineNow() : null;
-        _cardPoolHoverWanted = engine is not null && HearthstoneMemory.IsSupported
+        _cardPoolHoverWanted = _gameMemoryEnabled && engine is not null && HearthstoneMemory.IsSupported
                                && CardPoolTracker.ContextOf(game, _cards).IsSupported
                                && (_cardPool.HandHasPool(game, _cards) || HandHasMatchList(game));
         if (_cardPoolHoverWanted)
@@ -310,8 +313,8 @@ public sealed partial class GameSession
                     break;
                 }
 
-                // Attaching is MemoryPoller's job; only read once it is done.
-                var hovered = active && _memory.IsAttached ? _memory.GetHoveredCardId() : null;
+                // Attaching is MemoryPoller's job; only read once it is done, and never with reading the client off.
+                var hovered = active && CanReadClient ? _memory.GetHoveredCardId() : null;
                 if (_cardPool.SetHovered(hovered, now))
                 {
                     _dirty = true;

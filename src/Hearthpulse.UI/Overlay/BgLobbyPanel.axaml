@@ -44,7 +44,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="10.5" Foreground="{StaticResource Muted}"
+                <TextBlock Text="{Binding LobbyWaitText}" FontSize="10.5" Foreground="{StaticResource Muted}"
                            IsVisible="{Binding LobbyTribes, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                 <ItemsControl ItemsSource="{Binding LobbyRows}" Margin="0,4,0,0" IsVisible="{Binding LobbyRows, Converter={StaticResource Truthy}}">
                     <ItemsControl.ItemTemplate>

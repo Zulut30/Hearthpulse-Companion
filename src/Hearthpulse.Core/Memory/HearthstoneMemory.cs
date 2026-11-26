@@ -426,6 +426,19 @@ public sealed partial class HearthstoneMemory : IDisposable
         }
     }
 
+    /// <summary>
+    /// Lets go of the game process: its handle is closed, and nothing is read until <see cref="EnsureAttached"/> attaches
+    /// anew (reading the client was turned off, <see cref="AppSettings.ReadGameMemory"/>).
+    /// </summary>
+    public void Detach()
+    {
+        lock (_gate)
+        {
+            DetachLocked();
+            Status = "Detached";
+        }
+    }
+
     public void Dispose()
     {
         lock (_gate)

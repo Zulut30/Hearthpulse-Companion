@@ -27,20 +27,24 @@ public sealed partial class MainViewModel
     private void RebuildBattlegroundsStats()
     {
         var (all, mode, period, sort, minGames, cards, meta, metaFailed) = (_allGames, BgMode, _bgPeriod, _bgSort, _bgMinGames, _cards, _meta, _bgMetaFailed);
+        var readingOff = GameMemoryOff;
         _statsBgMode = mode;
         _statsCards = cards;
-        RunStatsBuild(0, () => BuildBattlegroundsStats(all, mode == "Duos", period, sort, minGames, cards, meta, metaFailed));
+        RunStatsBuild(0, () => BuildBattlegroundsStats(all, mode == "Duos", period, sort, minGames, cards, meta, metaFailed, readingOff));
     }
 
-    private Action BuildBattlegroundsStats(IReadOnlyList<GameRecord> all, bool duos, StatsPeriod period, BgHeroSort sort, int minGames, CardDb cards, BattlegroundsMeta? meta, bool metaFailed)
+    private Action BuildBattlegroundsStats(IReadOnlyList<GameRecord> all, bool duos, StatsPeriod period, BgHeroSort sort, int minGames, CardDb cards, BattlegroundsMeta? meta, bool metaFailed,
+        bool readingOff)
     {
         var games = StatsFilter.Apply(all.Where(g => BattlegroundsStats.IsGame(g, duos)), period, DateTime.Now);
         var summary = BattlegroundsStats.Summary(games, duos);
         var timed = Math.Max(1, games.Count(g => g.Duration > TimeSpan.Zero));
+        // No rating yet: with reading the client off none will come, and the tile says why.
+        var noRating = Loc.T(readingOff ? "Main.Tile.ReadingOff" : "Stats.Bg.RatingNotRead");
         IReadOnlyList<StatTile> tiles =
         [
             new StatTile(Loc.T("Stats.Bg.HighestMmr"), summary.HighestRating is { } top ? top.ToString("N0", CultureInfo.CurrentCulture) : "—",
-                summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : Loc.T("Stats.Bg.RatingNotRead"), Math.Sign(summary.NetRating ?? 0)),
+                summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : noRating, Math.Sign(summary.NetRating ?? 0)),
             new StatTile(Loc.T("Stats.Bg.AvgPlacement"), summary.AveragePlacement is { } avg ? avg.ToString("0.00", CultureInfo.CurrentCulture) : "—", string.Empty),
             new StatTile(Loc.T("Stats.TotalGames"), summary.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), summary.Games > 0 ? Loc.F("Stats.Bg.MinPerGame", summary.TimePlayed.TotalMinutes / timed) : "—"),

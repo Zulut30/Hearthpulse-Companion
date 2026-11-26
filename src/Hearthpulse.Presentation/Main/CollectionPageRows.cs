@@ -111,6 +111,9 @@ public static class CollectionGlyphs
     public const string Check = "\U000F05E0";
     public const string Saved = "\U000F02DA";
     public const string Unsupported = "\U000F002A";
+
+    /// <summary>Eye crossed out: reading the game client is turned off (Settings → Data).</summary>
+    public const string ReadingOff = "\U000F0209";
     public const string Empty = "\U000F0639";
     public const string Waiting = "\U000F051F";
     public const string Filter = "\U000F0232";

@@ -20,7 +20,7 @@ public partial class App
     /// (<c>main-collection-sets</c>, <c>-skins</c>, <c>-coins</c>, <c>-backs</c>), the golden copies turned on by the
     /// scene's own switch (<c>-sets-golden</c>), the sets in English (<c>-sets-en</c>); then the states on the made-up
     /// data of <see cref="CosmeticsScene"/>: <c>-none</c>, <c>-notread</c>, <c>-saved</c>, <c>-unsupported</c>,
-    /// <c>-nocards</c>, <c>-nocosmetics</c>. Full-length frames are the page's content; <c>-window</c> is the whole window on
+    /// <c>-readingoff</c> (reading the client turned off), <c>-nocards</c>, <c>-nocosmetics</c>. Full-length frames are the page's content; <c>-window</c> is the whole window on
     /// the sets (the sidebar with the library pages). The card backs show their largest group. The session's data comes
     /// back afterwards. Without the data copy's files the own-data frames are skipped (said on the console).
     /// </summary>
@@ -98,6 +98,10 @@ public partial class App
             _mainViewModel.SetCollection(null);
             await Shot("unsupported");
             _mainViewModel.CollectionReadable = true;
+            // Reading the game client turned off (Settings → Data): the page says so and where to turn it back on.
+            _mainViewModel.ReadGameMemory = false;
+            await Shot("readingoff");
+            _mainViewModel.ReadGameMemory = true;
             _mainViewModel.SetCollection(saved.Collection);
             var cards = _cards;
             _mainViewModel.SetCards(Hearthpulse.Core.Cards.CardDb.Empty);

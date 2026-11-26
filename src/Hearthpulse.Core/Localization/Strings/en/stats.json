@@ -65,6 +65,8 @@
   "Stats.Bg.HighestMmr": "Highest MMR",
   "Stats.Bg.NetDetail": "{0} net",
   "Stats.Bg.RatingNotRead": "rating not read yet",
+  "Stats.Bg.RatingOff": "Your rating is read from the game client, and reading it is off (Settings → Data).",
+  "Stats.Bg.RatingOffNote": "Reading the game client is off: new games are saved without a rating (Settings → Data).",
   "Stats.Bg.MinPerGame": "{0:0}\u00a0min a game",
   "Stats.Bg.NoteDuos": "No community comparison for Duos.",
   "Stats.Bg.NoteLoading": "Loading community data…",

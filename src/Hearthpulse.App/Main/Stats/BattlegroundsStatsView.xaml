@@ -26,8 +26,11 @@
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
                     </Grid>
+                    <!-- Reading the game client is off: the earlier games' rating stays, new games add none -->
+                    <TextBlock DockPanel.Dock="Top" Text="{i:Loc Stats.Bg.RatingOffNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Visibility="{Binding BgRatingOffShown, Converter={StaticResource Vis}}" />
                     <!-- No games in the period: one line instead of a tall empty chart, so the tier lists stay in view -->
-                    <ContentControl DockPanel.Dock="Top" Style="{DynamicResource EmptyState}" Tag="&#xF012A;" Content="{i:Loc Stats.Bg.RatingEmpty}"
+                    <ContentControl DockPanel.Dock="Top" Style="{DynamicResource EmptyState}" Tag="&#xF012A;" Content="{Binding BgRatingEmpty}"
                                     Visibility="{Binding BgRatingChart, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}"
                                       EmptyText="{i:Loc Stats.Bg.RatingEmpty}" Visibility="{Binding BgRatingChart, Converter={StaticResource Vis}}" />

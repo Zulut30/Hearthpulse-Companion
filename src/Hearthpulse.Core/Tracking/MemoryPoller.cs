@@ -57,21 +57,55 @@ internal sealed class MemoryPoller
     private MemoryReading? _reading;
     private Thread? _thread;
     private TimeSpan _longReadTime;
+    private int _releaseWanted;
 
     public MemoryPoller(HearthstoneMemory memory)
     {
         _memory = memory;
     }
 
+    /// <summary>The reader thread let go of the game process after <see cref="Release"/>; raised on that thread (tests).</summary>
+    internal event Action? Released;
+
+    /// <summary>What the next scan reads; null while scanning is paused (tests).</summary>
+    internal MemoryRequest? Pending => Volatile.Read(ref _request);
+
+    /// <summary>The reader thread was started: a request was posted at least once (tests).</summary>
+    internal bool Started => _thread is not null;
+
     /// <summary>Sets what the next scan reads; null pauses scanning (Hearthstone is not running).</summary>
     public void Post(MemoryRequest? request)
     {
         Volatile.Write(ref _request, request);
-        if (request is not null && _thread is null)
+        if (request is null)
+        {
+            return;
+        }
+
+        // Reading is wanted again before the reader got to let go: it keeps the process.
+        Volatile.Write(ref _releaseWanted, 0);
+        if (_thread is null)
         {
             _thread = new Thread(Run) { IsBackground = true, Name = "Hearthpulse memory reader" };
             _thread.Start();
         }
+    }
+
+    /// <summary>
+    /// No more scans: reading the client was turned off. The reader thread lets go of the game process before it would
+    /// scan again, never in the middle of a scan; a later <see cref="Post"/> of a request attaches anew. Never started,
+    /// it never attached and nothing is done.
+    /// </summary>
+    public void Release()
+    {
+        Volatile.Write(ref _request, null);
+        if (_thread is null)
+        {
+            return;
+        }
+
+        Volatile.Write(ref _releaseWanted, 1);
+        _wake.Set();
     }
 
     /// <summary>Scans right away instead of waiting for the next interval.</summary>
@@ -93,7 +127,13 @@ internal sealed class MemoryPoller
         {
             var request = Volatile.Read(ref _request);
             var delay = TimeSpan.FromSeconds(3);
-            if (request is not null)
+            if (request is null && Interlocked.Exchange(ref _releaseWanted, 0) != 0)
+            {
+                // On this thread, between scans: the handle is never closed under a read of this reader.
+                _memory.Detach();
+                Released?.Invoke();
+            }
+            else if (request is not null)
             {
                 var started = Stopwatch.GetTimestamp();
                 try

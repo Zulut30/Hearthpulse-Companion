@@ -491,7 +491,7 @@ public partial class App : Application
         var overlay = new OverlayWindow(_overlayViewModel, _settings);
         overlay.LayoutChanged += OnSettingsChanged;
         overlay.PanelLockChanged += () => _main?.SyncOverlaySwitch();
-        overlay.HoveredHero = () => _memory.IsAttached ? _memory.GetHoveredLeaderboardHero() : null;
+        overlay.HoveredHero = _session.HoveredLeaderboardHero;
         return overlay;
     }
 

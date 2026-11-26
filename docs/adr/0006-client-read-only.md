@@ -16,3 +16,8 @@ the app among the tools that risk players' accounts.
 - Memory values are optional: when the client moves its fields, the read returns null and the feature degrades; the
   tracker never depends on memory for game state the log has.
 - A memory read is still subject to [0005](0005-hidden-information.md): reading a value does not make it showable.
+- The player can turn every read off (2026-11-26): Settings → Data → "Read data from the game client"
+  (`AppSettings.ReadGameMemory`, on by default; `GameSession.SetGameMemoryEnabled`). Off, the memory reader gets no
+  request and closes its handle to the game, the card under the mouse is not read, and the pages that show a value read
+  from the client (collection, achievements, the Battlegrounds rating and lobby) say that reading is off and where to
+  turn it on; the tracking from the logs is unchanged.

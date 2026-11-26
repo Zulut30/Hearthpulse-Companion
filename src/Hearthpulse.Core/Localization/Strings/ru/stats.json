@@ -65,6 +65,8 @@
   "Stats.Bg.HighestMmr": "Макс. MMR",
   "Stats.Bg.NetDetail": "{0} итого",
   "Stats.Bg.RatingNotRead": "рейтинга пока нет",
+  "Stats.Bg.RatingOff": "Рейтинг читается из клиента игры, а чтение выключено (Настройки → Данные).",
+  "Stats.Bg.RatingOffNote": "Чтение клиента игры выключено: новые игры записываются без рейтинга (Настройки → Данные).",
   "Stats.Bg.MinPerGame": "{0:0}\u00a0мин за игру",
   "Stats.Bg.NoteDuos": "Для дуэтов сравнения с сообществом нет.",
   "Stats.Bg.NoteLoading": "Данные сообщества загружаются…",

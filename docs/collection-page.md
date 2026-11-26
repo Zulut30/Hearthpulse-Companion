@@ -39,7 +39,9 @@ shows "0 of 0".
 | No data, Hearthstone not running | `Empty.None` | `Empty.NoCosmetics` |
 | No data, Hearthstone running | `Empty.NotRead` | `Empty.CosmeticsNotRead` |
 | No data, a system without the read | `Empty.Unsupported` | `Empty.CosmeticsUnsupported` |
+| No data, reading the client turned off (Settings → Data) | `Empty.Off` | `Empty.CosmeticsOff` |
 | Saved (not running / running / no read) | `Status.Saved` / `Status.SavedNotRead` / `Status.SavedUnsupported` + mark | `Status.Saved` / `Status.CosmeticsSavedNotRead` / `Status.SavedUnsupported` + mark |
+| Saved, reading the client turned off | `Status.SavedOff` + mark | `Status.SavedOff` + mark |
 | Confirmed | `Status.Confirmed` | `Status.Confirmed` |
 | Card data not loaded (or without hero skins) | `Empty.NoCards` | coins: client names, no art |
 | First count running | `Loading` | - |

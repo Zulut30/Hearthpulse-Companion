@@ -129,6 +129,7 @@
   "Main.Tile.BgAvg": "BG avg {0:0.0}",
   "Main.Tile.AllTime": "All time",
   "Main.Tile.GamesTracked": "games tracked",
+  "Main.Tile.ReadingOff": "client reading is off",
   "Main.Bg.ModeTip": "Solo or Duos: your results and the heroes list",
   "Main.Bg.Solo": "Solo",
   "Main.Bg.Heroes": "Heroes",

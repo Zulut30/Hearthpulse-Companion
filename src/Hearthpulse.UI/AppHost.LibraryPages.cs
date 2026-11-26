@@ -8,12 +8,19 @@ namespace Hearthpulse.UI;
 /// </summary>
 public sealed partial class AppHost
 {
-    /// <summary>Hands the library pages their data now and on every change (called once at start, after the collection).</summary>
+    /// <summary>
+    /// Hands the library pages their data now and on every change (called once at start, after the collection), and has
+    /// the session follow the switch for reading the game client, which that data comes from.
+    /// </summary>
     private void ShowLibraryPages()
     {
         ShowCosmetics();
         ShowAchievements();
+        FollowGameMemory();
     }
+
+    /// <summary>The "Read data from the game client" switch (AppHost.GameMemory.cs).</summary>
+    partial void FollowGameMemory();
 
     /// <summary>The card backs and coins for the Collection page (<c>GameSession.CosmeticsChanged</c>).</summary>
     partial void ShowCosmetics();

@@ -72,7 +72,7 @@ for the "<Floor" caption):
 | `BelowThreshold` | no row has it, in any case | "<" + `Floor` (8000) |
 | `Ambiguous` | several rows have it, the one row has it only in another case, or two players of the lobby share it | "?" |
 | `Loading` | the table is downloading, or the first memory scan is still due | a placeholder |
-| `Unknown` | no region (China, no account in the log), no whole table (offline without a cached copy, empty, cut short), no name read, memory not readable | nothing or "-" |
+| `Unknown` | no region (China, no account in the log), no whole table (offline without a cached copy, empty, cut short), no name read, memory not readable or reading the client turned off (`AppSettings.ReadGameMemory`) | nothing or "-" |
 | `Off` | reserved; the session gives `Mmr = null` while the setting is off | - |
 
 ## Code and tests

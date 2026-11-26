@@ -14,6 +14,94 @@ namespace Hearthpulse.Core.Tracking;
 
 public sealed partial class GameSession
 {
+    // The "Read data from the game client" setting (AppSettings.ReadGameMemory), set from the UI thread.
+    private volatile bool _gameMemoryEnabled = true;
+
+    // Whether the collection, cosmetics and achievements watches have a client they may read (tracking thread).
+    private bool _clientReadable;
+
+    /// <summary>
+    /// The "Read data from the game client" setting (<see cref="AppSettings.ReadGameMemory"/>, docs/adr/0006). Off: the
+    /// memory reader gets no more requests and lets go of the game process, the card under the mouse is not read, the
+    /// lobby names read so far are forgotten, and what is known of the collection, cosmetics and achievements stays as
+    /// saved data, no longer confirmed. The tracking from the logs is not touched. On again with the client running: it
+    /// is read as at the client's start.
+    /// </summary>
+    public void SetGameMemoryEnabled(bool enabled)
+    {
+        lock (_pipelineGate)
+        {
+            if (_gameMemoryEnabled == enabled)
+            {
+                return;
+            }
+
+            _gameMemoryEnabled = enabled;
+            if (!enabled)
+            {
+                // At once, not on the next tick.
+                _memoryPoller.Release();
+                _cardPoolHoverWanted = false;
+                _lobbyNames = null;
+                _lobbyNamesGeneration = -1;
+            }
+
+            _dirty = true;
+        }
+
+        Diag.Info($"Reading the game client turned {(enabled ? "on" : "off")}");
+    }
+
+    /// <summary>The setting of <see cref="SetGameMemoryEnabled"/>, for tests.</summary>
+    internal bool GameMemoryEnabled => _gameMemoryEnabled;
+
+    /// <summary>Memory is read: the player's setting is on and the session may read at all (<see cref="ReadsMemory"/>, false in tests).</summary>
+    private bool MemoryOn => ReadsMemory && _gameMemoryEnabled;
+
+    /// <summary>
+    /// The game can be read right now: reading the client is on and the memory reader is attached to it (the live view's
+    /// "connected", the reads under the mouse). Asking never attaches.
+    /// </summary>
+    public bool CanReadClient => MemoryOn && _memory.IsAttached;
+
+    /// <summary>
+    /// The hero of the leaderboard tile under the mouse, read from the game for the overlay's opponent boards: both hosts
+    /// ask here, a few times a second while the pointer is over the leaderboard, outside the memory reader. Null while
+    /// reading the client is off or the game is not attached; asking never attaches.
+    /// </summary>
+    public string? HoveredLeaderboardHero() => CanReadClient ? _memory.GetHoveredLeaderboardHero() : null;
+
+    /// <summary>The memory reader of this session (tests look at what it was asked).</summary>
+    internal MemoryPoller MemoryReader => _memoryPoller;
+
+    /// <summary>
+    /// The collection, cosmetics and achievements are read only from a client that runs while reading it is on: turning
+    /// reading on with the client running starts a client session for them (one read each), turning it off or closing
+    /// the client ends one (what is known stays, unconfirmed). Tracking thread.
+    /// </summary>
+    private void FollowClientReads()
+    {
+        var readable = _hearthstoneRunning && _gameMemoryEnabled;
+        if (readable == _clientReadable)
+        {
+            return;
+        }
+
+        _clientReadable = readable;
+        if (readable)
+        {
+            _collectionWatch.ClientStarted();
+            _cosmeticsWatch.ClientStarted();
+            _achievementsWatch.ClientStarted();
+        }
+        else
+        {
+            _collectionWatch.ClientStopped();
+            _cosmeticsWatch.ClientStopped();
+            _achievementsWatch.ClientStopped();
+        }
+    }
+
     /// <summary>What the next memory scan should read (internal for the tests of when long reads are asked for).</summary>
     internal MemoryRequest BuildMemoryRequest()
     {
