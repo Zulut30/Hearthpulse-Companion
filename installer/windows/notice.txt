@@ -20,7 +20,7 @@ HOW IT WORKS
     session, then after a game or when the collection or pack screen
     closes, at most once a minute and never during a game; these are
     stored on this computer only and are never sent anywhere;
-  - in a game, both players' names and ranked medals;
+  - in a game, both players' ranked medals;
   - in Battlegrounds, the lobby's tribes and the costs on the tavern
     buttons (refresh, freeze, upgrade, Dark Gift);
   - in Battlegrounds with opponent boards on, the leaderboard hero under
