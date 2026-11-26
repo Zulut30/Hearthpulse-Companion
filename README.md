@@ -89,7 +89,6 @@ fights from game logs, and coverage grows with each patch: [docs/bg-combat-sim.m
 - OBS capture windows: deck, lobby, combat odds, session recap.
 - Streamer mode hides what should stay off screen.
 - Session recap and deck pictures to post, YouTube timestamps.
-- Discord status (off by default).
 
 ## Your look
 
@@ -117,22 +116,26 @@ first start Hearthpulse turns on the Hearthstone logs it needs; restart the game
 </details>
 
 **Updates on Windows arrive on their own.** Each update is checked against the release checksum and the project's
-signature. If an install fails, the app puts the previous version back. Since 0.15.0 only the changed files are
-downloaded.
+signature. If an install fails, the app puts the previous version back. From 0.16.0 on, an update from the previous
+release downloads only the changed files.
 
 ## Privacy
 
-- Game history and settings stay on your computer. The collection and dust never leave it.
-- On Windows Hearthpulse reads the game's memory to get your rank, collection and lobby data. It only reads:
-  nothing is written into the game.
-- Anonymous game records go to Hearthpulse statistics by default, without your name, BattleTag or account. Turn
-  this off in **Settings → Data**; the switch lists every field that is sent.
+- Game history and settings stay on your computer. The collection, dust, card backs, coins and achievements never
+  leave it.
+- On Windows Hearthpulse reads the game's memory to get your rank and rating, collection, card backs, coins,
+  achievements and lobby data. It only reads: nothing is written into the game. The "Read data from the game client"
+  switch in **Settings** turns these reads off; tracking from the logs keeps working.
+- Game records go to Hearthpulse statistics by default, without your name, BattleTag or account, and so do shared
+  games for the public stats pool. Each has its own switch in **Settings → Data** that lists every field it sends;
+  turning game records off also deletes the ones already sent.
 - When you sign in with a hearthpulse.net account, finished games go to your profile on the site. A switch in the
   **Settings → Hearthpulse account** turns this off.
 - Crash reports are off by default and are sent only when you agree.
 
-Details: [docs/game-stats.md](docs/game-stats.md), [docs/source-capture.md](docs/source-capture.md),
-[docs/profile-upload.md](docs/profile-upload.md), [docs/crash-reports.md](docs/crash-reports.md).
+Details: [privacy policy](https://hearthpulse.net/privacy/), [docs/game-stats.md](docs/game-stats.md),
+[docs/source-capture.md](docs/source-capture.md), [docs/profile-upload.md](docs/profile-upload.md),
+[docs/crash-reports.md](docs/crash-reports.md).
 
 ## Build from source
 
