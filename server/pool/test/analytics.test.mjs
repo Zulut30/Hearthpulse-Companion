@@ -410,7 +410,7 @@ test('AC14 strict v2 intake: accepted contract lines, rejected cross-version fie
     [{ ...ranked[1], data: { ...ranked[1].data, choiceType: 'discover' } }],
     [ranked[0], { ...ranked[1], data: { ...ranked[1].data, choiceType: undefined } }],
     [ranked[0], { ...ranked[1], v: 1, data: { choiceId: 1, sourceCard: null, options: ['A'], picked: ['A'], resolved: true } }],
-    [{ ...ranked[0], v: 4 }],
+    [{ ...ranked[0], v: 5 }],
   ]) assert.equal(await reject(rows), 400, JSON.stringify(rows));
   // A v2 source under a v1 manifest and the reverse; combat_view outside BG and twice in BG.
   assert.equal(await reject(ranked, {}, 'complete'), 400);

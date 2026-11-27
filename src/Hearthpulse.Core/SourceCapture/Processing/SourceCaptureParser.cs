@@ -7,8 +7,11 @@ namespace Hearthpulse.Core.SourceCapture.Processing;
 /// <summary>Decodes the typed visible projection, never raw logs or post-game replay reveals.</summary>
 public sealed class SourceCaptureParser
 {
-    /// <summary>Changing derived semantics requires a new version; source bytes remain immutable.</summary>
-    public const string ParserVersion = "source-v2.0";
+    /// <summary>
+    /// Changing derived semantics requires a new version; source bytes remain immutable. source-v2.1 adds the rules of
+    /// source v4 and decodes v1-v3 sources exactly as source-v2.0 did.
+    /// </summary>
+    public const string ParserVersion = "source-v2.1";
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private readonly SourceCaptureLimits _limits;
 
@@ -60,7 +63,7 @@ public sealed class SourceCaptureParser
 
     private static (SourceCaptureEvent Record, int Version) ParseLine(ReadOnlyMemory<byte> line)
     {
-        // Every v1-v3 string is an enum, a field name, or an ASCII card/token ID. None contains whitespace.
+        // Every v1-v4 string is an enum, a field name, or an ASCII card/token ID. None contains whitespace.
         SourceCaptureSchema.Require(!line.IsEmpty && !line.Span.Contains((byte)'\r') &&
             !line.Span.Contains((byte)' ') && !line.Span.Contains((byte)'\t'));
         try
@@ -70,7 +73,7 @@ public sealed class SourceCaptureParser
             var r = doc.RootElement;
             SourceCaptureSchema.Fields(r, "v", "seq", "kind", "turn", "side", "entity", "card", "target", "data");
             int version = SourceCaptureSchema.Number(r.GetProperty("v"), 1, int.MaxValue);
-            if (version is not (1 or 2 or 3)) throw new SourceCaptureException("unsupported_version");
+            if (version is not (1 or 2 or 3 or 4)) throw new SourceCaptureException("unsupported_version");
             var e = new SourceCaptureEvent(SourceCaptureSchema.Number(r.GetProperty("seq"), 0, int.MaxValue),
                 SourceCaptureSchema.Text(r.GetProperty("kind")), SourceCaptureSchema.Number(r.GetProperty("turn"), 0, 1_000),
                 SourceCaptureSchema.Side(r.GetProperty("side")), SourceCaptureSchema.Number(r.GetProperty("entity")),

@@ -7,9 +7,10 @@ namespace Hearthpulse.Core.SourceCapture;
 /// <summary>Low-level, ordered, locally visible Power observations. Never reads replay post-game data.</summary>
 public sealed partial class SourceCaptureRecorder : IPowerListener
 {
+    // STEP is left out (source v4): Power.log writes the phase as a name, and no metric reads it.
     internal static readonly HashSet<string> SafeTags = new(StringComparer.Ordinal)
     {
-        "TURN", "STEP", "RESOURCES", "RESOURCES_USED", "TEMP_RESOURCES", "OVERLOAD_LOCKED", "OVERLOAD_OWED",
+        "TURN", "RESOURCES", "RESOURCES_USED", "TEMP_RESOURCES", "OVERLOAD_LOCKED", "OVERLOAD_OWED",
         "DAMAGE", "HEALTH", "ATK", "ARMOR", "DURABILITY", "COST", "TECH_LEVEL", "PREMIUM", "ZONE_POSITION",
         "TAUNT", "DIVINE_SHIELD", "WINDFURY", "REBORN", "STEALTH", "FROZEN", "POISONOUS", "VENOMOUS",
     };
@@ -37,6 +38,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
     private string[] _options = [];
     private int[] _optionEntities = [];
     private bool _choiceOpen;
+    // The last record of the current choice is unresolved: its pick has not been seen (it may never be).
+    private bool _choicePending;
     private readonly List<string> _picked = new();
 
     /// <summary>Called on the parser thread. Subscribers must only enqueue immutable observations.</summary>
@@ -71,15 +74,18 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         Stop("rotation");
         _game = game; _capture = null; _stopped = false; _late = _catchingUp;
         _shown.Clear(); _concealed.Clear(); _shop.Clear(); _blocks.Clear();
-        _nextRef = 0; _choice = 0; _options = []; _optionEntities = []; _choiceOpen = false; _picked.Clear();
+        _nextRef = 0; _choice = 0; _options = []; _optionEntities = []; _choiceOpen = false; _choicePending = false; _picked.Clear();
         _pendingInputGaps = 0;
     }
 
-    /// <summary>Signals known file/parser/lifecycle gaps without accepting arbitrary source text.</summary>
+    /// <summary>
+    /// Signals a real loss: a stretch of the game not seen (late attach, rotation, shutdown), a bound reached, or an
+    /// observation that could not be typed. Never arbitrary source text, never what the format leaves out on purpose.
+    /// </summary>
     public void NoteGap(string reason, int count = 1)
     {
         if (_capture is null || _stopped) return;
-        var safe = reason is "late_attach" or "rotation" or "source_missing" or "unsupported" or "limit" or "invalid" or "shutdown" or "combat_view" ? reason : "unsupported";
+        var safe = reason is "late_attach" or "rotation" or "source_missing" or "unsupported" or "limit" or "invalid" or "shutdown" ? reason : "unsupported";
         _gaps += Math.Max(1, count);
         Emit("gap", new { reason = safe, count = Math.Max(1, count) });
     }
@@ -108,9 +114,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         _combat = Combat(game);
         if (_late || game.Turn > 1) NoteGap("late_attach");
         if (_pendingInputGaps > 0) { NoteGap("unsupported", _pendingInputGaps); _pendingInputGaps = 0; }
-        // Source GameState is ahead of the displayed BG combat. It is explicitly partial, never claimed to be a UI replay;
-        // v2 names this one structural gap so other missing observations stay distinguishable (ADR 0013).
-        if (game.IsBattlegrounds) NoteGap("combat_view");
+        // A Battlegrounds source is the Power state, which runs ahead of the displayed combat: the format says so for
+        // every BG game, so since v4 it is no gap (v2/v3 wrote it as combat_view; docs/source-capture.md, ADR 0013).
         _initializing = true;
         foreach (var player in game.Players.Values)
         {
@@ -234,11 +239,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         && number is >= -1_000_000 and <= 1_000_000;
     private static bool Combat(GameState game) => game.GameEntity is { } e && (e.GetInt(GameTag.BaconInCombatPhase) == 1 || e.GetInt(GameTag.BoardVisualState) == 2);
     private Shown? Visible(Entity? entity) => entity is not null && _shown.TryGetValue(entity.Id, out var shown) && !shown.Hidden ? shown : null;
-    private void Action(string action, Shown? shown, int target = 0)
-    {
+    private void Action(string action, Shown? shown, int target = 0) =>
         Emit("action", new { action, cost = (int?)null }, "local", shown?.Id ?? 0, shown?.Card, target);
-        if (action == "unknown") NoteGap("unsupported");
-    }
 
     public void OnTagChanged(GameState game, Entity entity, string tag, string previous, string value)
     {
@@ -256,13 +258,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
                     if (!combat) _shop.Clear();
                 }
             }
+            // Other game tags, PROPOSED_ATTACKER/DEFENDER among them, are outside the format: the attack is its ATTACK block.
             if (SafeTags.Contains(tag)) WriteTag(tag, value);
-            else if (tag == "PROPOSED_DEFENDER" && int.TryParse(value, CultureInfo.InvariantCulture, out var defenderId))
-            {
-                var defender = Visible(game.Entities.GetValueOrDefault(defenderId));
-                Emit("action", new { action = "unknown", cost = (int?)null }, target: defender?.Id ?? 0);
-                NoteGap("unsupported"); // A safe target observation without inventing another nested block.
-            }
             return;
         }
         if (game.PlayerByEntity(entity.Id) is { } player)
@@ -305,16 +302,26 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         else NoteGap("unsupported"); // Unknown enum strings never become zero or raw text.
     }
 
+    private static string BlockKind(string type) => type is "PLAY" or "POWER" or "TRIGGER" or "ATTACK" or "DEATHS" or "MOVE_MINION" ? type : "OTHER";
+
+    /// <summary>
+    /// A type the format names, or a Power.log block type without a kind of its own (a trade's DECK_ACTION, fatigue...),
+    /// whose OTHER block is no loss (source v4). Any other type is grammar the recorder does not know: its OTHER block
+    /// comes with an unsupported gap, and <c>Bench capture</c> names it.
+    /// </summary>
+    internal static bool KnownBlockType(string type) =>
+        BlockKind(type) != "OTHER" || type is "DECK_ACTION" or "FATIGUE" or "RITUAL" or "JOUST" or "REVEAL_CARD" or "GAME_RESET";
+
     public void OnBlockStart(GameState game, string blockType, Entity? source)
     {
         if (!Ready(game)) return;
-        var block = blockType is "PLAY" or "POWER" or "TRIGGER" or "ATTACK" or "DEATHS" or "MOVE_MINION" ? blockType : "OTHER";
+        var block = BlockKind(blockType);
         if (_blocks.Count >= 64) { NoteGap("limit"); return; }
         var pending = new CaptureBlock(block, source);
         _blocks.Push(pending);
         var shown = Visible(source);
         Emit("block_start", new { block }, shown?.Side ?? "none", shown?.Id ?? 0, shown?.Side == "local" ? shown.Card : null);
-        if (block == "OTHER") NoteGap("unsupported");
+        if (!KnownBlockType(blockType)) NoteGap("unsupported");
         if (source?.Controller != game.LocalPlayerId) return;
         var target = Visible(game.Entities.GetValueOrDefault(source.GetInt("CARD_TARGET")));
         if (blockType == "PLAY")
@@ -324,10 +331,11 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
                 "TB_BaconShop_DragBuy" or "TB_BaconShop_DragBuy_Spell" => "buy", "TB_BaconShop_DragSell" => "sell",
                 "TB_BaconShop_8p_Reroll_Button" => "refresh", "TB_BaconShopLockAll_Button" => "freeze",
                 _ when source.CardId.StartsWith("TB_BaconShopTechUp", StringComparison.Ordinal) => "upgrade",
-                _ when source.CardType == "HERO_POWER" => "hero_power", _ when source.Zone == "HAND" => "play", _ => "unknown",
+                _ when source.CardType == "HERO_POWER" => "hero_power", _ when source.Zone == "HAND" => "play", _ => null,
             };
+            // A source the action list does not name (a location used from play) is recorded by its PLAY block alone.
             if (action is "buy" or "sell" && target is null) pending.PendingAction = action;
-            else Action(action, action is "buy" or "sell" ? target : shown, target?.Id ?? 0);
+            else if (action is not null) Action(action, action is "buy" or "sell" ? target : shown, target?.Id ?? 0);
         }
         else if (blockType == "MOVE_MINION") Action("move", shown);
     }
@@ -362,6 +370,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
     {
         if (choiceType == "MULLIGAN" && options.Any(e => e.Controller != 0 && e.Controller != game.LocalPlayerId)) { Stop("unsupported"); _stopped = true; return; }
         if (!Ready(game)) return;
+        SealOpenChoice();
         _choice++; _picked.Clear(); _choiceSource = Visible(source)?.Card;
         _choiceType = choiceType switch { "MULLIGAN" => "mulligan", "GENERAL" => "general", _ => "other" };
         _choiceOpen = true;
@@ -372,10 +381,16 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         if (_options.Length == 0) { _choiceOpen = false; NoteGap("source_missing"); return; }
         WriteChoice(false);
     }
-    public void OnChoiceMade(GameState game)
+    public void OnChoiceMade(GameState game) => OnChoiceMade(game, -1);
+
+    /// <summary>
+    /// The chosen-entities header precedes its card lines, so it resolves nothing by itself; only a header that names no
+    /// card is a completed empty selection (a mulligan's chosen entities are the cards kept: none kept, the whole hand
+    /// replaced).
+    /// </summary>
+    public void OnChoiceMade(GameState game, int count)
     {
-        // The chosen-entities header precedes its card lines. It is not a completed empty selection.
-        if (Ready(game) && _choice > 0 && _options.Length > 0) { _choiceOpen = false; WriteChoice(false); }
+        if (Ready(game) && _choice > 0 && _options.Length > 0) { _choiceOpen = false; WriteChoice(count == 0); }
     }
     public void OnChosen(GameState game, Entity chosen)
     {
@@ -384,7 +399,23 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         _choiceOpen = false;
         _picked.Add(chosen.CardId); WriteChoice(true);
     }
-    private void WriteChoice(bool resolved) => Emit("choice", new { choiceId = _choice, sourceCard = _choiceSource, options = _options.ToArray(), picked = _picked.ToArray(), resolved, choiceType = _choiceType }, "local");
+    private void WriteChoice(bool resolved)
+    {
+        _choicePending = !resolved;
+        Emit("choice", new { choiceId = _choice, sourceCard = _choiceSource, options = _options.ToArray(), picked = _picked.ToArray(), resolved, choiceType = _choiceType }, "local");
+    }
+
+    /// <summary>
+    /// The current choice is still unresolved when the next one opens or the game ends: its pick never became visible
+    /// (the game ended while it was open, the Battlegrounds turn timer chose). A real loss, so the journal ends incomplete;
+    /// the pool refuses a complete one with an open choice.
+    /// </summary>
+    private void SealOpenChoice()
+    {
+        if (!_choicePending) return;
+        _choicePending = false;
+        NoteGap("source_missing");
+    }
 
     public void OnGameEnded(GameState game)
     {
@@ -395,6 +426,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         _stopped = false;
         var result = game.LocalPlayerEntity?.GetString("PLAYSTATE") switch { "WON" => "W", "LOST" or "CONCEDED" => "L", "TIED" => "T", _ => null };
         if (result is null) NoteGap("source_missing");
+        SealOpenChoice();
         if (_blocks.Count > 0) NoteGap("invalid");
         var place = game.IsBattlegrounds && game.LocalHero?.GetInt(GameTag.PlayerLeaderboardPlace) is > 0 and <= 8 and var p ? (int?)p : null;
         if (_mode is "bg" or "duos" && Combats is { } combats)

@@ -39,10 +39,12 @@ function visibleEntity(x) {
 /**
  * Strict allowlist, never a sanitizer of arbitrary raw log text. Source v2 (TASK-2026-11-09 C1) adds start.format and
  * start.arena, choice.choiceType and the gap reason combat_view; a v1 line carrying any of them is invalid. Source v3
- * (TASK-2026-11-19 U) is v2 plus the bg_combat record; a v1/v2 line of that kind is invalid.
+ * (TASK-2026-11-19 U) is v2 plus the bg_combat record; a v1/v2 line of that kind is invalid. Source v4
+ * (TASK-2026-11-26 P1) is v3 where a gap is only a real loss: no combat_view gap, and an OTHER block is no unsupported
+ * observation (addRecords).
  */
 export function validRecord(r) {
-  if (!fields(r, 'v seq kind turn side entity card target data') || ![1, 2, 3].includes(r.v) || !int(r.seq, 0, 10_000_000)
+  if (!fields(r, 'v seq kind turn side entity card target data') || ![1, 2, 3, 4].includes(r.v) || !int(r.seq, 0, 10_000_000)
     || !int(r.turn, 0, 1000) || !SIDES.includes(r.side) || !int(r.entity) || !int(r.target)
     || !nullable(r.card, card) || !object(r.data) || (r.side === 'none' && r.card !== null)) return false;
   const d = r.data;
@@ -78,9 +80,9 @@ export function validRecord(r) {
       && Array.isArray(d.options) && d.options.length >= 1 && d.options.length <= 64
       && d.options.every(x => fields(x, 'card package') && card(x.card) && cards(x.package, 64))
       && nullable(d.picked, v => int(v, 0, d.options.length - 1)) && nullable(d.underground, v => typeof v === 'boolean');
-    case 'gap': return fields(d, 'reason count') && (GAP_REASONS.includes(d.reason) || (r.v >= 2 && d.reason === 'combat_view')) && int(d.count, 1, 1_000_000)
+    case 'gap': return fields(d, 'reason count') && (GAP_REASONS.includes(d.reason) || ([2, 3].includes(r.v) && d.reason === 'combat_view')) && int(d.count, 1, 1_000_000)
       && r.side === 'none' && r.entity === 0 && r.target === 0;
-    case 'bg_combat': return r.v === 3 && r.side === 'none' && r.entity === 0 && r.target === 0 && validCombat(d);
+    case 'bg_combat': return r.v >= 3 && r.side === 'none' && r.entity === 0 && r.target === 0 && validCombat(d);
     default: return false;
   }
 }
@@ -292,7 +294,7 @@ export function validateManifest(b) {
   if (Array.isArray(b.chunks) && b.chunks.length > 64) fail(413, 'capture_limit');
   if (!fields(b, 'v iid generation captureId captureKind mode day sourceVersion captureStatus chunks gaps')
     || !['game', 'draft'].includes(b.captureKind) || !MODES.includes(b.mode) || !int(b.day, 0, 100000)
-    || ![1, 2, 3].includes(b.sourceVersion) || !['complete', 'incomplete'].includes(b.captureStatus) || !int(b.gaps)
+    || ![1, 2, 3, 4].includes(b.sourceVersion) || !['complete', 'incomplete'].includes(b.captureStatus) || !int(b.gaps)
     || !Array.isArray(b.chunks) || !int(b.chunks.length, 1, 64)) fail(400, 'invalid_manifest');
   for (const [i, c] of b.chunks.entries()) {
     if (!fields(c, 'index sha256 uncompressedBytes') || c.index !== i || !HEX64.test(c.sha256 ?? '') || !int(c.uncompressedBytes, 1, 4 * MiB)) fail(400, 'invalid_manifest');
@@ -306,7 +308,7 @@ export function addRecords(state, list) {
     state.version ??= r.v;
     if (r.v !== state.version) fail(400, 'mixed_source_version');
     // C1, same rule as the decoder: combat_view belongs to the capture header (only start/gap records before it),
-    // once, count 1, only in a Battlegrounds/Duos game; finishStream requires it in every v2 BG/Duos game.
+    // once, count 1, only in a Battlegrounds/Duos game; finishStream requires it in every v2/v3 BG/Duos game (v4: none).
     if (r.kind !== 'start' && r.kind !== 'gap') state.header = false;
     if (r.kind === 'gap' && r.data.reason === 'combat_view') {
       const s = state.first?.data;
@@ -325,7 +327,8 @@ export function addRecords(state, list) {
     state.last = r;
     if (r.kind === 'end') state.ended = true;
     if (r.kind === 'gap') state.gaps += r.data.count;
-    if ((r.kind === 'action' && r.data.action === 'unknown') || r.data.block === 'OTHER') state.unsupported = true;
+    // v4: OTHER is a block type the format leaves out on purpose, its contents kept; an unknown action stays unsupported.
+    if ((r.kind === 'action' && r.data.action === 'unknown') || (r.data.block === 'OTHER' && r.v < 4)) state.unsupported = true;
     if (r.kind === 'block_start') {
       if (state.blocks.length >= 64) fail(413, 'block_limit');
       state.blocks.push(r.data.block);
@@ -363,7 +366,7 @@ export function finishStream(state, b) {
   const start = state.first;
   if (start?.kind !== 'start' || ['captureKind', 'mode', 'day'].some(k => start.data[k] !== b[k]) || state.gaps !== b.gaps
     || state.version !== b.sourceVersion) fail(400, 'manifest_source_mismatch');
-  if (state.version >= 2 && start.data.captureKind === 'game' && ['bg', 'duos'].includes(start.data.mode) && state.combatView !== 1) fail(400, 'invalid_combat_view');
+  if ([2, 3].includes(state.version) && start.data.captureKind === 'game' && ['bg', 'duos'].includes(start.data.mode) && state.combatView !== 1) fail(400, 'invalid_combat_view');
   const end = state.last;
   if (b.captureStatus === 'complete' && (end?.kind !== 'end' || end.data.status !== 'complete' || state.gaps !== 0 || state.unsupported
     || state.blocks.length || [...state.choices.values()].some(x => !x.resolved))) fail(400, 'incomplete_stream');

@@ -395,7 +395,7 @@ public sealed class SourceCaptureCombatTests : IDisposable
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
         var result = await new SourceCaptureParser().ParseAsync(stream);
-        Assert.Equal(3, result.SourceVersion);
+        Assert.Equal(SourceCaptureRecord.CurrentVersion, result.SourceVersion);
         var events = result.Events.Where(e => e.Kind == "bg_combat").ToArray();
         Assert.Equal(2, events.Length);
         Assert.All(events, e => Assert.Equal("{}", e.Data.GetRawText()));
@@ -562,12 +562,14 @@ public sealed class SourceCaptureCombatTests : IDisposable
         }
     }
 
+    // A refusal that is neither an unknown version nor about the journal itself (here the check of the bytes on their
+    // way) is not final: the journal waits, with its fights.
     [Fact]
     public async Task Another_refusal_of_a_v3_journal_keeps_it_waiting_as_before()
     {
         using var scratch = new SourceScratch();
         var seen = new List<(string Route, int Version, string Source)>();
-        using var http = new HttpClient(new OldPool(seen, refusal: "invalid_sequence"));
+        using var http = new HttpClient(new OldPool(seen, refusal: "checksum_mismatch"));
         await using var queue = await scratch.Open();
         SpoolBattlegroundsGame(queue, 'a');
         await queue.FlushAsync();

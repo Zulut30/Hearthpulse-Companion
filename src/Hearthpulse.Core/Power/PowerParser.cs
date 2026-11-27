@@ -592,7 +592,7 @@ public sealed partial class PowerParser
     [GeneratedRegex(@"^Entities\[\d+\]=(?<entity>.+)$")]
     private static partial Regex ChoiceEntityRegex();
 
-    [GeneratedRegex(@"^id=\d+ Player=(?<player>.+?) EntitiesCount=")]
+    [GeneratedRegex(@"^id=\d+ Player=(?<player>.+?) EntitiesCount=(?<count>\d+)?")]
     private static partial Regex ChosenHeaderRegex();
 
     [GeneratedRegex(@"^\[entityName=(?<name>.*?) id=(?<id>\d+) zone=\w+ zonePos=\d+ cardId=(?<card>\S*) player=\d+\]$")]

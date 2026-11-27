@@ -102,7 +102,7 @@ internal static class SourceCaptureSchema
 
     /// <summary>
     /// Validates one record against its wire version; v2 adds start context, choice type and combat_view, v3 adds the
-    /// <c>bg_combat</c> record (everything else as v2).
+    /// <c>bg_combat</c> record (everything else as v2), v4 is v3 without the combat_view gap.
     /// </summary>
     internal static void Validate(SourceCaptureEvent e, int version)
     {
@@ -226,7 +226,8 @@ internal static class SourceCaptureSchema
                 break;
             case "gap":
                 Fields(d, "reason", "count");
-                if (v2) OneOf(d.GetProperty("reason"), "late_attach", "rotation", "source_missing", "unsupported", "limit", "invalid", "shutdown", "combat_view");
+                // combat_view is the structural Battlegrounds marker of v2/v3 only; v4 counts real losses alone.
+                if (version is 2 or 3) OneOf(d.GetProperty("reason"), "late_attach", "rotation", "source_missing", "unsupported", "limit", "invalid", "shutdown", "combat_view");
                 else OneOf(d.GetProperty("reason"), "late_attach", "rotation", "source_missing", "unsupported", "limit", "invalid", "shutdown");
                 Number(d.GetProperty("count"), 1);
                 Neutral(e);

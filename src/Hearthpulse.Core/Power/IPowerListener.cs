@@ -27,6 +27,13 @@ public interface IPowerListener
     /// <summary>The local player picked from the open choice.</summary>
     void OnChoiceMade(GameState game) { }
 
+    /// <summary>
+    /// The local player picked from the open choice: <paramref name="count"/> cards follow as <see cref="OnChosen"/>, -1
+    /// when the log does not say. Zero is a completed empty selection, such as a mulligan that replaces every card (a
+    /// mulligan's chosen entities are the cards kept).
+    /// </summary>
+    void OnChoiceMade(GameState game, int count) => OnChoiceMade(game);
+
     /// <summary>One card the local player picked in the choice that just ended.</summary>
     void OnChosen(GameState game, Entity chosen) { }
 

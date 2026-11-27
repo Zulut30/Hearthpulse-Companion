@@ -25,7 +25,7 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
     {
         if (_events.Count >= limits.MaxRecords) throw new SourceCaptureException("limit_exceeded");
         // One source, one wire version (= manifest.sourceVersion).
-        SourceCaptureSchema.Require(_events.Count == 0 ? version is 1 or 2 or 3 : version == _version);
+        SourceCaptureSchema.Require(_events.Count == 0 ? version is 1 or 2 or 3 or 4 : version == _version);
         _version = version;
         // combat_view is a structural v2 marker written with the capture header, never after observations.
         if (e.Kind is not ("start" or "gap")) _header = false;
@@ -127,7 +127,8 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
             case "block_start":
                 if (_blocks.Count >= 64) throw new SourceCaptureException("limit_exceeded");
                 _blocks.Push(d.GetProperty("block").GetString()!);
-                if (_blocks.Peek() == "OTHER") { _unsupported++; AddGaps(1); }
+                // v4: OTHER names a block type the format leaves out on purpose, with its contents kept, not a loss.
+                if (_blocks.Peek() == "OTHER" && _version < 4) { _unsupported++; AddGaps(1); }
                 break;
             case "block_end":
                 if (_blocks.Count == 0 || _blocks.Peek() != d.GetProperty("block").GetString())
@@ -182,8 +183,8 @@ internal sealed class SourceCaptureState(SourceCaptureLimits limits)
     internal SourceCaptureResult Finish(string hash)
     {
         SourceCaptureSchema.Require(_events.Count > 0 && (_end is not null || _lastKind == "gap"));
-        // Every v2/v3 BG/Duos game names its displayed-combat gap exactly once (contract C1).
-        SourceCaptureSchema.Require(_version < 2 || _captureKind != "game" || _mode is not ("bg" or "duos") || _combatView == 1);
+        // Every v2/v3 BG/Duos game names its displayed-combat gap exactly once (contract C1); v4 has none (Validate).
+        SourceCaptureSchema.Require(_version is not (2 or 3) || _captureKind != "game" || _mode is not ("bg" or "duos") || _combatView == 1);
         if (_blocks.Count > 0) AddGaps(1);
         bool unresolved = _choices.Values.Any(x => x.Picked is null) || _draft.Values.Any(x => x.Picked is null);
         bool complete = _end is not null && _end.Data.GetProperty("status").GetString() == "complete" &&

@@ -38,7 +38,7 @@ Use distinct source/result paths and a separate output per job. The worker never
 Stdout is exactly one safe JSON status line; stderr is empty. Success example:
 
 ```json
-{"ok":true,"status":"parsed","parserVersion":"source-v2.0","records":4,"unsupported":0,"gaps":0}
+{"ok":true,"status":"parsed","parserVersion":"source-v2.1","records":4,"unsupported":0,"gaps":0}
 ```
 
 Failure example:
@@ -66,7 +66,7 @@ Namespace: `Hearthpulse.Core.SourceCapture.Processing`.
 ```csharp
 new SourceCaptureParser(SourceCaptureLimits? limits = null);
 Task<SourceCaptureResult> ParseAsync(Stream input, CancellationToken cancellationToken = default);
-SourceCaptureParser.ParserVersion; // "source-v2.0"
+SourceCaptureParser.ParserVersion; // "source-v2.1" (v1-v3 sources decode as with "source-v2.0")
 SourceWorkerCommand.Serialize(SourceCaptureResult result); // stable camelCase JSON
 Task<int> SourceWorkerCommand.RunAsync(string[] args, TextWriter stdout,
     CancellationToken cancellationToken = default);
@@ -111,14 +111,14 @@ unresolved choices, open/missing blocks explained by gaps and unsupported observ
 This implementation conservatively reports partial for incomplete capture even when all records are understood.
 
 `gaps` sums explicit missing counts plus parser-detected losses. `unsupported` counts unsupported
-observations, not missing source rows. An OTHER block, unknown action or an archived future record
-with empty data yields partial; unknown kind is normalized to `unsupported` and is not echoed.
+observations, not missing source rows. An unknown action, an archived future record with empty data or
+(v1-v3) an OTHER block yields partial; unknown kind is normalized to `unsupported` and is not echoed.
 Arbitrary future data is rejected. New uploads should use the specified `gap/unsupported` shape.
 
 ## Source v2 and result v2
 
-The parser reads source `v:1` and `v:2`. All records of one source carry the same `v`, equal to the upload's
-`manifest.sourceVersion`; a mix, or `v` other than 1/2 (`unsupported_version`), fails closed. Source v2 differs from v1
+The parser reads source `v:1` to `v:4` (v3 and v4 below). All records of one source carry the same `v`, equal to the
+upload's `manifest.sourceVersion`; a mix, or `v` other than 1-4 (`unsupported_version`), fails closed. Source v2 differs from v1
 only in three places, and each v2-only field is rejected in a v1 record:
 
 - `start.data` has exactly `captureKind, mode, day, build, format, arena`. `format` is `standard|wild|classic|twist`
@@ -156,10 +156,24 @@ The server re-checks every fact against the source rows before storing it (task 
 
 Source `v:3` is v2 plus the record kind `bg_combat`: one Battlegrounds fight as the app's combat simulator got it, with
 the result and the odds shown ([source-capture.md](../../docs/source-capture.md), "Battlegrounds fights", for the
-field allowlist and limits). It is valid only in a `v:3` `bg`/`duos` game capture, with `side:"none"`, `entity:0`,
+field allowlist and limits). It is valid only in a `v:3` or `v:4` `bg`/`duos` game capture, with `side:"none"`, `entity:0`,
 `card:null`, `target:0`, `data.fight` growing; a v1/v2 line of that kind fails closed. It adds no fact, no gap and no
 eligibility reason; its event keeps `kind:"bg_combat"` with empty `data`. The result reports `sourceVersion:3`;
-`parserVersion` stays `source-v2.0` (v1/v2 sources decode exactly as before).
+`parserVersion` stayed `source-v2.0` for v3 (v1/v2 sources decode exactly as before); v4 brought `source-v2.1`.
+
+## Source v4
+
+Source `v:4` (TASK-2026-11-26-pro-collection P1) is v3 in which a gap is only a real loss
+([source-capture.md](../../docs/source-capture.md), "Source v4", for what the recorder leaves out on purpose). Two rules
+differ, and only for v4:
+
+- `gap.reason` `combat_view` is invalid: a v4 Battlegrounds game has no structural gap, so one without a loss is
+  `parsed` and `completeForAggregation`. Eligibility and facts are derived as for v2.
+- An `OTHER` block (a type the format does not name, contents kept) is no unsupported observation and adds no gap. A
+  type the recorder does not know at all comes with its own `gap` record (`unsupported`), which counts as before.
+
+An `unknown` action and an unknown record kind stay unsupported. `parserVersion` is `source-v2.1`; it decodes v1-v3
+sources exactly as `source-v2.0` did, so stored results stay valid and need no reprocess.
 
 ## Budgets and validation
 

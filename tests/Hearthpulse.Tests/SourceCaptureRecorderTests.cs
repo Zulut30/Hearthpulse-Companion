@@ -218,10 +218,17 @@ public sealed class SourceCaptureRecorderTests
     public void Unknown_blocks_non_numeric_tags_and_missing_offer_are_explicit_gaps()
     {
         var (recorder, parser, frames) = Start();
+        // Source v4: a Power.log block type without a kind of its own is OTHER with its contents and no loss; a type the
+        // recorder does not know at all is OTHER too, and a gap (review m1).
+        recorder.OnBlockStart(parser.Game!, "DECK_ACTION", null);
+        recorder.OnBlockEnd(parser.Game!);
+        Assert.DoesNotContain(frames, f => f.Record.Kind == "gap");
         recorder.OnBlockStart(parser.Game!, "PRIVATE_UNKNOWN_TEXT", null);
+        Assert.Equal("OTHER", Data(frames.Last(f => f.Record.Kind == "block_start")).GetProperty("block").GetString());
+        Assert.Equal("unsupported", Data(Assert.Single(frames, f => f.Record.Kind == "gap")).GetProperty("reason").GetString());
         recorder.OnTagChanged(parser.Game!, parser.Game!.Entities[99], "COST", "1", "C:\\Users\\private");
+        Assert.Equal(2, frames.Count(f => f.Record.Kind == "gap" && Data(f).GetProperty("reason").GetString() == "unsupported"));
         recorder.Stop("shutdown");
-        Assert.Contains(frames, f => f.Record.Kind == "gap" && Data(f).GetProperty("reason").GetString() == "unsupported");
         var text = string.Join('\n', frames.Select(f => f.Record.ToJson())); Assert.DoesNotContain("PRIVATE_UNKNOWN_TEXT", text); Assert.DoesNotContain("private", text);
         recorder.CaptureDraftChoice(null, 1, null, new(2026, 11, 9));
         Assert.Contains(frames, f => f.Record.Kind == "gap" && Data(f).GetProperty("reason").GetString() == "invalid");

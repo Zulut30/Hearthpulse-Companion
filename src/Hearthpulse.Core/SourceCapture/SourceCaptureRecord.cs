@@ -7,9 +7,11 @@ public sealed class SourceCaptureRecord
 {
     /// <summary>
     /// The wire version new observations are written in. A spooled capture keeps the version it started with. v3 = v2 plus
-    /// the <c>bg_combat</c> record (<see cref="SourceCaptureCombat"/>).
+    /// the <c>bg_combat</c> record (<see cref="SourceCaptureCombat"/>); v4 = v3 where a gap is only a real loss: what the
+    /// format leaves out on purpose is not counted, an OTHER block is no unsupported observation and a Battlegrounds game
+    /// has no <c>combat_view</c> gap (docs/source-capture.md, "Source v4").
     /// </summary>
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     internal SourceCaptureRecord(int seq, string kind, int turn, string side, int entity, string? card, int target, object data, int v = CurrentVersion)
     {
@@ -40,6 +42,10 @@ public sealed record SourceCaptureFrame(string CaptureId, string CaptureKind, st
 /// <c>other_pool</c> and the two <c>Held</c> counts tell of what is kept for a pool address other than the current
 /// one: it is not sent to the current pool and waits for its own.
 /// </summary>
+/// <param name="Dropped">
+/// Journals lost on this PC (a full spool, a disk error, an invalid, damaged or expired journal), kept across restarts:
+/// the Settings line "could not be saved". A journal the pool refused is not one of them; its log line is its record.
+/// </param>
 /// <param name="Revision">
 /// The number of this report as the host published it, growing with every report: a listener that gets reports
 /// through its own queue drops one older than what it already shows. Zero for a state nobody published.

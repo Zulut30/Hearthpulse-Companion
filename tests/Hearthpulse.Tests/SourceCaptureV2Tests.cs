@@ -16,7 +16,8 @@ public sealed class SourceCaptureV2Tests : IDisposable
     public SourceCaptureV2Tests() => Directory.CreateDirectory(_folder);
     public void Dispose() => TestDataFolder.TryDelete(_folder);
 
-    // AC2: real BG hero pick -> v2 source -> bg_hero offer fact and place 3, still not complete for aggregation.
+    // AC2: real BG hero pick -> source -> bg_hero offer fact and place 3. Since v4 (TASK-2026-11-26-pro-collection P1) the
+    // game has no structural combat_view gap and, nothing else being lost, is parsed and complete for aggregation.
     [Fact]
     public async Task Checked_in_bg_game_with_synthetic_end_yields_hero_offer_and_placement_facts()
     {
@@ -29,17 +30,14 @@ public sealed class SourceCaptureV2Tests : IDisposable
         Assert.Equal(game.BuildNumber, start.GetProperty("build").GetInt32());
         Assert.Equal(JsonValueKind.Null, start.GetProperty("format").ValueKind);
         Assert.Equal(JsonValueKind.Null, start.GetProperty("arena").ValueKind);
-        var gaps = capture.Where(f => f.Record.Kind == "gap").Select(f => Data(f).GetProperty("reason").GetString()).ToArray();
-        Assert.Single(gaps, r => r == "combat_view");
-        // The header (records before the first observation) carries no unconditional source_missing any more.
-        Assert.DoesNotContain("source_missing", capture.Skip(1).TakeWhile(f => f.Record.Kind == "gap").Select(f => Data(f).GetProperty("reason").GetString()));
+        Assert.DoesNotContain(capture, f => f.Record.Kind == "gap");
         var firstChoice = capture.First(f => f.Record.Kind == "choice");
         Assert.Equal("mulligan", Data(firstChoice).GetProperty("choiceType").GetString());
 
         var result = await Decode(capture);
         Assert.Equal(2, result.V);
         Assert.Equal(SourceCaptureRecord.CurrentVersion, result.SourceVersion);
-        Assert.Equal("source-v2.0", result.ParserVersion);
+        Assert.Equal(SourceCaptureParser.ParserVersion, result.ParserVersion);
         Assert.Equal(new SourceCaptureContext("bg", start.GetProperty("day").GetInt32(), game.BuildNumber, null, null), result.Context);
         Assert.True(result.Eligibility.Outcome);
         Assert.True(result.Eligibility.Offers);
@@ -55,8 +53,8 @@ public sealed class SourceCaptureV2Tests : IDisposable
         Assert.Equal(Data(resolved).GetProperty("options").EnumerateArray().Select(x => x.GetString()), offer.Options);
         Assert.Single(offer.Picked);
         Assert.Equal(Data(resolved).GetProperty("picked").EnumerateArray().Select(x => x.GetString()), offer.Picked);
-        Assert.Equal("partial", result.Status);
-        Assert.False(result.Summary.CompleteForAggregation);
+        Assert.Equal(("parsed", 0, 0), (result.Status, result.Gaps, result.Unsupported));
+        Assert.True(result.Summary.CompleteForAggregation);
     }
 
     // AC3 through the live recorder on the real BG game: switched on mid-game, or closed by shutdown.
@@ -213,7 +211,7 @@ public sealed class SourceCaptureV2Tests : IDisposable
         var root = json.RootElement;
         Assert.Equal(new[] { "v", "parserVersion", "sourceVersion", "sourceSha256", "status", "records", "unsupported", "gaps", "events", "summary", "context", "eligibility", "facts" },
             root.EnumerateObject().Select(p => p.Name));
-        Assert.Equal("source-v2.0", root.GetProperty("parserVersion").GetString());
+        Assert.Equal(SourceCaptureParser.ParserVersion, root.GetProperty("parserVersion").GetString());
         Assert.Equal("""{"mode":"bg","day":20766,"build":123,"format":null,"arena":null}""", root.GetProperty("context").GetRawText());
         Assert.Equal("""{"outcome":true,"offers":true,"reasons":[]}""", root.GetProperty("eligibility").GetRawText());
         Assert.Equal("""{"outcome":{"result":null,"placement":5},"offers":[{"seq":3,"kind":"bg_hero","options":["HERO_A","HERO_B","HERO_C","HERO_D"],"picked":["HERO_B"]}]}""",

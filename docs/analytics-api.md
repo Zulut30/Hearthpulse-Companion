@@ -13,6 +13,8 @@ stored, when it is counted and deleted, and the read route. Code: `server/pool/n
    (`mulligan|general|other`, fixed for one `choiceId`) and the gap reason `combat_view`: required exactly once in
    every v2 BG/Duos game, `count: 1`, in the capture header (only `start`/`gap` records before it), nowhere else — the
    same rule as the decoder. A v2 field in a v1 line, an unknown value, a value in the wrong mode, mixed versions → 400.
+   v3 adds the `bg_combat` record; v4 (a gap is a real loss, docs/source-capture.md "Source v4") has no `combat_view`
+   gap and does not count an `OTHER` block as unsupported, so a game without a loss commits as `complete`.
 2. **Worker result**: `v:1` (older worker) is accepted as before and gives no facts. `v:2` is cross-checked against the
    typed source; any mismatch makes the capture `failed` without facts:
    - `context` equals the `start` fields (v1 sources: `format`/`arena` null);
