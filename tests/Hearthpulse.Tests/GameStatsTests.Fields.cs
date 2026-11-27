@@ -153,6 +153,15 @@ public sealed partial class GameStatsTests
         Assert.Equal(LogBuild, (int)recovered["build"]!);
     }
 
+    /// <summary>The record table of docs/game-stats.md names both cases the test above sends no <c>bg.comp</c> in.</summary>
+    [Fact]
+    public void The_record_table_tells_when_a_battlegrounds_record_goes_without_the_main_tribe()
+    {
+        var row = File.ReadLines(Path.Combine(RepoFiles.Root, "docs", "game-stats.md")).Single(l => l.StartsWith("| `bg.comp` |", StringComparison.Ordinal));
+        Assert.Contains("left out when the final board is empty", row, StringComparison.Ordinal);
+        Assert.Contains("not one recovered when the app started", row, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Nothing_else_is_new_in_a_record_and_a_game_without_a_build_goes_without_one()
     {

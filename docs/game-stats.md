@@ -36,7 +36,7 @@ Built from the game's history row and its saved replay, after the game, off the 
 | `draws` | `[turn, card, created]`: every card that came into your hand after the mulligan | replay |
 | `exc` | `[turn, treasure]`: Excavate treasures that came into your hand | replay + `Excavate.Treasures` |
 | `bg` | Battlegrounds: `placement`, `mmr` (rounded down to 500, at most 10,000), `offered`/`picked` heroes, `anomaly`, `tribes`, `tier`, `triples`, `tierups`, `trinkets` `{o, p}`, `quests`, `board`, `combats`, `choices`, `plays`, `buys`, `sells` | the pool view of the game (`PoolGame`) + the BG replay's buy/sell steps |
-| `bg.comp` | the main tribe of the final board: a tribe at least 4 minions have (amalgams count for every tribe), else `MIXED`; only for a game watched live, not one recovered when the app started | `PoolDetails.MainTribe` of the pool view |
+| `bg.comp` | the main tribe of the final board: a tribe at least 4 minions have (amalgams count for every tribe), else `MIXED`; left out when the final board is empty; only for a game watched live, not one recovered when the app started | `PoolDetails.MainTribe` of the pool view |
 | `app` | app version | |
 
 Not sent: Friendly, Practice, Mercenaries and other modes; abandoned games and games without a result; games brought

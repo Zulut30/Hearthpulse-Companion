@@ -1,5 +1,6 @@
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.GameStats;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking;
@@ -146,6 +147,42 @@ public sealed class HistoryStoreBuildTests : IDisposable
         Assert.Equal(LogBuild, Finished(LogBuild).Build);
         Assert.Null(Finished(build: null).Build);
         Assert.Null(Finished(0).Build);
+    }
+
+    /// <summary>
+    /// The Battlegrounds game of the repository's fixture (a real log of build 254477 that stops after the first combat),
+    /// ended as the golden Battlegrounds log ends one: the history row keeps the build its log gave, and the record sent
+    /// from the saved row carries it.
+    /// </summary>
+    [Fact]
+    public void A_battlegrounds_game_keeps_the_build_of_its_log_in_the_history_and_in_its_record()
+    {
+        const int FixtureBuild = 254477;
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        var battlegrounds = new BattlegroundsTracker { Cards = CardDb.Empty };
+        parser.AddListener(battlegrounds);
+        // The local player (Player#1000, hero 112) is knocked out fifth.
+        string[] end =
+        [
+            "D 02:07:30.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Player#1000 tag=PLAYSTATE value=LOST ",
+            "D 02:07:30.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=112 tag=PLAYER_LEADERBOARD_PLACE value=5 ",
+            "D 02:07:30.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE ",
+        ];
+        foreach (var line in BattlegroundsFixtureTests.Lines().Concat(end))
+        {
+            parser.Feed(line);
+        }
+
+        var game = GameRecords.Build(parser.Game!, battlegrounds, CardDb.Empty, null, "live");
+        Assert.NotNull(game);
+        Assert.Equal(("Battlegrounds", 5, FixtureBuild), (game.Mode, game.Placement, game.Build));
+
+        var history = new HistoryStore(Path.Combine(_dir, "history.db"));
+        Assert.True(history.Add(game));
+        var saved = history.Game(game.Key)!;
+        Assert.Equal(FixtureBuild, saved.Build);
+        var record = GameStatsRecord.Build(saved, new string('a', 32), null, null, null, "0.30.0");
+        Assert.Equal(("bg", FixtureBuild), ((string?)record?["mode"], (int?)record?["build"]));
     }
 
     [Fact]

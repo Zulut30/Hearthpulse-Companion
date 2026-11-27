@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using System.Text.Json.Nodes;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -131,10 +132,11 @@ public sealed class GameStatsRealLogTests(ITestOutputHelper output) : IDisposabl
     /// level 48) and at Diamond 5 (46), as memory reading gives the rank: both records carry the build its log wrote, only
     /// Diamond 3 the band "d4-1", and nothing else changes between them.
     /// </summary>
-    [RealLogsFact]
+    [RealLogsFact(gameType: "GT_RANKED")]
     public void A_kept_ranked_game_sends_the_build_of_its_log_and_only_at_diamond_3_the_band()
     {
-        var (game, builds) = KeptGames().First(g => g.Game.Mode == "Ranked" && g.Builds.Count > 0);
+        var (game, builds) = KeptGames().FirstOrDefault(g => g.Game.Mode == "Ranked" && g.Builds.Count > 0);
+        Assert.True(game is not null, "The kept logs hold a finished Ranked game, but the backfill gave none with a build number.");
         Directory.CreateDirectory(_dir);
         var history = new HistoryStore(Path.Combine(_dir, "history.db"));
         var diamond3 = game with { Key = game.Key + "|d3", Rank = "Diamond 3", RankStarLevel = 48 };
@@ -156,5 +158,28 @@ public sealed class GameStatsRealLogTests(ITestOutputHelper output) : IDisposabl
         Assert.Null(low["band"]);
         high.Remove("band");
         Assert.Equal(high.ToJsonString(), low.ToJsonString());
+    }
+
+    /// <summary>
+    /// The Ranked test above is skipped, not failed, where the kept logs hold no finished Ranked game: the client keeps
+    /// only its last sessions, and these can all be Battlegrounds or Arena. A Ranked game the client is still in does not
+    /// count.
+    /// </summary>
+    [Fact]
+    public void Kept_logs_without_a_finished_ranked_game_skip_the_ranked_test()
+    {
+        var fact = typeof(GameStatsRealLogTests).GetMethod(nameof(A_kept_ranked_game_sends_the_build_of_its_log_and_only_at_diamond_3_the_band))!
+            .GetCustomAttribute<RealLogsFactAttribute>()!;
+        Assert.Equal("GT_RANKED", fact.GameType);
+
+        var log = Path.Combine(_dir, "Hearthstone_2026_11_26_20_00_00", "Power.log");
+        Directory.CreateDirectory(Path.GetDirectoryName(log)!);
+        File.WriteAllLines(log, HistoryStoreBuildTests.Game(HistoryStoreBuildTests.LogBuild, "20:00:00", "GT_CASUAL")
+            .Concat(HistoryStoreBuildTests.Game(HistoryStoreBuildTests.LogBuild, "20:30:00").SkipLast(4)));
+        Assert.True(RealLogTests.HasFinishedGame(_dir, "GT_CASUAL"));
+        Assert.False(RealLogTests.HasFinishedGame(_dir, "GT_RANKED"));
+
+        File.AppendAllLines(log, HistoryStoreBuildTests.Game(HistoryStoreBuildTests.LogBuild, "21:00:00"));
+        Assert.True(RealLogTests.HasFinishedGame(_dir, "GT_RANKED"));
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Xunit.Abstractions;
@@ -37,14 +38,14 @@ public sealed class RealLogTests(ITestOutputHelper output)
         }
     }
 
-    private static IEnumerable<(string Path, DateTime Start)> PowerLogs()
+    private static IEnumerable<(string Path, DateTime Start)> PowerLogs(string root = LogRoot)
     {
-        if (!Directory.Exists(LogRoot))
+        if (!Directory.Exists(root))
         {
             yield break;
         }
 
-        foreach (var dir in Directory.EnumerateDirectories(LogRoot, "Hearthstone_*"))
+        foreach (var dir in Directory.EnumerateDirectories(root, "Hearthstone_*"))
         {
             var start = Core.Hearthstone.HearthstoneInstall.SessionStart(dir);
             foreach (var name in new[] { "Power_old.log", "Power.log" })
@@ -56,6 +57,34 @@ public sealed class RealLogTests(ITestOutputHelper output)
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// True when a kept Power log under <paramref name="root"/> holds a finished game of <paramref name="gameType"/>
+    /// (<c>GT_RANKED</c>): a player's final <c>PLAYSTATE</c> after the game's <c>GameType</c> line. A line scan, not the
+    /// parser: it runs while the tests are discovered.
+    /// </summary>
+    internal static bool HasFinishedGame(string root, string gameType)
+    {
+        const string TypeLine = "GameState.DebugPrintGame() - GameType=";
+        string[] finalStates = ["tag=PLAYSTATE value=WON", "tag=PLAYSTATE value=LOST", "tag=PLAYSTATE value=TIED", "tag=PLAYSTATE value=CONCEDED"];
+        foreach (var (path, _) in PowerLogs(root))
+        {
+            var wanted = false;
+            foreach (var line in SharedLines(path))
+            {
+                if (line.Contains(TypeLine, StringComparison.Ordinal))
+                {
+                    wanted = line.TrimEnd().EndsWith(TypeLine + gameType, StringComparison.Ordinal);
+                }
+                else if (wanted && finalStates.Any(state => line.Contains(state, StringComparison.Ordinal)))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     [RealLogsFact]
@@ -107,13 +136,18 @@ public sealed class RealLogTests(ITestOutputHelper output)
 
 /// <summary>
 /// A fact that is skipped on machines without the Hearthstone client's kept logs, or, when <paramref name="log"/> names
-/// one session folder (<c>Hearthstone_2026_11_15_20_36_45</c>), without that folder's <c>Power.log</c>: a machine that
-/// keeps other logs skips the test instead of failing it.
+/// one session folder (<c>Hearthstone_2026_11_15_20_36_45</c>), without that folder's <c>Power.log</c>, or, when
+/// <paramref name="gameType"/> names a game type (<c>GT_RANKED</c>), without a finished game of that type in the kept
+/// logs (the client keeps only its last sessions): a machine that keeps other logs skips the test instead of failing it.
 /// </summary>
 public sealed class RealLogsFactAttribute : FactAttribute
 {
-    public RealLogsFactAttribute(string? log = null)
+    /// <summary>Per game type, whether the kept logs hold a finished game of it: scanned once per test run.</summary>
+    private static readonly ConcurrentDictionary<string, bool> FinishedGames = new(StringComparer.Ordinal);
+
+    public RealLogsFactAttribute(string? log = null, string? gameType = null)
     {
+        GameType = gameType;
         if (!OperatingSystem.IsWindows() || !Directory.Exists(RealLogTests.LogRoot))
         {
             Skip = $"No kept Hearthstone logs ({RealLogTests.LogRoot}) on this machine.";
@@ -122,5 +156,12 @@ public sealed class RealLogsFactAttribute : FactAttribute
         {
             Skip = $"No kept Hearthstone log {log} ({RealLogTests.LogRoot}) on this machine.";
         }
+        else if (gameType is not null && !FinishedGames.GetOrAdd(gameType, type => RealLogTests.HasFinishedGame(RealLogTests.LogRoot, type)))
+        {
+            Skip = $"No finished {gameType} game in the kept Hearthstone logs ({RealLogTests.LogRoot}) on this machine.";
+        }
     }
+
+    /// <summary>The game type the test needs a finished game of in the kept logs; null when any kept logs do.</summary>
+    public string? GameType { get; }
 }
