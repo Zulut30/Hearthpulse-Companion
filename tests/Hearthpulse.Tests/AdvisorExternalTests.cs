@@ -83,6 +83,25 @@ public sealed class AdvisorExternalTests : IDisposable
         Assert.Equal(advice.HeroOptions[0].TopComps!.Select(c => c.Name), advice.HeroOptions[1].TopComps!.Select(c => c.Name));
     }
 
+    /// <summary>
+    /// A stats pool comp is the hero's own from 40 of the hero's games with it: its order then differs from hero to hero
+    /// and the badge may name it (O-21, Q7 of the release cleanup QA); one game fewer, and it is the order every hero
+    /// shares.
+    /// </summary>
+    [Theory]
+    [InlineData(40, true)]
+    [InlineData(39, false)]
+    public async Task A_pool_comp_is_the_heroes_own_from_forty_of_its_games(int games, bool byHero)
+    {
+        var placement = new Dictionary<string, (int, double)>(StringComparer.Ordinal) { [Jaraxxus] = (games, 3.0) };
+        var meta = PoolClient.Merge(await ExternalMetaAsync(), PoolMeta(heroPlacement: placement));
+
+        var advice = new BattlegroundsAdvisor { Meta = meta }.Enrich(HeroPick(["QUILBOAR", "ELEMENTAL", "MURLOC", "DEMON", "BEAST"]), 7000, Cards());
+
+        var comp = Assert.Single(advice.HeroOptions[0].TopComps!, c => c.Name == "Pool comp");
+        Assert.Equal(byHero, comp.ByHero);
+    }
+
     [Fact]
     public async Task A_lobby_with_the_comps_tribes_offers_it_and_an_unknown_lobby_offers_all()
     {
@@ -513,10 +532,11 @@ public sealed class AdvisorExternalTests : IDisposable
     }
 
     /// <summary>The stats pool's own rows: a comp, a trinket the external list has too and one it has not.</summary>
-    private static BattlegroundsMeta PoolMeta(int sharedTrinketGames = 200)
+    /// <param name="heroPlacement">The comp's games and placement with each hero (none by default).</param>
+    private static BattlegroundsMeta PoolMeta(int sharedTrinketGames = 200, IReadOnlyDictionary<string, (int, double)>? heroPlacement = null)
     {
         var comp = new MetaComp("pool_comp", "Pool comp", "S", "Easy", ["DEMON"], [new MetaCompCard("BG28_633", "CORE")], null, null, 3.2,
-            new Dictionary<int, double>(), new Dictionary<string, (int, double)>());
+            new Dictionary<int, double>(), heroPlacement ?? new Dictionary<string, (int, double)>());
         var trinkets = new Dictionary<string, MetaTrinket>(StringComparer.Ordinal)
         {
             ["BG36_MagicItem_216"] = new("BG36_MagicItem_216", sharedTrinketGames, 3.0, 0.4, new Dictionary<int, (double, int)>()),

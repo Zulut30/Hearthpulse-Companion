@@ -34,11 +34,31 @@ public sealed class CountersTests
 
     private static (GameState Game, ConstructedTracker Tracker) Play(params string[] bodies)
     {
+        var (parser, tracker) = Start(bodies);
+        return (parser.Game!, tracker);
+    }
+
+    /// <summary>A game fed up to <paramref name="bodies"/>, to be fed further with <see cref="Feed"/>.</summary>
+    private static (PowerParser Parser, ConstructedTracker Tracker) Start(params string[] bodies)
+    {
         var parser = new PowerParser(new DateOnly(2026, 10, 23));
         var tracker = new ConstructedTracker();
         parser.AddListener(tracker);
         parser.AddListener(tracker.Counters);
-        string[] setup =
+        Feed(parser, [.. Setup, .. bodies]);
+        return (parser, tracker);
+    }
+
+    private static void Feed(PowerParser parser, params string[] bodies)
+    {
+        foreach (var body in bodies)
+        {
+            parser.Feed("D 12:30:00.0000000 GameState." + body);
+        }
+    }
+
+    /// <summary>A ranked game on turn 3: local player 1 (velox#21276), opponent 2.</summary>
+    private static readonly string[] Setup =
         [
             "DebugPrintPower() - CREATE_GAME",
             "DebugPrintPower() -     GameEntity EntityID=1",
@@ -66,13 +86,6 @@ public sealed class CountersTests
             "DebugPrintPower() -     tag=CONTROLLER value=1",
             "DebugPrintPower() -     tag=CARDTYPE value=SPELL",
         ];
-        foreach (var body in setup.Concat(bodies))
-        {
-            parser.Feed("D 12:30:00.0000000 GameState." + body);
-        }
-
-        return (parser.Game!, tracker);
-    }
 
     private static string[] Card(int id, string cardId, string zone, int controller, string type, params string[] tags) =>
     [
@@ -357,15 +370,15 @@ public sealed class CountersTests
     }
 
     [Fact]
-    public void A_counter_with_nothing_counted_yet_says_so_and_one_under_way_does_not()
+    public void A_counter_with_nothing_counted_yet_says_so_and_a_goal_shows_from_the_start()
     {
-        // O-11: Auto mode waits for the first count. The flag marks a counter still at the start of every game (0, 0/4,
-        // +0/+0, the base damage), even with a card that cares about it in the deck.
+        // O-11: Auto mode waits for the first count of a counter still at the start of every game (0, +0/+0, the base
+        // damage), even with a card that cares about it in the deck; a goal ("0/4") shows from the start.
         var idle = View(Play([.. Card(10, "BE_013", "DECK", 1, "MINION")]));
         var cthun = Assert.Single(idle.Counters, c => c.Id == "cthun" && !c.Opponent);
         Assert.Equal("0/4", cthun.Value);
         Assert.True(cthun.Relevant);
-        Assert.True(cthun.NothingCounted);
+        Assert.False(cthun.NothingCounted);
         Assert.True(Assert.Single(idle.Counters, c => c.Id == "spells-cast" && !c.Opponent).NothingCounted);
         Assert.True(Assert.Single(idle.Counters, c => c.Id == "cthun-old" && !c.Opponent).NothingCounted);
 
@@ -376,6 +389,63 @@ public sealed class CountersTests
         ]));
         Assert.False(Assert.Single(used.Counters, c => c.Id == "cthun" && !c.Opponent).NothingCounted);
         Assert.False(Assert.Single(used.Counters, c => c.Id == "cthun-old" && !c.Opponent).NothingCounted);
+    }
+
+    [Fact]
+    public void A_counter_counted_once_stays_to_the_end_of_the_game_even_at_zero()
+    {
+        // O-11 (coordinator, 2026-11-27): from its first count to the end of the game, so a per-turn count does not blink
+        // out on every opponent's turn and the counters panel keeps its height. Edwin VanCleef cares about cards played.
+        var (parser, tracker) = Start([.. Card(10, "EX1_613", "DECK", 1, "MINION")]);
+        CounterView Played() => Assert.Single(tracker.BuildView(parser.Game!, Cards).Counters, c => c.Id == "cards-played-turn" && !c.Opponent);
+        Assert.True(Played().NothingCounted);
+
+        Feed(parser,
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CURRENT_PLAYER value=1 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=NUM_CARDS_PLAYED_THIS_TURN value=1 ");
+        Assert.Equal(("1", false), (Played().Value, Played().NothingCounted));
+
+        // The opponent's turn reads 0 again, and so does the player's next turn before a card: the counter stays.
+        Feed(parser,
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CURRENT_PLAYER value=0 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=Rival#1234 tag=CURRENT_PLAYER value=1 ");
+        Assert.Equal(("0", false), (Played().Value, Played().NothingCounted));
+        Feed(parser,
+            "DebugPrintPower() - TAG_CHANGE Entity=Rival#1234 tag=CURRENT_PLAYER value=0 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=NUM_CARDS_PLAYED_THIS_TURN value=0 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CURRENT_PLAYER value=1 ");
+        Assert.Equal(("0", false), (Played().Value, Played().NothingCounted));
+
+        // The next game starts over, though the last view of the counter read the same "0".
+        Feed(parser, [.. Setup, .. Card(10, "EX1_613", "DECK", 1, "MINION")]);
+        Assert.Equal(("0", true), (Played().Value, Played().NothingCounted));
+    }
+
+    [Theory]
+    [InlineData(3, false)]
+    [InlineData(10, true)]
+    public void Fatigue_shows_once_the_deck_is_almost_empty(int deck, bool hidden)
+    {
+        // The one counter whose start value is a warning: three cards or fewer in the deck make it relevant (Active), and
+        // Auto shows it although no fatigue has been dealt yet (O-11).
+        var cards = Enumerable.Range(0, deck).SelectMany(i => Card(30 + i, "CORE_CS2_004", "DECK", 1, "SPELL")).ToArray();
+        var fatigue = Assert.Single(View(Play(cards)).Counters, c => c.Id == "fatigue" && !c.Opponent);
+
+        Assert.Equal(!hidden, fatigue.Relevant);
+        Assert.Equal(hidden, fatigue.NothingCounted);
+    }
+
+    [Fact]
+    public void Every_counter_starts_a_game_hidden_in_auto_unless_its_value_is_a_reason_or_a_goal()
+    {
+        // m2 of the release cleanup review: a counter defined without its start value (CounterValue.Zero) would show a
+        // bare zero in Auto from the mulligan on. At the start of an empty game nothing is related, so Relevant is the
+        // value's own reason (Active). The one line closes the setup's last entity, which tells the local player.
+        var view = View(Play("DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=3 "));
+
+        Assert.NotEmpty(view.Counters);
+        Assert.All(view.Counters.Where(c => c.Id != Counters.QuestsId),
+            c => Assert.True(c.NothingCounted || c.Relevant || c.Goal is not null, $"{c.Id} ({(c.Opponent ? "opponent" : "you")}) shows \"{c.Value}\" before any count"));
     }
 
     [Fact]

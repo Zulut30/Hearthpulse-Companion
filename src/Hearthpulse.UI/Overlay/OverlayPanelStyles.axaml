@@ -413,10 +413,6 @@
     <Style Selector="o|MovablePanel.offers /template/ Button#PART_Lock">
         <Setter Property="IsVisible" Value="True" />
     </Style>
-    <!-- Resting on a locked panel: the button alone, without the name tag, so the panel does not look armed -->
-    <Style Selector="o|MovablePanel.offers:not(.armed) /template/ Border#Tag">
-        <Setter Property="IsVisible" Value="False" />
-    </Style>
     <Style Selector="o|MovablePanel.unlocked /template/ Button#PART_Lock">
         <Setter Property="ToolTip.Tip" Value="{i:Loc Overlay.Lock.LockTip}" />
     </Style>

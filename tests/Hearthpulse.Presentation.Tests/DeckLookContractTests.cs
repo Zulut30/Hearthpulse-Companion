@@ -106,7 +106,10 @@ public sealed class DeckLookContractTests
             }));
         }
 
-        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
+        // My stats is built on the caller (BackgroundWork.Inline): the places and the rating card come in one pass.
+        dynamic model = wpf
+            ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) { Background = Hearthpulse.App.Infrastructure.BackgroundWork.Inline }
+            : new AvaMain(history, new AppSettings(), TestApp.Data) { Background = Hearthpulse.UI.Infrastructure.BackgroundWork.Inline };
         await Changed((INotifyPropertyChanged)model, "BgPlaces", () => model.RefreshAsync());
         var rows = ((IEnumerable<object>)model.BgPlaces).Cast<dynamic>().ToList();
         Assert.Equal(8, rows.Count);
@@ -115,9 +118,8 @@ public sealed class DeckLookContractTests
         Assert.Equal(0.0, (double)rows[1].Fraction);
         Assert.Equal(new[] { true, true, true, true, false, false, false, false }, rows.Select(r => (bool)r.Top));
         Assert.Equal(0.5.ToString("P0", System.Globalization.CultureInfo.CurrentCulture), (string)rows[0].Share);
-        // Rated games: the highest MMR leads the tiles and the rating card stands beside the places (the chart is set
-        // right after the places, in the same pass).
-        Assert.True(SpinWait.SpinUntil(() => (bool)model.BgRatingShown, TimeSpan.FromSeconds(5)));
+        // Rated games: the highest MMR leads the tiles and the rating card stands beside the places.
+        Assert.True((bool)model.BgRatingShown);
         Assert.Equal(Hearthpulse.Core.Localization.Loc.T("Stats.Bg.HighestMmr"), (string)((IEnumerable<object>)model.BgStatTiles).Cast<dynamic>().First().Label);
     }
 

@@ -38,15 +38,19 @@ File: `src/Hearthpulse.Core/Tracking/Counters/Counters.cs`, array `Defs` of
    {
        var n = c.Tag("HERALD_COLOSSAL_AMOUNT");
        var next = 2 - n % 2;
-       return new(n.ToString(CultureInfo.InvariantCulture), n % 2 / 2.0, [Loc.P("Core.Counter.HeraldNext", next)], n > 0, Goal: 2);
+       return new(n.ToString(CultureInfo.InvariantCulture), n % 2 / 2.0, [Loc.P("Core.Counter.HeraldNext", next)], n > 0, Goal: 2, Zero: n == 0);
    }),
    ```
-   `CounterValue(Value, Progress, Details, Active, Counted, Parts, Goal)`:
+   `CounterValue(Value, Progress, Details, Active, Counted, Parts, Goal, Zero)`:
    - `Value` - the chip text (invariant culture for numbers);
    - `Details` - tooltip lines under the `Description`;
    - `Active` - the value itself makes the counter relevant (shown in Auto even without a related card);
    - `Counted` - card ids that were counted (shown grouped in the tooltip);
    - `Parts` - `(CardId, Done)` checklist (e.g. C'Thun abilities); `Goal` - segments when <= 10, bar otherwise.
+   - `Zero` - the value is where every game starts (0, +0/+0, a base damage, "not played"); the helpers set it, a
+     `new(...)` must. Auto hides the counter until its first count in the game, then keeps it to the end, zero included;
+     a counter with a `Goal` shows from the start (O-11). `CountersTests.Every_counter_starts_a_game_hidden_in_auto_*`
+     fails a counter without it.
    - Return `null` to hide the counter for that player (e.g. hidden info for the opponent).
    Helpers in the same file: `Num`, `Ids`, `PlayedNum`, `Goal`, `Next`, `Countdown`; context: `c.Tag`, `c.Played()`,
    `c.PlayedIds()`, `c.Plays()`, `c.Deaths()`, `c.Source(key)`, `c.SourceCards(key)`, `c.OwnTurn`, `c.Log`, `c.Cards`.
@@ -59,7 +63,8 @@ File: `src/Hearthpulse.Core/Tracking/Counters/Counters.cs`, array `Defs` of
    `SOURCE_PATTERNS` (`(?P<n>\d+)` = amount, `(?P<twice>...)` doubles). Then regenerate (step below). `Counters.cs`
    reads `CounterCards.Sources[key]` directly - a missing key throws.
 4. Relevance is automatic: Auto shows the chip when the player's deck or seen cards contain a related card
-   (`CounterCards.Related[id]`) or `Active` is true. Opponent chips are gated by `ShowOpponentCounters`.
+   (`CounterCards.Related[id]`) or `Active` is true, and it has counted something this game or has a goal
+   (`CounterView.NothingCounted`). Opponent chips are gated by `ShowOpponentCounters`.
 
 ### Regenerate `CounterCards.g.cs`
 

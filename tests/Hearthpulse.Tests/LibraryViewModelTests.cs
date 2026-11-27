@@ -182,6 +182,30 @@ public sealed class LibraryViewModelTests : IDisposable
     }
 
     /// <summary>
+    /// G-2 in History: a deck named after its class ("Priest 2", what the client calls a deck nobody named) does not say
+    /// the class twice under its name; another name keeps the class (Q6 of the release cleanup QA).
+    /// </summary>
+    [Fact]
+    public async Task A_deck_named_after_its_class_leaves_the_class_out_of_its_caption()
+    {
+        var start = new DateTime(2026, 10, 28, 16, 0, 0);
+        string Class(string id) => Hearthpulse.UI.Overlay.OverlayViewModel.ClassName(id);
+        GameRecord Game(string key, int hour, string playerClass, string deck) => new()
+        {
+            Key = key, StartedAt = start.AddHours(hour), EndedAt = start.AddHours(hour).AddMinutes(8), Mode = "Ranked", PlayerName = "Me#1234",
+            PlayerClass = playerClass, DeckName = deck, Result = "Win", Turns = 9,
+        };
+        _history.Add(Game("20261028160000|me#1|GT_RANKED", 0, "PRIEST", Class("PRIEST") + " 2"));
+        _history.Add(Game("20261028170000|me#1|GT_RANKED", 1, "ROGUE", "Cycle Rogue"));
+        var vm = await Open();
+
+        var named = vm.Library.Cards.Single(c => c.HistoryKey == "20261028160000|me#1|GT_RANKED");
+        Assert.DoesNotContain(Class("PRIEST"), named.Caption.Split(" · "));
+        var other = vm.Library.Cards.Single(c => c.HistoryKey == "20261028170000|me#1|GT_RANKED");
+        Assert.StartsWith(Class("ROGUE") + " · ", other.Caption, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// The header's parts reach the view in one notification (the summary), not one per part; chips past 3 go into "+N"
     /// with the rest in its tooltip.
     /// </summary>

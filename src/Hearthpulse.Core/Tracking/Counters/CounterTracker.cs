@@ -78,6 +78,9 @@ public sealed class CounterTracker : IPowerListener
 
         /// <summary>Times each quest reached its goal, by card id (repeatable quests complete more than once).</summary>
         public Dictionary<string, int> QuestsCompleted { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>Counters that have counted something this game: Auto keeps them to the end, a zero included (O-11).</summary>
+        internal HashSet<string> CountedOnce { get; } = new(StringComparer.Ordinal);
     }
 
     public PlayerLog For(int playerId) => _logs.TryGetValue(playerId, out var log) ? log : _logs[playerId] = new PlayerLog();

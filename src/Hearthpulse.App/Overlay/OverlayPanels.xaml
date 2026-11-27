@@ -764,14 +764,6 @@
                             <Setter TargetName="LockLabel" Property="Visibility" Value="Visible" />
                             <Setter TargetName="PART_Lock" Property="ToolTip" Value="{i:Loc Overlay.Lock.LockTip}" />
                         </Trigger>
-                        <!-- Resting on a locked panel: the button alone, without the name tag, so the panel does not look armed -->
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="OffersLock" Value="True" />
-                                <Condition Property="IsDragArmed" Value="False" />
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="Tag" Property="Visibility" Value="Collapsed" />
-                        </MultiTrigger>
                         <!-- A placeholder already carries the title; the tag would only repeat it and pile up over its neighbours.
                              Only the placeholder itself takes the mouse, so a wide row's empty width never hides its neighbours. -->
                         <Trigger Property="ShowPlaceholder" Value="True">

@@ -242,10 +242,10 @@ public partial class OverlayView : UserControl
     /// the mouse. During a drag that holds wherever the pointer is, as the WPF overlay keeps the mouse while it is
     /// captured: once Ctrl was let go and the pointer left the panel, the overlay went click-through mid-drag.
     /// </returns>
-    public bool UpdateDragArm(Point? pointer, bool controlDown, DateTime now)
+    public bool UpdateDragArm(Point? pointer, bool controlDown)
     {
         var (armed, dragging) = _arming.Tick(_panels, pointer is { } p ? panel => IsUnder(panel, p) : null,
-            _viewModel?.LayoutEditing == true, controlDown, _viewModel?.PanelsUnlocked == true, now);
+            _viewModel?.LayoutEditing == true, controlDown, _viewModel?.PanelsUnlocked == true);
         return armed || dragging;
     }
 
@@ -257,7 +257,7 @@ public partial class OverlayView : UserControl
             return false;
         }
 
-        var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.Bounds.Size);
+        var area = panel.IsDragArmed ? panel.ArmedArea() : new Rect(panel.Bounds.Size);
         return this.TranslatePoint(pointer, panel) is { } local && area.Contains(local);
     }
 

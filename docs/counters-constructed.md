@@ -21,7 +21,9 @@ Value sources:
   `CounterCards.g.cs` (`Sources`: amount when played / when it dies; `BloodRunes`; `Protoss`).
 
 "Relevant" cards (shown in Auto mode) are generated into `CounterCards.Related` from the text patterns in the
-generator; the card ids below are the main ones.
+generator; the card ids below are the main ones. Auto shows a relevant counter from its first count in the game to the
+end of it, a zero included (a per-turn count, Corpses spent); a counter with a goal ("0/4") shows from the start. Always
+shows the start value too. (O-11, TASK-2026-11-26-release-cleanup, coordinator 2026-11-27)
 
 ## Added counters
 

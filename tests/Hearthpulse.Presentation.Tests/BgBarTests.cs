@@ -72,12 +72,14 @@ public sealed class BgBarTests : IDisposable
         Assert.Equal("minions in this lobby", (string)model.BrowserScope);
     }
 
-    private static CombatOdds Odds(int unsimulated = 1, double lethal = 0.311, double kill = 0.197, int cap = 0) =>
+    /// <param name="dealt">The top of the damage you deal (8 fights in 10), from 8.</param>
+    /// <param name="taken">The top of the damage you take, from 9.</param>
+    private static CombatOdds Odds(int unsimulated = 1, double lethal = 0.311, double kill = 0.197, int cap = 0, int dealt = 16, int taken = 17) =>
         new(0.355, 0.324, 0.321, unsimulated)
         {
             Runs = 4000,
-            DamageDealt = new DamageSpread(12, 8, 16, 20, [1]),
-            DamageTaken = new DamageSpread(13, 9, 17, 21, [1]),
+            DamageDealt = new DamageSpread(12, 8, dealt, Math.Max(dealt, 20), [1]),
+            DamageTaken = new DamageSpread(13, 9, taken, Math.Max(taken, 21), [1]),
             LethalTaken = lethal,
             LethalDealt = kill,
             DamageCap = cap,
@@ -121,11 +123,15 @@ public sealed class BgBarTests : IDisposable
         Assert.False((bool)model.LethalDanger);
         Assert.False((bool)model.OddsEstimated);
 
-        // The ranges reach 16 and 17: a cap of 15 cuts them, a cap of 30 says nothing.
-        Assert.Equal("Hero damage capped at 15", (string)Model(wpf, View(["BEAST"], Odds(unsimulated: 0, cap: 15))).OddsNote);
-        Assert.Equal(string.Empty, (string)Model(wpf, View(["BEAST"], Odds(unsimulated: 0, cap: 30))).OddsNote);
-        var both = Model(wpf, View(["BEAST"], Odds(unsimulated: 2, cap: 15)));
-        Assert.Equal("Hero damage capped at 15", (string)both.OddsNote);
+        // The game cuts the damage at the cap, so a range it cuts ends on it: 9-17 under a cap of 17 says so, and so does
+        // a range only the damage you deal reaches (8-16 under 16, the damage you take 9-12). A cap neither reaches says
+        // nothing (Q1 of the release cleanup QA).
+        string Note(CombatOdds odds) => (string)Model(wpf, View(["BEAST"], odds)).OddsNote;
+        Assert.Equal("Hero damage capped at 17", Note(Odds(unsimulated: 0, cap: 17)));
+        Assert.Equal("Hero damage capped at 16", Note(Odds(unsimulated: 0, cap: 16, taken: 12)));
+        Assert.Equal(string.Empty, Note(Odds(unsimulated: 0, cap: 18)));
+        var both = Model(wpf, View(["BEAST"], Odds(unsimulated: 2, cap: 17)));
+        Assert.Equal("Hero damage capped at 17", (string)both.OddsNote);
         Assert.Equal("2 effects not simulated", (string)both.OddsEstimatedTip);
     }
 

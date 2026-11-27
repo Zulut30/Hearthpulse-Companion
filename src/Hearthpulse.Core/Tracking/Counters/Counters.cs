@@ -36,8 +36,9 @@ public sealed record CounterView(string Id, string Title, string Value, double? 
     public int? Goal { get; init; }
 
     /// <summary>
-    /// Nothing counted yet: the value is where every game starts (0, 0/4, +0/+0, the base damage). Auto mode shows the
-    /// counter only once it has counted something; Always shows the zero too.
+    /// Nothing counted yet in this game: Auto leaves the counter out until its first count, then keeps it to the end of the
+    /// game, a zero included (a per-turn count, Corpses spent); a goal ("0/4") shows from the start, and Always shows the
+    /// zero too (O-11, coordinator 2026-11-27).
     /// </summary>
     public bool NothingCounted { get; init; }
 }
@@ -343,7 +344,8 @@ public static partial class Counters
         var player = game.Players.TryGetValue(playerId, out var slot) ? game.Entities.GetValueOrDefault(slot.EntityId) : null;
         var hero = opponent ? game.OpponentHero : game.LocalHero;
         var allDied = game.Players.Keys.Sum(id => tracker.For(id).Died.Count);
-        var context = new CounterContext(game, playerId, player, tracker, tracker.For(playerId), cards, cards.Get(hero?.CardId)?.CardClass ?? string.Empty, allDied);
+        var log = tracker.For(playerId);
+        var context = new CounterContext(game, playerId, player, tracker, log, cards, cards.Get(hero?.CardId)?.CardClass ?? string.Empty, allDied);
         var views = tracker.Views;
         views.Use(cards);
         // Built for both players on every overlay update (up to 10 a second): plain loops, and shared empty lists for
@@ -357,9 +359,16 @@ public static partial class Counters
                 continue;
             }
 
+            if (!value.Zero)
+            {
+                log.CountedOnce.Add(def.Id);
+            }
+
+            var nothingCounted = value.Zero && !value.Active && value.Goal is null && !log.CountedOnce.Contains(def.Id);
+
             // Most counters read the same as on the last update: that view again, nothing built (these views and their
-            // card lists were about half of what an update allocated).
-            if (views.Same(opponent, def, value, related, seen) is { } same)
+            // card lists were about half of what an update allocated). The flag too: the views outlive a game, the log not.
+            if (views.Same(opponent, def, value, related, seen) is { } same && same.NothingCounted == nothingCounted)
             {
                 result.Add(same);
                 continue;
@@ -376,7 +385,7 @@ public static partial class Counters
                 RelatedCards = relatedCards,
                 Parts = value.Parts is { Count: > 0 } parts ? parts.Select(p => new CounterCard(p.CardId, cards.NameOf(p.CardId), 0, p.Done)).ToList() : [],
                 Goal = value.Goal,
-                NothingCounted = value.Zero && !value.Active,
+                NothingCounted = nothingCounted,
             };
             views.Keep(opponent, def.Id, value, view);
             result.Add(view);

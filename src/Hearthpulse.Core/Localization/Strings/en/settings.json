@@ -71,7 +71,7 @@
   "Settings.Overlay.Odds": "Combat odds",
   "Settings.Overlay.OddsTip": "Win, tie and loss from thousands of simulated fights of both boards, shown while the fight plays.",
   "Settings.Overlay.Session": "Battlegrounds session",
-  "Settings.Overlay.SessionTip": "Rating and placements of this session.",
+  "Settings.Overlay.SessionTip": "Rating and placements of this session, while you pick a hero.",
   "Settings.Overlay.Size": "Size",
   "Settings.Overlay.SizeTip": "Scales every overlay panel",
   "Settings.Overlay.Opacity": "Panel background opacity",
@@ -111,7 +111,7 @@
   "Settings.Tracker.OpenOverlay": "Open the Overlay tab",
 
   "Settings.Counters.Title": "Counters and mulligan",
-  "Settings.Counters.Caption": "Auto shows a counter when a card in your deck, or one your opponent revealed, needs it. Click a counter in game for details.",
+  "Settings.Counters.Caption": "Auto shows a counter when a card in your deck, or one your opponent revealed, needs it — from its first count to the end of the game; a counter with a goal (\"0/4\") at once. Click a counter in game for details.",
   "Settings.Counters.Show": "Show counters",
   "Settings.Counters.Opponent": "Include your opponent's counters",
   "Settings.Counters.Mulligan": "Mulligan stats",

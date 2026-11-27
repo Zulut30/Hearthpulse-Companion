@@ -185,7 +185,6 @@ public sealed class PanelLayoutTests
     [Fact]
     public void The_panel_under_the_pointer_arms_or_offers_its_lock_and_a_dragged_one_stays_armed()
     {
-        var t0 = new DateTime(2026, 11, 4, 12, 0, 0, DateTimeKind.Utc);
         var deck = new Panel("deck");
         var opponent = new Panel("opponent");
         var mulligan = new Panel("mulligan") { SitsOnGame = true };
@@ -193,24 +192,24 @@ public sealed class PanelLayoutTests
         var arming = new PanelArming();
 
         // Ctrl over the deck: only the deck takes the mouse and offers its lock.
-        Assert.Equal((true, false), arming.Apply(panels, deck, editing: false, controlDown: true, unlocked: false, t0));
+        Assert.Equal((true, false), arming.Apply(panels, deck, editing: false, controlDown: true, unlocked: false));
         Assert.Equal((true, true), (deck.IsDragArmed, deck.OffersLock));
         Assert.Equal((false, false), (opponent.IsDragArmed, opponent.OffersLock));
         Assert.Contains("Overlay panel deck armed (Ctrl)", TestDataFolder.ReadLog(), StringComparison.Ordinal);
 
         // Unlocked panels arm without Ctrl, except one on the game's cards.
-        Assert.Equal((true, false), arming.Apply(panels, opponent, editing: false, controlDown: false, unlocked: true, t0.AddSeconds(1)));
+        Assert.Equal((true, false), arming.Apply(panels, opponent, editing: false, controlDown: false, unlocked: true));
         Assert.Equal((false, false), (deck.IsDragArmed, deck.OffersLock));
         Assert.True(opponent.IsDragArmed);
-        Assert.Equal((false, false), arming.Apply(panels, mulligan, editing: false, controlDown: false, unlocked: true, t0.AddSeconds(2)));
+        Assert.Equal((false, false), arming.Apply(panels, mulligan, editing: false, controlDown: false, unlocked: true));
         Assert.Equal((false, false), (mulligan.IsDragArmed, mulligan.OffersLock));
 
         // A panel being dragged keeps the mouse wherever the pointer goes, until the button comes up.
         opponent.IsDragging = true;
-        Assert.Equal((false, true), arming.Apply(panels, null, editing: false, controlDown: false, unlocked: false, t0.AddSeconds(3)));
+        Assert.Equal((false, true), arming.Apply(panels, null, editing: false, controlDown: false, unlocked: false));
         Assert.True(opponent.IsDragArmed);
         // In layout mode every panel moves anyway: none is armed for it.
-        Assert.Equal((false, true), arming.Apply(panels, null, editing: true, controlDown: false, unlocked: false, t0.AddSeconds(4)));
+        Assert.Equal((false, true), arming.Apply(panels, null, editing: true, controlDown: false, unlocked: false));
         Assert.False(opponent.IsDragArmed);
     }
 

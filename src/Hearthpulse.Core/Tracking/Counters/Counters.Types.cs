@@ -25,8 +25,8 @@ public static partial class Counters
     /// <param name="Counted">Card ids of what was counted, one per count (the tooltip groups them).</param>
     /// <param name="Parts">The parts of the goal and whether each is done.</param>
     /// <param name="Zero">
-    /// Nothing counted yet: the value is where every game starts (0, 0/4, +0/+0, the base damage). Auto mode leaves such a
-    /// counter out (<see cref="CounterView.NothingCounted"/>).
+    /// The value is where every game starts (0, +0/+0, the base damage, "not played"). Until a counter first leaves it in a
+    /// game, Auto mode leaves the counter out (<see cref="CounterView.NothingCounted"/>).
     /// </param>
     internal sealed record CounterValue(string Value, double? Progress = null, IReadOnlyList<string>? Details = null, bool Active = false,
         IReadOnlyList<string>? Counted = null, IReadOnlyList<(string CardId, bool Done)>? Parts = null, int? Goal = null, bool Zero = false);

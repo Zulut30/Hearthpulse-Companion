@@ -239,7 +239,7 @@ public partial class OverlayWindow : Window
         FadeBackdrops(OverlayViewModel.SurfaceOpacity(_settings));
 
         Native.GetCursorPos(out var cursor);
-        UpdateClickThrough(cursor, r, now);
+        UpdateClickThrough(cursor, r);
         UpdateLeaderboardHover(cursor, r);
         UpdateGuides(r);
         ViewModel.ArrangeLeaderboard(Surface.Width, Surface.Height, _settings);
@@ -322,11 +322,11 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void UpdateClickThrough(Native.POINT cursor, Native.RECT r, DateTime now)
+    private void UpdateClickThrough(Native.POINT cursor, Native.RECT r)
     {
         var inside = cursor.X >= r.Left && cursor.X < r.Right && cursor.Y >= r.Top && cursor.Y < r.Bottom;
         var point = new Point((cursor.X - r.Left) / _dpi, (cursor.Y - r.Top) / _dpi);
-        var interactive = UpdateDragArm(inside ? point : null, PoolInput.IsDown(ControlKey), now) || Mouse.Captured is not null;
+        var interactive = UpdateDragArm(inside ? point : null, PoolInput.IsDown(ControlKey)) || Mouse.Captured is not null;
         if (!interactive && inside)
         {
             var hit = Root.InputHitTest(point) as DependencyObject;
@@ -369,8 +369,8 @@ public partial class OverlayWindow : Window
     /// dragged stays armed until the button comes up. Every change is one line in the log (<see cref="PanelArming"/>).
     /// </summary>
     /// <returns>Whether a panel under the mouse is armed, so the overlay must take the mouse.</returns>
-    internal bool UpdateDragArm(Point? point, bool controlDown, DateTime now) =>
-        _arming.Tick(_panels, point is { } p ? panel => IsUnder(panel, p) : null, ViewModel.LayoutEditing, controlDown, ViewModel.PanelsUnlocked, now).Armed;
+    internal bool UpdateDragArm(Point? point, bool controlDown) =>
+        _arming.Tick(_panels, point is { } p ? panel => IsUnder(panel, p) : null, ViewModel.LayoutEditing, controlDown, ViewModel.PanelsUnlocked).Armed;
 
     /// <summary>Whether the mouse (window units) is on a shown panel, or on its tag strip while the tag is up.</summary>
     private bool IsUnder(MovablePanel panel, Point point)
@@ -382,7 +382,7 @@ public partial class OverlayWindow : Window
             return false;
         }
 
-        var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.RenderSize);
+        var area = panel.IsDragArmed ? panel.ArmedArea() : new Rect(panel.RenderSize);
         return area.Contains(Root.TranslatePoint(point, panel));
     }
 

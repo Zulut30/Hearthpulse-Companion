@@ -56,19 +56,20 @@ public sealed class OverlayDeclutterTests : IDisposable
     [Fact]
     public void Auto_counters_wait_for_their_first_count_and_always_shows_the_zero()
     {
-        // O-11: no "Deathrattle minions 0" in the mulligan; a counter under way and one with a count show.
+        // O-11: no "Deathrattle minions 0" in the mulligan; a counter with a count and a goal ("0/4", which Core never
+        // flags) show.
         CounterView Counter(string id, string value, bool nothing) =>
             new(id, id, value, null, false, "CARD", string.Empty, [], Relevant: true) { NothingCounted = nothing };
         var view = Constructed("Rival#1234") with
         {
-            Counters = [Counter("deathrattle-summoned", "0", true), Counter("spells-cast", "3", false), Counter("cthun", "0/4", true)],
+            Counters = [Counter("deathrattle-summoned", "0", true), Counter("spells-cast", "3", false), Counter("cthun", "0/4", false)],
         };
 
-        Assert.Equal(["spells-cast"], Updated(view).MyCounters.Select(c => c.Id));
+        Assert.Equal(["spells-cast", "cthun"], Updated(view).MyCounters.Select(c => c.Id));
 
         var always = new AppSettings();
         always.CounterModes["deathrattle-summoned"] = nameof(CounterMode.Always);
-        Assert.Equal(["deathrattle-summoned", "spells-cast"], Updated(view, always).MyCounters.Select(c => c.Id));
+        Assert.Equal(["deathrattle-summoned", "spells-cast", "cthun"], Updated(view, always).MyCounters.Select(c => c.Id));
 
         // Nothing counted in any of them: no counters panel at all.
         var none = view with { Counters = [Counter("deathrattle-summoned", "0", true)] };

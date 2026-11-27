@@ -271,7 +271,7 @@ public sealed partial class OverlayViewModel
 
     /// <summary>
     /// A hero: class win rate, its place among the classes and the 7+ wins share. Without a win rate the badge is
-    /// <see cref="ArenaPickBadge.Empty"/>: the draft panel already says why the numbers are missing.
+    /// <see cref="ArenaPickBadge.Empty"/>: it keeps its slot over the portrait and draws nothing.
     /// </summary>
     private static ArenaPickBadge HeroBadge(ArenaPickOption o, ArenaDraftView draft, CultureInfo culture)
     {
