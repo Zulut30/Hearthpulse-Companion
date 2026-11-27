@@ -40,11 +40,11 @@ public sealed partial class HistoryStore
                     deck_name, deck_code, tavern_tier, final_board, races, rank, source,
                     combat_results, offered_heroes, anomaly, rank_star_level, rank_legend, went_first, deck_id,
                     mulligan, cards_drawn, cards_played, opponent_cards, opponent_archetype, replay, combat_odds, scenario_id,
-                    deck_archetype)
+                    deck_archetype, build)
                 VALUES ($key, $started, $ended, $mode, $type, $format, $player, $opponent, $hero, $ohero, $pclass, $oclass,
                     $result, $placement, $rb, $ra, $turns, $deck, $code, $tier, $board, $races, $rank, $source,
                     $combats, $offered, $anomaly, $stars, $legend, $first, $deckid,
-                    $mulligan, $drawn, $played, $ocards, $oarch, $replay, $codds, $scenario, $darch)
+                    $mulligan, $drawn, $played, $ocards, $oarch, $replay, $codds, $scenario, $darch, $build)
                 ON CONFLICT (game_key) DO UPDATE SET
                     ended_at = excluded.ended_at, mode = excluded.mode, game_type = excluded.game_type, format = excluded.format,
                     player_name = excluded.player_name, opponent_name = excluded.opponent_name, hero = excluded.hero,
@@ -67,13 +67,15 @@ public sealed partial class HistoryStore
                     opponent_archetype = COALESCE(excluded.opponent_archetype, games.opponent_archetype),
                     replay = COALESCE(excluded.replay, games.replay),
                     scenario_id = COALESCE(excluded.scenario_id, games.scenario_id),
-                    deck_archetype = COALESCE(excluded.deck_archetype, games.deck_archetype)
+                    deck_archetype = COALESCE(excluded.deck_archetype, games.deck_archetype),
+                    build = COALESCE(excluded.build, games.build)
                 WHERE games.result = 'Abandoned' AND excluded.result <> 'Abandoned';
                 """;
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
             command.Parameters.AddWithValue("$codds", (object?)game.CombatOdds ?? DBNull.Value);
             command.Parameters.AddWithValue("$scenario", (object?)game.ScenarioId ?? DBNull.Value);
             command.Parameters.AddWithValue("$darch", (object?)game.DeckArchetype ?? DBNull.Value);
+            command.Parameters.AddWithValue("$build", (object?)game.Build ?? DBNull.Value);
             command.Parameters.AddWithValue("$offered", (object?)game.OfferedHeroes ?? DBNull.Value);
             command.Parameters.AddWithValue("$anomaly", (object?)game.AnomalyCardId ?? DBNull.Value);
             command.Parameters.AddWithValue("$stars", (object?)game.RankStarLevel ?? DBNull.Value);
@@ -255,7 +257,8 @@ public sealed partial class HistoryStore
                     replay = COALESCE(replay, $replay),
                     combat_odds = COALESCE(combat_odds, $codds),
                     scenario_id = COALESCE(scenario_id, $scenario),
-                    deck_archetype = COALESCE(deck_archetype, $darch)
+                    deck_archetype = COALESCE(deck_archetype, $darch),
+                    build = COALESCE(build, $build)
                 WHERE game_key = $key
                     AND ((combat_results IS NULL AND $combats IS NOT NULL) OR (offered_heroes IS NULL AND $offered IS NOT NULL)
                         OR (anomaly IS NULL AND $anomaly IS NOT NULL) OR (rank_star_level IS NULL AND $stars IS NOT NULL)
@@ -264,13 +267,15 @@ public sealed partial class HistoryStore
                         OR (cards_drawn IS NULL AND $drawn IS NOT NULL) OR (cards_played IS NULL AND $played IS NOT NULL)
                         OR (opponent_cards IS NULL AND $ocards IS NOT NULL) OR (opponent_archetype IS NULL AND $oarch IS NOT NULL)
                         OR (replay IS NULL AND $replay IS NOT NULL) OR (combat_odds IS NULL AND $codds IS NOT NULL)
-                        OR (scenario_id IS NULL AND $scenario IS NOT NULL) OR (deck_archetype IS NULL AND $darch IS NOT NULL));
+                        OR (scenario_id IS NULL AND $scenario IS NOT NULL) OR (deck_archetype IS NULL AND $darch IS NOT NULL)
+                        OR (build IS NULL AND $build IS NOT NULL));
                 """;
             command.Parameters.AddWithValue("$key", game.Key);
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
             command.Parameters.AddWithValue("$codds", (object?)game.CombatOdds ?? DBNull.Value);
             command.Parameters.AddWithValue("$scenario", (object?)game.ScenarioId ?? DBNull.Value);
             command.Parameters.AddWithValue("$darch", (object?)game.DeckArchetype ?? DBNull.Value);
+            command.Parameters.AddWithValue("$build", (object?)game.Build ?? DBNull.Value);
             command.Parameters.AddWithValue("$offered", (object?)game.OfferedHeroes ?? DBNull.Value);
             command.Parameters.AddWithValue("$anomaly", (object?)game.AnomalyCardId ?? DBNull.Value);
             command.Parameters.AddWithValue("$stars", (object?)game.RankStarLevel ?? DBNull.Value);

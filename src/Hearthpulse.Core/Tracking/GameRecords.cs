@@ -119,6 +119,7 @@ public static class GameRecords
                 CombatOdds = CombatOddsJson(battlegrounds.Combats),
                 OfferedHeroes = facts is { OfferedHeroes.Count: > 0 } ? string.Join(',', facts.OfferedHeroes) : null,
                 AnomalyCardId = game.GameEntity?.GetInt(GameTag.BaconAnomaly) is > 0 and var anomaly ? cards.Get(anomaly)?.Id : null,
+                Build = BuildOf(game),
             };
         }
 
@@ -166,6 +167,7 @@ public static class GameRecords
             RankLegend = rankInfo is { LegendRank: > 0 } ? rankInfo.LegendRank : null,
             WentFirst = WentFirst(game),
             ScenarioId = game.ScenarioId > 0 ? game.ScenarioId : null,
+            Build = BuildOf(game),
             DeckId = deck is { DeckId: > 0 } && deckFits ? deck.DeckId : null,
             Mulligan = GameCards.MulliganJson(mulligan),
             CardsDrawn = mulligan is null ? null : GameCards.TurnsJson(cardFacts!.Drawn(game)),
@@ -192,6 +194,9 @@ public static class GameRecords
         return string.IsNullOrEmpty(deckClass) || string.IsNullOrEmpty(playerClass)
                || string.Equals(deckClass, playerClass, StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>The client build of the game (the log's <c>BuildNumber</c>), null when the log did not give one.</summary>
+    private static int? BuildOf(GameState game) => game.BuildNumber > 0 ? game.BuildNumber : null;
 
     /// <summary>True when the local player went first, false on the coin, null when the log did not say.</summary>
     private static bool? WentFirst(GameState game)

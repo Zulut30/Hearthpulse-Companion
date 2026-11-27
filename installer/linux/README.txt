@@ -55,7 +55,11 @@ GAME STATISTICS
   visible offers and choices, played/drawn cards, buys, sells, shop
   refreshes, resources, visible board states and outcomes. Incomplete
   observations are marked separately. Stored journals can be reprocessed as
-  the parser improves.
+  the parser improves. Game records also hold the game's build number, the
+  "Diamond 4-1" mark for Ranked games at Diamond 4 to 1 and the main tribe
+  of the final Battlegrounds board; when an Arena run ends, its result is
+  sent too: class, wins, losses, Arena kind (normal or Underground) and
+  final deck.
 - After a Battlegrounds game the journal also holds each of its fights as the
   combat simulator saw it at the first attack: both boards (cards, stats,
   keywords, enchantments and their values, Blood Gem buffs, the card that
