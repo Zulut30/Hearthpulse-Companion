@@ -147,8 +147,9 @@ never writes `Settings.MetaFormat` (it only names the format loaded at start).
 
 The Settings page has tabs (a `SegmentBar` of `Tab` radios in WPF, `segment` radios in Avalonia; the shown tab is kept in
 `AppSettings.SettingsTab`, `ShowSettingsTab(tag)` on `MainWindow`/`MainView`): **General** (Language, Theme - WPF
-only, App), **Overlay** (In-game overlay, Panel layout + Leaderboard hover), **Tracker** (Deck tracker, Counters and
-mulligan), **Account**, **Data** (Your data, Data sources), **About**. Each tab is a control `Main/SettingsTabs/<Tag>Settings`
+only, App), **Overlay** (In-game overlay with the deck tracker's switches as its first group, Panel layout +
+Leaderboard hover), **Tracker** (labelled Counters: Counters and mulligan), **Account**, **Data** (Your data, Data
+sources), **About**. Each tab is a control `Main/SettingsTabs/<Tag>Settings`
 whose tag in the window is named `Settings<Tag>`; a new card goes into the tab that fits. Content `MaxWidth="780"`, left aligned. Renders: `main-settings-<tab>.png`.
 
 - New setting: property + default + `/// <summary>` in `src/Hearthpulse.Core/AppSettings.cs`; bind in both UIs

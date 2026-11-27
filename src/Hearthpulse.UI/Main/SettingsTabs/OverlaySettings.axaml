@@ -5,6 +5,7 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              xmlns:o="using:Hearthpulse.UI.Overlay"
              xmlns:core="using:Hearthpulse.Core"
+             xmlns:mem="using:Hearthpulse.Core.Memory"
              xmlns:s="using:Hearthpulse.UI.Main.Stats"
              xmlns:mm="using:Hearthpulse.UI.Main.Meta"
              xmlns:dk="using:Hearthpulse.UI.Main.Decks"
@@ -15,7 +16,8 @@
              xmlns:st="using:Hearthpulse.UI.Main.SettingsTabs"
              x:Class="Hearthpulse.UI.Main.SettingsTabs.OverlaySettings"
              x:DataType="m:MainViewModel">
-    <!-- Settings, Overlay: what is drawn over the game, its size, panel layout. Same tree as the WPF OverlaySettings.xaml. -->
+    <!-- Settings, Overlay: what is drawn over the game (the deck tracker's panels first), its size, panel layout. Same tree
+         as the WPF OverlaySettings.xaml. -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -104,6 +106,46 @@
                     </StackPanel>
                 </Grid>
                 <StackPanel Name="OverlayPanelSwitches">
+                <!-- The deck tracker's panels are overlay panels too: their switches come first here, not on a tab of their own (G-1) -->
+                <StackPanel Name="TrackerPanelSwitches" Margin="0,0,0,16">
+                <TextBlock Text="{i:Loc Settings.Tracker.Title}" Classes="label settingGroup" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Deck}" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.DrawChance}" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Opponent}" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14"
+                          ToolTip.Tip="{i:Loc Settings.Tracker.OpponentTip}" />
+                <CheckBox Name="CardPoolSetting" Classes="switch" Content="{i:Loc Settings.Tracker.CardPool}" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
+                          ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolTip}" />
+                <!-- Both rows go off with the switch above; each radio's Tag is applied in MainView.Settings.cs. The hover row
+                     needs game memory (Windows only, hidden elsewhere) and says so while reading the client is off. -->
+                <StackPanel Name="CardPoolHoverBlock" IsVisible="{x:Static mem:HearthstoneMemory.IsSupported}"
+                            IsEnabled="{Binding $parent[UserControl].((m:MainViewModel)DataContext).ReadGameMemory}">
+                <Grid Name="CardPoolHoverRow" Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,12"
+                      IsEnabled="{Binding #CardPoolSetting.IsChecked}">
+                    <TextBlock Text="{i:Loc Settings.Tracker.CardPoolHover}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolHoverTip}" />
+                    <Border Classes="segmentBar choice">
+                        <WrapPanel>
+                            <RadioButton Name="CardPoolHoverCtrlOption" Classes="segment" Content="{i:Loc Settings.Tracker.CardPoolHover.Ctrl}" GroupName="CardPoolHover"
+                                         IsChecked="{Binding CardPoolHoverCtrl, Mode=OneWay}" Tag="CardPoolHover.Ctrl"
+                                         ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolHoverTip}" />
+                            <RadioButton Name="CardPoolHoverAlwaysOption" Classes="segment" Content="{i:Loc Settings.Tracker.CardPoolHover.Always}" GroupName="CardPoolHover"
+                                         IsChecked="{Binding CardPoolHoverAlways, Mode=OneWay}" Tag="CardPoolHover.Always"
+                                         ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolHoverTip}" />
+                            <!-- Named apart from "Pick suggestions" Off further down this tab -->
+                            <RadioButton Name="CardPoolHoverOffOption" Classes="segment" Content="{i:Loc Settings.Tracker.CardPoolHover.Off}" GroupName="CardPoolHover"
+                                         IsChecked="{Binding CardPoolHoverOff, Mode=OneWay}" Tag="CardPoolHover.Off"
+                                         ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolHoverTip}" AutomationProperties.Name="{i:Loc Settings.Tracker.CardPoolHover.OffName}" />
+                        </WrapPanel>
+                    </Border>
+                </Grid>
+                <TextBlock Name="CardPoolHoverOffNote" Text="{i:Loc Settings.Tracker.CardPoolHoverOff}" Classes="caption" TextWrapping="Wrap" Margin="0,-8,0,12"
+                           IsVisible="{Binding $parent[UserControl].((m:MainViewModel)DataContext).GameMemoryOff}" />
+                </StackPanel>
+                <CheckBox Name="CardPoolDiscoverSetting" Classes="switch" Content="{i:Loc Settings.Tracker.CardPoolDiscover}" IsChecked="{Binding CardPoolOnDiscover}"
+                          Margin="0,0,0,16" IsEnabled="{Binding #CardPoolSetting.IsChecked}" />
+                <CheckBox Classes="switch" Content="{i:Loc Arena.Settings.Show}" IsChecked="{Binding ShowArenaDraft}" Margin="0,0,0,14"
+                          ToolTip.Tip="{i:Loc Arena.Settings.ShowTip}" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Summary}" IsChecked="{Binding ShowGameToasts}" />
+                </StackPanel>
                 <TextBlock Text="{i:Loc Widgets.Settings.Section}" Classes="label settingGroup" />
                 <CheckBox Classes="switch" Content="{i:Loc Widgets.Turn.Setting}" IsChecked="{Binding ShowTurnTimer}" Margin="0,0,0,14"
                           ToolTip.Tip="{i:Loc Widgets.Turn.SettingTip}" />
@@ -160,9 +202,6 @@
                 <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}"
                           ToolTip.Tip="{i:Loc Settings.Overlay.SessionTip}" />
                 </StackPanel>
-                <!-- The deck tracker's panels are overlay panels too, one tab over -->
-                <TextBlock Text="{i:Loc Settings.Overlay.TrackerLink}" Classes="caption" TextWrapping="Wrap" Margin="0,22,0,10" />
-                <Button Name="OpenTrackerTab" Classes="ghost" Content="{i:Loc Settings.Overlay.OpenTracker}" HorizontalAlignment="Left" Click="RaiseOpenTrackerTabClicked" />
             </StackPanel>
         </Border>
 

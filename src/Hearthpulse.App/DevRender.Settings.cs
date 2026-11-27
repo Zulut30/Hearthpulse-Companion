@@ -1,4 +1,5 @@
 using System.IO;
+using System.Windows;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Updates;
 
@@ -36,7 +37,36 @@ public partial class App
             }
         }
 
+        // The deck tracker's switches sit on the Overlay tab, below the look block (G-1).
+        try
+        {
+            await SaveOverlayTabAtAsync("TrackerPanelSwitches", Path.Combine(folder, "main-settings-overlay-tracker.png"));
+        }
+        catch (IOException ex)
+        {
+            Diag.Error("Render of the Overlay tab's deck tracker group failed", ex);
+        }
+
         _main.ShowSettingsTab("General");
+    }
+
+    /// <summary>Settings, Overlay scrolled to the element named <paramref name="name"/>; nothing when the tab has none.</summary>
+    private async Task SaveOverlayTabAtAsync(string name, string path)
+    {
+        _main.ShowPage("Settings");
+        _main.ShowSettingsTab("Overlay");
+        if (_main.SettingsOverlay.FindName(name) is not FrameworkElement target)
+        {
+            return;
+        }
+
+        await Task.Delay(500);
+        target.BringIntoView(new Rect(0, 0, target.ActualWidth, 640));
+        await Task.Delay(500);
+        _main.UpdateLayout();
+        Save(_main, path);
+        // The page keeps its scroll on another tab: the scenes after this one start at the top again.
+        _main.PageSettings.ScrollToTop();
     }
 
     /// <summary>

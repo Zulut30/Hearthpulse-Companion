@@ -92,17 +92,16 @@ public sealed partial class LocBindingTests
         }
     });
 
-    /// <summary>Both counter crosses name the real place the counter comes back from, in each language.</summary>
+    /// <summary>Both counter crosses name the real place the counter comes back from, the Counters tab, in each language.</summary>
     [Theory]
     [InlineData("en")]
     [InlineData("ru")]
-    public void Counter_hide_tips_name_the_tracker_tab_and_the_counters_card(string language)
+    public void Counter_hide_tips_name_the_counters_tab(string language)
     {
         var table = Loc.Table(language);
         foreach (var key in new[] { "Overlay.Counter.HideTip", "Overlay.BgCounter.HideTip" })
         {
-            Assert.Contains(table["Settings.Tab.Tracker"], table[key], StringComparison.Ordinal);
-            Assert.Contains(table["Settings.Counters.Title"], table[key], StringComparison.Ordinal);
+            Assert.EndsWith(" → " + table["Settings.Tab.Tracker"] + ")", table[key], StringComparison.Ordinal);
         }
     }
 
@@ -119,27 +118,48 @@ public sealed partial class LocBindingTests
         }
     }));
 
+    /// <summary>
+    /// G-1: the deck tracker's switches are the first group of the Overlay card and no tab points to the other one; the
+    /// search finds each of them on the Overlay tab. An off overlay says so on the Overlay and Counters tabs at full
+    /// contrast.
+    /// </summary>
     [Fact]
-    public void Overlay_and_tracker_tabs_link_to_each_other_and_an_off_overlay_says_so_at_full_contrast() => Headless.Run(() => WithMainView((view, model) =>
+    public void Deck_tracker_switches_lead_the_overlay_card_and_an_off_overlay_says_so_at_full_contrast() => Headless.Run(() => WithMainView((view, model) =>
     {
         view.ShowSettingsTab("Overlay");
-        Named<Button>(view, "OpenTrackerTab")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Dispatcher.UIThread.RunJobs();
-        Assert.True(view.FindControl<Control>("SettingsTracker")!.IsVisible);
-        Assert.False(view.FindControl<Control>("SettingsOverlay")!.IsVisible);
-        Assert.Equal("Tracker", model.Settings.SettingsTab);
-        Named<Button>(view, "OpenOverlayTab")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        var tracker = Named<StackPanel>(view, "TrackerPanelSwitches")!;
+        var groups = new[] { Named<StackPanel>(view, "OverlayPanelSwitches")! };
+        Assert.Same(groups[0], tracker.Parent);
+        Assert.Same(tracker, groups[0].Children[0]);
+        Assert.Contains(view.SettingsOverlay, tracker.GetLogicalAncestors());
+        Assert.DoesNotContain(view.GetLogicalDescendants().OfType<Control>(), c => c.Name is "OpenTrackerTab" or "OpenOverlayTab");
+        Assert.Equal(Loc.T("Settings.Tab.Tracker"), view.SettingsTabTracker.Content);
+        string[] moved = ["Settings.Tracker.Title", "Settings.Tracker.Deck", "Settings.Tracker.DrawChance", "Settings.Tracker.Opponent", "Settings.Tracker.CardPool",
+            "Settings.Tracker.CardPoolDiscover", "Arena.Settings.Show", "Settings.Tracker.Summary"];
+        foreach (var label in moved.Select(Loc.T))
+        {
+            model.SettingsQuery = label;
+            Assert.Equal("Overlay", Assert.Single(model.SettingsHits, h => h.Label == label).Tab);
+        }
+
+        // The hover row is there only where game memory is read (Windows).
+        model.SettingsQuery = Loc.T("Settings.Tracker.CardPoolHover");
+        Assert.Equal(Core.Memory.HearthstoneMemory.IsSupported ? new[] { "Overlay" } : [],
+            model.SettingsHits.Where(h => h.Label == Loc.T("Settings.Tracker.CardPoolHover")).Select(h => h.Tab));
+        model.SettingsQuery = Loc.T("Settings.Counters.Show");
+        var counters = Assert.Single(model.SettingsHits, h => h.Label == Loc.T("Settings.Counters.Show"));
+        Assert.Equal(("Tracker", Loc.T("Settings.Tab.Tracker")), (counters.Tab, counters.TabTitle));
+        model.SettingsQuery = string.Empty;
         Dispatcher.UIThread.RunJobs();
-        Assert.True(view.FindControl<Control>("SettingsOverlay")!.IsVisible);
-        Assert.Equal("Overlay", model.Settings.SettingsTab);
 
         var master = Named<CheckBox>(view, "OverlaySetting")!;
         var banners = new[] { Named<Border>(view, "OverlayOffBanner")!, Named<Border>(view, "TrackerOverlayOffBanner")! };
+        Assert.Contains(view.SettingsTracker, banners[1].GetLogicalAncestors());
         var note = Named<TextBlock>(view, "OverlayOffNote")!;
-        var groups = new[] { Named<StackPanel>(view, "OverlayPanelSwitches")!, Named<StackPanel>(view, "TrackerPanelSwitches")! };
         var switches = groups.SelectMany(g => g.GetLogicalDescendants().OfType<CheckBox>()).ToList();
         var headings = groups[0].GetLogicalDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("settingGroup")).ToList();
-        string[] sections = ["Widgets.Settings.Section", "Settings.Overlay.Constructed", "Settings.Overlay.Battlegrounds"];
+        string[] sections = ["Settings.Tracker.Title", "Widgets.Settings.Section", "Settings.Overlay.Constructed", "Settings.Overlay.Battlegrounds"];
         Assert.Equal(sections.Select(Loc.T), headings.Select(h => h.Text));
         Assert.All(banners, b => Assert.False(b.IsVisible));
         Assert.All(headings, h => Assert.Equal(1, Opacity(h, groups[0].Parent!)));

@@ -153,7 +153,7 @@ internal static partial class OffscreenRenderer
 
         if (RenderOnly("cardpool"))
         {
-            // The card pool panel and browser (CardPoolRender.cs), then Settings → Tracker with the pool's rows.
+            // The card pool panel and browser (CardPoolRender.cs), then Settings → Overlay at the pool's rows.
             var (overlay, overlayView) = OpenOverlay(host, host.Settings);
             await CardPoolRender.RenderAsync(host, host.Settings, folder, path =>
             {
@@ -166,10 +166,7 @@ internal static partial class OffscreenRenderer
                 sized.Close();
             });
             overlay.Close();
-            view.ShowPage("Settings");
-            view.ShowSettingsTab("Tracker");
-            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-            await Save(main, Path.Combine(folder, "main-settings-tracker.png"));
+            await SaveOverlayTabAtAsync(main, view, "CardPoolSetting", Path.Combine(folder, "main-settings-pool.png"));
         }
 
         if (RenderOnly("account"))

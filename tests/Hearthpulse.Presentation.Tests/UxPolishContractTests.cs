@@ -178,26 +178,44 @@ public sealed partial class UxPolishContractTests
         window.Close();
     });
 
+    /// <summary>
+    /// G-1: the deck tracker's switches are the first group of the Overlay card and no tab points to the other one; the
+    /// search finds each of them on the Overlay tab. An off overlay says so on the Overlay and Counters tabs at full
+    /// contrast.
+    /// </summary>
     [Fact]
-    public void Overlay_and_tracker_tabs_link_to_each_other_and_an_off_overlay_says_so_at_full_contrast() => Sta(() =>
+    public void Deck_tracker_switches_lead_the_overlay_card_and_an_off_overlay_says_so_at_full_contrast() => Sta(() =>
     {
         var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, root) = Open(model, "Settings", "Overlay");
 
-        Named<Button>(window, "OpenTrackerTab").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-        Assert.Equal(Visibility.Visible, Named<FrameworkElement>(window, "SettingsTracker").Visibility);
-        Assert.Equal(Visibility.Collapsed, Named<FrameworkElement>(window, "SettingsOverlay").Visibility);
-        Assert.Equal("Tracker", model.Settings.SettingsTab);
-        Named<Button>(window, "OpenOverlayTab").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-        Assert.Equal(Visibility.Visible, Named<FrameworkElement>(window, "SettingsOverlay").Visibility);
-        Assert.Equal("Overlay", model.Settings.SettingsTab);
+        var tracker = Named<StackPanel>(window, "TrackerPanelSwitches");
+        var groups = new[] { Named<StackPanel>(window, "OverlayPanelSwitches") };
+        Assert.Same(groups[0], tracker.Parent);
+        Assert.Same(tracker, groups[0].Children[0]);
+        Assert.Contains(window.SettingsOverlay, Ancestors(tracker));
+        Assert.Null(window.SettingsOverlay.FindName("OpenTrackerTab"));
+        Assert.Null(window.SettingsTracker.FindName("OpenOverlayTab"));
+        Assert.Equal(Loc.T("Settings.Tab.Tracker"), window.SettingsView.SettingsTabTracker.Content);
+        string[] moved = ["Settings.Tracker.Title", "Settings.Tracker.Deck", "Settings.Tracker.DrawChance", "Settings.Tracker.Opponent", "Settings.Tracker.CardPool",
+            "Settings.Tracker.CardPoolHover", "Settings.Tracker.CardPoolDiscover", "Arena.Settings.Show", "Settings.Tracker.Summary"];
+        foreach (var label in moved.Select(Loc.T))
+        {
+            model.SettingsQuery = label;
+            Assert.Equal("Overlay", Assert.Single(model.SettingsHits, h => h.Label == label).Tab);
+        }
+
+        model.SettingsQuery = Loc.T("Settings.Counters.Show");
+        var counters = Assert.Single(model.SettingsHits, h => h.Label == Loc.T("Settings.Counters.Show"));
+        Assert.Equal(("Tracker", Loc.T("Settings.Tab.Tracker")), (counters.Tab, counters.TabTitle));
+        model.SettingsQuery = string.Empty;
 
         var master = Named<CheckBox>(window, "OverlaySetting");
         var banners = new[] { Named<Border>(window, "OverlayOffBanner"), Named<Border>(window, "TrackerOverlayOffBanner") };
+        Assert.Contains(window.SettingsTracker, Ancestors(banners[1]));
         var note = Named<TextBlock>(window, "OverlayOffNote");
-        var groups = new[] { Named<StackPanel>(window, "OverlayPanelSwitches"), Named<StackPanel>(window, "TrackerPanelSwitches") };
         var switches = groups.SelectMany(Logical<CheckBox>).ToList();
-        string[] sections = ["Widgets.Settings.Section", "Settings.Overlay.Constructed", "Settings.Overlay.Battlegrounds"];
+        string[] sections = ["Settings.Tracker.Title", "Widgets.Settings.Section", "Settings.Overlay.Constructed", "Settings.Overlay.Battlegrounds"];
         var headings = Logical<TextBlock>(groups[0]).Where(t => ReferenceEquals(t.Style, t.TryFindResource("SettingGroup"))).ToList();
         Assert.Equal(sections.Select(Loc.T), headings.Select(h => h.Text));
         // The dimmed heading style is gone: headings read at Muted on the card (AA in every preset) whatever the switch.

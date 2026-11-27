@@ -36,10 +36,8 @@ public partial class MainView : UserControl
         // The Tracker tab's "overlay is off" banner follows the Overlay tab's switch (two controls now, one binding).
         SettingsTracker.Bind(global::Hearthpulse.UI.Main.SettingsTabs.TrackerSettings.OverlayOnProperty,
             SettingsOverlay.OverlaySetting.GetObservable(ToggleButton.IsCheckedProperty, on => on == true));
-        SettingsOverlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(SettingsOverlay, e);
         SettingsOverlay.ArrangeOverlayClicked += e => OnArrangeOverlay(SettingsOverlay, e);
         SettingsOverlay.DensityChanged += () => SettingsChanged?.Invoke();
-        SettingsTracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(SettingsTracker, e);
         SettingsAccount.CopyAccountCodeClicked += e => OnCopyAccountCode(SettingsAccount, e);
         SettingsData.ReimportClicked += e => OnReimport(SettingsData, e);
         SettingsData.OpenDataClicked += e => OnOpenData(SettingsData, e);

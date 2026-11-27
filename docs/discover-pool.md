@@ -199,8 +199,8 @@ nothing appears without the player asking, nothing follows the hand around (TASK
 3. **A card in hand**: the card under the mouse (game memory, below) when it is in your hand (`GameState` HAND zone) and
    has a pool, an Excavate pool or a "this game" list. Related cards alone open nothing (P-9).
 
-Settings → Tracker, under the main switch "Card pool" (`AppSettings.ShowCardPool`: off hides everything and reads
-nothing):
+Settings → Overlay, in the deck tracker's group, under the main switch "Card pool" (`AppSettings.ShowCardPool`: off
+hides everything and reads nothing):
 
 | Setting | `AppSettings` | Default | A card in hand |
 |---|---|---|---|

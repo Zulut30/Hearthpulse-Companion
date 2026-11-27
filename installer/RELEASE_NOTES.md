@@ -5,7 +5,7 @@
 - **Collection, Achievements and Recap.** New pages: sets and dust, hero skins, card backs and coins, your achievements and a recap of your month or year. On Windows they are read from the running game and stay on your PC.
 - **More of Battlegrounds in the combat odds.** Spells, hero powers, trinkets, quests, buddies, Secrets, Timewarped minions and anomalies now act in simulated fights; Duos fights include your partner's board.
 - **Your data.** Game statistics stay on by default, now without an in-app notice. Settings → Data has a switch for each kind of sending and lists every field; turning game records off asks the server to delete what was sent (Settings → Data shows when it is done). Battlegrounds fights are sent too, only to measure the simulator. New: "Read data from the game client" (Settings → Data) stops every read of the game's memory. Privacy policy: hearthpulse.net/privacy (in Russian)
-- **Overlay.** Turn timers, the end-of-game toast and the Battlegrounds lobby list are now off by default; turn them on in Settings → Overlay.
+- **Overlay.** Turn timers, the end-of-game toast and the Battlegrounds lobby list are now off, also after the update; turn them back on in Settings → Overlay.
 
 ### More
 - Pages and tabs cross-fade, a theme changes without the window blinking, and content stays in place while it loads.
