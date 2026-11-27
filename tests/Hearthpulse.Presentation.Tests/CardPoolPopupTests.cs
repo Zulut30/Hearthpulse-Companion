@@ -455,7 +455,7 @@ public sealed class CardPoolPopupTests
         using (source)
         {
             vm.UpdateCardPoolKeys(true, T0);
-            vm.Update(Snapshot(null, List()), CardDb.Empty, new AppSettings(), null, null);
+            vm.Update(Snapshot(null, List()), CardDb.Empty, new AppSettings(), null);
             ((FrameworkElement)source.RootVisual).UpdateLayout();
 
             Assert.True(panel.IsVisible);
@@ -471,7 +471,7 @@ public sealed class CardPoolPopupTests
         using (source)
         {
             vm.UpdateCardPoolKeys(true, T0);
-            vm.Update(Snapshot(Excavate(new ExcavateState(1, 4))), CardDb.Empty, new AppSettings(), null, null);
+            vm.Update(Snapshot(Excavate(new ExcavateState(1, 4))), CardDb.Empty, new AppSettings(), null);
             ((FrameworkElement)source.RootVisual).UpdateLayout();
 
             Assert.True(panel.IsVisible);
@@ -487,7 +487,7 @@ public sealed class CardPoolPopupTests
         using (source)
         {
             vm.UpdateCardPoolKeys(true, T0);
-            vm.Update(Snapshot(Pool("TEST_GEN", 40)), CardDb.Empty, new AppSettings(), null, null);
+            vm.Update(Snapshot(Pool("TEST_GEN", 40)), CardDb.Empty, new AppSettings(), null);
             ((FrameworkElement)source.RootVisual).UpdateLayout();
 
             var button = (Button)panel.FindName("AllCards");
@@ -515,12 +515,12 @@ public sealed class CardPoolPopupTests
         using (source)
         {
             vm.UpdateCardPoolKeys(true, T0);
-            vm.Update(Snapshot(discover, anchor: new CardPoolAnchor(PoolAnchorZone.Choice, 0, 4)), CardDb.Empty, new AppSettings(), null, null);
+            vm.Update(Snapshot(discover, anchor: new CardPoolAnchor(PoolAnchorZone.Choice, 0, 4)), CardDb.Empty, new AppSettings(), null);
             ((FrameworkElement)source.RootVisual).UpdateLayout();
             Assert.True(popup.IsVisible);
             Assert.Equal(Visibility.Collapsed, ((Button)popup.FindName("AllCards")).Visibility);
 
-            vm.Update(Snapshot(Pool("TEST_GEN", 40)), CardDb.Empty, new AppSettings(), null, null);
+            vm.Update(Snapshot(Pool("TEST_GEN", 40)), CardDb.Empty, new AppSettings(), null);
             ((FrameworkElement)source.RootVisual).UpdateLayout();
             Assert.True(panel.IsVisible);
             Assert.Equal(Visibility.Visible, ((Button)panel.FindName("AllCards")).Visibility);
@@ -529,7 +529,7 @@ public sealed class CardPoolPopupTests
         (vm, popup, _, source) = WpfSurface(1920);
         using (source)
         {
-            vm.Update(Snapshot(discover, anchor: new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3)), CardDb.Empty, new AppSettings(), null, null);
+            vm.Update(Snapshot(discover, anchor: new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3)), CardDb.Empty, new AppSettings(), null);
             ((FrameworkElement)source.RootVisual).UpdateLayout();
             Assert.True(popup.IsVisible);
             Assert.Equal(Visibility.Visible, ((Button)popup.FindName("AllCards")).Visibility);
@@ -645,7 +645,7 @@ public sealed class CardPoolPopupTests
         var a = new Model
         {
             Name = "WPF",
-            ShowWith = (pool, list, anchor, picks, turn) => wpf.Update(Snapshot(pool, list, anchor, picks, turn), CardDb.Empty, wpfSettings, null, null),
+            ShowWith = (pool, list, anchor, picks, turn) => wpf.Update(Snapshot(pool, list, anchor, picks, turn), CardDb.Empty, wpfSettings, null),
             Keys = wpf.UpdateCardPoolKeys,
             Pointer = wpf.UpdateCardPoolPointer,
             HeldNow = () => wpf.CardPoolHeld,
@@ -675,7 +675,7 @@ public sealed class CardPoolPopupTests
         var b = new Model
         {
             Name = "Avalonia",
-            ShowWith = (pool, list, anchor, picks, turn) => ava.Update(Snapshot(pool, list, anchor, picks, turn), CardDb.Empty, avaSettings, null, null),
+            ShowWith = (pool, list, anchor, picks, turn) => ava.Update(Snapshot(pool, list, anchor, picks, turn), CardDb.Empty, avaSettings, null),
             Keys = ava.UpdateCardPoolKeys,
             Pointer = ava.UpdateCardPoolPointer,
             HeldNow = () => ava.CardPoolHeld,

@@ -28,11 +28,11 @@ public sealed partial class LocBindingTests
         ConstructedView View(LikelyDeckView? d) => new(5, null, false, "HERO_09", "PRIEST", "HERO_09", "PRIEST", null, [], 20, 4, [], [], 18, 5, 0, null, null) { OpponentDeck = d };
         var model = new OverlayViewModel();
 
-        model.Update(LiveSnapshot.Empty with { Constructed = View(deck), InGame = true, HearthstoneRunning = true }, CardDb.Empty, new AppSettings(), null, null);
+        model.Update(LiveSnapshot.Empty with { Constructed = View(deck), InGame = true, HearthstoneRunning = true }, CardDb.Empty, new AppSettings(), null);
         Assert.False(model.ShowLikelyDeck);
 
         var settings = new AppSettings { ShowLikelyDeck = true };
-        model.Update(LiveSnapshot.Empty with { Constructed = View(deck), InGame = true, HearthstoneRunning = true }, CardDb.Empty, settings, null, null);
+        model.Update(LiveSnapshot.Empty with { Constructed = View(deck), InGame = true, HearthstoneRunning = true }, CardDb.Empty, settings, null);
 
         Assert.True(model.ShowLikelyDeck);
         Assert.Equal("62%", model.LikelyDeckChance.Replace(" ", string.Empty, StringComparison.Ordinal).Replace(" ", string.Empty, StringComparison.Ordinal));
@@ -57,7 +57,7 @@ public sealed partial class LocBindingTests
         }
 
         // Only core cards known: the note says so; no off-list cards: no section.
-        model.Update(LiveSnapshot.Empty with { Constructed = View(deck with { Games = 0, OffList = [] }), InGame = true, HearthstoneRunning = true }, CardDb.Empty, settings, null, null);
+        model.Update(LiveSnapshot.Empty with { Constructed = View(deck with { Games = 0, OffList = [] }), InGame = true, HearthstoneRunning = true }, CardDb.Empty, settings, null);
         Assert.Equal(Loc.T("OpponentDeck.CoreOnly"), model.LikelyDeckCoreNote);
         Assert.Empty(model.LikelyDeckOffTitle);
         Assert.Empty(model.LikelyDeckOffList);
@@ -67,12 +67,12 @@ public sealed partial class LocBindingTests
         foreach (var scale in new[] { 1.25, 1.6 })
         {
             settings.OverlayScale = scale;
-            model.Update(LiveSnapshot.Empty with { Constructed = View(deck), InGame = true, HearthstoneRunning = true }, CardDb.Empty, settings, null, null);
+            model.Update(LiveSnapshot.Empty with { Constructed = View(deck), InGame = true, HearthstoneRunning = true }, CardDb.Empty, settings, null);
             Assert.True(model.LikelyDeckMaxHeight < OverlayViewModel.LikelyDeckHeight);
             Assert.True((76 + model.LikelyDeckMaxHeight) * scale <= 466, $"scale {scale}: {model.LikelyDeckMaxHeight}");
         }
 
-        model.Update(LiveSnapshot.Empty with { Constructed = View(null), InGame = true, HearthstoneRunning = true }, CardDb.Empty, settings, null, null);
+        model.Update(LiveSnapshot.Empty with { Constructed = View(null), InGame = true, HearthstoneRunning = true }, CardDb.Empty, settings, null);
         Assert.False(model.ShowLikelyDeck);
     }
 }

@@ -74,7 +74,7 @@ public sealed partial class LocBindingTests
             Assert.Equal(Loc.T("Growth.Timestamps.Copy"), Named<Button>(stamps, "CopyButton").Content);
 
             var overlay = new OverlayViewModel();
-            overlay.Update(Core.Tracking.LiveSnapshot.Empty with { StreamSession = StreamSessionView.None(DateTime.Now) }, Core.Cards.CardDb.Empty, settings, null, null);
+            overlay.Update(Core.Tracking.LiveSnapshot.Empty with { StreamSession = StreamSessionView.None(DateTime.Now) }, Core.Cards.CardDb.Empty, settings, null);
             var stream = new StreamView { Spec = StreamWindowSpec.Session, DataContext = overlay };
             var streamWindow = new Window { Width = 266, Height = 184, Content = stream };
             windows.Add(streamWindow);

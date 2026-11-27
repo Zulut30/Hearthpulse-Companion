@@ -39,7 +39,7 @@ public sealed partial class LocBindingTests
             var view = new BattlegroundsView(7, 5, 6, "HERO_ME", 20, 0, 2, false, false, false, [], ["MURLOC", "BEAST"], false,
                 [fought, unseen], [], [], [], null, 0, [], []);
             var model = new OverlayViewModel();
-            model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true, HearthstoneRunning = true }, cards, new AppSettings(), null, null);
+            model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true, HearthstoneRunning = true }, cards, new AppSettings(), null);
 
             var panel = new BgLobbyPanel { DataContext = model };
             window.Content = panel;

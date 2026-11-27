@@ -4,9 +4,8 @@ using System.Windows.Controls;
 namespace Hearthpulse.App.Main.SettingsTabs;
 
 /// <summary>
-/// Settings, Tracker: the Constructed deck tracker, counters and mulligan (its data: <see cref="MainViewModel"/>). What
-/// only the main window does (saving and applying settings, opening folders, the overlay) the window keeps: this tab's
-/// buttons raise events it handles.
+/// Settings, Tracker (labelled Counters): the in-game counters and the mulligan guide (its data:
+/// <see cref="MainViewModel"/>); the deck tracker's switches are on the Overlay tab.
 /// </summary>
 public partial class TrackerSettings : UserControl
 {
@@ -22,9 +21,4 @@ public partial class TrackerSettings : UserControl
         get => (bool)GetValue(OverlayOnProperty);
         set => SetValue(OverlayOnProperty, value);
     }
-
-    /// <summary>The window's <c>OnOpenOverlayTab</c> for this tab's Click.</summary>
-    public event Action<RoutedEventArgs>? OpenOverlayTabClicked;
-
-    private void RaiseOpenOverlayTabClicked(object sender, RoutedEventArgs e) => OpenOverlayTabClicked?.Invoke(e);
 }

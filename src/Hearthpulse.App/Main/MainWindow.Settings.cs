@@ -115,10 +115,6 @@ public partial class MainWindow
         }
     }
 
-    private void OnOpenTrackerTab(object sender, RoutedEventArgs e) => ShowSettingsTab("Tracker");
-
-    private void OnOpenOverlayTab(object sender, RoutedEventArgs e) => ShowSettingsTab("Overlay");
-
     /// <summary>The top bar's account indicator: Settings, Account (the account center).</summary>
     private void OnOpenAccountCenter(object sender, RoutedEventArgs e)
     {

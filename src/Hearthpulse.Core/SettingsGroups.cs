@@ -36,11 +36,15 @@ public static class SettingsGroups
         [General] =
         [
             nameof(AppSettings.Language), nameof(AppSettings.MinimizeToTray), nameof(AppSettings.StartMinimized),
-            nameof(AppSettings.StartWithWindows), nameof(AppSettings.AutoUpdate), nameof(AppSettings.ShowGameToasts),
+            nameof(AppSettings.StartWithWindows), nameof(AppSettings.AutoUpdate),
         ],
+        // The Overlay card holds the deck tracker's switches too (G-1), so its reset puts them back with the rest.
         [Overlay] =
         [
             nameof(AppSettings.OverlayEnabled), nameof(AppSettings.OverlayScale), nameof(AppSettings.OverlayOpacity),
+            nameof(AppSettings.ShowDeckTracker), nameof(AppSettings.ShowDrawChance), nameof(AppSettings.ShowOpponentTracker),
+            nameof(AppSettings.ShowCardPool), nameof(AppSettings.CardPoolHover), nameof(AppSettings.CardPoolOnDiscover),
+            nameof(AppSettings.ShowArenaDraft), nameof(AppSettings.ShowGameToasts),
             nameof(AppSettings.ShowTurnTimer), nameof(AppSettings.ShowOpponentArchetype), nameof(AppSettings.ShowLadderSession),
             nameof(AppSettings.LadderSessionBreakHours), nameof(AppSettings.ShowSecrets), nameof(AppSettings.ShowGraveyard),
             nameof(AppSettings.ShowLikelyDeck), nameof(AppSettings.ShowBattlegroundsBar), nameof(AppSettings.PickHints),
@@ -55,10 +59,8 @@ public static class SettingsGroups
         ],
         [Tracker] =
         [
-            nameof(AppSettings.ShowDeckTracker), nameof(AppSettings.ShowDrawChance), nameof(AppSettings.ShowOpponentTracker),
-            nameof(AppSettings.ShowCardPool), nameof(AppSettings.CardPoolHover), nameof(AppSettings.CardPoolOnDiscover),
-            nameof(AppSettings.ShowArenaDraft), nameof(AppSettings.ShowMulligan),
-            nameof(AppSettings.ShowCounters), nameof(AppSettings.ShowOpponentCounters), nameof(AppSettings.CounterModes),
+            nameof(AppSettings.ShowMulligan), nameof(AppSettings.ShowCounters), nameof(AppSettings.ShowOpponentCounters),
+            nameof(AppSettings.CounterModes),
         ],
         [Stream] =
         [

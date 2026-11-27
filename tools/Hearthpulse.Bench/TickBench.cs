@@ -39,7 +39,7 @@ internal static class TickBench
 
         var bg = WpfBench.BgPanels(settings);
         var vm = new OverlayViewModel();
-        vm.Update(snapshot, cards, settings, null, null);
+        vm.Update(snapshot, cards, settings, null);
         var window = new OverlayWindow(vm, settings)
         {
             Offscreen = true,
@@ -83,7 +83,7 @@ internal static class TickBench
                 changedNow.Clear();
                 var a = GC.GetAllocatedBytesForCurrentThread();
                 var t = Stopwatch.GetTimestamp();
-                vm.Update(s, cards, settings, null, null);
+                vm.Update(s, cards, settings, null);
                 if (bg)
                 {
                     vm.ArrangeLeaderboard(Width, Height, settings);
@@ -122,7 +122,7 @@ internal static class TickBench
         {
             var first = view.Opponents[0];
             var other = full with { Battlegrounds = view with { Opponents = [first with { TechLevel = (first.TechLevel % 6) + 1 }, .. view.Opponents.Skip(1)] } };
-            vm.Update(full, cards, settings, null, null);
+            vm.Update(full, cards, settings, null);
             vm.ArrangeLeaderboard(Width, Height, settings);
             window.UpdateLayout();
             var times = new List<double>();
@@ -130,7 +130,7 @@ internal static class TickBench
             for (var i = 0; i < 40; i++)
             {
                 var t = Stopwatch.GetTimestamp();
-                vm.Update(i % 2 == 0 ? other : full, cards, settings, null, null);
+                vm.Update(i % 2 == 0 ? other : full, cards, settings, null);
                 vm.ArrangeLeaderboard(Width, Height, settings);
                 window.UpdateLayout();
                 times.Add(Stopwatch.GetElapsedTime(t).TotalMilliseconds);
@@ -140,7 +140,7 @@ internal static class TickBench
                 $"[rebuild] one opponent's tier ({vm.BgBadges.Count} badges, {vm.LobbyRows.Count} lobby rows): {Spread(times)}; alloc {(GC.GetAllocatedBytesForCurrentThread() - allocated) / 40 / 1024} KB"));
         }
 
-        vm.Update(snapshot, cards, settings, null, null);
+        vm.Update(snapshot, cards, settings, null);
         window.UpdateLayout();
 
         // What one real change of each list costs, laid out: the last item gone and back (the same items in a new list
@@ -444,7 +444,7 @@ internal static class TickBench
         // A hand card's pool at the panel's own spot, Ctrl held (the default hover mode shows it only then).
         vm.UpdateCardPoolKeys(true);
         vm.Update(snapshot with { Constructed = constructed with { CardPool = pool, MatchList = list, CardPoolAnchor = null } },
-            cards, settings, null, null);
+            cards, settings, null);
         Pump();
         window.UpdateLayout();
         if (FindAll<CardPoolPanel>(root).FirstOrDefault(p => !p.Anchored && p.IsVisible) is not { } panel

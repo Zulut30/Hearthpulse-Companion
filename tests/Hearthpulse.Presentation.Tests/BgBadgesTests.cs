@@ -59,7 +59,7 @@ public sealed class BgBadgesTests
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings();
         model.ArrangeLeaderboard(1920.0, 1080.0, settings);
-        model.Update(Live(Lobby([Murlocs, Tie, Unseen, Amalgams, Dead])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Tie, Unseen, Amalgams, Dead])), Cards, settings, null);
 
         Assert.True((bool)model.ShowBgBadges);
         var badges = ((IEnumerable<dynamic>)model.BgBadges).ToList();
@@ -96,7 +96,7 @@ public sealed class BgBadgesTests
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings();
         model.ArrangeLeaderboard(1920.0, 1080.0, settings);
-        model.Update(Live(Lobby([Murlocs, Tie])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Tie])), Cards, settings, null);
         Assert.True((bool)model.ShowBgBadges);
 
         model.HoverLeaderboard(3);
@@ -118,7 +118,7 @@ public sealed class BgBadgesTests
 
         // A new snapshot while hovered keeps them hidden.
         model.HoverLeaderboard(1);
-        model.Update(Live(Lobby([Murlocs, Tie with { TechLevel = 4 }])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Tie with { TechLevel = 4 }])), Cards, settings, null);
         Assert.False((bool)model.ShowBgBadges);
         model.HoverLeaderboard(0);
         Assert.True((bool)model.ShowBgBadges);
@@ -133,16 +133,16 @@ public sealed class BgBadgesTests
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings();
         model.ArrangeLeaderboard(1920.0, 1080.0, settings);
-        model.Update(Live(Lobby([Unseen])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Unseen])), Cards, settings, null);
         Assert.Equal(string.Empty, (string)((IEnumerable<dynamic>)model.BgBadges).Single().Tribe);
 
         var fought = Unseen with { LastBoard = [M("BG_BEAST"), M("BG_BEAST"), M("BG_NEUTRAL")], LastBoardTurn = 7, LastResult = "Win", TechLevel = 3 };
-        model.Update(Live(Lobby([fought])), Cards, settings, null, null);
+        model.Update(Live(Lobby([fought])), Cards, settings, null);
         var badge = ((IEnumerable<dynamic>)model.BgBadges).Single();
         Assert.Equal(("Beasts: 2 of 3", 3), ((string)badge.Tribe, (int)badge.Tier));
 
         // Out of the game: the label goes.
-        model.Update(Live(Lobby([fought with { Dead = true, Health = 0, Place = 8 }])), Cards, settings, null, null);
+        model.Update(Live(Lobby([fought with { Dead = true, Health = 0, Place = 8 }])), Cards, settings, null);
         Assert.Empty((IEnumerable<dynamic>)model.BgBadges);
         Assert.False((bool)model.ShowBgBadges);
 
@@ -150,7 +150,7 @@ public sealed class BgBadgesTests
         Loc.Instance.SetLanguage(Loc.Russian);
         try
         {
-            model.Update(Live(Lobby([fought])), Cards, settings, null, null);
+            model.Update(Live(Lobby([fought])), Cards, settings, null);
             Assert.Equal("Звери: 2 из 3", (string)((IEnumerable<dynamic>)model.BgBadges).Single().Tribe);
         }
         finally
@@ -170,32 +170,32 @@ public sealed class BgBadgesTests
 
         // On by default, but nothing before the view told where the leaderboard is.
         Assert.True(settings.ShowBgLeaderboardBadges);
-        model.Update(Live(Lobby([Murlocs])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs])), Cards, settings, null);
         Assert.False((bool)model.ShowBgBadges);
         model.ArrangeLeaderboard(1920.0, 1080.0, settings);
         Assert.True((bool)model.ShowBgBadges);
 
-        model.Update(Live(Lobby([Murlocs], heroSelection: true)), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs], heroSelection: true)), Cards, settings, null);
         Assert.False((bool)model.ShowBgBadges);
         Assert.Empty((IEnumerable<dynamic>)model.BgBadges);
 
         settings.ShowBgLeaderboardBadges = false;
-        model.Update(Live(Lobby([Murlocs])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs])), Cards, settings, null);
         Assert.False((bool)model.ShowBgBadges);
         Assert.Empty((IEnumerable<dynamic>)model.BgBadges);
 
         settings.ShowBgLeaderboardBadges = true;
-        model.Update(Live(Lobby([Murlocs])) with { InGame = false }, Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs])) with { InGame = false }, Cards, settings, null);
         Assert.False((bool)model.ShowBgBadges);
-        model.Update(LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true }, Cards, settings, null, null);
+        model.Update(LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true }, Cards, settings, null);
         Assert.False((bool)model.ShowBgBadges);
         Assert.Empty((IEnumerable<dynamic>)model.BgBadges);
 
-        model.Update(Live(Lobby([Murlocs])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs])), Cards, settings, null);
         Assert.True((bool)model.ShowBgBadges);
 
         // No tier known yet: no empty shield for that place.
-        model.Update(Live(Lobby([Murlocs, Unseen with { TechLevel = 0 }])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Unseen with { TechLevel = 0 }])), Cards, settings, null);
         Assert.Equal([1], ((IEnumerable<dynamic>)model.BgBadges).Select(b => (int)b.Place));
     }
 
@@ -212,7 +212,7 @@ public sealed class BgBadgesTests
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings();
         model.ArrangeLeaderboard(1920.0, 1080.0, settings);
-        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null);
         var badges = (object)model.BgBadges;
         Assert.Equal(2, ((IEnumerable<dynamic>)model.BgBadges).Count());
 
@@ -227,8 +227,8 @@ public sealed class BgBadgesTests
         Assert.Empty(changes);
 
         // The same snapshot again, and an equal new one.
-        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
-        model.Update(Live(Lobby([Murlocs with { }, Tie with { }, Dead with { }])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null);
+        model.Update(Live(Lobby([Murlocs with { }, Tie with { }, Dead with { }])), Cards, settings, null);
         Assert.DoesNotContain(nameof(WpfOverlay.BgBadges), changes);
         Assert.DoesNotContain(nameof(WpfOverlay.ShowBgBadges), changes);
         Assert.Same(badges, (object)model.BgBadges);
@@ -243,13 +243,13 @@ public sealed class BgBadgesTests
 
         // One lobby row changing replaces its badge alone.
         var kept = ((IEnumerable<object>)model.BgBadges).ToList();
-        model.Update(Live(Lobby([Murlocs, Tie with { TechLevel = Tie.TechLevel + 1 }, Dead])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Tie with { TechLevel = Tie.TechLevel + 1 }, Dead])), Cards, settings, null);
         var now = ((IEnumerable<object>)model.BgBadges).ToList();
         Assert.Equal(1, now.Zip(kept).Count(p => !ReferenceEquals(p.First, p.Second)));
 
         // Out of empty and into it the list is new and said to be, so bindings on the list itself look again.
         settings.ShowBgLeaderboardBadges = false;
-        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null);
         Assert.Empty((IEnumerable<object>)model.BgBadges);
         Assert.Contains(nameof(WpfOverlay.BgBadges), changes);
         Assert.NotSame(badges, (object)model.BgBadges);
@@ -271,13 +271,13 @@ public sealed class BgBadgesTests
 
         // Constructed or the menus: no Battlegrounds snapshot.
         var constructed = LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true };
-        wpf.Update(constructed, Cards, settings, null, null);
-        ava.Update(constructed, Cards, settings, null, null);
+        wpf.Update(constructed, Cards, settings, null);
+        ava.Update(constructed, Cards, settings, null);
         Assert.Equal(0, Allocated(Frame));
 
         // A match with the badges up.
-        wpf.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
-        ava.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
+        wpf.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null);
+        ava.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null);
         Frame();
         Assert.Equal(2, wpf.BgBadges.Count);
         Assert.Equal(2, ava.BgBadges.Count);
@@ -314,7 +314,7 @@ public sealed class BgBadgesTests
         Loc.Instance.SetLanguage(Loc.English);
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings();
-        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null);
         model.ArrangeLeaderboard(width, 1080.0, settings);
 
         var slot = 0.69 / 8 * 1080;
@@ -345,7 +345,7 @@ public sealed class BgBadgesTests
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings();
         model.ArrangeLeaderboard(1920.0, 1080.0, settings);
-        model.Update(Live(Lobby([Murlocs, Tie, Dead], duos: true)), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Tie, Dead], duos: true)), Cards, settings, null);
 
         var expected = new[] { 0, 2 }.Select(i => WpfGeometry.Tile(i, 1080, settings, duos: true)).ToList();
         var badges = ((IEnumerable<dynamic>)model.BgBadges).ToList();
@@ -391,7 +391,7 @@ public sealed class BgBadgesTests
         var model = new WpfOverlay();
         var settings = new AppSettings();
         model.ArrangeLeaderboard(1920, 1080, settings);
-        model.Update(Live(Lobby([Murlocs, Unseen, Dead])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs, Unseen, Dead])), Cards, settings, null);
 
         var layer = new Hearthpulse.App.Overlay.BgBadgesLayer { DataContext = model };
         layer.Measure(new Size(1920, 1080));

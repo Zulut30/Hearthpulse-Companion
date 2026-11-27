@@ -22,7 +22,7 @@ internal static partial class OffscreenRenderer
             {
                 Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_BATTLEGROUNDS", Battlegrounds = BarScene(),
             };
-            host.Overlay.Update(snapshot, host.Cards, settings, null, null);
+            host.Overlay.Update(snapshot, host.Cards, settings, null);
             overlayView.Fit(1920, 1080);
             await Save(overlay, Path.Combine(folder, "overlay-odds.png"));
             // The card lives in the panel control (shared with the OBS window): its own name scope.
@@ -32,7 +32,7 @@ internal static partial class OffscreenRenderer
             }
 
             // The same fight resting on estimates of the opponent's hidden values: the "≈" mark at the bar's end, same card size.
-            host.Overlay.Update(snapshot with { Battlegrounds = CombatOddsScene.Estimated(BarScene()) }, host.Cards, settings, null, null);
+            host.Overlay.Update(snapshot with { Battlegrounds = CombatOddsScene.Estimated(BarScene()) }, host.Cards, settings, null);
             overlayView.Fit(1920, 1080);
             await Save(overlay, Path.Combine(folder, "overlay-odds-estimated.png"));
             if (overlayView.GetVisualDescendants().OfType<OddsPanel>().FirstOrDefault()?.FindControl<Control>("OddsCard") is { } estimated)
@@ -43,7 +43,7 @@ internal static partial class OffscreenRenderer
             // The widest state: all five cells, wide damage both ways, the estimate mark, an unsimulated effect and the cap in
             // the bottom line.
             host.Overlay.Update(snapshot with { Battlegrounds = CombatOddsScene.Estimated(BarScene()) with { CombatOdds = FiveCells(BarScene().CombatOdds!) with { Estimated = 3 } } },
-                host.Cards, settings, null, null);
+                host.Cards, settings, null);
             overlayView.Fit(1920, 1080);
             await Save(overlay, Path.Combine(folder, "overlay-odds-full.png"));
             if (overlayView.GetVisualDescendants().OfType<OddsPanel>().FirstOrDefault()?.FindControl<Control>("OddsCard") is { } full)
@@ -52,7 +52,7 @@ internal static partial class OffscreenRenderer
             }
 
             // The bar between fights with the tier 3 list open and one tribe chosen in its head.
-            host.Overlay.Update(snapshot with { Battlegrounds = BarScene() with { InCombat = false, CombatOdds = null } }, host.Cards, settings, null, null);
+            host.Overlay.Update(snapshot with { Battlegrounds = BarScene() with { InCombat = false, CombatOdds = null } }, host.Cards, settings, null);
             host.Overlay.SelectTier.Execute(3);
             host.Overlay.SelectTribe.Execute("MECHANICAL");
             overlayView.Fit(1920, 1080);

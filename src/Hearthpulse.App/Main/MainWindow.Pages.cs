@@ -191,11 +191,9 @@ public partial class MainWindow
                         SettingsChanged?.Invoke();
                     }
                 };
-                overlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(overlay, e);
                 overlay.ArrangeOverlayClicked += e => OnArrangeOverlay(overlay, e);
                 break;
             case St.TrackerSettings tracker:
-                tracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(tracker, e);
                 // Its "overlay is off" banner follows the Overlay tab's switch (two tabs, one binding): that tab is built too.
                 BindingOperations.SetBinding(tracker, St.TrackerSettings.OverlayOnProperty,
                     new Binding(nameof(ToggleButton.IsChecked)) { Source = SettingsView.SettingsOverlay.OverlaySetting });

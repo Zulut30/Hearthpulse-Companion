@@ -32,14 +32,14 @@ public partial class App
 
         foreach (var (moment, snapshot) in VisualBaseline.Moments)
         {
-            _overlayViewModel.Update(snapshot(_cards), _cards, _settings, null, null);
+            _overlayViewModel.Update(snapshot(_cards), _cards, _settings, null);
             foreach (var (name, width, height) in VisualBaseline.Screens)
             {
                 await _overlay.RenderToFileAsync(Path.Combine(folder, $"overlay-{moment}-{name}.png"), width, height, 0);
             }
         }
 
-        _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
+        _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null);
     }
 
     /// <summary>

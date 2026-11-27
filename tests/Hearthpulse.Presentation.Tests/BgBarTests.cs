@@ -26,7 +26,7 @@ public sealed class BgBarTests : IDisposable
     {
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
         model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true }, CardDb.Empty,
-            new AppSettings { ShowTurnTimer = false, ShowCombatOdds = true }, null, null);
+            new AppSettings { ShowTurnTimer = false, ShowCombatOdds = true }, null);
         return model;
     }
 

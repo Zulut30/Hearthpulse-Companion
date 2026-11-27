@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Hearthpulse.Core;
@@ -13,8 +14,8 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// TASK-2026-11-26 AC4 in Avalonia: the pool panel names the card and its "All cards" button is the one part that takes
-/// the mouse, but not on a Discover popup lying over the options; Settings → Tracker has the hover choice and the
-/// Discover switch under "Card pool", off with it.
+/// the mouse, but not on a Discover popup lying over the options; Settings → Overlay (the deck tracker's group since G-1)
+/// has the hover choice and the Discover switch under "Card pool", off with it.
 /// </summary>
 public sealed partial class LocBindingTests
 {
@@ -26,7 +27,7 @@ public sealed partial class LocBindingTests
         Loc.Instance.SetLanguage(Loc.English);
         var vm = new OverlayViewModel();
         vm.UpdateCardPoolKeys(true);
-        vm.Update(PoolSnapshot(40), Core.Cards.CardDb.Empty, new AppSettings(), null, null);
+        vm.Update(PoolSnapshot(40), Core.Cards.CardDb.Empty, new AppSettings(), null);
         // The theme first: the panel's markup looks its tokens up when it is created.
         var theme = Theme();
         var panel = new CardPoolPanel { DataContext = vm };
@@ -50,7 +51,7 @@ public sealed partial class LocBindingTests
             vm.CloseCardPoolBrowser.Execute(null);
 
             // A pool small enough to list whole has no button.
-            vm.Update(PoolSnapshot(6), Core.Cards.CardDb.Empty, new AppSettings(), null, null);
+            vm.Update(PoolSnapshot(6), Core.Cards.CardDb.Empty, new AppSettings(), null);
             Dispatcher.UIThread.RunJobs();
             Assert.False(button.IsVisible);
         }
@@ -82,7 +83,7 @@ public sealed partial class LocBindingTests
         // OverlayView binds the two panels' IsVisible to these; here they follow by hand.
         void Show(Core.Tracking.LiveSnapshot snapshot)
         {
-            vm.Update(snapshot, Core.Cards.CardDb.Empty, new AppSettings(), null, null);
+            vm.Update(snapshot, Core.Cards.CardDb.Empty, new AppSettings(), null);
             popup.IsVisible = vm.ShowCardPoolPopup;
             panel.IsVisible = vm.ShowCardPoolPanel;
             Dispatcher.UIThread.RunJobs();
@@ -142,12 +143,20 @@ public sealed partial class LocBindingTests
             var view = new MainView { DataContext = model };
             window.Content = view;
             Dispatcher.UIThread.RunJobs();
-            view.ShowSettingsTab("Tracker");
+            view.ShowSettingsTab("Overlay");
             Dispatcher.UIThread.RunJobs();
 
             var pool = Named<CheckBox>(view, "CardPoolSetting");
             var row = Named<Grid>(view, "CardPoolHoverRow");
             var discover = Named<CheckBox>(view, "CardPoolDiscoverSetting");
+            var group = Named<StackPanel>(view, "TrackerPanelSwitches");
+            Assert.All(new Control[] { pool, row, discover }, c => Assert.Contains(group, c.GetLogicalAncestors()));
+            Assert.Contains(view.SettingsOverlay, group.GetLogicalAncestors());
+            // Two "Off" segments on one tab: the pool's says which row it belongs to.
+            var off = Named<RadioButton>(view, "CardPoolHoverOffOption");
+            Assert.Equal(Loc.T("Settings.Tracker.CardPoolHover.OffName"), Avalonia.Automation.AutomationProperties.GetName(off));
+            Assert.StartsWith(Loc.T("Settings.Tracker.CardPoolHover.Off"), Avalonia.Automation.AutomationProperties.GetName(off), StringComparison.Ordinal);
+            Assert.NotEqual(Avalonia.Automation.AutomationProperties.GetName(off), Named<RadioButton>(view, "PickHintsOffOption").Content as string);
             Assert.Equal(Loc.T("Settings.Tracker.CardPoolTip"), ToolTip.GetTip(pool));
             Assert.DoesNotContain("right-click", Loc.T("Settings.Tracker.CardPoolTip"), StringComparison.OrdinalIgnoreCase);
             Assert.True(Named<RadioButton>(view, "CardPoolHoverCtrlOption").IsChecked);

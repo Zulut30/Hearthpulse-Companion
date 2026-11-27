@@ -25,7 +25,7 @@ public partial class App
                 }
 
                 var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view };
-                _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                _overlayViewModel.Update(snapshot, _cards, _settings, null);
                 await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, 0);
             }
         }

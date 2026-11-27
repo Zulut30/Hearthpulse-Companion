@@ -1,4 +1,6 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Updates;
@@ -37,7 +39,36 @@ internal static partial class OffscreenRenderer
             }
         }
 
+        // The deck tracker's switches sit on the Overlay tab, below the look block (G-1).
+        try
+        {
+            await SaveOverlayTabAtAsync(main, view, "TrackerPanelSwitches", Path.Combine(folder, "main-settings-overlay-tracker.png"));
+        }
+        catch (IOException ex)
+        {
+            Diag.Error("Render of the Overlay tab's deck tracker group failed", ex);
+        }
+
         view.ShowSettingsTab("General");
+    }
+
+    /// <summary>Settings, Overlay scrolled to the control named <paramref name="name"/>; nothing when the tab has none.</summary>
+    private static async Task SaveOverlayTabAtAsync(Window main, MainView view, string name, string path)
+    {
+        view.ShowPage("Settings");
+        view.ShowSettingsTab("Overlay");
+        await Task.Delay(250);
+        Dispatcher.UIThread.RunJobs();
+        // In the Overlay settings tab (Main/SettingsTabs): a name in the tab's own scope.
+        if (view.GetLogicalDescendants().OfType<Control>().FirstOrDefault(c => c.Name == name) is not { } target)
+        {
+            return;
+        }
+
+        target.BringIntoView(new Rect(0, 0, target.Bounds.Width, 640));
+        await Save(main, path);
+        // The page keeps its scroll on another tab: the scenes after this one start at the top again.
+        view.PageSettings.ScrollToHome();
     }
 
     /// <summary>

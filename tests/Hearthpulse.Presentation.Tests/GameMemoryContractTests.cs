@@ -67,11 +67,11 @@ public sealed class GameMemoryContractTests
         var lobby = new BattlegroundsView(7, 3, 6, "HERO_ME", 20, 0, 2, false, false, false, [], [], false, [], [], [], [], null, 0, [], []);
         var snapshot = LiveSnapshot.Empty with { Battlegrounds = lobby, InGame = true, HearthstoneRunning = true };
 
-        overlay.Update(snapshot, CardDb.Empty, settings, null, null);
+        overlay.Update(snapshot, CardDb.Empty, settings, null);
         Assert.Equal(Loc.T("Overlay.Bar.ReadingLobby"), (string)overlay.LobbyWaitText);
 
         settings.ReadGameMemory = false;
-        overlay.Update(snapshot, CardDb.Empty, settings, null, null);
+        overlay.Update(snapshot, CardDb.Empty, settings, null);
         Assert.Equal("Client reading is off", (string)overlay.LobbyWaitText);
     }
 

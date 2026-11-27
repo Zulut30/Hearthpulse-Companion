@@ -45,9 +45,9 @@ internal static partial class OffscreenRenderer
         // The OBS window "Session" over the latest session of the history.
         var games = host.History.Recent(400);
         var since = SessionRecap.LastSession(games, TimeSpan.FromHours(host.Settings.LadderSessionBreakHours))?.Since ?? DateTime.Now;
-        host.Overlay.Update(LiveSnapshot.Empty with { StreamSession = StreamSession.Build(games, since) }, host.Cards, host.Settings, null, null);
+        host.Overlay.Update(LiveSnapshot.Empty with { StreamSession = StreamSession.Build(games, since) }, host.Cards, host.Settings, null);
         await SaveStreamWindowAsync(host, host.Settings, StreamWindowSpec.Session, folder, "stream-session.png");
-        host.Overlay.Update(LiveSnapshot.Empty, host.Cards, host.Settings, null, null);
+        host.Overlay.Update(LiveSnapshot.Empty, host.Cards, host.Settings, null);
     }
 
     /// <summary>

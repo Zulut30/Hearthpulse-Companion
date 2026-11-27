@@ -19,7 +19,7 @@ public partial class App
                 OpponentDeck = LikelyDeckView.Sample(_cards),
             };
             var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view };
-            _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+            _overlayViewModel.Update(snapshot, _cards, _settings, null);
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-likely-deck.png"), 1920, 1080, 0);
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException)

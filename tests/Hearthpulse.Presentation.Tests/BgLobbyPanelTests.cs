@@ -53,7 +53,7 @@ public sealed class BgLobbyPanelTests
         var unseen = new BgOpponent(4, "HERO_C", "Cid", 30, 0, 2, 4, false, 0, [], 0, null, 0, false);
         var dead = new BgOpponent(5, "HERO_D", "Dee", 0, 0, 5, 8, true, 0, [M("BG_DRAGON"), M("BG_DRAGON")], 4, "Win", 9, false);
         var view = Lobby(["DRAGON", "BEAST", "MURLOC"], confirmed: true, [murlocs, tie, unseen, dead], [M("BG_BEAST")]);
-        model.Update(Live(view), Cards, On(), null, null);
+        model.Update(Live(view), Cards, On(), null);
 
         Assert.True((bool)model.ShowBgLobby);
         Assert.False((bool)model.LobbyTribesUnconfirmed);
@@ -90,7 +90,7 @@ public sealed class BgLobbyPanelTests
         Loc.Instance.SetLanguage(Loc.Russian);
         try
         {
-            model.Update(Live(view), Cards, On(), null, null);
+            model.Update(Live(view), Cards, On(), null);
             Assert.Equal(["Дракон", "Зверь", "Мурлок"], ((IEnumerable<dynamic>)model.LobbyTribes).Select(t => (string)t.Name));
             Assert.Equal("Мурлок", (string)((IEnumerable<dynamic>)model.LobbyRows).First().Tribe.Name);
             Assert.Equal("Мурлоки: 4", (string)((IEnumerable<dynamic>)model.LobbyRows).First().TribeText);
@@ -117,7 +117,7 @@ public sealed class BgLobbyPanelTests
             Opponent(4, "BG_DUAL", "BG_BEAST", "BG_AMALGAM"),
             Opponent(5, "BG_DUAL", "BG_MURLOC"),
         ], []);
-        model.Update(Live(view), Cards, On(), null, null);
+        model.Update(Live(view), Cards, On(), null);
 
         var rows = ((IEnumerable<dynamic>)model.LobbyRows).Where(r => !(bool)r.You).ToList();
         // Amalgams and neutrals only: no main tribe (not the lobby's first tribe, which is not on the board).
@@ -143,22 +143,22 @@ public sealed class BgLobbyPanelTests
 
         // Off by default.
         var settings = new AppSettings();
-        model.Update(Live(shop), Cards, settings, null, null);
+        model.Update(Live(shop), Cards, settings, null);
         Assert.False((bool)model.ShowBgLobby);
 
         settings.ShowBgLobbyPanel = true;
-        model.Update(Live(shop), Cards, settings, null, null);
+        model.Update(Live(shop), Cards, settings, null);
         Assert.True((bool)model.ShowBgLobby);
         Assert.True((bool)model.LobbyTribesUnconfirmed);
         Assert.Equal(["BEAST", "MURLOC"], ((IEnumerable<dynamic>)model.LobbyTribes).Select(t => (string)t.Key));
 
-        model.Update(Live(shop) with { InGame = false }, Cards, settings, null, null);
+        model.Update(Live(shop) with { InGame = false }, Cards, settings, null);
         Assert.False((bool)model.ShowBgLobby);
-        model.Update(LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true }, Cards, settings, null, null);
+        model.Update(LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true }, Cards, settings, null);
         Assert.False((bool)model.ShowBgLobby);
 
         // Nothing read yet: no tribes and no note (the panel says it is reading the lobby).
-        model.Update(Live(Lobby([], confirmed: false, [], [])), Cards, settings, null, null);
+        model.Update(Live(Lobby([], confirmed: false, [], [])), Cards, settings, null);
         Assert.True((bool)model.ShowBgLobby);
         Assert.Empty((IEnumerable<dynamic>)model.LobbyTribes);
         Assert.False((bool)model.LobbyTribesUnconfirmed);
@@ -190,7 +190,7 @@ public sealed class BgLobbyPanelTests
             Loc.Instance.SetLanguage(language);
             try
             {
-                model.Update(Live(view), Cards, On(), null, null);
+                model.Update(Live(view), Cards, On(), null);
                 var rows = ((IEnumerable<dynamic>)model.LobbyRows).ToDictionary(r => (string)r.HeroCardId);
                 Assert.Equal(texts, new[] { "HERO_A", "HERO_B", "HERO_C" }.Select(h => (string)rows[h].Last));
                 Assert.Equal(["Win", "Loss", "Tie"], new[] { "HERO_A", "HERO_B", "HERO_C" }.Select(h => (string)rows[h].LastKey));
@@ -222,7 +222,7 @@ public sealed class BgLobbyPanelTests
         var next = new BgOpponent(2, "HERO_A", "Alice", 30, 0, 4, 1, false, 0, [], 0, null, 0, IsNextOpponent: true);
         var low = new BgOpponent(3, "HERO_B", "Bob", 9, 0, 3, 3, false, 0, [M("BG_BEAST")], 5, "Loss", 10, false);
         var dead = new BgOpponent(4, "HERO_C", "Cid", 0, 0, 2, 8, true, 0, [], 0, null, 0, false);
-        model.Update(Live(Lobby(["MURLOC"], confirmed: true, [next, low, dead], [])), Cards, new AppSettings(), null, null);
+        model.Update(Live(Lobby(["MURLOC"], confirmed: true, [next, low, dead], [])), Cards, new AppSettings(), null);
 
         var panel = new Hearthpulse.App.Overlay.LobbyPanel { DataContext = model };
         panel.Measure(new Size(600, 800));
@@ -256,7 +256,7 @@ public sealed class BgLobbyPanelTests
         var model = new WpfOverlay();
         var fought = new BgOpponent(2, "HERO_A", "Alice", 20, 0, 4, 1, false, 0, [M("BG_MURLOC"), M("BG_MURLOC"), M("BG_MURLOC")], 6, "Win", 3, false);
         var unseen = new BgOpponent(3, "HERO_B", "Bob", 0, 0, 2, 3, true, 0, [], 0, null, 0, false);
-        model.Update(Live(Lobby(["MURLOC", "BEAST"], confirmed: false, [fought, unseen], [])), Cards, On(), null, null);
+        model.Update(Live(Lobby(["MURLOC", "BEAST"], confirmed: false, [fought, unseen], [])), Cards, On(), null);
 
         var panel = new Hearthpulse.App.Overlay.BgLobbyPanel { DataContext = model };
         panel.Measure(new Size(400, 800));

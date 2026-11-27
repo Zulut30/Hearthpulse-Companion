@@ -34,7 +34,7 @@ public static class OverlayPreview
     public static OverlayViewModel Build(CardDb cards, AppSettings settings)
     {
         var model = new OverlayViewModel();
-        model.Update(Snapshot(cards), cards, settings, null, null);
+        model.Update(Snapshot(cards), cards, settings, null);
         return model;
     }
 

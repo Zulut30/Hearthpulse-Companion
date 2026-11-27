@@ -123,7 +123,7 @@ public sealed partial class LocBindingTests
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("tile", view.Showing);
 
-            model.Update(game with { Battlegrounds = lobby }, CardDb.Empty, settings, null, null);
+            model.Update(game with { Battlegrounds = lobby }, CardDb.Empty, settings, null);
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("panel", view.Showing);
             // The overlay's own lobby panel, its rows from the same model.
@@ -131,7 +131,7 @@ public sealed partial class LocBindingTests
             Assert.Equal(8, panel.GetVisualDescendants().OfType<Grid>().Count(g => g.Classes.Contains("lobbyRow")));
             Assert.Contains(view.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == Loc.T("Overlay.Lobby.Title"));
 
-            model.Update(game with { Battlegrounds = lobby with { IsHeroSelection = true, Opponents = [] } }, CardDb.Empty, settings, null, null);
+            model.Update(game with { Battlegrounds = lobby with { IsHeroSelection = true, Opponents = [] } }, CardDb.Empty, settings, null);
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("background", view.Showing);
 

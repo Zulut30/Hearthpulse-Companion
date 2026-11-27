@@ -65,7 +65,7 @@ internal static class FrameBench
     private static void Scene(Core.AppSettings settings, CardDb cards, LiveSnapshot snapshot, List<LiveSnapshot> game, int width, int height)
     {
         var vm = new OverlayViewModel();
-        vm.Update(snapshot, cards, settings, null, null);
+        vm.Update(snapshot, cards, settings, null);
         var window = new OverlayWindow(vm, settings)
         {
             Offscreen = true,
@@ -113,7 +113,7 @@ internal static class FrameBench
         var next = 0;
         Report(label, "snapshots 10/s", 6, new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Background, (_, _) =>
         {
-            vm.Update(game[next++ % game.Count], cards, settings, null, null);
+            vm.Update(game[next++ % game.Count], cards, settings, null);
         }, Dispatcher.CurrentDispatcher));
 
         // One small element changes 30 times a second; the rest of the overlay is unchanged.

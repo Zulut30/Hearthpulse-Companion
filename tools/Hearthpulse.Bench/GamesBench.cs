@@ -115,7 +115,7 @@ internal static class GamesBench
                     {
                         pending = null;
                         vm.Apply(snapshot);
-                        overlayVm.Update(snapshot, cards, settings, null, null);
+                        overlayVm.Update(snapshot, cards, settings, null);
                         WpfBench.Pump(DispatcherPriority.Background);
                     }
 

@@ -24,7 +24,7 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
 - **Arena page** (main window, My Stats Arena): each run row shows "Deck score N" when the run saved a deck code; a
   "Deck score" card for the latest run (average, tier, curve, three strongest and weakest cards); a "Class win rates"
   card with the community numbers.
-- Setting: `AppSettings.ShowArenaDraft`, **beta, off by default**; Settings → Tracker in both apps, labelled
+- Setting: `AppSettings.ShowArenaDraft`, **beta, off by default**; Settings → Overlay in both apps, labelled
   "(beta)". Off, the draft screen is not read from memory at all (`GameSession.SetArenaDraftEnabled`, hosts call it
   next to `SetCardPoolEnabled`); Arena.log is still followed so turning it on mid-draft knows the deck. While it is a
   beta the tracker logs to `hearthpulse.log` every Arena.log line it recognized with the resulting state
@@ -275,7 +275,7 @@ packages, the redraft's edge cases under test. **Still open, all of it waiting f
 
 ### The owner's live check (two sittings)
 
-Before both: Settings → Tracker → "Arena draft helper (beta)" on; the app running before Hearthstone opens the
+Before both: Settings → Overlay → "Arena draft helper (beta)" on; the app running before Hearthstone opens the
 Arena screen; screen recording on (the package question, item 2, is answered by the recording).
 
 **A. Normal Arena, one draft.**

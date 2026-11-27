@@ -51,7 +51,7 @@ public sealed class LobbyPopupTests
         try
         {
             dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
-            model.Update(Live(View([Bob, Unseen])), Cards, new AppSettings(), null, null);
+            model.Update(Live(View([Bob, Unseen])), Cards, new AppSettings(), null);
             Assert.False((bool)model.ShowLobbyPopup);
 
             model.HoverLeaderboard(4);
@@ -83,7 +83,7 @@ public sealed class LobbyPopupTests
             model.HoverLeaderboard(6);
             Assert.Equal("6-е место · 40 ОЗ + 5 брони", (string)model.Lobby.Summary);
             Loc.Instance.SetLanguage(Loc.English);
-            model.Update(Live(View([Bob, Unseen])), Cards, new AppSettings(), null, null);
+            model.Update(Live(View([Bob, Unseen])), Cards, new AppSettings(), null);
             model.HoverLeaderboard(4);
             Assert.Equal(("Place 4 · 32 HP", "won, dealt 6", "Board seen 2 turns ago", "Elementals: 2 of 6"),
                 ((string)model.Lobby.Summary, (string)model.Lobby.LastResult, (string)model.Lobby.LastSeen, (string)model.Lobby.Tribe));
@@ -114,7 +114,7 @@ public sealed class LobbyPopupTests
     {
         Loc.Instance.SetLanguage(Loc.English);
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
-        model.Update(Live(View([Bob, Unseen])), Cards, new AppSettings(), null, null);
+        model.Update(Live(View([Bob, Unseen])), Cards, new AppSettings(), null);
 
         model.HoverLeaderboard(6);
         var popup = model.Lobby;
@@ -137,7 +137,7 @@ public sealed class LobbyPopupTests
         var dead = Bob with { Dead = true, Health = 0, Place = 7 };
         // A board seen empty, this very turn.
         var empty = Unseen with { LastBoard = [], LastBoardTurn = 9, LastResult = "Tie", PlayerId = 7, HeroCardId = "HERO_DEE", Place = 3 };
-        model.Update(Live(View([dead, empty])), Cards, new AppSettings(), null, null);
+        model.Update(Live(View([dead, empty])), Cards, new AppSettings(), null);
 
         model.HoverLeaderboard(7);
         Assert.True((bool)model.Lobby.Dead);
@@ -159,20 +159,20 @@ public sealed class LobbyPopupTests
         Loc.Instance.SetLanguage(Loc.English);
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings { ShowCombatOdds = true };
-        model.Update(Live(View([Bob], combat: true)), Cards, settings, null, null);
+        model.Update(Live(View([Bob], combat: true)), Cards, settings, null);
         Assert.True((bool)model.ShowOdds);
 
         model.HoverLeaderboard(4);
         Assert.False((bool)model.ShowOdds);
         // A snapshot while the popup is up keeps the odds hidden.
-        model.Update(Live(View([Bob], combat: true)), Cards, settings, null, null);
+        model.Update(Live(View([Bob], combat: true)), Cards, settings, null);
         Assert.False((bool)model.ShowOdds);
 
         model.HoverLeaderboard(0);
         Assert.True((bool)model.ShowOdds);
 
         // Out of combat the popup leaving brings nothing back.
-        model.Update(Live(View([Bob])), Cards, settings, null, null);
+        model.Update(Live(View([Bob])), Cards, settings, null);
         model.HoverLeaderboard(4);
         model.HoverLeaderboard(0);
         Assert.False((bool)model.ShowOdds);
@@ -186,14 +186,14 @@ public sealed class LobbyPopupTests
     {
         Loc.Instance.SetLanguage(Loc.English);
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
-        model.Update(Live(View([Bob, Unseen])), Cards, new AppSettings(), null, null);
+        model.Update(Live(View([Bob, Unseen])), Cards, new AppSettings(), null);
         model.HoverLeaderboard(4);
         var first = (object)model.Lobby;
         model.HoverLeaderboard(4);
         model.HoverLeaderboardHero("HERO_BOB", 4);
         Assert.Same(first, (object)model.Lobby);
 
-        model.Update(Live(View([Bob with { Health = 20 }, Unseen])), Cards, new AppSettings(), null, null);
+        model.Update(Live(View([Bob with { Health = 20 }, Unseen])), Cards, new AppSettings(), null);
         model.HoverLeaderboard(4);
         Assert.NotSame(first, (object)model.Lobby);
         Assert.Equal("Place 4 · 20 HP", (string)model.Lobby.Summary);
@@ -214,28 +214,28 @@ public sealed class LobbyPopupTests
             Rating = new BattlegroundsRating(6779, 5000),
             Session = new SessionSummary(6751, 6751, 3, [1, 4, 6], 0, 0),
         };
-        model.Update(snapshot, Cards, settings, null, null);
+        model.Update(snapshot, Cards, settings, null);
         Assert.True((bool)model.ShowSession);
         Assert.Equal($"{6751:N0} → {6779:N0}", (string)model.SessionRating);
         Assert.Equal(("+28", 28), ((string)model.SessionDelta, (int)model.SessionDeltaValue));
         Assert.Equal([true, true, false], ((IEnumerable<dynamic>)model.SessionPlaces).Select(p => (bool)p.Top));
 
         // At the start: the rating alone, no arrow and no change.
-        model.Update(snapshot with { Rating = new BattlegroundsRating(6751, 5000) }, Cards, settings, null, null);
+        model.Update(snapshot with { Rating = new BattlegroundsRating(6751, 5000) }, Cards, settings, null);
         Assert.Equal($"{6751:N0}", (string)model.SessionRating);
         Assert.Equal(string.Empty, (string)model.SessionDelta);
 
         // A loss shows with a minus sign.
-        model.Update(snapshot with { Rating = new BattlegroundsRating(6700, 5000) }, Cards, settings, null, null);
+        model.Update(snapshot with { Rating = new BattlegroundsRating(6700, 5000) }, Cards, settings, null);
         Assert.Equal(("−51", -51), ((string)model.SessionDelta, (int)model.SessionDeltaValue));
 
         // Duos: its own rating, no change (the session start is the solo rating).
-        model.Update(Live(View([Bob], duos: true)) with { Rating = new BattlegroundsRating(6779, 5000), Session = snapshot.Session }, Cards, settings, null, null);
+        model.Update(Live(View([Bob], duos: true)) with { Rating = new BattlegroundsRating(6779, 5000), Session = snapshot.Session }, Cards, settings, null);
         Assert.Equal($"{5000:N0}", (string)model.SessionRating);
         Assert.Equal(string.Empty, (string)model.SessionDelta);
 
         // Nothing read yet.
-        model.Update(Live(View([Bob])), Cards, settings, null, null);
+        model.Update(Live(View([Bob])), Cards, settings, null);
         Assert.Equal("—", (string)model.SessionRating);
         Assert.Empty((IEnumerable<dynamic>)model.SessionPlaces);
     }
@@ -252,31 +252,31 @@ public sealed class LobbyPopupTests
             Rating = new BattlegroundsRating(6779, 5000),
             Session = new SessionSummary(6751, 6751, 3, [1, 4, 6], 0, 0),
         };
-        model.Update(rated, Cards, settings, null, null);
+        model.Update(rated, Cards, settings, null);
         Assert.True((bool)model.ShowSession);
 
         // In the game: the rating and the places change no decision there.
-        model.Update(rated with { Battlegrounds = View([Bob]) }, Cards, settings, null, null);
+        model.Update(rated with { Battlegrounds = View([Bob]) }, Cards, settings, null);
         Assert.False((bool)model.ShowSession);
 
         // At the pick without a rating: no "MMR —" (O-20).
-        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, settings, null, null);
+        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, settings, null);
         Assert.False((bool)model.ShowSession);
 
         // The setting still turns it off.
-        model.Update(rated, Cards, new AppSettings { ShowSessionPanel = false }, null, null);
+        model.Update(rated, Cards, new AppSettings { ShowSessionPanel = false }, null);
         Assert.False((bool)model.ShowSession);
 
         // Reading the client off: no rating will come, so the panel stays at the pick with the reason in place of "MMR —",
         // as the main window's rating blocks do (P5); a rating still known shows.
         var off = new AppSettings { ReadGameMemory = false };
-        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, off, null, null);
+        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, off, null);
         Assert.True((bool)model.ShowSession);
         Assert.Equal(Loc.T("Overlay.Session.ReadingOff"), (string)model.SessionOffReason);
-        model.Update(rated, Cards, off, null, null);
+        model.Update(rated, Cards, off, null);
         Assert.True((bool)model.ShowSession);
         Assert.Equal(string.Empty, (string)model.SessionOffReason);
-        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, settings, null, null);
+        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, settings, null);
         Assert.Equal(string.Empty, (string)model.SessionOffReason);
     }
 }

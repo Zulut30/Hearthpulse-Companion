@@ -55,15 +55,6 @@ public static class DeckRecords
             matched.Count(g => g.Result == "Win"), matched.Count(g => g.Result == "Loss"), latest.StartedAt);
     }
 
-    /// <summary>Results against one opponent class over the same games as the deck's record; null when there are none.</summary>
-    public static MatchupAggregate? Matchup(IEnumerable<GameRecord> matched, string opponentClass)
-    {
-        var games = matched.Where(g => g.OpponentClass == opponentClass && opponentClass.Length > 0).ToList();
-        return games.Count == 0
-            ? null
-            : new MatchupAggregate(opponentClass, games.Count, games.Count(g => g.Result == "Win"), games.Count(g => g.Result == "Loss"));
-    }
-
     /// <summary>
     /// The deck of each Constructed game saved without a code: the last "Finding Game With Deck" before the game
     /// started, when it came after the previous game began, at most <see cref="MaxQueue"/> earlier, and its hero class

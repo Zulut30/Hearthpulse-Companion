@@ -120,7 +120,7 @@ public partial class App
                 DiscoverPicks = picks,
             };
             var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
-            _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+            _overlayViewModel.Update(snapshot, _cards, _settings, null);
         }
 
         void ShowList(MatchListView list)
@@ -130,7 +130,7 @@ public partial class App
                 MatchList = list,
             };
             var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
-            _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+            _overlayViewModel.Update(snapshot, _cards, _settings, null);
         }
 
         async Task RenderBrowserAsync(string path)

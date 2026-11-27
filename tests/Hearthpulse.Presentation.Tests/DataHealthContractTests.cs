@@ -219,7 +219,7 @@ public sealed class DataHealthContractTests
             new BgHeroOption("HERO_B", "Hero B", 0, null, new HeroMeta(4.2, 4.2, 0.2, 0, "B")),
         };
 
-        overlay.Update(Pick(heroes, []), CardDb.Empty, new AppSettings(), null, null);
+        overlay.Update(Pick(heroes, []), CardDb.Empty, new AppSettings(), null);
 
         var day = Collected.ToLocalTime().ToString("d MMM", Loc.DateCulture);
         Assert.Equal(2, ((IEnumerable<dynamic>)overlay.HeroPicks).Count());
@@ -273,19 +273,19 @@ public sealed class DataHealthContractTests
 
         overlay.SetBgData((DateTime?)Late, true); // the meta's own date is not a second date on the badges
         overlay.SetDataHealth(Report());
-        overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+        overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null);
         // Fresh numbers: no date on any badge (O-22); it is in the tier badge's tooltip with the source.
         Assert.Equal([string.Empty, string.Empty, string.Empty], Dates());
         Assert.Contains("updated", (string)((IEnumerable<dynamic>)overlay.TrinketPicks).First().TierTip, StringComparison.Ordinal);
 
         // The trinket slices' collector is late: the data API's badge says so, the pool's own numbers do not.
         overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_trinkets_top_20_percent_last_7_days", DataFreshness.Stale)));
-        overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+        overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null);
         Assert.Equal([$"data from {day} · update delayed", string.Empty, string.Empty], Dates());
 
         // Heroes late, trinkets fine: the badges are plain again.
         overlay.SetDataHealth(Report(false, ("hsreplay_battlegrounds_heroes", DataFreshness.Stale)));
-        overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+        overlay.Update(snapshot, CardDb.Empty, new AppSettings(), null);
         Assert.Equal([string.Empty, string.Empty, string.Empty], Dates());
     }
 

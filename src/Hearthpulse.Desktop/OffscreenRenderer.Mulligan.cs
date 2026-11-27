@@ -28,7 +28,7 @@ internal static partial class OffscreenRenderer
                 }
 
                 var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view };
-                host.Overlay.Update(snapshot, host.Cards, settings, null, null);
+                host.Overlay.Update(snapshot, host.Cards, settings, null);
                 overlayView.Fit(1920, 1080);
                 await Save(overlay, Path.Combine(folder, name + ".png"));
             }

@@ -46,7 +46,7 @@ internal static partial class OffscreenRenderer
                 {
                     var scene = WidgetScene.InGame(view, meta, host.Cards, DateTime.Now, rope);
                     host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = scene },
-                        host.Cards, settings, null, null);
+                        host.Cards, settings, null);
                     overlayView.Fit(1920, 1080);
                     await Save(overlay, Path.Combine(folder, name + ".png"));
                 }
@@ -59,7 +59,7 @@ internal static partial class OffscreenRenderer
 
         try
         {
-            host.Overlay.Update(LiveSnapshot.Empty with { Scene = "HUB", HearthstoneRunning = true, Ladder = WidgetScene.Ladder(DateTime.Now) }, host.Cards, settings, null, null);
+            host.Overlay.Update(LiveSnapshot.Empty with { Scene = "HUB", HearthstoneRunning = true, Ladder = WidgetScene.Ladder(DateTime.Now) }, host.Cards, settings, null);
             overlayView.Fit(1920, 1080);
             await Save(overlay, Path.Combine(folder, "overlay-ladder.png"));
         }

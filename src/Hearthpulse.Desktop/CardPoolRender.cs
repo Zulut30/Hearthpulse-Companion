@@ -106,7 +106,7 @@ internal static class CardPoolRender
                     [new MatchListRow("BE_017", Name("BE_017"), 10, "LEGENDARY", 1), new MatchListRow("FP1_001", Name("FP1_001"), 1, "COMMON", 1)]),
             };
             host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed },
-                host.Cards, settings, null, null);
+                host.Cards, settings, null);
             await save(Path.Combine(folder, "overlay-card-pool-nzoth.png"));
         }
 
@@ -131,7 +131,7 @@ internal static class CardPoolRender
                 DiscoverPicks = picks,
             };
             var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
-            host.Overlay.Update(snapshot, host.Cards, settings, null, null);
+            host.Overlay.Update(snapshot, host.Cards, settings, null);
         }
 
         async Task SaveBrowserAsync(string path)

@@ -191,7 +191,7 @@ public sealed partial class LocBindingTests
             model.SetDataHealth(health);
         }
 
-        model.Update(LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true, Battlegrounds = view }, cards, settings, null, null);
+        model.Update(LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true, Battlegrounds = view }, cards, settings, null);
         for (var pass = 0; pass < 2; pass++)
         {
             overlay.Fit(1920, 1080);

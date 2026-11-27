@@ -42,7 +42,7 @@ public sealed class BgPickSourcesTests
                 [new BgHeroComp("Demons - Self damage", "A", "easy", "Hurt your own hero."), new BgHeroComp("Pool comp", string.Empty, string.Empty, null)]),
         };
 
-        model.Update(Live(View(heroes, [])), CardDb.Empty, new AppSettings(), null, null);
+        model.Update(Live(View(heroes, [])), CardDb.Empty, new AppSettings(), null);
 
         var picks = ((IEnumerable<dynamic>)model.HeroPicks).ToList();
         var tiers = Loc.T("Overlay.Tier.Heroes");
@@ -72,7 +72,7 @@ public sealed class BgPickSourcesTests
             new BgTrinketOption("TRK_NONE", "None"),
         };
 
-        model.Update(Live(View([], trinkets)), CardDb.Empty, new AppSettings(), null, null);
+        model.Update(Live(View([], trinkets)), CardDb.Empty, new AppSettings(), null);
 
         var badges = ((IEnumerable<dynamic>)model.TrinketPicks).ToList();
         var local = Fetched.ToLocalTime();
@@ -94,7 +94,7 @@ public sealed class BgPickSourcesTests
         Loc.Instance.SetLanguage(Loc.Russian);
         try
         {
-            model.Update(Live(View([], trinkets)), CardDb.Empty, new AppSettings(), null, null);
+            model.Update(Live(View([], trinkets)), CardDb.Empty, new AppSettings(), null);
             var russian = ((IEnumerable<dynamic>)model.TrinketPicks).First();
             Assert.Equal(string.Empty, (string)russian.Updated);
             Assert.Contains("выбор ", (string)russian.TierTip, StringComparison.Ordinal);

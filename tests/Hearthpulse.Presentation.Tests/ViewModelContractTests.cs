@@ -239,8 +239,8 @@ public sealed class ViewModelContractTests
         var wpf = new WpfOverlay();
         var ava = new AvaOverlay();
         var settings = new AppSettings { ShowTurnTimer = false };
-        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
-        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+        wpf.Update(snapshot, CardDb.Empty, settings, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null);
 
         Assert.Equal(note ?? string.Empty, wpf.UsageNote);
         Assert.Equal(wpf.UsageNote, ava.UsageNote);
@@ -253,8 +253,8 @@ public sealed class ViewModelContractTests
         var wpf = new WpfOverlay();
         var ava = new AvaOverlay();
         var settings = new AppSettings { ShowTurnTimer = false, ShowCombatOdds = true };
-        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
-        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+        wpf.Update(snapshot, CardDb.Empty, settings, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null);
 
         Assert.True(wpf.ShowOdds);
         Assert.True(ava.ShowOdds);
@@ -263,8 +263,8 @@ public sealed class ViewModelContractTests
         Assert.True(wpf.WinShare.IsStar && wpf.TieShare.IsStar && wpf.LossShare.IsStar);
         Assert.Equal((wpf.OddsWin, wpf.OddsTie, wpf.OddsLoss), (ava.OddsWin, ava.OddsTie, ava.OddsLoss));
         settings.ShowCombatOdds = false;
-        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
-        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+        wpf.Update(snapshot, CardDb.Empty, settings, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null);
         Assert.False(wpf.ShowOdds);
         Assert.False(ava.ShowOdds);
     }
@@ -305,8 +305,8 @@ public sealed class ViewModelContractTests
             var settings = new AppSettings { ShowArenaDraft = true };
             var wpf = new WpfOverlay();
             var ava = new AvaOverlay();
-            wpf.Update(snapshot, ArenaCards, settings, null, null);
-            ava.Update(snapshot, ArenaCards, settings, null, null);
+            wpf.Update(snapshot, ArenaCards, settings, null);
+            ava.Update(snapshot, ArenaCards, settings, null);
 
             Assert.Equal(wpf.ArenaPicks.Select(b => (b.Number, b.DeckFit, b.DeckFitWhy)), ava.ArenaPicks.Select(b => (b.Number, b.DeckFit, b.DeckFitWhy)));
             // The numbers of the source are untouched by the adjustment.
@@ -325,8 +325,8 @@ public sealed class ViewModelContractTests
             var scored = new Hearthpulse.Core.Arena.ArenaMeta([new("SPELL", 12, 30, null, null, 0), new("ONE", 13, 20, null, null, 0)], []);
             string[] big = ["BIG", "BIG", "BIG", "BIG", "BIG", "BIG"];
             var plain = Hearthpulse.Core.Arena.ArenaDraft.Build(new("HERO_07", 0, big, "DRAFTING"), ["SPELL", "ONE"], scored, ArenaCards);
-            wpf.Update(snapshot with { ArenaDraft = plain }, ArenaCards, settings, null, null);
-            ava.Update(snapshot with { ArenaDraft = plain }, ArenaCards, settings, null, null);
+            wpf.Update(snapshot with { ArenaDraft = plain }, ArenaCards, settings, null);
+            ava.Update(snapshot with { ArenaDraft = plain }, ArenaCards, settings, null);
             Assert.All(wpf.ArenaPicks, b => Assert.Equal((string.Empty, string.Empty), (b.DeckFit, b.DeckFitWhy)));
             Assert.All(ava.ArenaPicks, b => Assert.Equal((string.Empty, string.Empty), (b.DeckFit, b.DeckFitWhy)));
         }
@@ -348,8 +348,8 @@ public sealed class ViewModelContractTests
         var settings = new AppSettings { ShowArenaDraft = true };
         var wpf = new WpfOverlay();
         var ava = new AvaOverlay();
-        wpf.Update(snapshot, ArenaCards, settings, null, null);
-        ava.Update(snapshot, ArenaCards, settings, null, null);
+        wpf.Update(snapshot, ArenaCards, settings, null);
+        ava.Update(snapshot, ArenaCards, settings, null);
 
         Assert.True(wpf.ShowArenaPicks && ava.ShowArenaPicks);
         Assert.Equal(wpf.ArenaPicks.Select(b => (b.Number, b.Caption, b.FitCost, b.FitType)), ava.ArenaPicks.Select(b => (b.Number, b.Caption, b.FitCost, b.FitType)));
@@ -373,8 +373,8 @@ public sealed class ViewModelContractTests
         // The run's class keeps its community numbers in the panel after the hero pick.
         var withClasses = new Hearthpulse.Core.Arena.ArenaMeta(meta.Cards, [new("WARLOCK", 0.552, 0.8, 0.15, 100), new("MAGE", 0.56, 0.7, 0.16, 100)]);
         var classView = Hearthpulse.Core.Arena.ArenaDraft.Build(state, ["BIG", "SPELL"], withClasses, ArenaCards);
-        wpf.Update(snapshot with { ArenaDraft = classView }, ArenaCards, settings, null, null);
-        ava.Update(snapshot with { ArenaDraft = classView }, ArenaCards, settings, null, null);
+        wpf.Update(snapshot with { ArenaDraft = classView }, ArenaCards, settings, null);
+        ava.Update(snapshot with { ArenaDraft = classView }, ArenaCards, settings, null);
         Assert.Equal(wpf.ArenaClassStats.Select(s => (s.Value, s.Label, s.Tier)), ava.ArenaClassStats.Select(s => (s.Value, s.Label, s.Tier)));
         // Three short figures instead of one sentence that wrapped between "7+ wins:" and its number.
         Assert.Equal(
@@ -385,7 +385,7 @@ public sealed class ViewModelContractTests
         var power = Hearthpulse.Core.Arena.ArenaDraft.Build(state with { Cards = [] }, ["HERO_07bp", "HERO_08bp"], meta, ArenaCards);
         foreach (dynamic model in new object[] { wpf, ava })
         {
-            model.Update(snapshot with { ArenaDraft = power }, ArenaCards, settings, null, null);
+            model.Update(snapshot with { ArenaDraft = power }, ArenaCards, settings, null);
             Assert.False((bool)model.ShowArenaPicks);
             Assert.True((bool)model.ShowArenaDraft);
             Assert.Equal("Choose a hero power", (string)model.ArenaDraftTitle);
@@ -410,7 +410,7 @@ public sealed class ViewModelContractTests
 
         foreach (dynamic model in new object[] { new WpfOverlay(), new AvaOverlay() })
         {
-            model.Update(snapshot, cards, settings, null, null);
+            model.Update(snapshot, cards, settings, null);
             // One slot per offered hero, so each badge stays over its own portrait; the Mage has no numbers and draws nothing (O-28).
             var badges = ((IEnumerable<dynamic>)model.ArenaPicks).ToList();
             Assert.Equal((false, true), ((bool)badges[0].Empty, (bool)badges[1].Empty));
@@ -419,7 +419,7 @@ public sealed class ViewModelContractTests
             Assert.Equal(Loc.F("Arena.SevenPlus", 0.15.ToString("P0", CultureInfo.CurrentCulture)), (string)badges[0].Caption);
 
             // No class has numbers: no badges at all, the draft panel says why.
-            model.Update(snapshot with { ArenaDraft = none }, cards, settings, null, null);
+            model.Update(snapshot with { ArenaDraft = none }, cards, settings, null);
             Assert.False((bool)model.ShowArenaPicks);
             Assert.True((bool)model.ShowArenaDraft);
         }
@@ -440,7 +440,7 @@ public sealed class ViewModelContractTests
             // Two fights with Bob (the strip), one with somebody else (not his).
             Combats = [new CombatRecord(3, 5, "HERO_BOB", "Loss", 4, 0), new CombatRecord(5, 9, "HERO_X", "Win", 0, 3), new CombatRecord(7, 5, "HERO_BOB", "Win", 0, 6)],
         };
-        model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true }, CardDb.Empty, new AppSettings(), null, null);
+        model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true }, CardDb.Empty, new AppSettings(), null);
 
         // A tribe chip opens the list at the player's tier with that tribe only; the same chip again shows every tribe.
         Assert.Equal(new[] { "BEAST", "DRAGON" }, ((IEnumerable<dynamic>)model.TribeChips).Select(c => (string)c.Key));
@@ -480,8 +480,8 @@ public sealed class ViewModelContractTests
         var wpf = new WpfOverlay();
         var ava = new AvaOverlay();
         var settings = new AppSettings();
-        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
-        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+        wpf.Update(snapshot, CardDb.Empty, settings, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null);
 
         var rows = wpf.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top, r.LowSample)).ToList();
         Assert.Equal(rows, ava.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top, r.LowSample)));
@@ -492,8 +492,8 @@ public sealed class ViewModelContractTests
 
         // The pick is made: the session hands no hint any more, and the rows go.
         var closed = snapshot with { Constructed = constructed with { DiscoverPicks = null } };
-        wpf.Update(closed, CardDb.Empty, settings, null, null);
-        ava.Update(closed, CardDb.Empty, settings, null, null);
+        wpf.Update(closed, CardDb.Empty, settings, null);
+        ava.Update(closed, CardDb.Empty, settings, null);
         Assert.Empty(wpf.CardPoolPicks);
         Assert.Empty(ava.CardPoolPicks);
     }
@@ -517,8 +517,8 @@ public sealed class ViewModelContractTests
         var wpf = new WpfOverlay();
         var ava = new AvaOverlay();
         var settings = new AppSettings();
-        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
-        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+        wpf.Update(snapshot, CardDb.Empty, settings, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null);
 
         // The opponent's hand is on the marks over its fanned cards, not listed again on the panel (O-1); its count stays.
         Assert.Equal((4, 4), (wpf.OpponentHand, ava.OpponentHand));
@@ -546,18 +546,18 @@ public sealed class ViewModelContractTests
         var settings = new AppSettings();
 
         // The first deck of a game marks nothing; after a draw only the drawn card's row does.
-        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
-        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+        wpf.Update(snapshot, CardDb.Empty, settings, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null);
         Assert.DoesNotContain(wpf.Deck, t => t.Changed);
         Assert.DoesNotContain(ava.Deck, t => t.Changed);
-        wpf.Update(drawn, CardDb.Empty, settings, null, null);
-        ava.Update(drawn, CardDb.Empty, settings, null, null);
+        wpf.Update(drawn, CardDb.Empty, settings, null);
+        ava.Update(drawn, CardDb.Empty, settings, null);
         Assert.Equal([false, true], wpf.Deck.Select(t => t.Changed));
         Assert.Equal([false, true], ava.Deck.Select(t => t.Changed));
 
         // Leaving the game forgets the counts: the next game's first deck flashes nothing.
-        wpf.Update(snapshot with { InGame = false, Constructed = null }, CardDb.Empty, settings, null, null);
-        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
+        wpf.Update(snapshot with { InGame = false, Constructed = null }, CardDb.Empty, settings, null);
+        wpf.Update(snapshot, CardDb.Empty, settings, null);
         Assert.DoesNotContain(wpf.Deck, t => t.Changed);
 
         // Turns are spelled out on the opponent's played cards.
@@ -585,8 +585,8 @@ public sealed class ViewModelContractTests
         var wpf = new WpfOverlay();
         var ava = new AvaOverlay();
 
-        wpf.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
-        ava.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+        wpf.Update(snapshot, CardDb.Empty, new AppSettings(), null);
+        ava.Update(snapshot, CardDb.Empty, new AppSettings(), null);
 
         foreach (var (source, cards, summary, details) in new[]
                  {
@@ -620,7 +620,7 @@ public sealed class ViewModelContractTests
         var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
         var settings = new AppSettings { ShowOpponentArchetype = true };
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
-        void Show(LiveSnapshot s) => model.Update(s, CardDb.Empty, settings, null, null);
+        void Show(LiveSnapshot s) => model.Update(s, CardDb.Empty, settings, null);
 
         Show(snapshot);
         Assert.True((bool)model.ShowArchetype);
@@ -677,8 +677,8 @@ public sealed class ViewModelContractTests
         var settings = new AppSettings { ShowOpponentArchetype = true };
         var wpf = new WpfOverlay();
         var ava = new AvaOverlay();
-        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
-        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+        wpf.Update(snapshot, CardDb.Empty, settings, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null);
         Assert.Equal((wpf.ArchetypeTier, wpf.ArchetypeDetail), (ava.ArchetypeTier, ava.ArchetypeDetail));
         // The tier letter is on the badge beside the name: the line keeps the win rate alone (O-9).
         Assert.Equal(("A", "Meta win rate " + 0.55.ToString("P1", CultureInfo.CurrentCulture)), (ava.ArchetypeTier, ava.ArchetypeDetail));
@@ -720,7 +720,7 @@ public sealed class ViewModelContractTests
 
         INotifyPropertyChanged vm = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings();
-        Action<LiveSnapshot> update = wpf ? s => ((WpfOverlay)vm).Update(s, CardDb.Empty, settings, null, null) : s => ((AvaOverlay)vm).Update(s, CardDb.Empty, settings, null, null);
+        Action<LiveSnapshot> update = wpf ? s => ((WpfOverlay)vm).Update(s, CardDb.Empty, settings, null) : s => ((AvaOverlay)vm).Update(s, CardDb.Empty, settings, null);
         System.Collections.IList Played() => wpf ? (System.Collections.IList)((WpfOverlay)vm).Played : (System.Collections.IList)((AvaOverlay)vm).Played;
         var names = new List<string?>();
         vm.PropertyChanged += (_, e) => names.Add(e.PropertyName);
@@ -899,7 +899,7 @@ public sealed class ViewModelContractTests
 
         dynamic vm = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings();
-        vm.Update(With(4, 40), CardDb.Empty, settings, null, null);
+        vm.Update(With(4, 40), CardDb.Empty, settings, null);
         var tiers = (System.Collections.IList)vm.Tiers;
         var rows = (System.Collections.IList)vm.LobbyRows;
         var firstTier = tiers[0];
@@ -907,7 +907,7 @@ public sealed class ViewModelContractTests
         Assert.Equal(6, tiers.Count);
 
         // Tavern tier 5 and one opponent hurt (the healthiest stays at 50): the same lists, the untouched rows the same objects.
-        vm.Update(With(5, 12), CardDb.Empty, settings, null, null);
+        vm.Update(With(5, 12), CardDb.Empty, settings, null);
         Assert.Same(tiers, vm.Tiers);
         Assert.Same(rows, vm.LobbyRows);
         Assert.Same(firstTier, tiers[0]);

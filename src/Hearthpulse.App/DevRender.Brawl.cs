@@ -146,7 +146,7 @@ public partial class App
 
         if (RenderOnly("cardpool"))
         {
-            // The card pool panel and browser (App.CardPool.cs), then Settings → Tracker with the pool's rows. The pool's most
+            // The card pool panel and browser (App.CardPool.cs), then Settings → Overlay at the pool's rows. The pool's most
             // played cards come from the Constructed meta, which the whole render has by then: wait for it (20 s at most).
             for (var i = 0; i < 80 && _constructedLoader.Default is null; i++)
             {
@@ -154,11 +154,7 @@ public partial class App
             }
 
             await RenderCardPoolAsync(folder);
-            _main.ShowPage("Settings");
-            _main.ShowSettingsTab("Tracker");
-            await Task.Delay(800);
-            _main.UpdateLayout();
-            Save(_main, Path.Combine(folder, "main-settings-tracker.png"));
+            await SaveOverlayTabAtAsync("CardPoolSetting", Path.Combine(folder, "main-settings-pool.png"));
         }
 
         if (RenderOnly("account"))

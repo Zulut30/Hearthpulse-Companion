@@ -18,10 +18,10 @@ namespace Hearthpulse.UI.Overlay;
 /// <param name="post">Runs an action on the UI thread at background priority (after input and rendering).</param>
 /// <param name="readDeck">The deck record of a view: <see cref="LiveDeckRecord.Read"/> with the host's history and install folder.</param>
 /// <param name="showMain">Shows a snapshot in the main window.</param>
-/// <param name="showOverlay">Shows <see cref="Last"/> with <see cref="Deck"/> and <see cref="Matchup"/> on the overlay.</param>
+/// <param name="showOverlay">Shows <see cref="Last"/> with <see cref="Deck"/> on the overlay.</param>
 public sealed class LiveFeed(
     Action<Action> post,
-    Func<ConstructedView, (DeckAggregate? Deck, MatchupAggregate? Matchup)> readDeck,
+    Func<ConstructedView, DeckAggregate?> readDeck,
     Action<LiveSnapshot> showMain,
     Action showOverlay)
 {
@@ -49,10 +49,6 @@ public sealed class LiveFeed(
 
     /// <summary>The record of the deck in <see cref="Last"/>, once read; null while it is read or without a deck.</summary>
     public DeckAggregate? Deck { get; private set; }
-
-    /// <summary>The deck's record against the current opponent's class, once read.</summary>
-    public MatchupAggregate? Matchup { get; private set; }
-
 
     /// <summary>How long the newest snapshot has been waiting to be shown, in milliseconds; 0 when none waits. Any thread.</summary>
     public long Waiting
@@ -157,7 +153,6 @@ public sealed class LiveFeed(
         _deckKey = key;
         var generation = ++_deckGeneration;
         Deck = null;
-        Matchup = null;
         if (view is null)
         {
             return;
@@ -176,7 +171,7 @@ public sealed class LiveFeed(
             {
                 if (_deckKey == key && _deckGeneration == generation)
                 {
-                    (Deck, Matchup) = record;
+                    Deck = record;
                     showOverlay();
                 }
             });

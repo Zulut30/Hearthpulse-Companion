@@ -34,7 +34,7 @@ public partial class App
             try
             {
                 _settings.OverlayScale = sceneScale;
-                _overlayViewModel.Update(LiveSnapshot.Empty with { Scene = "DRAFT", HearthstoneRunning = true, ArenaDraft = view }, _cards, _settings, null, null);
+                _overlayViewModel.Update(LiveSnapshot.Empty with { Scene = "DRAFT", HearthstoneRunning = true, ArenaDraft = view }, _cards, _settings, null);
                 await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, 0);
             }
             catch (IOException ex)
@@ -44,7 +44,7 @@ public partial class App
         }
 
         (_settings.OverlayScale, _settings.ShowArenaDraft) = (scale, shown);
-        _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
+        _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null);
         await RenderArenaPageAsync(folder);
     }
 

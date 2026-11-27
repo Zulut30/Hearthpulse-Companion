@@ -33,14 +33,14 @@ internal static partial class OffscreenRenderer
             await Save(main, Path.Combine(folder, "main-settings-stream-compact.png"));
 
             var constructed = Snapshot("GT_RANKED") with { Constructed = StreamScene.Constructed(host.Cards) };
-            host.Overlay.Update(constructed, host.Cards, settings, null, null);
+            host.Overlay.Update(constructed, host.Cards, settings, null);
             await SaveStreamWindowAsync(host, settings, StreamWindowSpec.Deck, folder, "stream-deck.png");
             settings.StreamWindowBackground = StreamBackgrounds.Green;
             await SaveStreamWindowAsync(host, settings, StreamWindowSpec.Deck, folder, "stream-deck-green.png");
             settings.StreamWindowBackground = StreamBackgrounds.Theme;
 
             settings.StreamerMode = true;
-            host.Overlay.Update(constructed, host.Cards, settings, null, null);
+            host.Overlay.Update(constructed, host.Cards, settings, null);
             var overlayView = new OverlayView { DataContext = host.Overlay, Settings = settings };
             var overlay = new Window { Width = 1920, Height = 1080, Content = overlayView, Background = ThemeBrushes.Get("Bg") };
             overlay.Show();
@@ -49,17 +49,17 @@ internal static partial class OffscreenRenderer
             overlay.Close();
             settings.StreamerMode = streamer;
 
-            host.Overlay.Update(Snapshot("GT_BATTLEGROUNDS") with { Battlegrounds = StreamScene.Lobby(host.Cards) }, host.Cards, settings, null, null);
+            host.Overlay.Update(Snapshot("GT_BATTLEGROUNDS") with { Battlegrounds = StreamScene.Lobby(host.Cards) }, host.Cards, settings, null);
             await SaveStreamWindowAsync(host, settings, StreamWindowSpec.Lobby, folder, "stream-lobby.png");
 
-            host.Overlay.Update(Snapshot("GT_BATTLEGROUNDS") with { Battlegrounds = CombatOddsScene.Synthetic() }, host.Cards, settings, null, null);
+            host.Overlay.Update(Snapshot("GT_BATTLEGROUNDS") with { Battlegrounds = CombatOddsScene.Synthetic() }, host.Cards, settings, null);
             await SaveStreamWindowAsync(host, settings, StreamWindowSpec.Odds, folder, "stream-odds.png");
             settings.StreamWindowBackground = StreamBackgrounds.Magenta;
             await SaveStreamWindowAsync(host, settings, StreamWindowSpec.Odds, folder, "stream-odds-magenta.png");
             settings.StreamWindowBackground = StreamBackgrounds.Theme;
 
             // No game: the quiet tile in the smallest lobby window.
-            host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
+            host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null);
             await SaveStreamWindowAsync(host, settings, StreamWindowSpec.Lobby, folder, "stream-idle.png", StreamWindowSpec.Lobby.MinWidth, StreamWindowSpec.Lobby.MinHeight);
         }
         catch (IOException ex)
@@ -69,7 +69,7 @@ internal static partial class OffscreenRenderer
         finally
         {
             (settings.StreamerMode, settings.StreamWindowBackground) = (streamer, background);
-            host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
+            host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null);
             (main.Width, main.Height) = (width, height);
             view.ShowSettingsTab("General");
         }

@@ -46,8 +46,8 @@ public sealed class StreamWindowContractTests
             {
                 var wpf = new WpfOverlay();
                 var ava = new AvaOverlay();
-                wpf.Update(snapshot, CardDb.Empty, settings, null, null);
-                ava.Update(snapshot, CardDb.Empty, settings, null, null);
+                wpf.Update(snapshot, CardDb.Empty, settings, null);
+                ava.Update(snapshot, CardDb.Empty, settings, null);
                 Assert.Equal(
                     (wpf.DeckWindowState.ToString(), wpf.LobbyWindowState.ToString(), wpf.OddsWindowState.ToString(), wpf.OpponentTitle, wpf.OpponentSubtitle, wpf.Deck.Count, wpf.LobbyRows.Count),
                     (ava.DeckWindowState.ToString(), ava.LobbyWindowState.ToString(), ava.OddsWindowState.ToString(), ava.OpponentTitle, ava.OpponentSubtitle, ava.Deck.Count, ava.LobbyRows.Count));
@@ -124,7 +124,7 @@ public sealed class StreamWindowContractTests
 
         var deck = new WpfStreamWindow(overlay, settings, WpfSpec.Deck);
         var root = (FrameworkElement)deck.Content;
-        overlay.Update(Game("GT_RANKED") with { Constructed = StreamScene.Constructed(CardDb.Empty) }, CardDb.Empty, settings, null, null);
+        overlay.Update(Game("GT_RANKED") with { Constructed = StreamScene.Constructed(CardDb.Empty) }, CardDb.Empty, settings, null);
         Layout(root, WpfSpec.Deck.Width, WpfSpec.Deck.Height);
         Assert.Equal(Visibility.Visible, ((FrameworkElement)deck.FindName("Scaler")).Visibility);
         Assert.Equal(Visibility.Collapsed, ((FrameworkElement)deck.FindName("IdleTile")).Visibility);
@@ -135,7 +135,7 @@ public sealed class StreamWindowContractTests
         settings.StreamWindowBackground = StreamBackgrounds.Theme;
         deck.ApplyLook();
         Assert.Same(app.FindResource("Bg"), deck.Background);
-        overlay.Update(Game("GT_RANKED") with { Constructed = StreamScene.Constructed(CardDb.Empty) with { DeckKnown = false } }, CardDb.Empty, settings, null, null);
+        overlay.Update(Game("GT_RANKED") with { Constructed = StreamScene.Constructed(CardDb.Empty) with { DeckKnown = false } }, CardDb.Empty, settings, null);
         Assert.Equal(Visibility.Collapsed, ((FrameworkElement)deck.FindName("Scaler")).Visibility);
         Assert.Equal(Visibility.Collapsed, ((FrameworkElement)deck.FindName("IdleTile")).Visibility);
         deck.CloseForReal();

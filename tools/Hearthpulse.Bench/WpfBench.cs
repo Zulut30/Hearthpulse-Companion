@@ -39,7 +39,7 @@ internal static partial class WpfBench
         var wpf = new OverlayViewModel();
         OverlayRun("WPF", wpf, typeof(OverlayViewModel), s =>
         {
-            wpf.Update(s, cards, settings, null, null);
+            wpf.Update(s, cards, settings, null);
             if (bg)
             {
                 wpf.ArrangeLeaderboard(1920, 1080, settings);
@@ -48,7 +48,7 @@ internal static partial class WpfBench
         var avalonia = new Hearthpulse.UI.Overlay.OverlayViewModel();
         OverlayRun("Avalonia", avalonia, avalonia.GetType(), s =>
         {
-            avalonia.Update(s, cards, settings, null, null);
+            avalonia.Update(s, cards, settings, null);
             if (bg)
             {
                 avalonia.ArrangeLeaderboard(1920, 1080, settings);

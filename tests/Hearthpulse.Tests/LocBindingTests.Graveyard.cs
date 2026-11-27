@@ -25,11 +25,11 @@ public sealed partial class LocBindingTests
         ConstructedView View(GraveyardView? g) => new(5, null, false, "HERO_09", "PRIEST", "HERO_08", "MAGE", null, [], 20, 4, [], [], 18, 5, 0, null, null) { Graveyard = g };
         var model = new OverlayViewModel();
 
-        model.Update(LiveSnapshot.Empty with { Constructed = View(graveyard), InGame = true, HearthstoneRunning = true }, cards, new AppSettings(), null, null);
+        model.Update(LiveSnapshot.Empty with { Constructed = View(graveyard), InGame = true, HearthstoneRunning = true }, cards, new AppSettings(), null);
         Assert.False(model.ShowGraveyard);
 
         var settings = new AppSettings { ShowGraveyard = true };
-        model.Update(LiveSnapshot.Empty with { Constructed = View(graveyard), InGame = true, HearthstoneRunning = true }, cards, settings, null, null);
+        model.Update(LiveSnapshot.Empty with { Constructed = View(graveyard), InGame = true, HearthstoneRunning = true }, cards, settings, null);
 
         Assert.True(model.ShowGraveyard);
         Assert.Equal(Loc.F("Related.Graveyard.Enemy", "13"), model.GraveyardOpponentTitle);
@@ -49,7 +49,7 @@ public sealed partial class LocBindingTests
             app.Styles.Remove(theme);
         }
 
-        model.Update(LiveSnapshot.Empty with { Constructed = View(null), InGame = true, HearthstoneRunning = true }, cards, settings, null, null);
+        model.Update(LiveSnapshot.Empty with { Constructed = View(null), InGame = true, HearthstoneRunning = true }, cards, settings, null);
         Assert.False(model.ShowGraveyard);
     }
 }

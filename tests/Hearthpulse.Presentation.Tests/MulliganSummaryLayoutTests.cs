@@ -80,7 +80,7 @@ public sealed class MulliganSummaryLayoutTests
     private static (double Height, string Line, string Tip) SummarySize(ConstructedView view)
     {
         var model = new OverlayViewModel();
-        model.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view }, CardDb.Empty, new AppSettings(), null, null);
+        model.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view }, CardDb.Empty, new AppSettings(), null);
         var summary = new MulliganSummary { DataContext = model };
         summary.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         summary.Arrange(new Rect(summary.DesiredSize));
