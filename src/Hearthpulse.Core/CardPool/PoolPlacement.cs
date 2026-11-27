@@ -96,9 +96,9 @@ public static class PoolPlacement
     private static bool Fits(double x, double width, double panelWidth) => x >= Edge && x <= width - Edge - panelWidth;
 
     /// <summary>
-    /// Whether the panel <see cref="Place"/> puts beside the Discover options lies over them: there is no room on either
-    /// side of the row (four options on 4:3, five options, a large overlay scale), so it is clamped onto it. The panel
-    /// lets clicks through to the options, its "All cards" button would not: the panel goes without it then.
+    /// Whether the panel <see cref="Place"/> puts beside the Discover options lies over them: no room on either side, at
+    /// overlay scale 1 already with three options on 4:3 or four on 16:10. Its "All cards" button would take an option's
+    /// click, so the panel goes without it and that Discover's full list cannot be opened (docs/discover-pool.md).
     /// </summary>
     public static bool CoversChoices(CardPoolAnchor anchor, double width, double panelWidth, double panelHeight)
     {

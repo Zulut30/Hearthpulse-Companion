@@ -263,10 +263,12 @@ marked `OverlayHit.Interactive` (the same plate as the panels' lock button: WPF 
   no game memory: only the option count the log gives). The geometry is measured on 16:9 screenshots in units of a
   1080-high screen centred horizontally, the way Hearthstone lays out its board; the popup undoes the player's overlay
   scale, is drawn no smaller than 0.85 of its size at overlay scale 1 (`PoolPlacement.MinPopupScale`) and is kept on
-  screen. Its fill does not fade with the overlay opacity. With no room on either side (four options on 4:3, five
-  options, a large overlay scale) it is clamped onto the row and goes without its "All cards" button, which would take
-  an option's click: the panel checks `PoolPlacement.CoversChoicesOnSurface` as it places itself and tells the view
-  model (`SetCardPoolPopupOverChoices`).
+  screen. Its fill does not fade with the overlay opacity. With no room on either side it is clamped onto the row and
+  goes without its "All cards" button, which would take an option's click: the panel checks
+  `PoolPlacement.CoversChoicesOnSurface` as it places itself and tells the view model (`SetCardPoolPopupOverChoices`).
+  At overlay scale 1 that is already so with three options on 4:3 and four on 16:10, and always with five options or
+  four on 4:3; on 16:9 four options lose it from scale 1.18, on 16:10 three from 1.36. Such a Discover's full list
+  cannot be opened then: the option's click comes first (TASK-2026-11-26 m1, coordinator, 2026-11-27).
 
 Until 2026-11-26 a hand card's pool stood beside the game's enlarged preview of the card (`PoolPlacement` hand
 geometry, `CardPoolTracker.HandAnchor`), lingered 0.8 s after the mouse left and was kept by a neighbour without a

@@ -13,7 +13,8 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// TASK-2026-11-26 AC4 in Avalonia: the pool panel names the card and its "All cards" button is the one part that takes
-/// the mouse; Settings → Tracker has the hover choice and the Discover switch under "Card pool", off with it.
+/// the mouse, but not on a Discover popup lying over the options; Settings → Tracker has the hover choice and the
+/// Discover switch under "Card pool", off with it.
 /// </summary>
 public sealed partial class LocBindingTests
 {
@@ -61,12 +62,67 @@ public sealed partial class LocBindingTests
         }
     }
 
-    private static Core.Tracking.LiveSnapshot PoolSnapshot(int count)
+    /// <summary>
+    /// Q5 (m1): the Discover popup placed over four options on a 4:3 surface tells the view model and shows without its
+    /// button; a 16:9 surface gives it back; then the panel at its own spot shows the button again.
+    /// </summary>
+    [Fact]
+    public void The_discover_popup_over_the_options_goes_without_its_button_and_the_panel_at_its_own_spot_shows_it() => Headless.Run(PopupOverOptions);
+
+    private static void PopupOverOptions()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var theme = Theme();
+        var vm = new OverlayViewModel();
+        var popup = new CardPoolPanel { DataContext = vm, Anchored = true, IsVisible = false };
+        var panel = new CardPoolPanel { DataContext = vm, IsVisible = false };
+        var surface = new Canvas { Width = 1440, Height = 1080, Children = { popup, panel } };
+        var window = new Window { Width = 1920, Height = 1080, Content = surface };
+
+        // OverlayView binds the two panels' IsVisible to these; here they follow by hand.
+        void Show(Core.Tracking.LiveSnapshot snapshot)
+        {
+            vm.Update(snapshot, Core.Cards.CardDb.Empty, new AppSettings(), null, null);
+            popup.IsVisible = vm.ShowCardPoolPopup;
+            panel.IsVisible = vm.ShowCardPoolPanel;
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        try
+        {
+            window.Show();
+            vm.UpdateCardPoolKeys(true);
+            Show(PoolSnapshot(40, new CardPoolAnchor(PoolAnchorZone.Choice, 0, 4)));
+            Assert.True(popup.IsVisible);
+            Assert.False(popup.FindControl<Button>("AllCards")!.IsVisible);
+
+            surface.Width = 1920;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(popup.FindControl<Button>("AllCards")!.IsVisible);
+            surface.Width = 1440;
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(popup.FindControl<Button>("AllCards")!.IsVisible);
+
+            Show(PoolSnapshot(40));
+            Assert.True(panel.IsVisible);
+            Assert.True(panel.FindControl<Button>("AllCards")!.IsVisible);
+        }
+        finally
+        {
+            window.Close();
+            Application.Current!.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    /// <summary>A hand card's pool of <paramref name="count"/> cards, or a Discover's beside its <paramref name="anchor"/>.</summary>
+    private static Core.Tracking.LiveSnapshot PoolSnapshot(int count, CardPoolAnchor? anchor = null)
     {
         var entries = Enumerable.Range(0, count).Select(i => new PoolEntry($"P_{i}", $"Card {i}", i % 9, 1, 1, "MINION", "COMMON", "MAGE", 0)).ToList();
         var (cost, attack, health) = PoolStats.Histograms([]);
-        var pool = new CardPoolView("GEN", "Generator", PoolTrigger.Hover, "Discover a minion", "Mage + Neutral", entries.Count, cost, attack, health, [], null, null, entries);
-        var constructed = new Core.Tracking.ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null) { CardPool = pool };
+        var trigger = anchor is null ? PoolTrigger.Hover : PoolTrigger.Choice;
+        var pool = new CardPoolView("GEN", "Generator", trigger, "Discover a minion", "Mage + Neutral", entries.Count, cost, attack, health, [], null, null, entries);
+        var constructed = new Core.Tracking.ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null) { CardPool = pool, CardPoolAnchor = anchor };
         return Core.Tracking.LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
     }
 
