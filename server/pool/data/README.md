@@ -5,6 +5,12 @@ Files the Node service reads at start for the views of game records
 (`git archive server/pool`) carries them; a change is a commit and an ordinary pool deploy, which the owner has
 allowed in advance for this program (TASK-2026-11-26-pro-collection, "Деплой пула"). Nothing here comes from players.
 
+Sources: `balance-patches.json` takes its builds and days from the live client (`BuildNumber` in Power.log, the
+`build` of source captures), with HearthstoneJSON as a hint only. `archetypes.json` holds HSGuru's archetype names
+and core cards read through our data API (`/v1/hsguru/archetypes`, permission: `docs/data-permissions.md`), without
+HSGuru's game counts. `card-ids.json` maps card ids and dbf ids from HearthstoneJSON (game data © Blizzard
+Entertainment).
+
 | File | Kept by | Read by | Updated when |
 |---|---|---|---|
 | `balance-patches.json` | by hand, by whoever ships the pool after a Hearthstone patch | `node/records/periods.mjs` | a patch changes cards (Constructed, Battlegrounds or Arena) |

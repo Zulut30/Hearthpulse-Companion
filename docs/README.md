@@ -52,6 +52,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [analytics-api.md](analytics-api.md) | Analytics from source v2: checked facts, idempotent and deletable contribution, snapshot, `/stats/v2/analytics/bg/heroes` |
 | [source-capture.md](source-capture.md) | Safe game sources, durable upload, server reprocessing and capture completeness |
 | [analytics-metrics.md](analytics-metrics.md) | Catalog of statistics metrics and the field matrix ([JSON](analytics-metrics.json)); per-metric eligibility |
+| [analytics-coverage.md](analytics-coverage.md) | The owner's report on the pool's host: how far each own metric is from publication (installs and games per cell, `<5` for 1 to 4), read-only |
 | [analytics-records.md](analytics-records.md) | Own numbers from game records: the record pass and its views, windows by balance patch, thresholds and helpers, `/stats/v2/analytics/records/<view>`, deletion |
 | [local-data.md](local-data.md) | Broken or busy settings, history and API cache files; known limits; files that never leave the machine (combat captures, the collection) |
 | [collection.md](collection.md) | The player's collection read from the client, `collection.json`, what a deck costs in dust (shown on the Collection page, in top decks and on the deck page) |

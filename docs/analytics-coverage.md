@@ -82,8 +82,9 @@ arena            kind x class (runs)           6      6      2             1    
 
 - Counts only: no install id, record id or deck code, and no cell key (class, card, hero), so no line points at a
   player or a deck.
-- Installs and games (records, runs) from 1 to 4 print as `<5`, in both formats: a group that small is never shown
-  exactly. 0 and 5 or more print as they are.
+- Installs and games (records, runs) from 1 to 4 print as `<5`, in both formats. 0 and 5 or more print as they are.
+  The exact cell counts below can bound a `<5` (`games <5` beside `cells 4` is 4 games): the report is for the operator
+  of the host, who can read the database anyway, and it publishes nothing.
 - Cell counts (`cells`, `>=5 installs`, `publishable`) print exactly: a cell is a class, a card or a rating range,
   not a group of people, and the last two count only cells of 5 installations or more.
 - The window, its dates and the thresholds are settings, not counts.

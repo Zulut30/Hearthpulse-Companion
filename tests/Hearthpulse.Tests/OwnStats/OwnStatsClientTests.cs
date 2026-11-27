@@ -109,6 +109,8 @@ public sealed class OwnStatsClientTests : IDisposable
         // A 404 that is not the pool's own word about the view: a server in front of it, or another error of the pool.
         { 404, "<html><head><title>404 Not Found</title></head><body><center><h1>404 Not Found</h1></center><hr><center>nginx</center></body></html>" },
         { 404, """{"ok":false,"error":"not_found"}""" },
+        // A body that is JSON but not an object is no word about the view either, and must not throw (QA A5 round 2, n2).
+        { 404, "[]" },
         { 400, """{"ok":false,"error":"invalid_query"}""" },
         { 500, Published() },
         { 503, string.Empty },
@@ -436,6 +438,17 @@ public sealed class OwnStatsClientTests : IDisposable
         Assert.Equal(2, pool.Requests.Count);
         Assert.Empty(Files());
         Assert.Equal(OwnStatsState.Offline, (await Load(Client(pool, Noon))).State);
+    }
+
+    [Fact]
+    public async Task A_404_kept_before_the_clock_went_back_is_asked_again()
+    {
+        var pool = new FakePool(UnknownView) { Status = HttpStatusCode.NotFound };
+        Assert.Equal(OwnStatsState.Unsupported, (await Load(Client(pool))).State);
+
+        // The clock went back an hour: how old the kept 404 is cannot be told, so it is not trusted (QA A5 round 2, n3).
+        Assert.Equal(OwnStatsState.Unsupported, (await Load(Client(pool, Noon - TimeSpan.FromHours(1)))).State);
+        Assert.Equal(2, pool.Requests.Count);
     }
 
     [Fact]

@@ -260,3 +260,16 @@ intake of records included. Fix the file and deploy again; the views rebuild wit
 | `records_patches_invalid` | at start, `server/pool/data/balance-patches.json` is missing or malformed (`cause: invalid_balance_patches`) | every view is off until a deploy with a fixed file; the rest of the service runs |
 
 A code that repeats every minute is a stuck step, as for the upkeep codes above.
+
+**How far from publication** ([docs/analytics-coverage.md](../../../docs/analytics-coverage.md), A4). A read-only report
+of installs, games and cells per metric family against the K3 thresholds, `<5` for 1 to 4; run it as the service
+account (a stopped service's `-wal`/`-shm` files must stay its own), off peak: while it reads, the minute's WAL
+checkpoint waits for it.
+
+```sh
+cd /opt/hearthpulse-pool/app
+sudo -u hearthpulse-pool /opt/hearthpulse-pool/runtime/node-v24.19.0-linux-x64/bin/node \
+  server/pool/node/report.mjs --data /var/lib/hearthpulse-pool
+```
+
+Add `--format json` for the machine form.

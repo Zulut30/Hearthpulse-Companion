@@ -16,4 +16,8 @@ Discover picks, the Arena draft) are never sold or limited: that would resell so
   The former task to request that permission is closed. This confirmation does not change the rule that art and
   card data stay outside the limit. Separately, on 2026-11-15 the owner confirmed permission to use HSReplay
   and HSGuru data ([record](../data-permissions.md)); the free-access policy remains unchanged.
+- Since 2026-11-26 our own numbers from game records name archetypes with a dictionary built from HSGuru's archetype
+  catalogue (names and core cards, no game counts; `server/pool/data/archetypes.json`). The names label our numbers;
+  the numbers are ours, counted from our players' games, so they stay "our own analytics" here. No HSGuru number is
+  shown as ours or sold.
 - The main window's reference pages (meta, comps, trinkets) stay free; the limit covers in-game hints only.

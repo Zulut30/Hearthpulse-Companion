@@ -36,7 +36,8 @@ as one compact versioned record to the stats pool Worker, `POST /v1/events`, and
   games for 180 days. So: one install's records are never published, sold, shown in a paid feature or joined to a
   site account; only totals with at least 10 games from at least 5 installs leave the pool (free or paid). The rating
   is capped at 10,000 ("10000+": the few players above are on Blizzard's public leaderboard), the rank is the league
-  only. Deleted records stay in D1's Time Travel history for up to 30 days; the pool is never restored to a point
+  only, with one band inside Diamond: `band: "d4-1"` for Diamond 4 to 1 (star level 47-50, TASK-2026-11-26-pro-collection
+  A1), never a legend number. Deleted records stay in D1's Time Travel history for up to 30 days; the pool is never restored to a point
   before a deletion without sending the deletion again (`reference/reviews/LEGAL-game-stats.md`).
 - **On by default, with an opt-out** (the owner's decision, 2026-11-06). No consent prompt; the legal minimum for
   pseudonymous data is kept: one opt-out switch in Settings → Data, the installer notice, section 9 of the site's

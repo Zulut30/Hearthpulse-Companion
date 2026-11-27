@@ -131,6 +131,17 @@ export const version = 'deck-1';   // part of the signature and of every envelop
 export function derive(rec, ctx) {} // fills rec.d.*; must not throw: unknown is null. ctx = {today, now}
 ```
 
+**`deck` (B2).** It fills `rec.d.cards` (dbf → copies) and `rec.d.deckKey` (the client's `DeckRecords.CardListKey`)
+from the record's deck code, both or neither: a code it cannot read whole gives `cards: null, deckKey: null`. Copies of
+one card past a C# int are a broken code in every mode. In `ranked` and `casual` of Standard and Wild (`rec.fmt`) a
+list is kept only within the deck rules: each card at most 2 copies, 30 cards, or 40 with Prince Renathal; anything
+else gives both null. Other modes and formats have no deck rules here (arena may hold many copies: a view never loops
+over copies). The pool knows no rarity, so two copies of a legendary pass, and a Splendiferous Whizbang deck that
+Decks.log writes as the one card gives null. The sideboard (E.T.C., Zilliax) is read but is no part of the key.
+
+**`archetypes` (B1).** It fills `rec.d.arch` and `rec.d.oarch` by the app's rules from `data/archetypes.json`, null
+when unclear; the version is the dictionary's (`arch-YYYYMMDD-<hash>`), `arch-none` without one.
+
 ## A view (`views/<key>.mjs`)
 
 ```js
