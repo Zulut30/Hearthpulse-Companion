@@ -1,0 +1,418 @@
+{
+  "v": 1,
+  "about": [
+    "Deck codes for server/pool/node/records/derive/deck.mjs (test/derive-deck.test.mjs) and the client's Cards/DeckString and DeckRecords.CardListKey (tests/Hearthpulse.Tests/OwnStats/DeckKeyAgreementTests.cs): TASK-2026-11-26-pro-collection B2, AC10.",
+    "Real codes are copied from the repository files `made` names; the other codes are written byte by byte from a real list, as `made` says. Built 2026-11-26.",
+    "key: the main deck as both readers read it, \"<dbf>x<copies>\" in dbf order (DeckRecords.CardListKey); null: a broken code both readers refuse.",
+    "group: the cases of one group are one list; different groups are different lists.",
+    "sideboard: the sideboard cards in the same form, \"\" without one, null when the code has one that does not read (SideboardUnread).",
+    "canonical: the code deck.mjs encodeDeck and DeckString.Encode write for the list with the class and record format given.",
+    "stricter: codes no game writes that the client still reads (client: its CardListKey, a minus sign written as '-') and the server refuses.",
+    "heroes: class -> default hero (DeckString.ClassHero) and its dbf id in HearthstoneJSON enUS cards.collectible.json, read 2026-11-26.",
+    "skins: hero dbf id -> card id and class of the hero skins the cases name, from HearthstoneJSON cards.json (ruRU, the app's cache of 2026-11-15). With heroes they give the class of every case's hero, which is the class of its canonical code."
+  ],
+  "heroes": {
+    "WARRIOR": {"id":"HERO_01","dbf":7},
+    "SHAMAN": {"id":"HERO_02","dbf":1066},
+    "ROGUE": {"id":"HERO_03","dbf":930},
+    "PALADIN": {"id":"HERO_04","dbf":671},
+    "HUNTER": {"id":"HERO_05","dbf":31},
+    "DRUID": {"id":"HERO_06","dbf":274},
+    "WARLOCK": {"id":"HERO_07","dbf":893},
+    "MAGE": {"id":"HERO_08","dbf":637},
+    "PRIEST": {"id":"HERO_09","dbf":813},
+    "DEMONHUNTER": {"id":"HERO_10","dbf":56550},
+    "DEATHKNIGHT": {"id":"HERO_11","dbf":78065}
+  },
+  "skins": {
+    "60238": {"id":"HERO_10a","cls":"DEMONHUNTER"},
+    "103776": {"id":"HERO_03af","cls":"ROGUE"},
+    "130933": {"id":"HERO_10br","cls":"DEMONHUNTER"}
+  },
+  "cases": [
+    {
+      "name": "dh-standard",
+      "made": "real: tests/Hearthpulse.Tests/Fixtures/Mulligan/hsguru-archetypes-standard.json",
+      "group": "dh",
+      "code": "AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA=",
+      "fmt": "standard",
+      "heroes": [56550],
+      "key": "97377x2,102224x2,102227x1,114654x2,115139x1,115198x2,117686x2,120074x1,120082x1,120083x1,121058x2,122770x2,122773x2,128215x2,130729x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA="}
+    },
+    {
+      "name": "priest-standard",
+      "made": "real: tests/Hearthpulse.Tests/Fixtures/Mulligan/hsguru-archetypes-standard.json",
+      "group": "priest",
+      "code": "AAECAa0GAqiWB9zgBw7FlAfkngfSrwebvweyxQevyQew3wfV4AfZ4Af04Afo8Qfh+gfk+gfc+wcAAA==",
+      "fmt": "standard",
+      "heroes": [813],
+      "key": "117317x2,117544x1,118628x2,120786x2,122779x2,123570x2,124079x2,126896x2,127061x2,127065x2,127068x1,127092x2,129256x2,130401x2,130404x2,130524x2",
+      "sideboard": "",
+      "canonical": {"cls":"PRIEST","fmt":"standard","code":"AAECAa0GAqiWB9zgBw7FlAfkngfSrwebvweyxQevyQew3wfV4AfZ4Af04Afo8Qfh+gfk+gfc+wcAAA=="}
+    },
+    {
+      "name": "warlock-standard",
+      "made": "real: tests/Hearthpulse.Tests/Fixtures/Mulligan/hsguru-archetypes-standard.json",
+      "group": "warlock",
+      "code": "AAECAf0GBNvgB6D2B+35B/OJCA2EoAT1gQekrQf2wQfX6QfF8AeB9geF9geN9geX9wfp+QekgQj7iQgAAA==",
+      "fmt": "standard",
+      "heroes": [893],
+      "key": "69636x2,114933x2,120484x2,123126x2,127067x1,128215x2,129093x2,129793x2,129797x2,129805x2,129824x1,129943x2,130281x2,130285x1,131236x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"WARLOCK","fmt":"standard","code":"AAECAf0GBNvgB6D2B+35B/OJCA2EoAT1gQekrQf2wQfX6QfF8AeB9geF9geN9geX9wfp+QekgQj7iQgAAA=="}
+    },
+    {
+      "name": "shaman-wild",
+      "made": "real: tests/Hearthpulse.Tests/Fixtures/Mulligan/hsguru-archetypes-wild.json",
+      "group": "shaman",
+      "code": "AAEBAaoIBIW4Ao/OA+mVBsOLCA2UA84P0hP2vQKTuQPw1APwhQTckgS8tgTK+AXGpgakpwb44gYAAA==",
+      "fmt": "wild",
+      "heroes": [1066],
+      "key": "404x2,1998x2,2514x2,39941x1,40694x2,56467x2,59151x1,60016x2,66288x2,67932x2,72508x2,97354x2,101097x1,103238x2,103332x2,110968x2,132547x1",
+      "sideboard": "",
+      "canonical": {"cls":"SHAMAN","fmt":"wild","code":"AAEBAaoIBIW4Ao/OA+mVBsOLCA2UA84P0hP2vQKTuQPw1APwhQTckgS8tgTK+AXGpgakpwb44gYAAA=="}
+    },
+    {
+      "name": "rogue-wild",
+      "made": "real: tests/Hearthpulse.Tests/Fixtures/Mulligan/hsguru-archetypes-wild.json",
+      "group": "rogue-wild",
+      "code": "AAEBAaIHDIStAvDmAqH0A9P5A72ABLezBOPTBPXdBO6eBojZB4XrB7zyBwn1uwLf4wLi3QPn3QP+7gP3nwT03QStpwbBlwcAAA==",
+      "fmt": "wild",
+      "heroes": [930],
+      "key": "38532x1,40437x2,45535x2,45936x1,61154x2,61159x2,63358x2,64033x1,64723x1,65597x1,69623x2,72119x1,76259x1,77556x2,77557x1,102254x1,103341x2,117697x2,126088x1,128389x1,129340x1",
+      "sideboard": "",
+      "canonical": {"cls":"ROGUE","fmt":"wild","code":"AAEBAaIHDIStAvDmAqH0A9P5A72ABLezBOPTBPXdBO6eBojZB4XrB7zyBwn1uwLf4wLi3QPn3QP+7gP3nwT03QStpwbBlwcAAA=="}
+    },
+    {
+      "name": "priest-wild-etc",
+      "made": "real: tests/Hearthpulse.Tests/Fixtures/Mulligan/hsguru-archetypes-wild.json; E.T.C.'s band in the sideboard",
+      "group": "priest-etc",
+      "code": "AAEBAa0GCPf8Aof3A6G2BLjcBMXkBP3EBdfSBufYBwaitgTy2wTt9wXOwAadrQf04AcAAQPvkQX9xAXp7Qb9xAXAhAf9xAUAAA==",
+      "fmt": "wild",
+      "heroes": [813],
+      "key": "48759x1,64391x1,72481x1,72482x2,77298x2,77368x1,78405x1,90749x1,97261x2,106574x2,108887x1,120477x2,126055x1,127092x2",
+      "sideboard": "84207x1,112361x1,115264x1",
+      "canonical": {"cls":"PRIEST","fmt":"wild","code":"AAEBAa0GCPf8Aof3A6G2BLjcBMXkBP3EBdfSBufYBwaitgTy2wTt9wXOwAadrQf04AcAAA=="}
+    },
+    {
+      "name": "warrior-wild-etc-zilliax",
+      "made": "real: tests/Hearthpulse.Tests/CollectionIntegrationRegressionTests.cs (HSGuru Wild, E.T.C. and Zilliax)",
+      "group": "warrior",
+      "code": "AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAQagzgL9xAXD6gL9xAXRngb9xAX1swbHpAb3swbHpAbu3gbHpAYAAA==",
+      "fmt": "wild",
+      "heroes": [7],
+      "key": "75x1,46031x1,53756x1,56504x1,59151x1,59411x1,67193x1,71781x1,72588x1,75631x1,76302x1,76984x1,79767x1,86626x1,90749x1,97697x1,100875x1,101367x1,102175x1,102225x1,102983x1,103441x1,103471x1,103660x1,104528x1,105813x1,106382x1,106682x1,107770x1,107891x1,111914x1,113321x1,115139x1,116718x1,117723x1,118163x1,119786x1,120828x1,126100x1,129245x1",
+      "sideboard": "42784x1,46403x1,102225x1,104949x1,104951x1,110446x1",
+      "canonical": {"cls":"WARRIOR","fmt":"wild","code":"AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAA=="}
+    },
+    {
+      "name": "rogue-standard-skin",
+      "made": "real: tests/Hearthpulse.Tests/DeckRecordsTests.cs (a real Decks.log, October 2026); the hero is a Rogue skin",
+      "group": "rogue-skin",
+      "code": "AAECAeCqBgiGqAeHqAeIqAflrwe2sgel2AeI2QfDiwgL958E2aIGwZcHtMEHxcEH1cUHq8kHpNgHkdkHjdoHvPIHAAA=",
+      "fmt": "standard",
+      "heroes": [103776],
+      "key": "69623x2,102745x2,117697x2,119814x1,119815x1,119816x1,120805x1,121142x1,123060x2,123077x2,123605x2,124075x2,125988x2,125989x1,126088x1,126097x2,126221x2,129340x2,132547x1",
+      "sideboard": "",
+      "canonical": {"cls":"ROGUE","fmt":"standard","code":"AAECAaIHCIaoB4eoB4ioB+WvB7ayB6XYB4jZB8OLCAv3nwTZogbBlwe0wQfFwQfVxQeryQek2AeR2QeN2ge88gcAAA=="}
+    },
+    {
+      "name": "dh-standard-skin",
+      "made": "real: tests/Hearthpulse.Tests/DeckRecordsTests.cs (a real Decks.log, October 2026); the hero is a Demon Hunter skin (HERO_10br, dbf 130933)",
+      "group": "dh-skin",
+      "code": "AAECAfX+BwSongbDgweD2gfziQgN4fgF0J4G3v8GtpcHlb8HxN0Hxt0Hx90HteEHt+EHqvoHvoEI+4kIAAA=",
+      "fmt": "standard",
+      "heroes": [130933],
+      "key": "97377x2,102184x1,102224x2,114654x2,115139x1,117686x2,122773x2,126211x1,126660x2,126662x2,126663x2,127157x2,127159x2,130346x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5AwSongbDgweD2gfziQgN4fgF0J4G3v8GtpcHlb8HxN0Hxt0Hx90HteEHt+EHqvoHvoEI+4kIAAA="}
+    },
+    {
+      "name": "dh-reordered",
+      "made": "dh-standard with every group in descending dbf order",
+      "group": "dh",
+      "code": "AAECAea5AwbziQiTqgeSqgeKqgfDgwfTngYM+4kIvoEIqf0H1+kHlb8Hkr8H4rEHtpcH/oMH3v8G0J4G4fgFAAA=",
+      "fmt": "standard",
+      "heroes": [56550],
+      "key": "97377x2,102224x2,102227x1,114654x2,115139x1,115198x2,117686x2,120074x1,120082x1,120083x1,121058x2,122770x2,122773x2,128215x2,130729x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA="}
+    },
+    {
+      "name": "dh-hero-skin",
+      "made": "dh-standard with the hero HERO_10a (Demonic Illidan, dbf 60238)",
+      "group": "dh",
+      "code": "AAECAc7WAwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA=",
+      "fmt": "standard",
+      "heroes": [60238],
+      "key": "97377x2,102224x2,102227x1,114654x2,115139x1,115198x2,117686x2,120074x1,120082x1,120083x1,121058x2,122770x2,122773x2,128215x2,130729x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA="}
+    },
+    {
+      "name": "dh-wild-byte",
+      "made": "dh-standard with the format byte 1 (Wild)",
+      "group": "dh",
+      "code": "AAEBAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA=",
+      "fmt": "wild",
+      "heroes": [56550],
+      "key": "97377x2,102224x2,102227x1,114654x2,115139x1,115198x2,117686x2,120074x1,120082x1,120083x1,121058x2,122770x2,122773x2,128215x2,130729x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"wild","code":"AAEBAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA="}
+    },
+    {
+      "name": "dh-no-tail",
+      "made": "dh-standard without the sideboard flag (codes before sideboards)",
+      "group": "dh",
+      "code": "AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAA==",
+      "fmt": "standard",
+      "heroes": [56550],
+      "key": "97377x2,102224x2,102227x1,114654x2,115139x1,115198x2,117686x2,120074x1,120082x1,120083x1,121058x2,122770x2,122773x2,128215x2,130729x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA="}
+    },
+    {
+      "name": "dh-x2-in-xn",
+      "made": "dh-standard with dbf 97377 written in the xN group as (97377, 2)",
+      "group": "dh",
+      "code": "AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgL0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAeH4BQIA",
+      "fmt": "standard",
+      "heroes": [56550],
+      "key": "97377x2,102224x2,102227x1,114654x2,115139x1,115198x2,117686x2,120074x1,120082x1,120083x1,121058x2,122770x2,122773x2,128215x2,130729x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA="}
+    },
+    {
+      "name": "dh-x2-as-two-x1",
+      "made": "dh-standard with dbf 102224 written twice in the x1 group",
+      "group": "dh",
+      "code": "AAECAea5AwjTngbDgweKqgeSqgeTqgfziQjQngbQngYL4fgF3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA=",
+      "fmt": "standard",
+      "heroes": [56550],
+      "key": "97377x2,102224x2,102227x1,114654x2,115139x1,115198x2,117686x2,120074x1,120082x1,120083x1,121058x2,122770x2,122773x2,128215x2,130729x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA="}
+    },
+    {
+      "name": "dh-spaces-around",
+      "made": "dh-standard with a space before and a line break after (the client trims the code)",
+      "group": "dh",
+      "code": " AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA=\n",
+      "fmt": "standard",
+      "heroes": [56550],
+      "key": "97377x2,102224x2,102227x1,114654x2,115139x1,115198x2,117686x2,120074x1,120082x1,120083x1,121058x2,122770x2,122773x2,128215x2,130729x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA="}
+    },
+    {
+      "name": "priest-twist-byte",
+      "made": "priest-standard with the format byte 4 (Twist)",
+      "group": "priest",
+      "code": "AAEEAa0GAqiWB9zgBw7FlAfkngfSrwebvweyxQevyQew3wfV4AfZ4Af04Afo8Qfh+gfk+gfc+wcAAA==",
+      "fmt": "twist",
+      "heroes": [813],
+      "key": "117317x2,117544x1,118628x2,120786x2,122779x2,123570x2,124079x2,126896x2,127061x2,127065x2,127068x1,127092x2,129256x2,130401x2,130404x2,130524x2",
+      "sideboard": "",
+      "canonical": {"cls":"PRIEST","fmt":"twist","code":"AAEEAa0GAqiWB9zgBw7FlAfkngfSrwebvweyxQevyQew3wfV4AfZ4Af04Afo8Qfh+gfk+gfc+wcAAA=="}
+    },
+    {
+      "name": "warlock-classic-byte",
+      "made": "warlock-standard with the format byte 3 (Classic)",
+      "group": "warlock",
+      "code": "AAEDAf0GBNvgB6D2B+35B/OJCA2EoAT1gQekrQf2wQfX6QfF8AeB9geF9geN9geX9wfp+QekgQj7iQgAAA==",
+      "fmt": "classic",
+      "heroes": [893],
+      "key": "69636x2,114933x2,120484x2,123126x2,127067x1,128215x2,129093x2,129793x2,129797x2,129805x2,129824x1,129943x2,130281x2,130285x1,131236x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"WARLOCK","fmt":"classic","code":"AAEDAf0GBNvgB6D2B+35B/OJCA2EoAT1gQekrQf2wQfX6QfF8AeB9geF9geN9geX9wfp+QekgQj7iQgAAA=="}
+    },
+    {
+      "name": "warlock-unknown-format-byte",
+      "made": "warlock-standard with the format byte 9, which no reader knows",
+      "group": "warlock",
+      "code": "AAEJAf0GBNvgB6D2B+35B/OJCA2EoAT1gQekrQf2wQfX6QfF8AeB9geF9geN9geX9wfp+QekgQj7iQgAAA==",
+      "fmt": null,
+      "heroes": [893],
+      "key": "69636x2,114933x2,120484x2,123126x2,127067x1,128215x2,129093x2,129793x2,129797x2,129805x2,129824x1,129943x2,130281x2,130285x1,131236x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"WARLOCK","fmt":"standard","code":"AAECAf0GBNvgB6D2B+35B/OJCA2EoAT1gQekrQf2wQfX6QfF8AeB9geF9geN9geX9wfp+QekgQj7iQgAAA=="}
+    },
+    {
+      "name": "warrior-no-sideboard",
+      "made": "warrior-wild-etc-zilliax with the sideboard flag off",
+      "group": "warrior",
+      "code": "AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAA==",
+      "fmt": "wild",
+      "heroes": [7],
+      "key": "75x1,46031x1,53756x1,56504x1,59151x1,59411x1,67193x1,71781x1,72588x1,75631x1,76302x1,76984x1,79767x1,86626x1,90749x1,97697x1,100875x1,101367x1,102175x1,102225x1,102983x1,103441x1,103471x1,103660x1,104528x1,105813x1,106382x1,106682x1,107770x1,107891x1,111914x1,113321x1,115139x1,116718x1,117723x1,118163x1,119786x1,120828x1,126100x1,129245x1",
+      "sideboard": "",
+      "canonical": {"cls":"WARRIOR","fmt":"wild","code":"AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAA=="}
+    },
+    {
+      "name": "warrior-other-band",
+      "made": "warrior-wild-etc-zilliax with sideboard card 42784 swapped for dbf 2",
+      "group": "warrior",
+      "code": "AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAQYC/cQFw+oC/cQF0Z4G/cQF9bMGx6QG97MGx6QG7t4Gx6QGAAAA",
+      "fmt": "wild",
+      "heroes": [7],
+      "key": "75x1,46031x1,53756x1,56504x1,59151x1,59411x1,67193x1,71781x1,72588x1,75631x1,76302x1,76984x1,79767x1,86626x1,90749x1,97697x1,100875x1,101367x1,102175x1,102225x1,102983x1,103441x1,103471x1,103660x1,104528x1,105813x1,106382x1,106682x1,107770x1,107891x1,111914x1,113321x1,115139x1,116718x1,117723x1,118163x1,119786x1,120828x1,126100x1,129245x1",
+      "sideboard": "2x1,46403x1,102225x1,104949x1,104951x1,110446x1",
+      "canonical": {"cls":"WARRIOR","fmt":"wild","code":"AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAA=="}
+    },
+    {
+      "name": "warrior-sideboard-cut-short",
+      "made": "warrior-wild-etc-zilliax with the sideboard flag on and the tail cut after the dbf id of the first sideboard card",
+      "group": "warrior",
+      "code": "AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAQagzgI=",
+      "fmt": "wild",
+      "heroes": [7],
+      "key": "75x1,46031x1,53756x1,56504x1,59151x1,59411x1,67193x1,71781x1,72588x1,75631x1,76302x1,76984x1,79767x1,86626x1,90749x1,97697x1,100875x1,101367x1,102175x1,102225x1,102983x1,103441x1,103471x1,103660x1,104528x1,105813x1,106382x1,106682x1,107770x1,107891x1,111914x1,113321x1,115139x1,116718x1,117723x1,118163x1,119786x1,120828x1,126100x1,129245x1",
+      "sideboard": null,
+      "canonical": {"cls":"WARRIOR","fmt":"wild","code":"AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAA=="}
+    },
+    {
+      "name": "warrior-sideboard-flag-2",
+      "made": "warrior-wild-etc-zilliax with the sideboard flag 2, which neither reader knows: the tail is not read",
+      "group": "warrior",
+      "code": "AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAgagzgL9xAXD6gL9xAXRngb9xAX1swbHpAb3swbHpAbu3gbHpAYAAA==",
+      "fmt": "wild",
+      "heroes": [7],
+      "key": "75x1,46031x1,53756x1,56504x1,59151x1,59411x1,67193x1,71781x1,72588x1,75631x1,76302x1,76984x1,79767x1,86626x1,90749x1,97697x1,100875x1,101367x1,102175x1,102225x1,102983x1,103441x1,103471x1,103660x1,104528x1,105813x1,106382x1,106682x1,107770x1,107891x1,111914x1,113321x1,115139x1,116718x1,117723x1,118163x1,119786x1,120828x1,126100x1,129245x1",
+      "sideboard": null,
+      "canonical": {"cls":"WARRIOR","fmt":"wild","code":"AAEBAQcoS8/nAvyjA7i5A4/OA5PQA/mMBOWwBIy3BO/OBI7UBLjZBJfvBOKkBf3EBaH7BYuUBveXBp+eBtGeBsekBpGoBq+oBuypBtCwBtW6Bo6/BrrBBvrJBvPKBqrqBqn1BsODB+6PB9uXB5ObB+qnB/yvB5TZB93xBwAAAA=="}
+    },
+    {
+      "name": "dh-one-card-swapped",
+      "made": "dh-standard with x1 dbf 102227 swapped for dbf 127067",
+      "group": "dh-swapped",
+      "code": "AAECAea5Awbb4AfDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA=",
+      "fmt": "standard",
+      "heroes": [56550],
+      "key": "97377x2,102224x2,114654x2,115139x1,115198x2,117686x2,120074x1,120082x1,120083x1,121058x2,122770x2,122773x2,127067x1,128215x2,130729x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5AwbDgweKqgeSqgeTqgfb4AfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA="}
+    },
+    {
+      "name": "dh-copies-moved",
+      "made": "dh-standard with dbf 97377 x1 and dbf 102227 x2: same cards, other copies",
+      "group": "dh-copies",
+      "code": "AAECAea5Awbh+AXDgweKqgeSqgeTqgfziQgM054G0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA=",
+      "fmt": "standard",
+      "heroes": [56550],
+      "key": "97377x1,102224x2,102227x2,114654x2,115139x1,115198x2,117686x2,120074x1,120082x1,120083x1,121058x2,122770x2,122773x2,128215x2,130729x2,131262x2,132339x1,132347x2",
+      "sideboard": "",
+      "canonical": {"cls":"DEMONHUNTER","fmt":"standard","code":"AAECAea5Awbh+AXDgweKqgeSqgeTqgfziQgM0J4G054G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA="}
+    },
+    {
+      "name": "shaman-xn",
+      "made": "shaman-wild with dbf 404 x3 and dbf 39941 x4 in the xN group, in descending dbf order",
+      "group": "shaman-xn",
+      "code": "AAEBAaoIA4/OA+mVBsOLCAzOD9IT9r0Ck7kD8NQD8IUE3JIEvLYEyvgFxqYGpKcG+OIGAoW4AgSUAwMA",
+      "fmt": "wild",
+      "heroes": [1066],
+      "key": "404x3,1998x2,2514x2,39941x4,40694x2,56467x2,59151x1,60016x2,66288x2,67932x2,72508x2,97354x2,101097x1,103238x2,103332x2,110968x2,132547x1",
+      "sideboard": "",
+      "canonical": {"cls":"SHAMAN","fmt":"wild","code":"AAEBAaoIA4/OA+mVBsOLCAzOD9IT9r0Ck7kD8NQD8IUE3JIEvLYEyvgFxqYGpKcG+OIGApQDA4W4AgQA"}
+    },
+    {
+      "name": "broken-not-base64",
+      "made": "not base64",
+      "code": "not a deck code!",
+      "key": null
+    },
+    {
+      "name": "broken-empty",
+      "made": "an empty string",
+      "code": "",
+      "key": null
+    },
+    {
+      "name": "broken-no-padding",
+      "made": "dh-standard without its padding",
+      "code": "AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA",
+      "key": null
+    },
+    {
+      "name": "broken-extra-character",
+      "made": "dh-standard with one character after the padding",
+      "code": "AAECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA=A",
+      "key": null
+    },
+    {
+      "name": "broken-reserved-byte",
+      "made": "dh-standard with the reserved byte 1",
+      "code": "AQECAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA=",
+      "key": null
+    },
+    {
+      "name": "broken-version",
+      "made": "dh-standard with version 2",
+      "code": "AAICAea5AwbTngbDgweKqgeSqgeTqgfziQgM4fgF0J4G3v8G/oMHtpcH4rEHkr8Hlb8H1+kHqf0HvoEI+4kIAAA=",
+      "key": null
+    },
+    {
+      "name": "broken-header-only",
+      "made": "only the reserved byte and the version",
+      "code": "AAE=",
+      "key": null
+    },
+    {
+      "name": "broken-cut-in-the-cards",
+      "made": "dh-standard cut in the middle of its third x1 card",
+      "code": "AAECAea5AwbTngbDgweK",
+      "key": null
+    }
+  ],
+  "stricter": [
+    {
+      "name": "count-past-the-cards",
+      "made": "tests/Hearthpulse.Tests/DeckRecordsTests.cs olderList: rogue-standard-skin with its last x2 card dropped and the x2 count kept",
+      "code": "AAECAeCqBgiGqAeHqAeIqAflrwe2sgel2AeI2QfDiwgL958E2aIGwZcHtMEHxcEH1cUHq8kHpNgHkdkHjdoHAAA=",
+      "client": "0x2,69623x2,102745x2,117697x2,119814x1,119815x1,119816x1,120805x1,121142x1,123060x2,123077x2,123605x2,124075x2,125988x2,125989x1,126088x1,126097x2,126221x2,132547x1"
+    },
+    {
+      "name": "no-cards",
+      "made": "version 1, Standard, hero 637 and three empty groups",
+      "code": "AAECAf0EAAAAAA==",
+      "client": ""
+    },
+    {
+      "name": "zero-copies",
+      "made": "hero 637, dbf 100 x1 and dbf 200 with 0 copies in the xN group",
+      "code": "AAECAf0EAWQAAcgBAAA=",
+      "client": "100x1,200x0"
+    },
+    {
+      "name": "six-byte-varint",
+      "made": "hero 637, x1 cards: dbf 1 written in 6 bytes, dbf 300",
+      "code": "AAECAf0EAoGAgICAAawCAAAA",
+      "client": "9x1,300x1"
+    },
+    {
+      "name": "hero-dbf-zero",
+      "made": "priest-standard with the hero dbf 0",
+      "code": "AAECAQACqJYH3OAHDsWUB+SeB9KvB5u/B7LFB6/JB7DfB9XgB9ngB/TgB+jxB+H6B+T6B9z7BwAA",
+      "client": "117317x2,117544x1,118628x2,120786x2,122779x2,123570x2,124079x2,126896x2,127061x2,127065x2,127068x1,127092x2,129256x2,130401x2,130404x2,130524x2"
+    },
+    {
+      "name": "copies-past-int-in-xn-twice",
+      "made": "hero 637, dbf 5 written twice in the xN group with 2^31 - 1 copies each (QA B2, Q1): the copies add up past a C# int",
+      "code": "AAECAf0EAAACBf////8HBf////8HAA==",
+      "client": "5x-2"
+    },
+    {
+      "name": "copies-past-int-x1-and-xn",
+      "made": "hero 637, dbf 5 x1 and again in the xN group with 2^31 - 1 copies (QA B2, Q1): one copy past a C# int",
+      "code": "AAECAf0EAQUAAQX/////BwA=",
+      "client": "5x-2147483648"
+    },
+    {
+      "name": "five-byte-varint-past-int",
+      "made": "hero 637, an x1 card with dbf 2^31 in a 5-byte varint (QA B2, Q2): past a C# int, which the client wraps negative",
+      "code": "AAECAf0EAYCAgIAIAAAA",
+      "client": "-2147483648x1"
+    }
+  ]
+}
