@@ -37,19 +37,6 @@
         </Grid>
     </DataTemplate>
 
-    <!-- Opponent's hand row: hover shows the card once revealed, else the card that created it -->
-    <DataTemplate x:Key="HandTemplate" x:DataType="o:HandTile">
-        <Grid Classes="cardRow short" Margin="0,0,0,2" ColumnDefinitions="22,64,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding PreviewCardId}" c:CardPreview.ShowRelated="False">
-            <Border Background="{StaticResource Surface3}" CornerRadius="5">
-                <TextBlock Text="{Binding Slot}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
-            <TextBlock Grid.Column="1" Text="{Binding Turn}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="6,0,2,0" VerticalAlignment="Center"
-                       TextTrimming="CharacterEllipsis" />
-            <TextBlock Grid.Column="2" Classes="handDetail" Classes.known="{Binding Highlight}" Classes.unknown="{Binding Unknown}" Text="{Binding Detail}" FontSize="11.5"
-                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-        </Grid>
-    </DataTemplate>
-
     <!-- Counter tooltip strip: card art behind the name, count on the right; a part of a goal gets a done mark -->
     <DataTemplate x:Key="CounterCardTemplate" x:DataType="o:CounterTipCard">
         <Grid Classes="counterCard" Classes.pending="{Binding !Done}" Height="22" Margin="0,0,0,2">
@@ -220,7 +207,7 @@
     </DataTemplate>
 
     <DataTemplate x:Key="CombatTemplate" x:DataType="o:CombatDot">
-        <Border Width="8" Height="8" CornerRadius="4" Margin="0,0,4,0" Background="{Binding Result, Converter={StaticResource KeyBrush}}" ToolTip.Tip="{Binding Tooltip}" />
+        <Border Width="8" Height="8" CornerRadius="4" Margin="0,0,4,0" Background="{Binding Result, Converter={StaticResource KeyBrush}}" />
     </DataTemplate>
 
     <!-- Hero pick: compact badge centred above each hero portrait (its slot, one hero step of the game, comes from the row: PickRowLayout) -->
@@ -243,14 +230,13 @@
                                        Foreground="{Binding DeltaValue, Converter={StaticResource SignBrush}}" />
                             <TextBlock Text="{Binding PlaceNote}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,3" VerticalAlignment="Bottom" TextTrimming="CharacterEllipsis" />
                         </DockPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding PickRate}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" />
-                            <TextBlock Text="{Binding Personal}" FontSize="{StaticResource FontSizeSmall}" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"
-                                       IsVisible="{Binding Personal, Converter={StaticResource Truthy}}" />
-                        </StackPanel>
+                        <!-- How often players pick the hero is in the tier badge's tooltip: it says nothing of the hero's strength -->
+                        <TextBlock Text="{Binding Personal}" FontSize="{StaticResource FontSizeSmall}" TextTrimming="CharacterEllipsis"
+                                   IsVisible="{Binding Personal, Converter={StaticResource Truthy}}" />
                     </StackPanel>
                 </Grid>
-                <!-- The best comps this lobby allows; their tier, difficulty and advice are in the tooltip -->
+                <!-- The hero's own best comps the lobby allows (none when every hero would name the same two); their tier,
+                     difficulty and advice are in the tooltip -->
                 <TextBlock Text="{Binding Comps}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
                            Background="Transparent" ToolTip.Tip="{Binding CompsTip}" o:OverlayHit.Interactive="True"
                            IsVisible="{Binding Comps, Converter={StaticResource Truthy}}" />
@@ -281,7 +267,8 @@
                             <TextBlock Text="{Binding Place}" Classes="number" FontSize="{StaticResource FontSizeTitle}" />
                             <TextBlock Text="{i:Loc Overlay.Badge.AvgPlace}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,2" VerticalAlignment="Bottom" />
                         </StackPanel>
-                        <TextBlock Text="{Binding PickRate}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" />
+                        <TextBlock Text="{Binding Note}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
+                                   IsVisible="{Binding Note, Converter={StaticResource Truthy}}" />
                         <TextBlock Text="{Binding Updated}" FontSize="10.5" Foreground="{StaticResource Muted}"
                                    IsVisible="{Binding Updated, Converter={StaticResource Truthy}}" />
                         <!-- A late source: a warning mark and words on a line of their own that wraps, never cut at the badge's width -->

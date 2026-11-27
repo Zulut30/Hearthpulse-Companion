@@ -16,49 +16,45 @@ namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
 /// Panels unlock for free moving during a game. Covered here: the arming rule both overlays share (Ctrl, unlocked,
-/// panels on the game's cards, the button's wait, one log line per change); the setting in both view-model flavours;
-/// the WPF template and tick (the unlock button on a resting pointer, a frame on every free panel, the lock button).
+/// panels on the game's cards, the lock button only on an armed panel, one log line per change); the setting in both
+/// view-model flavours; the WPF template and tick (the unlock button under Ctrl, a frame on every free panel, the lock
+/// button).
 /// </summary>
 public sealed class OverlayPanelLockTests
 {
-    private delegate (bool Armed, bool Offered, string? Note) Arm(string? over, bool onGameCards, bool controlDown, bool unlocked, DateTime now);
-
-    private static readonly DateTime T0 = new(2026, 10, 30, 12, 0, 0, DateTimeKind.Utc);
-
-    private static DateTime At(int milliseconds) => T0.AddMilliseconds(milliseconds);
+    private delegate (bool Armed, bool Offered, string? Note) Arm(string? over, bool onGameCards, bool controlDown, bool unlocked);
 
     [Fact]
-    public void Ctrl_or_unlocked_panels_arm_the_panel_under_the_pointer_and_a_resting_pointer_offers_the_unlock_button()
+    public void Ctrl_or_unlocked_panels_arm_the_panel_under_the_pointer_and_only_an_armed_panel_offers_the_lock_button()
     {
         foreach (var arm in new Arm[] { new Hearthpulse.App.Overlay.PanelArming().Update, new Hearthpulse.UI.Overlay.PanelArming().Update })
         {
-            // Locked, no Ctrl: the panel lets clicks through; its button shows once the pointer has rested on it.
-            Assert.Equal((false, false, null), arm("deck", false, false, false, At(0)));
-            Assert.Equal((false, false, null), arm("deck", false, false, false, At(300)));
-            Assert.Equal((false, true, null), arm("deck", false, false, false, At(450)));
-            // Another panel starts the wait again.
-            Assert.Equal((false, false, null), arm("opponent", false, false, false, At(500)));
+            // Locked, no Ctrl: the panel lets clicks through, however long the pointer rests on it (O-16).
+            Assert.Equal((false, false, null), arm("deck", false, false, false));
+            Assert.Equal((false, false, null), arm("deck", false, false, false));
+            Assert.Equal((false, false, null), arm("deck", false, false, false));
+            Assert.Equal((false, false, null), arm("opponent", false, false, false));
 
             // Ctrl arms at once, with the button, and says so in the log once.
-            Assert.Equal((true, true, "Overlay panel opponent armed (Ctrl)"), arm("opponent", false, true, false, At(533)));
-            Assert.Equal((true, true, null), arm("opponent", false, true, false, At(566)));
-            Assert.Equal((false, false, "Overlay panel opponent released"), arm(null, false, true, false, At(600)));
-            Assert.Equal((false, false, null), arm(null, false, false, false, At(633)));
+            Assert.Equal((true, true, "Overlay panel opponent armed (Ctrl)"), arm("opponent", false, true, false));
+            Assert.Equal((true, true, null), arm("opponent", false, true, false));
+            Assert.Equal((false, false, "Overlay panel opponent released"), arm(null, false, true, false));
+            Assert.Equal((false, false, null), arm(null, false, false, false));
             // Ctrl over empty space: one line, so the log tells "Ctrl read, no panel there" from "Ctrl never read".
-            Assert.Equal((false, false, "Overlay: Ctrl held with no panel under the pointer"), arm(null, false, true, false, At(666)));
-            Assert.Equal((false, false, null), arm(null, false, true, false, At(700)));
+            Assert.Equal((false, false, "Overlay: Ctrl held with no panel under the pointer"), arm(null, false, true, false));
+            Assert.Equal((false, false, null), arm(null, false, true, false));
 
             // Unlocked: the pointer alone arms a panel, with the lock button.
-            Assert.Equal((true, true, "Overlay panel deck armed (panels unlocked)"), arm("deck", false, false, true, At(733)));
+            Assert.Equal((true, true, "Overlay panel deck armed (panels unlocked)"), arm("deck", false, false, true));
             // A row on the game's cards neither arms nor offers the button however long the pointer rests on it:
             // Discover and the tavern stay clickable. Ctrl still moves it.
-            Assert.Equal((false, false, "Overlay panel deck released"), arm("choice-row", true, false, true, At(766)));
-            Assert.Equal((false, false, null), arm("choice-row", true, false, true, At(2000)));
-            Assert.Equal((true, false, "Overlay panel choice-row armed (Ctrl)"), arm("choice-row", true, true, true, At(2033)));
+            Assert.Equal((false, false, "Overlay panel deck released"), arm("choice-row", true, false, true));
+            Assert.Equal((false, false, null), arm("choice-row", true, false, true));
+            Assert.Equal((true, false, "Overlay panel choice-row armed (Ctrl)"), arm("choice-row", true, true, true));
 
-            // Locked again with the pointer still on the panel: it lets go at once, and its button waits again.
-            Assert.Equal((true, true, "Overlay panel deck armed (panels unlocked)"), arm("deck", false, false, true, At(2066)));
-            Assert.Equal((false, false, "Overlay panel deck released"), arm("deck", false, false, false, At(2100)));
+            // Locked again with the pointer still on the panel: it lets go at once, its button with it.
+            Assert.Equal((true, true, "Overlay panel deck armed (panels unlocked)"), arm("deck", false, false, true));
+            Assert.Equal((false, false, "Overlay panel deck released"), arm("deck", false, false, false));
         }
     }
 
@@ -148,28 +144,32 @@ public sealed class OverlayPanelLockTests
         var shield = (SolidColorBrush)((Border)Part(deck, "Shield")).Background;
         Assert.True(shield.Color.A * 0.3 >= 1, shield.Color.ToString());
 
-        // Locked: the pointer passing over the deck changes nothing; resting on it shows the unlock button alone,
-        // and only the button takes the mouse.
-        Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false, At(0)));
+        // Locked: the pointer passing over the deck or resting on it changes nothing, and the deck lets clicks through
+        // (O-16).
+        Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false));
         root.UpdateLayout();
         Assert.False(deck.OffersLock);
         Assert.Equal(Visibility.Collapsed, button.Visibility);
-        Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false, At(450)));
+        Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false));
+        root.UpdateLayout();
+        Assert.False(deck.OffersLock);
+        Assert.Equal(Visibility.Collapsed, button.Visibility);
+        Assert.False(OverlayHit.GetInteractive(deck));
+
+        // Ctrl arms it, and its tag offers the unlock button.
+        Assert.True(window.UpdateDragArm(Inside(deck), controlDown: true));
         root.UpdateLayout();
         Assert.True(deck.OffersLock);
-        Assert.False(deck.IsDragArmed);
+        Assert.True(deck.IsDragArmed);
         Assert.Equal(Visibility.Visible, button.Visibility);
         Assert.Equal(Visibility.Visible, Part(deck, "UnlockLabel").Visibility);
         Assert.Equal("Unlock panels", ((TextBlock)Part(deck, "UnlockLabel")).Text);
-        Assert.Equal(Visibility.Collapsed, Part(deck, "Tag").Visibility);
-        Assert.Equal(Visibility.Collapsed, Part(deck, "Frame").Visibility);
         Assert.True(OverlayHit.GetInteractive(button));
-        Assert.False(OverlayHit.GetInteractive(deck));
-        // The button sits above the panel; the pointer on its way there keeps it up.
+        // The button sits above the panel; the pointer on its way there keeps it up while Ctrl is held.
         var lockSpot = button.TranslatePoint(new Point(button.ActualWidth / 2, button.ActualHeight / 2), root);
         var lockCorner = button.TranslatePoint(default, root);
         Assert.True(lockSpot.Y < deck.TranslatePoint(default, root).Y, lockSpot.ToString());
-        Assert.False(window.UpdateDragArm(lockSpot, controlDown: false, At(500)));
+        Assert.True(window.UpdateDragArm(lockSpot, controlDown: true));
         Assert.True(deck.OffersLock);
 
         // Pressed: every panel unlocks and the setting is saved.
@@ -177,14 +177,14 @@ public sealed class OverlayPanelLockTests
         Assert.True(model.PanelsUnlocked);
         Assert.True(settings.OverlayPanelsUnlocked);
         Assert.Equal((1, 1), (lockChanges, layoutChanges));
-        Assert.False(window.UpdateDragArm(null, controlDown: false, At(533)));
+        Assert.False(window.UpdateDragArm(null, controlDown: false));
         root.UpdateLayout();
         // A frame on every free panel, none on the Discover row over the game's cards.
         Assert.Equal(Visibility.Visible, Part(deck, "Frame").Visibility);
         Assert.Equal(Visibility.Collapsed, Part(choice, "Frame").Visibility);
 
         // Unlocked, the pointer alone arms the deck: it takes the mouse and its tag says how to lock again.
-        Assert.True(window.UpdateDragArm(Inside(deck), controlDown: false, At(566)));
+        Assert.True(window.UpdateDragArm(Inside(deck), controlDown: false));
         root.UpdateLayout();
         Assert.True(deck.IsDragArmed);
         Assert.True(OverlayHit.GetInteractive(deck));
@@ -199,23 +199,23 @@ public sealed class OverlayPanelLockTests
         Assert.True(Math.Abs(moved.X) < 0.5 && Math.Abs(moved.Y) < 0.5, moved.ToString());
 
         // The Discover row stays the game's however long the pointer rests on it; Ctrl still moves it.
-        Assert.False(window.UpdateDragArm(Inside(choice), controlDown: false, At(600)));
-        Assert.False(window.UpdateDragArm(Inside(choice), controlDown: false, At(2000)));
+        Assert.False(window.UpdateDragArm(Inside(choice), controlDown: false));
+        Assert.False(window.UpdateDragArm(Inside(choice), controlDown: false));
         Assert.False(choice.IsDragArmed);
         Assert.False(choice.OffersLock);
         Assert.False(OverlayHit.GetInteractive(choice));
         Assert.False(deck.IsDragArmed);
-        Assert.True(window.UpdateDragArm(Inside(choice), controlDown: true, At(2033)));
+        Assert.True(window.UpdateDragArm(Inside(choice), controlDown: true));
         Assert.True(choice.IsDragArmed);
         Assert.False(choice.OffersLock);
 
         // Locked again from the deck's tag: no frames, the deck lets clicks through.
-        Assert.True(window.UpdateDragArm(Inside(deck), controlDown: false, At(2066)));
+        Assert.True(window.UpdateDragArm(Inside(deck), controlDown: false));
         button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         Assert.False(model.PanelsUnlocked);
         Assert.False(settings.OverlayPanelsUnlocked);
         Assert.Equal((2, 2), (lockChanges, layoutChanges));
-        Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false, At(2100)));
+        Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false));
         root.UpdateLayout();
         Assert.False(deck.IsDragArmed);
         Assert.False(OverlayHit.GetInteractive(deck));
@@ -223,7 +223,7 @@ public sealed class OverlayPanelLockTests
 
         // Layout mode keeps its own tools: no lock button there.
         model.LayoutEditing = true;
-        Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false, At(3000)));
+        Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false));
         root.UpdateLayout();
         Assert.False(deck.OffersLock);
         Assert.Equal(Visibility.Collapsed, button.Visibility);

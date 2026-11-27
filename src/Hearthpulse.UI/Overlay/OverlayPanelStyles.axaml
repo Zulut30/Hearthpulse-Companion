@@ -45,15 +45,6 @@
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
         <Setter Property="Margin" Value="0,0,0,6" />
     </Style>
-    <Style Selector="TextBlock.handDetail">
-        <Setter Property="Foreground" Value="{StaticResource Muted}" />
-    </Style>
-    <Style Selector="TextBlock.handDetail.known">
-        <Setter Property="Foreground" Value="{StaticResource Text}" />
-    </Style>
-    <Style Selector="TextBlock.handDetail.unknown">
-        <Setter Property="Foreground" Value="{StaticResource Faint}" />
-    </Style>
 
     <!-- Tier chips -->
     <Style Selector="Button.tierChip Border#Chip">
@@ -415,16 +406,12 @@
     <Style Selector="o|MovablePanel.free /template/ Rectangle#Frame">
         <Setter Property="IsVisible" Value="True" />
     </Style>
-    <!-- The pointer rests on the panel, or arms it: the lock button on the tag -->
+    <!-- The panel is armed (Ctrl, or unlocked panels): the lock button on the tag -->
     <Style Selector="o|MovablePanel.offers /template/ Panel#PART_Chrome">
         <Setter Property="IsVisible" Value="True" />
     </Style>
     <Style Selector="o|MovablePanel.offers /template/ Button#PART_Lock">
         <Setter Property="IsVisible" Value="True" />
-    </Style>
-    <!-- Resting on a locked panel: the button alone, without the name tag, so the panel does not look armed -->
-    <Style Selector="o|MovablePanel.offers:not(.armed) /template/ Border#Tag">
-        <Setter Property="IsVisible" Value="False" />
     </Style>
     <Style Selector="o|MovablePanel.unlocked /template/ Button#PART_Lock">
         <Setter Property="ToolTip.Tip" Value="{i:Loc Overlay.Lock.LockTip}" />

@@ -40,6 +40,7 @@ public sealed partial class MainViewModel
             Raise(nameof(RankOffReason));
             Raise(nameof(BgRatingEmpty));
             Raise(nameof(BgRatingOffShown));
+            Raise(nameof(BgRatingShown));
             Raise(nameof(HomeRatingOffShown));
             Raise(nameof(CtRankEmpty));
             Raise(nameof(CtRankOffShown));
@@ -90,12 +91,18 @@ public sealed partial class MainViewModel
         ? new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, Loc.T("Main.Tile.ReadingOff"))
         : new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, SessionDelta, SessionDeltaValue);
 
-    /// <summary>The switch moved: home's first tile follows in place, without reading the history again.</summary>
+    /// <summary>
+    /// Home's solo rating tile when it shows: with reading the client off, to say the rating is not read; with reading on,
+    /// only for a rating read (a "—" tile is a number nobody reads, release cleanup G-4).
+    /// </summary>
+    private StatTile[] SoloRatingTiles() => GameMemoryOff || SoloRating != "—" ? [SoloRatingTile()] : [];
+
+    /// <summary>The switch moved: home's solo tile follows in place, without reading the history again.</summary>
     private void ShowSoloRatingTile()
     {
         if (OverviewTiles.Count > 0)
         {
-            OverviewTiles = [SoloRatingTile(), .. OverviewTiles.Skip(1)];
+            OverviewTiles = [.. SoloRatingTiles(), .. _overviewOtherTiles];
         }
     }
 }

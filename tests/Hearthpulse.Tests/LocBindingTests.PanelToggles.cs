@@ -28,7 +28,7 @@ public sealed partial class LocBindingTests
         var app = Application.Current!;
         app.Styles.Add(theme);
         var window = new Window { Width = 1260, Height = 840 };
-        var settings = new AppSettings();
+        var settings = new AppSettings { ShowTurnTimer = true };
         var model = new MainViewModel(new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-panel-toggles-{Guid.NewGuid():N}.db")), settings, TestDataFolder.App);
         try
         {

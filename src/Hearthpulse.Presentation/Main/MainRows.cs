@@ -68,6 +68,19 @@ public sealed record MetaHeroRow(
 /// </summary>
 public sealed record MetaCompRow(string Name, string Side, string Core, string Tip) : IImmutableView;
 
+/// <summary>Caption rules the deck rows and the replay library's cards share.</summary>
+internal static class RowText
+{
+    /// <summary>
+    /// The name already says the class: "Warrior", "Priest 2" (a deck the player never named is named after its class), so
+    /// the line under it leaves the class out. A longer word ("Priests of ...") is not the class.
+    /// </summary>
+    public static bool NameHasClass(string name, string className) =>
+        className.Length > 0
+        && name.StartsWith(className, StringComparison.CurrentCultureIgnoreCase)
+        && (name.Length == className.Length || !char.IsLetter(name[className.Length]));
+}
+
 /// <summary>A deck in "Your decks": a family of versions or a single one (<see cref="Key"/> is the family key).</summary>
 public sealed record DeckRow(
     string Key,
@@ -87,6 +100,9 @@ public sealed record DeckRow(
 {
     /// <summary>Too few games to tell: the win bar is faded.</summary>
     public bool Few => Games < Hearthpulse.Core.Stats.DeckDetails.SmallSample;
+
+    /// <summary>"Warrior · 10 Nov" under the name; the date alone when the name already says the class.</summary>
+    public string Caption => Class.Length == 0 || RowText.NameHasClass(Name, Class) ? LastPlayed : $"{Class} · {LastPlayed}";
 }
 
 public sealed record StatTile(string Label, string Value, string Detail, int Sign = 0) : IImmutableView;

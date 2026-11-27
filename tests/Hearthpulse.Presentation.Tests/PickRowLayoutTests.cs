@@ -182,9 +182,9 @@ public sealed class PickRowLayoutTests
 
     /// <summary>
     /// The WPF overlay window with a trinket choice and the leaderboard labels: as drawn, no label touches a badge, the
-    /// badges are whole on the screen over the trinkets' steps, every line of a badge is whole inside it (also with the
-    /// trinket numbers' update delayed, a warning line of its own), and a label is no wider or higher than the rule
-    /// takes it to be.
+    /// badges are whole on the screen over the trinkets' steps, every line of a badge is whole inside it (the date and a
+    /// warning line of its own only while the trinket numbers' update is delayed, O-22), and a label is no wider or
+    /// higher than the rule takes it to be.
     /// </summary>
     [Fact]
     public void Wpf_trinket_badges_and_leaderboard_labels_do_not_meet() => WpfThread.RunThemed(() =>
@@ -213,9 +213,9 @@ public sealed class PickRowLayoutTests
                             Assert.True(Math.Abs(((card.Left + card.Right) / 2) - expected[i].Centre) <= 1.5 + GeometryEpsilon, $"{tested}: badge {i} is centred at {(card.Left + card.Right) / 2:R}, its trinket at {expected[i].Centre:R}");
                             Assert.True(card.Bottom <= 226 + (WpfRow.Trinkets.Height * WpfRow.Trinkets.Zoom(scale) * scale) + 1, $"{tested}: badge {i} ends at {card.Bottom:0.#}");
                             Assert.All(labels, label => Assert.False(label.IntersectsWith(card), $"{tested}: a label {label} lies on badge {i} {card}"));
-                            // Place, pick rate and date: each line whole inside the badge.
+                            // The place and, while late, the date: each line whole inside the badge. Fresh numbers carry no date.
                             var lines = Descendants<TextBlock>(cards[i]).Where(t => Shown(t) && t.Text.Length > 0).ToList();
-                            Assert.Contains(lines, t => t.Text.StartsWith(language == Loc.Russian ? "данные от " : "data from ", StringComparison.Ordinal));
+                            Assert.Equal(late, lines.Any(t => t.Text.StartsWith(language == Loc.Russian ? "данные от " : "data from ", StringComparison.Ordinal)));
                             // A late update: a line of its own with a warning mark, not the cut end of the date line.
                             Assert.Equal(late, lines.Any(t => t.Text == Loc.T("Source.Health.OverlayDelay")));
                             Assert.Equal(late, lines.Any(t => t.Text == "\U000F0026"));

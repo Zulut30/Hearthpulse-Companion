@@ -9,18 +9,14 @@ namespace Hearthpulse.UI.Overlay;
 
 /// <summary>
 /// What the pointer does to the panel under it, decided on each overlay tick the same way in both overlays. Ctrl held,
-/// or panels unlocked, arms the panel: it takes the mouse and moves like in layout mode. A locked panel the pointer
-/// rests on offers the "Unlock panels" button. Panels on the game's own cards (mulligan, picks, Discover, tavern) arm
-/// only with Ctrl and never offer the button, so unlocked panels never take a click meant for a card. Each change
-/// gives one log line, so hearthpulse.log shows whether Ctrl ever reached a panel.
+/// or panels unlocked, arms the panel: it takes the mouse, moves like in layout mode and offers the lock button
+/// ("Unlock panels", or "Lock panels" once unlocked). A pointer that only rests on a locked panel changes nothing
+/// (O-16). Panels on the game's own cards (mulligan, picks, Discover, tavern) arm only with Ctrl and never offer the
+/// button, so unlocked panels never take a click meant for a card. Each change gives one log line, so hearthpulse.log
+/// shows whether Ctrl ever reached a panel.
 /// </summary>
 public sealed class PanelArming
 {
-    /// <summary>How long the pointer rests on a locked panel before its unlock button shows.</summary>
-    public static readonly TimeSpan OfferDelay = TimeSpan.FromMilliseconds(400);
-
-    private string? _over;
-    private DateTime _overSince;
     private string? _armed;
     private bool _control;
 
@@ -32,16 +28,10 @@ public sealed class PanelArming
     /// Whether that panel is armed, whether it shows the lock button ("Unlock panels", or "Lock panels" once
     /// unlocked), and the log line when something changed (null otherwise).
     /// </returns>
-    public (bool Armed, bool Offered, string? Note) Update(string? over, bool onGameCards, bool controlDown, bool unlocked, DateTime now)
+    public (bool Armed, bool Offered, string? Note) Update(string? over, bool onGameCards, bool controlDown, bool unlocked)
     {
-        if (over != _over)
-        {
-            _over = over;
-            _overSince = now;
-        }
-
         var armed = over is not null && (controlDown || (unlocked && !onGameCards));
-        var offered = over is not null && !onGameCards && (armed || now - _overSince >= OfferDelay);
+        var offered = armed && !onGameCards;
         string? note = null;
         var armedId = armed ? over : null;
         if (armedId != _armed)
@@ -64,7 +54,7 @@ public sealed class PanelArming
     /// mode, or with the pointer outside, <paramref name="under"/> null) and arms it as <see cref="Apply"/> does.
     /// </summary>
     /// <param name="under">Whether the pointer is on a shown panel, its tag strip included while the tag is up.</param>
-    public (bool Armed, bool Dragging) Tick<TPanel>(IReadOnlyList<TPanel> panels, Func<TPanel, bool>? under, bool editing, bool controlDown, bool unlocked, DateTime now)
+    public (bool Armed, bool Dragging) Tick<TPanel>(IReadOnlyList<TPanel> panels, Func<TPanel, bool>? under, bool editing, bool controlDown, bool unlocked)
         where TPanel : class, IArmablePanel
     {
         ArgumentNullException.ThrowIfNull(panels);
@@ -80,7 +70,7 @@ public sealed class PanelArming
             }
         }
 
-        return Apply(panels, over, editing, controlDown, unlocked, now);
+        return Apply(panels, over, editing, controlDown, unlocked);
     }
 
     /// <summary>
@@ -90,10 +80,10 @@ public sealed class PanelArming
     /// layout mode, where every panel moves anyway). The log line goes to hearthpulse.log.
     /// </summary>
     /// <returns>Whether <paramref name="over"/> is armed, and whether any panel is being dragged or resized.</returns>
-    public (bool Armed, bool Dragging) Apply(IReadOnlyList<IArmablePanel> panels, IArmablePanel? over, bool editing, bool controlDown, bool unlocked, DateTime now)
+    public (bool Armed, bool Dragging) Apply(IReadOnlyList<IArmablePanel> panels, IArmablePanel? over, bool editing, bool controlDown, bool unlocked)
     {
         ArgumentNullException.ThrowIfNull(panels);
-        var (armed, offered, note) = Update(over?.Id, over?.SitsOnGame == true, controlDown, unlocked, now);
+        var (armed, offered, note) = Update(over?.Id, over?.SitsOnGame == true, controlDown, unlocked);
         if (note is not null)
         {
             Diag.Debug(note);

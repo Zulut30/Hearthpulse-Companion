@@ -18,8 +18,8 @@ public sealed partial class LocBindingTests
     /// <summary>
     /// The Avalonia overlay laid out for a 1920 x 1080 game at overlay scales 100%, 140% and 160%, in both languages:
     /// the hero badges (two and four heroes) are whole on the screen and centred on the heroes' steps of the game; the
-    /// trinket badges (two to four) likewise, every line of a badge whole inside it (with the trinket numbers' update
-    /// delayed too: that is a warning line of its own), and no leaderboard label touches a badge.
+    /// trinket badges (two to four) likewise, every line of a badge whole inside it (the date and a warning line of its
+    /// own only while the trinket numbers' update is delayed, O-22), and no leaderboard label touches a badge.
     /// </summary>
     [Fact]
     public void Avalonia_pick_badges_stay_on_the_screen_over_their_cards_and_clear_of_the_labels() => Headless.Run(PickRows);
@@ -151,9 +151,9 @@ public sealed partial class LocBindingTests
                 Assert.True(Math.Abs(card.Center.X - expected[i].Centre) <= 1.5, $"{tested}: badge {i} is centred at {card.Center.X:0.##}, its trinket at {expected[i].Centre:0.##}");
                 Assert.True(card.Bottom <= 226 + (PickRowLayout.Trinkets.Height * PickRowLayout.Trinkets.Zoom(scale) * scale) + 1, $"{tested}: badge {i} ends at {card.Bottom:0.#}");
                 Assert.All(labels, label => Assert.False(label.Intersects(card), $"{tested}: a label {label} lies on badge {i} {card}"));
-                // Place, pick rate and date: each line whole inside the badge.
+                // The place and, while late, the date: each line whole inside the badge. Fresh numbers carry no date.
                 var lines = cards[i].GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && t.Text is { Length: > 0 }).ToList();
-                Assert.Contains(lines, t => t.Text!.StartsWith(language == Loc.Russian ? "данные от " : "data from ", StringComparison.Ordinal));
+                Assert.Equal(late, lines.Any(t => t.Text!.StartsWith(language == Loc.Russian ? "данные от " : "data from ", StringComparison.Ordinal)));
                 // A late update is a line of its own with a warning mark, not the end of the date line the badge cut off.
                 Assert.Equal(late, lines.Any(t => t.Text == Loc.T("Source.Health.OverlayDelay")));
                 Assert.Equal(late, lines.Any(t => t.Text == "\U000F0026"));

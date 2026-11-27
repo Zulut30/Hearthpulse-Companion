@@ -147,7 +147,7 @@
             </Canvas>
 
             <!-- ============ Constructed: mulligan bars over the offered cards (card row centred, card tops at ~310 of 1080; the panel hangs from 300 up) ============ -->
-            <o:MovablePanel Id="mulligan-bars" Title="{i:Loc Overlay.Panel.MulliganStrip}" GameAnchored="True" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,0,0,780">
+            <o:MovablePanel Id="mulligan-bars" Title="{i:Loc Overlay.Panel.MulliganStrip}" GameAnchored="True" Shown="{Binding ShowMulliganBars}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,0,0,780">
                 <o:MulliganPanel />
             </o:MovablePanel>
 
@@ -182,12 +182,12 @@
                             </Style>
                         </ItemsControl.ItemContainerStyle>
                     </ItemsControl>
-                    <!-- When these numbers were collected -->
+                    <!-- When these numbers were collected, while their source is late -->
                     <Border x:Name="BgHeroDataNote" HorizontalAlignment="Center" Margin="0,6,0,0" Style="{StaticResource OverlayNoteChip}"
                             Visibility="{Binding BgHeroDataNote, Converter={StaticResource Vis}}">
                         <TextBlock Text="{Binding BgHeroDataNote}" FontSize="10" Foreground="{StaticResource Muted}" />
                     </Border>
-                    <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
+                    <!-- Plan 3.1: what is left today of the free games with the stats pool's numbers; once, under the heroes (O-23) -->
                     <Border HorizontalAlignment="Center" Margin="0,6,0,0" Style="{StaticResource OverlayNoteChip}"
                             Visibility="{Binding UsageNote, Converter={StaticResource Vis}}">
                         <StackPanel Orientation="Horizontal">
@@ -211,14 +211,6 @@
                             </Style>
                         </ItemsControl.ItemContainerStyle>
                     </ItemsControl>
-                    <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
-                    <Border HorizontalAlignment="Center" Margin="0,6,0,0" Style="{StaticResource OverlayNoteChip}"
-                            Visibility="{Binding UsageNote, Converter={StaticResource Vis}}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xF0341;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
-                            <TextBlock Text="{Binding UsageNote}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="720" />
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
             </o:MovablePanel>
 
@@ -237,14 +229,6 @@
                             </Style>
                         </ItemsControl.ItemContainerStyle>
                     </ItemsControl>
-                    <!-- Plan 3.1: what is left today of the free games with the stats pool's numbers, or why they are missing -->
-                    <Border HorizontalAlignment="Center" Margin="0,6,0,0" Style="{StaticResource OverlayNoteChip}"
-                            Visibility="{Binding UsageNote, Converter={StaticResource Vis}}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xF0341;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
-                            <TextBlock Text="{Binding UsageNote}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="720" />
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
             </o:MovablePanel>
 

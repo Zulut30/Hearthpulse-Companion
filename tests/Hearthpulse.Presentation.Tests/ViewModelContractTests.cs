@@ -86,8 +86,10 @@ public sealed class ViewModelContractTests
             ava.Recent.Select(r => (r.Key, r.Hero, r.Result, r.Detail)));
         // Tile labels are sentence case in both hosts (the Avalonia capitals are gone); captions do not repeat the label.
         Assert.Equal(wpf.OverviewTiles.Select(t => (t.Label, t.Detail)), ava.OverviewTiles.Select(t => (t.Label, t.Detail)));
-        Assert.Equal(Loc.T("Main.Tile.SoloRating"), wpf.OverviewTiles[0].Label);
-        Assert.Equal(string.Empty, wpf.OverviewTiles[1].Detail);
+        // No rating read: no "Solo rating —" tile (G-4); today's games lead and the tiles share the row.
+        Assert.DoesNotContain(wpf.OverviewTiles, t => t.Label == Loc.T("Main.Tile.SoloRating"));
+        Assert.Equal(Loc.T("Main.Tile.Today"), wpf.OverviewTiles[0].Label);
+        Assert.Equal(string.Empty, wpf.OverviewTiles[0].Detail);
     }
 
     [Fact]
@@ -351,13 +353,16 @@ public sealed class ViewModelContractTests
 
         Assert.True(wpf.ShowArenaPicks && ava.ShowArenaPicks);
         Assert.Equal(wpf.ArenaPicks.Select(b => (b.Number, b.Caption, b.FitCost, b.FitType)), ava.ArenaPicks.Select(b => (b.Number, b.Caption, b.FitCost, b.FitType)));
-        Assert.Equal(("Best pick", "6 mana · 0 in deck", "Minion · 1 in deck"), (ava.ArenaPicks[0].Caption, ava.ArenaPicks[0].FitCost, ava.ArenaPicks[0].FitType));
-        Assert.Equal("2 mana · 2 in deck", ava.ArenaPicks[1].FitCost);
+        // The best pick is marked by its star and gold frame, not a caption (O-30); where a card sits on the curve and
+        // among the types is the draft panel's curve and types line (O-29).
+        Assert.Equal((true, string.Empty, string.Empty, string.Empty), (ava.ArenaPicks[0].IsBest, ava.ArenaPicks[0].Caption, ava.ArenaPicks[0].FitCost, ava.ArenaPicks[0].FitType));
+        Assert.Equal((string.Empty, string.Empty), (ava.ArenaPicks[1].FitCost, ava.ArenaPicks[1].FitType));
         Assert.Equal([2, 6], ava.ArenaCurve.Select((bar, cost) => (bar, cost)).Where(b => b.bar.Offered).Select(b => b.cost));
         Assert.Equal(wpf.ArenaCurve.Select(b => (b.Label, b.Count, b.Height, b.Offered)), ava.ArenaCurve.Select(b => (b.Label, b.Count, b.Height, b.Offered)));
         Assert.Equal("1 minion · 2 spells", ava.ArenaTypes);
         Assert.Equal((ava.ArenaMode, ava.ArenaSliceNote), (wpf.ArenaMode, wpf.ArenaSliceNote));
         Assert.Equal("Normal Arena", ava.ArenaMode);
+        // In the header's tooltip only (O-31).
         Assert.Equal("from Underground Arena games", ava.ArenaSliceNote);
         // A scored card that is not the best pick needs no caption under its number.
         Assert.Equal(string.Empty, ava.ArenaPicks[1].Caption);
@@ -384,6 +389,39 @@ public sealed class ViewModelContractTests
             Assert.False((bool)model.ShowArenaPicks);
             Assert.True((bool)model.ShowArenaDraft);
             Assert.Equal("Choose a hero power", (string)model.ArenaDraftTitle);
+        }
+    }
+
+    [Fact]
+    public void Overlay_arena_hero_badges_without_class_numbers_keep_their_slot_and_draw_nothing()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var cards = CardDb.Parse("enUS", new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
+            [
+              {"id":"HERO_07","dbfId":893,"name":"Gul'dan","type":"HERO","cardClass":"WARLOCK","collectible":true},
+              {"id":"HERO_08","dbfId":637,"name":"Jaina","type":"HERO","cardClass":"MAGE","collectible":true}
+            ]
+            """)));
+        var settings = new AppSettings { ShowArenaDraft = true };
+        var warlockOnly = new Hearthpulse.Core.Arena.ArenaMeta([], [new("WARLOCK", 0.552, 0.8, 0.15, 100)]);
+        var view = Hearthpulse.Core.Arena.ArenaDraft.Build(Hearthpulse.Core.Arena.ArenaDraftState.Empty, ["HERO_07", "HERO_08"], warlockOnly, cards);
+        var snapshot = LiveSnapshot.Empty with { Scene = "DRAFT", HearthstoneRunning = true, ArenaDraft = view };
+        var none = Hearthpulse.Core.Arena.ArenaDraft.Build(Hearthpulse.Core.Arena.ArenaDraftState.Empty, ["HERO_07", "HERO_08"], new Hearthpulse.Core.Arena.ArenaMeta([], []), cards);
+
+        foreach (dynamic model in new object[] { new WpfOverlay(), new AvaOverlay() })
+        {
+            model.Update(snapshot, cards, settings, null, null);
+            // One slot per offered hero, so each badge stays over its own portrait; the Mage has no numbers and draws nothing (O-28).
+            var badges = ((IEnumerable<dynamic>)model.ArenaPicks).ToList();
+            Assert.Equal((false, true), ((bool)badges[0].Empty, (bool)badges[1].Empty));
+            Assert.True((bool)model.ShowArenaPicks);
+            // The best class is marked by its star and frame; the caption is its 7+ wins share as on the others (O-30).
+            Assert.Equal(Loc.F("Arena.SevenPlus", 0.15.ToString("P0", CultureInfo.CurrentCulture)), (string)badges[0].Caption);
+
+            // No class has numbers: no badges at all, the draft panel says why.
+            model.Update(snapshot with { ArenaDraft = none }, cards, settings, null, null);
+            Assert.False((bool)model.ShowArenaPicks);
+            Assert.True((bool)model.ShowArenaDraft);
         }
     }
 
@@ -461,7 +499,7 @@ public sealed class ViewModelContractTests
     }
 
     [Fact]
-    public void Both_overlays_dim_unknown_hand_cards_and_fold_identical_secret_lines()
+    public void Both_overlays_leave_the_hand_to_its_marks_and_fold_identical_secret_lines()
     {
         Loc.Instance.SetLanguage(Loc.English);
         var secrets = new Core.Secrets.SecretsView(
@@ -482,13 +520,10 @@ public sealed class ViewModelContractTests
         wpf.Update(snapshot, CardDb.Empty, settings, null, null);
         ava.Update(snapshot, CardDb.Empty, settings, null, null);
 
-        // Only the card nothing is known about is drawn faint; kept, created and the Coin keep their colour.
-        var hand = wpf.Hand.Select(h => (h.Slot, h.Highlight, h.Unknown)).ToList();
-        Assert.Equal([("1", false, true), ("2", false, false), ("3", false, false), ("4", true, false)], hand);
-        Assert.Equal(hand, ava.Hand.Select(h => (h.Slot, h.Highlight, h.Unknown)));
-        // ...and shows only its slot and turn: no column of "Unknown".
-        Assert.Equal((string.Empty, string.Empty), (wpf.Hand[0].Detail, ava.Hand[0].Detail));
-        Assert.NotEmpty(ava.Hand[2].Detail);
+        // The opponent's hand is on the marks over its fanned cards, not listed again on the panel (O-1); its count stays.
+        Assert.Equal((4, 4), (wpf.OpponentHand, ava.OpponentHand));
+        Assert.DoesNotContain(typeof(WpfOverlay).GetProperties(), p => p.Name is "Hand" or "OpponentSecrets");
+        Assert.DoesNotContain(typeof(AvaOverlay).GetProperties(), p => p.Name is "Hand" or "OpponentSecrets");
 
         // Two Secrets played on turn 3 for 3 mana read the same, so they share one line.
         var lines = wpf.SecretSlots.Select(s => s.Text).ToList();
@@ -525,9 +560,9 @@ public sealed class ViewModelContractTests
         wpf.Update(snapshot, CardDb.Empty, settings, null, null);
         Assert.DoesNotContain(wpf.Deck, t => t.Changed);
 
-        // Turns are spelled out on the opponent's played cards and hand.
+        // Turns are spelled out on the opponent's played cards.
         Assert.Equal("Turn 3", wpf.Played[0].Turn);
-        Assert.Equal(["Turn 2", "Mulligan"], ava.Hand.Select(h => h.Turn));
+        Assert.Equal("Turn 3", ava.Played[0].Turn);
     }
 
     [Fact]
@@ -555,12 +590,13 @@ public sealed class ViewModelContractTests
 
         foreach (var (source, cards, summary, details) in new[]
                  {
-                     (wpf.MulliganSource, wpf.MulliganCards.Select(c => (c.KeepCall, c.Soft, c.PickTier, c.Details)).ToList(), wpf.MulliganSummary, wpf.MulliganDetails),
-                     (ava.MulliganSource, ava.MulliganCards.Select(c => (c.KeepCall, c.Soft, c.PickTier, c.Details)).ToList(), ava.MulliganSummary, ava.MulliganDetails),
+                     (wpf.MulliganSource, wpf.MulliganCards.Select(c => (c.KeepCall, c.Soft)).ToList(), wpf.MulliganSummary, wpf.MulliganDetails),
+                     (ava.MulliganSource, ava.MulliganCards.Select(c => (c.KeepCall, c.Soft)).ToList(), ava.MulliganSummary, ava.MulliganDetails),
                  })
         {
             Assert.Equal("Arena · card win rate when drawn", source);
-            Assert.Equal([(true, true, "S", "win rate " + 0.60.ToString("P1", CultureInfo.CurrentCulture)), (false, true, "D", "win rate " + 0.48.ToString("P1", CultureInfo.CurrentCulture))], cards);
+            // The draft tier and the card's win rate are in the bar's tooltip, not on a second line (O-14).
+            Assert.Equal([(true, true), (false, true)], cards);
             Assert.StartsWith("Expected impact", summary);
             Assert.Contains("Arena decks have no mulligan stats", details);
         }
@@ -644,7 +680,8 @@ public sealed class ViewModelContractTests
         wpf.Update(snapshot, CardDb.Empty, settings, null, null);
         ava.Update(snapshot, CardDb.Empty, settings, null, null);
         Assert.Equal((wpf.ArchetypeTier, wpf.ArchetypeDetail), (ava.ArchetypeTier, ava.ArchetypeDetail));
-        Assert.Equal(("A", "Tier A · Meta win rate " + 0.55.ToString("P1", CultureInfo.CurrentCulture)), (ava.ArchetypeTier, ava.ArchetypeDetail));
+        // The tier letter is on the badge beside the name: the line keeps the win rate alone (O-9).
+        Assert.Equal(("A", "Meta win rate " + 0.55.ToString("P1", CultureInfo.CurrentCulture)), (ava.ArchetypeTier, ava.ArchetypeDetail));
         Assert.Equal(["D"], ava.ArchetypeAlternatives.Select(a => a.Tier));
         Assert.Equal(wpf.ArchetypeAlternatives.Select(a => a.Tier), ava.ArchetypeAlternatives.Select(a => a.Tier));
     }
@@ -675,38 +712,38 @@ public sealed class ViewModelContractTests
     public void Overlay_lists_change_rows_in_place_and_become_a_new_list_only_into_or_out_of_empty(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.English);
-        static LiveSnapshot With(params HandSlot[] hand) => LiveSnapshot.Empty with
+        static LiveSnapshot With(params PlayedCard[] played) => LiveSnapshot.Empty with
         {
             Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED",
-            Constructed = new ConstructedView(6, null, false, "HERO_10", "DEMONHUNTER", "HERO_08", "MAGE", null, [], 20, 4, [], hand, 18, hand.Length, 0, null, null),
+            Constructed = new ConstructedView(6, null, false, "HERO_10", "DEMONHUNTER", "HERO_08", "MAGE", null, [], 20, 4, played, [], 18, 4, 0, null, null),
         };
 
         INotifyPropertyChanged vm = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings();
         Action<LiveSnapshot> update = wpf ? s => ((WpfOverlay)vm).Update(s, CardDb.Empty, settings, null, null) : s => ((AvaOverlay)vm).Update(s, CardDb.Empty, settings, null, null);
-        System.Collections.IList Hand() => wpf ? (System.Collections.IList)((WpfOverlay)vm).Hand : (System.Collections.IList)((AvaOverlay)vm).Hand;
+        System.Collections.IList Played() => wpf ? (System.Collections.IList)((WpfOverlay)vm).Played : (System.Collections.IList)((AvaOverlay)vm).Played;
         var names = new List<string?>();
         vm.PropertyChanged += (_, e) => names.Add(e.PropertyName);
 
-        update(With(new(1, 1, null, null, false, false, null), new(2, 0, null, null, true, false, null), new(3, 2, null, null, false, false, null)));
-        var list = Hand();
+        update(With(new("A", "A", 1, 1, 1, false), new("B", "B", 2, 1, 2, false), new("C", "C", 3, 1, 3, false)));
+        var list = Played();
         var kept = list[0];
-        Assert.Contains("Hand", names);
+        Assert.Contains("Played", names);
 
-        // The third card turns out to be a known one: only its row changes, the list and the other rows stay the objects
-        // the items control already shows.
+        // The third card is played again: only its row changes, the list and the other rows stay the objects the items
+        // control already shows.
         names.Clear();
-        update(With(new(1, 1, null, null, false, false, null), new(2, 0, null, null, true, false, null), new(3, 2, null, null, false, false, "Arcane Intellect")));
-        Assert.Same(list, Hand());
-        Assert.Same(kept, Hand()[0]);
-        Assert.Equal(3, Hand().Count);
-        Assert.DoesNotContain("Hand", names);
+        update(With(new("A", "A", 1, 1, 1, false), new("B", "B", 2, 1, 2, false), new("C", "C", 3, 2, 3, false)));
+        Assert.Same(list, Played());
+        Assert.Same(kept, Played()[0]);
+        Assert.Equal(3, Played().Count);
+        Assert.DoesNotContain("Played", names);
 
         // Out of empty and back there is no row to keep: a new list, announced, so "shown when not empty" looks again.
         update(With());
-        Assert.Empty(Hand());
-        Assert.NotSame(list, Hand());
-        Assert.Contains("Hand", names);
+        Assert.Empty(Played());
+        Assert.NotSame(list, Played());
+        Assert.Contains("Played", names);
     }
 
     [Fact]

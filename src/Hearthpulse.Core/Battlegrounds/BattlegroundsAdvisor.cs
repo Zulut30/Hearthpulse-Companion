@@ -173,7 +173,8 @@ public sealed partial class BattlegroundsAdvisor
                 .OrderBy(c => c.Order).ThenBy(c => TierRank(c.Comp.PowerLevel))
                 .DistinctBy(c => c.Comp.External && c.Comp.Tribes.Count > 0 ? string.Join('+', c.Comp.Tribes) : c.Comp.Id, StringComparer.Ordinal)
                 .Take(2)
-                .Select(c => new BgHeroComp(c.Comp.Name, c.Comp.External ? c.Comp.PowerLevel : string.Empty, c.Comp.Difficulty, c.Comp.Tip))
+                .Select(c => new BgHeroComp(c.Comp.Name, c.Comp.External ? c.Comp.PowerLevel : string.Empty, c.Comp.Difficulty, c.Comp.Tip,
+                    OrderedByHero(c.Comp, baseId, meta)))
                 .ToList();
 
             // Community data dominates; personal results nudge it once there is a sample.

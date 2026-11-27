@@ -106,7 +106,10 @@ public sealed class DeckLookContractTests
             }));
         }
 
-        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
+        // My stats is built on the caller (BackgroundWork.Inline): the places and the rating card come in one pass.
+        dynamic model = wpf
+            ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) { Background = Hearthpulse.App.Infrastructure.BackgroundWork.Inline }
+            : new AvaMain(history, new AppSettings(), TestApp.Data) { Background = Hearthpulse.UI.Infrastructure.BackgroundWork.Inline };
         await Changed((INotifyPropertyChanged)model, "BgPlaces", () => model.RefreshAsync());
         var rows = ((IEnumerable<object>)model.BgPlaces).Cast<dynamic>().ToList();
         Assert.Equal(8, rows.Count);
@@ -115,6 +118,36 @@ public sealed class DeckLookContractTests
         Assert.Equal(0.0, (double)rows[1].Fraction);
         Assert.Equal(new[] { true, true, true, true, false, false, false, false }, rows.Select(r => (bool)r.Top));
         Assert.Equal(0.5.ToString("P0", System.Globalization.CultureInfo.CurrentCulture), (string)rows[0].Share);
+        // Rated games: the highest MMR leads the tiles and the rating card stands beside the places.
+        Assert.True((bool)model.BgRatingShown);
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.T("Stats.Bg.HighestMmr"), (string)((IEnumerable<object>)model.BgStatTiles).Cast<dynamic>().First().Label);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Without_a_rating_the_places_take_the_row_and_no_mmr_tile_shows(bool wpf)
+    {
+        // G-3: games with no rating read from the client: no Highest MMR tile and no rating card.
+        var history = History();
+        for (var i = 0; i < 3; i++)
+        {
+            Assert.True(history.Add(new GameRecord
+            {
+                Key = "deck-look-bg-unrated-" + i,
+                StartedAt = DateTime.Now.AddMinutes(-60 + (i * 10)),
+                EndedAt = DateTime.Now.AddMinutes(-52 + (i * 10)),
+                Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS", Placement = 2 + i,
+            }));
+        }
+
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
+        await Changed((INotifyPropertyChanged)model, "BgPlaces", () => model.RefreshAsync());
+        Assert.Equal(8, ((IEnumerable<object>)model.BgPlaces).Count());
+        Assert.False((bool)model.BgRatingShown);
+        var labels = ((IEnumerable<object>)model.BgStatTiles).Cast<dynamic>().Select(t => (string)t.Label).ToList();
+        Assert.DoesNotContain(Hearthpulse.Core.Localization.Loc.T("Stats.Bg.HighestMmr"), labels);
+        Assert.Equal(3, labels.Count);
     }
 
     /// <summary>A Standard deck code (Jaina) with the given cards.</summary>

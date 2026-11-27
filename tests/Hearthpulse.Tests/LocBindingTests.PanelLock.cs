@@ -15,12 +15,13 @@ namespace Hearthpulse.Tests;
 public sealed partial class LocBindingTests
 {
     /// <summary>
-    /// The Avalonia overlay's unlock: the pointer resting on a locked panel shows the "Unlock panels" button, the only
-    /// part that takes the mouse; a real click unlocks every panel (frames on the free ones, saved), the pointer alone
-    /// then moves a panel, and the Discover row over the game's cards stays the game's. The tag's button locks again.
+    /// The Avalonia overlay's unlock: the pointer resting on a locked panel changes nothing (O-16); Ctrl arms it and its
+    /// tag shows the "Unlock panels" button; a real click unlocks every panel (frames on the free ones, saved), the
+    /// pointer alone then moves a panel, and the Discover row over the game's cards stays the game's. The tag's button
+    /// locks again.
     /// </summary>
     [Fact]
-    public void Avalonia_panels_unlock_from_the_button_on_a_resting_pointer_and_move_without_ctrl() => Headless.Run(PanelLock);
+    public void Avalonia_panels_unlock_from_the_button_under_ctrl_and_move_without_it() => Headless.Run(PanelLock);
 
     /// <summary>The overlay's lock button changes the setting; the host asks the main view, and its switch shows it.</summary>
     [Fact]
@@ -68,28 +69,29 @@ public sealed partial class LocBindingTests
             // its alpha times that stays at least 1 of 255, or the window's pixels would hand the press to the game.
             var shield = (Avalonia.Media.ISolidColorBrush)Part<Border>(timer, "Shield").Background!;
             Assert.True(shield.Color.A * 0.3 >= 1, shield.Color.ToString());
-            var clock = new DateTime(2026, 10, 30, 12, 0, 0, DateTimeKind.Utc);
-            DateTime At(int milliseconds) => clock.AddMilliseconds(milliseconds);
 
-            // Locked: passing over the panel changes nothing; resting on it shows the button alone, and only the button
-            // takes the mouse.
-            Assert.False(view.UpdateDragArm(Inside(timer), controlDown: false, At(0)));
+            // Locked: passing over the panel or resting on it changes nothing, and the panel lets clicks through (O-16).
+            Assert.False(view.UpdateDragArm(Inside(timer), controlDown: false));
             Settle();
             Assert.False(button.IsEffectivelyVisible);
-            Assert.False(view.UpdateDragArm(Inside(timer), controlDown: false, At(450)));
+            Assert.False(view.UpdateDragArm(Inside(timer), controlDown: false));
+            Settle();
+            Assert.False(timer.OffersLock);
+            Assert.False(button.IsEffectivelyVisible);
+            Assert.False(view.IsInteractiveAt(Inside(timer)));
+
+            // Ctrl arms it, and its tag offers the unlock button.
+            Assert.True(view.UpdateDragArm(Inside(timer), controlDown: true));
             Settle();
             Assert.True(timer.OffersLock);
-            Assert.False(timer.IsDragArmed);
+            Assert.True(timer.IsDragArmed);
             Assert.True(button.IsEffectivelyVisible);
             Assert.True(Part<TextBlock>(timer, "UnlockLabel").IsEffectivelyVisible);
             Assert.Equal("Unlock panels", Part<TextBlock>(timer, "UnlockLabel").Text);
-            Assert.False(Part<Border>(timer, "Tag").IsEffectivelyVisible);
-            Assert.False(Part<Rectangle>(timer, "Frame").IsVisible);
             var lockSpot = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), view)!.Value;
             var lockCorner = button.TranslatePoint(default, view)!.Value;
             Assert.True(view.IsInteractiveAt(lockSpot));
-            Assert.False(view.IsInteractiveAt(Inside(timer)));
-            Assert.False(view.UpdateDragArm(lockSpot, controlDown: false, At(500)));
+            Assert.True(view.UpdateDragArm(lockSpot, controlDown: true));
             Assert.True(timer.OffersLock);
 
             // A real click on it: every panel unlocks and the setting is saved.
@@ -99,14 +101,14 @@ public sealed partial class LocBindingTests
             Assert.True(view.Settings.OverlayPanelsUnlocked);
             Assert.Equal((1, 1), (lockChanges, layoutChanges));
             Assert.False(timer.IsDragging);
-            Assert.False(view.UpdateDragArm(null, controlDown: false, At(533)));
+            Assert.False(view.UpdateDragArm(null, controlDown: false));
             Settle();
             // A frame on every free panel, none on the Discover row over the game's cards.
             Assert.True(Part<Rectangle>(timer, "Frame").IsVisible);
             Assert.False(Part<Rectangle>(choice, "Frame").IsVisible);
 
             // Unlocked, the pointer alone arms the panel: it takes the mouse and its tag says how to lock again.
-            Assert.True(view.UpdateDragArm(Inside(timer), controlDown: false, At(566)));
+            Assert.True(view.UpdateDragArm(Inside(timer), controlDown: false));
             Settle();
             Assert.True(timer.IsDragArmed);
             Assert.True(view.IsInteractiveAt(Inside(timer)));
@@ -121,8 +123,8 @@ public sealed partial class LocBindingTests
             Assert.True(Math.Abs(moved.X) < 0.5 && Math.Abs(moved.Y) < 0.5, moved.ToString());
 
             // The Discover row stays the game's however long the pointer rests on it; Ctrl still moves it.
-            Assert.False(view.UpdateDragArm(Inside(choice), controlDown: false, At(600)));
-            Assert.False(view.UpdateDragArm(Inside(choice), controlDown: false, At(2000)));
+            Assert.False(view.UpdateDragArm(Inside(choice), controlDown: false));
+            Assert.False(view.UpdateDragArm(Inside(choice), controlDown: false));
             Assert.False(choice.IsDragArmed);
             Assert.False(choice.OffersLock);
             Settle();
@@ -130,12 +132,12 @@ public sealed partial class LocBindingTests
             Assert.False(OverlayHit.GetInteractive(choice));
             Assert.False(view.IsInteractiveAt(Inside(choice)));
             Assert.False(timer.IsDragArmed);
-            Assert.True(view.UpdateDragArm(Inside(choice), controlDown: true, At(2033)));
+            Assert.True(view.UpdateDragArm(Inside(choice), controlDown: true));
             Assert.True(choice.IsDragArmed);
             Assert.False(choice.OffersLock);
 
             // Locked again from the tag's button: no frames, the panel lets clicks through.
-            Assert.True(view.UpdateDragArm(Inside(timer), controlDown: false, At(2066)));
+            Assert.True(view.UpdateDragArm(Inside(timer), controlDown: false));
             Settle();
             window.MouseDown(button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value, MouseButton.Left);
             window.MouseUp(button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value, MouseButton.Left);
@@ -143,7 +145,7 @@ public sealed partial class LocBindingTests
             Assert.False(model.PanelsUnlocked);
             Assert.False(view.Settings.OverlayPanelsUnlocked);
             Assert.Equal((2, 2), (lockChanges, layoutChanges));
-            Assert.False(view.UpdateDragArm(Inside(timer), controlDown: false, At(2100)));
+            Assert.False(view.UpdateDragArm(Inside(timer), controlDown: false));
             Settle();
             Assert.False(timer.IsDragArmed);
             Assert.False(view.IsInteractiveAt(Inside(timer)));
@@ -151,7 +153,7 @@ public sealed partial class LocBindingTests
 
             // Layout mode keeps its own tools: no lock button there.
             model.LayoutEditing = true;
-            Assert.False(view.UpdateDragArm(Inside(timer), controlDown: false, At(3000)));
+            Assert.False(view.UpdateDragArm(Inside(timer), controlDown: false));
             Settle();
             Assert.False(timer.OffersLock);
             Assert.False(button.IsEffectivelyVisible);

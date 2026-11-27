@@ -9,7 +9,7 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// D3, A10: in a long game the opponent panel folds its oldest played cards into one "played earlier" line, so at the
 /// default spots it ends above the counters panel; the newest stay listed in the view's order, the folded ones are named
-/// in the line's tip.
+/// in the line's tip. The opponent's hand is not listed on the panel (O-1), so it takes no room from the played cards.
 /// </summary>
 public sealed class OpponentPlayedFoldTests
 {
@@ -28,8 +28,8 @@ public sealed class OpponentPlayedFoldTests
         var played = Played(20);
         var model = Update(played, handRows: 2);
 
-        // The budget in all: 2 in hand, the "played earlier" line and the newest played.
-        Assert.Equal(OverlayViewModel.OpponentRowBudget - 2 - 1, model.Played.Count);
+        // The budget in all: the "played earlier" line and the newest played.
+        Assert.Equal(OverlayViewModel.OpponentRowBudget - 1, model.Played.Count);
         var listed = model.Played.Select(p => p.CardId).ToList();
         Assert.Equal(played.Select(p => p.CardId).Where(listed.Contains), listed);
         Assert.All(played.Where(p => p.FirstTurn > 7), p => Assert.Contains(p.CardId, listed));
@@ -39,11 +39,12 @@ public sealed class OpponentPlayedFoldTests
     }
 
     [Fact]
-    public void A_full_hand_still_leaves_a_few_played_rows()
+    public void A_full_hand_takes_no_room_from_the_played_cards()
     {
-        // More hand rows than a hand holds: the floor of played rows still holds.
-        var model = Update(Played(20), handRows: 14);
-        Assert.Equal(OverlayViewModel.PlayedRowsAtLeast - 1, model.Played.Count);
+        var full = Update(Played(20), handRows: 10);
+        var empty = Update(Played(20), handRows: 0);
+        Assert.Equal(OverlayViewModel.OpponentRowBudget - 1, full.Played.Count);
+        Assert.Equal(empty.Played.Select(p => p.CardId), full.Played.Select(p => p.CardId));
     }
 
     /// <summary>Cards in cost order (the view's order) played one a turn from the last turn back, card 0 on turn 1.</summary>

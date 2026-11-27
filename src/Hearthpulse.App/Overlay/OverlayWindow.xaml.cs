@@ -242,7 +242,7 @@ public partial class OverlayWindow : Window
 
         Native.GetCursorPos(out var cursor);
         var controlDown = PoolInput.IsDown(ControlKey);
-        UpdateClickThrough(cursor, r, now, controlDown);
+        UpdateClickThrough(cursor, r, controlDown);
         // Ctrl over a card in hand shows its pool in the "with Ctrl" mode; the tick is also the pool's linger clock.
         ViewModel.UpdateCardPoolKeys(controlDown, now);
         UpdateLeaderboardHover(cursor, r);
@@ -327,11 +327,11 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void UpdateClickThrough(Native.POINT cursor, Native.RECT r, DateTime now, bool controlDown)
+    private void UpdateClickThrough(Native.POINT cursor, Native.RECT r, bool controlDown)
     {
         var inside = cursor.X >= r.Left && cursor.X < r.Right && cursor.Y >= r.Top && cursor.Y < r.Bottom;
         var point = new Point((cursor.X - r.Left) / _dpi, (cursor.Y - r.Top) / _dpi);
-        var interactive = UpdateDragArm(inside ? point : null, controlDown, now) || Mouse.Captured is not null;
+        var interactive = UpdateDragArm(inside ? point : null, controlDown) || Mouse.Captured is not null;
         if (!interactive && inside)
         {
             var hit = Root.InputHitTest(point) as DependencyObject;
@@ -368,14 +368,14 @@ public partial class OverlayWindow : Window
     /// <summary>
     /// Ctrl held over a panel during a game arms that panel (the topmost one under the mouse, <paramref name="point"/>
     /// in window units): it takes the mouse and can be dragged or resized as in layout mode, and the placement is saved
-    /// the same way. With the panels unlocked the mouse alone arms it, unless it lies on the game's cards. A locked
-    /// panel the mouse rests on shows the "Unlock panels" button, the only part of it that takes the mouse. Without
-    /// Ctrl, or over empty space, clicks keep going to the game. A panel being dragged stays armed until the button
-    /// comes up. Every change is one line in the log (<see cref="PanelArming"/>).
+    /// the same way. With the panels unlocked the mouse alone arms it, unless it lies on the game's cards. An armed panel
+    /// shows the lock button ("Unlock panels" with Ctrl, "Lock panels" once unlocked); a mouse that only rests on a
+    /// locked panel changes nothing. Without Ctrl, or over empty space, clicks keep going to the game. A panel being
+    /// dragged stays armed until the button comes up. Every change is one line in the log (<see cref="PanelArming"/>).
     /// </summary>
     /// <returns>Whether a panel under the mouse is armed, so the overlay must take the mouse.</returns>
-    internal bool UpdateDragArm(Point? point, bool controlDown, DateTime now) =>
-        _arming.Tick(_panels, point is { } p ? panel => IsUnder(panel, p) : null, ViewModel.LayoutEditing, controlDown, ViewModel.PanelsUnlocked, now).Armed;
+    internal bool UpdateDragArm(Point? point, bool controlDown) =>
+        _arming.Tick(_panels, point is { } p ? panel => IsUnder(panel, p) : null, ViewModel.LayoutEditing, controlDown, ViewModel.PanelsUnlocked).Armed;
 
     /// <summary>Whether the mouse (window units) is on a shown panel, or on its tag strip while the tag is up.</summary>
     private bool IsUnder(MovablePanel panel, Point point)
@@ -387,7 +387,7 @@ public partial class OverlayWindow : Window
             return false;
         }
 
-        var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.RenderSize);
+        var area = panel.IsDragArmed ? panel.ArmedArea() : new Rect(panel.RenderSize);
         return area.Contains(Root.TranslatePoint(point, panel));
     }
 

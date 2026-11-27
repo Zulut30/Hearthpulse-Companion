@@ -109,7 +109,7 @@ public sealed partial class OverlayViewModel
                 _ => string.Empty,
             },
             ResultKey = opponent.LastResult ?? string.Empty,
-            History = fights.Count >= 2 ? fights.TakeLast(8).Select(c => new CombatDot(c.Result, string.Empty)).ToList() : [],
+            History = fights.Count >= 2 ? fights.TakeLast(8).Select(c => new CombatDot(c.Result)).ToList() : [],
             LastSeen = !seen ? string.Empty : turnsAgo <= 0 ? Loc.T("Overlay.LobbyPopup.BoardThisTurn") : Loc.P("Overlay.LobbyPopup.BoardAgo", turnsAgo),
             Tribe = tribe,
             BoardNote = !seen ? Loc.T("Overlay.LobbyPopup.BoardNotSeen") : opponent.LastBoard.Count == 0 ? Loc.T("Overlay.LobbyPopup.EmptyBoard") : string.Empty,

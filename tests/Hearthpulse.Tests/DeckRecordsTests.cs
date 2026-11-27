@@ -272,12 +272,15 @@ public sealed class DeckRecordsTests
 
         Assert.Equal($"3–2 · {0.6.ToString("P0", CultureInfo.CurrentCulture)} win rate", DeckHeader.Describe(new DeckAggregate("D", null, "ROGUE", 5, 3, 2, DateTime.Today), meta).Text);
         var fromMeta = DeckHeader.Describe(null, meta);
-        Assert.Equal($"Meta {0.534.ToString("P0", CultureInfo.CurrentCulture)} · Legend", fromMeta.Text);
+        // The meta's rank filter is the tooltip's, not the line's (O-8).
+        Assert.Equal($"Meta {0.534.ToString("P0", CultureInfo.CurrentCulture)}", fromMeta.Text);
         Assert.True(fromMeta.FromMeta);
         Assert.Contains("Cycle Rogue", fromMeta.Tooltip);
-        Assert.Equal("No games with this deck yet", DeckHeader.Describe(null, null).Text);
+        Assert.Contains("Legend", fromMeta.Tooltip);
+        // Neither: no line at all, not one saying so (O-7).
+        Assert.Equal((string.Empty, string.Empty, false), DeckHeader.Describe(null, null));
         // Only ties or unknown results: no win rate of your own, so the meta speaks.
-        Assert.Equal($"Meta {0.534.ToString("P0", CultureInfo.CurrentCulture)} · Legend", DeckHeader.Describe(new DeckAggregate("D", null, "ROGUE", 2, 0, 0, DateTime.Today), meta).Text);
+        Assert.Equal($"Meta {0.534.ToString("P0", CultureInfo.CurrentCulture)}", DeckHeader.Describe(new DeckAggregate("D", null, "ROGUE", 2, 0, 0, DateTime.Today), meta).Text);
     }
 
     /// <summary>Minimal deck code writer (format 2, one hero, every card listed with its count in the n-copies list).</summary>

@@ -61,9 +61,8 @@
                         </Border>
                     </Grid>
                     <TextBlock Text="{Binding ArenaDraftTitle}" Classes="headerTitle" Margin="0,4,0,0" />
+                    <!-- Which games the scores come from, when the run is the other mode: in the header's tooltip -->
                     <TextBlock Text="{Binding ArenaMode}" Classes="headerNote" IsVisible="{Binding ArenaMode, Converter={StaticResource Truthy}}" />
-                    <TextBlock Text="{Binding ArenaSliceNote}" Classes="headerNote" TextWrapping="Wrap" Margin="0,4,0,0"
-                               IsVisible="{Binding ArenaSliceNote, Converter={StaticResource Truthy}}" />
                 </StackPanel>
             </Border>
 
@@ -154,7 +153,7 @@
                 </ItemsControl>
             </StackPanel>
 
-            <!-- When the scores were collected; "update delayed" while the collection is late -->
+            <!-- When the scores were collected, only while the collection is late -->
             <TextBlock DockPanel.Dock="Bottom" Name="ArenaDataNote" Text="{Binding ArenaDataNote}" FontSize="10" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
                        IsVisible="{Binding ArenaDataNote, Converter={StaticResource Truthy}}" />
 

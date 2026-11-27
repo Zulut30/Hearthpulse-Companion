@@ -207,8 +207,9 @@ public sealed class LobbyPopupTests
         Loc.Instance.SetLanguage(Loc.English);
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
         var settings = new AppSettings();
-        // The session's own "now" lags behind (4.png): the bar's rating is the one shown.
-        var snapshot = Live(View([Bob])) with
+        // The session's own "now" lags behind (4.png): the bar's rating is the one shown. The panel is up while the
+        // player picks a hero (O-20).
+        var snapshot = Live(View([Bob]) with { IsHeroSelection = true }) with
         {
             Rating = new BattlegroundsRating(6779, 5000),
             Session = new SessionSummary(6751, 6751, 3, [1, 4, 6], 0, 0),
@@ -237,5 +238,45 @@ public sealed class LobbyPopupTests
         model.Update(Live(View([Bob])), Cards, settings, null, null);
         Assert.Equal("—", (string)model.SessionRating);
         Assert.Empty((IEnumerable<dynamic>)model.SessionPlaces);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_session_panel_shows_only_at_the_hero_pick_and_only_with_a_rating(bool wpf)
+    {
+        dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
+        var settings = new AppSettings();
+        var rated = Live(View([Bob]) with { IsHeroSelection = true }) with
+        {
+            Rating = new BattlegroundsRating(6779, 5000),
+            Session = new SessionSummary(6751, 6751, 3, [1, 4, 6], 0, 0),
+        };
+        model.Update(rated, Cards, settings, null, null);
+        Assert.True((bool)model.ShowSession);
+
+        // In the game: the rating and the places change no decision there.
+        model.Update(rated with { Battlegrounds = View([Bob]) }, Cards, settings, null, null);
+        Assert.False((bool)model.ShowSession);
+
+        // At the pick without a rating: no "MMR —" (O-20).
+        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, settings, null, null);
+        Assert.False((bool)model.ShowSession);
+
+        // The setting still turns it off.
+        model.Update(rated, Cards, new AppSettings { ShowSessionPanel = false }, null, null);
+        Assert.False((bool)model.ShowSession);
+
+        // Reading the client off: no rating will come, so the panel stays at the pick with the reason in place of "MMR —",
+        // as the main window's rating blocks do (P5); a rating still known shows.
+        var off = new AppSettings { ReadGameMemory = false };
+        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, off, null, null);
+        Assert.True((bool)model.ShowSession);
+        Assert.Equal(Loc.T("Overlay.Session.ReadingOff"), (string)model.SessionOffReason);
+        model.Update(rated, Cards, off, null, null);
+        Assert.True((bool)model.ShowSession);
+        Assert.Equal(string.Empty, (string)model.SessionOffReason);
+        model.Update(Live(View([Bob]) with { IsHeroSelection = true }), Cards, settings, null, null);
+        Assert.Equal(string.Empty, (string)model.SessionOffReason);
     }
 }

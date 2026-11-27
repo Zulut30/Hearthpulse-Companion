@@ -4,10 +4,9 @@
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
              xmlns:c="clr-namespace:Hearthpulse.App.Controls">
-    <!-- Mulligan bars: a bar over each offered card in the HSReplay style (Keep / Replace, a
-         gauge from replace to keep with the edge in points, keep rate and drawn win rate; click = keep or replace),
-         lined up with the cards of the mulligan screen. Details are in the tooltips.
-         DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+    <!-- Mulligan bars: a bar over each offered card in the HSReplay style (Keep / Replace, a gauge from replace to keep
+         with the edge in points; click = keep or replace), lined up with the mulligan screen's cards; the rates are in the
+         tooltips. DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
         <i:KeyBrush x:Key="KeyBrush" />
@@ -74,13 +73,6 @@
                                         <TextBlock x:Name="Number" Grid.Column="1" Text="{Binding Number}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold"
                                                    Foreground="{StaticResource Text}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,0,0" Visibility="{Binding Number, Converter={StaticResource Vis}}" />
                                     </Grid>
-                                    <!-- Keep rate and drawn win rate; in Arena the draft tier letter (coloured as on the draft screen) and the card's win rate -->
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0" Visibility="{Binding HasSecondLine, Converter={StaticResource Vis}}">
-                                        <TextBlock Text="{Binding PickTier}" FontFamily="{StaticResource DisplayFont}" FontSize="11" FontWeight="Bold" Foreground="{Binding PickTier, Converter={StaticResource KeyBrush}}"
-                                                   VerticalAlignment="Center" Margin="0,0,5,0" Visibility="{Binding PickTier, Converter={StaticResource Vis}}" />
-                                        <TextBlock Text="{Binding Details}" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" Visibility="{Binding Details, Converter={StaticResource Vis}}" />
-                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                             <!-- Hover wash over the solid plate, so the card art never shows through the numbers -->

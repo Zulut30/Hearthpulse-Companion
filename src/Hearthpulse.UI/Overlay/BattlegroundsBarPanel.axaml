@@ -5,9 +5,9 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              x:Class="Hearthpulse.UI.Overlay.BattlegroundsBarPanel"
              x:DataType="o:OverlayViewModel">
-    <!-- Content of the "bgbar" overlay panel. Line 1: turn, the tavern tiers that open the minion browser, the combat
-         history; line 2: the lobby's tribes as text. The tribe filter lives in the browser's head. Rating is in the
-         "session" panel. Same tree as the WPF BattlegroundsBarPanel.xaml. -->
+    <!-- "bgbar" from the first tavern turn: line 1 the turn and the tavern tiers that open the minion browser (its head
+         holds the tribe filter), line 2 the lobby's tribes. Rating is in "session", fights on the opponent under the mouse.
+         Same tree as the WPF BattlegroundsBarPanel.xaml. -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -34,11 +34,6 @@
                     <Border Classes="divider" />
                     <TextBlock Text="{i:Loc Overlay.Bar.Tavern}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
                     <ItemsControl ItemsSource="{Binding Tiers}" ItemTemplate="{StaticResource TierTemplate}" ItemsPanel="{StaticResource HRow}" VerticalAlignment="Center" />
-                    <Border Classes="divider" IsVisible="{Binding Combats, Converter={StaticResource Truthy}}" />
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" IsVisible="{Binding Combats, Converter={StaticResource Truthy}}">
-                        <TextBlock Text="{i:Loc Overlay.Bar.Fights}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <ItemsControl ItemsSource="{Binding Combats}" ItemTemplate="{StaticResource CombatTemplate}" ItemsPanel="{StaticResource HRow}" VerticalAlignment="Center" />
-                    </StackPanel>
                 </StackPanel>
                 <!-- The lobby's tribes: text, not buttons (the filter is in the tier list) -->
                 <DockPanel Margin="0,4,0,0" MaxWidth="596" HorizontalAlignment="Left" Background="Transparent" ToolTip.Tip="{i:Loc Overlay.Bar.TribesTip}">

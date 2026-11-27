@@ -14,14 +14,15 @@
         <ItemsControl ItemsSource="{Binding BgStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
 
         <!-- Rating over time beside where you finish; the places card keeps room for its Russian title at the minimum
-             window width (1040), the chart gives it up -->
+             window width (1040), the chart gives it up. Without a rating the places card takes the row, unless reading the game
+             client is off: then the rating card stays with its reason line (BgRatingShown). -->
         <Grid Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="*" MinWidth="300" />
             </Grid.ColumnDefinitions>
-            <Border Style="{StaticResource Card}">
+            <Border Style="{StaticResource Card}" Visibility="{Binding BgRatingShown, Converter={StaticResource Vis}}">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
@@ -36,7 +37,18 @@
                                       EmptyText="{Binding BgRatingEmpty}" Visibility="{Binding BgRatingChart, Converter={StaticResource Vis}}" />
                 </DockPanel>
             </Border>
-            <Border Grid.Column="2" Style="{StaticResource Card}">
+            <Border>
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                        <Setter Property="Grid.Column" Value="2" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding BgRatingShown}" Value="False">
+                                <Setter Property="Grid.Column" Value="0" />
+                                <Setter Property="Grid.ColumnSpan" Value="3" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <StackPanel ToolTip="{i:Loc Stats.Bg.PlacementsTip}">
                     <c:Ornament Text="{i:Loc Stats.Bg.PlacesTitle}" Icon="&#xF0128;" Size="13" Margin="0,0,0,12" />
                     <ItemsControl ItemsSource="{Binding BgPlaces}" ItemTemplate="{StaticResource BgPlaceRowTemplate}" />

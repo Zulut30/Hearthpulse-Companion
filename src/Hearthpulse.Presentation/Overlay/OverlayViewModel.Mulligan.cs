@@ -16,8 +16,8 @@ namespace Hearthpulse.UI.Overlay;
 #endif
 
 /// <summary>
-/// The bar over one offered card: the guide's call, a gauge from "replace" to "keep" with the edge in points, a small
-/// second line (keep rate, win rate when drawn) and flags; details in the tooltip.
+/// The bar over one offered card: the guide's call, a gauge from "replace" to "keep" with the edge in points, and flags;
+/// the keep rate, the win rate when drawn and the rest in the tooltip.
 /// </summary>
 /// <param name="Call">"Keep", "Replace" or "No data": what the guide recommends.</param>
 /// <param name="Number">What keeping is worth against replacing, in points ("+3.1"); empty without numbers.</param>
@@ -25,11 +25,9 @@ namespace Hearthpulse.UI.Overlay;
 /// <param name="Good">The edge is at least <see cref="MulliganGuide.CloseCall"/>; <paramref name="Bad"/> the same below 0.</param>
 /// <param name="FillLeft">Width of the gauge's fill left of its middle (a card to replace), in overlay units.</param>
 /// <param name="FillRight">Width of the fill right of the middle (a card to keep).</param>
-/// <param name="Details">"Kept 61% · drawn −1.3": the keep rate and the win rate when drawn, against the deck's.</param>
 /// <param name="Kept">The player's current choice (starts as the recommendation; a click toggles it).</param>
 /// <param name="Duplicate">A second copy (counts once, heuristic).</param>
 /// <param name="Late">Usually played late (curve rule).</param>
-/// <param name="PickTier">Arena: the card's draft tier letter, shown before <paramref name="Details"/> as on the draft screen; else empty.</param>
 /// <param name="Soft">The call comes from the cards' general results, not the deck's mulligan stats (Arena): "keep" in
 /// the accent colour, "replace" muted, instead of green and red.</param>
 public sealed record MulliganPlate(
@@ -44,13 +42,11 @@ public sealed record MulliganPlate(
     bool Bad,
     double FillLeft,
     double FillRight,
-    string Details,
     bool Synergy,
     bool Duplicate,
     bool Late,
     bool Kept,
     string Tooltip,
-    string PickTier = "",
     bool Soft = false) : IImmutableView
 {
     /// <summary>Neither keep nor replace: no numbers for the card.</summary>
@@ -61,9 +57,6 @@ public sealed record MulliganPlate(
 
     /// <summary>A close call: the edge is within half a point either way (drawn neutral).</summary>
     public bool Close => !NoCall && !Good && !Bad;
-
-    /// <summary>The small line under the gauge has something: the draft tier or <see cref="Details"/>.</summary>
-    public bool HasSecondLine => PickTier.Length > 0 || Details.Length > 0;
 }
 
 /// <summary>
@@ -84,8 +77,8 @@ public sealed partial class OverlayViewModel
 
     /// <summary>
     /// Where the Confirm button's zone begins on the mulligan screen, in the same units (the button is drawn at about
-    /// 815-885; an estimate from the screen's layout, not a measured frame). The summary, two lines high for a
-    /// decklist's numbers, must end above it at the largest overlay scale.
+    /// 815-885; an estimate from the screen's layout, not a measured frame). The one-line summary must end above it at the
+    /// largest overlay scale.
     /// </summary>
     public const double MulliganConfirmTop = 800;
 
@@ -95,17 +88,10 @@ public sealed partial class OverlayViewModel
     /// <summary>An edge of this many win rate points fills half the gauge.</summary>
     private const double MulliganGaugeFull = 0.04;
 
-    /// <summary>
-    /// From this overlay scale the bars drop their second line (it stays in the tooltip): taller bars would reach the
-    /// opponent's hand markers at the top of the mulligan screen.
-    /// </summary>
-    private const double MulliganCompactScale = 1.4;
-
-    private bool _mulliganCompact;
-
     private double _mulliganRowWidth = MulliganRowGameWidth;
 
     private bool _showMulligan;
+    private bool _showMulliganBars;
     private IReadOnlyList<MulliganPlate> _mulliganCards = [];
     private string _mulliganSummary = string.Empty;
     private string _mulliganSource = string.Empty;
@@ -125,6 +111,12 @@ public sealed partial class OverlayViewModel
     public bool ShowMulligan { get => _showMulligan; private set => Set(ref _showMulligan, value); }
 
     /// <summary>
+    /// The bars over the cards, only with numbers to show: without them the summary says so once ("No mulligan stats for
+    /// this deck yet", O-13).
+    /// </summary>
+    public bool ShowMulliganBars { get => _showMulliganBars; private set => Set(ref _showMulliganBars, value); }
+
+    /// <summary>
     /// The strip's row in overlay units: the game's card row, whatever the player's overlay scale (which only sizes the
     /// badges), so each badge stays under its card.
     /// </summary>
@@ -139,8 +131,8 @@ public sealed partial class OverlayViewModel
     public string MulliganSource { get => _mulliganSource; private set => Set(ref _mulliganSource, value); }
 
     /// <summary>
-    /// The line under the summary when the numbers are a decklist's, not an archetype's: "By your deck, 26,946 games,
-    /// data from 14.11.2026" or "By a close deck, ..."; empty for an archetype's numbers (their source stays in the tooltip).
+    /// Where a decklist's numbers come from, not an archetype's: "By your deck, 26,946 games, data from 14.11.2026" or
+    /// "By a close deck, ..."; empty for an archetype's numbers. A line of the summary's tooltip, after the source.
     /// </summary>
     public string MulliganScopeLine { get => _mulliganScopeLine; private set => Set(ref _mulliganScopeLine, value); }
 
@@ -171,7 +163,6 @@ public sealed partial class OverlayViewModel
     {
         ShowMulligan = settings.ShowMulligan && mulligan is not null;
         MulliganRowWidth = MulliganRowGameWidth / SurfaceScale(settings);
-        _mulliganCompact = settings.OverlayScale >= MulliganCompactScale;
         // The tracker logs why the strip has or lacks numbers; only the setting is known here.
         var offBySetting = mulligan is not null && !settings.ShowMulligan;
         if (offBySetting && !_mulliganOffNoted)
@@ -185,6 +176,7 @@ public sealed partial class OverlayViewModel
         {
             _mulliganHand = null;
             _mulliganPrint = null;
+            ShowMulliganBars = false;
             return;
         }
 
@@ -206,6 +198,7 @@ public sealed partial class OverlayViewModel
         }
 
         RebuildMulligan();
+        ShowMulliganBars = ShowMulligan && MulliganCards.Count > 0;
     }
 
     private void RebuildMulligan()
@@ -217,7 +210,7 @@ public sealed partial class OverlayViewModel
 
         // Snapshots arrive every 100 ms while anything changes; rebuild the badges only when what they show changed. The
         // language is part of it: after a switch the host pushes the last snapshot again and the texts are made anew.
-        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|{view.SliceRank}|{view.ArenaBasis}|{_mulliganCompact}|{view.Scope}|{view.DeckGames}|{view.DataAsOf:O}|{view.DeckDifference}|"
+        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|{view.SliceRank}|{view.ArenaBasis}|{view.Scope}|{view.DeckGames}|{view.DataAsOf:O}|{view.DeckDifference}|"
                     + $"{string.Join(',', _mulliganKept.Order())}|"
                     + string.Join(';', view.Cards.Select(c => $"{c.EntityId}|{c.CardId}|{c.Call}|{c.Delta:0.0000}|{c.Edge:0.0000}|{c.KeepRate:0.0000}|{c.KeptDelta:0.0000}|{c.DrawnDelta:0.0000}"));
         if (print == _mulliganPrint)
@@ -271,6 +264,12 @@ public sealed partial class OverlayViewModel
             MulliganHasWarnings = notes.Count > 0;
         }
 
+        if (view.NoStats is not null)
+        {
+            MulliganCards = [];
+            return;
+        }
+
         MulliganCards = view.Cards.Select(c =>
         {
             var kept = _mulliganKept.Contains(c.EntityId);
@@ -279,12 +278,6 @@ public sealed partial class OverlayViewModel
             var edge = c.Edge ?? 0;
             var fill = c.Edge is null ? 0 : Math.Min(1, Math.Abs(edge) / MulliganGaugeFull) * MulliganGaugeHalf;
             var arena = view.ArenaBasis is not null;
-            var details = _mulliganCompact ? string.Empty : string.Join(" · ", new[]
-            {
-                c.KeepRate is { } keepRate ? Loc.F("Mulligan.KeepRateShort", keepRate.ToString("P0", culture)) : null,
-                c.DrawnDelta is { } drawn ? Loc.F("Mulligan.DrawnShort", Points(drawn)) : null,
-                arena && c.WinRate is { } arenaRate ? Loc.F("Mulligan.Arena.RateShort", arenaRate.ToString("P1", culture)) : null,
-            }.Where(s => s is not null));
             var tier = OverlayTiers.Keep(c.Edge) ?? string.Empty;
             var lines = new List<string> { c.Name };
             if (tier.Length > 0)
@@ -375,13 +368,11 @@ public sealed partial class OverlayViewModel
                 c.Edge <= -MulliganGuide.CloseCall,
                 edge < 0 ? fill : 0,
                 edge > 0 ? fill : 0,
-                details,
                 synergy is not null,
                 c.Copy > 1,
                 late,
                 kept,
                 string.Join('\n', lines),
-                _mulliganCompact ? string.Empty : c.PickTier ?? string.Empty,
                 arena);
         }).ToList();
     }

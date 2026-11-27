@@ -18,7 +18,7 @@ namespace Hearthpulse.UI.Overlay;
 /// <param name="Count">"×2" when two of three active Secrets can be this card; empty when one or all of them can.</param>
 public sealed record SecretTile(string Key, string CardId, string Name, int Cost, string Count, bool Open, bool Crossed, bool RuledOut, bool Known) : IImmutableView;
 
-/// <summary>One active Secret: "turn 3 · 3 mana · 4 left" (the class is in the pool line).</summary>
+/// <summary>One active Secret: "turn 3 · 3 mana · 4 left" (its class and the format are the player's to know).</summary>
 public sealed record SecretSlotLine(string Text) : IImmutableView;
 
 /// <summary>The opponent's Secrets panel next to their hero.</summary>
@@ -26,7 +26,6 @@ public sealed partial class OverlayViewModel
 {
     private bool _showSecrets;
     private string _secretsTitle = string.Empty;
-    private string _secretsPool = string.Empty;
     private IReadOnlyList<SecretTile> _secretTiles = Array.Empty<SecretTile>();
     private IReadOnlyList<SecretSlotLine> _secretSlots = Array.Empty<SecretSlotLine>();
     private RelayCommand? _toggleSecret;
@@ -46,9 +45,6 @@ public sealed partial class OverlayViewModel
 
     /// <summary>"Secrets · 2".</summary>
     public string SecretsTitle { get => _secretsTitle; private set => Set(ref _secretsTitle, value); }
-
-    /// <summary>"Mage · Standard": where the list comes from.</summary>
-    public string SecretsPool { get => _secretsPool; private set => Set(ref _secretsPool, value); }
 
     public IReadOnlyList<SecretTile> SecretTiles { get => _secretTiles; private set => Set(ref _secretTiles, value); }
 
@@ -93,7 +89,6 @@ public sealed partial class OverlayViewModel
         }
 
         SecretsTitle = $"{Loc.T("Overlay.Secrets.Title")} · {secrets!.Slots.Count}";
-        SecretsPool = secrets.Pool;
         Replace("secret-slots", secrets.Slots, s => $"{s.EntityId}:{s.CardClass}:{s.PaidCost}:{s.CreatedBy}:{s.KnownCardId}:{s.Possible}", () =>
             SecretSlots = SlotLines(secrets.Slots));
         _secrets = secrets;

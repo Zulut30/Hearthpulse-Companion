@@ -39,12 +39,17 @@ public sealed partial class MainViewModel
         var games = StatsFilter.Apply(all.Where(g => BattlegroundsStats.IsGame(g, duos)), period, DateTime.Now);
         var summary = BattlegroundsStats.Summary(games, duos);
         var timed = Math.Max(1, games.Count(g => g.Duration > TimeSpan.Zero));
-        // No rating yet: with reading the client off none will come, and the tile says why.
-        var noRating = Loc.T(readingOff ? "Main.Tile.ReadingOff" : "Stats.Bg.RatingNotRead");
+        // The highest MMR with a rating. Without one the tile goes (G-3), unless reading the client is off: then it stays
+        // and says why no rating comes.
+        var readingOffNote = readingOff ? Loc.T("Main.Tile.ReadingOff") : string.Empty;
         IReadOnlyList<StatTile> tiles =
         [
-            new StatTile(Loc.T("Stats.Bg.HighestMmr"), summary.HighestRating is { } top ? top.ToString("N0", CultureInfo.CurrentCulture) : "—",
-                summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : noRating, Math.Sign(summary.NetRating ?? 0)),
+            .. summary.HighestRating is { } top
+                ? [new StatTile(Loc.T("Stats.Bg.HighestMmr"), top.ToString("N0", CultureInfo.CurrentCulture),
+                    summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : readingOffNote, Math.Sign(summary.NetRating ?? 0))]
+                : readingOff
+                    ? [new StatTile(Loc.T("Stats.Bg.HighestMmr"), "—", readingOffNote)]
+                    : (StatTile[])[],
             new StatTile(Loc.T("Stats.Bg.AvgPlacement"), summary.AveragePlacement is { } avg ? avg.ToString("0.00", CultureInfo.CurrentCulture) : "—", string.Empty),
             new StatTile(Loc.T("Stats.TotalGames"), summary.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), summary.Games > 0 ? Loc.F("Stats.Bg.MinPerGame", summary.TimePlayed.TotalMinutes / timed) : "—"),

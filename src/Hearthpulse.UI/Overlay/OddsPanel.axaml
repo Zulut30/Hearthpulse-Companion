@@ -7,8 +7,9 @@
              x:DataType="o:OverlayViewModel">
     <!-- Simulated combat odds (MovablePanel "odds" and the OBS window "Hearthpulse — Combat odds", docs/streaming.md): one row
          of up to five cells - you kill, win, tie, loss, you die (a lethal cell at 0 is gone) - with the damage range under win
-         and loss, the share bar ("≈" at its end when the odds rest on estimates), and a bottom line only for unsimulated
-         effects or the damage cap; a red edge while the fight can kill the player. Width follows the content: at least 360, each
+         and loss, the share bar ("≈" at its end when the odds are not exact: effects not simulated or values estimated, named
+         in its tooltip), and a bottom line only while the hero damage cap cuts the damage shown; a red edge while the fight
+         can kill the player. Width follows the content: at least 360, each
          cell at most 84 with its label and damage
          wrapping inside it, so five cells and two dividers stay under the card's 500 (494 at most). DataContext: OverlayViewModel (inherited). Tokens only.
          Same tree as the WPF OddsPanel.xaml. -->
@@ -86,7 +87,7 @@
                 </StackPanel>
             </StackPanel>
             <!-- The share bar: star columns by the shares, as in WPF, so it takes the card's width and never sets it -->
-            <!-- "≈" at its end when the odds rest on estimates (what was estimated in its tooltip, names only). The mark hangs
+            <!-- "≈" at its end when the odds are not exact (effects not simulated, what was estimated: its tooltip, names only). The mark hangs
                  over the bar's line without adding height: the card keeps its size, only the bar gets shorter. -->
             <Grid Margin="0,8,0,4">
                 <Grid.ColumnDefinitions>
@@ -111,7 +112,7 @@
                     <TextBlock Text="&#xF0F9E;" Classes="icon" FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Muted}" />
                 </Border>
             </Grid>
-            <!-- Only when there is something to say: unsimulated effects, the hero damage cap -->
+            <!-- Only while the hero damage cap cuts the damage shown -->
             <TextBlock Text="{Binding OddsNote}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"
                        TextWrapping="Wrap" TextAlignment="Center" IsVisible="{Binding OddsNote, Converter={StaticResource Truthy}}" />
         </StackPanel>

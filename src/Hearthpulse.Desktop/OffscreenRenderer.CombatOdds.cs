@@ -65,14 +65,17 @@ internal static partial class OffscreenRenderer
         }
     }
 
-    /// <summary>The odds with every cell shown: a kill chance, a lethal risk, two-digit damage ranges, one unsimulated effect.</summary>
+    /// <summary>
+    /// The odds with every cell shown: a kill chance, a lethal risk, two-digit damage ranges, one unsimulated effect. The
+    /// ranges end on the scene's hero damage cap (15), as the game cuts them (O-24).
+    /// </summary>
     private static Core.Battlegrounds.CombatOdds FiveCells(Core.Battlegrounds.CombatOdds odds) => odds with
     {
         Unsimulated = 1,
         LethalDealt = 0.197,
         LethalTaken = 0.311,
-        DamageDealt = new Core.Battlegrounds.DamageSpread(19, 12, 27, 31, [1]),
-        DamageTaken = new Core.Battlegrounds.DamageSpread(23, 19, 27, 30, [1]),
+        DamageDealt = new Core.Battlegrounds.DamageSpread(13, 10, 15, 15, [1]),
+        DamageTaken = new Core.Battlegrounds.DamageSpread(14, 12, 15, 15, [1]),
     };
 
     /// <summary>The made-up fight on turn 11 at tavern tier 5, with five lobby tribes and four fights behind it.</summary>

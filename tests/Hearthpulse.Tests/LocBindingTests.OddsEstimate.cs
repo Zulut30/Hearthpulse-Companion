@@ -15,9 +15,9 @@ namespace Hearthpulse.Tests;
 public sealed partial class LocBindingTests
 {
     /// <summary>
-    /// The Avalonia odds panel's estimate mark: "≈" at the share bar's end with the names of what was estimated in its
-    /// tooltip and an accessible name, taking the pointer over the click-through overlay; the card measures the same with
-    /// and without it, and the bottom line for unsimulated effects stays beside it.
+    /// The Avalonia odds panel's estimate mark: "≈" at the share bar's end with the effects not simulated and the names of
+    /// what was estimated in its tooltip and an accessible name, taking the pointer over the click-through overlay; the
+    /// card measures the same with and without it, and no bottom line repeats the effects (O-24).
     /// </summary>
     [Fact]
     public void Avalonia_odds_estimate_mark_binds_its_tooltip_and_keeps_the_card_size() => Headless.Run(OddsEstimateMark);
@@ -38,22 +38,22 @@ public sealed partial class LocBindingTests
             var card = panel.FindControl<Border>("OddsCard")!;
             var mark = panel.FindControl<Border>("EstimateMark")!;
 
-            OddsUpdate(model, new CombatOdds(0.4, 0.2, 0.4, 1) { Runs = 1000 }, []);
+            OddsUpdate(model, new CombatOdds(0.4, 0.2, 0.4, 0) { Runs = 1000 }, []);
             var plain = OddsLayout(window, card);
             Assert.False(mark.IsVisible);
-            Assert.Equal("1 эффект не учтён", model.OddsNote);
+            Assert.Equal(string.Empty, model.OddsNote);
 
             OddsUpdate(model, new CombatOdds(0.4, 0.2, 0.4, 1) { Runs = 1000, Estimated = 2 },
                 [new EstimatedItem(SimInputs.BloodGemBonus, 2, 3, "hidden from the player: our own value", true), new EstimatedItem(SimInputs.DeityStats, 10, 12, "hidden", true)]);
             var marked = OddsLayout(window, card);
 
             Assert.True(mark.IsVisible);
-            Assert.Equal("Шансы с оценкой — эти значения неизвестны точно:\n• Кровавые самоцветы соперника\n• Характеристики Божества соперника",
+            Assert.Equal("1 эффект не учтён\nШансы с оценкой — эти значения неизвестны точно:\n• Кровавые самоцветы соперника\n• Характеристики Божества соперника",
                 ToolTip.GetTip(mark));
-            Assert.Equal("Шансы с оценкой", AutomationProperties.GetName(mark));
+            Assert.Equal("Шансы приблизительные", AutomationProperties.GetName(mark));
             Assert.True(OverlayHit.GetInteractive(mark));
             Assert.True(mark.Bounds.Width > 0);
-            Assert.Equal("1 эффект не учтён", model.OddsNote);
+            Assert.Equal(string.Empty, model.OddsNote);
             Assert.Equal(plain, marked);
         }
         finally

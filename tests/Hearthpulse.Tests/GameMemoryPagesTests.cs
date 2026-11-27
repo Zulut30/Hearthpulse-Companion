@@ -125,13 +125,23 @@ public sealed class GameMemoryPagesTests
         Assert.Equal(Loc.T("Main.Tile.ReadingOff"), Assert.Single(vm.OverviewTiles, t => t.Label == Loc.T("Main.Tile.SoloRating")).Detail);
         Assert.Equal(Loc.T("Main.Tile.ReadingOff"), Assert.Single(vm.BgStatTiles, t => t.Label == Loc.T("Stats.Bg.HighestMmr")).Detail);
         Assert.Equal(Loc.T("Stats.Bg.RatingOff"), vm.BgRatingEmpty);
-        // No earlier rated game: the empty state says it all, no second line.
+        // No earlier rated game: the empty state says it all, no second line; the rating card stays for it.
         Assert.False(vm.BgRatingOffShown);
+        Assert.True(vm.BgRatingShown);
 
+        // Reading on and still no rating: the rating tiles and card go (release cleanup G-3, G-4).
         vm.ReadGameMemory = true;
         Assert.Equal(Loc.T("Stats.Bg.RatingEmpty"), vm.BgRatingEmpty);
-        Assert.Equal(Loc.T("Stats.Bg.RatingNotRead"), Assert.Single(vm.BgStatTiles, t => t.Label == Loc.T("Stats.Bg.HighestMmr")).Detail);
-        Assert.NotEqual(Loc.T("Main.Tile.ReadingOff"), Assert.Single(vm.OverviewTiles, t => t.Label == Loc.T("Main.Tile.SoloRating")).Detail);
+        Assert.DoesNotContain(vm.BgStatTiles, t => t.Label == Loc.T("Stats.Bg.HighestMmr"));
+        Assert.DoesNotContain(vm.OverviewTiles, t => t.Label == Loc.T("Main.Tile.SoloRating"));
+        Assert.False(vm.BgRatingShown);
+
+        // Off again: both come back in place, saying why.
+        vm.ReadGameMemory = false;
+        Assert.Equal(Loc.T("Main.Tile.ReadingOff"), Assert.Single(vm.OverviewTiles, t => t.Label == Loc.T("Main.Tile.SoloRating")).Detail);
+        Assert.Equal(Loc.T("Main.Tile.SoloRating"), vm.OverviewTiles[0].Label);
+        Assert.Equal(Loc.T("Main.Tile.ReadingOff"), Assert.Single(vm.BgStatTiles, t => t.Label == Loc.T("Stats.Bg.HighestMmr")).Detail);
+        Assert.True(vm.BgRatingShown);
     });
 
     /// <summary>Review M1: the Constructed rank is read from the client only; with reading off its card and tile say so.</summary>

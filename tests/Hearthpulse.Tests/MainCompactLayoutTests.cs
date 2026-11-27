@@ -230,6 +230,36 @@ public sealed class MainCompactLayoutTests
     });
 
     /// <summary>
+    /// My stats without a rating has three tiles: in compact two, then the third across its line, no hole beside it (m3
+    /// of the release cleanup review); on a wide page all three share one line.
+    /// </summary>
+    [Theory]
+    [InlineData(420)]
+    [InlineData(1040)]
+    public void Battlegrounds_tiles_without_a_rating_leave_no_hole(double width) => OnPage(width, "ru", "Battlegrounds", (view, model, compact) =>
+    {
+        Assert.Equal(3, model.BgStatTiles.Count);
+        var stats = view.GetVisualDescendants().OfType<Hearthpulse.UI.Main.Stats.BattlegroundsStatsView>().Single();
+        var panel = stats.GetVisualDescendants().OfType<TilesPanel>().First(p => p.IsEffectivelyVisible);
+        var tiles = panel.Children.Where(c => c.IsVisible).Select(c => c.Bounds).ToList();
+        Assert.Equal(3, tiles.Count);
+
+        static void Near(double expected, double actual, string what) => Assert.True(Math.Abs(expected - actual) < 1, $"{what}: {actual}, not {expected}");
+        if (compact)
+        {
+            Near(tiles[0].Top, tiles[1].Top, "the second tile's top");
+            Assert.True(tiles[2].Top >= tiles[0].Bottom - 0.5, $"the third tile at {tiles[2].Top}, the first ends at {tiles[0].Bottom}");
+            Near(0, tiles[2].Left, "the third tile's left");
+            Near(panel.Bounds.Width, tiles[2].Width, "the third tile's width");
+        }
+        else
+        {
+            Assert.All(tiles, t => Near(tiles[0].Top, t.Top, "a tile's top"));
+            Assert.All(tiles, t => Near(panel.Bounds.Width / 3, t.Width, "a tile's width"));
+        }
+    }, rated: false);
+
+    /// <summary>
     /// A heading whole only without the gap before its rule takes that gap (no rule is drawn) instead of ending in an
     /// ellipsis; shorter still, it is cut and carries the whole title as its tip.
     /// </summary>
@@ -385,9 +415,9 @@ public sealed class MainCompactLayoutTests
     /// Lays out <paramref name="page"/> of a main view of the test history at <paramref name="width"/> in
     /// <paramref name="language"/>, then runs <paramref name="check"/> (view, model, compact).
     /// </summary>
-    private static void OnPage(double width, string language, string page, Action<MainView, MainViewModel, bool> check) => LocBindingTests.Headless.Run(() =>
+    private static void OnPage(double width, string language, string page, Action<MainView, MainViewModel, bool> check, bool rated = true) => LocBindingTests.Headless.Run(() =>
     {
-        var (window, view, model, theme) = Open(width, language);
+        var (window, view, model, theme) = Open(width, language, rated);
         try
         {
             view.ShowPage(page);
@@ -407,12 +437,12 @@ public sealed class MainCompactLayoutTests
     /// history and My stats are read on the caller (<see cref="BackgroundWork.Inline"/>); the deck list is built off the
     /// UI thread (no seam), and its change is the signal it is in.
     /// </summary>
-    private static (Window Window, MainView View, MainViewModel Model, Avalonia.Styling.Styles Theme) Open(double width, string language)
+    private static (Window Window, MainView View, MainViewModel Model, Avalonia.Styling.Styles Theme) Open(double width, string language, bool rated = true)
     {
         var theme = PageRowsPanelAvaloniaTests.Theme();
         Loc.Instance.SetLanguage(language == "ru" ? Loc.Russian : Loc.English);
         var cards = Cards();
-        var model = new MainViewModel(History(cards), new AppSettings(), TestDataFolder.App) { Background = BackgroundWork.Inline };
+        var model = new MainViewModel(History(cards, rated), new AppSettings(), TestDataFolder.App) { Background = BackgroundWork.Inline };
         model.SetCards(cards);
         var view = new MainView { DataContext = model };
         var window = new Window { Width = width, Height = 1600 };
@@ -530,7 +560,8 @@ public sealed class MainCompactLayoutTests
     /// Three Ranked games with one deck under a long name, two Battlegrounds games with a rating, an Arena run and a
     /// Tavern Brawl, the classes with the longest names (Demon Hunter, Death Knight) on both sides.
     /// </summary>
-    private static HistoryStore History(CardDb cards)
+    /// <param name="rated">The Battlegrounds games carry a rating; without one My stats has three tiles.</param>
+    private static HistoryStore History(CardDb cards, bool rated = true)
     {
         var history = new HistoryStore(TestDataFolder.Scratch("hp-main-compact") + ".db");
         var code = DeckString.Encode(new Dictionary<string, int>(StringComparer.Ordinal) { ["T_LONG"] = 2, ["T_FILL"] = 2 }, "DEMONHUNTER", "FT_STANDARD", cards)!;
@@ -550,8 +581,8 @@ public sealed class MainCompactLayoutTests
             Assert.True(history.Add(new GameRecord
             {
                 Key = "main-compact-bg-" + i, StartedAt = at.AddHours(1 + i), EndedAt = at.AddHours(1 + i).AddMinutes(20), Mode = "Battlegrounds",
-                GameType = "GT_BATTLEGROUNDS", Result = "Win", Placement = 2 + i, HeroCardId = "TB_BaconShop_HERO_56", RatingBefore = 6000 + (i * 50),
-                RatingAfter = 6050 + (i * 50),
+                GameType = "GT_BATTLEGROUNDS", Result = "Win", Placement = 2 + i, HeroCardId = "TB_BaconShop_HERO_56",
+                RatingBefore = rated ? 6000 + (i * 50) : null, RatingAfter = rated ? 6050 + (i * 50) : null,
             }));
         }
 

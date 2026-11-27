@@ -37,12 +37,8 @@
         <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
     </Style>
 
-    <!-- A row of KPI cards (StatsKpiPanel): one row, two columns in compact -->
-    <Style Selector="UniformGrid.kpis">
-        <Setter Property="Rows" Value="1" />
-    </Style>
-    <Style Selector="m|MainView.compact UniformGrid.kpis">
-        <Setter Property="Rows" Value="0" />
+    <!-- A row of KPI cards (StatsKpiPanel): one line, two columns in compact; an odd last card takes its line -->
+    <Style Selector="m|MainView.compact c|TilesPanel.kpis">
         <Setter Property="Columns" Value="2" />
     </Style>
     <!-- A KPI card's caption (StatsTile) wraps where the card is narrow - a half-width card in compact, a quarter of the

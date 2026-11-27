@@ -58,12 +58,48 @@ public sealed class AdvisorExternalTests : IDisposable
         var comp = jaraxxus.TopComps![0];
         Assert.Equal(("S", "easy"), (comp.Tier, comp.Difficulty));
         Assert.False(string.IsNullOrWhiteSpace(comp.Tip));
+        // Each hero's own games ordered these: the badge may name them (BgHeroComp.ByHero).
+        Assert.All(advice.HeroOptions, h => Assert.All(h.TopComps!, c => Assert.True(c.ByHero, $"{h.CardId}: {c.Name}")));
 
         // Nothing here is the pool's: the source line does not name it, and nothing is limited.
         Assert.False(meta.FromPool);
         Assert.StartsWith("Hearthpulse data · ", advice.MetaSource, StringComparison.Ordinal);
         Assert.DoesNotContain(BattlegroundsMeta.PoolName, advice.MetaSource, StringComparison.Ordinal);
         Assert.Null(advice.UsageNote);
+    }
+
+    [Fact]
+    public async Task A_hero_without_games_of_its_own_gets_the_order_every_hero_shares()
+    {
+        var meta = await ExternalMetaAsync();
+        var advisor = new BattlegroundsAdvisor { Meta = meta };
+
+        // A hero the source has no compositions for: the comps come in the source's tier order, the same for any such
+        // hero - a lobby fact the hero badge leaves to its tooltip (O-21).
+        var advice = advisor.Enrich(HeroPick(["QUILBOAR", "ELEMENTAL", "MURLOC", "DEMON", "BEAST"], "TB_BaconShop_HERO_NONE_1", "TB_BaconShop_HERO_NONE_2"), 7000, Cards());
+
+        Assert.All(advice.HeroOptions, h => Assert.NotEmpty(h.TopComps!));
+        Assert.All(advice.HeroOptions, h => Assert.All(h.TopComps!, c => Assert.False(c.ByHero, $"{h.CardId}: {c.Name}")));
+        Assert.Equal(advice.HeroOptions[0].TopComps!.Select(c => c.Name), advice.HeroOptions[1].TopComps!.Select(c => c.Name));
+    }
+
+    /// <summary>
+    /// A stats pool comp is the hero's own from 40 of the hero's games with it: its order then differs from hero to hero
+    /// and the badge may name it (O-21, Q7 of the release cleanup QA); one game fewer, and it is the order every hero
+    /// shares.
+    /// </summary>
+    [Theory]
+    [InlineData(40, true)]
+    [InlineData(39, false)]
+    public async Task A_pool_comp_is_the_heroes_own_from_forty_of_its_games(int games, bool byHero)
+    {
+        var placement = new Dictionary<string, (int, double)>(StringComparer.Ordinal) { [Jaraxxus] = (games, 3.0) };
+        var meta = PoolClient.Merge(await ExternalMetaAsync(), PoolMeta(heroPlacement: placement));
+
+        var advice = new BattlegroundsAdvisor { Meta = meta }.Enrich(HeroPick(["QUILBOAR", "ELEMENTAL", "MURLOC", "DEMON", "BEAST"]), 7000, Cards());
+
+        var comp = Assert.Single(advice.HeroOptions[0].TopComps!, c => c.Name == "Pool comp");
+        Assert.Equal(byHero, comp.ByHero);
     }
 
     [Fact]
@@ -496,10 +532,11 @@ public sealed class AdvisorExternalTests : IDisposable
     }
 
     /// <summary>The stats pool's own rows: a comp, a trinket the external list has too and one it has not.</summary>
-    private static BattlegroundsMeta PoolMeta(int sharedTrinketGames = 200)
+    /// <param name="heroPlacement">The comp's games and placement with each hero (none by default).</param>
+    private static BattlegroundsMeta PoolMeta(int sharedTrinketGames = 200, IReadOnlyDictionary<string, (int, double)>? heroPlacement = null)
     {
         var comp = new MetaComp("pool_comp", "Pool comp", "S", "Easy", ["DEMON"], [new MetaCompCard("BG28_633", "CORE")], null, null, 3.2,
-            new Dictionary<int, double>(), new Dictionary<string, (int, double)>());
+            new Dictionary<int, double>(), heroPlacement ?? new Dictionary<string, (int, double)>());
         var trinkets = new Dictionary<string, MetaTrinket>(StringComparer.Ordinal)
         {
             ["BG36_MagicItem_216"] = new("BG36_MagicItem_216", sharedTrinketGames, 3.0, 0.4, new Dictionary<int, (double, int)>()),

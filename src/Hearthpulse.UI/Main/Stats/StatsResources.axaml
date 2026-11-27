@@ -12,7 +12,7 @@
 
     <!-- KPI cards in one row, two columns in compact (Main/Stats/StatsStyles.axaml) -->
     <ItemsPanelTemplate x:Key="StatsKpiPanel">
-        <UniformGrid Classes="kpis" />
+        <c:TilesPanel Classes="kpis" />
     </ItemsPanelTemplate>
     <ItemsPanelTemplate x:Key="StatsTilesPanel3">
         <UniformGrid Classes="fixed tiles3" />

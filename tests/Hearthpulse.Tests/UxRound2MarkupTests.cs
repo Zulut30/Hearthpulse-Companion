@@ -230,6 +230,11 @@ public sealed class UxRound2MarkupTests
     };
 
     /// <summary>
+    /// List panels whose band is the title alone: the Secrets panel's "Secrets · 2" (O-12).
+    /// </summary>
+    private static readonly string[] TitleOnlyPanels = ["secrets"];
+
+    /// <summary>
     /// One header for every list panel: the gold band first in the card, then an optional glyph, the title and a muted line
     /// in the shared header styles, which alone size them; a figure (a number in the display font) may stand at the right.
     /// The same parts in both UIs.
@@ -277,6 +282,10 @@ public sealed class UxRound2MarkupTests
                     var texts = card.Descendants().Where(e => e.Name.LocalName == "TextBlock").Select(e => (string?)e.Attribute("Text")).ToList();
                     Assert.All(headings, key => Assert.Contains("{i:Loc " + key + "}", texts));
                     Assert.All(headings, key => Assert.True(Loc.Has(key), key));
+                }
+                else if (TitleOnlyPanels.Contains(id))
+                {
+                    Assert.DoesNotContain("note", parts);
                 }
                 else
                 {
@@ -331,17 +340,23 @@ public sealed class UxRound2MarkupTests
     }
 
     /// <summary>
-    /// The deck panel's last line ends in an ellipsis when it runs long: the chance comes before the card's name, so a
-    /// long Russian name loses its tail, not the number the line is for.
+    /// O-5, O-6, O-7: the deck panel's footer is the deck's count alone (the draw chances are on the rows, your hand you can
+    /// see), and its subtitle has no line when there is neither a record nor a meta win rate.
     /// </summary>
     [Theory]
-    [InlineData("en")]
-    [InlineData("ru")]
-    public void Next_draw_puts_the_chance_before_the_card_name(string language)
+    [InlineData("src/Hearthpulse.App/Overlay/DeckPanel.xaml")]
+    [InlineData("src/Hearthpulse.UI/Overlay/DeckPanel.axaml")]
+    public void Deck_panel_footer_is_the_deck_count_and_an_empty_record_has_no_line(string file)
     {
-        var text = Loc.Table(language)["Overlay.Deck.NextDraw"];
-        Assert.True(text.IndexOf("{1", StringComparison.Ordinal) is var chance and >= 0 && chance < text.IndexOf("{0}", StringComparison.Ordinal), text);
-        Assert.EndsWith("{0}", text, StringComparison.Ordinal);
+        var markup = Markup(file);
+        var attributes = markup.Descendants().SelectMany(e => e.Attributes()).Select(a => a.Value).ToList();
+        Assert.DoesNotContain(attributes, v => v.Contains("NextDraw", StringComparison.Ordinal));
+        var record = markup.Descendants().Single(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Text") == "{Binding DeckRecord}");
+        Assert.Contains(record.Attributes(), a => a.Name.LocalName is "Visibility" or "IsVisible" && a.Value.Contains("DeckRecord", StringComparison.Ordinal));
+        foreach (var language in new[] { "en", "ru" })
+        {
+            Assert.DoesNotContain("{1", Loc.Table(language)["Overlay.Deck.Counts"], StringComparison.Ordinal);
+        }
     }
 
     /// <summary>
@@ -379,6 +394,39 @@ public sealed class UxRound2MarkupTests
         var height = double.Parse((string)card.Attribute("Height")!, System.Globalization.CultureInfo.InvariantCulture);
         // Taller, it ran 132 below the 1080 surface: WPF cut its bottom rows, Avalonia its header and close button.
         Assert.True(top + height <= 1080 - 16, $"{browser}: {top} + {height}");
+    }
+
+    /// <summary>
+    /// TASK-2026-11-26, AC2: the overlay lines that change nothing in a game are absent from both UIs' markup - the opponent's
+    /// hand list, Secrets count and record against the class (O-1, O-2, O-4), the combat dots of the Battlegrounds bar
+    /// (O-26), the mulligan bar's second line and the summary's deck line (O-14, O-15, both in tooltips), the Secrets
+    /// panel's "class · format" (O-12), the Arena header's slice line (O-31, in its tooltip); the free-games note stands
+    /// once, under the hero pick (O-23), and the mulligan bars show only with numbers (O-13).
+    /// </summary>
+    [Theory]
+    [InlineData(".xaml", "src/Hearthpulse.App/Overlay/")]
+    [InlineData(".axaml", "src/Hearthpulse.UI/Overlay/")]
+    public void Overlay_markup_has_none_of_the_removed_lines(string extension, string folder)
+    {
+        static List<string> Bindings(string file) =>
+            [.. Markup(file).Descendants().SelectMany(e => e.Attributes()).Select(a => a.Value).Where(v => v.StartsWith("{Binding", StringComparison.Ordinal))];
+
+        string File(string name) => folder + name + extension;
+        Assert.DoesNotContain(Bindings(File("OpponentPanel")), b => b == "{Binding Hand}" || b.StartsWith("{Binding Hand,", StringComparison.Ordinal)
+            || b.Contains("OpponentSecrets", StringComparison.Ordinal) || b.Contains("OpponentMatchup", StringComparison.Ordinal));
+        Assert.DoesNotContain(Bindings(File("BattlegroundsBarPanel")), b => b.Contains("Combats", StringComparison.Ordinal));
+        Assert.DoesNotContain(Bindings(File("MulliganPanel")), b => b.Contains("Details", StringComparison.Ordinal) || b.Contains("PickTier", StringComparison.Ordinal));
+        Assert.DoesNotContain(Bindings(File("MulliganSummary")), b => b.Contains("MulliganScopeLine", StringComparison.Ordinal));
+        Assert.DoesNotContain(Bindings(File("SecretsPanel")), b => b.Contains("SecretsPool", StringComparison.Ordinal));
+        // The slice line lives in the header's tooltip only.
+        Assert.Single(Bindings(File("ArenaDraftPanel")), b => b == "{Binding ArenaSliceNote}");
+
+        var surface = extension == ".xaml" ? WpfOverlay : AvaOverlay;
+        var panels = Surface(surface).Elements().Where(e => e.Name.LocalName == "MovablePanel").ToDictionary(e => (string)e.Attribute("Id")!);
+        var usage = panels.Where(p => p.Value.Descendants().Any(e => e.Attributes().Any(a => a.Value == "{Binding UsageNote}"))).Select(p => p.Key).ToList();
+        Assert.Equal(["hero-row"], usage);
+        Assert.Equal("{Binding ShowMulliganBars}", (string?)panels["mulligan-bars"].Attribute("Shown"));
+        Assert.Equal("{Binding ShowMulligan}", (string?)panels["mulligan-summary"].Attribute("Shown"));
     }
 
     private static HashSet<string> Classes(XElement element) =>

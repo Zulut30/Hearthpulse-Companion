@@ -5,21 +5,22 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
 ## What the player sees
 
 - **Draft screen, overlay panel `arena-picks`**: a badge over each of the three offered cards with its ArenaSmith
-  score and tier colour; the highest score gets a gold border, a star and "Best pick". Under the score the badge says
-  where the card would sit in the deck: its cost and how many cards of the deck share that curve bucket
-  ("3 mana · 4 in deck"), and its type with the deck's count of that type ("Spell · 5 in deck"). A legendary that
+  score and tier colour; the highest score gets a gold border and a star, no caption (O-30). Where a card would sit in
+  the deck is the draft panel's curve and types line, not the badge's (O-29). A legendary that
   brings a package (Underground) is scored as the average of the whole package and says "+2 cards with it". From
   the sixth pick on, a scored card may get two more lines, our own adjustment for the deck so far and why
   ("Deck fit: −2" / "Many cards at 5 mana · Few minions", see Deck fit); the big number stays the source's score. At the
   hero pick the badges show the class win rate (tier from the win rate), the class's place among all classes and the
-  7+ wins share; the best class is marked. At the hero power pick there are no badges (no numbers exist for it).
+  7+ wins share; the best class has the star and gold frame. A hero without class numbers keeps its slot and draws no
+  badge (O-28). At the hero power pick there are no badges (no numbers exist for it).
 - **Overlay panel `arena-draft`** (left edge): run class (or "Choose a hero" / "Choose a hero power"), the run's mode
   ("Underground Arena" / "Normal Arena") once the client told it, picks `n/30`, average ArenaSmith score of the deck so
   far with its tier, mana curve 0..7+ with the buckets of the offered cards lit, the deck's card types
   ("12 minions · 5 spells · 1 weapon"), class win rates at the hero pick (the offered classes in gold), after it the
   run class's own line under the title ("Win rate 55.2% · #1 of 11 classes · 7+ wins: 15%"), the cards
-  picked by cost with their scores. Attribution line "Scores: Hearthpulse data"; on a normal-Arena run a second line
-  says the scores come from Underground Arena games (the only slice the server has, see Data).
+  picked by cost with their scores. Attribution line "Scores: Hearthpulse data"; on a normal-Arena run the header's
+  tooltip says the scores come from Underground Arena games (the only slice the server has, see Data). The date of
+  the scores shows only while their collection is late. A hero without class numbers gets no badge.
 - **Arena page** (main window, My Stats Arena): each run row shows "Deck score N" when the run saved a deck code; a
   "Deck score" card for the latest run (average, tier, curve, three strongest and weakest cards); a "Class win rates"
   card with the community numbers.
@@ -120,7 +121,7 @@ A source score says how good a card is on average, not what this deck still need
 small adjustment from the card data alone (cost, type, name). It is our own rule: no synergy table and no number of
 HDT, Firestone or HearthArena was read for it, and it is no statistic of the data API.
 
-- **Shown apart.** The badge's number, its tier letter and "Best pick" are the source's and do not move. The
+- **Shown apart.** The badge's number, its tier letter and the best pick's star are the source's and do not move. The
   adjustment is a line of its own under them ("Deck fit: −2", `Arena.DeckFit`), rounded to half-point steps with no
   signed zero, with the two strongest reasons on
   the next line. `ArenaPickOption.Score` stays the source's score, `ArenaPickOption.Fit` (`ArenaFit`: `Points`,

@@ -4,9 +4,9 @@
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
              xmlns:c="clr-namespace:Hearthpulse.App.Controls">
-    <!-- Arena draft: a badge over each offered card (ArenaSmith score and tier, its place on the curve and among the
-         deck's types) or hero (class win rate and place), the best one in gold. Laid across the width of the draft screen's card row, so each badge sits over its card. Nothing here
-         takes clicks: the cards under it stay clickable. The data source is named once, in the draft panel's footer. DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+    <!-- Arena draft: a badge over each offered card (ArenaSmith score and tier, the package it brings, our deck fit) or
+         hero (class win rate, 7+ wins, place), the best one with the star and gold frame; a hero without numbers keeps its
+         slot empty. Laid over the draft screen's card row, takes no clicks. DataContext: OverlayViewModel. Tokens only. -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
         <i:KeyBrush x:Key="KeyBrush" />
@@ -14,7 +14,7 @@
 
         <DataTemplate x:Key="BadgeTemplate" DataType="{x:Type o:ArenaPickBadge}">
             <Border x:Name="Badge" HorizontalAlignment="Center" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}"
-                    BorderThickness="1.5" CornerRadius="14" Padding="6,5,14,5" MinWidth="146">
+                    BorderThickness="1.5" CornerRadius="14" Padding="6,5,14,5" MinWidth="146" Visibility="{Binding Empty, Converter={StaticResource Vis}, ConverterParameter=!}">
                 <!-- A dock, not a horizontal stack: the lines beside the seal get the cell's width and wrap in it. At overlay scale 1.6
                      a cell is narrower than the badge's text, which was cut at the next badge (bug-hunt #11) -->
                 <DockPanel HorizontalAlignment="Center">
@@ -37,7 +37,7 @@
                         </StackPanel>
                         <TextBlock x:Name="Caption" Text="{Binding Caption}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextWrapping="Wrap"
                                    Visibility="{Binding Caption, Converter={StaticResource Vis}}" />
-                        <!-- Where the card would sit in the deck: its curve bucket, its type (or package) -->
+                        <!-- A hero's place among the classes; the package a card brings -->
                         <TextBlock Text="{Binding FitCost}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Text}" TextWrapping="Wrap" Margin="0,2,0,0"
                                    Visibility="{Binding FitCost, Converter={StaticResource Vis}}" />
                         <TextBlock Text="{Binding FitType}" FontSize="{StaticResource FontSizeMicro}" Foreground="{StaticResource Muted}" TextWrapping="Wrap"

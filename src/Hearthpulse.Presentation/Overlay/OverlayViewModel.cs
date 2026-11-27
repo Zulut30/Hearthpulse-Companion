@@ -67,14 +67,15 @@ public sealed partial class OverlayViewModel : Observable
     private string _deckName = string.Empty;
     private string _deckRecord = string.Empty;
     private string _deckCounts = string.Empty;
-    private string _nextDraw = string.Empty;
     private SyncList<DeckTile> _deck = new();
     private bool _showChance = true;
 
     public string DeckName { get => _deckName; private set => Set(ref _deckName, value); }
+    /// <summary>The deck's record or its archetype's meta win rate; empty without either (no line).</summary>
     public string DeckRecord { get => _deckRecord; private set => Set(ref _deckRecord, value); }
+
+    /// <summary>"24 in deck": the game shows the deck's count only on hover; your own hand you can see.</summary>
     public string DeckCounts { get => _deckCounts; private set => Set(ref _deckCounts, value); }
-    public string NextDraw { get => _nextDraw; private set => Set(ref _nextDraw, value); }
     public IReadOnlyList<DeckTile> Deck => _deck;
     public bool ShowChance { get => _showChance; private set => Set(ref _showChance, value); }
 
@@ -83,44 +84,23 @@ public sealed partial class OverlayViewModel : Observable
     private string _opponentHeroId = string.Empty;
     private int _opponentHand;
     private int _opponentDeck;
-    private int _opponentSecrets;
-    private string _opponentMatchup = string.Empty;
     private string _playedEarlier = string.Empty;
     private string _playedEarlierTip = string.Empty;
-    private string _opponentMatchupRate = string.Empty;
-    private double _opponentMatchupEdge;
-    private string _opponentMatchupTip = string.Empty;
     private SyncList<PlayedTile> _played = new();
-    private SyncList<HandTile> _hand = new();
 
     public string OpponentTitle { get => _opponentTitle; private set => Set(ref _opponentTitle, value); }
     public string OpponentSubtitle { get => _opponentSubtitle; private set => Set(ref _opponentSubtitle, value); }
     public string OpponentHeroId { get => _opponentHeroId; private set => Set(ref _opponentHeroId, value); }
     public int OpponentHand { get => _opponentHand; private set => Set(ref _opponentHand, value); }
     public int OpponentDeck { get => _opponentDeck; private set => Set(ref _opponentDeck, value); }
-    public int OpponentSecrets { get => _opponentSecrets; private set => Set(ref _opponentSecrets, value); }
-    /// <summary>Your record with this deck against the opponent's class, short ("2–1"); empty before the first game.</summary>
-    public string OpponentMatchup { get => _opponentMatchup; private set => Set(ref _opponentMatchup, value); }
-
-    /// <summary>The win rate of <see cref="OpponentMatchup"/> ("67 %"), coloured by <see cref="OpponentMatchupEdge"/>.</summary>
-    public string OpponentMatchupRate { get => _opponentMatchupRate; private set => Set(ref _opponentMatchupRate, value); }
-
-    /// <summary>The win rate above or below an even split: its sign colours the rate.</summary>
-    public double OpponentMatchupEdge { get => _opponentMatchupEdge; private set => Set(ref _opponentMatchupEdge, value); }
-
-    /// <summary>Whose score it is and against what, for the tooltip of the short line.</summary>
-    public string OpponentMatchupTip { get => _opponentMatchupTip; private set => Set(ref _opponentMatchupTip, value); }
     public IReadOnlyList<PlayedTile> Played => _played;
-    public IReadOnlyList<HandTile> Hand => _hand;
 
     /// <summary>
-    /// Card rows the opponent panel lists, played and in hand together, before its oldest played cards fold into one
-    /// line (D3, A10): at the default spots a panel this long still ends above the counters panel under it.
+    /// Card rows the opponent panel lists before its oldest played cards fold into one line (D3, A10): at the default
+    /// spots a panel this long still ends above the counters panel under it. The opponent's hand is not listed: the
+    /// marks on their fanned hand (<c>opponent-hand-fan</c>) show the turn each card was drawn and what created it.
     /// </summary>
     public const int OpponentRowBudget = 18;
-
-    /// <summary>Played rows always listed, however full the hand.</summary>
-    public const int PlayedRowsAtLeast = 4;
 
     /// <summary>"Played earlier: 5" under the played rows when the oldest folded; empty otherwise.</summary>
     public string PlayedEarlier { get => _playedEarlier; private set => Set(ref _playedEarlier, value); }
@@ -132,9 +112,9 @@ public sealed partial class OverlayViewModel : Observable
     /// The played cards the panel lists (the newest by the turn each was first played, in the view's order) and the ones
     /// folded into the "played earlier" line, oldest first.
     /// </summary>
-    internal static (IReadOnlyList<PlayedCard> Listed, IReadOnlyList<PlayedCard> Folded) FoldPlayed(IReadOnlyList<PlayedCard> played, int handRows)
+    internal static (IReadOnlyList<PlayedCard> Listed, IReadOnlyList<PlayedCard> Folded) FoldPlayed(IReadOnlyList<PlayedCard> played)
     {
-        var room = Math.Max(PlayedRowsAtLeast, OpponentRowBudget - handRows);
+        const int room = OpponentRowBudget;
         if (played.Count <= room)
         {
             return (played, []);
@@ -155,7 +135,6 @@ public sealed partial class OverlayViewModel : Observable
     private string _rating = string.Empty;
     private string _ratingDelta = string.Empty;
     private int _ratingDeltaValue;
-    private IReadOnlyList<CombatDot> _combats = Array.Empty<CombatDot>();
     private IReadOnlyList<HeroPickCard> _heroPicks = Array.Empty<HeroPickCard>();
     private IReadOnlyList<ShopBadge> _shopBadges = Array.Empty<ShopBadge>();
     private IReadOnlyList<TrinketBadge> _trinketPicks = Array.Empty<TrinketBadge>();
@@ -184,7 +163,6 @@ public sealed partial class OverlayViewModel : Observable
     public string Rating { get => _rating; private set => Set(ref _rating, value); }
     public string RatingDelta { get => _ratingDelta; private set => Set(ref _ratingDelta, value); }
     public int RatingDeltaValue { get => _ratingDeltaValue; private set => Set(ref _ratingDeltaValue, value); }
-    public IReadOnlyList<CombatDot> Combats { get => _combats; private set => Set(ref _combats, value); }
     public IReadOnlyList<HeroPickCard> HeroPicks
     {
         get => _heroPicks;
@@ -330,6 +308,12 @@ public sealed partial class OverlayViewModel : Observable
 
     public RelayCommand ResetLayout { get; }
 
+    /// <summary>Shows a snapshot: each panel's rows and whether it shows, rebuilt only where something changed.</summary>
+    /// <param name="deck">The player's record with the deck in play: the deck panel's subtitle.</param>
+    /// <param name="matchup">
+    /// The player's record against the opponent's class. Unused (O-4: a score from past games changes no decision in
+    /// this one); the hosts' feed still hands it in.
+    /// </param>
     public void Update(LiveSnapshot snapshot, CardDb cards, AppSettings settings, DeckAggregate? deck, MatchupAggregate? matchup)
     {
         _cards = cards;
@@ -347,7 +331,7 @@ public sealed partial class OverlayViewModel : Observable
         ShowChance = settings.ShowDrawChance;
         if (constructed is not null)
         {
-            UpdateConstructed(constructed, deck, matchup);
+            UpdateConstructed(constructed, deck);
         }
         else
         {
@@ -371,7 +355,8 @@ public sealed partial class OverlayViewModel : Observable
         UpdateBgCounters(overlayBg, settings);
         UpdateBgLobby(overlayBg, settings);
         UpdateArena(snapshot.ArenaDraft, settings);
-        ShowBattlegrounds = bg is not null && settings.ShowBattlegroundsBar;
+        // The bar waits for the first tavern turn: at the hero pick there is no turn, no tavern and no lobby read yet.
+        ShowBattlegrounds = bg is { IsHeroSelection: false } && settings.ShowBattlegroundsBar;
         ApplyPickSettings(settings);
         UpdatePickRows(settings);
         ShowHeroPick = overlayBg is { IsHeroSelection: true } && ShowPickPanels && overlayBg.HeroOptions.Count > 0;
@@ -383,7 +368,6 @@ public sealed partial class OverlayViewModel : Observable
         // Buy hints sit on the tavern row, so only while recruiting and while no choice covers the shop.
         ShowShop = playing && !overlayBg!.InCombat && overlayBg.TrinketOptions.Count == 0 && overlayBg.DiscoverOptions.Count == 0 && overlayBg.ShopAdvice.Count > 0;
         ShowLobby = bg is { IsHeroSelection: false } && settings.ShowLobbyPanel && bg.Opponents.Count > 0;
-        ShowSession = bg is not null && settings.ShowSessionPanel;
         if (bg is not null)
         {
             UpdateBattlegrounds(bg, snapshot);
@@ -394,6 +378,12 @@ public sealed partial class OverlayViewModel : Observable
             SelectedTier = 0;
             Browser = Array.Empty<BrowserGroup>();
         }
+
+        // The session's rating and places while picking a hero, with a rating to show (O-20); with reading the client off
+        // no rating will come, and the panel says why in one line, as the main window's rating blocks do (P5).
+        var readingOff = !settings.ReadGameMemory;
+        SessionOffReason = readingOff && !_sessionRated ? Loc.T("Overlay.Session.ReadingOff") : string.Empty;
+        ShowSession = bg is { IsHeroSelection: true } && settings.ShowSessionPanel && (_sessionRated || readingOff);
 
         UpdateBgBadges(overlayBg, settings);
         if (bg is null)
@@ -414,15 +404,13 @@ public sealed partial class OverlayViewModel : Observable
         }
     }
 
-    private void UpdateConstructed(ConstructedView view, DeckAggregate? deck, MatchupAggregate? matchup)
+    private void UpdateConstructed(ConstructedView view, DeckAggregate? deck)
     {
         DeckName = view.DeckName ?? Loc.T("Overlay.Deck.Fallback");
         var (record, recordTip, _) = DeckHeader.Describe(deck, view.DeckMeta);
         DeckRecord = record;
         DeckRecordTip = recordTip;
-        DeckCounts = Loc.F("Overlay.Deck.Counts", view.DeckCount, view.HandCount);
-        var best = view.Deck.Where(r => r.Remaining > 0).MaxBy(r => r.DrawChance);
-        NextDraw = best is null || view.DeckCount == 0 ? string.Empty : Loc.F("Overlay.Deck.NextDraw", best.Name, best.DrawChance);
+        DeckCounts = Loc.F("Overlay.Deck.Counts", view.DeckCount);
         Replace(nameof(Deck), view.Deck, r => $"{r.CardId}{r.Remaining}{r.Total}{r.DrawChance:0.00}", () =>
         {
             var changed = DeckChanges(view.Deck);
@@ -445,31 +433,11 @@ public sealed partial class OverlayViewModel : Observable
         (OpponentTitle, OpponentSubtitle) = OpponentHeader(view);
         OpponentHand = view.OpponentHandCount;
         OpponentDeck = view.OpponentDeckCount;
-        OpponentSecrets = view.OpponentSecrets;
-        // Short on the panel ("2–1 · 67 %"); whose games these are goes to the tooltip.
-        var hasMatchup = matchup is { Games: > 0 };
-        OpponentMatchup = hasMatchup ? Loc.F("Overlay.Opponent.Matchup", matchup!.Wins, matchup.Losses) : string.Empty;
-        OpponentMatchupRate = hasMatchup && matchup!.Wins + matchup.Losses > 0 ? matchup.WinRate.ToString("P0", CultureInfo.CurrentCulture) : string.Empty;
-        OpponentMatchupEdge = hasMatchup && matchup!.Wins + matchup.Losses > 0 ? matchup.WinRate - 0.5 : 0;
-        OpponentMatchupTip = hasMatchup ? Loc.P("Overlay.Opponent.MatchupTip", matchup!.Games, ClassName(view.OpponentClass)) : string.Empty;
-        var (listed, folded) = FoldPlayed(view.OpponentPlayed, view.OpponentHand.Count);
+        var (listed, folded) = FoldPlayed(view.OpponentPlayed);
         PlayedEarlier = folded.Count > 0 ? Loc.F("Overlay.Opponent.PlayedEarlier", folded.Sum(p => p.Count)) : string.Empty;
         PlayedEarlierTip = string.Join('\n', folded.Select(p => p.Count > 1 ? $"{p.Name} ×{p.Count}" : p.Name));
         Replace(nameof(Played), listed, p => $"{p.CardId}{p.Count}", () => Sync(ref _played, nameof(Played), listed
             .Select(p => new PlayedTile(p.CardId, p.Name, p.Cost, p.Count > 1 ? $"×{p.Count}" : string.Empty, Loc.F("Overlay.Turn.Short", p.FirstTurn), p.IsCreated))
-            .ToList()));
-        Replace(nameof(Hand), view.OpponentHand, h => $"{h.Position}{h.Turn}{h.CardId}{h.CreatedBy}{h.CreatedById}{h.FromMulligan}", () => Sync(ref _hand, nameof(Hand), view.OpponentHand
-            .Select(h => new HandTile(
-                h.Position.ToString(CultureInfo.InvariantCulture),
-                h.Turn > 0 ? Loc.F("Overlay.Turn.Short", h.Turn) : Loc.T("Overlay.Hand.MulliganShort"),
-                // A card nothing is known about shows only its slot and turn: ten rows of "Unknown" said nothing. A card
-                // kept in the mulligan says so in the turn column already.
-                h.IsCoin ? Loc.T("Overlay.Hand.Coin") : h.CardName ?? (h.CreatedBy is not null ? Loc.F("Overlay.Hand.CreatedBy", h.CreatedBy) : string.Empty),
-                h.CardName is not null || h.IsCoin,
-                h.CardName is null && !h.IsCoin && h.CreatedBy is null && !h.FromMulligan)
-            {
-                PreviewCardId = h.CardId is { } id && !h.IsCoin ? id : h.CreatedById,
-            })
             .ToList()));
     }
 

@@ -39,7 +39,7 @@ public sealed partial class LocBindingTests
             Settle();
             Assert.True(session.Bounds.Width > 0);
 
-            Assert.True(view.UpdateDragArm(Inside(), controlDown: true, ArmClock));
+            Assert.True(view.UpdateDragArm(Inside(), controlDown: true));
             Settle();
             Settle();
             var chrome = Part("PART_Chrome");

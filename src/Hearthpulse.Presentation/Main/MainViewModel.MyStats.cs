@@ -310,10 +310,18 @@ public sealed partial class MainViewModel
         {
             if (Set(ref _bgRatingChart, value))
             {
+                Raise(nameof(BgRatingShown));
                 Raise(nameof(BgRatingOffShown));
             }
         }
     }
+
+    /// <summary>
+    /// The rating card shows beside where you finish: with a rated game in the period, or with reading the client off
+    /// (the card then keeps its one reason line, <see cref="RatingOffReason"/>). Otherwise (no rating read from the client
+    /// yet) the places card takes the row (G-3).
+    /// </summary>
+    public bool BgRatingShown => _bgRatingChart.Count > 0 || GameMemoryOff;
 
     /// <summary>«Результаты героев»: the combat win rate and pick rate columns; off by default.</summary>
     public bool BgHeroAllColumns { get => _bgHeroAllColumns; set => Set(ref _bgHeroAllColumns, value); }

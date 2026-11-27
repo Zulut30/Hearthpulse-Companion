@@ -29,16 +29,29 @@ namespace Hearthpulse.UI.Overlay;
 /// <summary>The badge over one offered draft card (or hero): tier, score (or class win rate), a caption.</summary>
 /// <param name="Number">ArenaSmith score ("54") or class win rate ("55.4%"); "—" without numbers.</param>
 /// <param name="Tier">Tier letter for the colour, or empty.</param>
-/// <param name="Caption">"Best pick", "No score yet", the class's place and 7+ wins share, or empty for a plain score.</param>
-/// <param name="FitCost">Where the card sits on the curve: "3 mana · 4 in deck"; empty for a hero.</param>
-/// <param name="FitType">Its type in the deck ("Spell · 5 in deck") or the package it brings ("+2 cards"); empty for a hero.</param>
+/// <param name="Caption">
+/// "No score yet", a hero's 7+ wins share (or its class), or empty for a plain score. The best option says nothing more:
+/// the star and the gold frame mark it.
+/// </param>
+/// <param name="FitCost">A hero's place among the classes ("#3 of 11 classes"); empty for a card.</param>
+/// <param name="FitType">
+/// The package a card brings ("+2 cards with it"); empty otherwise. Its curve bucket and type are left out: the draft
+/// panel's curve and types line show the deck.
+/// </param>
 /// <param name="DeckFit">
 /// Our own adjustment for the deck so far, apart from <paramref name="Number"/> (the source's score): "Deck fit: −1.5";
 /// empty when nothing applies.
 /// </param>
 /// <param name="DeckFitWhy">Why: "Many cards at 5 mana · Few minions" (the two strongest reasons); empty with <paramref name="DeckFit"/>.</param>
 public sealed record ArenaPickBadge(string CardId, string Number, string Tier, string Caption, bool IsBest, string FitCost = "", string FitType = "",
-    string DeckFit = "", string DeckFitWhy = "") : IImmutableView;
+    string DeckFit = "", string DeckFitWhy = "") : IImmutableView
+{
+    /// <summary>
+    /// Nothing to show (a hero without class numbers): the badge keeps its slot, so the others stay over their own
+    /// cards, and draws nothing - a blank seal and a dash read as a broken picture.
+    /// </summary>
+    public bool Empty { get; init; }
+}
 
 /// <summary>One bar of the draft's mana curve.</summary>
 /// <param name="Offered">An offered card costs this much: the bar is highlighted.</param>
@@ -182,12 +195,13 @@ public sealed partial class OverlayViewModel
 
         // Snapshots arrive every 100 ms while anything changes; rebuild only when what the panels show changed.
         var print = $"{Loc.Instance.Language}|{draft.PlayerClass}|{draft.HasData}|{draft.Score.Average:0.00}|{draft.Phase}|{draft.Underground}|{draft.ScoresFromOtherMode}|"
-                    + string.Join(',', draft.Options.Select(o => $"{o.CardId}:{o.Score}:{o.WinRate}:{o.IsBest}:{o.SameCost}:{o.SameType}:{o.Package?.Count}:{FitPrint(o.Fit)}")) + "|"
+                    + string.Join(',', draft.Options.Select(o => $"{o.CardId}:{o.Score}:{o.WinRate}:{o.IsBest}:{o.Package?.Count}:{FitPrint(o.Fit)}")) + "|"
                     + string.Join(',', draft.Deck.Select(c => $"{c.CardId}:{c.Count}:{c.Score}")) + "|"
                     + string.Join(',', draft.Classes.Select(c => $"{c.PlayerClass}:{c.WinRate}:{c.Offered}")) + "|"
                     + $"{draft.RunClass?.WinRate}:{draft.RunClass?.SevenPlus}:{draft.RunClass?.Rank}";
         if (print == _arenaPrint)
         {
+            ShowArenaPicks &= ArenaPicks.Any(b => !b.Empty);
             return;
         }
 
@@ -196,6 +210,7 @@ public sealed partial class OverlayViewModel
         ArenaPicks = draft.Phase is ArenaDraftPhase.Hero or ArenaDraftPhase.Cards
             ? draft.Options.Select(o => draft.HeroPick ? HeroBadge(o, draft, culture) : CardBadge(o, culture)).ToList()
             : [];
+        ShowArenaPicks &= ArenaPicks.Any(b => !b.Empty);
 
         // The hero power is picked after the hero, so the class is known by then: the pick still gets its own title.
         ArenaDraftTitle = draft.Phase == ArenaDraftPhase.HeroPower ? Loc.T("Arena.ChooseHeroPower")
@@ -254,33 +269,31 @@ public sealed partial class OverlayViewModel
             : Loc.T("Overlay.Tier.ArenaCards");
     }
 
-    /// <summary>A hero: class win rate, its place among the classes and the 7+ wins share.</summary>
+    /// <summary>
+    /// A hero: class win rate, its place among the classes and the 7+ wins share. Without a win rate the badge is
+    /// <see cref="ArenaPickBadge.Empty"/>: it keeps its slot over the portrait and draws nothing.
+    /// </summary>
     private static ArenaPickBadge HeroBadge(ArenaPickOption o, ArenaDraftView draft, CultureInfo culture)
     {
+        if (o.WinRate is not { } winRate)
+        {
+            return new ArenaPickBadge(o.CardId, "—", string.Empty, string.Empty, false) { Empty = true };
+        }
+
         var seven = draft.Classes.FirstOrDefault(c => c.PlayerClass == o.PlayerClass)?.SevenPlus;
-        // Without a win rate the badge says so in words: "—" beside a blank seal alone read as a missing picture.
-        var caption = o.WinRate is null ? Loc.T("Arena.NoClassData")
-            : o.IsBest ? Loc.T("Arena.BestClass")
-            : seven is { } s ? Loc.F("Arena.SevenPlus", s.ToString("P0", culture))
-            : ClassName(o.PlayerClass);
+        var caption = seven is { } s ? Loc.F("Arena.SevenPlus", s.ToString("P0", culture)) : ClassName(o.PlayerClass);
         var rank = o.ClassRank is { } place && draft.Classes.Count > 0 ? Loc.F("Arena.ClassRank", place, draft.Classes.Count) : string.Empty;
-        var detail = o.IsBest && seven is { } best ? Loc.F("Arena.SevenPlusShort", best.ToString("P0", culture)) : string.Empty;
-        return new ArenaPickBadge(o.CardId, o.WinRate?.ToString("P1", culture) ?? "—", o.Tier ?? string.Empty, caption, o.IsBest, rank, detail);
+        return new ArenaPickBadge(o.CardId, winRate.ToString("P1", culture), o.Tier ?? string.Empty, caption, o.IsBest, rank);
     }
 
-    /// <summary>A card: its score, and where it would sit in the deck (curve bucket and type, or its package).</summary>
+    /// <summary>A card: its score, the package it brings, and our adjustment for the deck so far.</summary>
     private static ArenaPickBadge CardBadge(ArenaPickOption o, CultureInfo culture)
     {
-        // The number is the score: only the best pick and a card without one get a caption.
-        var caption = o.IsBest ? Loc.T("Arena.BestPick") : o.Score is null ? Loc.T("Arena.NoScore") : string.Empty;
-        var cost = o.Cost is { } c
-            ? Loc.F("Arena.Fit", Loc.P("Arena.Mana", c), o.SameCost)
-            : string.Empty;
-        var type = o.Package is { Count: > 0 } package ? Loc.P("Arena.Package", package.Count)
-            : o.CardType is { } kind && TypeName(kind) is { Length: > 0 } name ? Loc.F("Arena.Fit", name, o.SameType)
-            : string.Empty;
+        // The number is the score: only a card without one gets a caption.
+        var caption = o.Score is null ? Loc.T("Arena.NoScore") : string.Empty;
+        var package = o.Package is { Count: > 0 } cards ? Loc.P("Arena.Package", cards.Count) : string.Empty;
         var (fit, why) = DeckFit(o.Fit, culture);
-        return new ArenaPickBadge(o.CardId, o.Score?.ToString("0", culture) ?? "—", o.Tier ?? string.Empty, caption, o.IsBest, cost, type, fit, why);
+        return new ArenaPickBadge(o.CardId, o.Score?.ToString("0", culture) ?? "—", o.Tier ?? string.Empty, caption, o.IsBest, string.Empty, package, fit, why);
     }
 
     /// <summary>How many reasons the badge names: the strongest ones, so the line stays short.</summary>
@@ -327,13 +340,6 @@ public sealed partial class OverlayViewModel
 
     private static string FitPrint(ArenaFit? fit) =>
         fit is null ? string.Empty : fit.Points.ToString("0.00", CultureInfo.InvariantCulture) + "/" + string.Join('+', fit.Parts.Select(p => $"{p.Reason}{p.Slot}{p.Count}"));
-
-    /// <summary>"Minion", "Spell"... for the badge; empty for a type the draft does not offer.</summary>
-    private static string TypeName(string cardType) => cardType switch
-    {
-        "MINION" or "SPELL" or "WEAPON" or "LOCATION" or "HERO" => Loc.T("Arena.Type." + cardType),
-        _ => string.Empty,
-    };
 
     /// <summary>"12 minions · 5 spells · 1 weapon": the types the deck has, empty before the first card.</summary>
     private static string TypesLine(ArenaDeckTypes types)

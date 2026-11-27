@@ -15,20 +15,25 @@
     </UserControl.Resources>
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+        <!-- Without the rating card the places card takes the whole row (it is then neither statsRight nor beside a chart) -->
+        <Style Selector="Border.statsAll">
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+        </Style>
     </UserControl.Styles>
     <StackPanel>
         <!-- The period bar sits in the page's tab row (BattlegroundsPage) -->
         <!-- Highest MMR, average placement, games, time played -->
         <ItemsControl ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
 
-        <!-- Rating over time beside where you finish -->
+        <!-- Rating over time beside where you finish; without a rating the places card takes the row, unless reading the game
+             client is off: then the rating card stays with its reason line (BgRatingShown) -->
         <Grid Classes="statsPair" i:Tight.Below="760" Margin="0,0,0,16" RowDefinitions="Auto,Auto">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="16" />
                 <ColumnDefinition Width="*" MinWidth="250" />
             </Grid.ColumnDefinitions>
-            <Border Classes="card statsLeft">
+            <Border Classes="card statsLeft" IsVisible="{Binding BgRatingShown}">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
@@ -43,7 +48,7 @@
                                       EmptyText="{Binding BgRatingEmpty}" IsVisible="{Binding BgRatingChart, Converter={StaticResource Truthy}}" />
                 </DockPanel>
             </Border>
-            <Border Classes="card statsRight">
+            <Border Classes="card" Classes.statsRight="{Binding BgRatingShown}" Classes.statsAll="{Binding !BgRatingShown}">
                 <StackPanel ToolTip.Tip="{i:Loc Stats.Bg.PlacementsTip}">
                     <c:Ornament Text="{i:Loc Stats.Bg.PlacesTitle}" Icon="&#xF0128;" Size="13" Margin="0,0,0,12" />
                     <ItemsControl ItemsSource="{Binding BgPlaces}" ItemTemplate="{StaticResource BgPlaceRowTemplate}" />

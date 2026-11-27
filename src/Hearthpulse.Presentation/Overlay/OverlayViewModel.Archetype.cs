@@ -99,8 +99,8 @@ public sealed partial class OverlayViewModel
         ArchetypeName = ArchetypeNames.Display(best.Key);
         ArchetypeChance = SharePercent(best.Chance);
         ArchetypeTier = OverlayTiers.Meta(best.WinRate, best.Games) ?? string.Empty;
-        var winRate = Loc.F("Widgets.Archetype.WinRate", best.WinRate);
-        ArchetypeDetail = ArchetypeTier.Length > 0 ? Loc.F("Overlay.Tier.WithText", ArchetypeTier, winRate) : winRate;
+        // The tier letter is on the badge beside the name: the line keeps the win rate alone.
+        ArchetypeDetail = Loc.F("Widgets.Archetype.WinRate", best.WinRate);
         ArchetypeNote = Loc.P("Widgets.Archetype.Seen", odds.SeenCards, odds.Source);
         Replace(nameof(ArchetypeAlternatives), odds.Archetypes, a => $"{a.Key}{a.Chance:0.00}{a.WinRate:0.000}{a.Games}", () => ArchetypeAlternatives = odds.Archetypes
             .Skip(1)

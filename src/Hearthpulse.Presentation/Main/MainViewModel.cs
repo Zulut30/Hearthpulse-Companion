@@ -128,6 +128,8 @@ public sealed partial class MainViewModel : Observable
     // The games the last refresh read; the history filter is applied to them.
     private IReadOnlyList<GameRecord>? _recentGames;
     private IReadOnlyList<StatTile> _overviewTiles = Array.Empty<StatTile>();
+    // Home's tiles after the solo rating one, kept so that the reading switch can put that one back or take it out in place.
+    private IReadOnlyList<StatTile> _overviewOtherTiles = Array.Empty<StatTile>();
     private IReadOnlyList<RatingPoint> _ratingPoints = Array.Empty<RatingPoint>();
     private bool _hasBgGames;
     private IReadOnlyList<HeroRow> _myHeroes = Array.Empty<HeroRow>();
@@ -356,16 +358,16 @@ public sealed partial class MainViewModel : Observable
 
         var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today && !g.IsAbandoned).ToList();
         var todayBg = today.Where(g => g.IsBattlegrounds && g.Placement > 0).ToList();
-        // The Duos rating only for a player who has one: a "—" tile is a number nobody reads. With reading the client off
-        // the rating is not read: the solo tile says so instead of a session change.
-        OverviewTiles =
+        // The ratings only for a player who has one: a "—" tile is a number nobody reads, and the others take its room.
+        // With reading the client off the solo tile stays and says the rating is not read (SoloRatingTiles).
+        _overviewOtherTiles =
         [
-            SoloRatingTile(),
             .. (DuosRating == "—" ? (StatTile[])[] : [new StatTile(Loc.T("Main.Tile.DuosRating"), DuosRating, string.Empty)]),
             new StatTile(Loc.T("Main.Tile.Today"), today.Count.ToString(CultureInfo.CurrentCulture),
                 todayBg.Count > 0 ? Loc.F("Main.Tile.BgAvg", todayBg.Average(g => g.Placement)) : today.Count > 0 ? $"{today.Count(g => g.Result == "Win")}–{today.Count(g => g.Result == "Loss")}" : string.Empty),
             new StatTile(Loc.T("Main.Tile.AllTime"), HistoryCount.ToString("N0", CultureInfo.CurrentCulture), Loc.T("Main.Tile.GamesTracked")),
         ];
+        OverviewTiles = [.. SoloRatingTiles(), .. _overviewOtherTiles];
 
         await RefreshMyStatsAsync();
     }

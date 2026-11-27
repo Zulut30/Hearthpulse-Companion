@@ -150,12 +150,12 @@ internal sealed class OverlayWindow : Window
         }
 
         // In layout mode the whole overlay takes the mouse so panels can be dragged anywhere; during a game only a panel
-        // under the pointer with Ctrl held (or with the panels unlocked) does, and a locked panel's unlock button. A panel being dragged or resized keeps it wherever the pointer goes,
-        // until the button is up.
+        // under the pointer with Ctrl held (or with the panels unlocked) does. A panel being dragged or resized keeps it
+        // wherever the pointer goes, until the button is up.
         var buttons = _platform.MouseButtons();
         _view.EndReleasedDrags(buttons);
         var controlDown = _platform.ControlDown();
-        var armed = _view.UpdateDragArm(local, controlDown, DateTime.UtcNow);
+        var armed = _view.UpdateDragArm(local, controlDown);
         var interactive = armed || (local is { } point && (vm.LayoutEditing || _view.IsInteractiveAt(point)));
         _platform.SetClickThrough(!interactive);
         if (!interactive)

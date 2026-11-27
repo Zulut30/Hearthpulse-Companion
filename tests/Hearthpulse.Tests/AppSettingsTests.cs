@@ -71,6 +71,7 @@ public sealed class AppSettingsTests : IDisposable
             StreamWindows = { ["session"] = new() { X = -20, Y = 30, Width = 400, Height = 500 } },
             TrackedAchievements = [12, 7],
             LeaderboardGeometryVersion = 2,
+            OverlayDefaultsVersion = 1,
         };
 
         // Exercise each persisted switch with a value its constructor would not restore by default.
@@ -113,7 +114,7 @@ public sealed class AppSettingsTests : IDisposable
     {
         var json = $$$"""
             {"PickHints":{{{hints}}},"PanelLooks":{"deck":{"Compact":true}},"PanelLooks":{},
-             "SettingsTab":"Tracker","SettingsTab":"Data","LeaderboardGeometryVersion":2,
+             "SettingsTab":"Tracker","SettingsTab":"Data","LeaderboardGeometryVersion":2,"OverlayDefaultsVersion":1,
              "ClientLocale":{"ignored":true},"unknown":[1,{"nested":true}]}
             """;
         var reference = JsonSerializer.Deserialize<AppSettings>(json, ReflectionJson);

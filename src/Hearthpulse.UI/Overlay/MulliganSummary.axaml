@@ -4,10 +4,9 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              x:Class="Hearthpulse.UI.Overlay.MulliganSummary"
              x:DataType="o:OverlayViewModel">
-    <!-- The mulligan summary under the offered cards (the bars are over them, MulliganPanel): the impact of the keeps;
-         the source and slice, the estimate and curve notes in the tooltip. A decklist's numbers (not an archetype's) add a
-         second line: "By your deck, N games, data from <date>". Above the Confirm button.
-         DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+    <!-- The mulligan summary, one line under the offered cards and above Confirm (the bars over them: MulliganPanel): the
+         keeps' impact or why there are no numbers; the source, the slice and the notes in the tooltip. DataContext:
+         OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
     </UserControl.Resources>
@@ -30,8 +29,6 @@
                 <TextBlock Text="&#xF02FD;" Classes="icon" FontSize="12" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
                            IsVisible="{Binding MulliganHasWarnings}" />
             </StackPanel>
-            <TextBlock Text="{Binding MulliganScopeLine}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"
-                       Margin="0,1,0,0" IsVisible="{Binding MulliganScopeLine, Converter={StaticResource Truthy}}" />
         </StackPanel>
     </Border>
 </UserControl>
