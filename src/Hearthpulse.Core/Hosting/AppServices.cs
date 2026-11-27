@@ -48,6 +48,9 @@ public sealed class AppServices
         History = new HistoryStore(historyPath) { Replays = Data.Replays };
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
+        // Hearthpulse's own numbers from game records: one reader of the stats pool for every view, at the address the
+        // settings name right now; copies for six hours at most, beside the mulligan pairs.
+        OwnStats = new Pool.Own.OwnStatsClient(http, () => Pool.PoolClient.Endpoint(settings), Path.Combine(data.Root, "cache", "pool"));
         // Card pairs come from the stats pool (our own statistics), read at the address the settings name right now.
         MulliganGuide = new MulliganGuideSource(new HearthpulseData(Api),
             new Pool.MulliganPairs(http, () => Pool.PoolClient.Endpoint(settings), Path.Combine(data.Root, "cache", "pool"))) { Rank = settings.MulliganRank };
@@ -131,6 +134,9 @@ public sealed class AppServices
 
     /// <summary>The overlay's mulligan guide; its rank follows <see cref="AppSettings.MulliganRank"/>.</summary>
     public MulliganGuideSource MulliganGuide { get; }
+
+    /// <summary>Hearthpulse's own numbers computed from game records (the stats pool's views), for both UIs and the overlay.</summary>
+    public Pool.Own.OwnStatsClient OwnStats { get; }
 
     public AccountService Account { get; }
 
