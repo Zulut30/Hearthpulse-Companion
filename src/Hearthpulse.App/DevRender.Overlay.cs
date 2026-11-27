@@ -23,7 +23,7 @@ public partial class App
             GameType = "GT_RANKED",
             Constructed = CounterScene.Synthetic(_cards),
         };
-        _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+        _overlayViewModel.Update(snapshot, _cards, _settings, null);
         await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-opacity.png"), 1920, 1080, 0);
     }
 
@@ -35,7 +35,7 @@ public partial class App
     {
         await RenderBattlegroundsMomentsAsync(folder);
         await RenderConstructedOverlayAsync(folder);
-        _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
+        _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null);
         _overlayViewModel.LayoutEditing = true;
         await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-layout.png"), 1920, 1080, 0);
         await RenderOtherScreensAsync(folder, "overlay-layout");
@@ -86,7 +86,7 @@ public partial class App
                 Battlegrounds = advisor.Enrich(view, rating, _cards),
                 Rating = rating is { } r ? new Core.Memory.BattlegroundsRating(r, 0) : null,
             };
-            _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+            _overlayViewModel.Update(snapshot, _cards, _settings, null);
             await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, hover);
             if (name == "overlay-game")
             {

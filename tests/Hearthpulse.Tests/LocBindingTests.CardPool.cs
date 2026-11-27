@@ -26,7 +26,7 @@ public sealed partial class LocBindingTests
         Loc.Instance.SetLanguage(Loc.English);
         var vm = new OverlayViewModel();
         vm.UpdateCardPoolKeys(true);
-        vm.Update(PoolSnapshot(40), Core.Cards.CardDb.Empty, new AppSettings(), null, null);
+        vm.Update(PoolSnapshot(40), Core.Cards.CardDb.Empty, new AppSettings(), null);
         // The theme first: the panel's markup looks its tokens up when it is created.
         var theme = Theme();
         var panel = new CardPoolPanel { DataContext = vm };
@@ -50,7 +50,7 @@ public sealed partial class LocBindingTests
             vm.CloseCardPoolBrowser.Execute(null);
 
             // A pool small enough to list whole has no button.
-            vm.Update(PoolSnapshot(6), Core.Cards.CardDb.Empty, new AppSettings(), null, null);
+            vm.Update(PoolSnapshot(6), Core.Cards.CardDb.Empty, new AppSettings(), null);
             Dispatcher.UIThread.RunJobs();
             Assert.False(button.IsVisible);
         }
@@ -82,7 +82,7 @@ public sealed partial class LocBindingTests
         // OverlayView binds the two panels' IsVisible to these; here they follow by hand.
         void Show(Core.Tracking.LiveSnapshot snapshot)
         {
-            vm.Update(snapshot, Core.Cards.CardDb.Empty, new AppSettings(), null, null);
+            vm.Update(snapshot, Core.Cards.CardDb.Empty, new AppSettings(), null);
             popup.IsVisible = vm.ShowCardPoolPopup;
             panel.IsVisible = vm.ShowCardPoolPanel;
             Dispatcher.UIThread.RunJobs();

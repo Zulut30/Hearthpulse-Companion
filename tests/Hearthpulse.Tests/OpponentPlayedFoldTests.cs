@@ -58,7 +58,7 @@ public sealed class OpponentPlayedFoldTests
         var view = new ConstructedView(12, null, false, "HERO_08", "MAGE", "HERO_09", "PRIEST", null, [], 10, 3, played, hand, 10, handRows, 0, null, null);
         var model = new OverlayViewModel();
         model.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view },
-            CardDb.Empty, new AppSettings(), null, null);
+            CardDb.Empty, new AppSettings(), null);
         return model;
     }
 }

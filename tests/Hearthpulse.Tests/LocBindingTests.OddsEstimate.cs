@@ -72,7 +72,7 @@ public sealed partial class LocBindingTests
             CombatOdds = odds,
             CombatEstimates = estimates,
         };
-        model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true }, CardDb.Empty, new AppSettings { ShowTurnTimer = false, ShowCombatOdds = true }, null, null);
+        model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true }, CardDb.Empty, new AppSettings { ShowTurnTimer = false, ShowCombatOdds = true }, null);
     }
 
     private static Size OddsLayout(Window window, Control card)

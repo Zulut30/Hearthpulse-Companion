@@ -28,7 +28,7 @@ public sealed class OverlayDeclutterTests : IDisposable
     {
         var model = new OverlayViewModel();
         model.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view },
-            CardDb.Empty, settings ?? new AppSettings(), null, null);
+            CardDb.Empty, settings ?? new AppSettings(), null);
         return model;
     }
 
@@ -109,7 +109,7 @@ public sealed class OverlayDeclutterTests : IDisposable
         OverlayViewModel Model(PickHints hints)
         {
             var model = new OverlayViewModel();
-            model.Update(LiveSnapshot.Empty with { Battlegrounds = offer, InGame = true, HearthstoneRunning = true }, CardDb.Empty, new AppSettings { PickHints = hints }, null, null);
+            model.Update(LiveSnapshot.Empty with { Battlegrounds = offer, InGame = true, HearthstoneRunning = true }, CardDb.Empty, new AppSettings { PickHints = hints }, null);
             return model;
         }
 

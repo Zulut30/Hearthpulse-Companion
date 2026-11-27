@@ -152,7 +152,7 @@ internal static partial class OffscreenRenderer
             if (host.InstallDirectory is { } install
                 && await MulliganReplay.LatestAsync(install, host.Cards, withData ? new HearthpulseData(host.Api) : null, withData ? constructedMeta : null, offered) is { } mulligan)
             {
-                host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null, null);
+                host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null);
                 overlayView.Fit(1920, 1080);
                 await Save(overlay, Path.Combine(folder, name + ".png"));
                 if (withData)
@@ -162,7 +162,7 @@ internal static partial class OffscreenRenderer
                     foreach (var (s, suffix) in new[] { (0.6, "60"), (1.6, "160") })
                     {
                         settings.OverlayScale = s;
-                        host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null, null);
+                        host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null);
                         overlayView.Fit(1920, 1080);
                         await Save(overlay, Path.Combine(folder, $"{name}-scale{suffix}.png"));
                     }
@@ -195,7 +195,7 @@ internal static partial class OffscreenRenderer
 
         await RenderWidgetsAsync(host, settings, overlayView, overlay, folder);
 
-        host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
+        host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null);
         host.Overlay.LayoutEditing = true;
         await Save(overlay, Path.Combine(folder, "overlay-layout.png"));
         overlay.Close();
@@ -210,7 +210,7 @@ internal static partial class OffscreenRenderer
         var installDir = host.InstallDirectory;
         var view = (installDir is null ? null : await Task.Run(() => CounterScene.FromLatestLog(installDir, host.Cards))) ?? CounterScene.Synthetic(host.Cards);
         var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view };
-        host.Overlay.Update(snapshot, host.Cards, settings, null, null);
+        host.Overlay.Update(snapshot, host.Cards, settings, null);
         overlayView.Fit(1920, 1080);
         await Save(overlay, Path.Combine(folder, "overlay-counters.png"));
         if (overlayView.FindControl<Control>("CountersCard") is not { } card)

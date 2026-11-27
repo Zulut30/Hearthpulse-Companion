@@ -29,7 +29,7 @@ internal static partial class OffscreenRenderer
 
         foreach (var (moment, snapshot) in VisualBaseline.Moments)
         {
-            host.Overlay.Update(snapshot(host.Cards), host.Cards, host.Settings, null, null);
+            host.Overlay.Update(snapshot(host.Cards), host.Cards, host.Settings, null);
             foreach (var (name, width, height) in VisualBaseline.Screens)
             {
                 var (overlay, _) = OpenOverlay(host, host.Settings, width, height);
@@ -38,6 +38,6 @@ internal static partial class OffscreenRenderer
             }
         }
 
-        host.Overlay.Update(LiveSnapshot.Empty, host.Cards, host.Settings, null, null);
+        host.Overlay.Update(LiveSnapshot.Empty, host.Cards, host.Settings, null);
     }
 }

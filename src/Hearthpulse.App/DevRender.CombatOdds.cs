@@ -20,7 +20,7 @@ public partial class App
             {
                 Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_BATTLEGROUNDS", Battlegrounds = BarScene(),
             };
-            _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+            _overlayViewModel.Update(snapshot, _cards, _settings, null);
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-odds.png"), 1920, 1080, 0);
             // The card lives in the panel control (shared with the OBS window): its own name scope.
             if (FindLogical<Overlay.OddsPanel>(_overlay)?.FindName("OddsCard") is FrameworkElement card)
@@ -29,7 +29,7 @@ public partial class App
             }
 
             // The same fight resting on estimates of the opponent's hidden values: the "≈" mark at the bar's end, same card size.
-            _overlayViewModel.Update(snapshot with { Battlegrounds = CombatOddsScene.Estimated(BarScene()) }, _cards, _settings, null, null);
+            _overlayViewModel.Update(snapshot with { Battlegrounds = CombatOddsScene.Estimated(BarScene()) }, _cards, _settings, null);
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-odds-estimated.png"), 1920, 1080, 0);
             if (FindLogical<Overlay.OddsPanel>(_overlay)?.FindName("OddsCard") is FrameworkElement estimated)
             {
@@ -39,7 +39,7 @@ public partial class App
             // The widest state: all five cells, wide damage both ways, the estimate mark, an unsimulated effect and the cap in
             // the bottom line.
             _overlayViewModel.Update(snapshot with { Battlegrounds = CombatOddsScene.Estimated(BarScene()) with { CombatOdds = FiveCells(BarScene().CombatOdds!) with { Estimated = 3 } } },
-                _cards, _settings, null, null);
+                _cards, _settings, null);
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-odds-full.png"), 1920, 1080, 0);
             if (FindLogical<Overlay.OddsPanel>(_overlay)?.FindName("OddsCard") is FrameworkElement full)
             {
@@ -47,7 +47,7 @@ public partial class App
             }
 
             // The bar between fights with the tier 3 list open and one tribe chosen in its head.
-            _overlayViewModel.Update(snapshot with { Battlegrounds = BarScene() with { InCombat = false, CombatOdds = null } }, _cards, _settings, null, null);
+            _overlayViewModel.Update(snapshot with { Battlegrounds = BarScene() with { InCombat = false, CombatOdds = null } }, _cards, _settings, null);
             _overlayViewModel.SelectTier.Execute(3);
             _overlayViewModel.SelectTribe.Execute("MECHANICAL");
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-bar-browser.png"), 1920, 1080, 0);

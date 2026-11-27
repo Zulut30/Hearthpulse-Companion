@@ -24,14 +24,14 @@ public partial class App
                      })
             {
                 var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_BATTLEGROUNDS", Battlegrounds = view };
-                _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                _overlayViewModel.Update(snapshot, _cards, _settings, null);
                 await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, 0);
             }
 
             // Last: the trinket numbers' collector late, so each badge shows its "update delayed" line whole.
             _overlayViewModel.SetDataHealth(PickScene.TrinketsLate());
             _overlayViewModel.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_BATTLEGROUNDS", Battlegrounds = PickScene.Trinkets(3) },
-                _cards, _settings, null, null);
+                _cards, _settings, null);
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-trinket-late.png"), 1920, 1080, 0);
 
             // What the frames were drawn at: the saved scale as the settings hold it now, and the surface's own.

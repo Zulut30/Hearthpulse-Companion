@@ -47,7 +47,7 @@ public sealed class OddsEstimateTests : IDisposable
 
     private static void Update(dynamic model, BattlegroundsView view) =>
         model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true }, CardDb.Empty,
-            new AppSettings { ShowTurnTimer = false, ShowCombatOdds = true }, null, null);
+            new AppSettings { ShowTurnTimer = false, ShowCombatOdds = true }, null);
 
     [Theory]
     [InlineData(true)]

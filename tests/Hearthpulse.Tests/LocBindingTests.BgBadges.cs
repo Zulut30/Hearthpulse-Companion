@@ -42,7 +42,7 @@ public sealed partial class LocBindingTests
             var settings = new AppSettings();
             var model = new OverlayViewModel();
             model.ArrangeLeaderboard(1920, 1080, settings);
-            model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true, HearthstoneRunning = true }, cards, settings, null, null);
+            model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true, HearthstoneRunning = true }, cards, settings, null);
 
             var layer = new BgBadgesLayer { DataContext = model };
             window.Content = layer;
@@ -72,7 +72,7 @@ public sealed partial class LocBindingTests
             Assert.InRange(centre, 162 + (slot / 2) - 1, 162 + (slot / 2) + 1);
 
             settings.ShowBgLeaderboardBadges = false;
-            model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true, HearthstoneRunning = true }, cards, settings, null, null);
+            model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true, HearthstoneRunning = true }, cards, settings, null);
             Dispatcher.UIThread.RunJobs();
             Assert.False(layer.GetVisualDescendants().OfType<ItemsControl>().Single().IsVisible);
         }

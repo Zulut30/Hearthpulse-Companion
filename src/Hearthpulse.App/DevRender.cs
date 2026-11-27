@@ -123,7 +123,7 @@ public partial class App
                 if (_installDir is not null && await MulliganReplay.LatestAsync(_installDir, _cards, withData ? new HearthpulseData(_api) : null, withData ? _constructedLoader.Default : null, offered) is { } mulligan)
                 {
                     var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan };
-                    _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                    _overlayViewModel.Update(snapshot, _cards, _settings, null);
                     await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, 0);
                     if (withData)
                     {
@@ -132,12 +132,12 @@ public partial class App
                         foreach (var (s, suffix) in new[] { (0.6, "60"), (1.6, "160") })
                         {
                             _settings.OverlayScale = s;
-                            _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                            _overlayViewModel.Update(snapshot, _cards, _settings, null);
                             await _overlay.RenderToFileAsync(Path.Combine(folder, $"{name}-scale{suffix}.png"), 1920, 1080, 0);
                         }
 
                         _settings.OverlayScale = scale;
-                        _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                        _overlayViewModel.Update(snapshot, _cards, _settings, null);
                     }
                 }
             }
@@ -151,7 +151,7 @@ public partial class App
             await RenderLikelyDeckAsync(folder);
             await RenderStreamAsync(folder);
 
-            _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
+            _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null);
             _overlayViewModel.LayoutEditing = true;
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-layout.png"), 1920, 1080, 0);
         }
@@ -174,7 +174,7 @@ public partial class App
         var installDir = _installDir;
         var view = (installDir is null ? null : await Task.Run(() => CounterScene.FromLatestLog(installDir, _cards))) ?? CounterScene.Synthetic(_cards);
         var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view };
-        _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+        _overlayViewModel.Update(snapshot, _cards, _settings, null);
         await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-counters.png"), 1920, 1080, 0);
         if (_overlay.FindName("CountersCard") is not FrameworkElement card)
         {

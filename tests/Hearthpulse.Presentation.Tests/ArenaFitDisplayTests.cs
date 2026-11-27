@@ -43,8 +43,8 @@ public sealed class ArenaFitDisplayTests
                 var wpf = new WpfOverlay();
                 var ava = new AvaOverlay();
                 var settings = new AppSettings { ShowArenaDraft = true };
-                wpf.Update(snapshot, cards, settings, null, null);
-                ava.Update(snapshot, cards, settings, null, null);
+                wpf.Update(snapshot, cards, settings, null);
+                ava.Update(snapshot, cards, settings, null);
                 Assert.Equal(2, wpf.ArenaPicks.Count);
                 Assert.Equal(2, ava.ArenaPicks.Count);
                 var wb = wpf.ArenaPicks[0];

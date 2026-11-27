@@ -310,11 +310,7 @@ public sealed partial class OverlayViewModel : Observable
 
     /// <summary>Shows a snapshot: each panel's rows and whether it shows, rebuilt only where something changed.</summary>
     /// <param name="deck">The player's record with the deck in play: the deck panel's subtitle.</param>
-    /// <param name="matchup">
-    /// The player's record against the opponent's class. Unused (O-4: a score from past games changes no decision in
-    /// this one); the hosts' feed still hands it in.
-    /// </param>
-    public void Update(LiveSnapshot snapshot, CardDb cards, AppSettings settings, DeckAggregate? deck, MatchupAggregate? matchup)
+    public void Update(LiveSnapshot snapshot, CardDb cards, AppSettings settings, DeckAggregate? deck)
     {
         _cards = cards;
         _locale = cards.Locale;

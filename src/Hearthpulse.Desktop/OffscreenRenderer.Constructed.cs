@@ -98,7 +98,7 @@ internal static partial class OffscreenRenderer
             GameType = "GT_RANKED",
             Constructed = view,
         };
-        host.Overlay.Update(snapshot, host.Cards, settings, deck, null);
+        host.Overlay.Update(snapshot, host.Cards, settings, deck);
         overlayView.Fit(1920, 1080);
         await Save(overlay, Path.Combine(folder, "overlay-constructed.png"));
         await SaveOtherScreensAsync(overlay, overlayView, folder, "overlay-constructed");

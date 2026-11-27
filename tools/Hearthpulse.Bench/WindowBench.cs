@@ -65,7 +65,7 @@ internal static class WindowBench
         var db = Path.Combine(Path.GetTempPath(), $"hp-bench-{Guid.NewGuid():N}.db");
         var session = new GameSession(new HistoryStore(db), new Core.Memory.HearthstoneMemory()) { ReadsMemory = false, Cards = cards };
         var dispatcher = Dispatcher.CurrentDispatcher;
-        session.SnapshotChanged += s => _ = dispatcher.BeginInvoke(() => overlayVm.Update(s, cards, settings, null, null), DispatcherPriority.Background);
+        session.SnapshotChanged += s => _ = dispatcher.BeginInvoke(() => overlayVm.Update(s, cards, settings, null), DispatcherPriority.Background);
         using (var watcher = new Core.Logs.LogWatcher(session, () => install))
         {
             // Past the start-up: catching up with the last log and the session's trim 20 s after it.

@@ -197,14 +197,14 @@ public sealed class ShareViewModelTests
         var settings = new AppSettings();
         var view = new StreamSessionView(StreamSessionKind.Battlegrounds, Start, "Battlegrounds", WinLoss.Empty, null, null, 6000, 6050, [2, 7], 2);
 
-        overlay.Update(Core.Tracking.LiveSnapshot.Empty with { StreamSession = view }, Core.Cards.CardDb.Empty, settings, null, null);
+        overlay.Update(Core.Tracking.LiveSnapshot.Empty with { StreamSession = view }, Core.Cards.CardDb.Empty, settings, null);
         Assert.Equal(StreamWindowState.Shown, overlay.SessionWindowState);
         Assert.Equal(StreamWindowState.Shown, overlay.StreamState("session"));
         Assert.Equal([new PlaceChip(2, true), new PlaceChip(7, false)], overlay.StreamSessionPlaces);
         Assert.True(overlay.HasStreamSessionPlaces);
         Assert.False(overlay.StreamSessionEmpty);
 
-        overlay.Update(Core.Tracking.LiveSnapshot.Empty, Core.Cards.CardDb.Empty, settings, null, null);
+        overlay.Update(Core.Tracking.LiveSnapshot.Empty, Core.Cards.CardDb.Empty, settings, null);
         Assert.Equal(StreamWindowState.Idle, overlay.SessionWindowState);
         Assert.Equal(nameof(OverlayViewModel.SessionWindowState), OverlayViewModel.StreamStateProperty("session"));
     }

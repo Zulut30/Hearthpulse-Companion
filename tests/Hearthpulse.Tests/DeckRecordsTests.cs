@@ -222,27 +222,7 @@ public sealed class DeckRecordsTests
     }
 
     [Fact]
-    public void Matchup_counts_the_same_games_as_the_record()
-    {
-        var start = new DateTime(2026, 10, 22, 12, 0, 0);
-        GameRecord Vs(string key, int hour, string opponent, string result, string? code) =>
-            Game(key, start.AddHours(hour), "ROGUE", result, "Разбойник", code) with { OpponentClass = opponent };
-        var games = DeckRecords.Matching(
-        [
-            Vs("1", 0, "MAGE", "Win", RogueCode),
-            Vs("2", 1, "MAGE", "Loss", null),
-            Vs("3", 2, "MAGE", "Win", HunterCode),
-            Vs("4", 3, "PRIEST", "Win", RogueCode),
-        ], "Разбойник", RogueCode, "ROGUE");
-
-        var matchup = DeckRecords.Matchup(games, "MAGE");
-
-        Assert.Equal((2, 1, 1), (matchup?.Games, matchup?.Wins, matchup?.Losses));
-        Assert.Null(DeckRecords.Matchup(games, "WARRIOR"));
-    }
-
-    [Fact]
-    public void Live_record_reads_the_deck_and_falls_back_to_the_class_matchup()
+    public void Live_record_reads_the_deck_and_does_not_depend_on_the_opponent()
     {
         var history = new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-live-{Guid.NewGuid():N}.db"));
         var start = new DateTime(2026, 10, 22, 12, 0, 0);
@@ -253,15 +233,15 @@ public sealed class DeckRecordsTests
             new(3, deck, true, "HERO_03", playerClass, "HERO_01", opponentClass, null, [], 20, 4, [], [], 20, 4, 0, null, null) { DeckCode = code };
 
         var rogue = View("Разбойник", RogueCode, "ROGUE", "MAGE");
-        var (deck, matchup) = LiveDeckRecord.Read(history, null, rogue);
+        var deck = LiveDeckRecord.Read(history, null, rogue);
         Assert.Equal((2, 1, 1), (deck?.Games, deck?.Wins, deck?.Losses));
-        Assert.Equal(("MAGE", 2), (matchup?.OpponentClass, matchup?.Games));
-        Assert.Equal($"Разбойник|0|{RogueCode}|ROGUE|MAGE", LiveDeckRecord.Key(rogue));
+        // The same record against another class, and one key before and after the opponent's class is known.
+        Assert.Equal(deck, LiveDeckRecord.Read(history, null, rogue with { OpponentClass = "WARRIOR" }));
+        Assert.Equal($"Разбойник|0|{RogueCode}|ROGUE", LiveDeckRecord.Key(rogue));
+        Assert.Equal(LiveDeckRecord.Key(rogue), LiveDeckRecord.Key(rogue with { OpponentHeroCardId = "", OpponentClass = "" }));
 
-        // A deck with no games of its own: no record, and the class matchup over every deck.
-        (deck, matchup) = LiveDeckRecord.Read(history, null, View("New", null, "PRIEST", "WARRIOR"));
-        Assert.Null(deck);
-        Assert.Equal(("WARRIOR", 1, 1), (matchup?.OpponentClass, matchup?.Games, matchup?.Wins));
+        // A deck with no games of its own: no record.
+        Assert.Null(LiveDeckRecord.Read(history, null, View("New", null, "PRIEST", "WARRIOR")));
         Assert.Null(LiveDeckRecord.Key(null));
     }
 

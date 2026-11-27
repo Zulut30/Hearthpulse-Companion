@@ -25,7 +25,7 @@ internal static partial class OffscreenRenderer
         var (overlay, overlayView) = OpenOverlay(host, settings);
         await RenderBattlegroundsMomentsAsync(host, settings, overlay, overlayView, folder);
         await RenderConstructedAsync(host, settings, overlayView, overlay, folder);
-        host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
+        host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null);
         host.Overlay.LayoutEditing = true;
         await Save(overlay, Path.Combine(folder, "overlay-layout.png"));
         await SaveOtherScreensAsync(overlay, overlayView, folder, "overlay-layout");
@@ -107,7 +107,7 @@ internal static partial class OffscreenRenderer
                 Battlegrounds = advisor.Enrich(battle, rating, host.Cards),
                 Rating = rating is { } r ? new BattlegroundsRating(r, 0) : null,
             };
-            host.Overlay.Update(snapshot, host.Cards, settings, null, null);
+            host.Overlay.Update(snapshot, host.Cards, settings, null);
             overlayView.Fit(1920, 1080);
             overlayView.ShowLeaderboardSlot(hover);
             await Save(overlay, Path.Combine(folder, name + ".png"));

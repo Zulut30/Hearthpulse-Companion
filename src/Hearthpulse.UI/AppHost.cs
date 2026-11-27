@@ -495,7 +495,7 @@ public sealed partial class AppHost : IDisposable
         }
     }
 
-    public void RefreshOverlay() => Overlay.Update(_feed.Last, Cards, Settings, _feed.Deck, _feed.Matchup);
+    public void RefreshOverlay() => Overlay.Update(_feed.Last, Cards, Settings, _feed.Deck);
 
     /// <summary>
     /// The interface language changed (on the UI thread): the overlay rebuilds its texts from the last snapshot, and the

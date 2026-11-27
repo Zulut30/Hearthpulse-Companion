@@ -16,7 +16,7 @@ public sealed class LiveFeedTests
     [Fact]
     public async Task The_default_worker_runs_the_read_on_another_thread()
     {
-        var feed = new LiveFeed(_ => { }, _ => (null, null), _ => { }, () => { });
+        var feed = new LiveFeed(_ => { }, _ => null, _ => { }, () => { });
         var finished = new TaskCompletionSource<(int Caller, int Worker)>(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
         {
@@ -33,7 +33,7 @@ public sealed class LiveFeedTests
     {
         var fail = true;
         var feed = new LiveFeed(action => { if (fail) throw new InvalidOperationException("dispatch test"); _ui.Enqueue(action); },
-            _ => (null, null), _ => { }, () => { });
+            _ => null, _ => { }, () => { });
         feed.Publish(Snap("one"));
         fail = false;
         feed.Publish(Snap("two"));
@@ -53,10 +53,10 @@ public sealed class LiveFeedTests
         feed.Publish(Snap("two", Deck("Big Mage")));
         RunUi();
         var fresh = new DeckAggregate("Big Mage", null, "MAGE", 20, 12, 8, DateTime.UnixEpoch);
-        _deckAnswer = () => (fresh, null);
+        _deckAnswer = () => fresh;
         RunWorker();
         RunUi();
-        _deckAnswer = () => (new DeckAggregate("Big Mage", null, "MAGE", 10, 6, 4, DateTime.UnixEpoch), null);
+        _deckAnswer = () => new DeckAggregate("Big Mage", null, "MAGE", 10, 6, 4, DateTime.UnixEpoch);
         oldWork();
         RunUi();
         Assert.Same(fresh, feed.Deck);
@@ -68,7 +68,7 @@ public sealed class LiveFeedTests
     private readonly List<TaskCompletionSource> _waits = [];
     private readonly List<int> _waitLengths = [];
     private readonly List<ConstructedView> _deckReads = [];
-    private Func<(DeckAggregate?, MatchupAggregate?)> _deckAnswer = () => (null, null);
+    private Func<DeckAggregate?> _deckAnswer = () => null;
     private long _now = 1_000;
 
     private LiveFeed Feed() => new(
@@ -170,7 +170,7 @@ public sealed class LiveFeedTests
         Assert.Empty(_deckReads); // not read on the UI thread
 
         var record = new DeckAggregate("Big Mage", null, "MAGE", 10, 6, 4, DateTime.UnixEpoch);
-        _deckAnswer = () => (record, null);
+        _deckAnswer = () => record;
         Assert.Equal(1, RunWorker());
         Assert.Null(feed.Deck); // read, and on its way to the UI thread
         Assert.Equal(1, RunUi());
@@ -193,6 +193,30 @@ public sealed class LiveFeedTests
         Assert.Equal(1, RunWorker());
         Assert.Equal(1, RunUi());
         Assert.Equal(2, _deckReads.Count);
+        Assert.Same(record, feed.Deck);
+    }
+
+    /// <summary>
+    /// The opponent's class comes in after the deck at the start of a game: the record does not depend on it, so the
+    /// whole history is not read a second time for it (review of P2, m4).
+    /// </summary>
+    [Fact]
+    public void The_opponents_class_arriving_does_not_read_the_deck_record_again()
+    {
+        var feed = Feed();
+        var deck = Deck("Big Mage");
+        feed.Publish(Snap("one", deck with { OpponentHeroCardId = "", OpponentClass = "" }));
+        RunUi();
+        var record = new DeckAggregate("Big Mage", null, "MAGE", 10, 6, 4, DateTime.UnixEpoch);
+        _deckAnswer = () => record;
+        RunWorker();
+        RunUi();
+
+        _now += 100;
+        feed.Publish(Snap("two", deck));
+        RunUi();
+        Assert.Equal(0, RunWorker());
+        Assert.Single(_deckReads);
         Assert.Same(record, feed.Deck);
     }
 
@@ -224,7 +248,7 @@ public sealed class LiveFeedTests
         feed.Publish(Snap("two")); // left the game: no deck
         RunUi();
 
-        _deckAnswer = () => (new DeckAggregate("Big Mage", null, "MAGE", 10, 6, 4, DateTime.UnixEpoch), null);
+        _deckAnswer = () => new DeckAggregate("Big Mage", null, "MAGE", 10, 6, 4, DateTime.UnixEpoch);
         Assert.Equal(1, RunWorker()); // the read of the deck that is gone ends only now
         Assert.Equal(1, RunUi());
         Assert.Null(feed.Deck);

@@ -90,7 +90,7 @@ public partial class App
             GameType = "GT_RANKED",
             Constructed = view,
         };
-        _overlayViewModel.Update(snapshot, _cards, _settings, deck, null);
+        _overlayViewModel.Update(snapshot, _cards, _settings, deck);
         await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-constructed.png"), 1920, 1080, 0);
         await RenderOtherScreensAsync(folder, "overlay-constructed");
 

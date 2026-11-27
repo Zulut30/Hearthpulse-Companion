@@ -474,7 +474,7 @@ public partial class App : Application
 
     // ---- live snapshots ---------------------------------------------------------------------
 
-    private void RefreshOverlay() => _overlayViewModel.Update(_feed.Last, _cards, _settings, _feed.Deck, _feed.Matchup);
+    private void RefreshOverlay() => _overlayViewModel.Update(_feed.Last, _cards, _settings, _feed.Deck);
 
     private void OnGameFinished(GameOutcome outcome)
     {

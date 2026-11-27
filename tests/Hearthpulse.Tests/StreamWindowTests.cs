@@ -23,7 +23,7 @@ public sealed class StreamWindowTests
     private static OverlayViewModel Updated(LiveSnapshot snapshot, AppSettings? settings = null)
     {
         var model = new OverlayViewModel();
-        model.Update(snapshot, CardDb.Empty, settings ?? new AppSettings(), null, null);
+        model.Update(snapshot, CardDb.Empty, settings ?? new AppSettings(), null);
         return model;
     }
 
@@ -175,7 +175,7 @@ public sealed class StreamWindowTests
 
         // Switched back on the next update: the name returns.
         settings.StreamerMode = false;
-        streamer.Update(Constructed(view), CardDb.Empty, settings, null, null);
+        streamer.Update(Constructed(view), CardDb.Empty, settings, null);
         Assert.Equal(StreamScene.OpponentBattleTag, streamer.OpponentTitle);
     }
 

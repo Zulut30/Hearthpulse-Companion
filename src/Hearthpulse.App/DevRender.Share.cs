@@ -41,9 +41,9 @@ public partial class App
             // The OBS window "Session" over the latest session of the history.
             var games = _history.Recent(400);
             var since = SessionRecap.LastSession(games, TimeSpan.FromHours(_settings.LadderSessionBreakHours))?.Since ?? DateTime.Now;
-            _overlayViewModel.Update(LiveSnapshot.Empty with { StreamSession = StreamSession.Build(games, since) }, _cards, _settings, null, null);
+            _overlayViewModel.Update(LiveSnapshot.Empty with { StreamSession = StreamSession.Build(games, since) }, _cards, _settings, null);
             await RenderStreamWindowAsync(StreamWindowSpec.Session, folder, "stream-session.png");
-            _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
+            _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null);
         }
         catch (IOException ex)
         {

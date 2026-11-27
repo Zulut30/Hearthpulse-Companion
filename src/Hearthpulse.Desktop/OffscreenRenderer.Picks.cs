@@ -25,7 +25,7 @@ internal static partial class OffscreenRenderer
                      })
             {
                 var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_BATTLEGROUNDS", Battlegrounds = view };
-                host.Overlay.Update(snapshot, host.Cards, settings, null, null);
+                host.Overlay.Update(snapshot, host.Cards, settings, null);
                 overlayView.Fit(1920, 1080);
                 await Save(overlay, Path.Combine(folder, name + ".png"));
             }
@@ -33,7 +33,7 @@ internal static partial class OffscreenRenderer
             // Last: the trinket numbers' collector late, so each badge shows its "update delayed" line whole.
             host.Overlay.SetDataHealth(PickScene.TrinketsLate());
             host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_BATTLEGROUNDS", Battlegrounds = PickScene.Trinkets(3) },
-                host.Cards, settings, null, null);
+                host.Cards, settings, null);
             overlayView.Fit(1920, 1080);
             await Save(overlay, Path.Combine(folder, "overlay-trinket-late.png"));
 

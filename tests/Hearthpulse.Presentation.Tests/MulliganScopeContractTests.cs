@@ -45,8 +45,8 @@ public sealed class MulliganScopeContractTests
         var wpf = new WpfOverlay();
         var ava = new AvaOverlay();
 
-        wpf.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
-        ava.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+        wpf.Update(snapshot, CardDb.Empty, new AppSettings(), null);
+        ava.Update(snapshot, CardDb.Empty, new AppSettings(), null);
 
         var line = WpfOverlay.ScopeLine(constructed.Mulligan!, CultureInfo.CurrentCulture);
         var note = Loc.P("Mulligan.Scope.NearNote", 2);
@@ -63,8 +63,8 @@ public sealed class MulliganScopeContractTests
 
         // The same hand with an archetype's numbers: no line, as before.
         var archetype = constructed with { Mulligan = constructed.Mulligan! with { Scope = MulliganScope.Archetype, DeckGames = null, DataAsOf = null, DeckDifference = 0 } };
-        wpf.Update(snapshot with { Constructed = archetype }, CardDb.Empty, new AppSettings(), null, null);
-        ava.Update(snapshot with { Constructed = archetype }, CardDb.Empty, new AppSettings(), null, null);
+        wpf.Update(snapshot with { Constructed = archetype }, CardDb.Empty, new AppSettings(), null);
+        ava.Update(snapshot with { Constructed = archetype }, CardDb.Empty, new AppSettings(), null);
 
         Assert.Equal((string.Empty, string.Empty), (wpf.MulliganScopeLine, ava.MulliganScopeLine));
         Assert.DoesNotContain(note, wpf.MulliganDetails, StringComparison.Ordinal);

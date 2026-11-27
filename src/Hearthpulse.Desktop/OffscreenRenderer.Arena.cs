@@ -72,13 +72,13 @@ internal static partial class OffscreenRenderer
         foreach (var (name, view, sceneScale) in scenes)
         {
             settings.OverlayScale = sceneScale;
-            host.Overlay.Update(LiveSnapshot.Empty with { Scene = "DRAFT", HearthstoneRunning = true, ArenaDraft = view }, host.Cards, settings, null, null);
+            host.Overlay.Update(LiveSnapshot.Empty with { Scene = "DRAFT", HearthstoneRunning = true, ArenaDraft = view }, host.Cards, settings, null);
             overlayView.Fit(1920, 1080);
             await Save(overlay, Path.Combine(folder, name + ".png"));
         }
 
         (settings.OverlayScale, settings.ShowArenaDraft) = (scale, shown);
-        host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
+        host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null);
         overlayView.Fit(1920, 1080);
     }
 }

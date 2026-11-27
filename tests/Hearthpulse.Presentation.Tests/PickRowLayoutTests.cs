@@ -54,7 +54,7 @@ public sealed class PickRowLayoutTests
     {
         var settings = new AppSettings { OverlayScale = scale };
         dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
-        model.Update(LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true, Battlegrounds = HeroPick(count) }, CardDb.Empty, settings, null, null);
+        model.Update(LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true, Battlegrounds = HeroPick(count) }, CardDb.Empty, settings, null);
 
         foreach (var (pitch, card, shift, slot, zoom, row, badges) in new[]
                  {
@@ -94,7 +94,7 @@ public sealed class PickRowLayoutTests
             dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
             var (width, height) = (1920 / scale, 1080 / scale);
             model.ArrangeLeaderboard(width, height, settings);
-            model.Update(Live(Trinkets(count)), CardDb.Empty, settings, null, null);
+            model.Update(Live(Trinkets(count)), CardDb.Empty, settings, null);
 
             var badges = wpf ? WpfRow.Trinkets.OnSurface(count, width, height, scale) : AvaRow.Trinkets.OnSurface(count, width, height, scale);
             var labels = ((IEnumerable<dynamic>)model.BgBadges).Select(b => (Place: (int)b.Place, Left: (double)b.Left, Top: (double)b.Top, Height: (double)b.Height)).ToList();
@@ -114,7 +114,7 @@ public sealed class PickRowLayoutTests
                 var (top, tile) = WpfGeometryTile(place - 1, height, settings);
                 Assert.True(WpfOverlay.LabelMeetsBadges(labels[0].Left, top, tile, badges), $"place {place} has no label and no badge near it");
             });
-            model.Update(Live(Trinkets(0)), CardDb.Empty, settings, null, null);
+            model.Update(Live(Trinkets(0)), CardDb.Empty, settings, null);
             Assert.Equal(7, ((IEnumerable<dynamic>)model.BgBadges).Count());
         }
         finally
@@ -130,13 +130,13 @@ public sealed class PickRowLayoutTests
         var settings = new AppSettings { OverlayScale = 1.0 };
         var model = new WpfOverlay();
         model.ArrangeLeaderboard(1920, 1080, settings);
-        model.Update(Live(Trinkets(4)), CardDb.Empty, settings, null, null);
+        model.Update(Live(Trinkets(4)), CardDb.Empty, settings, null);
         var atDefault = model.BgBadges.Count;
         Assert.InRange(atDefault, 1, 6);
 
         // Dragged to the bottom of the screen, clear of every tile's strip.
         settings.Panels["trinket-row"] = new PanelPlacement { X = 0.4, Y = 0.9, Scale = 1 };
-        model.Update(Live(Trinkets(4)), CardDb.Empty, settings, null, null);
+        model.Update(Live(Trinkets(4)), CardDb.Empty, settings, null);
         Assert.Equal(7, model.BgBadges.Count);
     }
 
@@ -312,7 +312,7 @@ public sealed class PickRowLayoutTests
         var root = (FrameworkElement)window.Content;
         // The window is never put on screen: it learns its panels when loaded, so it is told it was.
         window.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
-        model.Update(Live(view), Cards, settings, null, null);
+        model.Update(Live(view), Cards, settings, null);
         Assert.Equal(scale, window.LayOutFor(1920, 1080), 6);
         for (var pass = 0; pass < 2; pass++)
         {

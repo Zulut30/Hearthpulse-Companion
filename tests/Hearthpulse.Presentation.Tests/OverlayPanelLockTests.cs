@@ -73,8 +73,8 @@ public sealed class OverlayPanelLockTests
     {
         foreach (var make in new Func<(Func<bool> Unlocked, Action<AppSettings> Toggle, Action<AppSettings> Update)>[]
                  {
-                     () => { var vm = new WpfOverlay(); return (() => vm.PanelsUnlocked, vm.TogglePanelLock, s => vm.Update(LiveSnapshot.Empty, CardDb.Empty, s, null, null)); },
-                     () => { var vm = new AvaOverlay(); return (() => vm.PanelsUnlocked, vm.TogglePanelLock, s => vm.Update(LiveSnapshot.Empty, CardDb.Empty, s, null, null)); },
+                     () => { var vm = new WpfOverlay(); return (() => vm.PanelsUnlocked, vm.TogglePanelLock, s => vm.Update(LiveSnapshot.Empty, CardDb.Empty, s, null)); },
+                     () => { var vm = new AvaOverlay(); return (() => vm.PanelsUnlocked, vm.TogglePanelLock, s => vm.Update(LiveSnapshot.Empty, CardDb.Empty, s, null)); },
                  })
         {
             var settings = new AppSettings();

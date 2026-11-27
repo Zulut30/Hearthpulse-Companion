@@ -145,7 +145,7 @@ public sealed class MainViewModelHostTests : IDisposable
         Language(Loc.Russian);
 
         overlay.Update(LiveSnapshot.Empty with { Constructed = view, InGame = true, HearthstoneRunning = true }, CardDb.Empty,
-            new AppSettings { ShowOpponentArchetype = true }, null, null);
+            new AppSettings { ShowOpponentArchetype = true }, null);
 
         Assert.Equal("Тихий тестовый маг", overlay.ArchetypeName);
     }

@@ -104,8 +104,8 @@ public sealed class MulliganSynergyContractTests
         var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
         var wpf = new WpfOverlay();
         var ava = new AvaOverlay();
-        wpf.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
-        ava.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+        wpf.Update(snapshot, CardDb.Empty, new AppSettings(), null);
+        ava.Update(snapshot, CardDb.Empty, new AppSettings(), null);
         yield return (wpf.MulliganCards.Select(c => (c.EntityId, c.Synergy, c.Tooltip)).ToList(), wpf.MulliganDetails);
         yield return (ava.MulliganCards.Select(c => (c.EntityId, c.Synergy, c.Tooltip)).ToList(), ava.MulliganDetails);
     }
