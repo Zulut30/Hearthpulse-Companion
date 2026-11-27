@@ -246,8 +246,8 @@ client (the captures' builds or a fresh `Power.log`), not from HearthstoneJSON's
 of it (data/README.md, "Find the build"). A forgotten entry merges two
 patches in the numbers; it is part of the deploy checklist after every patch. A malformed file switches the views off
 and nothing else: one journal line `records_patches_invalid` at start, every `/v2/analytics/records/<view>` answers
-404 `unknown_view`, the next pass removes the published view rows, and the service runs on, the intake of records
-included. Fix the file and deploy again; the views rebuild within a minute of the restart.
+503 `records_off` (`retry-after: 60`), the next pass removes the published view rows, and the service runs on, the
+intake of records included. Fix the file and deploy again; the views rebuild within a minute of the restart.
 
 **Log codes** (one JSON line each, in the journal; codes, keys and counts only, never a record or an id):
 

@@ -182,6 +182,7 @@ from the published row, parsed once per build and kept in memory; `cache-control
 | `unsupported_mode` | the view's `unsupported(params)` said so |
 | 400 `invalid_query` | an unknown or repeated parameter, a value a validator refuses, a malformed `window` or `patch` |
 | 404 `unknown_view` | no loaded view has that key |
+| 503 `records_off` (`retry-after: 60`) | every view is off: `data/balance-patches.json` is missing or malformed; the app shows "offline" and asks again |
 | 404 `not_found` | any other path under `/v2` (nginx passes the whole `/stats/v2/analytics/` prefix) |
 | 405 | not GET (behind nginx: 403) |
 
@@ -221,8 +222,9 @@ refuses an `arena_run`, so the pool ships before an app that sends one).
   In a full checkout an unreadable catalogue is one line `records_catalog_unreadable` and the views load unchecked:
   a docs file never stops the service.
 - A missing or malformed `data/balance-patches.json` switches every view off (one line `records_patches_invalid` at
-  start; the route answers 404 `unknown_view` and the pass removes the published rows); the service and the intake
-  of records run on.
+  start; the route answers 503 `records_off` with `retry-after: 60` for every view, and the pass removes the published
+  rows); the service and the intake of records run on. Not a 404: the app keeps a 404 an hour as "not counted for
+  this mode", and an outage a deploy fixes is not that.
 - nginx: one prefix `location ^~ /stats/v2/analytics/` (GET only, zone `hearthpulse_stats_read`) serves every view
   ([LINUX-RUNBOOK](../server/pool/deploy/LINUX-RUNBOOK.md), "Record views"). Until the first view is merged the route
   has no view: `GET /stats/v2/analytics/records/<anything>` answers the service's 404 `{"ok":false,"error":"unknown_view"}`.

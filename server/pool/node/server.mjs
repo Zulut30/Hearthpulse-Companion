@@ -106,8 +106,15 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
       } else if (route.startsWith(RECORDS_ROUTE)) {
         // Reads the published rows only; the pass runs on its timer in the queue, never in a request.
         if (req.method !== 'GET') fail(405, 'method_not_allowed');
-        const answer = records.answer(store.sqlite, route.slice(RECORDS_ROUTE.length), url.searchParams, { modules, log: recordLog });
-        response = json(answer.body, answer.status);
+        if (patches === null) {
+          // The views are off until a deploy fixes balance-patches.json: a passing outage, not a view the pool lacks, so
+          // the app shows "offline" and asks again, instead of "not counted for this mode" for an hour (A5 review m5).
+          response = json({ ok: false, error: 'records_off' }, 503);
+          response.headers.set('retry-after', '60');
+        } else {
+          const answer = records.answer(store.sqlite, route.slice(RECORDS_ROUTE.length), url.searchParams, { modules, log: recordLog });
+          response = json(answer.body, answer.status);
+        }
       } else if (route.startsWith('/v2/')) {
         // nginx passes the whole /v2/analytics/ prefix: anything else under /v2 is not found, without the write queue.
         fail(404, 'not_found');

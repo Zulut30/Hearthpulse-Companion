@@ -125,9 +125,10 @@ test('N5: a malformed balance-patches.json switches the views off with its own l
     assert.deepEqual([stored.status, await stored.json()], [200, { ok: true, stored: 2 }], 'the intake works');
     assert.equal((await (await get(pool, '/v1/events/summary')).json()).games, 14);
     assert.deepEqual(await pool.refreshRecords(), { built: true, views: 0, failed: [], records: 0 }, 'the pass reads nothing');
-    for (const view of ['test-winrate', 'test-trace']) {
+    // A passing outage, not an unknown view: the app shows "offline" and asks again (A5 review m5), every view alike.
+    for (const view of ['test-winrate', 'test-trace', 'not-a-view']) {
       const off = await get(pool, `/v2/analytics/records/${view}`);
-      assert.deepEqual([off.status, await off.json()], [404, { ok: false, error: 'unknown_view' }], view);
+      assert.deepEqual([off.status, off.headers.get('retry-after'), await off.json()], [503, '60', { ok: false, error: 'records_off' }], view);
     }
     assert.equal(pool.store.sqlite.prepare("SELECT COUNT(*) AS n FROM snap WHERE mode LIKE 'records:%'").get().n, 0,
       'the rows published under the old file are gone');
