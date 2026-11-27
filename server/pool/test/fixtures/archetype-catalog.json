@@ -1,0 +1,650 @@
+{
+ "about": "TASK-2026-11-26-pro-collection B1: a synthetic HSGuru catalogue (v1/hsguru/archetypes answers) and HearthstoneJSON cards. tools/archetypes/server_dictionary.py builds `expected` from it (tools/skill_checks/test_server_dictionary.py) and the app's ApiConstructedMeta.ClassOf and CoreCards give the same classes, order and core cards, and its CardDb the same hero classes (ArchetypeAgreementTests).",
+ "built": "2026-11-26",
+ "cards": [
+  {
+   "id": "TST_101",
+   "dbfId": 101,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_102",
+   "dbfId": 102,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_103",
+   "dbfId": 103,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_104",
+   "dbfId": 104,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_105",
+   "dbfId": 105,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_106",
+   "dbfId": 106,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_107",
+   "dbfId": 107,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_111",
+   "dbfId": 111,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_112",
+   "dbfId": 112,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_121",
+   "dbfId": 121,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_122",
+   "dbfId": 122,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_123",
+   "dbfId": 123,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_131",
+   "dbfId": 131,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_132",
+   "dbfId": 132,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_141",
+   "dbfId": 141,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_153",
+   "dbfId": 153,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_161",
+   "dbfId": 161,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_162",
+   "dbfId": 162,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_171",
+   "dbfId": 171,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_133",
+   "dbfId": 133,
+   "collectible": false,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "CORE_TST_152",
+   "dbfId": 151,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1,
+   "countAsCopyOfDbfId": 152
+  },
+  {
+   "id": "TST_152",
+   "dbfId": 152,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "TST_190",
+   "dbfId": 190,
+   "collectible": false,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1,
+   "countAsCopyOfDbfId": 191
+  },
+  {
+   "id": "TST_191",
+   "dbfId": 191,
+   "collectible": false,
+   "type": "SPELL",
+   "cardClass": "NEUTRAL",
+   "cost": 1
+  },
+  {
+   "id": "HERO_01",
+   "dbfId": 7,
+   "collectible": true,
+   "type": "HERO",
+   "cardClass": "WARRIOR",
+   "cost": 1
+  },
+  {
+   "id": "HERO_08",
+   "dbfId": 637,
+   "collectible": true,
+   "type": "HERO",
+   "cardClass": "MAGE",
+   "cost": 1
+  },
+  {
+   "id": "TST_HERO_08b",
+   "dbfId": 801,
+   "collectible": false,
+   "type": "HERO",
+   "cardClass": "MAGE",
+   "cost": 0
+  },
+  {
+   "id": "TST_BOSS",
+   "dbfId": 802,
+   "collectible": false,
+   "type": "HERO",
+   "cardClass": "NEUTRAL",
+   "cost": 0
+  },
+  {
+   "id": "TST_HERO_NONE",
+   "dbfId": 803,
+   "collectible": false,
+   "type": "HERO",
+   "cost": 0
+  },
+  {
+   "id": "TST_REXXAR",
+   "dbfId": 804,
+   "collectible": true,
+   "type": "HERO",
+   "cardClass": "HUNTER",
+   "cost": 6
+  },
+  {
+   "id": "TST_MAGE_SPELL",
+   "dbfId": 805,
+   "collectible": true,
+   "type": "SPELL",
+   "cardClass": "MAGE",
+   "cost": 1
+  }
+ ],
+ "catalogs": {
+  "standard": {
+   "data": [
+    {
+     "archetype": "Spell Mage",
+     "games": 1000,
+     "decks": [
+      {
+       "class": "Mage",
+       "deck_code": "AAECAf0EAmdpA2VmaAAA",
+       "games": 600,
+       "win_rate": 50.0
+      },
+      {
+       "class": "Mage",
+       "deck_code": "AAECAf0EAWYDZWdqAAA=",
+       "games": 300,
+       "win_rate": 50.0
+      },
+      {
+       "class": "Mage",
+       "deck_code": "AAECAf0EA2VoagABawMA",
+       "games": 100,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    {
+     "archetype": "Odd Hybrid",
+     "games": 400,
+     "decks": [
+      {
+       "class": "Priest",
+       "deck_code": "AAECAf0EAAJvcAAA",
+       "games": 10,
+       "win_rate": 50.0
+      },
+      {
+       "class": "Mage",
+       "deck_code": "AAECAf0EAAJvcAAA",
+       "games": 10,
+       "win_rate": 50.0
+      },
+      {
+       "class": "Mage",
+       "deck_code": "AAECAf0EAAJvcAAA",
+       "games": 10,
+       "win_rate": 50.0
+      },
+      {
+       "class": "Priest",
+       "deck_code": "AAECAf0EAAJvcAAA",
+       "games": 10,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    {
+     "archetype": "Quest DH",
+     "games": 300,
+     "decks": [
+      {
+       "class": "Neutral",
+       "deck_code": "AAECAf0EAXoBeQAA",
+       "games": 0,
+       "win_rate": 50.0
+      },
+      {
+       "class": "Neutral",
+       "deck_code": "AAECAf0EAXkBewAA",
+       "games": 0,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    {
+     "archetype": "Zoolock",
+     "games": 250,
+     "decks": [
+      {
+       "class": "Paladin",
+       "deck_code": "AAAA",
+       "games": 900,
+       "win_rate": 50.0
+      },
+      {
+       "class": "",
+       "deck_code": "AAECAf0EAAKDAYQBAAA=",
+       "games": 50,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    {
+     "archetype": "Harold DK",
+     "games": 200,
+     "decks": [
+      {
+       "class": "Death Knight",
+       "deck_code": "AAECAf0EAWUChQHnBwABAY0BhQEAAA==",
+       "games": 20,
+       "win_rate": 50.0
+      },
+      {
+       "class": "Death Knight",
+       "deck_code": "AAECAf0EAWUChQHnBwABAY0BhQEAAA==",
+       "games": 20,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    {
+     "archetype": "spell mage",
+     "games": 50,
+     "decks": [
+      {
+       "class": "Mage",
+       "deck_code": "AAECAf0EAAKhAaIBAAA=",
+       "games": 50,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    {
+     "archetype": "Nothing Here Rogue",
+     "games": 150,
+     "decks": []
+    },
+    {
+     "archetype": "Odd Thing",
+     "games": 120,
+     "decks": [
+      {
+       "class": "Neutral",
+       "deck_code": "AAECAf0EAAGrAQAA",
+       "games": 10,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    {
+     "archetype": "Alpha Rogue",
+     "games": 500,
+     "decks": [
+      {
+       "class": "Rogue",
+       "deck_code": "AAECAf0EAAGhAQAA",
+       "games": 5,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    {
+     "archetype": "Beta Rogue",
+     "games": 500,
+     "decks": [
+      {
+       "class": "Rogue",
+       "deck_code": "AAECAf0EAAGiAQAA",
+       "games": 5,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    {
+     "archetype": "Gamma Rogue",
+     "games": 700,
+     "decks": [
+      {
+       "class": "Rogue",
+       "deck_code": "AAECAf0EAaEBAasBAAA=",
+       "games": 5,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    {
+     "archetype": "",
+     "games": 99,
+     "decks": [
+      {
+       "class": "Rogue",
+       "deck_code": "AAECAf0EAAGrAQAA",
+       "games": 5,
+       "win_rate": 50.0
+      }
+     ]
+    },
+    "not an archetype"
+   ]
+  },
+  "wild": {
+   "data": [
+    {
+     "archetype": "Reno Warlock",
+     "games": 800,
+     "decks": [
+      {
+       "class": "Warlock",
+       "deck_code": "AAEBAf0EApcBmQEAAAA=",
+       "games": 60,
+       "win_rate": 50.0
+      },
+      {
+       "class": "Warlock",
+       "deck_code": "AAEBAf0EApgBmQEAAAA=",
+       "games": 40,
+       "win_rate": 50.0
+      },
+      {
+       "class": "Warlock",
+       "games": 999,
+       "win_rate": 50.0
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "expected": {
+  "archetypes": {
+   "v": 1,
+   "rules": "arch-20261126-7af62770",
+   "built": "2026-11-26",
+   "source": "HSGuru via api.kolodahearthstone.com",
+   "heroesSource": "HearthstoneJSON v1/latest/enUS/cards.json",
+   "formats": {
+    "standard": {
+     "DEATHKNIGHT": [
+      {
+       "key": "Harold DK",
+       "coreIds": [
+        "TST_101",
+        "TST_133"
+       ],
+       "coreDbf": [
+        101,
+        133
+       ]
+      }
+     ],
+     "DEMONHUNTER": [
+      {
+       "key": "Quest DH",
+       "coreIds": [
+        "TST_121"
+       ],
+       "coreDbf": [
+        121
+       ]
+      }
+     ],
+     "MAGE": [
+      {
+       "key": "Spell Mage",
+       "coreIds": [
+        "TST_103",
+        "TST_105",
+        "TST_101",
+        "TST_102",
+        "TST_104"
+       ],
+       "coreDbf": [
+        103,
+        105,
+        101,
+        102,
+        104
+       ]
+      }
+     ],
+     "PALADIN": [
+      {
+       "key": "Zoolock",
+       "coreIds": [
+        "TST_131",
+        "TST_132"
+       ],
+       "coreDbf": [
+        131,
+        132
+       ]
+      }
+     ],
+     "PRIEST": [
+      {
+       "key": "Odd Hybrid",
+       "coreIds": [
+        "TST_111",
+        "TST_112"
+       ],
+       "coreDbf": [
+        111,
+        112
+       ]
+      }
+     ],
+     "ROGUE": [
+      {
+       "key": "Gamma Rogue",
+       "coreIds": [
+        "TST_161",
+        "TST_171"
+       ],
+       "coreDbf": [
+        161,
+        171
+       ]
+      },
+      {
+       "key": "Alpha Rogue",
+       "coreIds": [
+        "TST_161"
+       ],
+       "coreDbf": [
+        161
+       ]
+      },
+      {
+       "key": "Beta Rogue",
+       "coreIds": [
+        "TST_162"
+       ],
+       "coreDbf": [
+        162
+       ]
+      }
+     ]
+    },
+    "wild": {
+     "WARLOCK": [
+      {
+       "key": "Reno Warlock",
+       "coreIds": [
+        "CORE_TST_152",
+        "TST_153"
+       ],
+       "coreDbf": [
+        151,
+        153
+       ]
+      }
+     ]
+    }
+   },
+   "heroes": {
+    "HUNTER": [
+     804
+    ],
+    "MAGE": [
+     637,
+     801
+    ],
+    "NEUTRAL": [
+     802
+    ],
+    "WARRIOR": [
+     7
+    ]
+   }
+  },
+  "cardIds": {
+   "cards": {
+    "7": "HERO_01",
+    "101": "TST_101",
+    "102": "TST_102",
+    "103": "TST_103",
+    "104": "TST_104",
+    "105": "TST_105",
+    "106": "TST_106",
+    "107": "TST_107",
+    "111": "TST_111",
+    "112": "TST_112",
+    "121": "TST_121",
+    "122": "TST_122",
+    "123": "TST_123",
+    "131": "TST_131",
+    "132": "TST_132",
+    "133": "TST_133",
+    "141": "TST_141",
+    "151": "CORE_TST_152",
+    "152": "TST_152",
+    "153": "TST_153",
+    "161": "TST_161",
+    "162": "TST_162",
+    "171": "TST_171",
+    "637": "HERO_08",
+    "804": "TST_REXXAR",
+    "805": "TST_MAGE_SPELL"
+   },
+   "copyOf": {
+    "151": 152
+   }
+  }
+ }
+}
