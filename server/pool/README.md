@@ -20,7 +20,8 @@ that writes source v3 is released, and update the site's privacy policy first (d
 ([docs/source-capture.md](../../docs/source-capture.md) "Source v4": a gap is a real loss) needs no migration: the
 intake takes v4 lines with no `combat_view` gap and does not count an `OTHER` block as unsupported. Deploy it, with the
 worker `source-v2.1`, before an app that writes v4 is released; an app meeting an older pool sends its journals as v3
-until it restarts. Tests:
+until it restarts. Rolled back after it took v4, the pool gets each journal as v3 after one refused v4 chunk, and none
+is lost. Tests:
 `npm test` here (the same `node --test server/pool/test/*.test.mjs` as CI).
 
 A small Cloudflare Worker that collects the Battlegrounds games players choose to share and serves the totals:

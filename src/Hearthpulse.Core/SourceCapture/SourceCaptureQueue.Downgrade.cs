@@ -6,33 +6,38 @@ namespace Hearthpulse.Core.SourceCapture;
 /// <summary>
 /// A pool that predates a source version refuses every line of it as an unknown record: the spool sends such a journal one
 /// version older, and once the pool takes it, the next ones too until the app restarts: v4 as v3 (docs/source-capture.md,
-/// "Source v4"), v3 as v2 without their <c>bg_combat</c> records ("Battlegrounds fights").
+/// "Source v4"), v3 as v2 without their <c>bg_combat</c> records ("Battlegrounds fights"). A pool that took the newer
+/// version earlier in the session and refuses it now (rolled back since) gets each journal older on its own, one request
+/// more per journal.
 /// </summary>
 public sealed partial class SourceCaptureQueue
 {
     // In memory only: after the next start the pool is asked with the current version again (it may have been updated meanwhile).
     private volatile int _poolVersion = SourceCaptureRecord.CurrentVersion;
-    // The newest version the pool took a chunk of in this session: a line refused in it is the journal's fault, not the version's.
+    // The newest version the pool took a chunk of in this session: it knew that version, so a journal refused in it later
+    // goes older alone and does not take the session with it.
     private volatile int _taken;
 
     /// <summary>
-    /// The first chunk of an unsent journal newer than v2, and newer than any version the pool took in this session, was
-    /// refused as an unknown record: the pool may not know its version, so the journal is tried one version older. Any
-    /// other refusal is about the journal itself (<see cref="RefusedAsync"/>).
+    /// The first chunk of an unsent journal newer than v2 was refused as an unknown record: the pool may not know its
+    /// version, also when it took that version earlier in the session (a pool rolled back since), so the journal is tried
+    /// one version older. Any other refusal is about the journal itself (<see cref="RefusedAsync"/>).
     /// </summary>
     private bool UnknownVersion(SourceCaptureManifest capture, SourceCaptureAnswer answer) =>
-        answer.Code == "invalid_record" && capture.SourceVersion > Math.Max(2, _taken)
+        answer.Code == "invalid_record" && capture.SourceVersion > 2
         && _manifests.TryGetValue(capture.CaptureId, out var current) && current.Chunks.TrueForAll(c => !c.Acknowledged);
 
     /// <summary>
     /// The pool took a chunk in <paramref name="version"/>. When the journal was tried older after a refusal
-    /// (<paramref name="stepped"/>), the pool does not know the newer version: the next journals go in this one until the
-    /// app restarts, with one log line. A journal refused in every version leaves the version where it was.
+    /// (<paramref name="stepped"/>) and the pool took no newer version in this session, it does not know the newer one:
+    /// the next journals go in this one until the app restarts, with one log line. When it took a newer one before, only
+    /// this journal went older. A journal refused in every version leaves the version where it was.
     /// </summary>
     private void Taken(int version, bool stepped)
     {
-        if (version > _taken) _taken = version;
-        if (!stepped || version >= _poolVersion) return;
+        var known = _taken;
+        if (version > known) _taken = version;
+        if (!stepped || version >= _poolVersion || known > version) return;
         _poolVersion = version;
         Diag.Info(version == 2
             ? "Source capture: the pool does not take source v3 yet, journals go as v2 without fights until the app restarts"

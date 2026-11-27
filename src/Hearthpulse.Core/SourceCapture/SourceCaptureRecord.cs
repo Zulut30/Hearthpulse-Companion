@@ -42,6 +42,10 @@ public sealed record SourceCaptureFrame(string CaptureId, string CaptureKind, st
 /// <c>other_pool</c> and the two <c>Held</c> counts tell of what is kept for a pool address other than the current
 /// one: it is not sent to the current pool and waits for its own.
 /// </summary>
+/// <param name="Dropped">
+/// Journals lost on this PC (a full spool, a disk error, an invalid, damaged or expired journal), kept across restarts:
+/// the Settings line "could not be saved". A journal the pool refused is not one of them; its log line is its record.
+/// </param>
 /// <param name="Revision">
 /// The number of this report as the host published it, growing with every report: a listener that gets reports
 /// through its own queue drops one older than what it already shows. Zero for a state nobody published.

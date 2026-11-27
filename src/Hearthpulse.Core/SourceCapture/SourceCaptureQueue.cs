@@ -437,7 +437,8 @@ public sealed partial class SourceCaptureQueue : IAsyncDisposable
     /// <summary>
     /// A refusal of the journal itself (<see cref="SourceCaptureAnswer.Final"/>) drops it with a log line, and the pass goes
     /// on to the next journal: sent again it would get the same answer, and while it waited it held every journal behind
-    /// it. Any other answer keeps it waiting and ends the pass, as before.
+    /// it. The log line is its only record: it is not one of the journals that could not be saved
+    /// (<see cref="SourceCaptureState.Dropped"/>). Any other answer keeps it waiting and ends the pass, as before.
     /// </summary>
     private async Task<bool> RefusedAsync(SourceCaptureManifest listed, SourceCaptureManifest capture, SourceCaptureAnswer answer, CancellationToken token)
     {
@@ -446,8 +447,9 @@ public sealed partial class SourceCaptureQueue : IAsyncDisposable
         try
         {
             if (!CanSend(capture)) return false;
-            Drop(capture.CaptureId, "refused");
-            SaveStore();
+            lock (_gate) _failed.Add(capture.CaptureId);
+            SetStatus("refused");
+            DeleteCapture(capture.CaptureId);
         }
         finally { _disk.Release(); }
         // The mode comes from a manifest on disk: only a known one is written to the log.

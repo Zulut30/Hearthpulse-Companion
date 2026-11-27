@@ -19,7 +19,8 @@ namespace Hearthpulse.Tests;
 /// (GameSession: every Power.log line to the recorder and the parser) decodes as parsed whatever known log grammar the
 /// format leaves out, while an unknown line or an undecodable value still leaves it partial, and so does a pick that
 /// never became visible; a mulligan's pick is the cards kept; the decoder's v4 rules; the spool's fallback to v3 and v2
-/// for a pool that does not take v4 yet, and a journal the pool refuses for good dropped instead of holding the queue.
+/// for a pool that does not take v4 yet or no longer does, and a journal the pool refuses for good dropped instead of
+/// holding the queue.
 /// Synthetic lines in the order real logs have them.
 /// </summary>
 public sealed class SourceCaptureV4Tests : IDisposable
@@ -83,6 +84,30 @@ public sealed class SourceCaptureV4Tests : IDisposable
                 Assert.Empty(choice.Data.GetProperty("picked").EnumerateArray());
                 break;
         }
+    }
+
+    // QA Q5: every Power.log block type without a kind of its own is an OTHER block and no loss, not only the trade's
+    // DECK_ACTION (the only one in the kept logs). The recorder reads the type alone, so one body serves them all.
+    [Theory]
+    [InlineData("DECK_ACTION")]
+    [InlineData("FATIGUE")]
+    [InlineData("RITUAL")]
+    [InlineData("JOUST")]
+    [InlineData("REVEAL_CARD")]
+    [InlineData("GAME_RESET")]
+    public async Task A_block_type_without_a_kind_of_its_own_is_an_other_block_and_no_loss(string type)
+    {
+        var capture = RecordGame(Ranked([],
+        [
+            $"DebugPrintPower() - BLOCK_START BlockType={type} Entity={Spell} {Effect} Target=0 SubOption=-1 ",
+            "DebugPrintPower() -     TAG_CHANGE Entity=velox#21276 tag=RESOURCES_USED value=1 ",
+            "DebugPrintPower() - BLOCK_END",
+        ]));
+
+        Assert.Contains(capture, f => f.Record.Kind == "block_start" && Data(f).GetProperty("block").GetString() == "OTHER");
+        Assert.DoesNotContain(capture, f => f.Record.Kind == "gap");
+        var result = await Decode(capture);
+        Assert.Equal(("parsed", 0, 0), (result.Status, result.Gaps, result.Unsupported));
     }
 
     [Theory]
@@ -180,6 +205,22 @@ public sealed class SourceCaptureV4Tests : IDisposable
         Assert.True(result.Eligibility.Offers);
         Assert.Equal(new SourceCaptureOutcome("L", 5), result.Facts.Outcome);
         Assert.Equal(("incomplete", 1), await Sealed(capture));
+    }
+
+    // QA Q8: the client closed during a Discover and its next run writes a new log folder. The rotation seals that capture
+    // with the choice still open; the next game starts without it, and its own mulligan is no loss.
+    [Fact]
+    public async Task A_choice_left_open_by_a_rotation_is_no_gap_in_the_next_game()
+    {
+        var captures = RecordSessions([.. ReplayRecorderTests.Setup, .. OpenDiscover(header: false)], Ranked(Mulligan(98), []));
+
+        Assert.Equal(2, captures.Count);
+        var left = captures[0];
+        Assert.False(Data(left.Last(f => f.Record.Kind == "choice")).GetProperty("resolved").GetBoolean());
+        Assert.Equal(["rotation"], left.Where(f => f.Record.Kind == "gap").Select(f => Data(f).GetProperty("reason").GetString()));
+        Assert.DoesNotContain(captures[1], f => f.Record.Kind == "gap");
+        var result = await Decode(captures[1]);
+        Assert.Equal(("parsed", 0, 0), (result.Status, result.Gaps, result.Unsupported));
     }
 
     // QA Q3: the chosen header names how many cards follow, so it resolves nothing by itself; the card line does, once.
@@ -384,7 +425,7 @@ public sealed class SourceCaptureV4Tests : IDisposable
 
         // One pass offers every journal once, in whatever order: the refused ones are gone, the last one is sent.
         Assert.Equal("abcd", string.Concat(seen.Where(x => x.Route == "complete").Select(x => x.Id).Order()));
-        Assert.Equal((0, 3L), (queue.State.PendingCaptures, queue.State.Dropped));
+        Assert.Equal((0, 0L), (queue.State.PendingCaptures, queue.State.Dropped));
         Assert.Empty(Directory.GetDirectories(scratch.Path));
         Assert.Contains("Source capture: the pool refused a ranked journal (incomplete_stream), dropped; source v4, sent as v4", TestDataFolder.ReadLog(), StringComparison.Ordinal);
     }
@@ -410,52 +451,137 @@ public sealed class SourceCaptureV4Tests : IDisposable
         Assert.Equal((2, 0L, "offline"), (queue.State.PendingCaptures, queue.State.Dropped, queue.State.Status));
     }
 
-    // Review m5: once the pool took a v4 chunk in this session, a v4 line it refuses is the journal's fault and not the
-    // version's: that journal is dropped, nothing is sent older, the next one still goes as v4.
+    // Review m6: a pool rolled back after it took v4 refuses v4 lines again (400 invalid_record). That refusal counted as
+    // the journal's own, so every v4 journal was dropped until the app restarted. Each one goes as v3 instead, and the
+    // session stays on v4: the next journal is asked in v4 first, the pool may be updated again.
     [Fact]
-    public async Task A_line_refused_in_a_version_the_pool_took_drops_that_journal_and_keeps_the_version()
+    public async Task A_pool_rolled_back_after_it_took_v4_gets_each_journal_as_v3_and_the_session_stays_on_v4()
     {
         using var scratch = new SourceScratch();
         var seen = new List<(string Route, char Id, int Version)>();
-        using var http = new HttpClient(new Answering(seen, (route, id, _) => route == "chunks" && id == 'b' ? (HttpStatusCode.BadRequest, "invalid_record") : null));
+        // Journal a goes before the rollback; from then on a v4 line is an unknown record.
+        using var http = new HttpClient(new Answering(seen, (route, id, version) => route == "chunks" && id != 'a' && version == 4 ? (HttpStatusCode.BadRequest, "invalid_record") : null));
         await using var queue = await scratch.Open();
         Spool(queue, 'a', "bg");
         await queue.FlushAsync();
         await queue.SendPendingAsync(new(http));
         Spool(queue, 'b', "bg");
-        Spool(queue, 'c', "bg");
+        Spool(queue, 'c', "ranked");
+        await queue.FlushAsync();
+        await queue.SendPendingAsync(new(http));
+        Spool(queue, 'd', "bg");
         await queue.FlushAsync();
 
         await queue.SendPendingAsync(new(http));
 
-        Assert.All(seen, x => Assert.Equal(4, x.Version));
-        Assert.Equal("ac", string.Concat(seen.Where(x => x.Route == "complete").Select(x => x.Id).Order()));
-        Assert.Equal((0, 1L), (queue.State.PendingCaptures, queue.State.Dropped));
+        Assert.Equal([("chunks", 4), ("complete", 4)], seen.Where(x => x.Id == 'a').Select(x => (x.Route, x.Version)));
+        foreach (var id in "bcd")
+            Assert.Equal([("chunks", 4), ("chunks", 3), ("complete", 3)], seen.Where(x => x.Id == id).Select(x => (x.Route, x.Version)));
+        Assert.Equal((0, 0L), (queue.State.PendingCaptures, queue.State.Dropped));
     }
 
-    // Review m5: before the pool took anything, a journal refused in v4, v3 and v2 alike is the journal's fault: it is
-    // dropped and the session stays on v4. It used to stay waiting and take the session down to v2 without fights until a
-    // restart, with a log line saying the pool did not take v4.
-    [Fact]
-    public async Task A_journal_refused_in_every_version_is_dropped_and_the_next_one_goes_as_v4()
+    // Review m5: a journal refused in v4, v3 and v2 alike is the journal's fault: it is dropped and the session stays on
+    // v4. It used to stay waiting and take the session down to v2 without fights until a restart, with a log line saying
+    // the pool did not take v4.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)] // review m6: after the pool took v4 the journal is tried older all the same
+    public async Task A_journal_refused_in_every_version_is_dropped_and_the_next_one_goes_as_v4(bool tookV4)
     {
         using var scratch = new SourceScratch();
         var time = new FakeTimeProvider();
         var seen = new List<(string Route, char Id, int Version)>();
         using var http = new HttpClient(new Answering(seen, (route, id, _) => route == "chunks" && id == 'a' ? (HttpStatusCode.BadRequest, "invalid_record") : null));
         await using var queue = await scratch.Open(time: time);
+        if (tookV4)
+        {
+            Spool(queue, 'f', "bg");
+            await queue.FlushAsync();
+            await queue.SendPendingAsync(new(http));
+        }
+
         Spool(queue, 'a', "bg");
         await queue.FlushAsync();
         await queue.SendPendingAsync(new(http));
 
-        Assert.Equal([4, 3, 2], seen.Select(x => x.Version));
-        Assert.Equal((0, 1L), (queue.State.PendingCaptures, queue.State.Dropped));
+        Assert.Equal([4, 3, 2], seen.Where(x => x.Id == 'a').Select(x => x.Version));
+        Assert.Equal((0, 0L), (queue.State.PendingCaptures, queue.State.Dropped));
 
         time.Advance(TimeSpan.FromMinutes(1)); // past the retry wait a refusal used to set
         Spool(queue, 'b', "bg");
         await queue.FlushAsync();
         await queue.SendPendingAsync(new(http));
         Assert.Equal([("chunks", 4), ("complete", 4)], seen.Where(x => x.Id == 'b').Select(x => (x.Route, x.Version)));
+    }
+
+    // QA Q6: a journal spooled in v3 before the update goes as v3 as it was written. The pool took it without a refusal,
+    // so the session stays on v4: the next Battlegrounds game goes without the combat_view gap of v3.
+    [Fact]
+    public async Task A_journal_spooled_in_v3_before_an_update_leaves_the_next_ones_in_v4()
+    {
+        using var scratch = new SourceScratch();
+        var seen = new List<(string Route, int Version, string Source)>();
+        using var http = new HttpClient(new Pool(4, seen));
+        await using var queue = await scratch.Open();
+        Spool(queue, 'a', "ranked", version: 3);
+        await queue.FlushAsync();
+        await queue.SendPendingAsync(new(http));
+        Spool(queue, 'b', "bg");
+        await queue.FlushAsync();
+
+        await queue.SendPendingAsync(new(http));
+
+        Assert.Equal([("chunks", 3), ("complete", 3), ("chunks", 4), ("complete", 4)], seen.Select(x => (x.Route, x.Version)));
+        Assert.Equal("b:complete", seen[^1].Source);
+    }
+
+    // Review m8: the pool deletes an upload that got no manifest within its unfinished hours and answers 410
+    // deleted_capture to every later request of it. Such a journal waited 30 s ahead of the others again and again until
+    // its 14 days were up; it is dropped with a log line and its code, and the pass goes on.
+    [Theory]
+    [InlineData("chunks")] // a later chunk of a journal whose first ones the pool took
+    [InlineData("complete")]
+    public async Task A_journal_whose_unfinished_upload_the_pool_deleted_is_dropped_and_the_next_ones_go_on(string route)
+    {
+        using var scratch = new SourceScratch();
+        var seen = new List<(string Route, char Id, int Version)>();
+        using var http = new HttpClient(new Answering(seen, (to, id, _) => to == route && id != 'd' ? (HttpStatusCode.Gone, "deleted_capture") : null));
+        await using var queue = await scratch.Open();
+        foreach (var id in "abcd") Spool(queue, id, "ranked");
+        await queue.FlushAsync();
+
+        await queue.SendPendingAsync(new(http));
+
+        Assert.Equal("abcd", string.Concat(seen.Where(x => x.Route == route).Select(x => x.Id).Order()));
+        Assert.Contains(seen, x => x is { Route: "complete", Id: 'd' });
+        Assert.Equal((0, 0L), (queue.State.PendingCaptures, queue.State.Dropped));
+        Assert.Empty(Directory.GetDirectories(scratch.Path));
+        Assert.Contains("Source capture: the pool refused a ranked journal (deleted_capture), dropped; source v4, sent as v4", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+    }
+
+    // Settings → Data, "Some journals could not be saved: {0}", counts the journals lost on this PC across restarts. A
+    // journal the pool refused is not one of them: its log line is its record.
+    [Fact]
+    public async Task A_journal_the_pool_refused_is_not_counted_with_the_ones_that_could_not_be_saved()
+    {
+        using var scratch = new SourceScratch();
+        var seen = new List<(string Route, char Id, int Version)>();
+        using var http = new HttpClient(new Answering(seen, (route, _, _) => route == "complete" ? (HttpStatusCode.BadRequest, "incomplete_stream") : null));
+        await using (var queue = await scratch.Open())
+        {
+            Spool(queue, 'a', "ranked");
+            // Lost on this PC: a journal whose first line is not its start.
+            Assert.True(queue.TryAppend(new(new string('b', 32), "game", "ranked", 20776, new SourceCaptureRecord(1, "tag", 9, "none", 0, null, 0, new { tag = "TURN", value = 9 }))));
+            await queue.FlushAsync();
+
+            await queue.SendPendingAsync(new(http));
+
+            Assert.Single(seen, x => x is { Route: "complete", Id: 'a' });
+            Assert.Equal((0, 1L), (queue.State.PendingCaptures, queue.State.Dropped));
+        }
+
+        await using var reopened = await scratch.Open();
+        Assert.Equal(1L, reopened.State.Dropped);
     }
 
     /// <summary>
@@ -525,14 +651,17 @@ public sealed class SourceCaptureV4Tests : IDisposable
         private static HttpResponseMessage Ok(object body) => new(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(body)) };
     }
 
-    /// <summary>A whole game as the v4 recorder writes it: no gap, a Battlegrounds or Duos game with two fights, place 4.</summary>
-    private static void Spool(SourceCaptureQueue queue, char id, string mode, bool other = false)
+    /// <summary>
+    /// A whole game as the v4 recorder writes it: no gap, a Battlegrounds or Duos game with two fights, place 4.
+    /// <paramref name="version"/>: the wire version of a Ranked journal spooled before an update.
+    /// </summary>
+    private static void Spool(SourceCaptureQueue queue, char id, string mode, bool other = false, int version = SourceCaptureRecord.CurrentVersion)
     {
         var capture = new string(id, 32);
         var seq = 0;
         var battlegrounds = mode is "bg" or "duos";
         void Add(string kind, object data, int turn = 9) =>
-            Assert.True(queue.TryAppend(new(capture, "game", mode, 20776, new SourceCaptureRecord(seq++, kind, turn, "none", 0, null, 0, data))));
+            Assert.True(queue.TryAppend(new(capture, "game", mode, 20776, new SourceCaptureRecord(seq++, kind, turn, "none", 0, null, 0, data, version))));
         Add("start", new { captureKind = "game", mode, day = 20776, build = (int?)4321, format = battlegrounds ? null : "standard", arena = (string?)null }, turn: 0);
         Add("tag", new { tag = "TURN", value = 9 });
         if (other)
@@ -734,7 +863,13 @@ public sealed class SourceCaptureV4Tests : IDisposable
     };
 
     /// <summary>The live path: GameSession with source capture on, every line as the log watcher hands it over.</summary>
-    private List<SourceCaptureFrame> RecordGame(IEnumerable<string> bodies)
+    private List<SourceCaptureFrame> RecordGame(IEnumerable<string> bodies) => RecordSessions(bodies).Single();
+
+    /// <summary>
+    /// The live path for one run of the client per entry of <paramref name="sessions"/> (its Power.log in a log folder of
+    /// its own, an hour after the one before): the frames of each capture, in the order the captures began.
+    /// </summary>
+    private List<List<SourceCaptureFrame>> RecordSessions(params IEnumerable<string>[] sessions)
     {
         Directory.CreateDirectory(_dir);
         using var memory = new HearthstoneMemory();
@@ -750,11 +885,16 @@ public sealed class SourceCaptureV4Tests : IDisposable
         var frames = new List<SourceCaptureFrame>();
         session.SourceCaptureRecorded += frames.Add;
         session.SetSourceCaptureEnabled(true);
-        session.OnSessionStarted("Hearthstone_2026_11_26_12_00_00", new DateTime(2026, 11, 26, 12, 0, 0), attachedMidSession: false);
-        session.OnLines("Power.log", bodies.Select(b => "D 12:30:00.0000000 GameState." + b).ToList(), catchingUp: false);
+        for (var i = 0; i < sessions.Length; i++)
+        {
+            var hour = 12 + i;
+            session.OnSessionStarted($"Hearthstone_2026_11_26_{hour}_00_00", new DateTime(2026, 11, 26, hour, 0, 0), attachedMidSession: false);
+            session.OnLines("Power.log", sessions[i].Select(b => $"D {hour}:30:00.0000000 GameState." + b).ToList(), catchingUp: false);
+        }
+
         now = now.AddSeconds(5);
         session.OnTick();
-        return frames.GroupBy(f => f.CaptureId).Single().ToList();
+        return frames.GroupBy(f => f.CaptureId).Select(g => g.ToList()).ToList();
     }
 
     private static JsonElement Data(SourceCaptureFrame frame) => SourceCaptureRecorderTests.Data(frame);

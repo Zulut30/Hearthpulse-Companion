@@ -231,23 +231,29 @@ of 26 395; 9 games are `parsed`, the cut one `partial`.
   until it restarts (`SourceCaptureQueue.Downgrade.cs`, log line `Source capture: the pool does not take source v4 yet,
   journals go as v3 until the app restarts`): as v3 with the `combat_view` gap put back and the end sealed incomplete
   where v3 counts a loss (that gap, an `OTHER` block), fights kept; as v2 without fights when the pool does not take v3
-  either. Only the first chunk of a journal newer than any version the pool took in this session is tried older: a
-  refused line in a version the pool took, or one refused in v2 too, is the journal's own and refused for good (below).
+  either. Only the first chunk of a journal is tried older. A pool that took the refused version earlier in the session
+  (rolled back since) gets that journal older on its own: the session keeps its version, and each journal costs one
+  request more. A journal refused in v2 too is refused for good (below).
 - **Refused for good**: a 400 whose code says the pool will never take the journal as it is, its records, their order
   or the manifest against them (`invalid_record`, `invalid_sequence`, `incomplete_stream`, `manifest_source_mismatch`
-  and the others in `SourceCaptureClient.JournalRefusals`), drops that journal and the pass goes on to the next one, log
-  line `Source capture: the pool refused a <mode> journal (<code>), dropped; source v<n>, sent as v<m>`; it counts with
-  the dropped journals in Settings → Data. A temporary answer (`429`, `503`, no network) or another refusal (an
-  envelope, a limit, a conflict, a deletion) keeps the journal and ends the pass, as before.
+  and the others in `SourceCaptureClient.JournalRefusals`), and a `410 deleted_capture` (the pool deleted the
+  journal's upload, unfinished past `POOL_UNFINISHED_HOURS`, and refuses every later request of it), drop that journal,
+  and the pass goes on to the next one. The log line `Source capture: the pool refused a <mode> journal (<code>),
+  dropped; source v<n>, sent as v<m>` is its record; it is not counted with the journals that could not be saved
+  (Settings → Data). `SourceCaptureClientTests` holds the client's lists against every 400 and 410 code of the pool. A
+  temporary answer (`429`, `503`, no network) or another refusal (an envelope, a limit, a conflict, a revoked
+  generation) keeps the journal and ends the pass, as before.
 - **Nothing new leaves the machine**: v4 has the record kinds and fields of v3, in fewer records.
 - **Measure**: `Hearthpulse.Bench capture [--logs <dir>]` replays kept logs through `GameSession` and the worker's
   parser: per capture the gaps by reason, the decoder's gaps, unsupported count and status, the choices left open, the
   journals the pool would refuse as complete with a choice open, and the block types the recorder does not know.
   `--cost <n>`: what the journal costs the log thread, every log through `GameSession.OnLines` n times with the journal
   off and on after a warm-up round (time and bytes allocated on that thread).
-- Tests: `SourceCaptureV4Tests` (a whole Ranked game per left-out kind and a whole Battlegrounds game through
-  `GameSession`, `parsed`; unknown grammar still a gap; a pick that never showed, one gap; a mulligan's pick is the
-  cards kept; the decoder's rules; the fallback to v3 and v2; a journal refused for good dropped, the next ones sent),
+- Tests: `SourceCaptureV4Tests` (a whole Ranked game per left-out kind and block type and a whole Battlegrounds game
+  through `GameSession`, `parsed`; unknown grammar still a gap; a pick that never showed, one gap, and none carried
+  into the next game; a mulligan's pick is the cards kept; the decoder's rules; the fallback to v3 and v2, also from a
+  pool rolled back after it took v4, never from a journal spooled in v3; a journal refused for good or with its upload
+  deleted dropped, the next ones sent), `SourceCaptureClientTests` (the final codes against the pool's),
   `capture-validation.test.mjs` and `combats.test.mjs` (the pool's rules, a journal with a choice left open taken as
   incomplete in v4 and v3).
 

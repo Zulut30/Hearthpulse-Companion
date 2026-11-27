@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.IO.Compression;
 using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Hearthpulse.Core.SourceCapture;
 using Microsoft.Extensions.Time.Testing;
 
@@ -62,6 +64,56 @@ public sealed class SourceCaptureClientTests
         await queue.SendPendingAsync(new(http)); Assert.Equal("rejected", queue.State.Status); Assert.Single(Directory.GetFiles(scratch.Path, "*.jsonl", SearchOption.AllDirectories));
         using var manifest = scratch.Manifest(); Assert.False(manifest.RootElement.GetProperty("chunks")[0].GetProperty("acknowledged").GetBoolean());
     }
+
+    // Review m7, QA Q7: the client's split of the pool's refusals, held against the pool's own code. A new rule of the pool
+    // the client does not name, a code taken out of the final list or a waiting one put into it goes red here: a refusal
+    // for good read as a wait held every journal behind it for 14 days (review B1). Each answer goes through the client's
+    // own reading of a refusal, which once took no digit and so never saw invalid_utf8.
+    [Fact]
+    public async Task Every_400_and_410_of_the_pool_is_final_for_the_journal_or_keeps_it_waiting()
+    {
+        var node = Path.Combine(RepoFiles.Root, "server", "pool", "node");
+        var answers = new[] { "validation.mjs", "archive.mjs", "server.mjs" }.SelectMany(file =>
+        {
+            var text = File.ReadAllText(Path.Combine(node, file));
+            var found = Regex.Matches(text, @"fail\(\s*(400|410)\s*,\s*['""]([a-z0-9_]+)['""]")
+                .Select(m => (File: file, Status: int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture), Code: m.Groups[2].Value)).ToArray();
+            // A code written other than as a literal would pass unseen.
+            Assert.Equal(Regex.Count(text, @"fail\(\s*(400|410)\b"), found.Length);
+            return found;
+        }).ToArray();
+        var answered = answers.Select(a => a.Code).ToHashSet(StringComparer.Ordinal);
+
+        HttpResponseMessage? reply = null;
+        using var handler = new Fake(_ => Task.FromResult(reply!));
+        using var http = new HttpClient(handler);
+        var client = new SourceCaptureClient(http);
+        var manifest = new SourceCaptureManifest(SourceScratch.Iid, new string('4', 32), SourceScratch.CaptureId, "game", "ranked", 20766, "complete", 0, true, [new(0, new string('0', 64), 1)], 4);
+        foreach (var (status, code) in answers.Select(a => (a.Status, a.Code)).Distinct())
+        {
+            reply = Reply((HttpStatusCode)status, new { ok = false, error = code });
+            var answer = await client.CompleteAsync(SourceScratch.Endpoint, manifest, CancellationToken.None);
+
+            Assert.Equal(code, answer.Code);
+            Assert.True(answer.Final != Waiting.Contains(code, StringComparer.Ordinal), $"{code}: {(answer.Final ? "final and in the waiting list" : "neither final nor in the waiting list")}");
+        }
+
+        // The final list is the journal's form (validation.mjs) and the deleted upload; neither list names a code the pool
+        // does not answer.
+        var form = answers.Where(a => a is { File: "validation.mjs", Status: 400 }).Select(a => a.Code).ToHashSet(StringComparer.Ordinal);
+        Assert.Subset(form, SourceCaptureClient.JournalRefusals.ToHashSet(StringComparer.Ordinal));
+        Assert.Contains(answers, a => a is { File: "archive.mjs", Status: 410, Code: "deleted_capture" });
+        Assert.Subset(answered, Waiting.ToHashSet(StringComparer.Ordinal));
+    }
+
+    // The refusals that keep a journal waiting: the envelope of a request, which a broken connection or a proxy can spoil
+    // and the journal never does; the routes of a status, a deletion and the operator; a revoked generation, whose
+    // journals the opt-out deletes on this PC.
+    private static readonly string[] Waiting =
+    [
+        "http_encoding_unsupported", "invalid_json", "invalid_identity", "invalid_gzip", "invalid_chunk", "invalid_base64",
+        "checksum_mismatch", "invalid_status", "invalid_forget", "invalid_reprocess", "invalid_export", "revoked_generation",
+    ];
 
     [Fact]
     public async Task Wrong_hash_and_ok_false_receipts_never_delete_source()

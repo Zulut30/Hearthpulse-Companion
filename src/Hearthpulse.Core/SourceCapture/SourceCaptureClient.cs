@@ -76,7 +76,7 @@ public sealed class SourceCaptureClient(HttpClient http)
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
                 return new(false, (int)response.StatusCode is 400 or 409 or 410 or 413 ? "rejected" : "offline", Retry(response),
-                    (int)response.StatusCode == 400 ? await ErrorCodeAsync(response, token).ConfigureAwait(false) : null);
+                    (int)response.StatusCode is 400 or 410 ? await ErrorCodeAsync(response, token).ConfigureAwait(false) : null);
             // A hostile/misconfigured endpoint cannot force an unbounded response allocation.
             using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
             using var buffer = new MemoryStream();
@@ -101,7 +101,8 @@ public sealed class SourceCaptureClient(HttpClient http)
 
     /// <summary>
     /// The pool's codes for a journal it will never take as it is (server/pool/node/validation.mjs): its records, their
-    /// order, the manifest against them. Refusals of an envelope, an identity, a limit or a conflict keep it waiting.
+    /// order, the manifest against them. Refusals of an envelope, an identity, a limit, a conflict or a revoked generation
+    /// keep it waiting. <c>SourceCaptureClientTests</c> holds both lists against every 400 and 410 code of the pool.
     /// </summary>
     internal static readonly FrozenSet<string> JournalRefusals = new[]
     {
@@ -110,6 +111,12 @@ public sealed class SourceCaptureClient(HttpClient http)
         "concealed_reference_reused", "unobserved_opponent_tag", "manifest_source_mismatch", "incomplete_stream",
         "draft_result", "invalid_manifest",
     }.ToFrozenSet(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The pool's 410 for a journal whose upload it deleted unfinished (no manifest within its unfinished hours,
+    /// server/pool/node/archive.mjs): every later request of it gets the same answer, so it can never be completed.
+    /// </summary>
+    internal const string DeletedCapture = "deleted_capture";
 
     /// <summary>The pool's fixed error code of a refusal (<c>{"error":"invalid_record"}</c>), or null; never other text.</summary>
     private static async Task<string?> ErrorCodeAsync(HttpResponseMessage response, CancellationToken token)
@@ -122,7 +129,7 @@ public sealed class SourceCaptureClient(HttpClient http)
         {
             using var json = JsonDocument.Parse(buffer.AsMemory(0, length));
             return json.RootElement.ValueKind == JsonValueKind.Object && json.RootElement.TryGetProperty("error", out var error)
-                && error.ValueKind == JsonValueKind.String && error.GetString() is { Length: > 0 and <= 40 } code && code.All(c => c is >= 'a' and <= 'z' or '_')
+                && error.ValueKind == JsonValueKind.String && error.GetString() is { Length: > 0 and <= 40 } code && code.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '_')
                 ? code : null;
         }
         catch (JsonException) { return null; }
@@ -133,11 +140,14 @@ public sealed class SourceCaptureClient(HttpClient http)
         ?? (response.Headers.RetryAfter?.Date is { } date ? TimeSpan.FromSeconds(Math.Clamp((date - DateTimeOffset.UtcNow).TotalSeconds, 1, 3600)) : TimeSpan.FromSeconds(30));
 }
 
-/// <param name="Code">The pool's error code of a 400 refusal, when it gave one (see <c>ErrorCodeAsync</c>).</param>
+/// <param name="Code">The pool's error code of a 400 or 410 refusal, when it gave one (see <c>ErrorCodeAsync</c>).</param>
 internal sealed record SourceCaptureAnswer(bool Accepted, string Status, TimeSpan RetryAfter, string? Code = null)
 {
-    /// <summary>A 400 for the journal itself (<see cref="SourceCaptureClient.JournalRefusals"/>): it is never taken as it is.</summary>
-    public bool Final => Code is not null && SourceCaptureClient.JournalRefusals.Contains(Code);
+    /// <summary>
+    /// A 400 for the journal itself (<see cref="SourceCaptureClient.JournalRefusals"/>) or its deleted upload
+    /// (<see cref="SourceCaptureClient.DeletedCapture"/>): it is never taken as it is.
+    /// </summary>
+    public bool Final => Code is not null && (SourceCaptureClient.JournalRefusals.Contains(Code) || Code == SourceCaptureClient.DeletedCapture);
 }
 /// <summary>Aggregate processing status without source records or installation identifiers.</summary>
 public sealed record SourceCaptureRemoteStatus(string Status, string? ParserVersion, int Records, int Unsupported, int Gaps);
