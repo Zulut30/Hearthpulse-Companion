@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { record, start, end, choice, jsonl } from './capture-fixture.mjs';
+import { DAY, ID, record, start, end, choice, jsonl, setup } from './capture-fixture.mjs';
 import { validRecord, records, inflate, MiB, streamState, addRecords, finishStream } from '../node/validation.mjs';
 import { gzipSync } from 'node:zlib';
 
@@ -123,4 +123,37 @@ test('source v4: no combat_view, an OTHER block is no unsupported observation, a
   // An unknown action stays unsupported in v4.
   const unknown = [begin(4, 'ranked'), at(4, record(1, 'action', { action: 'unknown', cost: null }, { side: 'local' })), finish(4, 2, { result: 'W' })];
   assert.throws(() => close(unknown, manifestOf(4, 'ranked', 'complete')), e => e.code === 'incomplete_stream');
+});
+
+// Review B1 (P1, round 2): a pick that never became visible (the game ended while the local choice was open, the BG turn
+// timer chose) is a source_missing gap, as SourceCaptureRecorder writes it; the intake takes such a journal as incomplete
+// in v4 and in the v3 the app falls back to for a pool without v4, and refuses it sealed complete.
+test('source v4: a journal with a choice left open commits as incomplete with its gap, never as complete', async t => {
+  const f = await setup(t);
+  const at = (v, r) => ({ ...r, v });
+  const open = (v, seq, choiceId, choiceType) => at(v, record(seq, 'choice',
+    { choiceId, sourceCard: null, options: ['CARD_A', 'CARD_B'], picked: [], resolved: false, choiceType }, { turn: 5, side: 'local' }));
+  const hero = v => at(v, record(1, 'choice',
+    { choiceId: 1, sourceCard: null, options: ['HERO_A', 'HERO_B'], picked: ['HERO_B'], resolved: true, choiceType: 'mulligan' }, { side: 'local' }));
+  const missing = (v, seq) => at(v, record(seq, 'gap', { reason: 'source_missing', count: 1 }, { turn: 5 }));
+  const view = v => at(v, record(1, 'gap', { reason: 'combat_view', count: 1 }));
+  const begin = (v, mode) => at(v, record(0, 'start', { captureKind: 'game', mode, day: DAY, build: 7, format: mode === 'ranked' ? 'standard' : null, arena: null }));
+  const finish = (v, seq, data) => ({ ...at(v, end(seq, { placement: null, ...data, status: data.status ?? 'incomplete' })), turn: 5 });
+  const renumber = rows => rows.map((r, seq) => ({ ...r, seq }));
+  // The journals as the recorder seals them, and the v3 the queue rewrites them into (SourceCaptureQueue.Downgrade.cs).
+  const ranked = v => [begin(v, 'ranked'), open(v, 1, 1, 'mulligan'), missing(v, 2), finish(v, 3, { result: 'W' })];
+  const bg = v => renumber([begin(v, 'bg'), ...(v === 3 ? [view(3)] : []), hero(v), open(v, 2, 2, 'general'), missing(v, 3), finish(v, 4, { result: 'L', placement: 5 })]);
+  let n = 0;
+  const send = async (rows, captureStatus, gaps) => {
+    const id = { ...ID, captureId: (++n).toString(16).padStart(32, '0') };
+    const r = await f.complete(jsonl(rows), { mode: rows[0].data.mode, day: rows[0].data.day, sourceVersion: rows[0].v, captureStatus, gaps }, id);
+    return { status: r.status, error: (await r.json()).error };
+  };
+  for (const rows of [ranked(4), ranked(3), bg(4), bg(3)])
+    assert.deepEqual(await send(rows, 'incomplete', rows.filter(r => r.kind === 'gap').length), { status: 202, error: undefined }, JSON.stringify(rows[0]));
+
+  // Before the fix: no gap, the end sealed complete. Refused whatever the manifest says, so the client cannot repair it.
+  const sealed = renumber([begin(4, 'ranked'), open(4, 1, 1, 'general'), finish(4, 2, { result: 'W', status: 'complete' })]);
+  assert.deepEqual(await send(sealed, 'complete', 0), { status: 400, error: 'incomplete_stream' });
+  assert.deepEqual(await send(sealed, 'incomplete', 0), { status: 400, error: 'incomplete_stream' });
 });

@@ -359,66 +359,102 @@ public sealed partial class SourceCaptureQueue : IAsyncDisposable
             }
             finally { _disk.Release(); }
             foreach (var listed in captures)
-            {
-                var capture = listed;
-                var endpoint = _store.Endpoint!; // Bind destination to this generation, never read a replacement endpoint after HTTP starts.
-                // A pool that does not know a journal's version yet gets it in the version it takes (docs/source-capture.md).
-                if (capture.SourceVersion > _poolVersion)
-                {
-                    if (await DowngradeAsync(capture, _poolVersion, token).ConfigureAwait(false) is not { } older) return;
-                    capture = older;
-                }
-            resend:
-                foreach (var chunk in capture.Chunks.Where(c => !c.Acknowledged))
-                {
-                    byte[] bytes;
-                    await _disk.WaitAsync(token).ConfigureAwait(false);
-                    try
-                    {
-                        if (!CanSend(capture)) return;
-                        // Marked before the first request of a generation: from here on an opt-out has something to delete.
-                        if (_store.Sent == false)
-                        {
-                            var sent = _store with { Sent = true, Dropped = Interlocked.Read(ref _dropped) };
-                            Atomic(StorePath, sent);
-                            _store = sent;
-                        }
-                        if (new FileInfo(ChunkPath(capture.CaptureId, chunk.Index)).Length != chunk.UncompressedBytes) { SetStatus("corrupt_local"); return; }
-                        bytes = await File.ReadAllBytesAsync(ChunkPath(capture.CaptureId, chunk.Index), token).ConfigureAwait(false);
-                        if (bytes.Length != chunk.UncompressedBytes || Hash(bytes) != chunk.Sha256) { SetStatus("corrupt_local"); return; }
-                    }
-                    finally { _disk.Release(); }
-                    var answer = await client.ChunkAsync(endpoint, capture, chunk, bytes, token).ConfigureAwait(false);
-                    if (!answer.Accepted && UnknownVersion(capture, answer))
-                    {
-                        SendOlder(capture.SourceVersion);
-                        if (await DowngradeAsync(capture, _poolVersion, token).ConfigureAwait(false) is not { } older) return;
-                        capture = older;
-                        goto resend;
-                    }
-                    if (!answer.Accepted) { Backoff(answer); return; }
-                    await _disk.WaitAsync(token).ConfigureAwait(false);
-                    try
-                    {
-                        if (!CanSend(capture)) return;
-                        var current = _manifests[capture.CaptureId];
-                        var updated = current with { Chunks = current.Chunks.Select(c => c.Index == chunk.Index ? c with { Acknowledged = true } : c).ToList() };
-                        SaveManifest(updated); _manifests[capture.CaptureId] = updated;
-                        File.Delete(ChunkPath(capture.CaptureId, chunk.Index));
-                    }
-                    finally { _disk.Release(); }
-                }
-                if (!CanSend(capture)) return;
-                var complete = await client.CompleteAsync(endpoint, capture, token).ConfigureAwait(false);
-                if (!complete.Accepted) { Backoff(complete); return; }
-                await _disk.WaitAsync(token).ConfigureAwait(false);
-                try { if (CanSend(capture)) DeleteCapture(capture.CaptureId); }
-                finally { _disk.Release(); }
-            }
+                if (!await SendJournalAsync(client, listed, token).ConfigureAwait(false)) return;
             if (waiting) Hold(); else SetStatus(_store.Enabled ? "idle" : "disabled");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { SetStatus("disk_error"); }
         finally { _sender.Release(); }
+    }
+
+    /// <summary>
+    /// One journal: its chunks, then its manifest. True goes on to the next journal (this one was sent, or the pool refused
+    /// it for good and it was dropped); false ends the pass (a temporary answer, a refusal that may pass later, a change of
+    /// the settings or the spool).
+    /// </summary>
+    private async Task<bool> SendJournalAsync(SourceCaptureClient client, SourceCaptureManifest listed, CancellationToken token)
+    {
+        var capture = listed;
+        var endpoint = _store.Endpoint!; // Bind destination to this generation, never read a replacement endpoint after HTTP starts.
+        // A pool that does not know a journal's version yet gets it in the version it takes (docs/source-capture.md).
+        if (capture.SourceVersion > _poolVersion)
+        {
+            if (await DowngradeAsync(capture, _poolVersion, token).ConfigureAwait(false) is not { } older) return false;
+            capture = older;
+        }
+        var stepped = false;
+    resend:
+        foreach (var chunk in capture.Chunks.Where(c => !c.Acknowledged))
+        {
+            byte[] bytes;
+            await _disk.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                if (!CanSend(capture)) return false;
+                // Marked before the first request of a generation: from here on an opt-out has something to delete.
+                if (_store.Sent == false)
+                {
+                    var sent = _store with { Sent = true, Dropped = Interlocked.Read(ref _dropped) };
+                    Atomic(StorePath, sent);
+                    _store = sent;
+                }
+                if (new FileInfo(ChunkPath(capture.CaptureId, chunk.Index)).Length != chunk.UncompressedBytes) { SetStatus("corrupt_local"); return false; }
+                bytes = await File.ReadAllBytesAsync(ChunkPath(capture.CaptureId, chunk.Index), token).ConfigureAwait(false);
+                if (bytes.Length != chunk.UncompressedBytes || Hash(bytes) != chunk.Sha256) { SetStatus("corrupt_local"); return false; }
+            }
+            finally { _disk.Release(); }
+            var answer = await client.ChunkAsync(endpoint, capture, chunk, bytes, token).ConfigureAwait(false);
+            if (!answer.Accepted && UnknownVersion(capture, answer))
+            {
+                // This journal one version older; the next ones follow only once the pool takes it (Taken).
+                if (await DowngradeAsync(capture, capture.SourceVersion - 1, token).ConfigureAwait(false) is not { } older) return false;
+                capture = older;
+                stepped = true;
+                goto resend;
+            }
+            if (!answer.Accepted) return await RefusedAsync(listed, capture, answer, token).ConfigureAwait(false);
+            Taken(capture.SourceVersion, stepped);
+            stepped = false;
+            await _disk.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                if (!CanSend(capture)) return false;
+                var current = _manifests[capture.CaptureId];
+                var updated = current with { Chunks = current.Chunks.Select(c => c.Index == chunk.Index ? c with { Acknowledged = true } : c).ToList() };
+                SaveManifest(updated); _manifests[capture.CaptureId] = updated;
+                File.Delete(ChunkPath(capture.CaptureId, chunk.Index));
+            }
+            finally { _disk.Release(); }
+        }
+        if (!CanSend(capture)) return false;
+        var complete = await client.CompleteAsync(endpoint, capture, token).ConfigureAwait(false);
+        if (!complete.Accepted) return await RefusedAsync(listed, capture, complete, token).ConfigureAwait(false);
+        await _disk.WaitAsync(token).ConfigureAwait(false);
+        try { if (CanSend(capture)) DeleteCapture(capture.CaptureId); }
+        finally { _disk.Release(); }
+        return true;
+    }
+
+    /// <summary>
+    /// A refusal of the journal itself (<see cref="SourceCaptureAnswer.Final"/>) drops it with a log line, and the pass goes
+    /// on to the next journal: sent again it would get the same answer, and while it waited it held every journal behind
+    /// it. Any other answer keeps it waiting and ends the pass, as before.
+    /// </summary>
+    private async Task<bool> RefusedAsync(SourceCaptureManifest listed, SourceCaptureManifest capture, SourceCaptureAnswer answer, CancellationToken token)
+    {
+        if (!answer.Final) { Backoff(answer); return false; }
+        await _disk.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            if (!CanSend(capture)) return false;
+            Drop(capture.CaptureId, "refused");
+            SaveStore();
+        }
+        finally { _disk.Release(); }
+        // The mode comes from a manifest on disk: only a known one is written to the log.
+        var mode = capture.Mode is "ranked" or "casual" or "arena" or "brawl" or "bg" or "duos" ? capture.Mode : "unknown";
+        Diag.Info(string.Create(CultureInfo.InvariantCulture,
+            $"Source capture: the pool refused a {mode} journal ({answer.Code}), dropped; source v{listed.SourceVersion}, sent as v{capture.SourceVersion}"));
+        return true;
     }
 
     private bool CanSend(SourceCaptureManifest capture)

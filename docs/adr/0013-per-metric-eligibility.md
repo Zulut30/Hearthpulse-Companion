@@ -35,7 +35,14 @@ can tell it from a real loss. Source v1 cannot: v1 Battlegrounds sources stay un
 
 The structural gap described every Battlegrounds source, not a loss in one of them. Source v4
 (TASK-2026-11-26-pro-collection P1, [source-capture.md](../source-capture.md), "Source v4") no longer writes it, and
-a gap in any mode is a real loss: a v4 Battlegrounds game without one is `parsed` and `completeForAggregation`. The
-flag's definition is unchanged (no gaps, no unsupported observations, no unresolved choices, the mode's outcome); what
-changed is that nothing the format leaves out on purpose counts as a gap. The per-metric flags, reasons and checks above
-are unchanged; v2/v3 Battlegrounds sources keep their `combat_view` gap and stay `partial`.
+a gap in a game capture of any mode is a real loss: a v4 Battlegrounds game without one is `parsed` and
+`completeForAggregation`. The flag's definition is unchanged (no gaps, no unsupported observations, no unresolved
+choices, the mode's outcome); what changed is that nothing the format leaves out on purpose counts as a gap. The
+per-metric flags, reasons and checks above are unchanged; v2/v3 Battlegrounds sources keep their `combat_view` gap and
+stay `partial`.
+
+A loss is still written as a gap: a block type the recorder does not know (`unsupported`), and a local choice whose
+pick never became visible (`source_missing`, one per such choice; the pool refuses a complete journal with an open
+choice). Neither spoils `outcome`. Draft captures are the exception that stays: each starts with a `source_missing` gap,
+because live Arena offers have not been checked against the screen, so a draft is always `partial` and a draft metric
+needs its own fitness rather than `parsed` or `completeForAggregation`.

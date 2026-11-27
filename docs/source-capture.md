@@ -170,12 +170,17 @@ step by step after the game (`simreplay --pool`). Same switch as the rest of the
 ## Source v4: a gap is a real loss
 
 Up to v3 the recorder counted every Power.log line and value it did not type as an `unsupported` gap. On the kept logs
-of 24–25.11.2026 (10 Ranked games, `Hearthpulse.Bench capture`) that was 12 244 gap records, 46 % of the records,
+of 24–25.11.2026 (10 Ranked games, `Hearthpulse.Bench capture`) that was 12 245 gap records, 46 % of the records,
 about 1 200 a game, and every game ended `incomplete`; the pool saw the same (63 captures, all `partial`, 111 580
 `unsupported` gaps, 2026-11-26). Nine tenths were lines the format never meant to carry. Since v4
-(TASK-2026-11-26-pro-collection, P1) a capture is `partial` only when something was lost: a stretch of the game not
-seen (late start, log rotation, shutdown), a bound reached (`limit`), an observation that could not be typed
+(TASK-2026-11-26-pro-collection, P1) a game capture is `partial` only when something was lost: a stretch of the game
+not seen (late start, log rotation, shutdown), a bound reached (`limit`), an observation that could not be typed
 (`unsupported`, `invalid`) or one that never became visible (`source_missing`).
+
+One exception, on purpose: a draft capture is always `partial`. It starts with a `source_missing` gap because the
+Arena offers it holds are read from the client and have not been checked against the screen
+(`SourceCaptureRecorder.CaptureDraftChoice`), so no draft claims complete coverage. Draft metrics therefore never read
+`parsed` or `completeForAggregation`; each needs its own fitness ([ADR 0013](adr/0013-per-metric-eligibility.md)).
 
 Left out on purpose, neither recorded nor counted (`SourceCaptureRecorder.Input.cs`, `SourceCaptureRecorder.cs`):
 
@@ -188,18 +193,28 @@ Left out on purpose, neither recorded nor counted (`SourceCaptureRecorder.Input.
 | tag `STEP` (no longer in the recorder's allowlist) | the phase is logged as a name and no metric reads it; `TURN` carries the turn |
 | `PROPOSED_ATTACKER`/`PROPOSED_DEFENDER` | the attack is its `ATTACK` block; v1–v3 wrote an `unknown` action and a gap for each |
 | a `PLAY` block from a card the action list does not name (a location used from play) | the block with its source is the observation; v1–v3 added an `unknown` action |
-| a block type outside the list (the `DECK_ACTION` of a trade, ...) | written as `OTHER` with its contents, which are kept; only the type is left out |
+| a Power.log block type without a kind of its own: `DECK_ACTION` (a trade), `FATIGUE`, `RITUAL`, `JOUST`, `REVEAL_CARD`, `GAME_RESET` | written as `OTHER` with its contents, which are kept; only the type is left out |
 
 Unknown Power.log grammar stays an `unsupported` gap: the recorder cannot claim a game complete when the client wrote
-something it does not know.
+something it does not know. A block type outside both lists is such grammar: its block is written as `OTHER` with its
+contents and comes with an `unsupported` gap (`SourceCaptureRecorder.KnownBlockType`), and `Bench capture` names the
+type.
 
 A Battlegrounds game has no `combat_view` gap in v4. Every Battlegrounds source is the Power state, which runs ahead of
 the displayed combat; this section says so for all of them instead of counting a loss in each. A Battlegrounds game
 without a loss is `parsed` and complete for aggregation; the per-metric eligibility of [ADR 0013](adr/0013-per-metric-eligibility.md)
 is unchanged (its amendment of 2026-11-26).
 
-A local choice resolved with no card (`DebugPrintEntitiesChosen ... EntitiesCount=0`, a mulligan keeping every card)
-is written as resolved with an empty `picked`; before, it stayed open and made the game `partial` without a gap.
+For `choiceType: mulligan`, `picked` is the cards kept: `DebugPrintEntitiesChosen` lists the cards the player keeps,
+and the others go back to the deck (checked on the 10 kept mulligans of 24–25.11.2026). A local choice resolved with no
+card (`EntitiesCount=0`, a mulligan that replaces every card) is written as resolved with an empty `picked`; before, it
+stayed open and made the game `partial` without a gap. A header with a count above zero resolves nothing by itself: the
+choice is resolved by its card lines.
+
+A local choice whose pick never became visible is a real loss: the game ended while it was open (a concede during the
+mulligan or a Discover) or the Battlegrounds turn timer chose and no chosen line came. The recorder writes one
+`source_missing` gap for it when the next choice opens or the game ends, so the journal ends `incomplete`. Sealed
+`complete` with a choice open, the journal is refused by the pool (`400 incomplete_stream`), also as v3.
 
 On the same 10 games v4 writes 1 gap record (a game cut by the end of its log: `shutdown`) and 13 928 records instead
 of 26 395; 9 games are `parsed`, the cut one `partial`.
@@ -212,16 +227,29 @@ of 26 395; 9 games are `parsed`, the cut one `partial`.
 - **Old captures** keep their status: the 63 v2 captures of 2026-11-26 stay `partial`, since their gaps cannot be told
   apart after the fact; reprocessing them with `source-v2.1` gives the same result.
 - **Order of deployment**: pool and worker before an app writing v4. A pool without v4 refuses a v4 line (`400
-  invalid_record`); the app then sends that journal and the next ones one version older until it restarts
-  (`SourceCaptureQueue.Downgrade.cs`, log line `Source capture: the pool does not take source v4 yet, journals go as v3
-  until the app restarts`): as v3 with the `combat_view` gap put back and the end sealed incomplete where v3 counts a
-  loss (that gap, an `OTHER` block), fights kept; as v2 without fights when the pool does not take v3 either.
+  invalid_record`); the app then sends that journal one version older, and once the pool takes it, the next ones too
+  until it restarts (`SourceCaptureQueue.Downgrade.cs`, log line `Source capture: the pool does not take source v4 yet,
+  journals go as v3 until the app restarts`): as v3 with the `combat_view` gap put back and the end sealed incomplete
+  where v3 counts a loss (that gap, an `OTHER` block), fights kept; as v2 without fights when the pool does not take v3
+  either. Only the first chunk of a journal newer than any version the pool took in this session is tried older: a
+  refused line in a version the pool took, or one refused in v2 too, is the journal's own and refused for good (below).
+- **Refused for good**: a 400 whose code says the pool will never take the journal as it is, its records, their order
+  or the manifest against them (`invalid_record`, `invalid_sequence`, `incomplete_stream`, `manifest_source_mismatch`
+  and the others in `SourceCaptureClient.JournalRefusals`), drops that journal and the pass goes on to the next one, log
+  line `Source capture: the pool refused a <mode> journal (<code>), dropped; source v<n>, sent as v<m>`; it counts with
+  the dropped journals in Settings → Data. A temporary answer (`429`, `503`, no network) or another refusal (an
+  envelope, a limit, a conflict, a deletion) keeps the journal and ends the pass, as before.
 - **Nothing new leaves the machine**: v4 has the record kinds and fields of v3, in fewer records.
 - **Measure**: `Hearthpulse.Bench capture [--logs <dir>]` replays kept logs through `GameSession` and the worker's
-  parser: per capture the gaps by reason, the decoder's gaps, unsupported count and status, the choices left open.
+  parser: per capture the gaps by reason, the decoder's gaps, unsupported count and status, the choices left open, the
+  journals the pool would refuse as complete with a choice open, and the block types the recorder does not know.
+  `--cost <n>`: what the journal costs the log thread, every log through `GameSession.OnLines` n times with the journal
+  off and on after a warm-up round (time and bytes allocated on that thread).
 - Tests: `SourceCaptureV4Tests` (a whole Ranked game per left-out kind and a whole Battlegrounds game through
-  `GameSession`, `parsed`; unknown grammar still a gap; the decoder's rules; the fallback to v3 and v2),
-  `capture-validation.test.mjs` and `combats.test.mjs` (the pool's rules).
+  `GameSession`, `parsed`; unknown grammar still a gap; a pick that never showed, one gap; a mulligan's pick is the
+  cards kept; the decoder's rules; the fallback to v3 and v2; a journal refused for good dropped, the next ones sent),
+  `capture-validation.test.mjs` and `combats.test.mjs` (the pool's rules, a journal with a choice left open taken as
+  incomplete in v4 and v3).
 
 ## Delivery and lifecycle
 

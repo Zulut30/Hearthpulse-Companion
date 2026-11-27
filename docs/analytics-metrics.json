@@ -235,7 +235,7 @@
       "numerator": "combats won / tied / lost; damage dealt or taken",
       "denominator": "finished observed combats of the round",
       "fields": ["combat.result", "combat.damage", "combat.round", "combat.boundary"],
-      "missing": "the source is not a replay of the displayed combat (combat_view); results need a visible combat record",
+      "missing": "the source is not a replay of the displayed combat (docs/source-capture.md, Source v4); results need a visible combat record",
       "groupBy": ["start.build", "combat.round"],
       "smallSample": "every number needs at least 5 installations (owner) among its own observations, else null; value null below 10 combats",
       "display": "B1: combat curve",

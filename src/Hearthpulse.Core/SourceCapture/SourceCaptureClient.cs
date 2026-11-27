@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.IO.Compression;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -98,6 +99,18 @@ public sealed class SourceCaptureClient(HttpClient http)
         }
     }
 
+    /// <summary>
+    /// The pool's codes for a journal it will never take as it is (server/pool/node/validation.mjs): its records, their
+    /// order, the manifest against them. Refusals of an envelope, an identity, a limit or a conflict keep it waiting.
+    /// </summary>
+    internal static readonly FrozenSet<string> JournalRefusals = new[]
+    {
+        "invalid_record", "invalid_jsonl", "invalid_utf8", "duplicate_json_key", "json_depth", "mixed_source_version",
+        "invalid_sequence", "invalid_combat_view", "invalid_combat", "invalid_blocks", "invalid_choice_progression",
+        "concealed_reference_reused", "unobserved_opponent_tag", "manifest_source_mismatch", "incomplete_stream",
+        "draft_result", "invalid_manifest",
+    }.ToFrozenSet(StringComparer.Ordinal);
+
     /// <summary>The pool's fixed error code of a refusal (<c>{"error":"invalid_record"}</c>), or null; never other text.</summary>
     private static async Task<string?> ErrorCodeAsync(HttpResponseMessage response, CancellationToken token)
     {
@@ -121,7 +134,11 @@ public sealed class SourceCaptureClient(HttpClient http)
 }
 
 /// <param name="Code">The pool's error code of a 400 refusal, when it gave one (see <c>ErrorCodeAsync</c>).</param>
-internal sealed record SourceCaptureAnswer(bool Accepted, string Status, TimeSpan RetryAfter, string? Code = null);
+internal sealed record SourceCaptureAnswer(bool Accepted, string Status, TimeSpan RetryAfter, string? Code = null)
+{
+    /// <summary>A 400 for the journal itself (<see cref="SourceCaptureClient.JournalRefusals"/>): it is never taken as it is.</summary>
+    public bool Final => Code is not null && SourceCaptureClient.JournalRefusals.Contains(Code);
+}
 /// <summary>Aggregate processing status without source records or installation identifiers.</summary>
 public sealed record SourceCaptureRemoteStatus(string Status, string? ParserVersion, int Records, int Unsupported, int Gaps);
 internal sealed record SourceCaptureRevocation(string Iid, string Generation, string Endpoint);

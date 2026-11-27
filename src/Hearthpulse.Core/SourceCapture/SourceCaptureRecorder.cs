@@ -38,6 +38,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
     private string[] _options = [];
     private int[] _optionEntities = [];
     private bool _choiceOpen;
+    // The last record of the current choice is unresolved: its pick has not been seen (it may never be).
+    private bool _choicePending;
     private readonly List<string> _picked = new();
 
     /// <summary>Called on the parser thread. Subscribers must only enqueue immutable observations.</summary>
@@ -72,7 +74,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         Stop("rotation");
         _game = game; _capture = null; _stopped = false; _late = _catchingUp;
         _shown.Clear(); _concealed.Clear(); _shop.Clear(); _blocks.Clear();
-        _nextRef = 0; _choice = 0; _options = []; _optionEntities = []; _choiceOpen = false; _picked.Clear();
+        _nextRef = 0; _choice = 0; _options = []; _optionEntities = []; _choiceOpen = false; _choicePending = false; _picked.Clear();
         _pendingInputGaps = 0;
     }
 
@@ -300,17 +302,26 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         else NoteGap("unsupported"); // Unknown enum strings never become zero or raw text.
     }
 
+    private static string BlockKind(string type) => type is "PLAY" or "POWER" or "TRIGGER" or "ATTACK" or "DEATHS" or "MOVE_MINION" ? type : "OTHER";
+
+    /// <summary>
+    /// A type the format names, or a Power.log block type without a kind of its own (a trade's DECK_ACTION, fatigue...),
+    /// whose OTHER block is no loss (source v4). Any other type is grammar the recorder does not know: its OTHER block
+    /// comes with an unsupported gap, and <c>Bench capture</c> names it.
+    /// </summary>
+    internal static bool KnownBlockType(string type) =>
+        BlockKind(type) != "OTHER" || type is "DECK_ACTION" or "FATIGUE" or "RITUAL" or "JOUST" or "REVEAL_CARD" or "GAME_RESET";
+
     public void OnBlockStart(GameState game, string blockType, Entity? source)
     {
         if (!Ready(game)) return;
-        var block = blockType is "PLAY" or "POWER" or "TRIGGER" or "ATTACK" or "DEATHS" or "MOVE_MINION" ? blockType : "OTHER";
+        var block = BlockKind(blockType);
         if (_blocks.Count >= 64) { NoteGap("limit"); return; }
         var pending = new CaptureBlock(block, source);
         _blocks.Push(pending);
         var shown = Visible(source);
-        // A block type the format does not name is written as OTHER with its contents (source v4: no gap, its type is
-        // left out on purpose, as for a trade's DECK_ACTION).
         Emit("block_start", new { block }, shown?.Side ?? "none", shown?.Id ?? 0, shown?.Side == "local" ? shown.Card : null);
+        if (!KnownBlockType(blockType)) NoteGap("unsupported");
         if (source?.Controller != game.LocalPlayerId) return;
         var target = Visible(game.Entities.GetValueOrDefault(source.GetInt("CARD_TARGET")));
         if (blockType == "PLAY")
@@ -359,6 +370,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
     {
         if (choiceType == "MULLIGAN" && options.Any(e => e.Controller != 0 && e.Controller != game.LocalPlayerId)) { Stop("unsupported"); _stopped = true; return; }
         if (!Ready(game)) return;
+        SealOpenChoice();
         _choice++; _picked.Clear(); _choiceSource = Visible(source)?.Card;
         _choiceType = choiceType switch { "MULLIGAN" => "mulligan", "GENERAL" => "general", _ => "other" };
         _choiceOpen = true;
@@ -373,7 +385,8 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
 
     /// <summary>
     /// The chosen-entities header precedes its card lines, so it resolves nothing by itself; only a header that names no
-    /// card (a mulligan keeping every card) is a completed empty selection.
+    /// card is a completed empty selection (a mulligan's chosen entities are the cards kept: none kept, the whole hand
+    /// replaced).
     /// </summary>
     public void OnChoiceMade(GameState game, int count)
     {
@@ -386,7 +399,23 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         _choiceOpen = false;
         _picked.Add(chosen.CardId); WriteChoice(true);
     }
-    private void WriteChoice(bool resolved) => Emit("choice", new { choiceId = _choice, sourceCard = _choiceSource, options = _options.ToArray(), picked = _picked.ToArray(), resolved, choiceType = _choiceType }, "local");
+    private void WriteChoice(bool resolved)
+    {
+        _choicePending = !resolved;
+        Emit("choice", new { choiceId = _choice, sourceCard = _choiceSource, options = _options.ToArray(), picked = _picked.ToArray(), resolved, choiceType = _choiceType }, "local");
+    }
+
+    /// <summary>
+    /// The current choice is still unresolved when the next one opens or the game ends: its pick never became visible
+    /// (the game ended while it was open, the Battlegrounds turn timer chose). A real loss, so the journal ends incomplete;
+    /// the pool refuses a complete one with an open choice.
+    /// </summary>
+    private void SealOpenChoice()
+    {
+        if (!_choicePending) return;
+        _choicePending = false;
+        NoteGap("source_missing");
+    }
 
     public void OnGameEnded(GameState game)
     {
@@ -397,6 +426,7 @@ public sealed partial class SourceCaptureRecorder : IPowerListener
         _stopped = false;
         var result = game.LocalPlayerEntity?.GetString("PLAYSTATE") switch { "WON" => "W", "LOST" or "CONCEDED" => "L", "TIED" => "T", _ => null };
         if (result is null) NoteGap("source_missing");
+        SealOpenChoice();
         if (_blocks.Count > 0) NoteGap("invalid");
         var place = game.IsBattlegrounds && game.LocalHero?.GetInt(GameTag.PlayerLeaderboardPlace) is > 0 and <= 8 and var p ? (int?)p : null;
         if (_mode is "bg" or "duos" && Combats is { } combats)

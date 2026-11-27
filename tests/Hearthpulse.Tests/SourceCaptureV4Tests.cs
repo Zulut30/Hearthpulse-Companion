@@ -4,10 +4,12 @@ using System.Text;
 using System.Text.Json;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.SourceCapture;
 using Hearthpulse.Core.SourceCapture.Processing;
 using Hearthpulse.Core.Tracking;
+using Microsoft.Extensions.Time.Testing;
 using static Hearthpulse.Tests.BattlegroundsReplayTests;
 
 namespace Hearthpulse.Tests;
@@ -15,8 +17,10 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// Source v4 (TASK-2026-11-26-pro-collection P1): a gap is a real loss. A whole game recorded through the live path
 /// (GameSession: every Power.log line to the recorder and the parser) decodes as parsed whatever known log grammar the
-/// format leaves out, while an unknown line or an undecodable value still leaves it partial; the decoder's v4 rules; the
-/// spool's fallback to v3 and v2 for a pool that does not take v4 yet. Synthetic lines in the order real logs have them.
+/// format leaves out, while an unknown line or an undecodable value still leaves it partial, and so does a pick that
+/// never became visible; a mulligan's pick is the cards kept; the decoder's v4 rules; the spool's fallback to v3 and v2
+/// for a pool that does not take v4 yet, and a journal the pool refuses for good dropped instead of holding the queue.
+/// Synthetic lines in the order real logs have them.
 /// </summary>
 public sealed class SourceCaptureV4Tests : IDisposable
 {
@@ -28,8 +32,8 @@ public sealed class SourceCaptureV4Tests : IDisposable
 
     public void Dispose() => TestDataFolder.TryDelete(_dir);
 
-    // Regression: before v4 each of these left every real game partial (12 244 gaps in the 10 kept games of 24-25.11, 46 %
-    // of the records); a mulligan keeping every card left its choice open.
+    // Regression: before v4 each of these left every real game partial (12 245 gaps in the 10 kept games of 24-25.11, 46 %
+    // of the records); a mulligan that replaced every card left its choice open.
     [Theory]
     [InlineData("none")]
     [InlineData("options")]
@@ -43,10 +47,10 @@ public sealed class SourceCaptureV4Tests : IDisposable
     [InlineData("attack")]
     [InlineData("trade")]
     [InlineData("location")]
-    [InlineData("kept_hand")]
+    [InlineData("replaced_hand")]
     public async Task A_whole_ranked_game_with_log_lines_the_format_leaves_out_is_parsed(string kind)
     {
-        var capture = RecordGame(kind == "kept_hand" ? Ranked(KeptHand(), []) : Ranked([], LeftOut(kind)));
+        var capture = RecordGame(kind == "replaced_hand" ? Ranked(Mulligan(), []) : Ranked([], LeftOut(kind)));
 
         Assert.DoesNotContain(capture, f => f.Record.Kind == "gap");
         Assert.Equal("complete", Data(capture[^1]).GetProperty("status").GetString());
@@ -72,7 +76,8 @@ public sealed class SourceCaptureV4Tests : IDisposable
                 Assert.Contains(capture, f => f.Record.Kind == "block_start" && f.Record.Card == "LOCATION_CARD");
                 Assert.DoesNotContain(capture, f => f.Record.Kind == "action");
                 break;
-            case "kept_hand":
+            case "replaced_hand":
+                // No card kept: the empty pick is the whole hand replaced.
                 var choice = Assert.Single(result.Events, e => e.Kind == "choice" && e.Data.GetProperty("resolved").GetBoolean());
                 Assert.Equal("mulligan", choice.Data.GetProperty("choiceType").GetString());
                 Assert.Empty(choice.Data.GetProperty("picked").EnumerateArray());
@@ -80,55 +85,149 @@ public sealed class SourceCaptureV4Tests : IDisposable
         }
     }
 
-    [Fact]
-    public async Task An_unknown_log_line_or_an_undecodable_value_is_still_a_gap()
+    [Theory]
+    [InlineData("structure")]
+    [InlineData("meta_data")]
+    [InlineData("value")]
+    [InlineData("debug_print")] // QA Q2: a DebugPrint method the recorder does not know
+    [InlineData("game_state")] // QA Q2: another GameState method it does not know
+    [InlineData("block_type")] // review m1: a block type outside both lists; its contents stay as OTHER, its type is a loss
+    public async Task An_unknown_log_line_or_an_undecodable_value_is_still_a_gap(string kind)
     {
-        foreach (var line in new[]
+        string[] lines = kind switch
         {
-            "DebugPrintPower() - FUTURE_STRUCTURE Entity=GameEntity",
-            "DebugPrintPower() -     META_DATA_FUTURE Info=1",
-            $"DebugPrintPower() - TAG_CHANGE Entity={Spell} tag=COST value=ONE ",
-        })
-        {
-            var capture = RecordGame(Ranked([], [line]));
-            var gap = Assert.Single(capture, f => f.Record.Kind == "gap");
-            Assert.Equal("unsupported", Data(gap).GetProperty("reason").GetString());
-            Assert.Equal("incomplete", Data(capture[^1]).GetProperty("status").GetString());
-            var result = await Decode(capture);
-            Assert.Equal(("partial", 1, 1), (result.Status, result.Gaps, result.Unsupported));
-            Assert.False(result.Summary.CompleteForAggregation);
-            // The outcome survives a lost observation (ADR 0013).
-            Assert.True(result.Eligibility.Outcome);
-            Assert.DoesNotContain("FUTURE", string.Join('\n', capture.Select(f => f.Record.ToJson())), StringComparison.Ordinal);
-        }
+            "structure" => ["DebugPrintPower() - FUTURE_STRUCTURE Entity=GameEntity"],
+            "meta_data" => ["DebugPrintPower() -     META_DATA_FUTURE Info=1"],
+            "value" => [$"DebugPrintPower() - TAG_CHANGE Entity={Spell} tag=COST value=ONE "],
+            "debug_print" => ["DebugPrintFutureThing() - id=7"],
+            "game_state" => ["SendFutureThing() - id=7"],
+            _ => [$"DebugPrintPower() - BLOCK_START BlockType=FUTURE_TYPE Entity={Spell} {Effect} Target=0 SubOption=-1 ", "DebugPrintPower() - BLOCK_END"],
+        };
+        var capture = RecordGame(Ranked([], lines));
+
+        var gap = Assert.Single(capture, f => f.Record.Kind == "gap");
+        Assert.Equal("unsupported", Data(gap).GetProperty("reason").GetString());
+        Assert.Equal("incomplete", Data(capture[^1]).GetProperty("status").GetString());
+        var result = await Decode(capture);
+        Assert.Equal(("partial", 1, 1), (result.Status, result.Gaps, result.Unsupported));
+        Assert.False(result.Summary.CompleteForAggregation);
+        // The outcome survives a lost observation (ADR 0013).
+        Assert.True(result.Eligibility.Outcome);
+        Assert.DoesNotContain("FUTURE", string.Join('\n', capture.Select(f => f.Record.ToJson())), StringComparison.Ordinal);
+    }
+
+    // Regression (review B1, QA Q1): a game that ended with the local choice open was sealed complete without a gap, which
+    // the pool refuses (400 incomplete_stream). The pick never became visible: one source_missing gap, so the journal
+    // ends incomplete and the pool takes it (capture-validation.test.mjs).
+    [Theory]
+    [InlineData("mulligan")] // the opponent conceded during the mulligan
+    [InlineData("discover")] // ... during a Discover, its block already closed
+    [InlineData("header")] // QA Q3: the chosen header came (EntitiesCount=1), its card line never did
+    public async Task A_game_that_ends_with_the_local_choice_open_has_one_gap_and_ends_incomplete(string open)
+    {
+        var capture = RecordGame(open == "mulligan"
+            ? [.. ReplayRecorderTests.Setup[..^3], .. MulliganOffer(), .. GameOver]
+            : Ranked([], OpenDiscover(header: open == "header")));
+
+        var gap = Assert.Single(capture, f => f.Record.Kind == "gap");
+        Assert.Equal("source_missing", Data(gap).GetProperty("reason").GetString());
+        Assert.False(Data(capture.Last(f => f.Record.Kind == "choice")).GetProperty("resolved").GetBoolean());
+        Assert.Equal("incomplete", Data(capture[^1]).GetProperty("status").GetString());
+        var result = await Decode(capture);
+        Assert.Equal(("partial", 1, 0), (result.Status, result.Gaps, result.Unsupported));
+        // A lost pick is not a lost end of the game: the result still counts (ADR 0013).
+        Assert.True(result.Eligibility.Outcome);
+        Assert.Equal(new SourceCaptureOutcome("W", null), result.Facts.Outcome);
+        Assert.Equal(("incomplete", 1), await Sealed(capture));
+    }
+
+    // Regression (review B1): in Battlegrounds the turn timer picks a Discover the player left (no chosen line), and an
+    // offer the next one replaced was never picked; either sealed the journal complete with an open choice.
+    [Theory]
+    [InlineData("timer")]
+    [InlineData("replaced")]
+    public async Task A_battlegrounds_pick_that_never_showed_is_one_gap_and_the_place_still_counts(string kind)
+    {
+        string[] offer = kind == "timer"
+            ?
+            [
+                .. Entity(80, "TB_BaconShop_Triples_01", Me, "HAND", "SPELL"),
+                .. Entity(81, "BG30_121", Me, "SETASIDE", "MINION"),
+                .. Entity(82, "BG32_340", Me, "SETASIDE", "MINION"),
+                BattlegroundsReplayTests.Start("PLAY", 80),
+                Tag(80, "ZONE", "PLAY"),
+                .. Offer("GENERAL", 80, 81, 82),
+                BattlegroundsReplayTests.End,
+            ]
+            :
+            [
+                .. Entity(81, "BG30_121", Me, "SETASIDE", "MINION"),
+                .. Entity(82, "BG32_340", Me, "SETASIDE", "MINION"),
+                .. Entity(83, "BG21_001", Me, "SETASIDE", "MINION"),
+                .. Entity(84, "BGS_004", Me, "SETASIDE", "MINION"),
+                .. Offer("GENERAL", null, 81, 82),
+                .. Offer("GENERAL", null, 83, 84),
+                .. Chosen(84),
+            ];
+        var capture = RecordGame(BattlegroundsGame(offer));
+
+        var gap = Assert.Single(capture, f => f.Record.Kind == "gap");
+        Assert.Equal("source_missing", Data(gap).GetProperty("reason").GetString());
+        Assert.Equal("incomplete", Data(capture[^1]).GetProperty("status").GetString());
+        var result = await Decode(capture);
+        Assert.Equal(("partial", 1, 0), (result.Status, result.Gaps, result.Unsupported));
+        Assert.True(result.Eligibility.Outcome);
+        Assert.True(result.Eligibility.Offers);
+        Assert.Equal(new SourceCaptureOutcome("L", 5), result.Facts.Outcome);
+        Assert.Equal(("incomplete", 1), await Sealed(capture));
+    }
+
+    // QA Q3: the chosen header names how many cards follow, so it resolves nothing by itself; the card line does, once.
+    [Fact]
+    public void A_pick_resolves_its_choice_with_its_card_and_not_with_the_header_before_it()
+    {
+        string[] pick =
+        [
+            .. OpenDiscover(header: true).SkipLast(1),
+            "DebugPrintEntitiesChosen() -   Entities[0]=[entityName=X id=98 zone=SETASIDE zonePos=0 cardId=CORE_CS2_189 player=1]",
+            "DebugPrintPower() - BLOCK_END",
+        ];
+        var capture = RecordGame(Ranked([], pick));
+
+        var records = capture.Where(f => f.Record.Kind == "choice").Select(Data).ToArray();
+        Assert.Equal([false, false, true], records.Select(r => r.GetProperty("resolved").GetBoolean()));
+        Assert.Equal(["CORE_CS2_189"], records[^1].GetProperty("picked").EnumerateArray().Select(c => c.GetString()));
+        Assert.DoesNotContain(capture, f => f.Record.Kind == "gap");
+    }
+
+    // Review M1: the chosen entities of a mulligan are the cards kept. The client lists them and the others go back to the
+    // deck (checked on the 10 real mulligans of 24-25.11), so mulligan.keep reads picked as kept, and an empty pick is a
+    // mulligan that replaced every card.
+    [Fact]
+    public void A_mulligans_pick_is_the_cards_kept_in_hand()
+    {
+        var parser = new PowerParser(new DateOnly(2026, 11, 26));
+        var recorder = new SourceCaptureRecorder();
+        var frames = new List<SourceCaptureFrame>();
+        recorder.Recorded += frames.Add;
+        recorder.SetEnabled(true);
+        parser.AddListener(recorder);
+        ReplayRecorderTests.Feed(parser, Ranked(Mulligan(98), []));
+        parser.Flush();
+
+        var choice = Data(frames.Last(f => f.Record.Kind == "choice"));
+        Assert.True(choice.GetProperty("resolved").GetBoolean());
+        Assert.Equal("mulligan", choice.GetProperty("choiceType").GetString());
+        Assert.Equal(["CORE_CS2_189"], choice.GetProperty("picked").EnumerateArray().Select(c => c.GetString()));
+        var game = parser.Game!;
+        Assert.Equal(("HAND", "DECK", "DECK"), (game.Entities[98].Zone, game.Entities[97].Zone, game.Entities[99].Zone));
     }
 
     // Regression: a Battlegrounds game was partial by its combat_view gap alone, and by its phases and attacks.
     [Fact]
     public async Task A_whole_battlegrounds_game_is_parsed_and_fit_for_its_place_and_hero_offer()
     {
-        var turn = Array.IndexOf(Setup, Game("TURN", 1));
-        string[] lines =
-        [
-            .. Setup.Take(turn),
-            .. Entity(70, "TB_BaconShop_HERO_01", Me, "HAND", "HERO"),
-            .. Entity(71, "TB_BaconShop_HERO_02", Me, "HAND", "HERO"),
-            .. Offer("MULLIGAN", null, 70, 71),
-            "DebugPrintOptions() - id=1",
-            "DebugPrintOptions() -   option 0 type=CHOOSE mainEntity= error=NONE errorParam=",
-            "SendChoices() - id=1 ChoiceType=MULLIGAN",
-            "SendChoices() -   m_chosenEntities[0]=[entityName=X id=71 zone=HAND zonePos=2 cardId=TB_BaconShop_HERO_02 player=1]",
-            .. Chosen(71),
-            .. Setup.Skip(turn),
-            "DebugPrintPowerList() - Count=1",
-            "SendOption() - selectedOption=1 selectedSubOption=-1 selectedTarget=51 selectedPosition=0",
-            "DebugPrintPower() -     META_DATA - Meta=SLUSH_TIME Data=1000 InfoCount=1",
-            "DebugPrintPower() -                 Info[0] = [entityName=X id=10 zone=PLAY zonePos=0 cardId=TB_BaconShop_HERO_50 player=1]",
-            // The lobby names the opponent of each combat, so the tracker records the fights for the journal.
-            Tag(3, "BACON_CURRENT_COMBAT_PLAYER_ID", 4),
-            .. Game5th().Skip(Setup.Length),
-        ];
-        var capture = RecordGame(lines);
+        var capture = RecordGame(BattlegroundsGame());
 
         Assert.DoesNotContain(capture, f => f.Record.Kind == "gap");
         Assert.Equal(2, capture.Count(f => f.Record.Kind == "bg_combat"));
@@ -197,32 +296,38 @@ public sealed class SourceCaptureV4Tests : IDisposable
             Spool(queue, 'a', "bg");
             Spool(queue, 'b', "ranked");
             Spool(queue, 'c', "ranked", other: true);
+            Spool(queue, 'd', "duos");
             await queue.FlushAsync();
             await queue.SendPendingAsync(new(http));
 
             // One refused v4 chunk, then every journal as v3: nothing waits behind the first one.
             Assert.Single(seen, x => x.Version == 4);
-            Assert.Equal(3, seen.Count(x => x is { Route: "complete", Version: 3 }));
+            Assert.Equal(4, seen.Count(x => x is { Route: "complete", Version: 3 }));
             Assert.Equal(0, queue.State.PendingCaptures);
         }
 
         var sent = seen.Where(x => x is { Route: "chunks", Version: 3 }).Select(x => x.Source).ToArray();
-        Assert.Equal(3, sent.Length);
-        var bg = await ParseText(sent.Single(s => s.Contains("\"mode\":\"bg\"", StringComparison.Ordinal)));
-        Assert.Equal((3, "partial", 2), (bg.SourceVersion, bg.Status, bg.Events.Count(e => e.Kind == "bg_combat")));
-        Assert.Equal(("gap", "combat_view"), (bg.Events[1].Kind, bg.Events[1].Data.GetProperty("reason").GetString()));
-        Assert.Equal(4, bg.Facts.Outcome!.Placement);
-        Assert.Equal(Enumerable.Range(0, bg.Records), bg.Events.Select(e => e.Seq));
+        Assert.Equal(4, sent.Length);
+        // QA Q4: a Duos game gets its combat_view gap back too, or a v3 pool refuses it (invalid_combat_view).
+        foreach (var mode in new[] { "bg", "duos" })
+        {
+            var bg = await ParseText(sent.Single(s => s.Contains($"\"mode\":\"{mode}\"", StringComparison.Ordinal)));
+            Assert.Equal((3, "partial", 2), (bg.SourceVersion, bg.Status, bg.Events.Count(e => e.Kind == "bg_combat")));
+            Assert.Equal(("gap", "combat_view"), (bg.Events[1].Kind, bg.Events[1].Data.GetProperty("reason").GetString()));
+            Assert.Equal(4, bg.Facts.Outcome!.Placement);
+            Assert.Equal(Enumerable.Range(0, bg.Records), bg.Events.Select(e => e.Seq));
+        }
+
         var ranked = await ParseText(sent.Single(s => s.Contains("\"mode\":\"ranked\"", StringComparison.Ordinal) && !s.Contains("OTHER", StringComparison.Ordinal)));
         Assert.Equal((3, "parsed"), (ranked.SourceVersion, ranked.Status));
         var other = await ParseText(sent.Single(s => s.Contains("OTHER", StringComparison.Ordinal)));
         Assert.Equal((3, "partial", 1), (other.SourceVersion, other.Status, other.Unsupported));
         // The manifests say what the v3 journals now hold: complete only for the Ranked game without a loss.
-        Assert.Equal(["a:incomplete", "b:complete", "c:incomplete"], seen.Where(x => x.Route == "complete").Select(x => x.Source).Order(StringComparer.Ordinal));
+        Assert.Equal(["a:incomplete", "b:complete", "c:incomplete", "d:incomplete"], seen.Where(x => x.Route == "complete").Select(x => x.Source).Order(StringComparer.Ordinal));
 
         // After a restart the pool is asked with v4 again: it may have been updated meanwhile.
         await using var restarted = await scratch.Open();
-        Spool(restarted, 'd', "bg");
+        Spool(restarted, 'e', "bg");
         await restarted.FlushAsync();
         await restarted.SendPendingAsync(new(http));
         Assert.Equal(2, seen.Count(x => x.Version == 4));
@@ -262,6 +367,135 @@ public sealed class SourceCaptureV4Tests : IDisposable
         Assert.Equal(("parsed", 2), (v4.Status, v4.Events.Count(e => e.Kind == "bg_combat")));
     }
 
+    // Review B1, the queue's side: a 400 whose code says the pool will never take the journal as it is (here what it
+    // answered the open choice) was retried every 30 s ahead of the others, so every journal behind it waited for 14
+    // days. Such a journal is dropped with a log line and the pass goes on.
+    [Fact]
+    public async Task A_journal_the_pool_refuses_for_good_is_dropped_and_the_next_ones_go_on()
+    {
+        using var scratch = new SourceScratch();
+        var seen = new List<(string Route, char Id, int Version)>();
+        using var http = new HttpClient(new Answering(seen, (route, id, _) => route == "complete" && id != 'd' ? (HttpStatusCode.BadRequest, "incomplete_stream") : null));
+        await using var queue = await scratch.Open();
+        foreach (var id in "abcd") Spool(queue, id, "ranked");
+        await queue.FlushAsync();
+
+        await queue.SendPendingAsync(new(http));
+
+        // One pass offers every journal once, in whatever order: the refused ones are gone, the last one is sent.
+        Assert.Equal("abcd", string.Concat(seen.Where(x => x.Route == "complete").Select(x => x.Id).Order()));
+        Assert.Equal((0, 3L), (queue.State.PendingCaptures, queue.State.Dropped));
+        Assert.Empty(Directory.GetDirectories(scratch.Path));
+        Assert.Contains("Source capture: the pool refused a ranked journal (incomplete_stream), dropped; source v4, sent as v4", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+    }
+
+    // A temporary answer still ends the pass and keeps every journal: the pool is busy or away, it refuses nothing.
+    [Theory]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    [InlineData((HttpStatusCode)0)] // no network
+    public async Task A_temporary_answer_keeps_every_journal_waiting(HttpStatusCode status)
+    {
+        using var scratch = new SourceScratch();
+        var seen = new List<(string Route, char Id, int Version)>();
+        using var http = new HttpClient(new Answering(seen, (_, _, _) => (status, null)));
+        await using var queue = await scratch.Open();
+        Spool(queue, 'a', "ranked");
+        Spool(queue, 'b', "ranked");
+        await queue.FlushAsync();
+
+        await queue.SendPendingAsync(new(http));
+
+        Assert.Single(seen);
+        Assert.Equal((2, 0L, "offline"), (queue.State.PendingCaptures, queue.State.Dropped, queue.State.Status));
+    }
+
+    // Review m5: once the pool took a v4 chunk in this session, a v4 line it refuses is the journal's fault and not the
+    // version's: that journal is dropped, nothing is sent older, the next one still goes as v4.
+    [Fact]
+    public async Task A_line_refused_in_a_version_the_pool_took_drops_that_journal_and_keeps_the_version()
+    {
+        using var scratch = new SourceScratch();
+        var seen = new List<(string Route, char Id, int Version)>();
+        using var http = new HttpClient(new Answering(seen, (route, id, _) => route == "chunks" && id == 'b' ? (HttpStatusCode.BadRequest, "invalid_record") : null));
+        await using var queue = await scratch.Open();
+        Spool(queue, 'a', "bg");
+        await queue.FlushAsync();
+        await queue.SendPendingAsync(new(http));
+        Spool(queue, 'b', "bg");
+        Spool(queue, 'c', "bg");
+        await queue.FlushAsync();
+
+        await queue.SendPendingAsync(new(http));
+
+        Assert.All(seen, x => Assert.Equal(4, x.Version));
+        Assert.Equal("ac", string.Concat(seen.Where(x => x.Route == "complete").Select(x => x.Id).Order()));
+        Assert.Equal((0, 1L), (queue.State.PendingCaptures, queue.State.Dropped));
+    }
+
+    // Review m5: before the pool took anything, a journal refused in v4, v3 and v2 alike is the journal's fault: it is
+    // dropped and the session stays on v4. It used to stay waiting and take the session down to v2 without fights until a
+    // restart, with a log line saying the pool did not take v4.
+    [Fact]
+    public async Task A_journal_refused_in_every_version_is_dropped_and_the_next_one_goes_as_v4()
+    {
+        using var scratch = new SourceScratch();
+        var time = new FakeTimeProvider();
+        var seen = new List<(string Route, char Id, int Version)>();
+        using var http = new HttpClient(new Answering(seen, (route, id, _) => route == "chunks" && id == 'a' ? (HttpStatusCode.BadRequest, "invalid_record") : null));
+        await using var queue = await scratch.Open(time: time);
+        Spool(queue, 'a', "bg");
+        await queue.FlushAsync();
+        await queue.SendPendingAsync(new(http));
+
+        Assert.Equal([4, 3, 2], seen.Select(x => x.Version));
+        Assert.Equal((0, 1L), (queue.State.PendingCaptures, queue.State.Dropped));
+
+        time.Advance(TimeSpan.FromMinutes(1)); // past the retry wait a refusal used to set
+        Spool(queue, 'b', "bg");
+        await queue.FlushAsync();
+        await queue.SendPendingAsync(new(http));
+        Assert.Equal([("chunks", 4), ("complete", 4)], seen.Where(x => x.Id == 'b').Select(x => (x.Route, x.Version)));
+    }
+
+    /// <summary>
+    /// A pool that answers each request with what <paramref name="refuse"/> gives for its route, journal (the first
+    /// letter of its id) and source version: a status and error code (status 0: no network), or null to take it.
+    /// </summary>
+    private sealed class Answering(List<(string Route, char Id, int Version)> seen, Func<string, char, int, (HttpStatusCode Status, string? Code)?> refuse) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+            var root = body.RootElement;
+            var chunk = request.RequestUri!.AbsolutePath.EndsWith("chunks", StringComparison.Ordinal);
+            var version = root.TryGetProperty("sourceVersion", out var manifest) ? manifest.GetInt32() : 0;
+            if (chunk)
+            {
+                using var gzip = new GZipStream(new MemoryStream(Convert.FromBase64String(root.GetProperty("data").GetString()!)), CompressionMode.Decompress);
+                using var reader = new StreamReader(gzip);
+                using var first = JsonDocument.Parse(await reader.ReadLineAsync(cancellationToken) ?? "{}");
+                version = first.RootElement.GetProperty("v").GetInt32();
+            }
+
+            var route = chunk ? "chunks" : "complete";
+            var id = root.GetProperty("captureId").GetString()![0];
+            seen.Add((route, id, version));
+            switch (refuse(route, id, version))
+            {
+                case { Status: 0 }:
+                    throw new HttpRequestException("offline");
+                case { } answer:
+                    return new(answer.Status) { Content = new StringContent(answer.Code is null ? """{"ok":false}""" : $$"""{"ok":false,"error":"{{answer.Code}}"}""") };
+            }
+
+            object receipt = chunk
+                ? new { ok = true, stored = true, duplicate = false, index = root.GetProperty("index").GetInt32(), sha256 = root.GetProperty("sha256").GetString() }
+                : new { ok = true, status = "stored", captureId = root.GetProperty("captureId").GetString() };
+            return new(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(receipt)) };
+        }
+    }
+
     /// <summary>A pool that takes sources up to <paramref name="known"/>; a newer line is an unknown record (400 invalid_record).</summary>
     private sealed class Pool(int known, List<(string Route, int Version, string Source)> seen) : HttpMessageHandler
     {
@@ -291,14 +525,15 @@ public sealed class SourceCaptureV4Tests : IDisposable
         private static HttpResponseMessage Ok(object body) => new(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(body)) };
     }
 
-    /// <summary>A whole game as the v4 recorder writes it: no gap, a Battlegrounds game with two fights, place 4.</summary>
+    /// <summary>A whole game as the v4 recorder writes it: no gap, a Battlegrounds or Duos game with two fights, place 4.</summary>
     private static void Spool(SourceCaptureQueue queue, char id, string mode, bool other = false)
     {
         var capture = new string(id, 32);
         var seq = 0;
+        var battlegrounds = mode is "bg" or "duos";
         void Add(string kind, object data, int turn = 9) =>
             Assert.True(queue.TryAppend(new(capture, "game", mode, 20776, new SourceCaptureRecord(seq++, kind, turn, "none", 0, null, 0, data))));
-        Add("start", new { captureKind = "game", mode, day = 20776, build = (int?)4321, format = mode == "bg" ? null : "standard", arena = (string?)null }, turn: 0);
+        Add("start", new { captureKind = "game", mode, day = 20776, build = (int?)4321, format = battlegrounds ? null : "standard", arena = (string?)null }, turn: 0);
         Add("tag", new { tag = "TURN", value = 9 });
         if (other)
         {
@@ -306,13 +541,27 @@ public sealed class SourceCaptureV4Tests : IDisposable
             Add("block_end", new { block = "OTHER" });
         }
 
-        if (mode == "bg")
+        if (battlegrounds)
         {
             Add("bg_combat", SourceCaptureCombatTests.Project(SourceCaptureCombatTests.Fight(), index: 0));
             Add("bg_combat", SourceCaptureCombatTests.Project(SourceCaptureCombatTests.Fight(), index: 1));
         }
 
-        Add("end", new { status = "complete", result = mode == "bg" ? "L" : "W", placement = mode == "bg" ? (int?)4 : null, reason = "normal" });
+        Add("end", new { status = "complete", result = battlegrounds ? "L" : "W", placement = battlegrounds ? (int?)4 : null, reason = "normal" });
+    }
+
+    /// <summary>The manifest the spool seals for these frames: what the pool is told about the journal.</summary>
+    private static async Task<(string Status, int Gaps)> Sealed(IEnumerable<SourceCaptureFrame> frames)
+    {
+        using var scratch = new SourceScratch();
+        await using (var queue = await scratch.Open())
+        {
+            foreach (var frame in frames) Assert.True(queue.TryAppend(frame));
+            await queue.FlushAsync();
+        }
+
+        using var manifest = scratch.Manifest();
+        return (manifest.RootElement.GetProperty("captureStatus").GetString()!, manifest.RootElement.GetProperty("gaps").GetInt32());
     }
 
     // A Ranked game from its start (the capture begins at turn 0) to the local player's win, in the order of a real log.
@@ -322,21 +571,109 @@ public sealed class SourceCaptureV4Tests : IDisposable
         .. mulligan,
         .. ReplayRecorderTests.Setup[^3..],
         .. turn,
+        .. GameOver,
+    ];
+
+    private static readonly string[] GameOver =
+    [
         "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=PLAYSTATE value=WON ",
         "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=FINAL_WRAPUP ",
         "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=FINAL_GAMEOVER ",
         "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE ",
     ];
 
-    // The local mulligan keeping every card: the chosen header names no card.
-    private static string[] KeptHand() =>
+    // The local opening hand of three cards and the mulligan offered for it.
+    private static string[] MulliganOffer() =>
     [
-        "DebugPrintEntityChoices() - id=1 Player=velox#21276 TaskList= ChoiceType=MULLIGAN CountMin=0 CountMax=3",
+        .. ReplayRecorderTests.Card(97, "CORE_EX1_011", "HAND", 1, "MINION", "tag=ZONE_POSITION value=1"),
+        .. ReplayRecorderTests.Card(98, "CORE_CS2_189", "HAND", 1, "MINION", "tag=ZONE_POSITION value=2"),
+        "DebugPrintEntityChoices() - id=1 Player=velox#21276 TaskList=7 ChoiceType=MULLIGAN CountMin=0 CountMax=3",
         "DebugPrintEntityChoices() -   Source=GameEntity",
-        $"DebugPrintEntityChoices() -   Entities[0]={Spell}",
-        "SendChoices() - id=1 ChoiceType=MULLIGAN",
-        "DebugPrintEntitiesChosen() - id=1 Player=velox#21276 EntitiesCount=0",
+        .. Opening.Select((id, i) => $"DebugPrintEntityChoices() -   Entities[{i}]={InHand(id)}"),
     ];
+
+    /// <summary>
+    /// The local mulligan in the order of a real log: the offer, what the client sends, the chosen entities (the cards
+    /// <paramref name="kept"/>), then the others back to the deck and a new card drawn. None kept: the whole hand replaced.
+    /// </summary>
+    private static string[] Mulligan(params int[] kept) =>
+    [
+        .. MulliganOffer(),
+        "SendChoices() - id=1 ChoiceType=MULLIGAN",
+        .. kept.Select((id, i) => $"SendChoices() -   m_chosenEntities[{i}]={InHand(id)}"),
+        $"DebugPrintEntitiesChosen() - id=1 Player=velox#21276 EntitiesCount={kept.Length}",
+        .. kept.Select((id, i) => $"DebugPrintEntitiesChosen() -   Entities[{i}]={InHand(id)}"),
+        "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=MULLIGAN_STATE value=DEALING ",
+        $"DebugPrintPower() - BLOCK_START BlockType=TRIGGER Entity=velox#21276 {Effect} Target=0 SubOption=-1 TriggerKeyword=TAG_NOT_SET",
+        .. Opening.Except(kept).SelectMany(id => new[]
+        {
+            $"DebugPrintPower() -     HIDE_ENTITY - Entity={InHand(id)} tag=ZONE value=DECK",
+            $"DebugPrintPower() -     TAG_CHANGE Entity={InHand(id)} tag=ZONE value=DECK ",
+        }),
+        "DebugPrintPower() -     SHOW_ENTITY - Updating Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=40 zone=DECK zonePos=0 cardId= player=1] CardID=CORE_CS2_120",
+        "DebugPrintPower() -         tag=CARDTYPE value=MINION",
+        "DebugPrintPower() -         tag=ZONE value=HAND",
+        "DebugPrintPower() - BLOCK_END",
+    ];
+
+    private static readonly int[] Opening = [97, 98, 99];
+
+    private static string InHand(int id) => id switch
+    {
+        97 => "[entityName=X id=97 zone=HAND zonePos=1 cardId=CORE_EX1_011 player=1]",
+        98 => "[entityName=X id=98 zone=HAND zonePos=2 cardId=CORE_CS2_189 player=1]",
+        _ => Spell,
+    };
+
+    // A Discover of the local player from a card played from the hand, its block closed, the pick not seen yet (header:
+    // the chosen header with its count came, the card line did not).
+    private static string[] OpenDiscover(bool header) =>
+    [
+        $"DebugPrintPower() - BLOCK_START BlockType=PLAY Entity={Spell} {Effect} Target=0 SubOption=-1 ",
+        .. ReplayRecorderTests.Card(97, "CORE_EX1_011", "SETASIDE", 1, "MINION"),
+        .. ReplayRecorderTests.Card(98, "CORE_CS2_189", "SETASIDE", 1, "MINION"),
+        "DebugPrintEntityChoices() - id=2 Player=velox#21276 TaskList=30 ChoiceType=GENERAL CountMin=1 CountMax=1",
+        $"DebugPrintEntityChoices() -   Source={Spell}",
+        "DebugPrintEntityChoices() -   Entities[0]=[entityName=X id=97 zone=SETASIDE zonePos=0 cardId=CORE_EX1_011 player=1]",
+        "DebugPrintEntityChoices() -   Entities[1]=[entityName=X id=98 zone=SETASIDE zonePos=0 cardId=CORE_CS2_189 player=1]",
+        .. header
+            ?
+            [
+                "SendChoices() - id=2 ChoiceType=GENERAL",
+                "SendChoices() -   m_chosenEntities[0]=[entityName=X id=98 zone=SETASIDE zonePos=0 cardId=CORE_CS2_189 player=1]",
+                "DebugPrintEntitiesChosen() - id=2 Player=velox#21276 EntitiesCount=1",
+            ]
+            : Array.Empty<string>(),
+        "DebugPrintPower() - BLOCK_END",
+    ];
+
+    // A whole Battlegrounds game: the hero pick, turn 1 with known grammar the format leaves out and then <paramref
+    // name="turn"/>, two fights, out in 5th place.
+    private static string[] BattlegroundsGame(params string[] turn)
+    {
+        var first = Array.IndexOf(Setup, Game("TURN", 1));
+        return
+        [
+            .. Setup.Take(first),
+            .. Entity(70, "TB_BaconShop_HERO_01", Me, "HAND", "HERO"),
+            .. Entity(71, "TB_BaconShop_HERO_02", Me, "HAND", "HERO"),
+            .. Offer("MULLIGAN", null, 70, 71),
+            "DebugPrintOptions() - id=1",
+            "DebugPrintOptions() -   option 0 type=CHOOSE mainEntity= error=NONE errorParam=",
+            "SendChoices() - id=1 ChoiceType=MULLIGAN",
+            "SendChoices() -   m_chosenEntities[0]=[entityName=X id=71 zone=HAND zonePos=2 cardId=TB_BaconShop_HERO_02 player=1]",
+            .. Chosen(71),
+            .. Setup.Skip(first),
+            "DebugPrintPowerList() - Count=1",
+            "SendOption() - selectedOption=1 selectedSubOption=-1 selectedTarget=51 selectedPosition=0",
+            "DebugPrintPower() -     META_DATA - Meta=SLUSH_TIME Data=1000 InfoCount=1",
+            "DebugPrintPower() -                 Info[0] = [entityName=X id=10 zone=PLAY zonePos=0 cardId=TB_BaconShop_HERO_50 player=1]",
+            .. turn,
+            // The lobby names the opponent of each combat, so the tracker records the fights for the journal.
+            Tag(3, "BACON_CURRENT_COMBAT_PLAYER_ID", 4),
+            .. Game5th().Skip(Setup.Length),
+        ];
+    }
 
     // Known Power.log grammar the format leaves out (docs/source-capture.md, "Source v4"), as the client writes it.
     private static string[] LeftOut(string kind) => kind switch

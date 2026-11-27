@@ -156,7 +156,7 @@ The server re-checks every fact against the source rows before storing it (task 
 
 Source `v:3` is v2 plus the record kind `bg_combat`: one Battlegrounds fight as the app's combat simulator got it, with
 the result and the odds shown ([source-capture.md](../../docs/source-capture.md), "Battlegrounds fights", for the
-field allowlist and limits). It is valid only in a `v:3` `bg`/`duos` game capture, with `side:"none"`, `entity:0`,
+field allowlist and limits). It is valid only in a `v:3` or `v:4` `bg`/`duos` game capture, with `side:"none"`, `entity:0`,
 `card:null`, `target:0`, `data.fight` growing; a v1/v2 line of that kind fails closed. It adds no fact, no gap and no
 eligibility reason; its event keeps `kind:"bg_combat"` with empty `data`. The result reports `sourceVersion:3`;
 `parserVersion` stayed `source-v2.0` for v3 (v1/v2 sources decode exactly as before); v4 brought `source-v2.1`.
@@ -169,7 +169,8 @@ differ, and only for v4:
 
 - `gap.reason` `combat_view` is invalid: a v4 Battlegrounds game has no structural gap, so one without a loss is
   `parsed` and `completeForAggregation`. Eligibility and facts are derived as for v2.
-- An `OTHER` block (a type the format does not name, contents kept) is no unsupported observation and adds no gap.
+- An `OTHER` block (a type the format does not name, contents kept) is no unsupported observation and adds no gap. A
+  type the recorder does not know at all comes with its own `gap` record (`unsupported`), which counts as before.
 
 An `unknown` action and an unknown record kind stay unsupported. `parserVersion` is `source-v2.1`; it decodes v1-v3
 sources exactly as `source-v2.0` did, so stored results stay valid and need no reprocess.

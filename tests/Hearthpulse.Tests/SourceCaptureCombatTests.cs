@@ -562,12 +562,14 @@ public sealed class SourceCaptureCombatTests : IDisposable
         }
     }
 
+    // A refusal that is neither an unknown version nor about the journal itself (here the check of the bytes on their
+    // way) is not final: the journal waits, with its fights.
     [Fact]
     public async Task Another_refusal_of_a_v3_journal_keeps_it_waiting_as_before()
     {
         using var scratch = new SourceScratch();
         var seen = new List<(string Route, int Version, string Source)>();
-        using var http = new HttpClient(new OldPool(seen, refusal: "invalid_sequence"));
+        using var http = new HttpClient(new OldPool(seen, refusal: "checksum_mismatch"));
         await using var queue = await scratch.Open();
         SpoolBattlegroundsGame(queue, 'a');
         await queue.FlushAsync();
