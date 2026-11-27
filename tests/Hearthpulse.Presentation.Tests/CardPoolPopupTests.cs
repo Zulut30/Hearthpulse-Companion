@@ -383,10 +383,13 @@ public sealed class CardPoolPopupTests
             vm.OverChoices(false);
             Assert.True(vm.AllCards.Shown, vm.Name);
 
+            // The panel at its own spot: only the anchor's change can say the button is back (both pools are large).
             vm.OverChoices(true);
+            vm.Changes.Clear();
             vm.Show(Pool("TEST_GEN", 40));
             Assert.True(vm.Panel, vm.Name);
             Assert.True(vm.AllCards.Shown, vm.Name);
+            Assert.Contains(nameof(OverlayViewModel.ShowCardPoolAllCards), vm.Changes);
         }
     }
 
@@ -499,6 +502,53 @@ public sealed class CardPoolPopupTests
             Assert.False(panel.IsVisible);
         }
     });
+
+    /// <summary>
+    /// Q5 (m1) in the WPF overlay: the Discover popup placed over four options on 4:3 tells the view model and shows
+    /// without its button; then the panel at its own spot shows the button again. Three options on 16:9 leave room.
+    /// </summary>
+    [Fact]
+    public void The_wpf_popup_over_the_options_goes_without_its_button_and_the_panel_at_its_own_spot_shows_it_again() => WpfThread.RunThemed(() =>
+    {
+        var discover = Pool("DISCOVER_GEN", 40) with { Trigger = PoolTrigger.Choice };
+        var (vm, popup, panel, source) = WpfSurface(1440);
+        using (source)
+        {
+            vm.UpdateCardPoolKeys(true, T0);
+            vm.Update(Snapshot(discover, anchor: new CardPoolAnchor(PoolAnchorZone.Choice, 0, 4)), CardDb.Empty, new AppSettings(), null, null);
+            ((FrameworkElement)source.RootVisual).UpdateLayout();
+            Assert.True(popup.IsVisible);
+            Assert.Equal(Visibility.Collapsed, ((Button)popup.FindName("AllCards")).Visibility);
+
+            vm.Update(Snapshot(Pool("TEST_GEN", 40)), CardDb.Empty, new AppSettings(), null, null);
+            ((FrameworkElement)source.RootVisual).UpdateLayout();
+            Assert.True(panel.IsVisible);
+            Assert.Equal(Visibility.Visible, ((Button)panel.FindName("AllCards")).Visibility);
+        }
+
+        (vm, popup, _, source) = WpfSurface(1920);
+        using (source)
+        {
+            vm.Update(Snapshot(discover, anchor: new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3)), CardDb.Empty, new AppSettings(), null, null);
+            ((FrameworkElement)source.RootVisual).UpdateLayout();
+            Assert.True(popup.IsVisible);
+            Assert.Equal(Visibility.Visible, ((Button)popup.FindName("AllCards")).Visibility);
+        }
+    });
+
+    /// <summary>The Discover popup and the panel at its own spot on a surface of <paramref name="width"/>, as the overlay holds them.</summary>
+    private static (OverlayViewModel Vm, CardPoolPanel Popup, CardPoolPanel Panel, HwndSource Source) WpfSurface(double width)
+    {
+        var vm = new OverlayViewModel();
+        var popup = new CardPoolPanel { DataContext = vm, Anchored = true };
+        popup.SetBinding(UIElement.VisibilityProperty, new Binding(nameof(OverlayViewModel.ShowCardPoolPopup)) { Converter = new BooleanToVisibilityConverter() });
+        var panel = new CardPoolPanel { DataContext = vm };
+        panel.SetBinding(UIElement.VisibilityProperty, new Binding(nameof(OverlayViewModel.ShowCardPoolPanel)) { Converter = new BooleanToVisibilityConverter() });
+        var root = new Canvas { Width = width, Height = 1080 };
+        root.Children.Add(popup);
+        root.Children.Add(panel);
+        return (vm, popup, panel, new HwndSource(new HwndSourceParameters("pool popup test", (int)width, 1080) { WindowStyle = 0 }) { RootVisual = root });
+    }
 
     private static (OverlayViewModel Vm, CardPoolPanel Panel, HwndSource Source) WpfPanel()
     {
