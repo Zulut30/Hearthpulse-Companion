@@ -17,6 +17,7 @@ namespace Hearthpulse.Tests;
 /// The shared view models are one source for both UIs; Hearthpulse.Presentation.Tests runs the WPF flavour where it
 /// differs.
 /// </summary>
+[Collection(nameof(GlobalLanguage))]
 public sealed class OverlayDeclutterTests : IDisposable
 {
     public void Dispose() => Loc.Instance.SetLanguage(Loc.English);
