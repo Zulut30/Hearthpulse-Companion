@@ -18,7 +18,9 @@ internal static class Program
           replay    replay kept Power logs through GameSession: parse and publish timings, allocations
           capture   source capture on the kept logs: every Power.log through GameSession with the journal on, each capture
                     decoded by the worker's parser; per capture the gaps by reason, the decoder's gaps, unsupported count
-                    and status, the choices left open; totals (nothing written to a spool or sent; no card or name printed)
+                    and status, the choices left open, whether the pool refuses it as sealed; totals and the block types
+                    the recorder does not know (nothing written to a spool or sent; no card or name printed); --cost <n>:
+                    what the journal costs the log thread, n rounds with it off and on after a warm-up
           parser    the Power.log parser alone on the kept logs (no network): lines/s, and what the spectator marker check
                     costs per line and the look-behind for a marker when the app joins a log at its last game
           overlay   replay snapshots into the WPF and Avalonia OverlayViewModel: time and bytes per Update, PropertyChanged
@@ -116,7 +118,7 @@ internal static class Program
                 ParserBench.Run(options);
                 break;
             case "capture":
-                return CaptureBench.Run(options.Logs);
+                return CaptureBench.Run(options);
             case "overlay":
                 WpfBench.Overlay(options);
                 break;
