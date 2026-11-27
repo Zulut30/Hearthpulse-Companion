@@ -21,7 +21,7 @@ right now?** Answer it before touching code or wording.
 |---|---|---|---|
 | **External data** (HSReplay, HSGuru through the Hearthpulse data API) | derived by the source; we hold no raw games | `Core/Api/HearthpulseData*.cs`, [hearthpulse-data-sources](../hearthpulse-data-sources/SKILL.md) | the source's own; we show its sample size and date, under the name "Hearthpulse data" |
 | **Shared BG and Constructed games** (`/v1/games`, `/v1/constructed`, totals `/v1/stats`, `/v1/choices`) | raw rows 60 days, totals over the last 30 | `server/pool/src/index.js`, `Core/Pool/PoolClient*.cs` | a published cell holds 10 games or more; details in `server/pool/README.md` |
-| **Game records** (`/v1/events`, `/v1/events/summary`, `/v1/events/mulligan-pairs`) | raw compact records 180 days; summary and pair table derived | `server/pool/src/events.js`, `Core/GameStats/`, `Core/Pool/MulliganPairs.cs`, `docs/game-stats.md` | each summary cell from 10 games and 5 installations; a pair (`mulligan.pair_winrate`) from 200 games with both kept and 5 installations |
+| **Game records** (`/v1/events`, `/v1/events/summary`, `/v1/events/mulligan-pairs`, `/v2/analytics/records/<view>`), the main path ([ADR 0014](../../../docs/adr/0014-record-analytics-and-balance-patches.md)) | raw compact records 180 days; summary, pair table and record views derived (the views read 90 days and are rebuilt off the request path) | `server/pool/src/events.js`, `server/pool/node/records/`, `Core/GameStats/`, `Core/Pool/MulliganPairs.cs`, `Core/Pool/Own/`, `docs/game-stats.md`, `docs/analytics-records.md` | each summary cell from 10 games and 5 installations; a pair (`mulligan.pair_winrate`) from 200 games with both kept and 5 installations; a record view's row from 5 installations, each value from 10 in its denominator, a deck list from 50 games |
 | **Source capture → facts → snapshot** (`/v1/captures/*`, `/stats/v2/analytics/bg/heroes`) | raw typed source; facts and snapshot derived, replaceable by reprocessing | `server/pool/node/` (`analytics.mjs`, `archive.mjs`), `tools/Hearthpulse.SourceWorker`, `Core/SourceCapture/`, `Core/Pool/AnalyticsClient.cs` | 5 installations behind every number, value hidden under 10 in its denominator |
 
 The pool has two entrypoints over one schema: the Cloudflare Worker (`server/pool/src`, D1) and the Node 24 service
@@ -56,8 +56,12 @@ field needs a client update and has no history.
    there is no safe join.
 4. An observation that is not fit leaves both numerator and denominator. `completeForAggregation` is not loosened
    to reach a sample.
-5. Group by `start.build`; `null` is its own group; builds are never merged. Rank is a league, MMR a 500-point
-   bracket: finer grouping does not exist in the data.
+5. A capture metric groups by `start.build`; `null` is its own group; builds are never merged. A record view groups
+   by balance patch: builds that change no card are one patch (`server/pool/data/balance-patches.json`), published as
+   `patch`, `7d` and `30d` of the newest patch, `patch` of the previous one and `30d` of the unknown build; two
+   balance patches are never merged ([ADR 0014](../../../docs/adr/0014-record-analytics-and-balance-patches.md)).
+   Rank is a league plus Diamond 4–1 (`d4-1`, `d4-legend`), MMR a 500-point value in four fixed ranges: finer grouping
+   does not exist in the data.
 6. Thresholds are the catalogue's: 5 distinct installations (`owner`) among the observations the number is made of,
    then 10 in the denominator for a value. Below either, the field is `null` and the row `small_sample`. Never pad,
    interpolate or borrow from another group.

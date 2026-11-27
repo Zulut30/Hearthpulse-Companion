@@ -60,7 +60,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 
 | Doc | What it covers |
 |---|---|
-| [adr/](adr/) | Architecture decisions later tasks do not re-open: shared presentation, two UIs, analyzers, the HPR replay format, hidden information, read-only client, `Loc.Instance`, file size, only our own analytics paid, Mercenaries not tracked, game records in the stats pool, the statics left on purpose, bound records as immutable views, per-metric eligibility |
+| [adr/](adr/) | Architecture decisions later tasks do not re-open: shared presentation, two UIs, analyzers, the HPR replay format, hidden information, read-only client, `Loc.Instance`, file size, only our own analytics paid, Mercenaries not tracked, game records in the stats pool, the statics left on purpose, bound records as immutable views, per-metric eligibility, own statistics from game records by balance patch |
 | [data-permissions.md](data-permissions.md) | The owner's permission to use HSReplay and HSGuru data (2026-11-15) |
 | [ui-decisions.md](ui-decisions.md) | Interface decisions an interface review does not raise again, and what is known and still open; written after each review's triage (in Russian) |
 | [source-capture-verification.md](source-capture-verification.md) | Source capture integration and its synthetic pilot of 2026-11-09 (a dated record; the current state is in source-capture.md) |

@@ -42,7 +42,7 @@ of a difference from either row's interval alone.
 | **Selection in offers** | heroes rerolled away before the pick are not in `offered` | pick rate is "picked when still offered at the pick", not "picked when first seen" |
 | **Skill and choice** | strong players pick strong heroes, decks and lines | "players who pick X place better" is not "picking X makes you place better"; write the first |
 | **Region and time** | the external collectors read one region; slices are up to days old | show the date; do not present a slice as global or current |
-| **Patch mix** | a balance patch changes the population mid-window | group by `start.build`; never merge builds to reach a threshold |
+| **Patch mix** | a balance patch changes the population mid-window | captures: group by `start.build`; record views: by balance patch, with the 7- and 30-day windows inside it (ADR 0014); never merge two balance patches to reach a threshold |
 
 ## Simpson's paradox: check before merging groups
 
