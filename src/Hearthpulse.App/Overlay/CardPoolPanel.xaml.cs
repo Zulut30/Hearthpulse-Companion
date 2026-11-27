@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -11,18 +10,15 @@ using Hearthpulse.Core.CardPool;
 namespace Hearthpulse.App.Overlay;
 
 /// <summary>
-/// The card pool panel. It appears on its own (Discover, a hovered card in hand), often over the board, so it lets
-/// clicks through to the game: the pointer and mouse buttons are read while it is shown and handed to
-/// <see cref="OverlayViewModel.UpdateCardPoolPointer(bool, bool, bool)"/> (hold the pool, right-click opens the pool
-/// browser). With <see cref="Anchored"/> it sits in a Canvas over the whole surface and stands next to its card.
-/// It fades in when it first appears (<see cref="Reveal"/>); another card's pool replaces it without a fade, so the
-/// layered overlay window repaints less.
+/// The card pool panel. Clicks go through to the game except on its "All cards" button, so the pointer is polled while
+/// it shows (<see cref="OverlayViewModel.UpdateCardPoolPointer(bool)"/>, the rows' card previews). It fades in only when
+/// it first appears (<see cref="Reveal"/>), so the layered overlay window repaints less.
 /// </summary>
 public partial class CardPoolPanel : UserControl
 {
     private static readonly TimeSpan RevealTime = TimeSpan.FromMilliseconds(120);
 
-    // Input priority: the poll must not starve behind rendering, or a short right-click falls between two ticks.
+    // Input priority: the poll must not starve behind rendering, or the hold and the row previews lag the pointer.
     private readonly DispatcherTimer _poll = new(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(40) };
     private OverlayViewModel? _subscribed;
     private FrameworkElement? _previewRow;
@@ -38,8 +34,6 @@ public partial class CardPoolPanel : UserControl
         {
             if (IsVisible)
             {
-                // A right-click from before the panel showed must not count as one on it.
-                PoolInput.WasPressed(PoolInput.RightButton);
                 _poll.Start();
                 // Measured and placed before the first frame, so the panel never shows at its previous spot.
                 UpdateLayout();
@@ -49,7 +43,7 @@ public partial class CardPoolPanel : UserControl
             else
             {
                 _poll.Stop();
-                ViewModel?.UpdateCardPoolPointer(false, false, false);
+                ViewModel?.UpdateCardPoolPointer(false);
             }
         };
         SizeChanged += (_, _) => Place();
@@ -88,7 +82,7 @@ public partial class CardPoolPanel : UserControl
 
     private void OnCardLayoutUpdated(object? sender, EventArgs e) => _rowsDirty = true;
 
-    /// <summary>The panel is the popup next to its card (in a Canvas over the surface), not the movable panel's content.</summary>
+    /// <summary>The panel is the popup beside the Discover options (in a Canvas over the surface), not the movable panel's content.</summary>
     public bool Anchored
     {
         get => _anchored;
@@ -102,15 +96,9 @@ public partial class CardPoolPanel : UserControl
     private bool _anchored;
     private ScaleTransform? _floor;
 
-    /// <summary>
-    /// The popup's header note leaves out the card's name (the card stands beside it) and its fill does not fade with the
-    /// overlay opacity; the panel at its own spot names the card and fades like the others.
-    /// </summary>
+    /// <summary>The popup's fill does not fade with the overlay opacity; the panel at its own spot fades like the others.</summary>
     private void ApplyAnchored()
     {
-        var (shown, hidden, path) = _anchored ? (PopupNote, PanelNote, nameof(OverlayViewModel.CardPoolMeta)) : (PanelNote, PopupNote, nameof(OverlayViewModel.CardPoolSourceNote));
-        hidden.Visibility = Visibility.Collapsed;
-        shown.SetBinding(VisibilityProperty, new Binding(path) { Converter = (IValueConverter)FindResource("Vis") });
         if (_anchored)
         {
             Card.SetResourceReference(Border.BackgroundProperty, "OverlayPopupSolid");
@@ -143,23 +131,9 @@ public partial class CardPoolPanel : UserControl
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        switch (e.PropertyName)
+        if (e.PropertyName == nameof(OverlayViewModel.CardPoolAnchor))
         {
-            case nameof(OverlayViewModel.CardPoolAnchor):
-                Place();
-                break;
-            case nameof(OverlayViewModel.CardPoolHeld):
-                // Held: a gold edge, the one sign that a right-click opens the whole pool.
-                if (ViewModel?.CardPoolHeld == true)
-                {
-                    Card.SetResourceReference(Border.BorderBrushProperty, "AccentLine");
-                }
-                else
-                {
-                    Card.ClearValue(Border.BorderBrushProperty);
-                }
-
-                break;
+            Place();
         }
     }
 
@@ -178,7 +152,7 @@ public partial class CardPoolPanel : UserControl
         Card.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, RevealTime) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
     }
 
-    /// <summary>Stands next to the card: <see cref="PoolPlacement"/> in surface units, from the panel's measured size.</summary>
+    /// <summary>Stands beside the Discover options: <see cref="PoolPlacement"/> in surface units, from the panel's measured size.</summary>
     private void Place()
     {
         if (!Anchored || !IsVisible || ViewModel is not { CardPoolAnchor: { } anchor } vm || Parent is not FrameworkElement { ActualWidth: > 0 } layer
@@ -198,18 +172,21 @@ public partial class CardPoolPanel : UserControl
         var (x, y) = PoolPlacement.PlaceOnSurface(anchor, layer.ActualWidth, vm.CardPoolOverlayScale, ActualWidth * floor, ActualHeight * floor);
         Canvas.SetLeft(this, x);
         Canvas.SetTop(this, y);
+        // Clamped onto the options (no room beside them): no button, it would take an option's click. Only x decides
+        // it, so the height the button takes or gives back does not flip it.
+        vm.SetCardPoolPopupOverChoices(PoolPlacement.CoversChoicesOnSurface(anchor, layer.ActualWidth, vm.CardPoolOverlayScale, ActualWidth * floor, ActualHeight * floor));
     }
 
     private void Poll()
     {
         if (PoolInput.Cursor() is { } cursor)
         {
-            PollAt(new Point(cursor.X, cursor.Y), PoolInput.IsDown(PoolInput.LeftButton), PoolInput.WasPressed(PoolInput.RightButton));
+            PollAt(new Point(cursor.X, cursor.Y));
         }
     }
 
-    /// <summary>One poll with the cursor at <paramref name="screen"/> (screen pixels) and the buttons given (the bench).</summary>
-    private void PollAt(Point screen, bool leftDown, bool rightPressed)
+    /// <summary>One poll with the cursor at <paramref name="screen"/> (screen pixels).</summary>
+    private void PollAt(Point screen)
     {
         if (ViewModel is not { } vm || PresentationSource.FromVisual(Card) is null)
         {
@@ -218,12 +195,12 @@ public partial class CardPoolPanel : UserControl
 
         var point = Card.PointFromScreen(screen);
         var over = point.X >= 0 && point.Y >= 0 && point.X <= Card.ActualWidth && point.Y <= Card.ActualHeight;
-        vm.UpdateCardPoolPointer(over, leftDown, rightPressed);
+        vm.UpdateCardPoolPointer(over);
         PreviewRowAt(over ? point : null);
     }
 
     /// <summary>
-    /// The full card of the row under the pointer (rows of this game, related cards, Excavate): the panel takes no mouse,
+    /// The full card of the row under the pointer (rows of this game, Excavate, the pool's cards): the panel takes no mouse,
     /// so the poll does what a hover would. The preview leaves with the pointer.
     /// </summary>
     private void PreviewRowAt(Point? inCard)

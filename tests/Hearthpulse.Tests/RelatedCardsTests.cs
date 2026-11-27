@@ -427,33 +427,6 @@ public sealed class RelatedCardsTests
         Assert.Null(RelatedCards.Of("HERO_01b", cards, CardPoolCatalog.Empty));
     }
 
-    /// <summary>
-    /// TASK-2026-11-09 AC7: a card that looks back at this game shows that list and, beside it, its related cards
-    /// (N'Zoth's four abilities, not the enchantment); a card without a rule has its related cards as its list.
-    /// </summary>
-    [Fact]
-    public void The_this_game_list_and_related_cards_show_together()
-    {
-        var (game, tracker) = Play([[.. Minion(40, "PLAIN", 1), .. Minion(41, "PLAIN", 1)]]);
-        var rule = new MatchRule(MatchEvent.Summoned, MatchSide.Friendly);
-        MatchListView? Related(string id) => RelatedCards.Of(id, Cards, Catalog);
-
-        var (list, related) = GameSession.HoverList("BE_017", rule, game, tracker.Counters, Cards, Related);
-        Assert.Equal(MatchLists.Title(rule), list!.Title);
-        Assert.Equal(Loc.T("Related.Title"), related!.Title);
-        Assert.Equal(["BE_017t3", "BE_017t4", "BE_017t5", "BE_017t6"], related.Rows.Select(r => r.CardId).Order(StringComparer.Ordinal));
-        Assert.Equal(4, related.Total);
-
-        var (withoutRule, none) = GameSession.HoverList("GEN_1", null, game, tracker.Counters, Cards, Related);
-        Assert.Equal(Loc.T("Related.Title"), withoutRule!.Title);
-        Assert.Null(none);
-
-        // A rule and no related cards: the rule's list alone.
-        var (onlyRule, noRelated) = GameSession.HoverList("PLAIN", rule, game, tracker.Counters, Cards, Related);
-        Assert.Equal(MatchLists.Title(rule), onlyRule!.Title);
-        Assert.Null(noRelated);
-    }
-
     /// <summary>AC8: Choose One options with capital suffixes and a Core_ reprint in another case are tokens too.</summary>
     [Theory]
     [InlineData("BE_017", "BE_017t3 BE_017t4 BE_017t5 BE_017t6")]
@@ -524,14 +497,14 @@ public sealed class RelatedCardsTests
         var (game, _) = Play([[.. Card(41, "GEN_1", "HAND", 1, "SPELL"), .. Card(60, "SHUF_1", "HAND", 2, "MINION"), .. Minion(50, "PLAIN", 1)]]);
         var hover = new CardPoolTracker();
 
-        hover.SetHovered("GEN_1", DateTime.UtcNow);
+        hover.SetHovered("GEN_1");
         Assert.Equal("GEN_1", hover.HoveredInHand(game));
 
         // The opponent's Shuffler has related cards, but it is not in your hand.
         Assert.NotNull(RelatedCards.Of("SHUF_1", Cards, Catalog));
         foreach (var notMine in new[] { "SHUF_1", "PLAIN" })
         {
-            hover.SetHovered(notMine, DateTime.UtcNow);
+            hover.SetHovered(notMine);
             Assert.Null(hover.HoveredInHand(game));
         }
     }

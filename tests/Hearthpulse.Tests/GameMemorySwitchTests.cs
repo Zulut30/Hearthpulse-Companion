@@ -30,9 +30,12 @@ public sealed class GameMemorySwitchTests
         ]
         """u8.ToArray()));
 
+    // GEN_1 Discovers a Beast: a card with a pool, the kind of card whose hover is read (related cards alone are not,
+    // TASK-2026-11-26 P-9).
     private static readonly CardPoolCatalog HoverCatalog = new(
     [
-        new PoolCard("GEN_1", 0, "Muster for Battle", "Summon three 1/1 Silver Hand Recruits. Equip a 1/4 weapon.", "SPELL", "COMMON", 1, null, null, [], [], null, [], [], "X", true),
+        new PoolCard("GEN_1", 0, "Muster for Battle", "Discover a Beast.", "SPELL", "COMMON", 1, null, null, ["NEUTRAL"], [], null, [], [], "X", true),
+        new PoolCard("BEAST_1", 0, "Wolf", "A wolf.", "MINION", "COMMON", 1, 1, 1, ["NEUTRAL"], ["BEAST"], null, [], [], "X", true),
     ], "test", Noon);
 
     [Fact]
@@ -369,6 +372,8 @@ public sealed class GameMemorySwitchTests
         var now = Noon;
         var session = Session(memory, () => now, readsMemory: false);
         session.Cards = HoverCards;
+        // Only whether a read is wanted is asked: no hover thread (on Windows Ctrl would start one).
+        session.HoverThreadEnabled = false;
         session.SetCardPoolCatalog(HoverCatalog);
         session.OnSessionStarted("Hearthstone_2026_11_26_12_00_00", Noon, attachedMidSession: false);
         session.OnLines("Power.log", ConstructedGame("GEN_1"), catchingUp: false);
@@ -376,7 +381,9 @@ public sealed class GameMemorySwitchTests
         session.OnTick();
 
         Assert.NotNull(session.Current.Constructed);
-        // A card with related cards in your hand: its hover is read from the game where a reader exists (Windows).
+        // A card with a pool in your hand and Ctrl held (the card pool's default hover mode): its hover is read from the
+        // game where a reader exists (Windows).
+        session.SetCardPoolControl(true);
         Assert.Equal(HearthstoneMemory.IsSupported, session.HoverReadsWanted);
 
         session.SetGameMemoryEnabled(false);

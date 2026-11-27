@@ -96,6 +96,30 @@ public static class PoolPlacement
     private static bool Fits(double x, double width, double panelWidth) => x >= Edge && x <= width - Edge - panelWidth;
 
     /// <summary>
+    /// Whether the panel <see cref="Place"/> puts beside the Discover options lies over them: there is no room on either
+    /// side of the row (four options on 4:3, five options, a large overlay scale), so it is clamped onto it. The panel
+    /// lets clicks through to the options, its "All cards" button would not: the panel goes without it then.
+    /// </summary>
+    public static bool CoversChoices(CardPoolAnchor anchor, double width, double panelWidth, double panelHeight)
+    {
+        if (anchor.Zone != PoolAnchorZone.Choice)
+        {
+            return false;
+        }
+
+        var half = Math.Max(1, anchor.Count) * ChoiceSlot / 2;
+        var (x, _) = Place(anchor, width, panelWidth, panelHeight);
+        return x < (width / 2) + half && x + panelWidth > (width / 2) - half;
+    }
+
+    /// <summary><see cref="CoversChoices"/> in overlay surface units, as <see cref="PlaceOnSurface"/> places the panel.</summary>
+    public static bool CoversChoicesOnSurface(CardPoolAnchor anchor, double surfaceWidth, double scale, double panelWidth, double panelHeight)
+    {
+        scale = AppSettings.ClampScale(scale);
+        return CoversChoices(anchor, surfaceWidth * scale, panelWidth * scale, panelHeight * scale);
+    }
+
+    /// <summary>
     /// The extra scale of the popup over the player's overlay <paramref name="scale"/>, so it is drawn at least at
     /// <see cref="MinPopupScale"/>: 1 at scale 0.85 and above.
     /// </summary>

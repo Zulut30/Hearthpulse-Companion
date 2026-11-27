@@ -49,7 +49,9 @@ public sealed partial class GameSession
                 // At once, not on the next tick.
                 _memoryEpoch++;
                 _memoryPoller.Release();
-                _cardPoolHoverWanted = false;
+                // The card under the mouse is no longer read, and the one read before is not shown.
+                _cardPoolHoverPossible = false;
+                _cardPool.SetHovered(null);
                 ForgetMemoryValues();
             }
 

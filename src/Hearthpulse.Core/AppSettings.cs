@@ -27,6 +27,19 @@ public enum CompMode
     Auto,
 }
 
+/// <summary>When a card in the player's hand shows its card pool (Settings, "When you point at a card in hand").</summary>
+public enum CardPoolHover
+{
+    /// <summary>Only while Ctrl is held over the card; the card under the mouse is read from the game only then.</summary>
+    Ctrl,
+
+    /// <summary>On any hover over a card in hand.</summary>
+    Always,
+
+    /// <summary>Never; the card under the mouse is not read.</summary>
+    Off,
+}
+
 public sealed partial class AppSettings
 {
     private static JsonTypeInfo<AppSettings> Json => AppSettingsJsonContext.Default.AppSettings;
@@ -105,10 +118,17 @@ public sealed partial class AppSettings
     public bool ShowOpponentCounters { get; set; } = true;
 
     /// <summary>
-    /// The card pool panel: for a card that Discovers or creates random cards, the pool it draws from (during the
-    /// Discover, right after it is played, or while hovered in hand).
+    /// The card pool panel: for a card that Discovers, creates random cards or Excavates, the pool it draws from - for a
+    /// card in hand in its own movable panel (<see cref="CardPoolHover"/>), beside the options during the player's own
+    /// Discover (<see cref="CardPoolOnDiscover"/>). Off hides both, and the card under the mouse is not read.
     /// </summary>
     public bool ShowCardPool { get; set; } = true;
+
+    /// <summary>When a card in hand shows its pool: with Ctrl held (the default), on any hover, or never.</summary>
+    public CardPoolHover CardPoolHover { get; set; } = CardPoolHover.Ctrl;
+
+    /// <summary>The player's own Discover shows its pool beside the options by itself.</summary>
+    public bool CardPoolOnDiscover { get; set; } = true;
 
     /// <summary>The Graveyard panel: the minions that died this game on each side (Constructed, Arena); off until turned on.</summary>
     public bool ShowGraveyard { get; set; }
@@ -244,6 +264,18 @@ public sealed partial class AppSettings
     /// <summary>Pick suggestions: "Off".</summary>
     [JsonIgnore]
     public bool PickHintsOff { get => PickHints == PickHints.Off; set => SetIf(value, () => PickHints = PickHints.Off); }
+
+    /// <summary>Card pool of a card in hand: "With Ctrl".</summary>
+    [JsonIgnore]
+    public bool CardPoolHoverCtrl { get => CardPoolHover == CardPoolHover.Ctrl; set => SetIf(value, () => CardPoolHover = CardPoolHover.Ctrl); }
+
+    /// <summary>Card pool of a card in hand: "Always".</summary>
+    [JsonIgnore]
+    public bool CardPoolHoverAlways { get => CardPoolHover == CardPoolHover.Always; set => SetIf(value, () => CardPoolHover = CardPoolHover.Always); }
+
+    /// <summary>Card pool of a card in hand: "Off".</summary>
+    [JsonIgnore]
+    public bool CardPoolHoverOff { get => CardPoolHover == CardPoolHover.Off; set => SetIf(value, () => CardPoolHover = CardPoolHover.Off); }
 
     /// <summary>Interface language: follow the system.</summary>
     [JsonIgnore]
@@ -455,6 +487,7 @@ public sealed partial class AppSettings
         }
 
         if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
+        if (!Enum.IsDefined(CardPoolHover)) CardPoolHover = CardPoolHover.Ctrl;
         TwitchDelaySeconds = Math.Clamp(TwitchDelaySeconds, 0, MaxTwitchDelaySeconds);
         OverlayScale = Bounded(OverlayScale, MinScale, MaxScale, 1);
         OverlayOpacity = Bounded(OverlayOpacity, 0.3, 1, 1);

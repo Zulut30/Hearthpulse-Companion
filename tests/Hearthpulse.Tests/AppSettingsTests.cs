@@ -27,6 +27,7 @@ public sealed class AppSettingsTests : IDisposable
         var settings = new AppSettings
         {
             PickHints = hints,
+            CardPoolHover = CardPoolHover.Always,
             ShowHeroPick = true,
             Locale = "ruRU",
             Language = "ru",
@@ -167,6 +168,32 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal("Off", Assert.Single(settings.CounterModes).Value);
         Assert.Equal(("Frost", "ru"), (settings.Theme, settings.Language));
         Assert.Equal("ruRU", settings.CardLocale());
+    }
+
+    /// <summary>
+    /// TASK-2026-11-26 AC4: a file written before the card pool's hover modes has neither key: the pool shows with Ctrl
+    /// and on a Discover, as for a new install; the player's choice is kept, and a value from another version falls back
+    /// to Ctrl without touching the rest of the file.
+    /// </summary>
+    [Fact]
+    public void An_old_settings_file_shows_the_card_pool_with_ctrl_and_on_a_discover()
+    {
+        var old = AppSettings.FromJson("""{"ShowCardPool":true,"PickHints":"StatsOnly","OverlayScale":1.2}""");
+        Assert.Equal((true, CardPoolHover.Ctrl, true), (old.ShowCardPool, old.CardPoolHover, old.CardPoolOnDiscover));
+        Assert.Equal((CardPoolHover.Ctrl, true), (new AppSettings().CardPoolHover, new AppSettings().CardPoolOnDiscover));
+
+        var saved = AppSettings.FromJson(new AppSettings { CardPoolHover = CardPoolHover.Off, CardPoolOnDiscover = false }.ToJson());
+        Assert.Equal((CardPoolHover.Off, false), (saved.CardPoolHover, saved.CardPoolOnDiscover));
+        Assert.Equal(CardPoolHover.Ctrl, AppSettings.FromJson("""{"CardPoolHover":7}""").CardPoolHover);
+
+        File.WriteAllText(FilePath, """{"CardPoolHover":"Shift","ShowCardPool":false,"OverlayScale":1.2}""");
+        var salvaged = AppSettings.Load(FilePath);
+        Assert.Equal((CardPoolHover.Ctrl, false, 1.2), (salvaged.CardPoolHover, salvaged.ShowCardPool, salvaged.OverlayScale));
+
+        // Settings' radio buttons: checking one sets the mode, the unchecked one's false is ignored.
+        var radios = new AppSettings { CardPoolHoverAlways = true };
+        radios.CardPoolHoverCtrl = false;
+        Assert.Equal((CardPoolHover.Always, false, true, false), (radios.CardPoolHover, radios.CardPoolHoverCtrl, radios.CardPoolHoverAlways, radios.CardPoolHoverOff));
     }
 
     [Fact]

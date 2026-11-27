@@ -118,12 +118,12 @@ public sealed class MatchListTests
         var game = Play([.. Minion(40, "DR_1", 1)], out _);
         var hover = new CardPoolTracker();
 
-        hover.SetHovered("JAIL_940", DateTime.UtcNow);
+        hover.SetHovered("JAIL_940");
         Assert.Equal("JAIL_940", hover.HoveredInHand(game));
         Assert.Equal(new CardPoolAnchor(PoolAnchorZone.Hand, 0, 1), CardPoolTracker.HandAnchor(game, "JAIL_940"));
 
         // A card on the board is not in hand: no list for it.
-        hover.SetHovered("DR_1", DateTime.UtcNow);
+        hover.SetHovered("DR_1");
         Assert.Null(hover.HoveredInHand(game));
         Assert.Null(CardPoolTracker.HandAnchor(game, "DR_1"));
     }

@@ -441,23 +441,25 @@ internal static class TickBench
             cost, attack, health, [], null, null, entries);
         var list = new MatchListView("BENCH_GEN", "Bench generator", "Your minions that died", 8,
             [.. Enumerable.Range(0, 8).Select(i => new MatchListRow($"BENCH_L{i}", $"Died {i}", i, "COMMON", 1))]);
-        vm.Update(snapshot with { Constructed = constructed with { CardPool = pool, MatchList = list, CardPoolAnchor = new CardPoolAnchor(PoolAnchorZone.Hand, 3, 7) } },
+        // A hand card's pool at the panel's own spot, Ctrl held (the default hover mode shows it only then).
+        vm.UpdateCardPoolKeys(true);
+        vm.Update(snapshot with { Constructed = constructed with { CardPool = pool, MatchList = list, CardPoolAnchor = null } },
             cards, settings, null, null);
         Pump();
         window.UpdateLayout();
-        if (FindAll<CardPoolPanel>(root).FirstOrDefault(p => p.Anchored && p.IsVisible) is not { } panel
+        if (FindAll<CardPoolPanel>(root).FirstOrDefault(p => !p.Anchored && p.IsVisible) is not { } panel
             || panel.FindName("Card") is not FrameworkElement card
             || typeof(CardPoolPanel).GetMethod("PollAt", flags) is not { } pollAt
             || typeof(CardPoolPanel).GetField("_rowsDirty", flags) is not { } dirty)
         {
-            Console.WriteLine("[tick] CardPoolPanel.Poll over the panel: the popup did not show");
+            Console.WriteLine("[tick] CardPoolPanel.Poll over the panel: the panel did not show");
             return;
         }
 
         // A row low in the panel (the last "this game" or top-card row), so the lookup passes the rows above it.
         var row = FindAll<FrameworkElement>(card).LastOrDefault(e => Hearthpulse.App.Controls.CardPreview.HasPreview(e) && e.IsVisible && e.ActualWidth > 0);
         var at = row is null ? card.PointToScreen(new Point(card.ActualWidth / 2, card.ActualHeight / 2)) : row.PointToScreen(new Point(row.ActualWidth / 2, row.ActualHeight / 2));
-        object[] args = [at, false, false];
+        object[] args = [at];
         foreach (var cold in new[] { false, true })
         {
             pollAt.Invoke(panel, args);

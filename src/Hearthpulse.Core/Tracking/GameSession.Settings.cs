@@ -13,6 +13,7 @@ public sealed partial class GameSession
         // version is no longer read from the settings).
         SetCompMode(CompMode.Manual, null);
         SetCardPoolEnabled(settings.ShowCardPool);
+        SetCardPoolModes(settings.CardPoolHover, settings.CardPoolOnDiscover);
         SetArenaDraftEnabled(settings.ShowArenaDraft);
         SetBgOpponentMmrEnabled(settings.ShowBgOpponentMmr);
         SetLadderBreak(TimeSpan.FromHours(Math.Clamp(settings.LadderSessionBreakHours, 1, 12)));
@@ -22,4 +23,7 @@ public sealed partial class GameSession
     /// <summary>What <see cref="ApplySettings"/> set, for tests.</summary>
     internal (bool CardPool, bool ArenaDraft, bool BgOpponentMmr, TimeSpan LadderBreak) Steering =>
         (_cardPoolEnabled, _arenaDraftEnabled, _bgMmrEnabled, _ladderBreak);
+
+    /// <summary>The card pool's hover mode and Discover switch <see cref="ApplySettings"/> set, for tests.</summary>
+    internal (CardPoolHover Hover, bool OnDiscover) CardPoolSteering => (_cardPoolHover, _cardPool.OnDiscover);
 }

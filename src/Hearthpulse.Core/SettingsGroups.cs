@@ -56,7 +56,8 @@ public static class SettingsGroups
         [Tracker] =
         [
             nameof(AppSettings.ShowDeckTracker), nameof(AppSettings.ShowDrawChance), nameof(AppSettings.ShowOpponentTracker),
-            nameof(AppSettings.ShowCardPool), nameof(AppSettings.ShowArenaDraft), nameof(AppSettings.ShowMulligan),
+            nameof(AppSettings.ShowCardPool), nameof(AppSettings.CardPoolHover), nameof(AppSettings.CardPoolOnDiscover),
+            nameof(AppSettings.ShowArenaDraft), nameof(AppSettings.ShowMulligan),
             nameof(AppSettings.ShowCounters), nameof(AppSettings.ShowOpponentCounters), nameof(AppSettings.CounterModes),
         ],
         [Stream] =

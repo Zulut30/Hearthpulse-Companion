@@ -9,8 +9,8 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// The card under the mouse is read from the game only while a hover can show something: a card with a pool in your
-/// hand (legal review L-m1: memory reads only when needed). The hovered card's pool on the way from the card to its
-/// panel (TASK-2026-11-09-card-pool-related A1) and the pool engine's caches (B1), on synthetic card data and catalog.
+/// hand (legal review L-m1: memory reads only when needed; the hover modes are CardPoolHoverModeTests). Which hovered
+/// card shows its pool, and the pool engine's caches (B1), on synthetic card data and catalog.
 /// </summary>
 public sealed class CardPoolHoverTests
 {
@@ -92,89 +92,64 @@ public sealed class CardPoolHoverTests
         return (game, new CardPoolTracker { Engine = new CardPoolEngine(SynCatalog, SynCards) });
     }
 
-    private static TimeSpan Ms(int ms) => TimeSpan.FromMilliseconds(ms);
-
-    /// <summary>AC1: crossing a neighbour with nothing to show on the way to the panel keeps the generator's pool.</summary>
+    /// <summary>
+    /// TASK-2026-11-26 AC4: the pool shows at the panel's own spot, so the tracker keeps no linger and no neighbour rule:
+    /// the card under the mouse is the one shown, and the overlay keeps it a moment after it goes (OverlayViewModel).
+    /// </summary>
     [Fact]
-    public void A_neighbour_without_a_pool_or_list_keeps_the_left_cards_pool_until_its_linger_ends()
+    public void The_hovered_card_is_the_one_shown_and_nothing_lingers()
     {
         var (game, tracker) = Hand("GEN_A", "PLAIN");
-        var now = DateTime.UtcNow;
 
-        tracker.SetHovered("GEN_A", now - Ms(700));
+        Assert.True(tracker.SetHovered("GEN_A"));
         Assert.Equal("GEN_A", tracker.BuildView(game, SynCards)?.SourceCardId);
+        Assert.False(tracker.SetHovered("GEN_A"));
 
-        // Left the generator 500 ms ago over the neighbour, then reached the panel (nothing under the mouse).
-        tracker.SetHovered("PLAIN", now - Ms(500));
-        Assert.Equal("GEN_A", tracker.BuildView(game, SynCards)?.SourceCardId);
-        tracker.SetHovered(null, now - Ms(250));
-        Assert.Equal("GEN_A", tracker.BuildView(game, SynCards)?.SourceCardId);
-    }
-
-    /// <summary>AC1: the linger runs from leaving the generator; crossing a card with nothing to show does not restart it.</summary>
-    [Fact]
-    public void The_linger_counts_from_leaving_the_generator_not_from_the_neighbour()
-    {
-        var (game, tracker) = Hand("GEN_A", "PLAIN");
-        var now = DateTime.UtcNow;
-
-        tracker.SetHovered("GEN_A", now - Ms(1200));
-        Assert.NotNull(tracker.BuildView(game, SynCards));
-        tracker.SetHovered("PLAIN", now - Ms(900));
-        tracker.SetHovered(null, now - Ms(50));
-
+        // A neighbour with nothing to show, then nothing under the mouse: no pool from the tracker at once.
+        Assert.True(tracker.SetHovered("PLAIN"));
         Assert.Null(tracker.BuildView(game, SynCards));
-        // The ended linger is reported, so the overlay hides the panel.
-        Assert.True(tracker.SetHovered(null, now));
+        Assert.True(tracker.SetHovered(null));
+        Assert.Null(tracker.BuildView(game, SynCards));
     }
 
-    /// <summary>AC1: a neighbour with a pool of its own, or with a list, takes the panel as before.</summary>
+    /// <summary>A neighbour with a pool of its own, or with a list, takes the panel.</summary>
     [Fact]
     public void A_neighbour_with_its_own_pool_or_list_takes_the_panel()
     {
         var (game, tracker) = Hand("GEN_A", "GEN_B", "LISTED");
-        var now = DateTime.UtcNow;
 
-        tracker.SetHovered("GEN_A", now - Ms(400));
+        tracker.SetHovered("GEN_A");
         Assert.Equal("GEN_A", tracker.BuildView(game, SynCards)?.SourceCardId);
-        tracker.SetHovered("GEN_B", now - Ms(300));
+        tracker.SetHovered("GEN_B");
         Assert.Equal("GEN_B", tracker.BuildView(game, SynCards)?.SourceCardId);
 
-        // A card with only a list ("this game" or related cards): the session's predicate says so.
+        // A card with only a "this game" list: the session's predicate says so.
         bool Shows(string id) => id == "LISTED" || tracker.Engine!.Build(id, CardPoolTracker.ContextOf(game, SynCards), PoolTrigger.Hover) is not null;
-        tracker.SetHovered("LISTED", now - Ms(200));
+        tracker.SetHovered("LISTED");
         Assert.Equal("LISTED", tracker.HoverCard(game, Shows));
         Assert.Null(tracker.BuildView(game, SynCards, "LISTED"));
-
-        // Leaving the listed card for nothing lingers on it, not on the generators before it.
-        tracker.SetHovered(null, now - Ms(100));
-        Assert.Equal("LISTED", tracker.HoverCard(game, Shows));
     }
 
-    /// <summary>AC1/AC10: a lingering card that left your hand (played) shows nothing.</summary>
+    /// <summary>A hovered card that is not in your hand (played, or the opponent's) shows nothing.</summary>
     [Fact]
-    public void A_lingering_card_that_is_not_in_your_hand_shows_nothing()
+    public void A_hovered_card_that_is_not_in_your_hand_shows_nothing()
     {
         var (game, tracker) = Hand("PLAIN");
-        tracker.SetHovered("GEN_A", DateTime.UtcNow);
+        tracker.SetHovered("GEN_A");
         Assert.Null(tracker.BuildView(game, SynCards));
-        tracker.SetHovered(null, DateTime.UtcNow);
-        Assert.Null(tracker.BuildView(game, SynCards));
+        Assert.Null(tracker.HoveredInHand(game));
     }
 
-    /// <summary>AC1: the mouse on a card outside your hand (the board) ends the linger; it does not come back after.</summary>
+    /// <summary>The mouse on a card outside your hand (the board) shows nothing.</summary>
     [Fact]
-    public void A_card_on_the_board_ends_the_linger()
+    public void A_card_on_the_board_shows_nothing()
     {
         var (game, _) = Play([[.. EctoplasmListTests.Card(40, "GEN_A", "HAND", 1, "SPELL"), .. Minion(41, "PLAIN", 1)]]);
         var tracker = new CardPoolTracker { Engine = new CardPoolEngine(SynCatalog, SynCards) };
-        var now = DateTime.UtcNow;
 
-        tracker.SetHovered("GEN_A", now - Ms(300));
+        tracker.SetHovered("GEN_A");
         Assert.NotNull(tracker.BuildView(game, SynCards));
-        tracker.SetHovered("PLAIN", now - Ms(200));
-        Assert.Null(tracker.BuildView(game, SynCards));
-        tracker.SetHovered(null, now - Ms(100));
+        tracker.SetHovered("PLAIN");
         Assert.Null(tracker.BuildView(game, SynCards));
     }
 
@@ -187,7 +162,7 @@ public sealed class CardPoolHoverTests
     {
         var (game, tracker) = Hand("PLAIN", "NONE_1", "NONE_2", "NONE_3", "NONE_4", "NONE_5", "NONE_6", "NONE_7", "NONE_8", "GEN_A");
         var engine = tracker.Engine!;
-        tracker.SetHovered("NONE_3", DateTime.UtcNow);
+        tracker.SetHovered("NONE_3");
 
         for (var i = 0; i < 100; i++)
         {

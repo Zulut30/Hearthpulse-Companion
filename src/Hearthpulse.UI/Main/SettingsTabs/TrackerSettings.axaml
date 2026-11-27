@@ -4,6 +4,7 @@
              xmlns:c="using:Hearthpulse.UI.Controls"
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              xmlns:core="using:Hearthpulse.Core"
+             xmlns:mem="using:Hearthpulse.Core.Memory"
              xmlns:s="using:Hearthpulse.UI.Main.Stats"
              xmlns:mm="using:Hearthpulse.UI.Main.Meta"
              xmlns:dk="using:Hearthpulse.UI.Main.Decks"
@@ -45,8 +46,34 @@
                 <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.DrawChance}" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Opponent}" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14"
                           ToolTip.Tip="{i:Loc Settings.Tracker.OpponentTip}" />
-                <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.CardPool}" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
+                <CheckBox Name="CardPoolSetting" Classes="switch" Content="{i:Loc Settings.Tracker.CardPool}" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
                           ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolTip}" />
+                <!-- Both rows go off with the switch above; each radio's Tag is applied in MainView.Settings.cs. The hover row
+                     needs game memory (Windows only, hidden elsewhere) and says so while reading the client is off. -->
+                <StackPanel Name="CardPoolHoverBlock" IsVisible="{x:Static mem:HearthstoneMemory.IsSupported}"
+                            IsEnabled="{Binding $parent[UserControl].((m:MainViewModel)DataContext).ReadGameMemory}">
+                <Grid Name="CardPoolHoverRow" Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,12"
+                      IsEnabled="{Binding #CardPoolSetting.IsChecked}">
+                    <TextBlock Text="{i:Loc Settings.Tracker.CardPoolHover}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolHoverTip}" />
+                    <Border Classes="segmentBar choice">
+                        <WrapPanel>
+                            <RadioButton Name="CardPoolHoverCtrlOption" Classes="segment" Content="{i:Loc Settings.Tracker.CardPoolHover.Ctrl}" GroupName="CardPoolHover"
+                                         IsChecked="{Binding CardPoolHoverCtrl, Mode=OneWay}" Tag="CardPoolHover.Ctrl"
+                                         ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolHoverTip}" />
+                            <RadioButton Name="CardPoolHoverAlwaysOption" Classes="segment" Content="{i:Loc Settings.Tracker.CardPoolHover.Always}" GroupName="CardPoolHover"
+                                         IsChecked="{Binding CardPoolHoverAlways, Mode=OneWay}" Tag="CardPoolHover.Always"
+                                         ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolHoverTip}" />
+                            <RadioButton Name="CardPoolHoverOffOption" Classes="segment" Content="{i:Loc Settings.Tracker.CardPoolHover.Off}" GroupName="CardPoolHover"
+                                         IsChecked="{Binding CardPoolHoverOff, Mode=OneWay}" Tag="CardPoolHover.Off"
+                                         ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolHoverTip}" />
+                        </WrapPanel>
+                    </Border>
+                </Grid>
+                <TextBlock Name="CardPoolHoverOffNote" Text="{i:Loc Settings.Tracker.CardPoolHoverOff}" Classes="caption" TextWrapping="Wrap" Margin="0,-8,0,12"
+                           IsVisible="{Binding $parent[UserControl].((m:MainViewModel)DataContext).GameMemoryOff}" />
+                </StackPanel>
+                <CheckBox Name="CardPoolDiscoverSetting" Classes="switch" Content="{i:Loc Settings.Tracker.CardPoolDiscover}" IsChecked="{Binding CardPoolOnDiscover}"
+                          Margin="0,0,0,16" IsEnabled="{Binding #CardPoolSetting.IsChecked}" />
                 <CheckBox Classes="switch" Content="{i:Loc Arena.Settings.Show}" IsChecked="{Binding ShowArenaDraft}" Margin="0,0,0,14"
                           ToolTip.Tip="{i:Loc Arena.Settings.ShowTip}" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Summary}" IsChecked="{Binding ShowGameToasts}" />

@@ -42,6 +42,16 @@ public sealed class SessionSettingsTests : IDisposable
     }
 
     [Fact]
+    public void The_card_pool_hover_mode_and_discover_switch_reach_the_session()
+    {
+        _session.ApplySettings(new AppSettings());
+        Assert.Equal((CardPoolHover.Ctrl, true), _session.CardPoolSteering);
+
+        _session.ApplySettings(new AppSettings { CardPoolHover = CardPoolHover.Off, CardPoolOnDiscover = false });
+        Assert.Equal((CardPoolHover.Off, false), _session.CardPoolSteering);
+    }
+
+    [Fact]
     public void A_comp_saved_by_an_older_version_is_not_planned_around()
     {
         _session.SetCompMode(CompMode.Auto, null);

@@ -4,30 +4,17 @@
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
              xmlns:c="clr-namespace:Hearthpulse.App.Controls">
-    <!-- The compact card pool panel (300 wide): at its own spot (MovablePanel "card-pool") or next to its card (the card
-         pool layer). Header, the cards of this game a hovered card looks back at, a summary grid, the most played cards as
-         tracker rows, the right-click hint (the full view is the pool browser), and the card's related cards in a zone
-         of their own. DataContext is the OverlayViewModel. -->
+    <!-- The compact card pool panel: at its own spot (MovablePanel "card-pool") or beside the options of the player's own
+         Discover. DataContext is the OverlayViewModel. Avalonia twin: Overlay/CardPoolPanel.axaml. -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="OverlayLook.xaml" />
+                <!-- The overlay's look and LockButton, the accent plate of the "All cards" button -->
+                <ResourceDictionary Source="/Hearthpulse;component/Overlay/OverlayPanels.xaml" />
             </ResourceDictionary.MergedDictionaries>
-        <i:VisibleWhen x:Key="Vis" />
-        <i:KeyBrush x:Key="KeyBrush" />
 
-        <!-- Section chips (the generator's separate pools) -->
-        <Style x:Key="Chip" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource AccentSoft}" />
-            <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="{StaticResource RadiusSmall}" />
-            <Setter Property="Padding" Value="8,1" />
-            <Setter Property="Margin" Value="0,0,4,4" />
-        </Style>
-
-        <!-- Every card row of the panel (this game, Excavate, meta, related) as a deck tracker row: cost gem, name over a
-             strip of art, "×2" or a share on the right; one quiet edge for all, no rarity colour. -->
+        <!-- Every card row of the panel (this game, Excavate, the pool's cards) as a deck tracker row: cost gem, name over a
+             strip of art, "×2" on the right; one quiet edge for all, no rarity colour. -->
         <DataTemplate x:Key="PoolRowTemplate" DataType="{x:Type o:PoolListRow}">
             <!-- The full card on hover: the panel lets clicks through, so the poll finds the row under the pointer -->
             <Grid Height="24" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
@@ -52,65 +39,33 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <!-- Not interactive: clicks reach the board and the Discover options under it; hover and right-click are polled.
-         The opacity carries the short fade-in when the panel first appears. The popup's fill (OverlayPopupSolid, set in
-         code) does not fade with the overlay opacity; the edge turns gold while the pointer holds the pool (code). -->
+    <!-- Not interactive but for its "All cards" button: clicks reach the board and the Discover options under it; hover is
+         polled. The opacity carries the short fade-in when the panel first appears. Beside a Discover its fill
+         (OverlayPopupSolid, set in code) does not fade with the overlay opacity. -->
     <Border x:Name="Card" Style="{StaticResource OverlayCardSolid}" Width="300">
         <StackPanel>
-            <!-- ===== Header: the pool's size (or the list's name), one line of classes · format ===== -->
+            <!-- ===== Header: the card's name, then the pool's size and classes (or the Excavate tier) ===== -->
             <Border Style="{StaticResource OverlayHeader}">
                 <StackPanel>
                     <TextBlock Text="{Binding CardPoolTitle}" Style="{StaticResource OverlayHeaderTitle}" TextWrapping="Wrap" MaxHeight="38" />
-                    <!-- Next to its card: "classes · format"; at its own spot the card's name comes first (code shows one) -->
-                    <TextBlock x:Name="PopupNote" Text="{Binding CardPoolMeta}" Style="{StaticResource OverlayHeaderNote}" TextWrapping="Wrap" MaxHeight="30"
-                               Visibility="{Binding CardPoolMeta, Converter={StaticResource Vis}}" />
-                    <TextBlock x:Name="PanelNote" Text="{Binding CardPoolSourceNote}" Style="{StaticResource OverlayHeaderNote}" TextWrapping="Wrap" MaxHeight="30"
-                               Visibility="{Binding CardPoolSourceNote, Converter={StaticResource Vis}}" />
+                    <TextBlock Text="{Binding CardPoolNote}" Style="{StaticResource OverlayHeaderNote}" TextWrapping="Wrap" MaxHeight="30"
+                               Visibility="{Binding CardPoolNote, Converter={StaticResource Vis}}" />
                 </StackPanel>
             </Border>
-            <ItemsControl ItemsSource="{Binding CardPoolSections}" Focusable="False" Margin="12,8,12,-4" Visibility="{Binding ShowCardPoolPanelSections, Converter={StaticResource Vis}}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type o:PoolChipModel}">
-                        <Border Style="{StaticResource Chip}">
-                            <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeMicro}" FontWeight="SemiBold" Foreground="{StaticResource Accent}" />
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
 
             <!-- ===== This game: the cards the hovered card looks back at (died, cast, played) ===== -->
             <StackPanel Margin="12,12,12,0" Visibility="{Binding ShowCardPoolList, Converter={StaticResource Vis}}">
-                <ContentControl Style="{StaticResource OverlaySection}" Content="{Binding CardPoolListTitle}" Margin="0,0,0,4"
-                                Visibility="{Binding CardPoolListTitle, Converter={StaticResource Vis}}" />
+                <ContentControl Style="{StaticResource OverlaySection}" Content="{Binding CardPoolListTitle}" Margin="0,0,0,4" />
                 <ItemsControl ItemsSource="{Binding CardPoolList}" ItemTemplate="{StaticResource PoolRowTemplate}" Focusable="False" />
                 <TextBlock Text="{Binding CardPoolListNote}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
                            Visibility="{Binding CardPoolListNote, Converter={StaticResource Vis}}" />
             </StackPanel>
 
-            <!-- ===== Excavate: the next tier's treasures as rows, then the other tiers in the cycle's order, one line each ===== -->
+            <!-- ===== Excavate: the next tier's treasures as rows (every tier is in the browser) ===== -->
             <StackPanel Margin="12,12,12,0" Visibility="{Binding ShowCardPoolExcavate, Converter={StaticResource Vis}}">
                 <ContentControl Style="{StaticResource OverlaySection}" Content="{Binding CardPoolExcavateNext}" Margin="0,0,0,4"
                                 Visibility="{Binding CardPoolExcavateNext, Converter={StaticResource Vis}}" />
                 <ItemsControl ItemsSource="{Binding CardPoolExcavateRows}" ItemTemplate="{StaticResource PoolRowTemplate}" Focusable="False" />
-                <ItemsControl ItemsSource="{Binding CardPoolExcavateTiers}" Focusable="False" Margin="0,2,0,0">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type o:ExcavateTierRow}">
-                            <!-- The tier's rarity is its colour: the one place the panel shows one -->
-                            <DockPanel Margin="0,0,0,2">
-                                <Border DockPanel.Dock="Left" Width="3" Height="12" CornerRadius="1.5" Margin="0,0,4,0" VerticalAlignment="Center"
-                                        Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                                <TextBlock DockPanel.Dock="Left" Text="{Binding Label}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
-                                           Width="34" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Names}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                            </DockPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
             </StackPanel>
 
             <!-- ===== Your open choice: what players take from these options, Hearthpulse data (numbers only, no advice) ===== -->
@@ -159,58 +114,19 @@
                            Visibility="{Binding CardPoolPicksNote, Converter={StaticResource Vis}}" />
             </StackPanel>
 
-            <!-- ===== Summary: averages, then the most common mechanics, two cells a row. A wrap panel of half-width cells, not a
-                 uniform grid: a long name ("Предсмертный хрип") takes a second line in its own row only, and the panel takes no
-                 clicks, so a cut name could not be read from a tooltip ===== -->
-            <ItemsControl ItemsSource="{Binding CardPoolSummary}" Focusable="False" Margin="12,12,0,0" Visibility="{Binding CardPoolSummary, Converter={StaticResource Vis}}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel ItemWidth="142" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type o:PoolAverage}">
-                        <DockPanel MinHeight="18" Margin="0,0,12,0">
-                            <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeLabel}" FontWeight="Bold"
-                                       Foreground="{StaticResource Text}" VerticalAlignment="Center" Margin="4,0,0,0" />
-                            <TextBlock Text="{Binding Label}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                                       LineStackingStrategy="BlockLineHeight" LineHeight="14" MaxHeight="30" Margin="0,2" VerticalAlignment="Center" />
-                        </DockPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-            <!-- ===== Most played in meta decks: rows with their share ===== -->
-            <StackPanel Margin="12,12,12,0" Visibility="{Binding CardPoolTopCards, Converter={StaticResource Vis}}">
-                <ContentControl Style="{StaticResource OverlaySection}" Content="{i:Loc Pool.FeaturedReason}" Margin="0,0,0,4" />
-                <ItemsControl ItemsSource="{Binding CardPoolTopCards}" ItemTemplate="{StaticResource PoolRowTemplate}" Focusable="False" />
+            <!-- ===== The pool's cards: all of a small pool, else the most played in meta decks, in that order ===== -->
+            <StackPanel Margin="12,12,12,0" Visibility="{Binding CardPoolRows, Converter={StaticResource Vis}}">
+                <ContentControl Style="{StaticResource OverlaySection}" Content="{Binding CardPoolRowsTitle}" Margin="0,0,0,4" />
+                <ItemsControl ItemsSource="{Binding CardPoolRows}" ItemTemplate="{StaticResource PoolRowTemplate}" Focusable="False" />
             </StackPanel>
 
-            <!-- ===== The end of the pool: the right-click hint (gold while the pointer holds the pool) ===== -->
-            <TextBlock Text="{i:Loc Pool.RightClickHint}" FontSize="{StaticResource FontSizeSmall}" HorizontalAlignment="Center" Margin="12,8,12,8" TextTrimming="CharacterEllipsis"
-                       Visibility="{Binding CardPoolHasCards, Converter={StaticResource Vis}}">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="Foreground" Value="{StaticResource Muted}" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding CardPoolHeld}" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource Accent}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <Border Height="8" Visibility="{Binding CardPoolHasCards, Converter={StaticResource Vis}, ConverterParameter=!}" />
-
-            <!-- ===== Related cards: a zone of its own under a full-width hairline, not part of the pool ===== -->
-            <Border BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,8,12,8" Visibility="{Binding ShowCardPoolRelated, Converter={StaticResource Vis}}">
-                <StackPanel>
-                    <ContentControl Style="{StaticResource OverlaySection}" Content="{Binding CardPoolRelatedTitle}" Margin="0,0,0,4" />
-                    <ItemsControl ItemsSource="{Binding CardPoolRelated}" ItemTemplate="{StaticResource PoolRowTemplate}" Focusable="False" />
-                    <TextBlock Text="{Binding CardPoolRelatedNote}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
-                               Visibility="{Binding CardPoolRelatedNote, Converter={StaticResource Vis}}" />
-                </StackPanel>
-            </Border>
+            <!-- ===== The end: "All cards · N" opens the browser, the one part of the panel that takes the mouse ===== -->
+            <Button x:Name="AllCards" Style="{StaticResource LockButton}" Command="{Binding OpenCardPoolBrowser}" HorizontalAlignment="Center" Margin="12,8,12,12"
+                    o:OverlayHit.Interactive="True" AutomationProperties.Name="{Binding CardPoolAllCardsText}"
+                    Visibility="{Binding ShowCardPoolAllCards, Converter={StaticResource Vis}}">
+                <TextBlock Text="{Binding CardPoolAllCardsText}" FontSize="{StaticResource FontSizeSmall}" FontWeight="Bold" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center" />
+            </Button>
+            <Border Height="8" Visibility="{Binding ShowCardPoolAllCards, Converter={StaticResource Vis}, ConverterParameter=!}" />
         </StackPanel>
     </Border>
 </UserControl>
