@@ -8,8 +8,14 @@ import legacy, { prune } from '../src/index.js';
 import { pruneEvents } from '../src/events.js';
 import { CaptureArchive } from './archive.mjs';
 import { bgHeroesResponse, thresholds } from './analytics.mjs';
+import * as records from './records/index.mjs';
+import { loadModules } from './records/loader.mjs';
+import { readPatches } from './records/periods.mjs';
 import { openDatabase, ResponseCache, SerialQueue } from './sqlite.mjs';
 import { CaptureError, fail, MiB, int, parseJson } from './validation.mjs';
+
+// Views of the record pass (docs/analytics-records.md): GET only, served from the published snapshot.
+const RECORDS_ROUTE = '/v2/analytics/records/';
 
 const json = (body, code = 200) => new Response(JSON.stringify(body), { status: code, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 const loopback = address => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(address);
@@ -44,11 +50,23 @@ function takeLock(root) {
   return () => { guard.exec('ROLLBACK'); guard.close(); };
 }
 
-/** Starts a single-writer Linux/Windows Node service. Port 0 is supported for isolated loopback tests. */
+/**
+ * Starts a single-writer Linux/Windows Node service. Port 0 is supported for isolated loopback tests. `records` may
+ * give tests their own record views and patches: {modules: {views, derivers}, patches, patchesFile, dir, log}.
+ */
 export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, operatorToken = '',
-  maxRequests = 4, archive: archiveOptions = {}, legacyEnv = {}, schedule = true } = {}) {
+  maxRequests = 4, archive: archiveOptions = {}, legacyEnv = {}, schedule = true, records: recordsOptions = {} } = {}) {
   if (!dataDir || !path.isAbsolute(dataDir) || !int(port, 0, 65535) || !int(maxRequests, 1, 32)) throw new Error('invalid_service_config');
   thresholds(); // An invalid ANALYTICS_MIN_* stops the start instead of failing every later rebuild silently.
+  // A malformed balance-patches.json switches the record views off (records_patches_invalid), and only them: windows
+  // read from a misread file would publish numbers under the wrong patch. A broken view or deriver leaves itself out.
+  const recordLog = recordsOptions.log ?? console.error;
+  let patches = recordsOptions.patches ?? null;
+  if (patches === null) {
+    try { patches = readPatches(recordsOptions.patchesFile); } catch (e) { reportFailure('records_patches_invalid', recordLog)(e); }
+  }
+  const modules = patches === null ? { views: [], derivers: [], rejected: [] }
+    : recordsOptions.modules ?? await loadModules({ dir: recordsOptions.dir, log: recordLog });
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   const unlock = takeLock(dataDir);
   const queue = new SerialQueue();
@@ -85,6 +103,21 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
         if (req.method !== 'GET') fail(405, 'method_not_allowed');
         const answer = bgHeroesResponse(store.sqlite, url.searchParams);
         response = json(answer.body, answer.status);
+      } else if (route.startsWith(RECORDS_ROUTE)) {
+        // Reads the published rows only; the pass runs on its timer in the queue, never in a request.
+        if (req.method !== 'GET') fail(405, 'method_not_allowed');
+        if (patches === null) {
+          // The views are off until a deploy fixes balance-patches.json: a passing outage, not a view the pool lacks, so
+          // the app shows "offline" and asks again, instead of "not counted for this mode" for an hour (A5 review m5).
+          response = json({ ok: false, error: 'records_off' }, 503);
+          response.headers.set('retry-after', '60');
+        } else {
+          const answer = records.answer(store.sqlite, route.slice(RECORDS_ROUTE.length), url.searchParams, { modules, log: recordLog });
+          response = json(answer.body, answer.status);
+        }
+      } else if (route.startsWith('/v2/')) {
+        // nginx passes the whole /v2/analytics/ prefix: anything else under /v2 is not found, without the write queue.
+        fail(404, 'not_found');
       } else if (route.startsWith('/v1/captures/')) {
         if (req.method !== 'POST') fail(405, 'method_not_allowed');
         if (OPERATOR_ROUTES.includes(route) && !operator(req, operatorToken)) fail(403, 'operator_only');
@@ -138,6 +171,8 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
   } catch (e) { store.close(); unlock(); throw e; }
   // The minute's upkeep; on the descriptor too, so a test runs the very pass the timer runs.
   const maintenance = log => maintenanceTick({ archive, queue, env, cache }, log);
+  // The record pass, in the queue (one transaction, nothing else writes meanwhile); it builds only when due.
+  const refreshRecords = (options = {}) => queue.run(() => records.refresh(store.sqlite, { modules, patches, log: recordLog, ...options }));
   const timers = [];
   if (schedule) {
     timers.push(setInterval(() => { archive.tick().catch(() => {}); }, 1000));
@@ -145,11 +180,12 @@ export async function startPool({ dataDir, host = '127.0.0.1', port = 3181, oper
     timers.push(setInterval(() => { archive.refreshAnalytics().catch(reportFailure('analytics_refresh_failed')); }, 60_000));
     // Each step reports its own failure; this is the last guard, as an unhandled rejection stops Node 24.
     timers.push(setInterval(() => { maintenance().catch(reportFailure('maintenance_failed')); }, 60_000));
+    timers.push(setInterval(() => { refreshRecords().catch(reportFailure('records_refresh_failed', recordLog)); }, 60_000));
     for (const t of timers) t.unref();
   }
   let closePromise;
   return {
-    server, archive, store, maintenance,
+    server, archive, store, maintenance, refreshRecords, recordModules: modules,
     url: `http://${host === '::1' ? '[::1]' : host}:${server.address().port}`,
     close() {
       return closePromise ??= (async () => {
@@ -219,7 +255,8 @@ export function configFromEnvironment() {
 
 /**
  * "Alive" is not "producing": what arrived today (the write counters the quotas keep), what is stored, and how old the
- * analytics snapshot is. Counts and times only; no id, generation or body.
+ * analytics snapshot is. Counts and times only; no id, generation or body. `records` is the record pass: its last
+ * build, and how many views are published, withdrawn or failed in it.
  */
 export function flow(db) {
   const day = Math.floor(Date.now() / 86_400_000);
@@ -229,6 +266,7 @@ export function flow(db) {
     intake: { day, shared: one('SELECT n FROM quota WHERE day=?', day), records: one('SELECT n FROM equota WHERE day=?', day) },
     stored: { shared: one('SELECT COUNT(*) AS n FROM g'), picks: one('SELECT COUNT(*) AS n FROM c'), records: one('SELECT COUNT(*) AS n FROM e') },
     analytics: snap ? { built: snap.built, stale: !!snap.stale, published: !!snap.published } : { built: null, stale: false, published: false },
+    records: records.status(db),
   };
 }
 

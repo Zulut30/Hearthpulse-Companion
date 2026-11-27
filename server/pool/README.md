@@ -24,6 +24,13 @@ until it restarts. Rolled back after it took v4, the pool gets each journal as v
 is lost. Tests:
 `npm test` here (the same `node --test server/pool/test/*.test.mjs` as CI).
 
+The Node service also computes Hearthpulse's own numbers from the game records by HSReplay's rules (balance patch
+and the last 7 and 30 days, rank buckets, MMR ranges, 5 installations behind every number, an interval with every
+value) and serves them at `GET /v2/analytics/records/<view>`: the pass in [`node/records/`](node/records/), one view
+per file, the balance patches in [`data/`](data/README.md), the contract for views and derivers, the envelope and the
+withdrawal on deletion in [docs/analytics-records.md](../../docs/analytics-records.md). The same intake now accepts
+the record's `build`, the `band` "d4-1" of diamond, `bg.comp` and the Arena run summary `arena_run`. No migration.
+
 A small Cloudflare Worker that collects the Battlegrounds games players choose to share and serves the totals:
 heroes, final boards, trinkets, tribes, tavern tier timing, combat odds, picks (Discover, triple rewards, trinkets)
 and the cards played. It also collects the Discover-style picks of shared Ranked and Casual Constructed games and

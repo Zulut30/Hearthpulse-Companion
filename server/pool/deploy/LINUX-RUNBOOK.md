@@ -201,3 +201,62 @@ P4 must separately validate the **real P3 .NET CLI**, Linux filesystem permissio
 staging restart/deletion. Local Windows tests do not establish production or Linux runtime evidence.
 
 Accounting performance limit: both usage() and metadata() scan capture records. Accessing derived_bytes after a large derived field can walk SQLite overflow pages even though octet_length itself avoids reading the value. A warm Windows review measured about 70 ms over 69 MiB; cold-cache/Linux behavior is unmeasured. Do not extrapolate this as a latency guarantee. Reprocess can retain result-sized WAL until maintenance; external readers can delay checkpoint and admission.
+
+## Record views (TASK-2026-11-26-pro-collection, A0)
+
+The service computes Hearthpulse's own numbers from game records and serves them at
+`GET /v2/analytics/records/<view>` ([docs/analytics-records.md](../../../docs/analytics-records.md)). The pass runs in
+the service queue at most once a minute when due (new records wait 30 minutes; a deletion, a new day or a new
+version rebuild at once), in one transaction; no migration (`snap` rows `records` and `records:<view>`). `/healthz`
+shows `records: {built, views, published, withdrawn, failed}`. Until the first view is merged (wave 2) no view is
+loaded and every `/v2/analytics/records/<view>` answers the service's 404 `{"ok":false,"error":"unknown_view"}`.
+
+**nginx, once, in the first deploy that carries A0.** The include's `location = /stats/v2/analytics/bg/heroes` becomes
+`location ^~ /stats/v2/analytics/` with the same directives (GET only, zone `hearthpulse_stats_read`), so every later
+view needs no proxy change. The same TLS server serves the data API:
+
+1. Copy the live include aside (`cp -a <live include> <live include>.before-a0`).
+2. Compare it with this file as it was before A0 (`git show <A0 merge>^:server/pool/deploy/nginx-source-capture.conf`).
+   If they differ in anything but whitespace, stop and ask the owner: the host carries edits this repository does not
+   know.
+3. Install the new file in its place, `nginx -t`, and only on success `systemctl reload nginx`.
+4. Check, each answering as listed: `https://api.kolodahearthstone.com/v1/system/sources` 200 (the data API),
+   `/stats/v1/events/summary` 200, `/stats/v2/analytics/bg/heroes?mode=solo` 200,
+   `/stats/v2/analytics/records/<view>` 200 with a JSON envelope once a view exists, before that 404 with
+   `"error":"unknown_view"` (the service's own body, not nginx's), and `curl -X POST` on it 403.
+5. Rollback: put `<live include>.before-a0` back, `nginx -t`, reload.
+
+**After every deploy of the pool** (not only this one), once a minute has passed since the start, read every failure
+line of the new run, not just the `_failed` codes: a malformed `balance-patches.json` no longer stops the service, so
+only its line tells.
+
+```sh
+sudo journalctl -u hearthpulse-pool --since "$(systemctl show hearthpulse-pool -p ActiveEnterTimestamp --value)" \
+  --no-pager -o cat | grep '"ok":false'
+```
+
+Empty is the pass. `records_patches_invalid` means the views are off: fix the file and deploy again.
+`archive_maintain_failed` may be an old fault that was silent before 2026-11-26: tell the owner, it is not a reason to
+roll back.
+
+**Balance patches.** `server/pool/data/balance-patches.json` is kept by hand ([data/README.md](../data/README.md)): after
+a Hearthstone patch that changes cards, append an entry with the patch's first build and day to each line it changed,
+run `node --test server/pool/test/records-periods.test.mjs`, commit and deploy the pool. The build comes from the live
+client (the captures' builds or a fresh `Power.log`), not from HearthstoneJSON's newest folder, which can run ahead
+of it (data/README.md, "Find the build"). A forgotten entry merges two
+patches in the numbers; it is part of the deploy checklist after every patch. A malformed file switches the views off
+and nothing else: one journal line `records_patches_invalid` at start, every `/v2/analytics/records/<view>` answers
+503 `records_off` (`retry-after: 60`), the next pass removes the published view rows, and the service runs on, the
+intake of records included. Fix the file and deploy again; the views rebuild within a minute of the restart.
+
+**Log codes** (one JSON line each, in the journal; codes, keys and counts only, never a record or an id):
+
+| Code | Meaning | What waits |
+|---|---|---|
+| `records_refresh_failed` | the pass itself failed (`cause` is the error message, cut to 200 characters); rolled back | every view keeps its previous row; the next minute tries again |
+| `records_view_failed` | one view threw (`view`, `stage`: start, add, finish, slice) or would have published an install id or a record id (`stage: install_id`, `record_id`) | that view keeps its previous row (or none); the others publish; retried by the next pass due anyway (new records 30 minutes after the last pass, a new day or version), so a broken view shows once in 30 minutes, not every minute |
+| `records_derive_failed` | a deriver threw on `records` records of the pass (`deriver`) | those records lack its fields in this pass; a code bug |
+| `records_module_rejected` | at start, a module under `node/records/derive` or `views` did not load or broke the contract (`module`, `reason`) | that module is left out until a fixed deploy |
+| `records_patches_invalid` | at start, `server/pool/data/balance-patches.json` is missing or malformed (`cause: invalid_balance_patches`) | every view is off until a deploy with a fixed file; the rest of the service runs |
+
+A code that repeats every minute is a stuck step, as for the upkeep codes above.
